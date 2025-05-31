@@ -1,0 +1,7 @@
+ImageHash==4.3.2
+matplotlib==3.10.3
+numpy==2.2.6
+Pillow==11.2.1
+PyQt5==5.15.11
+PyQt5_sip==12.17.0
+questionary==2.1.0

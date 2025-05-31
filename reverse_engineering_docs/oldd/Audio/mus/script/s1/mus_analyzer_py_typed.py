@@ -234,8 +234,8 @@ def generate_type_report(file_type_name, type_data, total_bytes_all_files):
         pair_lengths_counter = collections.Counter(type_data['pair_lengths'])
         print(f"  Common combined (data+zero) lengths for pairs (Top 5):")
         for length, count in pair_lengths_counter.most_common(5):
-             percentage_of_pairs = (count/total_pairs) * 100
-             print(f"    Length {length}: {count:,} times ({percentage_of_pairs:.2f}% of pairs)")
+            percentage_of_pairs = (count/total_pairs) * 100
+            print(f"    Length {length}: {count:,} times ({percentage_of_pairs:.2f}% of pairs)")
     else:
         print("  No data-followed-by-zero pairs found.")
 

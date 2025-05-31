@@ -185,7 +185,7 @@ if __name__ == "__main__":
 
                 if 0 in combined_byte_counts and not zero_present_in_top_10:
                         count = combined_byte_counts[0]
-                         percentage = (count / total_bytes_processed) * 100 if total_bytes_processed else 0
+                        percentage = (count / total_bytes_processed) * 100 if total_bytes_processed else 0
                         print(f"    Byte 0x00: {count:,} times ({percentage:.2f}%)") # Specifically show zero count
         else:
                 print("    No byte data processed.")
@@ -215,7 +215,7 @@ if __name__ == "__main__":
                 pair_lengths_counter = collections.Counter(combined_pair_lengths)
                 print(f"    Common combined (data+zero) lengths for pairs (Top 5):")
                 for length, count in pair_lengths_counter.most_common(5):
-                         percentage_of_pairs = (count/total_pairs) * 100
+                        percentage_of_pairs = (count/total_pairs) * 100
                         print(f"        Length {length}: {count:,} times ({percentage_of_pairs:.2f}% of pairs)")
         else:
                 print("    No data-followed-by-zero pairs found.")

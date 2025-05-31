@@ -2,311 +2,172 @@
 
 **An extensible, interactive command-line engine for managing and executing complex workflows for various games, with a focus on community-driven configurations for reverse engineering and modding.**
 
-Remake Engine provides a streamlined interface for developers, and reverse engineers to run predefined tasks—from executing custom scripts to managing asset extraction and conversion—for a collection of games. Its power lies in its configuration-driven approach, allowing new games and their specific workflows to be added easily by defining them in JSON, without modifying the core engine.
+Remake Engine provides a streamlined interface for developers and reverse engineers to run predefined tasks—from executing custom scripts to managing asset extraction and conversion—for a collection of games. Its power lies in its configuration-driven approach, allowing new games and their specific workflows to be added easily by defining them in JSON, without modifying the core engine.
 
-## Key Features
+For comprehensive reference (schema definitions, advanced usage examples, API docs), see [Remake Engine Docs](https://superposition28.github.io/RemakeEngineDocs/index.html).
 
-* **Highly Extensible:** Add support for new games by simply creating a configuration file and associated scripts/tools.
-* **Interactive CLI:** User-friendly menus powered by `questionary` for easy navigation and operation execution.
-* **Configuration-Driven:** All games and operations are defined in simple JSON files (`operations.json`).
-* **Powerful Placeholder System:** Use placeholders like `{{RemakeEngine.Directories.SourcePath}}` or `{{Game.RootPath}}` in your configurations for dynamic values.
-* **Orchestrates Custom Scripts & External Tools:** Natively runs Python scripts and can easily integrate command-line tools (like QuickBMS, FFmpeg).
-* **Advanced User Input:** A flexible prompt system gathers necessary inputs before execution, supporting conditional questions and validation.
-* **Community Focused:** Designed to be a platform for sharing tools and operational knowledge for various games.
-* **Clear Feedback:** Colorized output for status, warnings, and errors.
+---
 
-## How It Works
+## 🔧 Key Features
 
-Remake Engine operates on a simple "engine vs. content" model:
+- **Highly Extensible:** Add support for new games by simply creating configuration files and scripts.
+- **Interactive CLI:** User-friendly menus powered by `questionary` for intuitive navigation.
+- **Configuration-Driven:** Define all games and operations in simple JSON files (`operations.json`).
+- **Dynamic Placeholders:** Use {{...}} placeholders to inject values from the global project.json enabling flexible, per-user configuration without hardcoding paths in operations.json.
+- **Script & Tool Orchestration:** Run Python scripts and external tools (e.g., QuickBMS, FFmpeg) seamlessly.
+- **Flexible Prompting:** Built-in prompt system collects input at runtime, with support for conditional logic and validation.
+- **Community-Oriented:** Designed to foster a shared ecosystem for reverse engineering workflows.
+- **Clear Feedback:** Color-coded output for statuses, warnings, and errors.
 
-* **Engine:** The core Python scripts that provide the interactive interface, load configurations, resolve placeholders, and execute operations via `subprocess`.
-* **Content:**
-    * **Game Configurations:** Each game has its directory within `RemakeRegistry/Games/`. Inside, `operations.json` defines the game's name and its list of workflow steps (operations).
-    * **Global Configuration:** A `project.json` file in the tool's root directory can store global settings (like base paths), accessible via placeholders.
-    * **Scripts & Tools:** A `Tools/` directory (or similar structure) holds reusable scripts and external executables orchestrated by the engine. Game-specific scripts can live within their game's directory.
+---
 
-When run (ideally from the project root), the engine scans for games, lets you select one, and then presents its specific operations.
+## ⚙️ How It Works
 
-## Getting Started
+Remake Engine follows a clean separation of engine vs. content:
+
+- **Engine:** Core Python scripts (like `main.py`) provide the CLI, load configurations, resolve placeholders, and execute operations.
+- **Content:**
+  - `RemakeRegistry/Games/<GameName>/`: Contains `operations.json`, scripts, and game-specific assets.
+  - `project.json`: Optional global config file defining paths and settings, accessible via placeholders.
+  - `Tools/`: Contains shared tools, scripts, or executables used by multiple games.
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
-* Python 3.13.2+
-* `pip` (Python package installer)
+- Python 3.13.2+
+- `pip` (Python package installer)
 
 ### Installation
 
-1.  **Clone the repository:**
-    ```pwsh
+1. **Clone the repository:**
+    ```bash
     git clone https://github.com/Superposition28/RemakeEngine
-    ```
-    ```pwsh
     cd RemakeEngine
+    git submodule update --init --recursive
     ```
 
-2.  **Install dependencies:**
-    ```pwsh
-    pip install questionary
-    ```
-TODO Add other dependencies
-
-
-3.  **Configure `project.json`:**
-    * Create a `project.json` file in the root directory (you might start by copying `project.json.example` if one exists).
-    * Edit it to set up *your* specific paths (e.g., game source locations). **Note:** This file often contains user-specific absolute paths and might be excluded from Git via `.gitignore`.
-
-4.  **Acquire External Tools:**
-    * Ensure any external tools referenced in `operations.json` (like `quickbms.exe`, `ffmpeg.exe`) are placed in their expected locations (e.g., under `Tools/`).
-
-### Running the Tool
-
-Execute the main script **from the project's root directory**:
-### Prerequisites
-
-* Python 3.13.2+
-* `pip` (Python package installer)
-
-### Installation
-
-1.  **Clone the repository:**
-    ```pwsh
-    git clone https://github.com/Superposition28/RemakeEngine
-    ```
-    ```pwsh
-    cd RemakeEngine
+2. **Install dependencies:** from requirements.txt
+    ```bash
+    pip install -r requirements.txt
     ```
 
-2.  **Install dependencies:**
-    ```pwsh
-    pip install questionary
-    ```
-TODO Add other dependencies
+3. **Configure `project.json`:**
+    - Copy from `project.json.example` if available.
+    - Define your system-specific paths (e.g., source directories).
+    - This file is typically ignored by Git to avoid leaking personal paths.
 
+4. **Add External Tools:**
+    - Place referenced tools (e.g., `quickbms.exe`, `ffmpeg.exe`) in the expected locations (`Tools/`).
 
-3.  **Configure `project.json`:**
-    * Create a `project.json` file in the root directory (you might start by copying `project.json.example` if one exists).
-    * Edit it to set up *your* specific paths (e.g., game source locations). **Note:** This file often contains user-specific absolute paths and might be excluded from Git via `.gitignore`.
+---
 
-4.  **Acquire External Tools:**
-    * Ensure any external tools referenced in `operations.json` (like `quickbms.exe`, `ffmpeg.exe`) are placed in their expected locations (e.g., under `Tools/`).
+## ▶️ Running the Tool
 
-### Running the Tool
+From the project root:
 
-Execute the main script **from the project's root directory**:
-
-```pwsh
-python main.py
+```bash
 python main.py
 ```
-or for tool downloads
-or for tool downloads
-```pwsh
+
+To download/update tools (if supported):
+
+```bash
 python download.py
 ```
 
+---
 
-# Directory Structure
-```
+## 📁 Directory Structure
+
+```perl
 RemakeEngine/
-├── main.py                 # Main engine script
-├── download.py             # tool downloads
-├── project.json            # global configuration
-├── Tools/                  # Reusable scripts and external executables
-    +---Blender
-    |   |   asset_map.sqlite
-    |   |
-    |   \---blender-4.0.2-windows-x64
-    |          blender.exe
-    |
-    +---ffmpeg-vgmstream
-    |      convert.py
-    |
-    +---Process
-    |   +---Flat
-    |   |      flat.py
-    |   |
-    |   \---Rename
-    |          RenameFolders copy.py
-    |          RenameFolders.py
-    |          __init__.py
-    |
-    \---QuickBMS
-        |   bms_extract.py
-        |
-        \---exe
-            quickbms.exe
-|
+├── main.py                 # Main engine entrypoint
+├── download.py             # Tool download/update script
+├── project.json            # Global user config (custom paths, etc.)
+├── Tools/                  # Reusable scripts and external tools
+│   ├── Blender/
+│   ├── ffmpeg-vgmstream/
+│   ├── Process/
+│   └── QuickBMS/
 ├── RemakeRegistry/
 │   └── Games/
-│       └── <GameName Platform/Variant>/
-│           ├── readme.md
-│           ├── operations.json # defines the main menu options and scripts
+│       └── <GameName Platform>/
+│           ├── operations.json
 │           ├── Scripts/
-│           │   ├── init.py
-│           │   ├── *.bms
-|           |   └── **
-│           └── PrimaryIndex.db   # Game file index, listing all files at each stage of extraction, modification etc and meta data
+│           └── PrimaryIndex.db
 └── Utils/
-    └── printer.py            # Utility for colored console output
+    └── printer.py          # Colored output helper
 ```
 
-# Usage
-1. Run the main script from the project root.
+---
+
+## 📖 Usage
+
+1. Run `main.py` from the root.
 2. Select a game.
-3. Select an operation.
-4. Answer any prompts.
-5. Observe the execution.
-6. Return to the menu or change games.
+3. Choose an operation.
+4. Follow any on-screen prompts.
+5. Review execution output.
+6. Repeat or switch games.
 
-# Contributing (Adding New Game Support)
-1. Create a new directory under RemakeRegistry/Games/.
-2. Inside it, create your operations.json.
-3. Define your operations. Assume operations are of type "script" unless other types are added later. Ensure paths to scripts (script key) and arguments (args key) are relative to the project root or absolute. Use {{Game.RootPath}} (path to this game's folder) and {{RemakeEngine...}} placeholders where needed.
-4. Add any game-specific scripts or data files to your game's directory.
-5. If you need new reusable tools, add them under the Tools/ directory (discuss with project maintainers if applicable).
+---
 
-### Example operations.json Entry:
+## ➕ Contributing (Adding New Game Support)
+
+1. Create a new folder in `RemakeRegistry/Games/<GameName Platform>/`.
+2. Add `operations.json` to define your menu and logic.
+3. Reference your scripts with relative or absolute paths.
+4. Use placeholders like `{{Game.RootPath}}` and `{{RemakeEngine.Directories.SourcePath}}`.
+5. Include scripts in the `Scripts/` subfolder or external tool paths under `Tools/`.
+
+---
+
+## ✅ Example `operations.json` Entry
 
 ```json
 {
-    "Name": "Extract Archives (.STR)",
-    "Instructions": "run quickbms script using RemakeRegistry/Games/TheSimpsonsGame PS3/Scripts/simpsons_str.bms",
-    "python_executable": "python",
-    "script": "Tools/QuickBMS/bms_extract.py", // Path relative to project root
-    "args": [
-        "--quickbms", "Tools/QuickBMS/exe/quickbms.exe",
-        "--script", "RemakeRegistry/Games/TheSimpsonsGame PS3/Scripts/simpsons_str.bms",
-        "--input", "{{RemakeEngine.Directories.SourcePath}}", // Placeholder use
-        "--output", "GameFiles/STROUT", // Relative path (will be created in CWD or handle abs path)
-        "--extension", ".str"
-    ]
+  "Name": "Extract Archives (.STR)",
+  "Instructions": "Run QuickBMS script for .STR files",
+  "python_executable": "python",
+  "script": "Tools/QuickBMS/bms_extract.py",
+  "args": [
+    "--quickbms", "Tools/QuickBMS/exe/quickbms.exe",
+    "--script", "RemakeRegistry/Games/TheSimpsonsGame PS3/Scripts/simpsons_str.bms",
+    "--input", "{{RemakeEngine.Directories.SourcePath}}",
+    "--output", "GameFiles/STROUT",
+    "--extension", ".str"
+  ]
 }
 ```
+For detailed standards and format info, refer to `CONTRIBUTING.md`.
 
-#### (Please refer to CONTRIBUTING.md for detailed guidelines.)
+---
 
-# Configuration Details
-`project.json` (Global Configuration)
+## 🛠 Configuration Details
 
-* Stores global settings, often user-specific paths.
-* Values are accessible via {{RemakeEngine.Key.SubKey}} placeholders.
+### `project.json`
+- Stores global user/system-specific values.
+- Values accessible via `{{RemakeEngine.Key.SubKey}}`.
 
-`operations.json` (Game Manifest File)
+### `operations.json`
+- Declares game-specific tasks.
+- Supports:
+  - `Name`, `Instructions`
+  - `python_executable`
+  - `script`, `args`
+  - `prompts` (optional) for collecting user input dynamically.
 
-* Defines the game name and its workflow steps (operations).
-* Supports init scripts for automatic execution.
-* Defines Name, Instructions, python_executable, script, args, and prompts for each operation.
+---
 
-## License & Legal Disclaimer
+## 📄 License & Legal Disclaimer
 
-This project is licensed for **non-commercial use only**.  
-It is intended for educational or archival purposes, especially regarding game file structures.
+This project is provided under a **non-commercial use only** license.
 
-Use of this tool for **any commercial purpose** or in violation of a game's Terms of Service or copyright law is strictly prohibited.
+It is intended solely for educational and archival purposes related to understanding and modding game file structures.
 
-See the [LICENSE](./LICENSE) file for details.
-python download.py
-```
+Use of this tool for commercial purposes, or in violation of a game's license or ToS, is strictly prohibited.
 
-
-# Directory Structure
-```
-RemakeEngine/
-├── main.py                 # Main engine script
-├── download.py             # tool downloads
-├── project.json            # global configuration
-├── Tools/                  # Reusable scripts and external executables
-    +---Blender
-    |   |   asset_map.sqlite
-    |   |
-    |   \---blender-4.0.2-windows-x64
-    |          blender.exe
-    |
-    +---ffmpeg-vgmstream
-    |      convert.py
-    |
-    +---Process
-    |   +---Flat
-    |   |      flat.py
-    |   |
-    |   \---Rename
-    |          RenameFolders copy.py
-    |          RenameFolders.py
-    |          __init__.py
-    |
-    \---QuickBMS
-        |   bms_extract.py
-        |
-        \---exe
-            quickbms.exe
-|
-├── RemakeRegistry/
-│   └── Games/
-│       └── <GameName Platform/Variant>/
-│           ├── readme.md
-│           ├── operations.json # defines the main menu options and scripts
-│           ├── Scripts/
-│           │   ├── init.py
-│           │   ├── *.bms
-|           |   └── **
-│           └── PrimaryIndex.db   # Game file index, listing all files at each stage of extraction, modification etc and meta data
-└── Utils/
-    └── printer.py            # Utility for colored console output
-```
-
-# Usage
-1. Run the main script from the project root.
-2. Select a game.
-3. Select an operation.
-4. Answer any prompts.
-5. Observe the execution.
-6. Return to the menu or change games.
-
-# Contributing (Adding New Game Support)
-1. Create a new directory under RemakeRegistry/Games/.
-2. Inside it, create your operations.json.
-3. Define your operations. Assume operations are of type "script" unless other types are added later. Ensure paths to scripts (script key) and arguments (args key) are relative to the project root or absolute. Use {{Game.RootPath}} (path to this game's folder) and {{RemakeEngine...}} placeholders where needed.
-4. Add any game-specific scripts or data files to your game's directory.
-5. If you need new reusable tools, add them under the Tools/ directory (discuss with project maintainers if applicable).
-
-### Example operations.json Entry:
-
-```json
-{
-    "Name": "Extract Archives (.STR)",
-    "Instructions": "run quickbms script using RemakeRegistry/Games/TheSimpsonsGame PS3/Scripts/simpsons_str.bms",
-    "python_executable": "python",
-    "script": "Tools/QuickBMS/bms_extract.py", // Path relative to project root
-    "args": [
-        "--quickbms", "Tools/QuickBMS/exe/quickbms.exe",
-        "--script", "RemakeRegistry/Games/TheSimpsonsGame PS3/Scripts/simpsons_str.bms",
-        "--input", "{{RemakeEngine.Directories.SourcePath}}", // Placeholder use
-        "--output", "GameFiles/STROUT", // Relative path (will be created in CWD or handle abs path)
-        "--extension", ".str"
-    ]
-}
-```
-
-#### (Please refer to CONTRIBUTING.md for detailed guidelines.)
-
-# Configuration Details
-`project.json` (Global Configuration)
-
-* Stores global settings, often user-specific paths.
-* Values are accessible via {{RemakeEngine.Key.SubKey}} placeholders.
-
-`operations.json` (Game Manifest File)
-
-* Defines the game name and its workflow steps (operations).
-* Supports init scripts for automatic execution.
-* Defines Name, Instructions, python_executable, script, args, and prompts for each operation.
-
-## License & Legal Disclaimer
-
-This project is licensed for **non-commercial use only**.  
-It is intended for educational or archival purposes, especially regarding game file structures.
-
-Use of this tool for **any commercial purpose** or in violation of a game's Terms of Service or copyright law is strictly prohibited.
-
-See the [LICENSE](./LICENSE) file for details.
-
+See [LICENSE](./LICENSE) for full terms.
