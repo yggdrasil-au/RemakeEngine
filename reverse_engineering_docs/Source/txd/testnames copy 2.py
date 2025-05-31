@@ -236,7 +236,7 @@ if __name__ == '__main__':
     try:
         from printer import print, colours
     except ImportError:
-        print("Warning: 'printer' module not found. Using standard print and dummy colours.")
+        print("Warning: 'printer' module not found. Using standard print and dummy Colours.")
         class DummyColours:
             CYAN = ""
             RED = ""

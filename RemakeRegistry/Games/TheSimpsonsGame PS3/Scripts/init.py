@@ -191,9 +191,9 @@ def check_or_create_config(filename):
 
         if not os.path.exists(local_data_path):
             print(Colours.YELLOW, "\nChoose how to use the source files:")
-            print(Colours.CYAN, "  1) " + colours.GREEN + "Copy files" + colours.YELLOW + f" from '{os.path.basename(path_from_config)}' to local '{os.path.basename(local_data_path)}' (Recommended, Safe)")
-            print(Colours.CYAN, "  2) " + colours.RED + "Move files" + colours.YELLOW + f" from '{os.path.basename(path_from_config)}' to local '{os.path.basename(local_data_path)}' (Warning: Deletes original Files at Source location)")
-            print(Colours.CYAN, "  3) " + colours.CYAN + "Use original path" + colours.YELLOW + f" '{os.path.basename(path_from_config)}' directly (Warning: This Tool might modify/corrupt original files)")
+            print(Colours.CYAN, "  1) " + Colours.GREEN + "Copy files" + Colours.YELLOW + f" from '{os.path.basename(path_from_config)}' to local '{os.path.basename(local_data_path)}' (Recommended, Safe)")
+            print(Colours.CYAN, "  2) " + Colours.RED + "Move files" + Colours.YELLOW + f" from '{os.path.basename(path_from_config)}' to local '{os.path.basename(local_data_path)}' (Warning: Deletes original Files at Source location)")
+            print(Colours.CYAN, "  3) " + Colours.CYAN + "Use original path" + Colours.YELLOW + f" '{os.path.basename(path_from_config)}' directly (Warning: This Tool might modify/corrupt original files)")
 
             while True:
                 choice = input("Enter your choice (1, 2, or 3): ").strip()
