@@ -1,24 +1,30 @@
-name: Build
+steps:
+  - uses: actions/checkout@v4
+    with:
+      fetch-depth: 0
 
-on:
-  push:
-    branches:
-      - main
+  - name: Set up Python
+    uses: actions/setup-python@v4
+    with:
+      python-version: '3.11'
 
-jobs:
-  build:
-    name: Build and analyze
-    runs-on: windows-latest
+  - name: Install tox and dependencies
+    run: pip install tox
 
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+  - name: Run tests and generate coverage
+    run: tox -e py  # tox creates coverage.xml
 
-      - uses: SonarSource/sonarqube-scan-action@v5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        with:
-          args: >
-            -Dsonar.exclusions=reverse_engineering/**
+  - name: Prepare coverage report
+    run: |
+      mkdir -p .sonarqube/out
+      mv coverage.xml .sonarqube/out/coverage.xml
+
+  - name: SonarQube Scan
+    uses: SonarSource/sonarqube-scan-action@v5
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+    with:
+      args: >
+        -Dsonar.python.coverage.reportPaths=.sonarqube/out/coverage.xml
+        -Dsonar.exclusions=reverse_engineering/**
