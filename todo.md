@@ -132,126 +132,17 @@ A centralized list of tasks for maintainers and contributors to finalize, improv
 
 ## 4. Feature Enhancements & UX
 
-- [ ] **Implement “dry-run” mode**
-  - Add a global CLI flag (e.g., `--dry-run` or `-n`) that, instead of actually invoking subprocesses, prints the fully resolved command that *would* run.
-  - Clearly label the output as “DRY RUN: <command>” in a neutral color.
-
-- [ ] **Support search/filter in CLI menus**
-  - Investigate `questionary.autocomplete` or other fuzzy‐search capabilities to allow users to type part of a game or operation name and filter the list dynamically.
-  - Add instructions in the “Usage” section on how to trigger search (e.g., “Start typing to filter”).
-
-- [ ] **Add a “scaffold new game” command**
-  - Create a subcommand or interactive prompt (e.g., `python main.py init-game`) that:
-    1. Asks for the new game’s exact folder name.
-    2. Generates a minimal `operations.json` template under `RemakeRegistry/Games/<GameName>/operations.json`.
-    3. Copies a sample “dummy.py” script into its `Scripts/` folder.
-  - Document this feature in both the README and the online docs.
-
-- [ ] **Add support for YAML-based configurations (optional)**
-  - If there is community demand, allow `operations.yml` as an alternative to `operations.json`.
-  - Use `PyYAML` to parse YAML files, then convert to the internal JSON-like structure.
-  - Update documentation to reflect both JSON and YAML support.
-
-- [ ] **Centralized “Download Config” (future)**
-  - Instead of each game specifying its own downloader logic, create a central `tools.json` (or `download_config.json`) at the repository root listing:
-    ```jsonc
-    {
-      "QuickBMS": {
-        "url": "https://github.com/alexaltea/quickbms/releases/download/xxx/quickbms_xxx.zip",
-        "dest": "Tools/QuickBMS/"
-      },
-      "ffmpeg": {
-        "url": "https://ffmpeg.org/releases/ffmpeg-5.1.2.zip",
-        "dest": "Tools/ffmpeg-vgmstream/"
-      }
-    }
-    ```
-  - Modify `download.py` to read from this central file and fetch the latest releases automatically (e.g., via GitHub API or direct URL).
-  - Document how to update `tools.json` when new versions become available.
-
 ---
 
 ## 5. Contributing Guide & Community Onboarding
-
-- [ ] **Draft a detailed `CONTRIBUTING.md`**
-  - Provide step-by-step instructions for contributors:
-    1. How to fork the repository and clone locally.
-    2. How to install dependencies (`requirements.txt`, virtual environment).
-    3. How to validate JSON configurations (using `json.tool` or `jsonschema`).
-    4. Style guidelines (PEP8, black formatting, naming conventions).
-    5. How to write unit tests and run them locally (`pytest`).
-    6. How to open a pull request (PR) using a PR template.
-
-- [ ] **Create a Pull Request template**
-  - Under `.github/PULL_REQUEST_TEMPLATE.md`, include:
-    - A checklist reminding the contributor to:
-      - Validate `operations.json` against the schema.
-      - Add/update documentation if they changed behavior or added features.
-      - Write or update unit tests for any new code.
-      - Update `CHANGELOG.md` or version number if appropriate.
-
-- [ ] **Define versioning and release process**
-  - Create a simple `VERSION` file or tag releases on GitHub (e.g., `v1.0.0`).
-  - Document the process in `CONTRIBUTING.md` for how to bump the version, tag a release, and update release notes.
 
 ---
 
 ## 6. Miscellaneous & Cleanup
 
-- [ ] **Proofread & consistency check across the repository**
-  - Scan all Markdown files (`README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, etc.) for consistent terminology (e.g., always “operations.json,” always “project.json,” consistent capitalization of “Remake Engine”).
-  - Ensure folder names on disk match the case-sensitive keys used in placeholders (especially for Linux/macOS).
-
-- [ ] **Add a `CHANGELOG.md`**
-  - Start a CHANGELOG file following “Keep a Changelog” format:
-    ```markdown
-    # Changelog
-
-    ## [Unreleased]
-    - Added `--dry-run` flag.
-    - Restructured code into `remake_engine/` package.
-    - Schema validation for `operations.json` and `project.json`.
-    - ...
-
-    ## [1.0.0] – 2025-05-31
-    - Initial public release.
-    - Interactive CLI with `questionary`.
-    - Configuration-driven workflow via `operations.json`.
-    - ...
-    ```
-  - Update it whenever new features or bug fixes are merged.
-
-- [ ] **Add GitHub issue templates**
-  - Under `.github/ISSUE_TEMPLATE/`, create:
-    1. **Bug report template** (steps to reproduce, expected vs actual, version info).
-    2. **Feature request template** (description, use case, proposed behavior).
-
 ---
 
 ## 7. Roadmap & Future Ideas
-
-- [ ] **Implement advanced logging & telemetry (optional)**
-  - Consider adding a “diagnostics” subcommand that:
-    - Verifies the user’s Python version, OS, required executables’ existence.
-    - Reports results to the console (and optionally logs them to a file).
-
-- [ ] **Localization & Internationalization (i18n)**
-  - For non-English speaking contributors/users, plan to externalize all UI strings into `.po`/`.mo` files (or another i18n framework).
-  - Mark UI prompts so they can be translated easily.
-
-- [ ] **Web-based front-end (long-term)**
-  - Explore building a minimal Flask/FastAPI server with a web UI that wraps the same engine logic—especially helpful for community members who prefer a browser interface.
-
-- [ ] **Docker container for reproducible environments**
-  - Create a `Dockerfile` that sets up:
-    - A Python 3.13.2+ environment.
-    - All dependencies installed (`pip install -r requirements.txt`).
-    - A folder structure mounted as a volume so users can mount their host filesystem.
-  - Provide instructions in the README for “Running via Docker”:
-    ```bash
-    docker build -t remake-engine .
-    docker run -it --rm -v /path/to/host/gamefiles:/gamefiles -v $(pwd)/RemakeRegistry:/app/RemakeRegistry remake-engine
-    ```
 
 ---
 
