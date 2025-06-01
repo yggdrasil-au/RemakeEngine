@@ -1,35 +1,35 @@
-name: Build
+name:    Build
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    types: [opened, synchronize, reopened]
+    push:
+        branches:
+            - main
+    pull_request:
+        types: [opened, synchronize, reopened]
 
 jobs:
-  build:
-    name: Build and analyze
-    runs-on: windows-latest
+    build:
+        name: Build and analyze
+        runs-on: windows-latest
 
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Setup Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python }}
-      - name: Install tox and any other packages
-        run: pip install tox
-      - name: Run tox
-        run: tox -e py
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        with:
-          args: >
-            -Dsonar.python.coverage.reportPaths=.sonarqube/out/coverage.xml
-            -Dsonar.exclusions=reverse_engineering/**
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+            - name: Setup Python
+              uses: actions/setup-python@v2
+              with:
+                python-version: ${{ matrix.python }}
+            - name: Install tox and any other packages
+              run: pip install tox
+            - name: Run tox
+              run: tox -e py
+            - name: SonarQube Scan
+              uses: SonarSource/sonarqube-scan-action@v5
+              env:
+                SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+                SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+              with:
+                args: >
+                    -Dsonar.python.coverage.reportPaths=.sonarqube/out/coverage.xml
+                    -Dsonar.exclusions=reverse_engineering/**
