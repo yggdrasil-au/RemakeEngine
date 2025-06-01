@@ -29,10 +29,11 @@ jobs:
         run: tox -e py  # tox creates coverage.xml
     
       - name: Prepare coverage report
+        shell: pwsh
         run: |
-          mkdir -p .sonarqube/out
-          mv coverage.xml .sonarqube/out/coverage.xml
-    
+          New-Item -ItemType Directory -Force -Path .sonarqube/out
+          Move-Item -Path coverage.xml -Destination .sonarqube/out/coverage.xml
+
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v5
         env:
