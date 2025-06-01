@@ -19,20 +19,11 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.11'  # Or your python version
-      - name: Install tox and dependencies
+          python-version: ${{ matrix.python }}
+      - name: Install tox and any other packages
         run: pip install tox
-      - name: Run tox to run tests and generate coverage.xml
+      - name: Run tox
         run: tox -e py
-      - name: Commit coverage.xml back to repo
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add coverage.xml
-          git diff --cached --quiet || git commit -m "Add/update coverage.xml [skip ci]"
-          git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v5
         env:
