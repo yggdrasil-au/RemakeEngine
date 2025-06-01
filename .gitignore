@@ -64,7 +64,7 @@ StreamSetConfig
 /Source/
 /SourceData/
 *.vfb
-*.xml
+*.meta.xml
 *.dat
 *.txd
 *.lh2
@@ -84,7 +84,7 @@ StreamSetConfig
 *.inf
 *.bin
 *.aub
-*.xml
+
 *.str
 *.lua
 
