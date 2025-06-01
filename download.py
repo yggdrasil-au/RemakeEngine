@@ -2,24 +2,23 @@
 This module provides an interactive tool for managing and executing downloads
 and other operations for various games based on JSON configurations.
 """
+import os
+import sys
+# Add Utils directory to sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'Utils')))
+from printer import print, Colours, print_error, print_verbose, print_debug
 
-import questionary
-from pathlib import Path
 import re
 import json
-import subprocess
 import urllib.request
 import urllib.parse
 import urllib.error
 import zipfile
 import tarfile
-import shutil
-
-import os
-import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'Utils')))
-from printer import print, Colours, print_error, print_verbose, print_debug, printc
-
+import questionary
+from pathlib import Path
+import socket
+import ipaddress
 
 # --- Define your custom style (as per your example) ---
 custom_style_fancy = questionary.Style([
@@ -40,6 +39,29 @@ GAMES_COLLECTION_DIR_NAME = "Games"
 DOWNLOADS_FILENAME = "tools.json" # This file now defines various operations, including downloads
 ENGINE_CONFIG_FILENAME = "project.json" # Assuming this holds global config like engine paths
 
+# Default Security/Operational Thresholds
+DEFAULT_MAX_DOWNLOAD_SIZE_BYTES = 4 * 1024 * 1024 * 1024 # 4 GB
+DEFAULT_UNPACK_THRESHOLD_ENTRIES = 10000
+DEFAULT_UNPACK_THRESHOLD_SIZE_BYTES = 3 * 1024 * 1024 * 1024 # 3 GB
+DEFAULT_UNPACK_THRESHOLD_COMPRESSION_RATIO = 50
+DEFAULT_USER_AGENT = "GameOpsTool/1.1" # More descriptive User-Agent
+
+def is_path_within_root(root_path: Path, target_path: Path) -> bool:
+    """Checks if target_path is safely within root_path after resolving both."""
+    try:
+        resolved_root = root_path.resolve(strict=True)
+        resolved_target = target_path.resolve()
+        resolved_target.relative_to(resolved_root)
+        return True
+    except ValueError: # Not a subpath
+        return False
+    except FileNotFoundError:
+        print_error(f"Root path '{root_path}' does not exist for path safety check.")
+        return False
+    except Exception as e:
+        print_error(f"Error during path safety check for '{target_path}' within '{root_path}': {e}")
+        return False
+
 def discover_games(games_collection_path: Path, ops_file_name: str) -> dict:
     """
     Discovers games by looking for ops_file_name in subdirectories.
@@ -55,7 +77,7 @@ def discover_games(games_collection_path: Path, ops_file_name: str) -> dict:
     try:
         for game_dir_path in games_collection_path.iterdir():
             print_debug(f"Checking item: {game_dir_path}")
-            if game_dir_path.is_dir(): # Ensure it's a directory
+            if game_dir_path.is_dir():
                 potential_ops_file = game_dir_path / ops_file_name
                 print_debug(f"Checking for ops file: {potential_ops_file}")
                 if potential_ops_file.is_file():
@@ -63,17 +85,13 @@ def discover_games(games_collection_path: Path, ops_file_name: str) -> dict:
                         with open(potential_ops_file, 'r', encoding='utf-8') as f:
                             data = json.load(f)
                         if isinstance(data, dict) and len(data) == 1:
-                            game_name_from_json = list(data.keys())[0] # Get the single top-level key
-
-                            # Validate that the value associated with the game name is a list (of operations)
+                            game_name_from_json = list(data.keys())[0]
                             if isinstance(data.get(game_name_from_json), list):
                                 if game_name_from_json in games:
-                                    # Handle duplicate game names
                                     print(Colours.YELLOW, f"Warning: Duplicate game name '{game_name_from_json}' defined in '{potential_ops_file}'. Overwriting previous entry from {games[game_name_from_json]['ops_file']}.")
-
                                 games[game_name_from_json] = {
-                                    "ops_file": potential_ops_file.resolve(), # Store absolute path
-                                    "game_root": game_dir_path.resolve() # Store absolute path to game's root
+                                    "ops_file": potential_ops_file.resolve(),
+                                    "game_root": game_dir_path.resolve()
                                 }
                                 print_verbose(f"Found game '{game_name_from_json}' at '{game_dir_path.resolve()}'")
                             else:
@@ -104,7 +122,6 @@ def load_downloads(file_path: Path, game_name_key: str) -> list:
                 print_error(f"Error: Did not find a list of operations under key '{game_name_key}' in '{file_path}'. Found: {type(operations_list)}")
                 return []
         else:
-            # This case should ideally be caught by discover_games structure validation
             print_error(f"Error: Operations file '{file_path}' is not structured as a dictionary with game name as key.")
             return []
     except json.JSONDecodeError:
@@ -114,7 +131,7 @@ def load_downloads(file_path: Path, game_name_key: str) -> list:
         print_error(f"Error loading operations from '{file_path}': {e}")
         return []
 
-def resolve_placeholders(value_with_placeholders: str, context_data: dict) -> list:
+def resolve_placeholders(value_with_placeholders: any, context_data: dict) -> any:
     """
     Recursively resolves placeholders in strings, lists, or dictionaries.
     Placeholders are in the format {{path.to.value}}.
@@ -123,19 +140,10 @@ def resolve_placeholders(value_with_placeholders: str, context_data: dict) -> li
     placeholder_pattern = re.compile(r"\{\{(.*?)\}\}")
 
     def replace_match(match):
-        """
-        Replaces a regex match object representing a placeholder with its resolved value from context_data.
-
-        Args:
-            match: The regex match object for a placeholder in the format {{path.to.value}}.
-
-        Returns:
-            The string representation of the resolved value if found, otherwise the original placeholder.
-        """
-        key_path_str = str(match.group(1).strip()) # Strip whitespace from key path
+        key_path_str = str(match.group(1).strip())
         if not key_path_str:
             print_verbose("Warning: Empty placeholder '{{}}' found.")
-            return match.group(0) # Return original if key path is empty
+            return match.group(0)
 
         key_path = key_path_str.split('.')
         current_value = context_data
@@ -146,7 +154,6 @@ def resolve_placeholders(value_with_placeholders: str, context_data: dict) -> li
                     if current_value is None:
                         raise KeyError(f"Key '{key_part}' not found in path '{'.'.join(key_path)}'")
                 elif isinstance(current_value, list):
-                    # Allow list indexing like {{list_name.0}}
                     try:
                         index = int(key_part)
                         current_value = current_value[index]
@@ -154,85 +161,119 @@ def resolve_placeholders(value_with_placeholders: str, context_data: dict) -> li
                         raise KeyError(f"Invalid index or key '{key_part}' in path '{'.'.join(key_path)}'. Expected integer index for list.")
                 else:
                     raise TypeError(f"Path part '{key_part}' accessed on a non-container type (was {type(current_value).__name__}) in path '{'.'.join(key_path)}'.")
-
-            # Found the value, return its string representation
-            return str(current_value)
+            return str(current_value) # Ensure value is string for substitution
         except (KeyError, IndexError, ValueError, TypeError) as e:
             print_verbose(f"Warning: Placeholder '{{{{{match.group(1)}}}}}' not found or invalid path: {e}")
-            return match.group(0) # Return the original placeholder if key not found or error in path
-
-    # print_debug("Before resolving placeholders:", value_with_placeholders)
+            return match.group(0)
 
     if isinstance(value_with_placeholders, str):
-        resolved_string = placeholder_pattern.sub(replace_match, value_with_placeholders)
-        # print_debug("After resolving placeholders:", resolved_string)
-        return resolved_string
+        return placeholder_pattern.sub(replace_match, value_with_placeholders)
     elif isinstance(value_with_placeholders, list):
-        resolved_list = [resolve_placeholders(item, context_data) for item in value_with_placeholders]
-        # print_debug("After resolving placeholders (list):", resolved_list)
-        return resolved_list
+        return [resolve_placeholders(item, context_data) for item in value_with_placeholders]
     elif isinstance(value_with_placeholders, dict):
-        resolved_dict = {k: resolve_placeholders(v, context_data) for k, v in value_with_placeholders.items()}
-        # print_debug("After resolving placeholders (dict):", resolved_dict)
-        return resolved_dict
-    else:
-        # For non-string, non-list, non-dict types (numbers, booleans, None), return them as is.
-        # print_debug("After resolving placeholders (unchanged):", value_with_placeholders)
+        return {k: resolve_placeholders(v, context_data) for k, v in value_with_placeholders.items()}
+    else: # Numbers, booleans, None, etc.
         return value_with_placeholders
 
 def download_progress_hook(count: int, block_size: int, total_size: int) -> None:
     """A hook function for urllib.request.urlretrieve to display download progress."""
-    percent = int(count * block_size * 100 / total_size)
-    if percent > 100:
-        percent = 100 # Cap at 100%
+    percent = int(count * block_size * 100 / total_size) if total_size > 0 else 0
+    if percent > 100: percent = 100
     sys.stdout.write(f"\rDownloading... {percent}% ")
     sys.stdout.flush()
-    if percent == 100:
-        sys.stdout.write("\n") # New line after download is complete
+    if percent == 100 and total_size > 0 : # Avoid double newline if total_size was 0
+        sys.stdout.write("\n")
 
-def perform_download(op_config: dict, game_root_path: Path, context: dict) -> bool:
+def perform_download(op_config: dict, tool_root_path: Path, context: dict) -> bool:
     """Handles the download operation with security checks for archive unpacking."""
     op_name = op_config.get("Name", "Unnamed Download Operation")
     print(Colours.GREEN, f"\nExecuting download: '{op_name}'")
-
-    # Thresholds for archive bomb protection - can be overridden by op_config
-    # Max number of entries in an archive
-    THRESHOLD_ENTRIES = op_config.get("unpack_threshold_entries", 10000)
-    # Max total uncompressed size of an archive in bytes (e.g., 1GB)
-    THRESHOLD_SIZE = op_config.get("unpack_threshold_size_bytes", 1 * 1024 * 1024 * 1024)
-    # Max compression ratio for individual ZIP file members (uncompressed_size / compressed_size)
-    THRESHOLD_RATIO = op_config.get("unpack_threshold_compression_ratio", 10)
 
     resolved_url = resolve_placeholders(op_config.get("url", ""), context)
     if not resolved_url:
         print_error(f"Error: Download operation '{op_name}' has no 'url' defined after placeholder resolution.")
         return False
 
-    resolved_destination_str = Path(str(resolve_placeholders(op_config.get("destination", "."), context)))
-    resolved_filename = str(resolve_placeholders(op_config.get("filename", ""), context))
+    try:
+        parsed_url = urllib.parse.urlparse(resolved_url)
+        if parsed_url.scheme not in ['http', 'https']:
+            print_error(f"Error: Invalid URL scheme '{parsed_url.scheme}' for '{op_name}'. Only 'http' or 'https' allowed.")
+            return False
+        if parsed_url.scheme == 'http':
+            print(Colours.YELLOW, f"Warning: Downloading from an insecure HTTP URL: {resolved_url}")
+
+        allow_internal_ips = op_config.get("allow_internal_ips", False)
+        if not allow_internal_ips and parsed_url.hostname:
+            try:
+                ip_addr = socket.gethostbyname(parsed_url.hostname)
+                if ipaddress.ip_address(ip_addr).is_private:
+                    print_error(f"Error: URL '{resolved_url}' (hostname: {parsed_url.hostname}, IP: {ip_addr}) resolves to a private IP. Blocking for security (SSRF).")
+                    print_verbose(f"To allow, set 'allow_internal_ips: true' in the op_config for '{op_name}'.")
+                    return False
+            except socket.gaierror:
+                print_error(f"Error: Could not resolve hostname '{parsed_url.hostname}' from URL '{resolved_url}'.")
+                return False
+            except ValueError:
+                print_error(f"Error: Invalid IP address format for hostname '{parsed_url.hostname}'.")
+                return False
+    except ValueError as e:
+        print_error(f"Error: Invalid URL format for operation '{op_name}': {resolved_url} ({e})")
+        return False
+    except Exception as e:
+        print_error(f"Error: Unexpected issue validating URL '{resolved_url}' for '{op_name}': {e}")
+        return False
+
+    resolved_destination_str = str(resolve_placeholders(op_config.get("destination", "."), context))
+    resolved_filename_str = str(resolve_placeholders(op_config.get("filename", ""), context))
     unpack = op_config.get("unpack", False)
-    resolved_unpack_destination_str = Path(str(resolve_placeholders(op_config.get("unpack_destination", "."), context)))
+    resolved_unpack_destination_str = str(resolve_placeholders(op_config.get("unpack_destination", "."), context))
 
-    full_destination_dir = game_root_path / resolved_destination_str
-    full_unpack_path = game_root_path / resolved_unpack_destination_str
-
-    if not resolved_filename:
+    if not resolved_filename_str:
         try:
-            resolved_filename = os.path.basename(urllib.parse.urlparse(resolved_url).path)
-            if not resolved_filename or resolved_filename.endswith('/'):
-                print_verbose(f"Warning: Could not determine filename from URL '{resolved_url}'. Defaulting to 'downloaded_file'.")
-                resolved_filename = "downloaded_file"
+            path_from_url = urllib.parse.urlparse(resolved_url).path
+            resolved_filename_str = os.path.basename(path_from_url)
+            if not resolved_filename_str or resolved_filename_str.endswith('/'):
+                resolved_filename_str = "downloaded_file"
+                print_verbose(f"Could not determine filename from URL '{resolved_url}'. Defaulting to '{resolved_filename_str}'.")
         except Exception as e:
-            print_verbose(f"Warning: Error parsing URL '{resolved_url}' for filename: {e}. Defaulting to 'downloaded_file'.")
-            resolved_filename = "downloaded_file"
+            resolved_filename_str = "downloaded_file"
+            print_verbose(f"Error parsing URL '{resolved_url}' for filename: {e}. Defaulting to '{resolved_filename_str}'.")
 
-    final_file_path = full_destination_dir / resolved_filename
+    if not tool_root_path.is_dir():
+        print_error(f"Critical Error: Tool root path '{tool_root_path}' does not exist or is not a directory.")
+        return False
+
+    path_from_json_dest = Path(resolved_destination_str)
+    full_destination_dir = (tool_root_path / path_from_json_dest if not path_from_json_dest.is_absolute() else path_from_json_dest).resolve()
+
+    if not is_path_within_root(tool_root_path, full_destination_dir):
+        print_error(f"Security Error: Resolved destination directory '{full_destination_dir}' is outside tool root '{tool_root_path}'.")
+        return False
+
+    final_file_path = (full_destination_dir / Path(resolved_filename_str)).resolve()
+
+    if not is_path_within_root(tool_root_path, final_file_path.parent):
+        print_error(f"Security Error: Resolved file path's directory '{final_file_path.parent}' is outside tool root '{tool_root_path}'.")
+        return False
+    if not str(final_file_path.resolve()).startswith(str(full_destination_dir.resolve())):
+        print_error(f"Security Error: Resolved file path '{final_file_path}' escapes its designated destination directory '{full_destination_dir}'.")
+        return False
+
+    full_unpack_path = None
+    if unpack:
+        path_from_json_unpack = Path(resolved_unpack_destination_str)
+        full_unpack_path = (tool_root_path / path_from_json_unpack if not path_from_json_unpack.is_absolute() else path_from_json_unpack).resolve()
+        if not is_path_within_root(tool_root_path, full_unpack_path):
+            print_error(f"Security Error: Resolved unpack destination '{full_unpack_path}' is outside tool root '{tool_root_path}'.")
+            return False
 
     print_verbose(f"Downloading from: {resolved_url}")
-    print_verbose(f"Saving to: {final_file_path}")
-    if unpack:
-        print_verbose(f"Unpacking to: {full_unpack_path}")
-        print_verbose(f"Archive security thresholds: Entries={THRESHOLD_ENTRIES}, Size={THRESHOLD_SIZE}B, ZipRatio={THRESHOLD_RATIO}")
+    print_verbose(f"Base for relative paths: {tool_root_path}")
+    print_verbose(f"Target save directory (resolved): {full_destination_dir}")
+    print_verbose(f"Target filename (resolved): {resolved_filename_str}")
+    print_verbose(f"Final file path (resolved): {final_file_path}")
+    if unpack and full_unpack_path:
+        print_verbose(f"Unpacking to (resolved): {full_unpack_path}")
 
     try:
         os.makedirs(full_destination_dir, exist_ok=True)
@@ -240,193 +281,165 @@ def perform_download(op_config: dict, game_root_path: Path, context: dict) -> bo
         print_error(f"Error creating destination directory '{full_destination_dir}': {e}")
         return False
 
-    USER_AGENT = "curl/8.11.1" # As per original code
+    max_download_size = op_config.get("max_download_size_bytes", DEFAULT_MAX_DOWNLOAD_SIZE_BYTES)
     opener = urllib.request.build_opener()
-    opener.addheaders = [('User-Agent', USER_AGENT)]
+    opener.addheaders = [('User-Agent', op_config.get("user_agent", DEFAULT_USER_AGENT))]
     urllib.request.install_opener(opener)
+    try:
+        request = urllib.request.Request(resolved_url, method='HEAD')
+        with urllib.request.urlopen(request, timeout=10) as response:
+            content_length = response.getheader('Content-Length')
+            if content_length:
+                content_length = int(content_length)
+                print_verbose(f"Server reported Content-Length: {content_length} bytes.")
+                if content_length > max_download_size:
+                    print_error(f"Error: Download size ({content_length}B) exceeds max allowed ({max_download_size}B) for '{op_name}'.")
+                    return False
+            else:
+                print(Colours.YELLOW, f"Warning: Server did not provide Content-Length for '{resolved_url}'. Proceeding without size check.")
+    except Exception as e:
+        print(Colours.YELLOW, f"Warning: Could not verify Content-Length for '{resolved_url}' ({type(e).__name__}: {e}). Proceeding.")
 
     try:
         print(Colours.CYAN, "Starting download...")
         urllib.request.urlretrieve(resolved_url, final_file_path, reporthook=download_progress_hook)
+        if not os.path.getsize(final_file_path) == 0 or resolved_url.startswith("file:"): # Allow empty files if from file URL or if server explicitly sent 0
+             sys.stdout.write("\n") # Ensure newline after progress if not already printed
         print(Colours.GREEN, "Download complete.")
     except urllib.error.HTTPError as e:
-        print_error(f"HTTP Error during download from '{resolved_url}' to '{final_file_path}': {e.code} - {e.reason}")
-        if os.path.exists(final_file_path):
-            try:
-                os.remove(final_file_path)
-                print_verbose(f"Removed incomplete file: {final_file_path}")
-            except OSError as cleanup_e:
-                print_verbose(f"Warning: Could not remove incomplete file '{final_file_path}': {cleanup_e}")
-        exit(1) # Original code uses exit(1)
+        print_error(f"HTTP Error downloading '{resolved_url}' to '{final_file_path}': {e.code} - {e.reason}")
+        if os.path.exists(final_file_path): os.remove(final_file_path)
+        return False
     except urllib.error.URLError as e:
-        print_error(f"URL Error during download from '{resolved_url}' to '{final_file_path}': {e.reason}")
-        if os.path.exists(final_file_path):
-            try:
-                os.remove(final_file_path)
-                print_verbose(f"Removed incomplete file: {final_file_path}")
-            except OSError as cleanup_e:
-                print_verbose(f"Warning: Could not remove incomplete file '{final_file_path}': {cleanup_e}")
-        exit(1) # Original code uses exit(1)
+        print_error(f"URL Error downloading '{resolved_url}' to '{final_file_path}': {e.reason}")
+        if os.path.exists(final_file_path): os.remove(final_file_path)
+        return False
     except Exception as e:
-        print_error(f"An unexpected error occurred during download from '{resolved_url}' to '{final_file_path}': {e}")
-        if os.path.exists(final_file_path):
-            try: os.remove(final_file_path); print_verbose(f"Removed incomplete file: {final_file_path}")
-            except OSError as cleanup_e: print_verbose(f"Warning: Could not remove incomplete file '{final_file_path}': {cleanup_e}")
-        exit(1) # Original code uses exit(1)
+        print_error(f"Unexpected error downloading '{resolved_url}' to '{final_file_path}': {e}")
+        if os.path.exists(final_file_path): os.remove(final_file_path)
+        return False
 
     if unpack:
+        if not full_unpack_path:
+            print_error(f"Error: Unpack destination path invalid for '{op_name}'. Cannot unpack.")
+            return False
         print(Colours.CYAN, "Starting unpacking...")
+        THRESHOLD_ENTRIES = op_config.get("unpack_threshold_entries", DEFAULT_UNPACK_THRESHOLD_ENTRIES)
+        THRESHOLD_SIZE_B = op_config.get("unpack_threshold_size_bytes", DEFAULT_UNPACK_THRESHOLD_SIZE_BYTES)
+        THRESHOLD_RATIO = op_config.get("unpack_threshold_compression_ratio", DEFAULT_UNPACK_THRESHOLD_COMPRESSION_RATIO)
+        print_verbose(f"Archive security: Entries <= {THRESHOLD_ENTRIES}, TotalSize <= {THRESHOLD_SIZE_B}B, MemberRatio <= {THRESHOLD_RATIO}")
 
         try:
             os.makedirs(full_unpack_path, exist_ok=True)
-            file_extension = final_file_path.suffix.lower()
+            file_ext = final_file_path.suffix.lower()
+            cleanup_archive = op_config.get("cleanup_archive", False)
 
-            if file_extension == '.zip':
+            if file_ext == '.zip':
                 with zipfile.ZipFile(final_file_path, 'r') as zip_ref:
-                    member_list = zip_ref.infolist()
-                    num_members = len(member_list)
-                    print_verbose(f"Found {num_members} members in the zip archive.")
-
-                    if num_members > THRESHOLD_ENTRIES:
-                        print_error(f"Error: Zip archive '{final_file_path}' exceeds entry threshold ({num_members}/{THRESHOLD_ENTRIES}). Potential zip bomb.")
+                    members = zip_ref.infolist()
+                    if len(members) > THRESHOLD_ENTRIES:
+                        print_error(f"Zip '{final_file_path}' exceeds entry threshold ({len(members)}/{THRESHOLD_ENTRIES}).")
                         return False
-
-                    current_total_uncompressed_size = 0
-                    for i, member_info in enumerate(member_list):
-                        if member_info.compress_size > 0: # Avoid division by zero
-                            ratio = member_info.file_size / member_info.compress_size
-                            if ratio > THRESHOLD_RATIO:
-                                print_error(f"Error: Member '{member_info.filename}' in zip '{final_file_path}' exceeds compression ratio threshold ({ratio:.2f}/{THRESHOLD_RATIO}). Potential zip bomb.")
-                                return False
-
-                        current_total_uncompressed_size += member_info.file_size
-                        if current_total_uncompressed_size > THRESHOLD_SIZE:
-                            print_error(f"Error: Zip archive '{final_file_path}' would exceed total size threshold ({current_total_uncompressed_size}/{THRESHOLD_SIZE}) with member '{member_info.filename}'. Potential zip bomb.")
+                    total_uncompressed_size = 0
+                    for i, member in enumerate(members):
+                        target_path = (full_unpack_path / Path(member.filename)).resolve()
+                        if not is_path_within_root(full_unpack_path, target_path):
+                            print_error(f"Zip member '{member.filename}' extracts outside unpack dir '{full_unpack_path}'.")
                             return False
+                        if member.is_dir(): continue # Handled by extractall or makedirs during member extraction
+                        if member.file_size == 0 and member.compress_size == 0: continue # Skip empty, non-dir entries for ratio
 
-                        # Path traversal check (ZipFile.extract has some protections, but good to be aware)
-                        # Target path for member
-                        # member_target_path = full_unpack_path / member_info.filename
-                        # resolved_member_target_path = member_target_path.resolve()
-                        # resolved_full_unpack_path = full_unpack_path.resolve()
-                        # if not str(resolved_member_target_path).startswith(str(resolved_full_unpack_path)):
-                        #     print_error(f"Error: Member '{member_info.filename}' attempts to extract outside target directory. Aborting.")
-                        #     return False
-
-                        zip_ref.extract(member_info, full_unpack_path)
-                        percent = int((i + 1) * 100 / num_members) if num_members > 0 else 100
-                        sys.stdout.write(f"\rUnpacking zip... {percent}% ({i+1}/{num_members})")
+                        if member.compress_size > 0:
+                            ratio = member.file_size / member.compress_size
+                            if ratio > THRESHOLD_RATIO:
+                                print_error(f"Zip member '{member.filename}' ratio {ratio:.1f} > threshold {THRESHOLD_RATIO}.")
+                                return False
+                        total_uncompressed_size += member.file_size
+                        if total_uncompressed_size > THRESHOLD_SIZE_B:
+                            print_error(f"Zip total uncompressed size {total_uncompressed_size}B > threshold {THRESHOLD_SIZE_B}B with '{member.filename}'.")
+                            return False
+                        # Extract member by member for progress
+                        zip_ref.extract(member, path=full_unpack_path)
+                        percent = int((i + 1) * 100 / len(members)) if members else 100
+                        sys.stdout.write(f"\rUnpacking zip... {percent}%")
                         sys.stdout.flush()
                     sys.stdout.write("\n")
-                    if num_members == 0:
-                        print(Colours.GREEN, "Zip archive is empty but processed successfully.")
-                    else:
-                        print(Colours.GREEN, "Zip archive unpacked successfully after security checks.")
+                    print(Colours.GREEN, "Zip unpacked successfully.")
 
-            elif file_extension in ['.tar', '.gz', '.tgz', '.bz2', '.xz']: # .gz, .tgz etc. are often tar files
-                # For .gz, .bz2, .xz that are not tar files, tarfile.open will fail.
-                # This logic assumes these extensions imply a tar archive.
-                try:
-                    with tarfile.open(final_file_path, 'r:*') as tar_ref:
-                        member_list = tar_ref.getmembers()
-                        num_members = len(member_list)
-                        print_verbose(f"Found {num_members} members in the tar archive.")
-
-                        if num_members > THRESHOLD_ENTRIES:
-                            print_error(f"Error: Tar archive '{final_file_path}' exceeds entry threshold ({num_members}/{THRESHOLD_ENTRIES}). Potential tar bomb.")
+            elif file_ext in ['.tar', '.gz', '.tgz', '.bz2', '.xz']:
+                with tarfile.open(final_file_path, 'r:*') as tar_ref:
+                    safe_members = []
+                    for member in tar_ref.getmembers(): # Initial scan for safety
+                        target_path = (full_unpack_path / Path(member.name)).resolve()
+                        if not is_path_within_root(full_unpack_path, target_path):
+                            print_error(f"Tar member '{member.name}' extracts outside unpack dir '{full_unpack_path}'.")
                             return False
+                        safe_members.append(member)
 
-                        current_total_uncompressed_size = 0
-                        for member_info in member_list:
-                            current_total_uncompressed_size += member_info.size # member_info.size is uncompressed
+                    if len(safe_members) > THRESHOLD_ENTRIES:
+                        print_error(f"Tar '{final_file_path}' exceeds entry threshold ({len(safe_members)}/{THRESHOLD_ENTRIES}).")
+                        return False
+                    total_uncompressed_size = sum(m.size for m in safe_members if m.isfile() or m.issym() or m.islnk())
+                    if total_uncompressed_size > THRESHOLD_SIZE_B:
+                        print_error(f"Tar total uncompressed size {total_uncompressed_size}B > threshold {THRESHOLD_SIZE_B}B.")
+                        return False
 
-                        if current_total_uncompressed_size > THRESHOLD_SIZE:
-                            print_error(f"Error: Tar archive '{final_file_path}' exceeds total uncompressed size threshold ({current_total_uncompressed_size}/{THRESHOLD_SIZE}). Potential tar bomb.")
-                            return False
-
-                        print_verbose("Tar security checks passed. Starting extraction.")
-                        for i, member_info in enumerate(member_list):
-                            # tarfile.extract has built-in protections against common path traversal (absolute paths, '..')
-                            # For symlinks, ensure behavior is understood (default is to extract them if they point within the archive)
-                            try:
-                                tar_ref.extract(member_info, full_unpack_path, numeric_owner=True)
-                            except Exception as e_extract:
-                                sys.stdout.write("\n")
-                                print_error(f"Error extracting member '{member_info.name}' from tar: {e_extract}")
-                                return False # Fail entire operation if one member fails
-
-                            percent = int((i + 1) * 100 / num_members) if num_members > 0 else 100
-                            sys.stdout.write(f"\rUnpacking tar... {percent}% ({i+1}/{num_members})")
-                            sys.stdout.flush()
-                        sys.stdout.write("\n")
-                        if num_members == 0:
-                            print(Colours.GREEN, "Tar archive is empty but processed successfully.")
-                        else:
-                            print(Colours.GREEN, "Tar archive unpacked successfully after security checks.")
-                except tarfile.ReadError as te: # Catch if it's not a valid tar file (e.g. plain .gz)
+                    for i, member in enumerate(safe_members):
+                        tar_ref.extract(member, path=full_unpack_path, numeric_owner=True)
+                        percent = int((i + 1) * 100 / len(safe_members)) if safe_members else 100
+                        sys.stdout.write(f"\rUnpacking tar... {percent}%")
+                        sys.stdout.flush()
                     sys.stdout.write("\n")
-                    print(Colours.YELLOW + f"Warning: File '{final_file_path}' with extension '{file_extension}' could not be opened as a tar archive: {te}. If it's a single compressed file, it won't be unpacked by this routine.")
-                    print_verbose(f"File left at: {final_file_path}")
-                    return False # Treat as failure if unpacking requested but format not fully handled for non-tar compressed files
-
+                    print(Colours.GREEN, "Tar unpacked successfully.")
             else:
-                print(Colours.YELLOW + f"Warning: Unpacking requested but file extension '{file_extension}' is not supported for automatic unpacking (.zip or .tar.*).")
-                print_verbose(f"File left at: {final_file_path}")
-                return False # Unpacking requested but not supported
+                print(Colours.YELLOW, f"Unpacking not supported for '{file_ext}'. File left at '{final_file_path}'.")
+                return False # If unpack was true, this is a failure.
 
-            cleanup_archive = op_config.get("cleanup_archive", False)
             if cleanup_archive:
-                try:
-                    os.remove(final_file_path)
-                    print_verbose(f"Cleaned up downloaded archive: {final_file_path}")
-                except OSError as cleanup_e:
-                    print_verbose(f"Warning: Could not clean up archive '{final_file_path}': {cleanup_e}")
-
-            return True # Unpacking process (if attempted for supported type) was successful
-
-        except (zipfile.BadZipFile, tarfile.TarError, Exception) as e: # tarfile.TarError is base for tar issues
-            # Ensure a newline is printed if the progress was interrupted by an error
-            # Check if progress was being printed (total_members might not be defined if error was early)
-            # A simple sys.stdout.write("\n") should be safe here.
+                os.remove(final_file_path)
+                print_verbose(f"Cleaned up archive: {final_file_path}")
+            return True
+        except (zipfile.BadZipFile, tarfile.TarError, tarfile.ReadError) as e_arc:
             sys.stdout.write("\n")
-            print_error(f"Error during unpacking '{final_file_path}': {e}")
+            print_error(f"Error unpacking '{final_file_path}': {e_arc}")
             return False
-    else:
-        print(Colours.GREEN, "Download completed successfully, not unpacked.")
-        return True
-
+        except Exception as e:
+            sys.stdout.write("\n")
+            print_error(f"Unexpected error during unpack of '{final_file_path}': {e}")
+            return False
+    return True # Download successful, no unpack requested or unpack successful
 
 def main_tool_logic():
     """Main function to run the interactive tool."""
-    tool_root_path = Path(__file__).parent.resolve() # Get path of the script itself
+    tool_root_path = Path(__file__).parent.resolve()
     games_registry_full_path = tool_root_path / GAMES_REGISTRY_DIR_NAME / GAMES_COLLECTION_DIR_NAME
 
-    # --- Load Engine Configuration ---
     engine_config_data = {}
     engine_config_file_path = tool_root_path / ENGINE_CONFIG_FILENAME
     if engine_config_file_path.is_file():
         try:
             with open(engine_config_file_path, 'r', encoding='utf-8') as f:
                 engine_config_data = json.load(f)
-            print(Colours.GREEN, f"Loaded engine configuration from: {engine_config_file_path}")
-        except json.JSONDecodeError:
-            print_error(f"Error: Could not decode JSON from '{engine_config_file_path}'. Placeholders might not resolve correctly.")
+            print(Colours.GREEN, f"Loaded engine config: {engine_config_file_path}")
+            if engine_config_data:
+                 print_verbose(f"Engine config data available for placeholders. Ensure no sensitive data is exposed if used in URLs/filenames.")
         except Exception as e:
-            print_error(f"Error loading engine configuration '{engine_config_file_path}': {e}")
+            print_error(f"Error loading engine config '{engine_config_file_path}': {e}")
     else:
-        print(Colours.YELLOW, f"Info: Engine configuration file '{engine_config_file_path}' not found. Only game-specific placeholders will be available if defined.")
+        print(Colours.YELLOW, f"Info: Engine config '{engine_config_file_path}' not found.")
 
     print(Colours.CYAN, f"Scanning for games in: {games_registry_full_path}")
     available_games_map = discover_games(games_registry_full_path, DOWNLOADS_FILENAME)
 
     if not available_games_map:
-        print_error(f"No valid game configurations found in subdirectories of '{games_registry_full_path}'.")
-        print(Colours.YELLOW, f"Ensure each game has a directory containing an '{DOWNLOADS_FILENAME}' formatted correctly (JSON object with game name as key).")
-        input("Press Enter to close.")
-        return False
+        print_error(f"No valid game configurations found in '{games_registry_full_path}'.")
+        print(Colours.YELLOW, f"Ensure each game has a dir with '{DOWNLOADS_FILENAME}' (JSON object with game name as key).")
+        if questionary.confirm("No games found. Exit tool?", default=True, style=custom_style_fancy).ask():
+            return False
+        print(Colours.CYAN, "Exiting due to no games found or user choice.")
+        return False # Exit if user chose not to continue or default path
 
     game_names_sorted = sorted(list(available_games_map.keys()))
-
     selected_game_name = questionary.select(
         "Select a game to work with:",
         choices=game_names_sorted + [questionary.Separator(), "Exit Tool"],
@@ -438,203 +451,118 @@ def main_tool_logic():
         return False
 
     selected_game_data = available_games_map[selected_game_name]
-    operations_file_for_game = selected_game_data["ops_file"]
-    game_root_path = selected_game_data["game_root"]
-	#game_root_path = Path(__file__).parent.resolve()
+    ops_file_for_game = selected_game_data["ops_file"]
+    game_specific_root_path = selected_game_data["game_root"] # e.g., .../RemakeRegistry/Games/GameName
 
-    print(Colours.CYAN, f"Selected game's root path: {game_root_path}")
-    print(Colours.CYAN, f"Loading operations for game: '{selected_game_name}' from {operations_file_for_game}")
-    operations = load_downloads(operations_file_for_game, selected_game_name) # Renamed from downloads for clarity
+    print(Colours.CYAN, f"Game Specific Dir (for {{Game.RootPath}}): {game_specific_root_path}")
+    print(Colours.CYAN, f"Loading ops for '{selected_game_name}' from {ops_file_for_game}")
+    operations = load_downloads(ops_file_for_game, selected_game_name)
 
     if not operations:
-        print_error(f"No valid operations found for '{selected_game_name}'. Check content of '{operations_file_for_game}' under the key '{selected_game_name}'.")
-        input("Press Enter to return to game selection.")
-        return True # Signal to change game (go back to game selection)
+        print_error(f"No valid ops for '{selected_game_name}' in '{ops_file_for_game}'.")
+        input("\nPress Enter to return to game selection.")
+        return True # Restart main_tool_logic for game selection
 
-    # --- Create the dynamic context for placeholder resolution ---
-    # This context will be updated with prompt answers as they are gathered.
-    # Start with global engine config and game specifics.
-    # Use a copy so prompt answers don't leak between game selections
-    current_resolution_context = engine_config_data.copy()
-    current_resolution_context["Game"] = { # Add game-specifics under a "Game" key
-        "RootPath": str(game_root_path),    # Absolute path to the selected game's root
-        "Name": selected_game_name,         # Name of the selected game
-    }
+    base_resolution_context = engine_config_data.copy()
+    base_resolution_context["Tool"] = {"RootPath": str(tool_root_path)}
+    base_resolution_context["Game"] = {"RootPath": str(game_specific_root_path), "Name": selected_game_name}
+    print_verbose(f"Context 'Tool.RootPath' = {tool_root_path}")
+    print_verbose(f"Context 'Game.RootPath' ('{selected_game_name}') = {game_specific_root_path}")
 
-    # -- Main operations loop --
-    while True: # Operations loop for the selected game
+    while True:
         os.system('cls' if os.name == 'nt' else 'clear')
-        print(Colours.MAGENTA, f"--- Operations for: {selected_game_name} ---")
-        print(Colours.CYAN, f"(Root: {game_root_path})")
+        print(Colours.CYAN, f"--- Operations for: {selected_game_name} ---")
+        print(Colours.CYAN, f"(Project Root: {tool_root_path})")
+        print(Colours.CYAN, f"(Game Dir: {game_specific_root_path})")
 
-        menu_choices = []
-        # Prepare menu choices, "Name" is used for display
-        # Filter out operations without a 'Name' unless they are designed as init/hidden steps (not implemented in this version)
-        for op_idx, op in enumerate(operations):
-            op_name = op.get("Name")
-            op_type = op.get("Type", "unknown") # Default type for filtering
-
-            # Decide which operations to show in the menu.
-            # For now, show anything with a Name. Could later add a "hidden": true flag.
-            if op_name:
-                # Add a type hint to the menu item for clarity? (Optional)
-                # menu_choices.append(f"{op_name} ({op_type.capitalize()})")
-                menu_choices.append(op_name)
-            else:
-                # Operations without a name are skipped for the manual menu
-                print_verbose(f"Skipping unnamed operation #{op_idx+1} (Type: {op_type}) from menu.")
-                continue
-
-
+        menu_choices = [
+            questionary.Choice(title=f"{op.get('Name', 'Unnamed Op')} ({op.get('Type', 'N/A')})", value=idx)
+            for idx, op in enumerate(operations) if op.get("Name")
+        ]
+        if not any(op.get("Name") for op in operations): # Check if all ops are unnamed
+            print_error("No named operations available for this game.")
         menu_choices.extend([questionary.Separator(), "Change Game", "Exit Tool"])
 
-        selected_op_display_name = questionary.select(
-            "Select operation to perform:",
-            choices=menu_choices,
-            use_shortcuts=True,
-            style=custom_style_fancy
+        selected_choice = questionary.select(
+            "Select operation:", choices=menu_choices, use_shortcuts=True, style=custom_style_fancy
         ).ask()
 
-        if selected_op_display_name is None or selected_op_display_name == "Exit Tool":
-            print(Colours.CYAN, "Exiting tool...")
-            return False
+        if selected_choice is None or selected_choice == "Exit Tool": return False
+        if selected_choice == "Change Game": return True
 
-        if selected_op_display_name == "Change Game":
-            return True # Signal to change game
-
-        # Find the selected operation configuration by display name
-        selected_op_config = None
-        for op_idx, op in enumerate(operations):
-            current_op_display_name = op.get("Name")
-            if current_op_display_name == selected_op_display_name:
-                selected_op_config = op
-                break
-
-        if not selected_op_config:
-            # This should ideally not happen if the menu was built correctly
-            print_error(f"Error: Could not find configuration for selected operation '{selected_op_display_name}'. This might be an internal error.")
-            input("\nPress Enter to return to the menu.")
-            continue
-
-        op_title_for_log = selected_op_config.get("Name") or "Unnamed Operation"
+        selected_op_config = operations[selected_choice] # Index from choice value
+        op_title = selected_op_config.get("Name", "Unnamed Operation")
         op_type = selected_op_config.get("Type", "unknown")
+        print(Colours.GREEN, f"\nPreparing: '{op_title}' (Type: {op_type}) for {selected_game_name}")
 
-        print(Colours.GREEN, f"\nPreparing to run: '{op_title_for_log}' (Type: {op_type}) for {selected_game_name}")
-
-        # instructions = selected_op_config.get("Instructions")
-        # if instructions:
-        #    print(Colours.CYAN, "\nInstructions for this step:")
-        #    # Resolve placeholders in instructions too? Maybe not necessary, but possible.
-        #    # resolved_instructions = resolve_placeholders(instructions, current_resolution_context)
-        #    print(Colours.WHITE, instructions)
-
-        # --- Process Prompts and Update Context ---
-        # Create a temporary context copy for this operation to add prompt answers to
-        # This allows prompts to use answers from previous prompts in the *same* operation.
-        op_resolution_context = current_resolution_context.copy()
-
-        operation_cancelled_by_user = False
-
+        op_resolution_context = base_resolution_context.copy() # Fresh copy for this op's prompts
+        cancelled_by_user = False
         if "prompts" in selected_op_config:
             print(Colours.MAGENTA, "\nGathering required information...")
-            for prompt_config in selected_op_config.get("prompts", []):
+            for prompt_cfg in selected_op_config.get("prompts", []):
                 try:
-                    # Resolve placeholders in prompt configuration itself
-                    resolved_prompt_config = resolve_placeholders(prompt_config, op_resolution_context)
+                    resolved_prompt_cfg = resolve_placeholders(prompt_cfg, op_resolution_context)
+                    if "condition" in resolved_prompt_cfg and not op_resolution_context.get(resolved_prompt_cfg["condition"]):
+                        print_verbose(f"Skipping prompt '{resolved_prompt_cfg.get('Name')}' due to condition '{resolved_prompt_cfg['condition']}'.")
+                        continue
 
-                    # Check condition BEFORE asking the prompt
-                    if "condition" in resolved_prompt_config:
-                        condition_prompt_name = resolved_prompt_config["condition"]
-                        # Condition is met if the corresponding prompt name exists in context AND its value is truthy
-                        # (e.g., a 'confirm' prompt answered True, or a 'checkbox' with non-empty selection)
-                        if not op_resolution_context.get(condition_prompt_name):
-                            print_verbose(f"Skipping prompt '{resolved_prompt_config.get('Name', 'Unnamed Prompt')}' based on condition '{condition_prompt_name}'.")
-                            continue # Skip this prompt
-
-                    prompt_name = resolved_prompt_config["Name"]
-                    prompt_message = resolved_prompt_config["message"]
-                    prompt_type = resolved_prompt_config.get("type", "text")
-
+                    p_name = resolved_prompt_cfg["Name"]
+                    p_msg = resolved_prompt_cfg["message"]
+                    p_type = resolved_prompt_cfg.get("type", "text")
                     answer = None
-                    # Use resolved_prompt_config for default, choices, validation etc.
-                    # Ensure defaults are handled appropriately for each type
 
-                    if prompt_type == "confirm":
-                        default_val = resolved_prompt_config.get("default", False)
-                        answer = questionary.confirm(prompt_message, default=default_val, style=custom_style_fancy).ask()
-                    elif prompt_type == "checkbox":
-                        choices_for_checkbox = resolved_prompt_config.get("choices", [])
-                        # Ensure choices are simple strings/values for questionary
-                        choices_for_checkbox = [str(c) for c in choices_for_checkbox]
-
-                        validate_func = None
-                        validation_rules = resolved_prompt_config.get("validation")
-                        if validation_rules and validation_rules.get("required"):
-                            val_msg = validation_rules.get("message", "Selection required.")
-                            validate_func = lambda x: True if len(x) > 0 else val_msg
-
-                        answer = questionary.checkbox(
-                            prompt_message,
-                            choices=choices_for_checkbox,
-                            style=custom_style_fancy,
-                            validate=validate_func
-                        ).ask()
-                    elif prompt_type == "text":
-                        default_val = resolved_prompt_config.get("default", "")
-                        validate_func = None
-                        validation_rules = resolved_prompt_config.get("validation")
-                        if validation_rules and validation_rules.get("required"):
-                            val_msg = validation_rules.get("message", "Input required.")
-                            validate_func = lambda x: True if len(x.strip()) > 0 else val_msg
-
-                        answer = questionary.text(prompt_message, default=str(default_val), style=custom_style_fancy, validate=validate_func).ask()
-                    # Add other prompt types (select, path, etc.) here if needed
+                    if p_type == "confirm":
+                        answer = questionary.confirm(p_msg, default=resolved_prompt_cfg.get("default", False), style=custom_style_fancy).ask()
+                    elif p_type == "checkbox":
+                        choices = [str(c) for c in resolved_prompt_cfg.get("choices", [])]
+                        val_fn = (lambda x: True if x else resolved_prompt_cfg["validation"].get("message", "Req.")) if resolved_prompt_cfg.get("validation", {}).get("required") else None
+                        answer = questionary.checkbox(p_msg, choices=choices, style=custom_style_fancy, validate=val_fn).ask()
+                    elif p_type == "text":
+                        val_fn = (lambda x: True if x.strip() else resolved_prompt_cfg["validation"].get("message", "Req.")) if resolved_prompt_cfg.get("validation", {}).get("required") else None
+                        answer = questionary.text(p_msg, default=str(resolved_prompt_cfg.get("default", "")), style=custom_style_fancy, validate=val_fn).ask()
                     else:
-                        print_error(f"Warning: Unknown prompt type '{prompt_type}' for prompt '{prompt_name}'. Skipping.")
-                        continue # Skip this prompt
+                        print_error(f"Unknown prompt type '{p_type}' for '{p_name}'. Skipping.")
+                        continue
 
-                    if answer is None: # User cancelled the prompt (Ctrl+C)
-                        operation_cancelled_by_user = True
-                        break
+                    if answer is None: cancelled_by_user = True; break
+                    op_resolution_context[p_name] = answer
+                    print_debug(f"Prompt '{p_name}' answered: {answer}")
+                except Exception as e_p:
+                    print_error(f"Error in prompt '{prompt_cfg.get('Name', 'Unnamed Prompt')}': {e_p}"); cancelled_by_user = True; break
 
-                    # Add the new answer to the operation-specific context for subsequent steps/prompts
-                    op_resolution_context[prompt_name] = answer
-                    print_debug(f"Prompt '{prompt_name}' answered with: {answer}") # Log prompt answer
+        if cancelled_by_user:
+            print(Colours.RED, f"Operation '{op_title}' cancelled."); input("\nPress Enter..."); continue
 
-                except KeyError as e:
-                    print_error(f"Error processing prompt configuration for '{prompt_config.get('Name', 'Unnamed Prompt')}': Missing required key - {e}")
-                    operation_cancelled_by_user = True # Treat misconfigured prompt as cancellation
-                    break
-                except Exception as e:
-                    print_error(f"Unexpected error during prompt '{prompt_config.get('Name', 'Unnamed Prompt')}' processing: {e}")
-                    operation_cancelled_by_user = True
-                    break
-
-        if operation_cancelled_by_user:
-            print(Colours.RED, f"Operation '{op_title_for_log}' cancelled by user or due to configuration error.")
-            input("\nPress Enter to return to the menu.")
-            continue # Go back to game operations menu
-
-        # --- Execute the Operation based on Type ---
         if op_type == "download":
-            # Pass the operation config, game root, and the updated context (including prompt answers)
-            success = perform_download(selected_op_config, game_root_path, op_resolution_context)
-            if success:
-                print(Colours.GREEN, f"\nOperation '{op_title_for_log}' completed successfully.")
-            else:
-                print_error(f"\nOperation '{op_title_for_log}' failed.")
+            success = perform_download(selected_op_config, tool_root_path, op_resolution_context)
+            print(Colours.GREEN if success else Colours.RED, f"\nOperation '{op_title}' {'completed successfully' if success else 'failed/incomplete'}.")
         else:
-            print_error(f"Error: Unknown operation type '{op_type}' for '{op_title_for_log}'.")
-            print(Colours.YELLOW, "Please check the 'Type' field in the JSON configuration.")
+            print_error(f"Unknown operation type '{op_type}' for '{op_title}'. Check 'Type' in JSON.")
 
-        print(Colours.MAGENTA, "\nOperation finished. Press Enter to return to the operations menu.")
+        print(Colours.MAGENTA, "\nOperation finished. Press Enter to return to menu.")
         input()
 
 if __name__ == "__main__":
-    should_continue_main_loop = True
-    while should_continue_main_loop:
-        should_continue_main_loop = main_tool_logic()
+    # Example: Enable verbose/debug printing if needed globally
+    # print_verbose.is_verbose = True
+    # print_debug.is_debug = True
+
+    keep_running = True
+    while keep_running:
+        os.system('cls' if os.name == 'nt' else 'clear')
+        try:
+            keep_running = main_tool_logic()
+        except KeyboardInterrupt:
+            print(Colours.CYAN, "\nTool interrupted by user. Exiting.")
+            keep_running = False
+        except Exception as e_main:
+            print_error(f"CRITICAL ERROR in main tool logic: {e_main}")
+            import traceback
+            print_error("Traceback:\n" + traceback.format_exc())
+            print_error("Tool will exit to prevent further issues.")
+            keep_running = False
 
     print(Colours.MAGENTA, "\nTool has been closed. Press any key to exit window.")
-    # Keep window open until user presses Enter
     input()
+
+
