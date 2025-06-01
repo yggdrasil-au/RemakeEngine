@@ -16,23 +16,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-    
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Setup Python
+        uses: actions/setup-python@v2
         with:
-          python-version: '3.11'
-    
-      - name: Install tox and dependencies
+          python-version: ${{ matrix.python }}
+      - name: Install tox and any other packages
         run: pip install tox
-    
-      - name: Run tests and generate coverage
-        run: tox -e py  # tox creates coverage.xml
-    
-      - name: Prepare coverage report
-        run: |
-          mkdir -p .sonarqube/out
-          mv coverage.xml .sonarqube/out/coverage.xml
-    
+      - name: Run tox
+        run: tox -e py
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v5
         env:
