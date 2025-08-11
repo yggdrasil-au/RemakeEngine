@@ -108,9 +108,9 @@ def sanitize_name(input_name: str) -> str:
 
 # --- Recursive Processing Function ---
 def process_source_directory(source_path, destination_parent_path, accumulated_flattened_name, base_destination_dir, original_root_dir_abs):
-    print(Colours.GREEN if hasattr(colours, 'GREEN') else '', f"Processing Source Directory: '{source_path}'")
-    print(Colours.DARK_GREEN if hasattr(colours, 'DARK_GREEN') else '', f" -> Destination Parent Path: '{destination_parent_path}'")
-    print(Colours.DARK_GREEN if hasattr(colours, 'DARK_GREEN') else '', f" -> Accumulated Flattened Name: '{accumulated_flattened_name}'")
+    print(Colours.GREEN, f"Processing Source Directory: '{source_path}'")
+    print(Colours.DARK_GREEN, f" -> Destination Parent Path: '{destination_parent_path}'")
+    print(Colours.DARK_GREEN, f" -> Accumulated Flattened Name: '{accumulated_flattened_name}'")
     print_verbose(f"Processing Source: '{source_path}' -> Dest Parent: '{destination_parent_path}' (Accumulated Name: '{accumulated_flattened_name}')")
 
     if accumulated_flattened_name:
@@ -172,7 +172,7 @@ def process_source_directory(source_path, destination_parent_path, accumulated_f
             if not os.path.exists(final_dest_dir_path):
                 try:
                     relative_dest_path = os.path.relpath(final_dest_dir_path, base_destination_dir)
-                    print(Colours.GREEN if hasattr(colours, 'GREEN') else '', f"  Creating directory: '{relative_dest_path}'")
+                    print(Colours.GREEN, f"  Creating directory: '{relative_dest_path}'")
                     print_verbose(f"Creating concrete destination directory: '{final_dest_dir_path}'")
                     os.makedirs(final_dest_dir_path)
                 except Exception as ex:
@@ -192,7 +192,7 @@ def process_source_directory(source_path, destination_parent_path, accumulated_f
                 relative_dest_file_path = os.path.relpath(destination_file_path, base_destination_dir)
 
                 try:
-                    print(Colours.BLUE if hasattr(colours, 'BLUE') else '', f"    Copying file: '{file_name}' -> '{relative_dest_file_path}'")
+                    print(Colours.BLUE, f"    Copying file: '{file_name}' -> '{relative_dest_file_path}'")
                     print_verbose(f"Copying file '{file_path}' to '{destination_file_path}'")
                     shutil.copy2(file_path, destination_file_path)
 
@@ -270,7 +270,7 @@ def main():
                 print_error("Sanitization rules must be a JSON list of objects.")
                 SANITIZATION_RULES = [] # Reset to empty
                 sys.exit(1)
-            print(Colours.YELLOW if hasattr(colours, 'YELLOW') else '', f"Loaded {len(SANITIZATION_RULES)} sanitization rules from '{args.rules}'.")
+            print(Colours.YELLOW, f"Loaded {len(SANITIZATION_RULES)} sanitization rules from '{args.rules}'.")
         except json.JSONDecodeError as e:
             print_error(f"Error decoding JSON from rules file '{args.rules}': {e}")
             sys.exit(1)
@@ -278,16 +278,16 @@ def main():
             print_error(f"Error loading rules file '{args.rules}': {e}")
             sys.exit(1)
     else:
-        print(Colours.YELLOW if hasattr(colours, 'YELLOW') else '', "No sanitization rules file provided. Using raw flattened names or default internal logic.")
+        print(Colours.YELLOW, "No sanitization rules file provided. Using raw flattened names or default internal logic.")
 
 
     # --- Main Script ---
-    print(Colours.YELLOW if hasattr(colours, 'YELLOW') else '', "Starting universal recursive flattening copy process...")
-    print(Colours.CYAN if hasattr(colours, 'CYAN') else '', f"Source Root Directory: '{args.source_dir}'")
-    print(Colours.CYAN if hasattr(colours, 'CYAN') else '', f"Destination Directory: '{args.destination_dir}'")
-    print(Colours.CYAN if hasattr(colours, 'CYAN') else '', f"Flattening Separator: '{FLATTENING_SEPARATOR}'")
+    print(Colours.YELLOW, "Starting universal recursive flattening copy process...")
+    print(Colours.CYAN, f"Source Root Directory: '{args.source_dir}'")
+    print(Colours.CYAN, f"Destination Directory: '{args.destination_dir}'")
+    print(Colours.CYAN, f"Flattening Separator: '{FLATTENING_SEPARATOR}'")
     if NO_HASH_CHECK:
-        print(Colours.YELLOW if hasattr(colours, 'YELLOW') else '', "SHA256 hash checking is DISABLED.")
+        print(Colours.YELLOW, "SHA256 hash checking is DISABLED.")
 
 
     root_dir_abs = os.path.abspath(args.source_dir)
@@ -298,10 +298,10 @@ def main():
         sys.exit(1)
 
     if not os.path.exists(destination_dir_abs):
-        print(Colours.YELLOW if hasattr(colours, 'YELLOW') else '', f"Destination directory '{destination_dir_abs}' not found. Creating...")
+        print(Colours.YELLOW, f"Destination directory '{destination_dir_abs}' not found. Creating...")
         try:
             os.makedirs(destination_dir_abs)
-            print(Colours.GREEN if hasattr(colours, 'GREEN') else '', "Destination directory created successfully.")
+            print(Colours.GREEN, "Destination directory created successfully.")
         except Exception as ex:
             print_error(f"Failed to create destination directory '{destination_dir_abs}': {ex}")
             sys.exit(1)
@@ -309,8 +309,8 @@ def main():
         print_error(f"Destination path '{destination_dir_abs}' exists but is not a directory.")
         sys.exit(1)
 
-    print(Colours.YELLOW if hasattr(colours, 'YELLOW') else '', "Starting processing from source root directory's contents...")
-    print(Colours.GRAY if hasattr(colours, 'GRAY') else '', "--------------------------------------------------")
+    print(Colours.YELLOW, "Starting processing from source root directory's contents...")
+    print(Colours.GRAY, "--------------------------------------------------")
 
     # The initial call to process_source_directory will iterate through the *contents*
     # of root_dir_abs. The destination_parent_path is destination_dir_abs itself,
@@ -350,13 +350,13 @@ def main():
         print_error(traceback.format_exc())
         sys.exit(1) # Exit on unhandled top-level exceptions
 
-    print(Colours.GRAY if hasattr(colours, 'GRAY') else '', "--------------------------------------------------")
+    print(Colours.GRAY, "--------------------------------------------------")
     if success:
-        print(Colours.GREEN if hasattr(colours, 'GREEN') else '', "Universal recursive flattening copy process completed.")
+        print(Colours.GREEN, "Universal recursive flattening copy process completed.")
     else:
         print_error("Universal recursive flattening copy process completed with errors.")
-    print(Colours.GREEN if hasattr(colours, 'GREEN') else '', f"Source directory contents from: '{root_dir_abs}'")
-    print(Colours.GREEN if hasattr(colours, 'GREEN') else '', f"Processed into destination directory: '{destination_dir_abs}'")
+    print(Colours.GREEN, f"Source directory contents from: '{root_dir_abs}'")
+    print(Colours.GREEN, f"Processed into destination directory: '{destination_dir_abs}'")
 
     if not success:
         sys.exit(1) # Exit with error code if processing didn't fully succeed
