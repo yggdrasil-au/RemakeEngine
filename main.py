@@ -333,21 +333,16 @@ def main_tool_logic():
             use_shortcuts=True,
             style=custom_style_fancy
         ).ask()
-        
+
         if selected_op_display_name == "Run All Marked Operations (Non-Interactive)":
             print(Colours.MAGENTA, "\n--- Starting 'Run All' sequence ---")
             ops_to_run = [op for op in operations if op.get("run-all") and not op.get("init")]
-            
+
             all_succeeded = True
             for op_config in ops_to_run:
                 op_title_for_log = op_config.get("Name") or "Unnamed 'run-all' Operation"
-                
-                if op_config.get("prompts"):
-                    print(Colours.YELLOW, f"\nSkipping '{op_title_for_log}': 'run-all' operations cannot have interactive prompts.")
-                    continue
-
                 print(Colours.CYAN, f"\n>>> Running: '{op_title_for_log}'")
-                
+
                 python_exe = op_config.get("python_executable", "python")
                 script_rel_path = op_config.get("script")
 
@@ -361,22 +356,65 @@ def main_tool_logic():
                     all_succeeded = False
                     break
 
+                # --- Start of new logic ---
                 command_parts = [python_exe, str(script_abs_path)]
-                
+
+                # 1. Add static arguments defined in "args"
                 static_args = op_config.get("args", [])
                 if isinstance(static_args, list):
                     resolved_args = resolve_placeholders(static_args, current_resolution_context)
                     command_parts.extend([str(arg) for arg in resolved_args])
-                
+
+                # 2. Process prompts automatically using their default values
+                if "prompts" in op_config:
+                    # This dictionary stores default "answers" to handle conditional prompts
+                    default_answers = {}
+
+                    for prompt_config in op_config["prompts"]:
+                        prompt_name = prompt_config["Name"]
+                        default_value = prompt_config.get("default")
+
+                        # Store this default value as the simulated "answer"
+                        default_answers[prompt_name] = default_value
+
+                        # Check if this prompt depends on the answer to a previous one
+                        if "condition" in prompt_config:
+                            condition_prompt_name = prompt_config["condition"]
+                            # If the condition (based on a previous default) is not met, skip this prompt
+                            if not default_answers.get(condition_prompt_name, False):
+                                continue
+
+                        prompt_type = prompt_config.get("type", "text")
+
+                        # Add command-line arguments based on the prompt type and its default value
+                        if prompt_type == "confirm":
+                            if default_value and "cli_arg" in prompt_config:
+                                command_parts.append(prompt_config["cli_arg"])
+
+                        elif prompt_type == "checkbox":
+                            if default_value and "cli_prefix" in prompt_config:
+                                command_parts.append(prompt_config["cli_prefix"])
+                                command_parts.extend([str(a) for a in default_value])
+
+                        elif prompt_type == "text":
+                            if default_value and str(default_value).strip():
+                                value_str = str(default_value).strip()
+                                if "cli_arg_template" in prompt_config:
+                                    command_parts.append(prompt_config["cli_arg_template"].replace("{value}", value_str))
+                                elif "cli_arg_prefix" in prompt_config:
+                                    command_parts.append(prompt_config["cli_arg_prefix"])
+                                    command_parts.append(value_str)
+                # --- End of new logic ---
+
                 if not execute_command(command_parts, op_title_for_log, op_logger):
                     all_succeeded = False
-                    break 
+                    break
 
             if all_succeeded:
                 print(Colours.GREEN, "\n--- 'Run All' sequence completed successfully. ---")
             else:
                 print(Colours.RED, "\n--- 'Run All' sequence halted due to an error. ---")
-            
+
             input("\nPress Enter to return to the menu.")
             continue
 

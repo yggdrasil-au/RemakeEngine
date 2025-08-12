@@ -1,7 +1,7 @@
 # flat_cli.py
 # Applies flattening universally from SourceDir's *contents* directly into DestinationDir.
 # Example:
-# python flat_cli.py ".\Source\RootDir" ".\Destination\Flattened" --action move --rules ".\custom_rules.json" --separator "__" -v
+# python flat_cli.py ".\Source\RootDir" ".\Destination\Flattened" --rules ".\custom_rules.json" --separator "__" -v
 
 import shutil
 import hashlib
@@ -18,14 +18,13 @@ from printer import print, Colours, print_error, print_verbose, print_debug, pri
 
 # -- Begin Global Variables --
 
-global VERBOSE, DEBUG, SANITIZATION_RULES, FLATTENING_SEPARATOR, NO_HASH_CHECK, ACTION
+global VERBOSE, DEBUG, SANITIZATION_RULES, FLATTENING_SEPARATOR, NO_HASH_CHECK
 
 # --- Global Flags ---
 # These will be set by argparse now
 VERBOSE = False
 DEBUG = False
 NO_HASH_CHECK = False
-ACTION = 'copy' # Default action
 
 # --- Sanitization Rules ---
 # This will be loaded from a file
@@ -90,8 +89,8 @@ def sanitize_name(input_name: str) -> str:
                 pattern = str(rule.get("pattern", ""))
                 replacement = str(rule.get("replacement", ""))
                 if not pattern:
-                        print_verbose(f"Skipping rule with empty pattern: {rule}")
-                        continue
+                     print_verbose(f"Skipping rule with empty pattern: {rule}")
+                     continue
                 output_name = output_name.replace(pattern, replacement)
 
             if before != output_name:
@@ -193,52 +192,27 @@ def process_source_directory(source_path, destination_parent_path, accumulated_f
                 relative_dest_file_path = os.path.relpath(destination_file_path, base_destination_dir)
 
                 try:
-                    # --- ACTION BRANCH (COPY OR MOVE) ---
-                    if ACTION == 'copy':
-                        #print(Colours.BLUE, f"    Copying file: '{file_name}' -> '{relative_dest_file_path}'")
-                        print_verbose(f"Copying file '{file_path}' to '{destination_file_path}'")
-                        shutil.copy2(file_path, destination_file_path)
+                    print(Colours.BLUE, f"    Copying file: '{file_name}' -> '{relative_dest_file_path}'")
+                    print_verbose(f"Copying file '{file_path}' to '{destination_file_path}'")
+                    shutil.copy2(file_path, destination_file_path)
 
-                        if not NO_HASH_CHECK:
-                            print_verbose(f"Verifying hash for '{file_name}'...")
-                            source_hash = get_file_sha256(file_path)
-                            destination_hash = get_file_sha256(destination_file_path)
-                            if source_hash != destination_hash:
-                                print_error(f"Hash mismatch for copied file '{file_name}'. Dest: '{relative_dest_file_path}'.")
-                                print_error(f"  Source SHA256: {source_hash}")
-                                print_error(f"  Destination SHA256: {destination_hash}")
-                                return False
-                            else:
-                                print_verbose(f"SHA256 hash match confirmed for '{file_name}'.")
+                    if not NO_HASH_CHECK:
+                        print_verbose(f"Verifying hash for '{file_name}'...")
+                        source_hash = get_file_sha256(file_path)
+                        destination_hash = get_file_sha256(destination_file_path)
 
-                    elif ACTION == 'move':
-                        #print(Colours.MAGENTA, f"    Moving file: '{file_name}' -> '{relative_dest_file_path}'")
-                        print_verbose(f"Moving file '{file_path}' to '{destination_file_path}'")
-
-                        source_hash = ""
-                        if not NO_HASH_CHECK:
-                            # For a move, we must hash the source BEFORE it disappears.
-                            print_verbose(f"Pre-calculating source hash for '{file_name}'...")
-                            source_hash = get_file_sha256(file_path)
-
-                        shutil.move(file_path, destination_file_path)
-
-                        if not NO_HASH_CHECK:
-                            print_verbose(f"Verifying hash for '{file_name}' post-move...")
-                            destination_hash = get_file_sha256(destination_file_path)
-                            if source_hash != destination_hash:
-                                print_error(f"Hash mismatch for moved file '{file_name}'. Dest: '{relative_dest_file_path}'.")
-                                print_error(f"  Source (pre-move) SHA256: {source_hash}")
-                                print_error(f"  Destination SHA256: {destination_hash}")
-                                return False
-                            else:
-                                print_verbose(f"SHA256 hash match confirmed for '{file_name}'.")
-
-                except FileNotFoundError: # Raised by get_file_sha256 or shutil
-                    print_error(f"File not found during {ACTION} for '{file_path}' or '{destination_file_path}'. Operation might have failed or file disappeared.")
-                    return False
+                        if source_hash != destination_hash:
+                            print_error(f"Hash mismatch for file '{file_name}'. Dest: '{relative_dest_file_path}'.")
+                            print_error(f"  Source SHA256: {source_hash}")
+                            print_error(f"  Destination SHA256: {destination_hash}")
+                            return False # Indicate failure
+                        else:
+                            print_verbose(f"SHA256 hash match confirmed for '{file_name}'.")
+                except FileNotFoundError: # Raised by get_file_sha256
+                     print_error(f"File not found during hash for '{file_path}' or '{destination_file_path}'. Copy might have failed or file disappeared.")
+                     return False
                 except Exception as ex:
-                    print_error(f"Error during {ACTION}/verify for file '{file_path}' to '{destination_file_path}': {ex}.")
+                    print_error(f"Error during copy/verify for file '{file_path}' to '{destination_file_path}': {ex}.")
                     return False # Indicate failure
 
         # Process Subdirectories
@@ -262,7 +236,7 @@ def process_source_directory(source_path, destination_parent_path, accumulated_f
 # --- Main Function ---
 
 def main():
-    global VERBOSE, DEBUG, SANITIZATION_RULES, FLATTENING_SEPARATOR, NO_HASH_CHECK, ACTION
+    global VERBOSE, DEBUG, SANITIZATION_RULES, FLATTENING_SEPARATOR, NO_HASH_CHECK
 
     parser = argparse.ArgumentParser(
         description="Universally flattens a source directory's contents into a destination directory, renaming intermediate directories based on rules.",
@@ -270,12 +244,11 @@ def main():
     )
     parser.add_argument("source_dir", help="The source root directory whose contents will be processed.")
     parser.add_argument("destination_dir", help="The destination directory where flattened contents will be copied.")
-    parser.add_argument("--action", choices=['copy', 'move'], default='copy', help="Action to perform on files: 'copy' or 'move'. Default is 'copy'.")
     parser.add_argument("--rules", help="Path to a JSON file containing sanitization rules for directory names.")
     parser.add_argument("--separator", default="++", help="String used to separate concatenated directory names during flattening (default: '++').")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output.")
     parser.add_argument("--debug", action="store_true", help="Enable debug output (implies verbose).")
-    parser.add_argument("--no-hash-check", action="store_true", help="Disable SHA256 hash checking after file operation.")
+    parser.add_argument("--no-hash-check", action="store_true", help="Disable SHA256 hash checking after file copy.")
 
     args = parser.parse_args()
 
@@ -284,7 +257,6 @@ def main():
     DEBUG = args.debug
     NO_HASH_CHECK = args.no_hash_check
     FLATTENING_SEPARATOR = args.separator
-    ACTION = args.action
 
     # Load sanitization rules if a file is provided
     if args.rules:
@@ -310,10 +282,9 @@ def main():
 
 
     # --- Main Script ---
-    print(Colours.YELLOW, "Starting universal recursive flattening process...")
+    print(Colours.YELLOW, "Starting universal recursive flattening copy process...")
     print(Colours.CYAN, f"Source Root Directory: '{args.source_dir}'")
     print(Colours.CYAN, f"Destination Directory: '{args.destination_dir}'")
-    print(Colours.CYAN, f"Action: '{ACTION.upper()}'")
     print(Colours.CYAN, f"Flattening Separator: '{FLATTENING_SEPARATOR}'")
     if NO_HASH_CHECK:
         print(Colours.YELLOW, "SHA256 hash checking is DISABLED.")
@@ -341,6 +312,26 @@ def main():
     print(Colours.YELLOW, "Starting processing from source root directory's contents...")
     print(Colours.GRAY, "--------------------------------------------------")
 
+    # The initial call to process_source_directory will iterate through the *contents*
+    # of root_dir_abs. The destination_parent_path is destination_dir_abs itself,
+    # and accumulated_flattened_name is empty, signalling that children of root_dir_abs
+    # should be placed directly into destination_dir_abs or form the base of new flattened names.
+
+    # To process the contents of the root directory directly into the destination directory
+    # without the root directory's name itself being part of the flattened structure,
+    # we can iterate its children and call process_source_directory for each.
+    # However, the original script's logic implies `process_source_directory` handles this by
+    # effectively treating `root_dir_abs` as a container whose direct children are the starting point.
+
+    # The key change is how the first level is handled.
+    # The original `process_source_directory` expects `source_path` to be the current directory being processed.
+    # If `source_path` is the `original_root_dir_abs` AND `accumulated_flattened_name` is empty,
+    # it special-cases to place items directly into `destination_parent_path`.
+
+    # Let's simulate the old behavior where RootDir's *contents* go into DestinationDir.
+    # The `process_source_directory` logic already handles this with the `is_processing_actual_root_dir_contents` flag.
+    # The initial call should be for the root_dir_abs itself.
+
     success = True
     try:
         # The script's design processes items *within* the source_dir directly into the destination_dir.
@@ -361,9 +352,9 @@ def main():
 
     print(Colours.GRAY, "--------------------------------------------------")
     if success:
-        print(Colours.GREEN, f"Universal recursive flattening process ({ACTION}) completed.")
+        print(Colours.GREEN, "Universal recursive flattening copy process completed.")
     else:
-        print_error(f"Universal recursive flattening process ({ACTION}) completed with errors.")
+        print_error("Universal recursive flattening copy process completed with errors.")
     print(Colours.GREEN, f"Source directory contents from: '{root_dir_abs}'")
     print(Colours.GREEN, f"Processed into destination directory: '{destination_dir_abs}'")
 
