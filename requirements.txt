@@ -7,3 +7,4 @@ PyQt5_sip==12.17.0
 questionary==2.1.0
 pytest
 pytest-cov
+tqdm
