@@ -33,46 +33,6 @@ Remake Engine follows a clean separation of engine vs. content:
 
 ---
 
-### The `main.py` Entrypoint
-
-This Python script is a comprehensive, interactive command-line tool designed to manage and execute multi-step workflows, particularly for game modification or data processing projects.
-
-In simple terms, it acts as a smart task runner. It scans for "game modules" in a `RemakeRegistry/Games` directory, reads a corresponding `operations.json` file for each one, and then presents the user with an interactive menu to run the defined tasks.
-
-#### Core Functionality
-
-1.  **Game & Operation Discovery** 🔎
-    The script automatically finds any game you've set up by looking for `operations.json` files. It reads these files to build a list of available games and the specific tasks (operations) associated with each one.
-
-2.  **Interactive Menu System** 🖥️
-    Using the `questionary` library, it creates user-friendly menus in the command line. You can:
-    - Select which game you want to work on.
-    - Choose a specific operation to run from a list.
-    - Execute a pre-defined sequence of tasks automatically with a "Run All" option.
-
-3.  **Declarative Workflows (via JSON)**
-    Instead of hard-coding the steps in Python, all workflows are defined in simple `operations.json` files. This makes it easy to add, remove, or change tasks without touching the main script. Each task can specify:
-    - The script to run.
-    - The command-line `args` to pass to it.
-    - Whether it's an initialization task (`"init": true`).
-    - Whether it should be part of the "Run All" sequence (`"run-all": true`).
-
-4.  **Dynamic Configuration & Prompts**
-    This is one of the most powerful features. The system can:
-    - **Resolve Placeholders:** Automatically replace variables like `{{RemakeEngine.Directories.SourcePath}}` in your `args` with actual paths from a `project.json` config file. This makes your modules portable.
-    - **Ask for User Input:** If an operation has a `"prompts"` section, the tool will ask you questions before running the script. It can ask for a yes/no confirmation, let you select multiple options from a list, or ask for text input. The script then uses your answers to build the final command.
-
-5.  **Robust Command Execution & Logging**
-    When an operation is run, the `execute_command` function:
-    - Prints the exact command being executed.
-    - Runs the script as a separate process using `subprocess`.
-    - Measures the execution time.
-    - Prints a color-coded success or failure message to the console.
-    - Logs the result, including the command, duration, and exit code, to a `main.operation.log` file for later review.
-    - Handles common errors gracefully, such as a script file not being found.
-
----
-
 ## 🚀 Getting Started
 
 ### Prerequisites

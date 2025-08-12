@@ -1,3 +1,6 @@
+"""
+Tools\QuickBMS\bms_extract.py
+"""
 import os
 import subprocess
 import argparse
