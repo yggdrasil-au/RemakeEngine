@@ -101,5 +101,16 @@ investigation_tools/blank.blend1
 
 remake-engine-docs/
 
+/godot
+/godot/GameTest/
+godot/
+godot/assetTest/
+/.godot/
 
-/godot/assetviewer/
+# godot exe
+Tools/Godot/Godot_v4.4.1-stable_mono_win64/
+/blender-4.0.2-windows-x64/
+/Tools/TMP/QuickBMS/exe/
+/Tools/TMP/
+
+

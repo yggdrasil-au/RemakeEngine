@@ -1,8 +1,13 @@
 # Remake Engine
 
 **An extensible, interactive command-line engine for managing and executing complex workflows for various games, with a focus on community-driven configurations for reverse engineering and modding.**
+**A general-purpose reimplementation framework for games.**
 
 Remake Engine provides a streamlined interface for developers and reverse engineers to run predefined tasks—from executing custom scripts to managing asset extraction and conversion—for a collection of games. Its power lies in its configuration-driven approach, allowing new games and their specific workflows to be added easily by defining them in JSON, without modifying the core engine.
+
+Remake Engine is an engine-agnostic toolkit designed for developers creating their own game reimplementations. It provides a streamlined, configuration-driven system for managing and executing complex workflows—from asset extraction and conversion to running custom scripts and tools.
+
+The framework is not tied to any specific game and does not include or distribute any copyrighted assets. Its power lies in its extensibility, allowing new games and their specific workflows to be added easily by defining them in JSON, without modifying the core engine.
 
 For comprehensive reference (schema definitions, advanced usage examples, API docs), see [Remake Engine Docs](https://superposition28.github.io/RemakeEngineDocs/index.html).
 
