@@ -1,0 +1,19 @@
+
+[project]
+name = "remakeengine"
+version = "1.0.0"
+description = "Tools for building GUI and CLI executables"
+author = "samarixum (YGGDRASIL)"
+license = "Custom Non-Commercial"
+
+[scripts]
+build = "{maker-run-scripts} build-gui build-cli"
+build-gui = "pyinstaller --onefile --paths=./Utils --paths=. main_gui.py --distpath ./"
+build-cli = "pyinstaller --onefile --paths=./Utils --paths=. main_cli.py --distpath ./"
+build-dev = "pyinstaller --onefile --paths=./Utils --paths=. maker.py --distpath ./"
+
+
+[dependencies.python]
+version = "3.13.2"
+dependenciesFile = "requirements.txt"
+
