@@ -34,10 +34,9 @@ custom_style_fancy = questionary.Style([
 # Configuration
 GAMES_REGISTRY_DIR_NAME = "RemakeRegistry"
 GAMES_COLLECTION_DIR_NAME = "Games"
-OPERATIONS_FILENAME = "operations.json" # Standard name for ops file per game
+OPERATIONS_FILENAME = "operations.json"
 ENGINE_CONFIG_FILENAME = "project.json"
 LOG_FILENAME = "main.operation.log"
-
 
 def execute_command(command_parts: list, op_title: str, logger: logging.Logger) -> bool:
     """
@@ -79,7 +78,6 @@ def execute_command(command_parts: list, op_title: str, logger: logging.Logger) 
         logger.error(log_message)
         print(Colours.RED, f"\nError running operation '{op_title}': {e}")
         return False
-
 
 def discover_games(games_collection_path: Path, ops_file_name: str) -> dict:
     """
@@ -204,11 +202,11 @@ def check_scripts_exist(operations: list, ops_file_path_for_logging: Path) -> bo
 
 def main_tool_logic():
     """Main function to run the interactive tool."""
-    
+
     # --- MODIFICATION START: Setup operation logger ---
     op_logger = logging.getLogger('operation_logger')
     op_logger.setLevel(logging.INFO)
-    op_logger.propagate = False 
+    op_logger.propagate = False
     if op_logger.hasHandlers():
         op_logger.handlers.clear()
     file_handler = logging.FileHandler(LOG_FILENAME, mode='a', encoding='utf-8')
@@ -293,7 +291,7 @@ def main_tool_logic():
                 command_parts.extend([str(arg) for arg in resolved_args])
 
             success = execute_command(command_parts, op_title_for_log, op_logger)
-            
+
             if not success:
                 print(Colours.RED, f"Due to initialization failure for '{selected_game_name}', returning to game selection.")
                 input("Press Enter to continue.")
@@ -301,15 +299,15 @@ def main_tool_logic():
             else:
                 print(Colours.GREEN, f"Initialization for '{selected_game_name}' completed. Press Enter to continue.")
                 input()
-            break 
-    
+            break
+
     # -- Main operations loop --
     while True:
         os.system('cls' if os.name == 'nt' else 'clear')
         print(Colours.MAGENTA, f"--- Operations for: {selected_game_name} ---")
 
         menu_choices = []
-        
+
         has_run_all_ops = any(op.get("run-all") and not op.get("init") for op in operations)
         if has_run_all_ops:
             menu_choices.append("Run All Marked Operations (Non-Interactive)")
@@ -455,7 +453,7 @@ def main_tool_logic():
         if isinstance(static_args, list):
             resolved_args = resolve_placeholders(static_args, current_resolution_context)
             command_parts.extend([str(arg) for arg in resolved_args])
-        
+
         prompt_answers = {}
         operation_cancelled_by_user = False
 
@@ -532,3 +530,5 @@ if __name__ == "__main__":
 
     print(Colours.MAGENTA, "\nTool has been closed. Press any key to exit window.")
     input()
+
+

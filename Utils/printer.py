@@ -24,6 +24,7 @@ import sys
 import os  # Import os for environment variable check
 from typing import Optional, TextIO
 
+
 class Console:
     @staticmethod
     def log(*objects, sep: str = ' ', end: str = '\n', file: Optional[TextIO] = None, flush: bool = False) -> None:
