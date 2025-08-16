@@ -1,111 +1,108 @@
-# Build/Game artifacts
-GameFiles/
-Game/
+# .gitignore for RemakeEngine
 
-# Configuration/History
-.history
-config.ini
-project.json
-
-
-# IDE/Editor specific
+### IDE / Editor specific ###
 .vscode/
 .VSCodeCounter/
+.history/
 
-# Logs
+### Godot ###
+.godot/
+/godot/
+
+### Build artifacts / Dependencies ###
+build/
+dist/
+
+### Logs ###
 *.log
 main.log
 
-# old/backup, archived
-OldModules/
-OldRemakeRegistry/
-dev/
+### Configuration / History ###
+config.ini
+project.json
 
-# Tools executables/scripts/temp
-Tools/QuickBMS/*.exe
-Tools/QuickBMS/*.bat
-Tools/QuickBMS/*.ps1
-Tools/QuickBMS/*.txt
-Tools/QuickBMS/exe
-
-Tools/Blender/blender-4.0.2-windows-x64
-
-# Temporary/Backup
-old/
-
-.*/
-
-# Asset/Texture mapping
+### Asset/Texture mapping cache ###
 texture_mapping.json
 asset_mapping.json
 asset_map.sqlite
 
-# Python cache
-__pycache__
-/__pycache__/
+### Python cache ###
 __pycache__/
 *.pyc
-.pyc
-**/__pycache__/init.cpython-313.pyc
+**/__pycache__/*
 
+### Temporary / Backup / Archived ###
 /TMP/
-/TMP/Downloads/
-build/
-dist/
+old/
+OldModules/
+OldRemakeRegistry/
+dev/
+*.blend1
+#uv_map_extract/
 
+# Any directory starting with a dot.
+# Be careful with this, it can ignore things like .git if not for other rules.
+.*/
+
+### Tools ###
+# Note: It's better to not commit tool binaries to the repo.
+# scripts are used to download/install them.
+/Tools/Blender/blender-4.0.2-windows-x64/
+/Tools/Godot/Godot_v4.4.1-stable_mono_win64/
+/Tools/QuickBMS/
+/Tools/TMP/
+
+### Documentation (external repo) ###
+remake-engine-docs/
+
+### Test / Debug / Investigation ###
+.test/
+test/
+investigation_tools/blank.blend
+investigation_tools/blank.blend1
+
+### Generated Game Files (RemakeEngine output) ###
+/Game/
 /GameFiles/
 /game/
 
-# dont share game files
-localereftableD4815ED6.txt
-LightTOC
-StreamSetConfig
-*.preinstanced
-*.ps3
-*.ps3
-*.snu
-*.vp6
-*.mus
+### Original Game Files (to not be committed) ###
+# These are files extracted from the original game.
+# To avoid copyright issues, they should not be in the repository.
 /Source/
 /SourceData/
-*.vfb
-*.meta.xml
-*.dat
-*.txd
-*.lh2
+LightTOC
+StreamSetConfig
+localereftableD4815ED6.txt
 *.alb
+*.amb
+*.aub
+*.bin
+*.bsp
 *.ctb
+*.dat
 *.graph
+*.imb
+*.inf
+*.lh2
+*.lua
+*.meta.xml
+*.mib
+*.msb
+*.mus
+*.preinstanced
+*.ps3
 *.rcm_b
 *.sbk
-*.bsp
 *.smb
-*.mib
-*.amb
-*.uix
-*.imb
-*.toc
-*.msb
-*.inf
-*.bin
-*.aub
+*.snu
 *.str
-*.lua
-
-# Test/Debug
-.test/
-test/
-
-#uv_map_extract/
-
-# dev experimenting
-investigation_tools/blank.blend
-investigation_tools/blank.blend1
+*.toc
+*.txd
+*.uix
+*.vfb
+*.vp6
 *.blend1
-*.blend1
-
-# documentation, independent git repo
-remake-engine-docs/
 
 # game test
 /godot
