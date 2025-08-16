@@ -9,8 +9,6 @@ Remake Engine is an engine-agnostic toolkit designed for developers creating the
 
 The framework is not tied to any specific game and does not include or distribute any copyrighted assets. Its power lies in its extensibility, allowing new games and their specific workflows to be added easily by defining them in JSON, without modifying the core engine.
 
-For comprehensive reference (schema definitions, advanced usage examples, API docs), see [Remake Engine Docs](https://superposition28.github.io/RemakeEngineDocs/index.html).
-
 ---
 
 ## 🔧 Key Features
@@ -82,30 +80,21 @@ In simple terms, it acts as a smart task runner. It scans for "game modules" in 
 
 ### Prerequisites
 
-- Python 3.13.2+
+- Python 3.13+
 - `pip` (Python package installer)
 
 ### Installation
 
 1. **Clone the repository:**
-    ```bash
-    git clone https://github.com/Superposition28/RemakeEngine
+    ```pwsh
+    git clone https://github.com/yggdrasil-au/RemakeEngine.git
     cd RemakeEngine
-    git submodule update --init --recursive
     ```
 
 2. **Install dependencies:** from requirements.txt
-    ```bash
+    ```pwsh
     pip install -r requirements.txt
     ```
-
-3. **Configure `project.json`:**
-    - Copy from `project.json.example` if available.
-    - Define your system-specific paths (e.g., source directories).
-    - This file is typically ignored by Git to avoid leaking personal paths.
-
-4. **Add External Tools:**
-    - Place referenced tools (e.g., `quickbms.exe`, `ffmpeg.exe`) in the expected locations (`Tools/`).
 
 ---
 
@@ -113,14 +102,11 @@ In simple terms, it acts as a smart task runner. It scans for "game modules" in 
 
 From the project root:
 
-```bash
-python main.py
+```pwsh
+python main_gui.py or .\main_gui.exe
 ```
-
-To download/update tools (if supported):
-
-```bash
-python download.py
+```pwsh
+python main_cli.py or .\main_cli.exe
 ```
 
 ---
@@ -130,19 +116,19 @@ python download.py
 ```perl
 RemakeEngine/
 ├── main.py                 # Main engine entrypoint
-├── download.py             # Tool download/update script
 ├── project.json            # Global user config (custom paths, etc.)
+├── package.toml            # Package metadata and dev tools
 ├── Tools/                  # Reusable scripts and external tools
 │   ├── Blender/
 │   ├── ffmpeg-vgmstream/
 │   ├── Process/
+│   ├── Godot/
 │   └── QuickBMS/
 ├── RemakeRegistry/
 │   └── Games/
-│       └── <GameName Platform>/
+│       └── <GameName Platform>
 │           ├── operations.json
-│           ├── Scripts/
-│           └── PrimaryIndex.db
+│           └── Scripts/
 └── Utils/
     └── printer.py          # Colored output helper
 ```
@@ -151,59 +137,12 @@ RemakeEngine/
 
 ## 📖 Usage
 
-1. Run `main.py` from the root.
+1. Run `main_cli.exe` from the root.
 2. Select a game.
 3. Choose an operation.
 4. Follow any on-screen prompts.
 5. Review execution output.
 6. Repeat or switch games.
-
----
-
-## ➕ Contributing (Adding New Game Support)
-
-1. Create a new folder in `RemakeRegistry/Games/<GameName Platform>/`.
-2. Add `operations.json` to define your menu and logic.
-3. Reference your scripts with relative or absolute paths.
-4. Use placeholders like `{{Game.RootPath}}` and `{{RemakeEngine.Directories.SourcePath}}`.
-5. Include scripts in the `Scripts/` subfolder or external tool paths under `Tools/`.
-
----
-
-## ✅ Example `operations.json` Entry
-
-```json
-{
-  "Name": "Extract Archives (.STR)",
-  "Instructions": "Run QuickBMS script for .STR files",
-  "python_executable": "python",
-  "script": "Tools/QuickBMS/bms_extract.py",
-  "args": [
-    "--quickbms", "Tools/QuickBMS/exe/quickbms.exe",
-    "--script", "RemakeRegistry/Games/TheSimpsonsGame PS3/Scripts/simpsons_str.bms",
-    "--input", "{{RemakeEngine.Directories.SourcePath}}",
-    "--output", "GameFiles/STROUT",
-    "--extension", ".str"
-  ]
-}
-```
-For detailed standards and format info, refer to `CONTRIBUTING.md`.
-
----
-
-## 🛠 Configuration Details
-
-### `project.json`
-- Stores global user/system-specific values.
-- Values accessible via `{{RemakeEngine.Key.SubKey}}`.
-
-### `operations.json`
-- Declares game-specific tasks.
-- Supports:
-  - `Name`, `Instructions`
-  - `python_executable`
-  - `script`, `args`
-  - `prompts` (optional) for collecting user input dynamically.
 
 ---
 
