@@ -1,0 +1,16 @@
+{
+	"modules": {
+		"TheSimpsonsGame PS3": {
+			"path": "RemakeRegistry/Games/TheSimpsonsGame PS3",
+			"url": "https://github.com/Superposition28/TheSimpsonsGame-PS3.git"
+		},
+		"TheSimpsonsGame PS2": {
+			"path": "RemakeRegistry/Games/TheSimpsonsGame PS2",
+			"url": "https://github.com/Superposition28/TheSimpsonsGame-PS2.git"
+		},
+		"Simpsons Hit and Run": {
+			"path": "RemakeRegistry/Games/Simpsons Hit and Run",
+			"url": "https://github.com/Superposition28/SimpsonsHitAndRun.git"
+		}
+	}
+}

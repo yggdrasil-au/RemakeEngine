@@ -110,7 +110,11 @@ def main_cli():
 
 				# --- MODIFIED: Added text prompts and validation ---
 				if prompt["type"] == "confirm":
-					answer = questionary.confirm(prompt["message"], default=prompt.get("default", False), style=custom_style_fancy).ask()
+					answer = questionary.confirm(
+						prompt["message"],
+						default=prompt.get("default", False),
+						style=custom_style_fancy
+					).ask()
 
 				elif prompt["type"] == "checkbox":
 					val_rules = prompt.get("validation")
@@ -118,7 +122,12 @@ def main_cli():
 					if val_rules and val_rules.get("required"):
 						msg = val_rules.get("message", "You must select at least one option.")
 						validator = lambda text: True if len(text) > 0 else msg
-					answer = questionary.checkbox(prompt["message"], choices=prompt.get("choices", []), style=custom_style_fancy, validate=validator).ask()
+					answer = questionary.checkbox(
+						prompt["message"],
+						choices=prompt.get("choices", []),
+						style=custom_style_fancy,
+						validate=validator
+					).ask()
 
 				elif prompt["type"] == "text": # NEW
 					val_rules = prompt.get("validation")
@@ -126,7 +135,12 @@ def main_cli():
 					if val_rules and val_rules.get("required"):
 						msg = val_rules.get("message", "This field cannot be empty.")
 						validator = lambda text: True if len(text.strip()) > 0 else msg
-					answer = questionary.text(prompt["message"], default=prompt.get("default", ""), style=custom_style_fancy, validate=validator).ask()
+					answer = questionary.text(
+						prompt["message"],
+						default=prompt.get("default", ""),
+						style=custom_style_fancy,
+						validate=validator
+					).ask()
 
 				if answer is None: # User pressed Ctrl+C
 					break

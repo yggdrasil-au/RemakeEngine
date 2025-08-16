@@ -9,8 +9,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'Utils')))
 from printer import print, Colours, print_error, print_verbose, print_debug, printc
 
-# --- NEW: Dialog window for handling interactive prompts ---
-# --- CORRECTED: Dialog window for handling interactive prompts ---
+# --- Dialog window for handling interactive prompts ---
 class PromptDialog(ctk.CTkToplevel):
     def __init__(self, master, title, prompts):
         super().__init__(master)
@@ -21,25 +20,21 @@ class PromptDialog(ctk.CTkToplevel):
         self.prompt_vars = {}
         self.prompt_widgets = {}
 
-        # --- MODIFIED: Create all widgets first, but DON'T pack them yet ---
+        # --- Create all widgets first, but DON'T pack them yet ---
         for prompt in self.prompts:
             prompt_name = prompt["Name"]
             frame = ctk.CTkFrame(self)
 
             if prompt["type"] == "confirm":
-                # The underlying variable is still a BooleanVar
                 var = ctk.BooleanVar(value=prompt.get("default", False))
                 self.prompt_vars[prompt_name] = var
 
-                # Create a label for the question
                 label = ctk.CTkLabel(frame, text=prompt["message"])
                 label.pack(padx=10, pady=(10, 5), anchor="w")
 
-                # Create a sub-frame to hold the buttons side-by-side
                 button_sub_frame = ctk.CTkFrame(frame, fg_color="transparent")
                 button_sub_frame.pack(padx=10, pady=(0, 10), anchor="w")
 
-                # Create "Yes" and "No" radio buttons
                 yes_button = ctk.CTkRadioButton(button_sub_frame, text="Yes", variable=var, value=True)
                 no_button = ctk.CTkRadioButton(button_sub_frame, text="No", variable=var, value=False)
 
@@ -65,11 +60,11 @@ class PromptDialog(ctk.CTkToplevel):
                     self.prompt_vars[prompt_name][choice] = var
                     cb = ctk.CTkCheckBox(frame, text=choice, variable=var)
                     cb.pack(padx=20, pady=2, anchor="w")
-
+            
             self.prompt_widgets[prompt_name] = frame
 
         # --- OK and Cancel buttons ---
-        self.button_frame = ctk.CTkFrame(self) # MODIFIED: Saved to instance
+        self.button_frame = ctk.CTkFrame(self)
         ok_button = ctk.CTkButton(self.button_frame, text="OK", command=self._on_ok)
         ok_button.pack(side="right", padx=(10, 0))
         cancel_button = ctk.CTkButton(self.button_frame, text="Cancel", command=self._on_cancel, fg_color="gray")
@@ -89,16 +84,11 @@ class PromptDialog(ctk.CTkToplevel):
         self.wait_window()
 
     def _update_visibility(self, *args):
-        """
-        MODIFIED: This function now completely handles the layout.
-        It clears and redraws all widgets in the correct order.
-        """
-        # Unpack all prompt frames to start fresh
+        """Clears and redraws all widgets in the correct order based on visibility."""
         for frame in self.prompt_widgets.values():
             frame.pack_forget()
         self.button_frame.pack_forget()
 
-        # Iterate and pack only the visible widgets in order
         for prompt in self.prompts:
             is_visible = True
             if "condition" in prompt:
@@ -106,13 +96,12 @@ class PromptDialog(ctk.CTkToplevel):
                 control_var = self.prompt_vars.get(condition_name)
                 if not control_var or not control_var.get():
                     is_visible = False
-
+            
             if is_visible:
                 widget_frame = self.prompt_widgets.get(prompt["Name"])
                 if widget_frame:
                     widget_frame.pack(padx=10, pady=5, fill="x")
 
-        # Always pack the button frame at the end
         self.button_frame.pack(padx=10, pady=10, fill="x")
 
     def _on_ok(self):
@@ -134,12 +123,12 @@ class PromptDialog(ctk.CTkToplevel):
         """Public method to retrieve the collected answers."""
         return self.result
 
-# --- MODIFIED: Main Application Class ---
+# --- Main Application Class ---
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Operations Manager")
-        self.geometry("600x500") # Increased height for more operations
+        self.geometry("600x500")
 
         self.engine = OperationsEngine(Path.cwd())
 
@@ -150,14 +139,23 @@ class App(ctk.CTk):
         # --- Widgets ---
         top_frame = ctk.CTkFrame(self)
         top_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+        
+        # --- MODIFIED: Handle the "no games found" case ---
+        available_games = self.engine.get_available_games()
 
         self.game_selector = ctk.CTkComboBox(
             top_frame,
-            values=self.engine.get_available_games(),
+            values=available_games,
             command=self.on_game_selected
         )
         self.game_selector.pack(side="left", padx=5)
-        self.game_selector.set("Select a Game...")
+
+        if not available_games:
+            self.game_selector.set("No games found.")
+            self.game_selector.configure(state="disabled")
+        else:
+            self.game_selector.set("Select a Game...")
+        # --- END MODIFICATION ---
 
         self.op_list_frame = ctk.CTkScrollableFrame(self, label_text="Operations")
         self.op_list_frame.grid(row=1, column=0, padx=10, pady=(5, 10), sticky="nsew")
@@ -198,24 +196,18 @@ class App(ctk.CTk):
 
     def run_operation(self, op_config: dict):
         """Prepare and run a selected operation, showing a prompt dialog if needed."""
-
         prompts = op_config.get("prompts", [])
         prompt_answers = {}
 
-        # If there are prompts, open the dialog to get answers
         if prompts:
             dialog = PromptDialog(self, title=op_config.get("Name"), prompts=prompts)
             prompt_answers = dialog.get_answers()
 
-            # If the user cancelled the dialog, do nothing
             if prompt_answers is None:
                 return
 
-        # If there were no prompts, the prompt_answers dict is empty, which is fine.
-
         command = self.engine.build_command(op_config, prompt_answers)
 
-        # Run the command in a separate thread to keep the GUI responsive
         thread = threading.Thread(
             target=self.engine.execute_command,
             args=(command, op_config.get("Name"))
