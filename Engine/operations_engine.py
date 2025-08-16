@@ -5,6 +5,7 @@ import subprocess
 import time
 import re
 from pathlib import Path
+import shutil
 
 import os
 import sys
@@ -18,9 +19,13 @@ class OperationsEngine:
         self.root_path = root_path
         self.games_registry_path = root_path / "RemakeRegistry" / "Games"
         self.engine_config_path = root_path / "project.json"
+        # --- NEW: Path to the modules registry ---
+        self.modules_registry_path = root_path / "RemakeRegistry" / "register.json"
 
         self.logger = self._setup_logger()
         self.engine_config = self._load_json_file(self.engine_config_path)
+        # --- NEW: Load the modules registry ---
+        self.modules_registry = self._load_json_file(self.modules_registry_path)
         self.games = self._discover_games()
 
         self.current_game = None
@@ -69,6 +74,71 @@ class OperationsEngine:
         """Returns a sorted list of discovered game names."""
         return sorted(list(self.games.keys()))
 
+    # --- NEW: Method to check if Git is installed ---
+    def is_git_installed(self) -> bool:
+        """Checks if Git is available in the system's PATH."""
+        return shutil.which('git') is not None
+
+    # --- NEW: Method to get the list of registered modules ---
+    def get_registered_modules(self) -> dict:
+        """Returns the dictionary of modules from register.json."""
+        return self.modules_registry.get("modules", {})
+
+    # --- NEW: Method to refresh the discovered games list after a download ---
+    def refresh_games(self):
+        """Rescans the games directory and updates the internal games list."""
+        self.games = self._discover_games()
+        print(colour=Colours.GREEN, message="Game list refreshed.")
+
+    # --- NEW: Core logic for downloading a Git repository ---
+    def download_module(self, url: str) -> bool:
+        """
+        Clones a Git repository into the Games directory.
+        Returns True on success, False on failure.
+        """
+        if not self.is_git_installed():
+            print(colour=Colours.RED, message="Git is not installed or not found in your system's PATH.")
+            return False
+
+        try:
+            repo_name = Path(url).stem
+            target_path = self.games_registry_path / repo_name
+
+            if target_path.exists():
+                print(colour=Colours.YELLOW, message=f"Directory '{repo_name}' already exists. Skipping download.")
+                return True # Treat as success
+
+            print(colour=Colours.CYAN, message=f"Downloading '{repo_name}' from '{url}'...")
+            print(colour=Colours.CYAN, message=f"Target directory: '{target_path}'")
+
+            # Ensure the parent directory exists
+            self.games_registry_path.mkdir(parents=True, exist_ok=True)
+
+            command = ['git', 'clone', url, str(target_path)]
+            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8')
+
+            # Stream output to console
+            if process.stdout:
+                while True:
+                    output = process.stdout.readline()
+                    if output == '' and process.poll() is not None:
+                        break
+                    if output:
+                        print(colour=Colours.BLUE, message=output.strip())
+
+            returncode = process.poll()
+            if returncode == 0:
+                print(colour=Colours.GREEN, message=f"\nSuccessfully downloaded '{repo_name}'.")
+                self.refresh_games()
+                return True
+            else:
+                print(colour=Colours.RED, message=f"\nFailed to download '{repo_name}'. Git exited with code {returncode}.")
+                return False
+
+        except Exception as e:
+            print(colour=Colours.RED, message=f"An error occurred during download: {e}")
+            return False
+    
     def load_game_operations(self, game_name: str, interactive_pause: bool = True) -> list:
         """
         Loads operations for a selected game, automatically runs any 'init' scripts,
