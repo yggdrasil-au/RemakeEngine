@@ -16,8 +16,10 @@ project.json
 *.log
 main.log
 
-/OldModules/
-/OldRemakeRegistry/
+# old/backup, archived
+OldModules/
+OldRemakeRegistry/
+dev/
 
 # Tools executables/scripts/temp
 Tools/QuickBMS/*.exe
@@ -54,6 +56,7 @@ dist/
 /GameFiles/
 /game/
 
+# dont share game files
 localereftableD4815ED6.txt
 LightTOC
 StreamSetConfig
@@ -86,23 +89,25 @@ StreamSetConfig
 *.inf
 *.bin
 *.aub
-
 *.str
 *.lua
 
+# Test/Debug
 .test/
 test/
 
 #uv_map_extract/
 
+# dev experimenting
 investigation_tools/blank.blend
 investigation_tools/blank.blend1
-
 *.blend1
 *.blend1
 
+# documentation, independent git repo
 remake-engine-docs/
 
+# game test
 /godot
 /godot/GameTest/
 godot/
