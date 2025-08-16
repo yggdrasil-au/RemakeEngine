@@ -35,6 +35,8 @@ sandbox/
 
 # git submodules
 .gitmodules
+RemakeRegistry/Games
+RemakeRegistry/Games1
 
 ### Temporary / Backup / Archived ###
 /TMP/

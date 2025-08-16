@@ -44,7 +44,7 @@ def main_cli():
 
         selected_game = questionary.select(
             "Select a game:",
-            choices=available_games + [questionary.Separator(), "Exit"],
+            choices=main_menu_choices,
             style=custom_style_fancy
         ).ask()
 
