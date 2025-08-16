@@ -31,6 +31,8 @@ __pycache__/
 *.pyc
 **/__pycache__/*
 
+remakeengine/Scripts/activate/
+
 sandbox/
 
 # git submodules

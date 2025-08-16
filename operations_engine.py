@@ -188,7 +188,6 @@ class OperationsEngine:
         self.current_operations = valid_ops
         return self.current_operations
 
-    # --- NEW METHOD START ---
     def _get_python_executable(self, operation_config: dict) -> str:
         """
         Determines the appropriate python executable path.
@@ -209,7 +208,6 @@ class OperationsEngine:
         default_exe = operation_config.get("python_executable", "python")
         print(colour=Colours.CYAN, message=f"Using Python from PATH: {default_exe}")
         return default_exe
-    # --- NEW METHOD END ---
 
     def build_command(self, operation_config: dict, prompt_answers: dict) -> list:
         """Builds a command list from an operation config and pre-filled answers."""
@@ -222,7 +220,6 @@ class OperationsEngine:
             "Name": self.current_game
         }
 
-        # --- MODIFIED LINE ---
         python_exe = self._get_python_executable(operation_config)
         script_path = operation_config.get("script")
 
@@ -366,3 +363,6 @@ class OperationsEngine:
             print(colour=Colours.GREEN, message="\n--- 'Run All' sequence completed successfully. ---")
 
         return all_succeeded
+
+
+
