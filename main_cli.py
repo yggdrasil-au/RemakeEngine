@@ -97,22 +97,34 @@ def main_cli():
             os.system('cls' if os.name == 'nt' else 'clear')
             print(colour=Colours.MAGENTA, message=f"--- Operations for: {selected_game}")
 
-            # --- MODIFIED: Build menu choices dynamically ---
+            # --- FULLY REVISED MENU BUILDING LOGIC ---
             menu_choices = []
 
-            # Add "Run All" option if available
-            if any(op.get("run-all") for op in operations):
-                menu_choices.append("Run All")
+            # Add "Run All" option, disabled if no relevant operations are enabled
+            run_all_ops = [op for op in operations if op.get("run-all")]
+            if run_all_ops:
+                if any(op.get("enabled", False) for op in run_all_ops):
+                    menu_choices.append("Run All")
+                else:
+                    menu_choices.append(questionary.Choice(
+                        title="Run All",
+                        disabled="All associated operations are disabled."
+                    ))
                 menu_choices.append(questionary.Separator())
 
-            # Add individual operations, handling unnamed ones
+            # Add individual operations
             for i, op in enumerate(operations):
-                if op.get("Name"):
-                    menu_choices.append(op.get("Name"))
-                elif not op.get("init"): # Don't list init scripts if they are somehow unnamed
-                    menu_choices.append(f"Unnamed Operation #{i+1}")
+                op_name = op.get("Name", f"Unnamed Operation #{i+1}")
+                if op.get("enabled", True):
+                    menu_choices.append(op_name)
+                else:
+                    menu_choices.append(questionary.Choice(
+                        title=op_name,
+                        disabled=op.get("warning", "Disabled")
+                    ))
 
             menu_choices.extend([questionary.Separator(), "Change Game", "Exit"])
+            # --- END REVISION ---
 
             selected_op_name = questionary.select(
                 "Select an operation:",

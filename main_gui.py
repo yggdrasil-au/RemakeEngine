@@ -272,30 +272,45 @@ class App(ctk.CTk):
         """Callback when a game is chosen from the dropdown."""
         operations = self.engine.load_game_operations(selected_game, interactive_pause=False)
 
-        # Clear previous operation widgets
         for widget in self.op_list_frame.winfo_children():
             widget.destroy()
 
-        # Add "Run All" button if applicable
-        if any(op.get("run-all") for op in operations):
+        # --- MODIFIED "Run All" button logic ---
+        run_all_ops = [op for op in operations if op.get("run-all")]
+        if run_all_ops:
+            is_any_enabled = any(op.get("enabled", False) for op in run_all_ops)
+
             run_all_button = ctk.CTkButton(
                 self.op_list_frame,
                 text="Run All",
                 command=self.run_all_operations,
                 fg_color="#006400"
             )
+            if not is_any_enabled:
+                run_all_button.configure(state="disabled", fg_color="gray50", text="Run All (No operations enabled)")
             run_all_button.pack(fill="x", padx=5, pady=(5, 10))
+        # --- END MODIFICATION ---
 
-        # Create buttons for individual operations
+        # --- MODIFIED Operation button creation ---
         for op in operations:
             op_name = op.get("Name")
             if op_name:
+                is_enabled = op.get("enabled", True)
+
                 button = ctk.CTkButton(
                     self.op_list_frame,
                     text=op_name,
                     command=lambda op_config=op: self.run_operation(op_config)
                 )
+
+                if not is_enabled:
+                    button.configure(state="disabled", fg_color="gray50")
+                    # Optionally, append the reason to the button text if you want more detail
+                    # warning = op.get("warning", "Disabled")
+                    # button.configure(text=f"{op_name} (Disabled)")
+
                 button.pack(fill="x", padx=5, pady=2)
+        # --- END MODIFICATION ---
 
     def run_all_operations(self):
         """Run all 'run-all' operations in a separate thread."""
@@ -306,6 +321,13 @@ class App(ctk.CTk):
         """Prepare and run a selected operation, showing a prompt dialog if needed."""
         prompts = op_config.get("prompts", [])
         prompt_answers = {}
+
+        if not op_config.get("enabled", True):
+            messagebox.showwarning(
+                "Operation Disabled",
+                op_config.get("warning", "This operation cannot be run.")
+            )
+            return
 
         if prompts:
             dialog = PromptDialog(self, title=op_config.get("Name"), prompts=prompts)

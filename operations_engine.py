@@ -81,7 +81,7 @@ class OperationsEngine:
         """Returns the dictionary of modules from register.json."""
         return self.modules_registry.get("modules", {})
 
-    def refresh_games(self):
+    def refresh_games(self) -> None:
         """Rescans the games directory and updates the internal games list."""
         self.games = self._discover_games()
         print(colour=Colours.GREEN, message="Game list refreshed.")
@@ -131,7 +131,7 @@ class OperationsEngine:
         except Exception as e:
             print(colour=Colours.RED, message=f"An error occurred during download: {e}")
             return False
-    
+
     def load_game_operations(self, game_name: str, interactive_pause: bool = True) -> list:
         """
         Loads operations for a selected game, automatically runs any 'init' scripts,
@@ -177,15 +177,35 @@ class OperationsEngine:
             if not all_init_succeeded:
                 return []
 
-        valid_ops = []
-        for op in user_ops:
-            if script_path_str := op.get("script"):
-                if not Path(script_path_str).is_file():
-                    print(colour=Colours.YELLOW, message=f"Warning: Script for '{op.get('Name')}' not found at '{script_path_str}'")
-                    continue
-            valid_ops.append(op)
+        # Build the context needed to resolve placeholders
+        context = self.engine_config.copy()
+        context["Game"] = {
+            "RootPath": str(self.games[self.current_game]["game_root"]),
+            "Name": self.current_game
+        }
 
-        self.current_operations = valid_ops
+        processed_ops = []
+        for op in user_ops:
+            # Check if the script key exists
+            if script_path_str := op.get("script"):
+                resolved_script_path = self._resolve_placeholders(script_path_str, context)
+
+                # Check if the resolved script file exists
+                if Path(resolved_script_path).is_file():
+                    op["enabled"] = True
+                else:
+                    op["enabled"] = False
+                    op["warning"] = f"Script not found at '{resolved_script_path}'"
+                    print(colour=Colours.YELLOW, message=f"Warning for '{op.get('Name')}': {op['warning']}")
+            else:
+                # Handle the case where the "script" key is missing entirely
+                op["enabled"] = False
+                op["warning"] = "Operation has no 'script' key defined."
+                print(colour=Colours.YELLOW, message=f"Warning for '{op.get('Name')}': {op['warning']}")
+
+            processed_ops.append(op)
+
+        self.current_operations = processed_ops
         return self.current_operations
 
     def _get_python_executable(self, operation_config: dict) -> str:
@@ -225,6 +245,8 @@ class OperationsEngine:
 
         if not script_path:
             return []
+
+        script_path = self._resolve_placeholders(script_path, context)
 
         command_parts = [python_exe, script_path]
 
@@ -330,16 +352,32 @@ class OperationsEngine:
 
     def execute_run_all(self) -> bool:
         """
-        Finds and executes all operations marked with "run-all": true for the current game.
+        Finds and executes all enabled operations marked with "run-all": true.
         """
         if not self.current_game:
             print(colour=Colours.RED, message="Cannot 'Run All' because no game is loaded.")
             return False
 
-        ops_to_run = [op for op in self.current_operations if op.get("run-all")]
+        # --- MODIFIED SECTION ---
+        # Filter for operations that are marked for "run-all" AND are enabled.
+        ops_to_run = [
+            op for op in self.current_operations
+            if op.get("run-all") and op.get("enabled", False)
+        ]
+
+        # Provide feedback for any disabled "run-all" operations that are being skipped.
+        disabled_ops = [
+            op for op in self.current_operations
+            if op.get("run-all") and not op.get("enabled", False)
+        ]
+        for op in disabled_ops:
+            op_name = op.get("Name", "Unnamed Operation")
+            warning = op.get("warning", "Disabled")
+            print(colour=Colours.YELLOW, message=f"Skipping disabled 'Run All' operation: '{op_name}' - Reason: {warning}")
+        # --- END MODIFIED SECTION ---
 
         if not ops_to_run:
-            print(colour=Colours.YELLOW, message="No operations are marked for 'Run All'.")
+            print(colour=Colours.YELLOW, message="No enabled operations are marked for 'Run All'.")
             return True
 
         print(colour=Colours.MAGENTA, message="\n--- Starting 'Run All' sequence ---")
