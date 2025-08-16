@@ -8,8 +8,8 @@ license = "Custom Non-Commercial"
 
 [scripts]
 build = "{maker-run-scripts} build-gui build-cli"
-build-gui = "pyinstaller --onefile --paths=./Utils --paths=. main_gui.py --distpath ./"
-build-cli = "pyinstaller --onefile --paths=./Utils --paths=. main_cli.py --distpath ./"
+build-gui = "pyinstaller --onefile --paths=./Utils --paths=. ./Engine/main_gui.py --distpath ./"
+build-cli = "pyinstaller --onefile --paths=./Utils --paths=. ./Engine/main_cli.py --distpath ./"
 build-dev = "pyinstaller --onefile --paths=./Utils --paths=. maker.py --distpath ./"
 
 

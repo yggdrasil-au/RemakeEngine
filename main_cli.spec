@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['main_cli.py'],
+    ['Engine\\main_cli.py'],
     pathex=['./Utils', '.'],
     binaries=[],
     datas=[],
