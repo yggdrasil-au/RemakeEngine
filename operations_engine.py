@@ -305,7 +305,7 @@ class OperationsEngine:
 
     def execute_command(self, command_parts: list, op_title: str) -> bool:
         """
-        Executes a command, times it, logs the result, and prints to console.
+        Executes a command, allowing it to write directly to the console in real-time.
         Returns True for success (exit code 0), False otherwise.
         """
         if not command_parts or not command_parts[1]:
@@ -320,17 +320,19 @@ class OperationsEngine:
         start_time = time.monotonic()
         try:
             process = subprocess.Popen(command_parts)
-            process.wait()
-            duration = time.monotonic() - start_time
 
-            log_message = f"Operation '{op_title}' completed in {duration:.2f}s with exit code {process.returncode}."
+            returncode = process.wait()
+
+            duration = time.monotonic() - start_time
+            log_message = f"Operation '{op_title}' completed in {duration:.2f}s with exit code {returncode}."
             self.logger.info(log_message)
 
-            if process.returncode == 0:
+            if returncode == 0:
+                # Add a newline to separate our final message from the script's output
                 print(colour=Colours.GREEN, message=f"\nOperation '{op_title}' completed successfully in {duration:.2f} seconds.")
                 return True
             else:
-                print(colour=Colours.RED, message=f"\nOperation '{op_title}' failed with exit code {process.returncode} after {duration:.2f} seconds.")
+                print(colour=Colours.RED, message=f"\nOperation '{op_title}' failed with exit code {returncode} after {duration:.2f} seconds.")
                 return False
 
         except FileNotFoundError:

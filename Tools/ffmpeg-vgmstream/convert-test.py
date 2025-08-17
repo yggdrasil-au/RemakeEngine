@@ -44,13 +44,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--workers", "-w", type=int, default=os.cpu_count(), help="Number of parallel workers to use.")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output.")
     parser.add_argument("--debug", "-d", action="store_true", help="Debug output.")
+    # --- New Debug Mode ---
+    parser.add_argument(
+        "--interactive-debug",
+        action="store_true",
+        help="Run conversions one-by-one and show the tool's live output. Disables parallelism and the progress bar."
+    )
 
     return parser.parse_args()
 
 
-def process_file(src_path: Path, args: argparse.Namespace, tool_executable: str) -> tuple[str, str | None]:
+def process_file(src_path: Path, args: argparse.Namespace, tool_executable: str, interactive: bool = False) -> tuple[str, str | None]:
     """
     Worker function to convert a single file.
+    Can run in normal (captured output) or interactive (streaming output) mode.
     Returns a tuple of (status, error_message).
     """
     try:
@@ -65,6 +72,8 @@ def process_file(src_path: Path, args: argparse.Namespace, tool_executable: str)
         # Build the command based on the mode
         cmd = []
         if args.mode == "ffmpeg":
+            # For interactive mode, don't suppress loglevel
+            log_level = ["-loglevel", "error"] if not interactive else []
             cmd = [
                 tool_executable,
                 "-y",  # Overwrite flag for FFmpeg
@@ -73,22 +82,31 @@ def process_file(src_path: Path, args: argparse.Namespace, tool_executable: str)
                 "-q:v", args.video_quality,
                 "-c:a", args.audio_codec,
                 "-q:a", args.audio_quality,
-                "-loglevel", "error", # Keep FFmpeg's console output clean
+                *log_level,
                 str(dest_path),
             ]
         elif args.mode == "vgmstream":
             cmd = [tool_executable, "-o", str(dest_path), str(src_path)]
 
         # Run the conversion
-        print_debug(f"Command: {' '.join(cmd)}")
-        subprocess.run(cmd, check=True, capture_output=True, text=True)
+        if interactive:
+            print_debug(f"Command: {' '.join(cmd)}")
+            # Stream output directly to the console
+            subprocess.run(cmd, check=True)
+        else:
+            print_debug(f"Command: {' '.join(cmd)}")
+            # Capture output to keep the main console clean
+            subprocess.run(cmd, check=True, capture_output=True, text=True)
+
         return "success", None
 
     except subprocess.CalledProcessError as e:
         # Clean up partially converted file on error
         if dest_path.exists():
             dest_path.unlink(missing_ok=True)
-        return "error", e.stderr.strip()
+        # In interactive mode, the error is already on screen. Otherwise, return stderr.
+        error_msg = f"Process failed with exit code {e.returncode}. See console output above." if interactive else e.stderr.strip()
+        return "error", error_msg
     except Exception as e:
         return "error", str(e)
 
@@ -121,39 +139,55 @@ def main():
         sys.exit(1)
 
     # --- 2. File Discovery ---
-    # Use a generator expression for memory efficiency, then convert to list for tqdm
     files_to_process = list(args.source.rglob(f"*{args.input_ext}"))
     if not files_to_process:
         print(Colours.YELLOW, f"No '{args.input_ext}' files found in {args.source}.")
         return
 
-    print(Colours.CYAN, f"Found {len(files_to_process)} files to process with {args.workers} workers.")
-
-    # --- 3. Parallel Processing ---
+    # --- 3. Processing (Two Modes: Interactive or Parallel) ---
     success_count, skipped_count, error_count = 0, 0, 0
-    # Use partial to "pre-load" the worker function with fixed arguments
-    worker_func = partial(process_file, args=args, tool_executable=tool_executable)
+    errors = []
 
-    with ProcessPoolExecutor(max_workers=args.workers) as executor:
-        # Use tqdm to create a progress bar
-        results = list(tqdm(
-            executor.map(worker_func, files_to_process),
-            total=len(files_to_process),
-            desc="Converting Files",
-            unit="file"
-        ))
+    if args.interactive_debug:
+        print(Colours.MAGENTA, "\n--- Running in Interactive Debug Mode ---")
+        print(Colours.MAGENTA, "Processing files one-by-one to show live tool output.")
+        
+        for i, file_path in enumerate(files_to_process):
+            printc(Colours.CYAN, f"\n[{i+1}/{len(files_to_process)}] Processing: {file_path.name}")
+            status, msg = process_file(file_path, args, tool_executable, interactive=True)
+            
+            if status == "success":
+                printc(Colours.GREEN, "-> Success")
+                success_count += 1
+            elif status == "skipped":
+                printc(Colours.YELLOW, "-> Skipped")
+                skipped_count += 1
+            elif status == "error":
+                # The detailed error was already printed by the tool itself
+                printc(Colours.RED, f"-> Error: {msg}")
+                error_count += 1
+                errors.append((file_path.name, msg))
+    else:
+        # Original parallel processing logic
+        print(Colours.CYAN, f"Found {len(files_to_process)} files to process with {args.workers} workers.")
+        worker_func = partial(process_file, args=args, tool_executable=tool_executable, interactive=False)
+
+        with ProcessPoolExecutor(max_workers=args.workers) as executor:
+            results = list(tqdm(
+                executor.map(worker_func, files_to_process),
+                total=len(files_to_process),
+                desc="Converting Files",
+                unit="file"
+            ))
+
+        for i, (status, msg) in enumerate(results):
+            if status == "success": success_count += 1
+            elif status == "skipped": skipped_count += 1
+            elif status == "error":
+                error_count += 1
+                errors.append((files_to_process[i].name, msg))
 
     # --- 4. Tally and Report Results ---
-    errors = []
-    for i, (status, msg) in enumerate(results):
-        if status == "success":
-            success_count += 1
-        elif status == "skipped":
-            skipped_count += 1
-        elif status == "error":
-            error_count += 1
-            errors.append((files_to_process[i].name, msg))
-
     print(Colours.CYAN, "\n--- Conversion Completed ---")
     print(Colours.GREEN, f"Success: {success_count}")
     print(Colours.YELLOW, f"Skipped: {skipped_count}")
