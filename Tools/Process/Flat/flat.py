@@ -1,7 +1,9 @@
-# flat.py (Optimized Version)
-# Applies flattening universally from SourceDir's *contents* directly into DestinationDir.
-# Example:
-# python flat.py ".\Source\RootDir" ".\Destination\Flattened" --action move --rules ".\custom_rules.json" --separator "__" --verify -v
+"""
+flat.py (Optimized Version)
+Applies flattening universally from SourceDir's *contents* directly into DestinationDir.
+Example:
+python flat.py ".\\Source\\RootDir" ".\\Destination\\Flattened" --action move --rules ".\\custom_rules.json" --separator "__" --verify -v
+"""
 
 import shutil
 import hashlib
