@@ -46,6 +46,7 @@ OldModules/
 OldRemakeRegistry/
 dev/
 *.blend1
+GameFiles1/
 #uv_map_extract/
 
 ### Tools ###

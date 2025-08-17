@@ -1,16 +1,67 @@
 #!/usr/bin/env python3
 import sys
+import os
 import subprocess
-import tomllib  # Python 3.11+, for earlier versions use 'tomli'
+import tomllib
+import shutil
 
 TOML_FILE = "package.toml"
-RUN_ALL_TOKEN = "{maker-run-scripts}"  # like npm-run-all
+RUN_ALL_TOKEN = "{maker-run-scripts}"
+DELETE_TOKEN = "{delete}"
 
-def list_scripts(scripts):
+
+
+def list_scripts(scripts: dict[str, str]) -> None:
+    """Lists the available scripts to the console."""
     print("Available scripts:", ", ".join(scripts.keys()))
 
-def run_script(scripts, script_name, extra_args=None):
-    """Runs a single script. Handles maker-run-scripts recursively."""
+def install_deps(data: dict) -> None:
+    """Installs python dependencies from the TOML data."""
+    print("Installing dependencies...")
+    deps = data.get("python", {}).get("dependencies", {})
+    if not deps:
+        print("No dependencies to install.")
+        return
+
+    # Example: pip install ImageHash==4.3.2 matplotlib==3.10.3 ...
+    install_command = "pip install " + " ".join([f"{name}=={version}" for name, version in deps.items()])
+
+    print(f"Running: {install_command}")
+    subprocess.run(install_command, shell=True, check=True)
+
+
+def _run_nested_scripts(scripts: dict[str, str], cmd: str, extra_args: list[str]) -> None:
+    nested_scripts = cmd[len(RUN_ALL_TOKEN):].strip().split()
+    for nested in nested_scripts:
+        # Note: extra_args are passed down
+        run_script(scripts, nested, extra_args)
+
+def _run_delete_paths(cmd: str) -> None:
+    paths_to_delete = cmd[len(DELETE_TOKEN):].strip().split()
+    print(f"Running cleanup for: {', '.join(paths_to_delete)}")
+    for path in paths_to_delete:
+        try:
+            if not os.path.exists(path):
+                print(f"  - Skipping '{path}', does not exist.")
+                continue
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+                print(f"  - Deleted directory '{path}'")
+            else:
+                os.remove(path)
+                print(f"  - Deleted file '{path}'")
+        except OSError as e:
+            print(f"Error deleting {path}: {e}", file=sys.stderr)
+            sys.exit(1)
+
+def _run_shell_command(cmd: str, extra_args: list[str]) -> None:
+    if extra_args:
+        cmd += " " + " ".join(extra_args)
+    print(f"Running: {cmd}")
+    subprocess.run(cmd, shell=True, check=True)
+
+def run_script(scripts: dict[str, str], script_name: str, extra_args: list[str] | None = None) -> None:
+    """Runs a script defined in the TOML file."""
     if extra_args is None:
         extra_args = []
 
@@ -20,22 +71,15 @@ def run_script(scripts, script_name, extra_args=None):
         list_scripts(scripts)
         sys.exit(1)
 
-    # Check for maker-run-scripts token
     if cmd.startswith(RUN_ALL_TOKEN):
-        # Everything after the token are script names to run
-        nested_scripts = cmd[len(RUN_ALL_TOKEN):].strip().split()
-        for nested in nested_scripts:
-            run_script(scripts, nested, extra_args)
-        return
+        _run_nested_scripts(scripts, cmd, extra_args)
+    elif cmd.startswith(DELETE_TOKEN):
+        _run_delete_paths(cmd)
+    else:
+        _run_shell_command(cmd, extra_args)
 
-    # Append any extra arguments passed after the script name
-    if extra_args:
-        cmd += " " + " ".join(extra_args)
-
-    print(f"Running: {cmd}")
-    subprocess.run(cmd, shell=True, check=True)
-
-def main():
+def main() -> None:
+    """Main entry point for the script."""
     # Load the TOML file
     with open(TOML_FILE, "rb") as f:
         data = tomllib.load(f)
@@ -55,12 +99,20 @@ def main():
             list_scripts(scripts)
             sys.exit(0)
         script_name = sys.argv[2]
-        extra_args = sys.argv[3:]  # anything after the script name
+        # anything after the script name
+        extra_args = sys.argv[3:]
         run_script(scripts, script_name, extra_args)
+    elif command == "install":
+        install_deps(data)
     else:
         print(f"Unknown command: {command}")
-        print("Available commands:\n  run")
+        print("Available commands:\n  run\n  install")
         sys.exit(1)
 
 if __name__ == "__main__":
     main()
+
+
+## example usage
+# python maker run build-dev
+# .\maker run build-dev ## only when compiled on windows via pyinstaller
