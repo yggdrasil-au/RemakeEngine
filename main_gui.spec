@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['Engine\\main_gui.py'],
+    ['main_gui.py'],
     pathex=['./Utils', '.'],
     binaries=[],
     datas=[],

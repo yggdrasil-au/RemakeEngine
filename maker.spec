@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['maker.py'],
+    ['maker'],
     pathex=['./Utils', '.'],
     binaries=[],
     datas=[],
