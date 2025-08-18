@@ -173,20 +173,61 @@ def print_error(message: str) -> None:
     """
     printc(f"{message}", "red", "ERROR")
 
-def print_verbose(message: str) -> None:
+def __print_verbose(message: str) -> None:
     """
     Logs a verbose message if verbose logging is enabled.
 
     :param message: The verbose message to log.
     """
+    def enable() -> None:
+        """Enable verbose logging."""
+        os.environ["VERBOSE"] = "true"
+
     if "VERBOSE" in os.environ and os.environ["VERBOSE"].lower() == "true":
         printc(f"VERBOSE: {message}", "grey", "VERBOSE")
 
-def print_debug(message: str) -> None:
+class _PrintVerbose:
+    def __call__(self, message: str) -> None:
+        """Logs a verbose message if verbose logging is enabled."""
+        if "VERBOSE" in os.environ and os.environ["VERBOSE"].lower() == "true":
+            printc(f"VERBOSE: {message}", "grey", "VERBOSE")
+
+    def enable(self) -> None:
+        """Enable verbose logging."""
+        os.environ["VERBOSE"] = "true"
+
+    def disable(self) -> None:
+        """Disable verbose logging."""
+        os.environ["VERBOSE"] = "false"
+
+
+# export instance
+print_verbose = _PrintVerbose()
+
+def __print_debug(message: str) -> None:
     """
+    old method
     Logs a debug message if debugging is enabled.
 
     :param message: The debug message to log.
     """
+
     if "DEBUG" in os.environ and os.environ["DEBUG"].lower() == "true":
         printc(f"DEBUG: {message}", "magenta", "DEBUG")
+
+
+class _PrintDebug:
+    def __call__(self, message: str) -> None:
+        """Logs a debug message if debugging is enabled."""
+        if "DEBUG" in os.environ and os.environ["DEBUG"].lower() == "true":
+            printc(f"DEBUG: {message}", "magenta", "DEBUG")
+
+    def enable(self) -> None:
+        """Enable debug logging."""
+        os.environ["DEBUG"] = "true"
+
+    def disable(self) -> None:
+        """Disable debug logging."""
+        os.environ["DEBUG"] = "false"
+# export instance
+print_debug = _PrintDebug()
