@@ -1,0 +1,21 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-select = [
+	"I",        # import sorting
+	"UP",       # pyupgrade
+	"ANN",      # typing (require annotations)
+	"T20",      # print (we'll allow, see per-file ignores)
+	"N",        # pep8-naming
+]
+# You intentionally shadow builtins; allow that.
+extend-ignore = [
+	"A001", "A002", "A003",  # flake8-builtins equivalents
+]
+
+[tool.ruff.lint.per-file-ignores]
+"Utils/printer.py" = ["T201"]   # printer defines print; allow it
+"Engine/**"        = ["T201"]   # allow using print() (your custom one)
+
+[tool.ruff.format]
+quote-style = "preserve"

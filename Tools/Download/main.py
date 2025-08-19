@@ -19,8 +19,8 @@ import hashlib
 
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'Utils')))
-from printer import print, Colours, print_error, print_verbose, print_debug, printc
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'Engine')))
+from Utils.printer import print, Colours, error, print_verbose, print_debug, printc
 
 
 # --- Configuration ---

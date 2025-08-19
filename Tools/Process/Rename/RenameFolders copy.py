@@ -3,7 +3,7 @@ import json
 
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'Utils')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'Engine')))
 from printer import print, Colours, print_error, print_verbose, print_debug, printc
 
 def main(project_dir, module_dir) -> None:
