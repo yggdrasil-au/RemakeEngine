@@ -5,7 +5,7 @@ import os
 import subprocess
 import argparse
 
-def extract_str_file(file_path: str) -> None:
+def extract_str_file(file_path: str, args) -> None:
     """
     Extracts a file using QuickBMS if it matches the specified file extension.
 
@@ -32,15 +32,33 @@ def extract_str_file(file_path: str) -> None:
     print(f"Extracting {file_path} to {output_dir}...")
 
     try:
-        subprocess.run(
-            [QUICKBMS_EXE, "-o", BMS_SCRIPT, file_path, output_dir],
-            check=True
-        )
+        if args.overwrite:
+            subprocess.run(
+                [
+                    QUICKBMS_EXE,
+                    "-o", # overwrite existing files
+                    BMS_SCRIPT,
+                    file_path,
+                    output_dir
+                ],
+                check=True
+            )
+        else:
+            subprocess.run(
+                [
+                    QUICKBMS_EXE,
+                    "-k", # silent skip existing files
+                    BMS_SCRIPT,
+                    file_path,
+                    output_dir
+                ],
+                check=True
+            )
         print(f"Done: {file_path}")
     except subprocess.CalledProcessError as e:
         print(f"Extraction failed for {file_path}: {e}")
 
-def main():
+def main() -> None:
     global QUICKBMS_EXE, BMS_SCRIPT, STR_INPUT_DIR, OUTPUT_BASE_DIR, FILE_EXTENSIONS
     parser = argparse.ArgumentParser(description="Extract files via QuickBMS")
     parser.add_argument("-e", "--quickbms", help="Path to quickbms.exe")
@@ -48,6 +66,7 @@ def main():
     parser.add_argument("-i", "--input", help="Input directory or file")
     parser.add_argument("-o", "--output", help="Base output directory")
     parser.add_argument("-ext", "--extension", help="File extension to process")
+    parser.add_argument("--overwrite", action="store_true", help="Overwrite existing files")
     parser.add_argument("paths", nargs="*", help="Files or directories to process")
     args = parser.parse_args()
 
@@ -78,14 +97,14 @@ def main():
             for root, _, files in os.walk(path):
                 for f in files:
                     if f.lower().endswith(FILE_EXTENSIONS.lower()):
-                        extract_str_file(os.path.join(root, f))
+                        extract_str_file(os.path.join(root, f), args)
                     elif FILE_EXTENSIONS == "*":
-                        extract_str_file(os.path.join(root, f))
+                        extract_str_file(os.path.join(root, f), args)
                     #else:
                     #    print(f"Skipping non-{FILE_EXTENSIONS} file: {f}")
         else:
             print(f"Processing file: {path}")
-            extract_str_file(path)
+            extract_str_file(path, args)
 
 if __name__ == "__main__":
     main()

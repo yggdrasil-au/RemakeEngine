@@ -9,7 +9,7 @@ import shutil
 
 import os
 import sys
-import platform # <-- NEW IMPORT
+import platform
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'Utils')))
 from printer import print, Colours, print_error, print, print_debug, printc
 
@@ -208,27 +208,34 @@ class OperationsEngine:
         self.current_operations = processed_ops
         return self.current_operations
 
-    def _get_python_executable(self, operation_config: dict) -> str:
+    # --- MODIFIED SECTION 1 ---
+    def _get_executable_for_operation(self, operation_config: dict) -> str:
         """
-        Determines the appropriate python executable path.
-        On 64-bit Windows, it first checks for a local runtime version.
+        Determines the appropriate executable based on the 'script_type'.
+        Defaults to 'python' and uses special logic for it.
+        Other types like 'bash' or 'powershell' are used directly.
         """
-        # Check if the OS is Windows 64-bit
-        is_win64 = sys.platform == 'win32' and platform.machine().endswith('64')
+        script_type = operation_config.get("script_type", "python").lower()
 
-        if is_win64:
-            local_python_path = self.root_path / "runtime" / "python3" / "python.exe"
-            if local_python_path.is_file():
-                print(colour=Colours.CYAN, message=f"Using local Python runtime: {local_python_path}")
-                return str(local_python_path)
-            else:
-                print(colour=Colours.YELLOW, message="Local Python runtime not found, checking system PATH.")
+        if script_type == "python":
+            # Use existing logic to find the best python executable
+            is_win64 = sys.platform == 'win32' and platform.machine().endswith('64')
+            if is_win64:
+                local_python_path = self.root_path / "runtime" / "python3" / "python.exe"
+                if local_python_path.is_file():
+                    print(colour=Colours.CYAN, message=f"Using local Python runtime: {local_python_path}")
+                    return str(local_python_path)
+                else:
+                    print(colour=Colours.YELLOW, message="Local Python runtime not found, checking system PATH.")
+            
+            print(colour=Colours.CYAN, message="Using 'python' from system PATH.")
+            return "python"
+        else:
+            # For any other script type, use the type itself as the command
+            print(colour=Colours.CYAN, message=f"Using '{script_type}' from system PATH.")
+            return script_type
 
-        # Fallback for non-Win64 systems or if local python is not found
-        default_exe = operation_config.get("python_executable", "python")
-        print(colour=Colours.CYAN, message=f"Using Python from PATH: {default_exe}")
-        return default_exe
-
+    # --- MODIFIED SECTION 2 ---
     def build_command(self, operation_config: dict, prompt_answers: dict) -> list:
         """Builds a command list from an operation config and pre-filled answers."""
         if not self.current_game:
@@ -240,7 +247,8 @@ class OperationsEngine:
             "Name": self.current_game
         }
 
-        python_exe = self._get_python_executable(operation_config)
+        # Use the new method to get the correct executable
+        executable = self._get_executable_for_operation(operation_config)
         script_path = operation_config.get("script")
 
         if not script_path:
@@ -248,7 +256,8 @@ class OperationsEngine:
 
         script_path = self._resolve_placeholders(script_path, context)
 
-        command_parts = [python_exe, script_path]
+        # Start the command with the determined executable
+        command_parts = [executable, script_path]
 
         static_args = operation_config.get("args", [])
         resolved_args = self._resolve_placeholders(static_args, context)
@@ -360,7 +369,6 @@ class OperationsEngine:
             print(colour=Colours.RED, message="Cannot 'Run All' because no game is loaded.")
             return False
 
-        # --- MODIFIED SECTION ---
         # Filter for operations that are marked for "run-all" AND are enabled.
         ops_to_run = [
             op for op in self.current_operations
@@ -376,7 +384,6 @@ class OperationsEngine:
             op_name = op.get("Name", "Unnamed Operation")
             warning = op.get("warning", "Disabled")
             print(colour=Colours.YELLOW, message=f"Skipping disabled 'Run All' operation: '{op_name}' - Reason: {warning}")
-        # --- END MODIFIED SECTION ---
 
         if not ops_to_run:
             print(colour=Colours.YELLOW, message="No enabled operations are marked for 'Run All'.")
@@ -403,6 +410,3 @@ class OperationsEngine:
             print(colour=Colours.GREEN, message="\n--- 'Run All' sequence completed successfully. ---")
 
         return all_succeeded
-
-
-
