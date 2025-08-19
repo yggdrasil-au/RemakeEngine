@@ -1,7 +1,7 @@
 
 [project]
 name = "remakeengine"
-version = "1.5.1"
+version = "1.6.0"
 description = ""
 author = "samarixum (YGGDRASIL)"
 license = "Custom Non-Commercial"
@@ -11,7 +11,8 @@ build = "{maker-run-scripts} build-gui build-cli"
 build-gui = "pyinstaller --onefile --paths=./Utils --paths=. ./main_gui.py --distpath ./"
 build-cli = "pyinstaller --onefile --paths=./Utils --paths=. ./main_cli.py --distpath ./"
 build-dev = "pyinstaller --onefile --paths=./Utils --paths=. maker --distpath ./"
-
+cli = "{maker-run-scripts} build-cli run-cli-win"
+run-cli-win = "./main_cli.exe"
 
 [dependencies.python]
 version = "3.13.2"

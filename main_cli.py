@@ -1,7 +1,7 @@
 # main_cli.py
 import questionary
 from pathlib import Path
-from operations_engine import OperationsEngine
+from _operations_engine import OperationsEngine
 
 import os
 import sys

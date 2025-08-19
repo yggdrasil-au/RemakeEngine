@@ -16,19 +16,22 @@ def list_scripts(scripts: dict[str, str]) -> None:
     print("Available scripts:", ", ".join(scripts.keys()))
 
 def install_deps(data: dict) -> None:
-    """Installs python dependencies from the TOML data."""
+    """Installs Python dependencies from the TOML data into the packaged Python's site-packages."""
     print("Installing dependencies...")
     deps = data.get("python", {}).get("dependencies", {})
     if not deps:
         print("No dependencies to install.")
         return
 
-    # Example: pip install ImageHash==4.3.2 matplotlib==3.10.3 ...
-    install_command = "pip install " + " ".join([f"{name}=={version}" for name, version in deps.items()])
+    # Use the system Python (current interpreter) to install into runtime\python3\Lib\site-packages
+    target_path = os.path.abspath(os.path.join("runtime", "python3", "Lib", "site-packages"))
+    os.makedirs(target_path, exist_ok=True)
+
+    packages = " ".join([f"{name}=={version}" for name, version in deps.items()])
+    install_command = f"python -m pip install --upgrade --target=\"{target_path}\" {packages}"
 
     print(f"Running: {install_command}")
     subprocess.run(install_command, shell=True, check=True)
-
 
 def _run_nested_scripts(scripts: dict[str, str], cmd: str, extra_args: list[str]) -> None:
     nested_scripts = cmd[len(RUN_ALL_TOKEN):].strip().split()
@@ -57,6 +60,9 @@ def _run_delete_paths(cmd: str) -> None:
 def _run_shell_command(cmd: str, extra_args: list[str]) -> None:
     if extra_args:
         cmd += " " + " ".join(extra_args)
+    # Normalize for Windows: cmd.exe doesn't accept a leading "./" (e.g. "./main_cli.exe")
+    if os.name == "nt" and cmd.startswith("./"):
+        cmd = cmd[2:]
     print(f"Running: {cmd}")
     subprocess.run(cmd, shell=True, check=True)
 

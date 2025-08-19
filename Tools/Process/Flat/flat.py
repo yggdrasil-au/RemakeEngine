@@ -133,9 +133,10 @@ def process_file(file_path, destination_file_path, relative_dest_file_path):
                 if source_hash != destination_hash:
                     print_error(f"Hash mismatch for moved file '{relative_dest_file_path}'.")
                     return False
-        
+
         # A simple print to show progress without being too verbose
-        print(Colours.BLUE if ACTION == 'copy' else Colours.MAGENTA, f"  Processed: '{relative_dest_file_path}'")
+        if VERBOSE:
+            print(Colours.BLUE if ACTION == 'copy' else Colours.MAGENTA, f"  Processed: '{relative_dest_file_path}'")
         return True
 
     except Exception as ex:
@@ -167,7 +168,7 @@ def process_source_directory(source_path, destination_parent_path, accumulated_f
         source_base_name = os.path.basename(source_path)
         child_base_name = os.path.basename(single_child_dir)
         new_accumulated_name = f"{accumulated_flattened_name or source_base_name}{FLATTENING_SEPARATOR}{child_base_name}"
-        
+
         print_verbose(f"Flattening: '{source_base_name}' -> '{child_base_name}'. New name: '{new_accumulated_name}'")
         return process_source_directory(single_child_dir, destination_parent_path, new_accumulated_name, base_destination_dir, original_root_dir_abs, executor)
 
@@ -202,7 +203,7 @@ def process_source_directory(source_path, destination_parent_path, accumulated_f
                 # Submit the file processing task to the thread pool
                 future = executor.submit(process_file, file_path, destination_file_path, relative_dest_file_path)
                 futures.append(future)
-        
+
         # Wait for all files in this directory to finish and check results
         for future in concurrent.futures.as_completed(futures):
             if not future.result():
@@ -262,7 +263,7 @@ def main():
     print(Colours.CYAN, f"  Workers: {args.workers}")
     if VERIFY_HASH:
         print(Colours.YELLOW, "  SHA256 hash verification is ENABLED.")
-    
+
     root_dir_abs = os.path.abspath(args.source_dir)
     destination_dir_abs = os.path.abspath(args.destination_dir)
 
@@ -274,12 +275,12 @@ def main():
             os.makedirs(destination_dir_abs)
         except Exception as ex:
             print_error(f"Failed to create destination directory '{destination_dir_abs}': {ex}"); sys.exit(1)
-    
+
     print(Colours.GRAY, "--------------------------------------------------")
-    
+
     success = True
     start_time = time.time()
-    
+
     # Use the ThreadPoolExecutor to manage parallel tasks
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as executor:
         try:
