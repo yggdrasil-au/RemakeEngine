@@ -4,7 +4,7 @@ from pathlib import Path
 import builtins	as py
 
 # Core
-from Engine.Core.operations_engine import OperationsEngine
+from Engine.Core._operations_engine import OperationsEngine
 # Utilities
 from .Utils.printer import print, Colours, error, print_verbose, print_debug, printc
 

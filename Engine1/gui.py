@@ -5,9 +5,9 @@ import threading
 import tkinter.messagebox as messagebox
 
 # Core
-from Engine.Core.operations_engine import OperationsEngine
+from Engine.Core._operations_engine import OperationsEngine
 # Utilities
-from Engine.Utils.printer import print, Colours, error, print_verbose, print_debug, printc
+from Utils.printer import print, Colours, error, print_verbose, print_debug, printc
 
 
 # --- Dialog window for handling interactive prompts ---
