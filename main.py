@@ -14,7 +14,7 @@ def _can_start_gui() -> bool:
     except Exception:
         return False
 
-def main(argv=None):
+def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description="Remake Engine")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--gui", action="store_true", help="start the GUI")

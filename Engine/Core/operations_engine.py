@@ -51,9 +51,11 @@ class OperationsEngine:
         return ok
 
     # --- core flow ---
-    def load_game_operations(self, game_name: str, interactive_pause: bool = True, on_output=None, on_event=None, stdin_provider=None) -> list:
+    def load_game_operations(self, game_name: str, interactive_pause: bool = True, on_output = None, on_event = None, stdin_provider = None) -> list:
         if game_name not in self.games:
-            self.current_game = None; self.current_operations = []; return []
+            self.current_game = None
+            self.current_operations = []
+            return []
         self.refresh_engine_config()  # always latest
         self.current_game = game_name
         ops_data = EngineConfig._load_json_file(self.games[game_name]["ops_file"])

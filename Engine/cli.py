@@ -1,7 +1,9 @@
 # main_cli.py
+from typing import Literal
 import questionary
 from pathlib import Path
 import builtins	as py
+from typing import Any
 
 # Core
 from Engine.Core.operations_engine import OperationsEngine
@@ -20,9 +22,52 @@ custom_style_fancy = questionary.Style([
     ('disabled', '#858585 italic')
 ])
 
-def run():
+def run() -> None:
     """Interactive CLI front-end for the Operations Engine."""
     engine = OperationsEngine(Path.cwd())
+
+    # --- Handlers to bridge SDK events <-> CLI ---
+    #  - on_output: stream child stdout/stderr into our console
+    #  - on_event : notice "prompt"/warnings, and remember the latest question
+    #  - stdin_provider: actually read the user's answer when ProcessRunner asks
+    import sys as _sys
+    last_prompt = {"msg": "Input required"}
+    def on_output(line, stream) -> None:
+        """Stream process output to the console with appropriate coloring."""
+        target = _sys.stderr if stream == "stderr" else _sys.stdout
+        # Use your coloured printer so ANSI still looks nice in terminals that support it
+        print(colour=Colours.WHITE if stream == "stdout" else Colours.RED, message=line, file=target)
+
+    def on_event(evt) -> None:
+        """Handle events from the engine, such as prompts and warnings."""
+        if evt.get("event") == "prompt":
+            last_prompt["msg"] = evt.get("message", "Input required")
+            # Echo the question so the user sees it *before* we block for input
+            #print(colour=Colours.CYAN, message=f"? {last_prompt['msg']}")
+        elif evt.get("event") == "warning":
+            print(colour=Colours.YELLOW, message=f"⚠ {evt.get('message','')}")
+        elif evt.get("event") == "error":
+            print(colour=Colours.RED, message=f"✖ {evt.get('message','')}")
+
+    def stdin_provider() -> Any | Literal['']:
+        """Handles stdin requests from the engine by prompting the user for input."""
+        try:
+            # Flush any pending output before we ask
+            import sys as _sys
+            _sys.stdout.flush()
+            _sys.stderr.flush()
+
+            # Ask using Questionary so the TTY is in a good state
+            ans = questionary.text(
+                message=last_prompt["msg"],
+                qmark="?",
+                style=custom_style_fancy
+            ).ask()
+
+            # Normalise None (Esc/Ctrl+C) to empty string so the child can proceed
+            return "" if ans is None else ans
+        except KeyboardInterrupt:
+            return "None"
 
     while True:
         import os
@@ -39,7 +84,7 @@ def run():
             print(colour=Colours.YELLOW, message="No game modules found.")
             main_menu_choices.insert(0, questionary.Choice(
                 title="No games found. Select 'Download' to begin.",
-                disabled=True
+                disabled="No games available"
             ))
 
         selected_game = questionary.select(
@@ -83,7 +128,14 @@ def run():
                 py.input("\nDownload process finished. Press Enter to return to the main menu.")
             continue
 
-        operations = engine.load_game_operations(selected_game, interactive_pause=True)
+        # Run init (if any) with handlers so SDK prompts work during initialization too
+        operations = engine.load_game_operations(
+            selected_game,
+            interactive_pause=True,
+            on_output=on_output,
+            on_event=on_event,
+            stdin_provider=stdin_provider
+        )
         if not operations:
             print(colour=Colours.YELLOW, message=f"No valid operations found for {selected_game}.")
             continue
@@ -165,7 +217,7 @@ def run():
                     validator = None
                     if val_rules and val_rules.get("required"):
                         msg = val_rules.get("message", "You must select at least one option.")
-                        validator = lambda text: True if len(text) > 0 else msg
+                        validator = (lambda text: True if len(text) > 0 else msg)
                     answer = questionary.checkbox(
                         prompt["message"],
                         choices=prompt.get("choices", []),
@@ -178,7 +230,7 @@ def run():
                     validator = None
                     if val_rules and val_rules.get("required"):
                         msg = val_rules.get("message", "This field cannot be empty.")
-                        validator = lambda text: True if len(text.strip()) > 0 else msg
+                        validator = (lambda text: True if len(text.strip()) > 0 else msg)
                     answer = questionary.text(
                         prompt["message"],
                         default=prompt.get("default", ""),
@@ -191,7 +243,16 @@ def run():
                 prompt_answers[prompt_name] = answer
             else:
                 command = engine.build_command(selected_op, prompt_answers)
-                engine.execute_command(command, selected_op_name)
+                # Run the op with the same handlers so SDK prompts are interactive
+                env = {"TERM": "dumb"}  # avoid terminal capability surprises
+                engine.execute_command(
+                    command,
+                    selected_op_name,
+                    on_output=on_output,
+                    on_event=on_event,
+                    stdin_provider=stdin_provider,
+                    env_overrides=env
+                )
 
                 print(colour=Colours.MAGENTA, message="\nOperation finished. Press Enter to continue.")
                 py.input()
