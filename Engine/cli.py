@@ -6,7 +6,7 @@ import builtins	as py
 # Core
 from Engine.Core.operations_engine import OperationsEngine
 # Utilities
-from .Utils.printer import print, Colours, error, print_verbose, print_debug, printc
+from Engine.Utils.printer import print, Colours, error, print_verbose, print_debug, printc
 
 custom_style_fancy = questionary.Style([
     ('question', 'white'),
