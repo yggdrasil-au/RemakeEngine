@@ -10,8 +10,8 @@ Examples
 --------
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'Engine')))
-from Utils.printer import print, Colours, error, warn, ok, debug, verbose
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '.')))
+from Engine.Utils.printer import print, Colours, error, warn, ok, debug, verbose, print_verbose, print_debug
 
 # print with colour
 print(colour=Colours.GREEN, message="hello")
@@ -29,6 +29,10 @@ verbose("scanning modules...")  # needs VERBOSE=1
 to use normal print() without colour:
 import builtins as py
 py.print("hello world")  # bypasses Utils.printer
+
+# to enable debug or verbose:
+print_verbose.enable()  # sets VERBOSE=1
+print_debug.enable()  # sets DEBUG=1
 
 """
 

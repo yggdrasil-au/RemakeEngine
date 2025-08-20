@@ -13,11 +13,11 @@ import json
 import argparse
 from pathlib import Path
 import concurrent.futures # Added for parallelism
-
+import multiprocessing
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'Utils')))
-from printer import print, Colours, print_error, print_verbose, print_debug, printc
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '.')))
+from Engine.Utils.printer import print, Colours, error, verbose, debug, print_debug, print_verbose
 
 # -- Global Variables --
 # Set by argparse in main()
@@ -63,16 +63,16 @@ def get_file_sha256(file_path: str) -> str:
                 sha256_hash.update(byte_block)
         return sha256_hash.hexdigest()
     except Exception as ex:
-        print_error(f"Error calculating SHA256 hash for file '{file_path}': {ex}")
+        error(f"Error calculating SHA256 hash for file '{file_path}': {ex}")
         raise
 
 def sanitize_name(input_name: str) -> str:
     """Sanitize the given input name based on predefined sanitization rules."""
     # This function is unchanged but remains important
-    print_verbose(f"Sanitizing name: '{input_name}'")
+    verbose(f"Sanitizing name: '{input_name}'")
     output_name = input_name
     if not SANITIZATION_RULES:
-        print_verbose("No sanitization rules loaded.")
+        verbose("No sanitization rules loaded.")
         return output_name
 
     for rule in SANITIZATION_RULES:
@@ -90,12 +90,12 @@ def sanitize_name(input_name: str) -> str:
                 output_name = output_name.replace(pattern, replacement)
 
             if before != output_name:
-                print_verbose(f"Rule applied: Pattern='{rule.get('pattern', '')}', Replacement='{rule.get('replacement', '')}'")
-                print_verbose(f"  Before: '{before}' -> After: '{output_name}'")
+                verbose(f"Rule applied: Pattern='{rule.get('pattern', '')}', Replacement='{rule.get('replacement', '')}'")
+                verbose(f"  Before: '{before}' -> After: '{output_name}'")
         except re.error as e:
-            print_error(f"Regex error in rule pattern '{rule.get('pattern', '')}': {e}")
+            error(f"Regex error in rule pattern '{rule.get('pattern', '')}': {e}")
         except Exception as ex:
-            print_error(f"Error applying rule '{rule.get('pattern', '')}': {ex}")
+            error(f"Error applying rule '{rule.get('pattern', '')}': {ex}")
     return output_name
 
 # --- File Processing Function (for Thread Pool) ---
@@ -107,46 +107,46 @@ def process_file(file_path, destination_file_path, relative_dest_file_path):
     file_name = os.path.basename(file_path)
     try:
         if ACTION == 'copy':
-            print_verbose(f"Copying '{file_name}'...")
+            verbose(f"Copying '{file_name}'...")
             if VERIFY_HASH:
                 source_hash = copy_and_hash(file_path, destination_file_path)
-                print_verbose(f"Verifying hash for copied '{file_name}'...")
+                verbose(f"Verifying hash for copied '{file_name}'...")
                 destination_hash = get_file_sha256(destination_file_path)
                 if source_hash != destination_hash:
-                    print_error(f"Hash mismatch for copied file '{relative_dest_file_path}'.")
+                    error(f"Hash mismatch for copied file '{relative_dest_file_path}'.")
                     return False
             else:
                 shutil.copy2(file_path, destination_file_path)
 
         elif ACTION == 'move':
-            print_verbose(f"Moving '{file_name}'...")
+            verbose(f"Moving '{file_name}'...")
             source_hash = ""
             if VERIFY_HASH:
-                print_verbose(f"Pre-calculating source hash for '{file_name}' before move...")
+                verbose(f"Pre-calculating source hash for '{file_name}' before move...")
                 source_hash = get_file_sha256(file_path)
 
             shutil.move(file_path, destination_file_path)
 
             if VERIFY_HASH:
-                print_verbose(f"Verifying hash for moved '{file_name}'...")
+                verbose(f"Verifying hash for moved '{file_name}'...")
                 destination_hash = get_file_sha256(destination_file_path)
                 if source_hash != destination_hash:
-                    print_error(f"Hash mismatch for moved file '{relative_dest_file_path}'.")
+                    error(f"Hash mismatch for moved file '{relative_dest_file_path}'.")
                     return False
 
         # A simple print to show progress without being too verbose
         if VERBOSE:
-            print(Colours.BLUE if ACTION == 'copy' else Colours.MAGENTA, f"  Processed: '{relative_dest_file_path}'")
+            print(colour=Colours.BLUE if ACTION == 'copy' else Colours.MAGENTA, message=f"  Processed: '{relative_dest_file_path}'", prefix="FLATTEN")
         return True
 
     except Exception as ex:
-        print_error(f"Error during {ACTION}/verify for file '{file_path}' to '{destination_file_path}': {ex}.")
+        error(f"Error during {ACTION}/verify for file '{file_path}' to '{destination_file_path}': {ex}.")
         return False
 
 
 # --- Recursive Directory Processing ---
 def process_source_directory(source_path, destination_parent_path, accumulated_flattened_name, base_destination_dir, original_root_dir_abs, executor):
-    print(Colours.GREEN, f"Processing Source Directory: '{source_path}'")
+    print(colour=Colours.GREEN, message=f"Processing Source Directory: '{source_path}'", prefix="FLATTEN")
     if accumulated_flattened_name:
         accumulated_flattened_name = sanitize_name(accumulated_flattened_name)
 
@@ -159,7 +159,7 @@ def process_source_directory(source_path, destination_parent_path, accumulated_f
             elif os.path.isfile(item_path):
                 child_files.append(item_path)
     except Exception as ex:
-        print_error(f"Error reading contents of '{source_path}': {ex}.")
+        error(f"Error reading contents of '{source_path}': {ex}.")
         return False
 
     # --- Case 1: Flattening Condition ---
@@ -169,7 +169,7 @@ def process_source_directory(source_path, destination_parent_path, accumulated_f
         child_base_name = os.path.basename(single_child_dir)
         new_accumulated_name = f"{accumulated_flattened_name or source_base_name}{FLATTENING_SEPARATOR}{child_base_name}"
 
-        print_verbose(f"Flattening: '{source_base_name}' -> '{child_base_name}'. New name: '{new_accumulated_name}'")
+        verbose(f"Flattening: '{source_base_name}' -> '{child_base_name}'. New name: '{new_accumulated_name}'")
         return process_source_directory(single_child_dir, destination_parent_path, new_accumulated_name, base_destination_dir, original_root_dir_abs, executor)
 
     # --- Case 2: Branching or Terminal Condition ---
@@ -182,20 +182,20 @@ def process_source_directory(source_path, destination_parent_path, accumulated_f
 
         if not is_processing_root_contents:
             if not final_dir_name:
-                print_error(f"Calculated final directory name is empty for source '{source_path}' after sanitization. Skipping.")
+                error(f"Calculated final directory name is empty for source '{source_path}' after sanitization. Skipping.")
                 return True
             try:
                 if not os.path.exists(final_dest_dir_path):
-                    print(Colours.DARK_GREEN, f"  Creating directory: '{os.path.relpath(final_dest_dir_path, base_destination_dir)}'")
+                    print(colour=Colours.DARK_GREEN, message=f"  Creating directory: '{os.path.relpath(final_dest_dir_path, base_destination_dir)}'", prefix="FLATTEN")
                     os.makedirs(final_dest_dir_path)
             except Exception as ex:
-                print_error(f"Error creating directory '{final_dest_dir_path}': {ex}.")
+                error(f"Error creating directory '{final_dest_dir_path}': {ex}.")
                 return False
 
         # Process Files in Parallel
         futures = []
         if child_files:
-            print_verbose(f"Submitting {len(child_files)} files from '{source_path}' for processing...")
+            verbose(f"Submitting {len(child_files)} files from '{source_path}' for processing...")
             for file_path in child_files:
                 file_name = os.path.basename(file_path)
                 destination_file_path = os.path.join(final_dest_dir_path, file_name)
@@ -234,9 +234,16 @@ def main():
     parser.add_argument("--verify", action="store_true", help="Enable SHA256 hash checking after file operations (slower).")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output.")
     parser.add_argument("--debug", action="store_true", help="Enable debug output (implies verbose).")
-    parser.add_argument("-w", "--workers", type=int, default=min(32, os.cpu_count() + 4), help="Number of parallel worker threads.")
+    parser.add_argument("-w", "--workers", type=int, help="Number of parallel worker threads.")
 
     args = parser.parse_args()
+
+    # avoid too many workers if not specified
+    if args.workers is None:
+        # Calculate 75% of CPU cores, ensuring it's a whole number and at least 1.
+        #args.workers = max(1, int(multiprocessing.cpu_count() * 0.75))
+        args.workers = int(multiprocessing.cpu_count())
+
 
     # Set global flags
     VERBOSE = args.verbose or args.debug
@@ -245,38 +252,44 @@ def main():
     FLATTENING_SEPARATOR = args.separator
     ACTION = args.action
 
+    if VERBOSE:
+        print_verbose.enable()
+    if DEBUG:
+        print_debug.enable()
+        print_verbose.enable()
+
     # Load rules (unchanged)
     if args.rules:
         # ... (loading logic is fine, keeping it for brevity) ...
         if not os.path.isfile(args.rules):
-            print_error(f"Sanitization rules file not found: {args.rules}"); sys.exit(1)
+            error(f"Sanitization rules file not found: {args.rules}"); sys.exit(1)
         try:
             with open(args.rules, 'r') as f: SANITIZATION_RULES = json.load(f)
-            print(Colours.YELLOW, f"Loaded {len(SANITIZATION_RULES)} sanitization rules from '{args.rules}'.")
+            print(colour=Colours.YELLOW, message=f"Loaded {len(SANITIZATION_RULES)} sanitization rules from '{args.rules}'.", prefix="FLATTEN")
         except Exception as e:
-            print_error(f"Error loading rules file '{args.rules}': {e}"); sys.exit(1)
+            error(f"Error loading rules file '{args.rules}': {e}"); sys.exit(1)
 
-    print(Colours.YELLOW, "Starting universal recursive flattening process...")
-    print(Colours.CYAN, f"  Source Root: '{args.source_dir}'")
-    print(Colours.CYAN, f"  Destination: '{args.destination_dir}'")
-    print(Colours.CYAN, f"  Action: '{ACTION.upper()}'")
-    print(Colours.CYAN, f"  Workers: {args.workers}")
+    print(colour=Colours.YELLOW, message="Starting universal recursive flattening process...", prefix="FLATTEN")
+    print(colour=Colours.CYAN, message=f"  Source Root: '{args.source_dir}'", prefix="FLATTEN")
+    print(colour=Colours.CYAN, message=f"  Destination: '{args.destination_dir}'", prefix="FLATTEN")
+    print(colour=Colours.CYAN, message=f"  Action: '{ACTION.upper()}'", prefix="FLATTEN")
+    print(colour=Colours.CYAN, message=f"  Workers: {args.workers}", prefix="FLATTEN")
     if VERIFY_HASH:
-        print(Colours.YELLOW, "  SHA256 hash verification is ENABLED.")
+        print(colour=Colours.YELLOW, message="  SHA256 hash verification is ENABLED.", prefix="FLATTEN")
 
     root_dir_abs = os.path.abspath(args.source_dir)
     destination_dir_abs = os.path.abspath(args.destination_dir)
 
     # Directory validation and creation (unchanged)
     if not os.path.isdir(root_dir_abs):
-        print_error(f"Source directory '{root_dir_abs}' not found."); sys.exit(1)
+        error(f"Source directory '{root_dir_abs}' not found."); sys.exit(1)
     if not os.path.exists(destination_dir_abs):
         try:
             os.makedirs(destination_dir_abs)
         except Exception as ex:
-            print_error(f"Failed to create destination directory '{destination_dir_abs}': {ex}"); sys.exit(1)
+            error(f"Failed to create destination directory '{destination_dir_abs}': {ex}"); sys.exit(1)
 
-    print(Colours.GRAY, "--------------------------------------------------")
+    print(colour=Colours.GRAY, message="--------------------------------------------------")
 
     success = True
     start_time = time.time()
@@ -286,21 +299,21 @@ def main():
         try:
             if not process_source_directory(root_dir_abs, destination_dir_abs, "", destination_dir_abs, root_dir_abs, executor):
                 success = False
-                print_error("Processing failed at some point.")
+                error("Processing failed at some point.")
         except Exception as ex:
             success = False
-            print_error(f"An unexpected error occurred: {ex}")
+            error(f"An unexpected error occurred: {ex}")
             import traceback
-            print_error(traceback.format_exc())
+            error(traceback.format_exc())
 
     end_time = time.time()
     duration = end_time - start_time
 
-    print(Colours.GRAY, "--------------------------------------------------")
+    print(colour=Colours.GRAY, message="--------------------------------------------------")
     if success:
-        print(Colours.GREEN, f"Process ({ACTION}) completed successfully in {duration:.2f} seconds.")
+        print(colour=Colours.GREEN, message=f"Process ({ACTION}) completed successfully in {duration:.2f} seconds.", prefix="FLATTEN")
     else:
-        print_error(f"Process ({ACTION}) completed with errors in {duration:.2f} seconds.")
+        error(f"Process ({ACTION}) completed with errors in {duration:.2f} seconds.")
         sys.exit(1)
 
 if __name__ == "__main__":

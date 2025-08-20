@@ -5,6 +5,7 @@ import argparse
 import subprocess
 import shutil
 from pathlib import Path
+import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 import sys
@@ -12,9 +13,8 @@ import os
 from tqdm import tqdm
 import tempfile
 
-# Assuming your printer utility is available
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'Utils')))
-from printer import print, Colours, print_error, print_verbose, print_debug, printc
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '.')))
+from Engine.Utils.printer import print, Colours, error, verbose, debug, print_debug, print_verbose
 
 
 def parse_args() -> argparse.Namespace:
@@ -52,7 +52,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--vgmstream-cli", help="Path to vgmstream-cli executable (auto-detected if in PATH).")
 
     # --- Concurrency & Logging ---
-    parser.add_argument("--workers", "-w", type=int, default=os.cpu_count(), help="Number of parallel workers to use.")
+    parser.add_argument("--workers", "-w", type=int, help="Number of parallel workers to use.")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output.")
     parser.add_argument("--debug", "-d", action="store_true", help="Debug output.")
 
@@ -79,7 +79,7 @@ def process_file(src_path: Path, args: argparse.Namespace, tool_executable: str)
         cmd = []
         if args.mode == "ffmpeg":
             if args.type == "video":
-                print_verbose("Converting video.")
+                verbose("Converting video.")
                 cmd = [
                     tool_executable,
                     "-y",  # Overwrite flag for FFmpeg
@@ -90,7 +90,7 @@ def process_file(src_path: Path, args: argparse.Namespace, tool_executable: str)
                 ]
             elif args.type == "audio":
                 if args.godot_compatible:
-                    print_verbose("Converting audio for Godot compatibility.")
+                    verbose("Converting audio for Godot compatibility.")
                     # Split quad into stereo pairs
                     base = dest_path.with_suffix("")  # strip extension
                     cmd = [
@@ -100,7 +100,7 @@ def process_file(src_path: Path, args: argparse.Namespace, tool_executable: str)
                         "-map", "[REAR]", str(base) + "_rear" + args.output_ext,
                     ]
                 else:
-                    print_verbose("Converting audio without splitting channels for Godot compatibility.")
+                    verbose("Converting audio without splitting channels for Godot compatibility.")
                     cmd = [
                         tool_executable,
                         "-y",  # Overwrite flag for FFmpeg
@@ -111,7 +111,7 @@ def process_file(src_path: Path, args: argparse.Namespace, tool_executable: str)
                         str(dest_path),
                     ]
             else:
-                print_verbose("Converting both audio and video.")
+                verbose("Converting both audio and video.")
                 cmd = [
                     tool_executable,
                     "-y",  # Overwrite flag for FFmpeg
@@ -126,13 +126,13 @@ def process_file(src_path: Path, args: argparse.Namespace, tool_executable: str)
         elif args.mode == "vgmstream":
             if args.type == "audio":
                 if args.godot_compatible:
-                    print_verbose("Converting audio for vgmstream.")
+                    verbose("Converting audio for vgmstream.")
                     # Step 1: decode with vgmstream to temp wav
                     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
                         tmp_wav = tmp.name
 
                     vgm_cmd = [tool_executable, "-o", tmp_wav, str(src_path)]
-                    print_debug(f"Command: {' '.join(vgm_cmd)}")
+                    debug(f"Command: {' '.join(vgm_cmd)}")
                     subprocess.run(vgm_cmd, check=True, capture_output=True, text=True)
 
                     # Step 2: split with ffmpeg
@@ -153,21 +153,21 @@ def process_file(src_path: Path, args: argparse.Namespace, tool_executable: str)
                     os.remove(tmp_wav)
                     return "success", None
                 else:
-                    print_verbose("Converting audio for vgmstream.")
+                    verbose("Converting audio for vgmstream.")
                     cmd = [
                         tool_executable, "-o",
                         str(dest_path),
                         str(src_path)
                     ]
             elif args.type == "video":
-                print_error("vgmstream-cli does not support video conversion.")
+                error("vgmstream-cli does not support video conversion.")
                 return "error", "vgmstream-cli does not support video conversion."
         else:
-            print_error(f"Unsupported mode: {args.mode}")
+            error(f"Unsupported mode: {args.mode}")
             return "error", f"Unsupported mode: {args.mode}"
 
         # Run the conversion
-        print_debug(f"Command: {' '.join(cmd)}")
+        debug(f"Command: {' '.join(cmd)}")
         if args.verbose or args.debug:
             # in debug mode dont capture output
             subprocess.run(cmd, check=True)
@@ -194,8 +194,15 @@ def main() -> None:
         if args.verbose or args.debug:
             print_verbose.enable()
 
+        # avoid too many workers if not specified
+        if args.workers is None:
+            # Calculate 75% of CPU cores, ensuring it's a whole number and at least 1.
+            #args.workers = max(1, int(multiprocessing.cpu_count() * 0.75))
+            args.workers = int(multiprocessing.cpu_count())
+
+
         # --- 1. Setup and Validation ---
-        print(Colours.CYAN, f"--- Starting {args.mode.upper()} Conversion ---")
+        print(colour=Colours.CYAN, message=f"--- Starting {args.mode.upper()} Conversion ---")
         tool_executable = None
         if args.mode == "ffmpeg":
             tool_executable = args.ffmpeg_path or shutil.which("ffmpeg") or shutil.which("ffmpeg.exe")
@@ -203,25 +210,25 @@ def main() -> None:
             tool_executable = args.vgmstream_cli or shutil.which("vgmstream-cli") or shutil.which("vgmstream-cli.exe")
 
         if not tool_executable:
-            print_error(f"Could not find executable for mode '{args.mode}'. Please specify the path or add it to your PATH.")
+            error(f"Could not find executable for mode '{args.mode}'. Please specify the path or add it to your PATH.")
             sys.exit(1)
 
-        print_verbose(f"Using executable: {tool_executable}")
+        verbose(f"Using executable: {tool_executable}")
         args.source = args.source.resolve()
         args.target = args.target.resolve()
 
         if not args.source.is_dir():
-            print_error(f"Source directory not found: {args.source}")
+            error(f"Source directory not found: {args.source}")
             sys.exit(1)
 
         # --- 2. File Discovery ---
         # Use a generator expression for memory efficiency, then convert to list for tqdm
         files_to_process = list(args.source.rglob(f"*{args.input_ext}"))
         if not files_to_process:
-            print(Colours.YELLOW, f"No '{args.input_ext}' files found in {args.source}.")
+            print(colour=Colours.YELLOW, message=f"No '{args.input_ext}' files found in {args.source}.")
             return
 
-        print(Colours.CYAN, f"Found {len(files_to_process)} files to process with {args.workers} workers.")
+        print(colour=Colours.CYAN, message=f"Found {len(files_to_process)} files to process with {args.workers} workers.")
 
         # --- 3. Parallel Processing ---
         success_count, skipped_count, error_count = 0, 0, 0
@@ -248,20 +255,20 @@ def main() -> None:
                 error_count += 1
                 errors.append((files_to_process[i].name, msg))
 
-        print(Colours.CYAN, "\n--- Conversion Completed ---")
-        print(Colours.GREEN, f"Success: {success_count}")
-        print(Colours.YELLOW, f"Skipped: {skipped_count}")
-        print(Colours.RED, f"Errors: {error_count}")
+        print(colour=Colours.CYAN, message="\n--- Conversion Completed ---")
+        print(colour=Colours.GREEN, message=f"Success: {success_count}")
+        print(colour=Colours.YELLOW, message=f"Skipped: {skipped_count}")
+        print(colour=Colours.RED, message=f"Errors: {error_count}")
 
         if errors:
-            print_error("\nEncountered the following errors:")
+            error("\nEncountered the following errors:")
             for filename, error_msg in errors:
-                print(Colours.RED, f"  - File: {filename}\n    Reason: {error_msg}")
+                print(colour=Colours.RED, message=f"  - File: {filename}\n    Reason: {error_msg}")
     except AttributeError as e:
-        print_error(f"Attribute error: {e}. This may be due to an incorrect or missing argument.")
+        error(f"Attribute error: {e}. This may be due to an incorrect or missing argument.")
         sys.exit(1)
     except Exception as e:
-        print_error(f"An unexpected error occurred: {e}")
+        error(f"An unexpected error occurred: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":

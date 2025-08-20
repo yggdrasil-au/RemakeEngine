@@ -80,22 +80,14 @@ In simple terms, it acts as a smart task runner. It scans for "game modules" in 
 
 ### Prerequisites
 
-- Python 3.13+
-- `pip` (Python package installer)
+- git
 
 ### Installation
 
 1. **Clone the repository:**
     ```pwsh
-    git clone https://github.com/yggdrasil-au/RemakeEngine.git
-    cd RemakeEngine
+    git clone https://github.com/yggdrasil-au/RemakeEngine.git .
     ```
-
-2. **Install dependencies:** from requirements.txt
-    ```pwsh
-    pip install -r requirements.txt
-    ```
-
 ---
 
 ## ▶️ Running the Tool
@@ -103,10 +95,12 @@ In simple terms, it acts as a smart task runner. It scans for "game modules" in 
 From the project root:
 
 ```pwsh
-python main_gui.py or .\main_gui.exe
+python main.py
 ```
+or if you dont have python
+in windows
 ```pwsh
-python main_cli.py or .\main_cli.exe
+.\main.exe
 ```
 
 ---
@@ -129,8 +123,13 @@ RemakeEngine/
 │       └── <GameName Platform>
 │           ├── operations.json
 │           └── Scripts/
-└── Utils/
-    └── printer.py          # Colored output helper
+└── Engine/
+    ├── Core/
+	│   └── operations.py
+	├── cli.py
+	├── gui.py
+	└── Utils/
+    	└── printer.py          # Colored output helper
 ```
 
 ---

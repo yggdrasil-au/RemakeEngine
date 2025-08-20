@@ -7,11 +7,10 @@ author = "samarixum (YGGDRASIL)"
 license = "Custom Non-Commercial"
 
 [scripts]
-build = "{maker-run-scripts} build-main"
-build-main = "pyinstaller --onefile --paths=./Utils --paths=. ./main.py --distpath ./"
-build-dev = "pyinstaller --onefile --paths=./Utils --paths=. maker --distpath ./"
-cli = "{maker-run-scripts} build-cli run-cli-win"
-run-cli-win = "./main_cli.exe"
+build = "{maker-run-scripts} build-main build-dev"
+build-main = "pyinstaller --onefile --paths=./Engine --paths=. ./main.py --distpath ./"
+build-dev = "pyinstaller --onefile --paths=./Engine --paths=. maker --distpath ./"
+cleanBuild = "{delete} build main.spec maker.spec"
 
 [dependencies.python]
 version = "3.13.2"
