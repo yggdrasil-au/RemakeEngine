@@ -1,576 +1,456 @@
-"""
-Engine/gui.py
-Interactive Graphical User Interface for the RemakeEngine
-"""
+# Engine/gui.py — Steam-style, user-facing GUI for RemakeEngine
+# - Tabs: Library • Store • Installing
+# - Store: shows either "Download from Git" (if not downloaded) or "Install"
+# - Installing: only shows in-progress installs with progress bars; removes rows when finished
+# - Install flow: load init ops then run-all (fallback to first enabled op)
 
-import customtkinter as ctk
 from pathlib import Path
+import re # Import regex module
 import threading
+import builtins as py
 import tkinter.messagebox as messagebox
+import customtkinter as ctk
 
 # Core
 from Engine.Core.operations_engine import OperationsEngine
 # Utilities
-from Engine.Utils.printer import print, Colours, error, print_verbose, print_debug, printc
+from Engine.Utils.printer import print, Colours
 
 
-# --- Dialog window for handling interactive prompts ---
-class PromptDialog(ctk.CTkToplevel):
-    def __init__(self, master, title, prompts) -> None:
-        super().__init__(master)
-        self.title(title)
-        self.prompts = prompts
-        self.result = None
+class AnsiColorParser:
+    """Parses strings with ANSI escape codes and maps them to Tkinter text tags."""
+    
+    def __init__(self, widget: ctk.CTkTextbox):
+        self.widget = widget
+        # Regex to find ANSI escape codes
+        self.ansi_pattern = re.compile(r'\x1b\[([0-9;]*)m')
+        
+        # Standard ANSI color map (code -> (tag_name, hex_color))
+        self.colors = {
+            '30': ('black_fg', '#000000'), '31': ('red_fg', '#FF5555'),
+            '32': ('green_fg', '#50FA7B'), '33': ('yellow_fg', '#F1FA8C'),
+            '34': ('blue_fg', '#6272A4'), '35': ('magenta_fg', '#FF79C6'),
+            '36': ('cyan_fg', '#8BE9FD'), '37': ('white_fg', '#BFBFBF'),
+            '90': ('bright_black_fg', '#4D4D4D'), '91': ('bright_red_fg', '#FF6E67'),
+            '92': ('bright_green_fg', '#5AF78E'), '93': ('bright_yellow_fg', '#F4F99D'),
+            '94': ('bright_blue_fg', '#728EFA'), '95': ('bright_magenta_fg', '#FF92D0'),
+            '96': ('bright_cyan_fg', '#9AEDFE'), '97': ('bright_white_fg', '#F2F2F2'),
+        }
+        self._configure_tags()
 
-        self.prompt_vars = {}
-        self.prompt_widgets = {}
+    def _configure_tags(self) -> None:
+        """Configures all necessary color and style tags in the target widget."""
+        for code, (tag, color) in self.colors.items():
+            self.widget.tag_config(tag, foreground=color)
+        
+        # Configure bold style
+        bold_font = ctk.CTkFont(weight="bold")
+        self.widget.tag_config('bold', font=bold_font)
 
-        # --- Create all widgets first, but DON'T pack them yet ---
-        for prompt in self.prompts:
-            prompt_name = prompt["Name"]
-            frame = ctk.CTkFrame(self)
+    def parse_text(self, text: str) -> list[tuple[str, list[str]]]:
+        """Parses text and yields tuples of (text_chunk, list_of_tags)."""
+        segments = []
+        last_index = 0
+        current_tags = set()
 
-            if prompt["type"] == "confirm":
-                var = ctk.BooleanVar(value=prompt.get("default", False))
-                self.prompt_vars[prompt_name] = var
-
-                label = ctk.CTkLabel(frame, text=prompt["message"])
-                label.pack(padx=10, pady=(10, 5), anchor="w")
-
-                button_sub_frame = ctk.CTkFrame(frame, fg_color="transparent")
-                button_sub_frame.pack(padx=10, pady=(0, 10), anchor="w")
-
-                yes_button = ctk.CTkRadioButton(button_sub_frame, text="Yes", variable=var, value=True)
-                no_button = ctk.CTkRadioButton(button_sub_frame, text="No", variable=var, value=False)
-
-                yes_button.pack(side="left", padx=(10, 0))
-                no_button.pack(side="left", padx=10)
-
-            elif prompt["type"] == "text":
-                var = ctk.StringVar(value=prompt.get("default", ""))
-                self.prompt_vars[prompt_name] = var
-                label = ctk.CTkLabel(frame, text=prompt["message"])
-                label.pack(padx=10, pady=(10, 0))
-                entry = ctk.CTkEntry(frame, textvariable=var)
-                entry.pack(padx=10, pady=(0, 10), fill="x")
-
-            elif prompt["type"] == "checkbox":
-                label = ctk.CTkLabel(frame, text=prompt["message"])
-                label.pack(padx=10, pady=(10, 5), anchor="w")
-
-                self.prompt_vars[prompt_name] = {}
-                defaults = prompt.get("default", [])
-                for choice in prompt.get("choices", []):
-                    var = ctk.BooleanVar(value=(choice in defaults))
-                    self.prompt_vars[prompt_name][choice] = var
-                    cb = ctk.CTkCheckBox(frame, text=choice, variable=var)
-                    cb.pack(padx=20, pady=2, anchor="w")
-
-            self.prompt_widgets[prompt_name] = frame
-
-        # --- OK and Cancel buttons ---
-        self.button_frame = ctk.CTkFrame(self)
-        ok_button = ctk.CTkButton(self.button_frame, text="OK", command=self._on_ok)
-        ok_button.pack(side="right", padx=(10, 0))
-        cancel_button = ctk.CTkButton(self.button_frame, text="Cancel", command=self._on_cancel, fg_color="gray")
-        cancel_button.pack(side="right")
-
-        # --- Handle conditional visibility ---
-        for prompt in self.prompts:
-            if "condition" in prompt:
-                condition_name = prompt["condition"]
-                if condition_name in self.prompt_vars:
-                    control_var = self.prompt_vars[condition_name]
-                    control_var.trace_add("write", self._update_visibility)
-
-        self._update_visibility()  # Set initial layout
-
-        self.grab_set()
-        self.wait_window()
-
-    def _update_visibility(self, *args) -> None:
-        """Clears and redraws all widgets in the correct order based on visibility."""
-        for frame in self.prompt_widgets.values():
-            frame.pack_forget()
-        self.button_frame.pack_forget()
-
-        for prompt in self.prompts:
-            is_visible = True
-            if "condition" in prompt:
-                condition_name = prompt["condition"]
-                control_var = self.prompt_vars.get(condition_name)
-                if not control_var or not control_var.get():
-                    is_visible = False
-
-            if is_visible:
-                widget_frame = self.prompt_widgets.get(prompt["Name"])
-                if widget_frame:
-                    widget_frame.pack(padx=10, pady=5, fill="x")
-
-        self.button_frame.pack(padx=10, pady=10, fill="x")
-
-    def _on_ok(self) -> None:
-        """Collect answers from variables and close the dialog."""
-        self.result = {}
-        for name, var in self.prompt_vars.items():
-            if isinstance(var, dict):
-                self.result[name] = [choice for choice, choice_var in var.items() if choice_var.get()]
-            else:
-                self.result[name] = var.get()
-        self.destroy()
-
-    def _on_cancel(self) -> None:
-        """Set result to None and close the dialog."""
-        self.result = None
-        self.destroy()
-
-    def get_answers(self):
-        """Public method to retrieve the collected answers."""
-        return self.result
+        for match in self.ansi_pattern.finditer(text):
+            # Add text before the match with current styling
+            start, end = match.span()
+            if start > last_index:
+                segments.append((text[last_index:start], list(current_tags)))
+            
+            last_index = end
+            
+            # Process the ANSI code
+            codes = match.group(1).split(';')
+            for code in codes:
+                if not code:  # Empty code (e.g., from ";") is treated as reset
+                    code = '0'
+                if code == '0':  # Reset
+                    current_tags.clear()
+                elif code == '1':  # Bold
+                    current_tags.add('bold')
+                elif code in self.colors:  # Apply color
+                    # Remove other foreground colors before adding a new one
+                    current_tags = {tag for tag in current_tags if not tag.endswith('_fg')}
+                    current_tags.add(self.colors[code][0])
+        
+        # Add any remaining text after the last match
+        if last_index < len(text):
+            segments.append((text[last_index:], list(current_tags)))
+            
+        return segments
 
 
-class DownloadDialog(ctk.CTkToplevel):
-    def __init__(self, master, engine: OperationsEngine):
-        super().__init__(master)
-        self.engine = engine
-        self.master_app = master  # Reference to the main App
-
-        self.title("Download Game Module")
-        self.geometry("450x250")
-
-        self.grid_columnconfigure(0, weight=1)
-
-        # --- Widgets ---
-        self.label = ctk.CTkLabel(self, text="Select a registered module or choose 'Other' to enter a custom URL.")
-        self.label.grid(row=0, column=0, padx=20, pady=(20, 10), sticky="w")
-
-        modules = ["Other (Custom URL)..."] + list(self.engine.get_registered_modules().keys())
-        self.module_selector = ctk.CTkComboBox(self, values=modules, command=self.on_selection_change)
-        self.module_selector.set(modules[0])
-        self.module_selector.grid(row=1, column=0, padx=20, pady=5, sticky="ew")
-
-        self.url_entry = ctk.CTkEntry(self, placeholder_text="Enter Git Repository URL...")
-        # Initially hidden, will be shown if "Other" is selected
-        self.url_entry.grid(row=2, column=0, padx=20, pady=5, sticky="ew")
-
-        self.download_button = ctk.CTkButton(self, text="Download", command=self.on_download)
-        self.download_button.grid(row=3, column=0, padx=20, pady=(20, 10))
-
-        self.on_selection_change(self.module_selector.get())  # Set initial state
-
-        self.grab_set()  # Modal
-        self.wait_window()
-
-    def on_selection_change(self, choice: str):
-        """Shows or hides the URL entry box based on selection."""
-        if choice == "Other (Custom URL)...":
-            self.url_entry.grid()
-        else:
-            self.url_entry.grid_remove()
-
-    def on_download(self):
-        """Handles the download button click."""
-        selection = self.module_selector.get()
-        url_to_download = ""
-
-        if selection == "Other (Custom URL)...":
-            url_to_download = self.url_entry.get().strip()
-            if not url_to_download.endswith(".git"):
-                messagebox.showerror("Invalid URL", "Please enter a valid Git repository URL (e.g., https://.../repo.git)")
-                return
-        else:
-            modules = self.engine.get_registered_modules()
-            url_to_download = modules.get(selection, {}).get("url")
-
-        if not url_to_download:
-            messagebox.showerror("Error", "Could not determine a valid URL to download.")
-            return
-
-        # Disable widgets and run download in a thread
-        self.download_button.configure(text="Downloading...", state="disabled")
-        self.module_selector.configure(state="disabled")
-        self.url_entry.configure(state="disabled")
-
-        thread = threading.Thread(target=self._download_thread, args=(url_to_download,))
-        thread.start()
-
-    def _download_thread(self, url: str):
-        """Worker thread to run the download without freezing the GUI."""
-        success = self.engine.download_module(url)
-
-        # Schedule GUI updates on the main thread
-        if success:
-            self.master_app.after(0, self.master_app.refresh_game_list)
-            self.after(0, self.destroy)  # Close dialog on success
-        else:
-            # Re-enable widgets on failure so the user can try again
-            self.after(0, lambda: self.download_button.configure(text="Download", state="normal"))
-            self.after(0, lambda: self.module_selector.configure(state="normal"))
-            self.after(0, lambda: self.url_entry.configure(state="normal"))
-            messagebox.showerror("Download Failed", "The module could not be downloaded. Check the console for details.")
-
-
-# --- Main Application Class ---
-class App(ctk.CTk):
-    def __init__(self):
+class RemakeEngineGui(ctk.CTk):
+    def __init__(self) -> None:
         super().__init__()
-        self.title("Operations Manager")
-        self.geometry("760x560")  # Slightly larger for comfort
+        self.title("RemakeEngine – Play")
+        self.geometry("1024x700")
 
+        # Engine – single instance shared across pages
         self.engine = OperationsEngine(Path.cwd())
 
-        # --- Layout ---
+        # Layout: top nav + main content + console
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=0)
 
-        # --- Widgets ---
-        top_frame = ctk.CTkFrame(self)
-        top_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+        # Tabs (Library / Store / Installing)
+        self.tabs = ctk.CTkTabview(self)
+        self.tabs.grid(row=0, column=0, padx=12, pady=12, sticky="nsew")
 
-        available_games = self.engine.get_available_games()
+        self.tab_library = self.tabs.add("Library")
+        self.tab_store = self.tabs.add("Store")
+        self.tab_installing = self.tabs.add("Installing")
 
-        self.game_selector = ctk.CTkComboBox(
-            top_frame,
-            values=available_games,
-            command=self.on_game_selected
-        )
-        self.game_selector.pack(side="left", padx=5, pady=5, expand=True, fill="x")
+        # Build pages
+        self._build_library_tab()
+        self._build_store_tab()
+        self._build_installing_tab()
 
-        self.download_button = ctk.CTkButton(top_frame, text="Download Module", command=self.open_download_dialog)
-        self.download_button.pack(side="left", padx=(6, 0), pady=5)
-
-        if not available_games:
-            self.game_selector.set("No games found. Download a module to begin.")
-            self.game_selector.configure(state="disabled")
-        else:
-            self.game_selector.set("Select a Game...")
-
-        self.op_list_frame = ctk.CTkScrollableFrame(self, label_text="Operations")
-        self.op_list_frame.grid(row=1, column=0, padx=10, pady=(5, 10), sticky="nsew")
-
-        # --- Console + Progress ---
-        import queue as _queue
-        self._queue = _queue
-
-        self.console = ctk.CTkTextbox(self, height=200)
+        # Console output (read-only)
+        self.console = ctk.CTkTextbox(self, height=180)
         self.console.configure(state="disabled")
-        self.console.grid(row=2, column=0, padx=10, pady=(0, 8), sticky="nsew")
-        self.grid_rowconfigure(2, weight=0)
+        self.console.grid(row=1, column=0, padx=12, pady=(0, 12), sticky="nsew")
+        
+        # *** MODIFICATION: Initialize the ANSI parser for the console ***
+        self.ansi_parser = AnsiColorParser(self.console)
 
-        # ANSI → Tk tag color palette (tweak to taste)
-        self._ansi_tag_styles = {
-            "default": {"foreground": None},  # uses CTk default
-            "white":   {"foreground": "#FFFFFF"},
-            "red":     {"foreground": "#FF6B6B"},
-            "green":   {"foreground": "#6BFF95"},
-            "yellow":  {"foreground": "#FFE083"},
-            "blue":    {"foreground": "#7FB3FF"},
-            "magenta": {"foreground": "#FF89FF"},
-            "cyan":    {"foreground": "#8AF5FF"},
-            "gray":    {"foreground": "#A0A0A0"},
-            "darkgreen": {"foreground": "#32CD32"},
-            "darkcyan":  {"foreground": "#00CED1"},
-            "darkyellow":{"foreground": "#DAA520"},
-            "darkred":   {"foreground": "#FF4C4C"},
-            # 38;5;240 → a dark gray
-            "x_38_5_240": {"foreground": "#585858"},
-        }
+        # Active installs (module_name -> widgets)
+        self.install_rows: dict[str, dict] = {}
 
-        # Create tags on the Text widget (CTkTextbox supports tk tags)
+        # Initial data
+        self.refresh_library()
+        self.refresh_store()
+
+    # ---------- Shared Helpers ----------
+    def _console_write(self, text: str) -> None:
+        """Writes text to the console, parsing ANSI color codes."""
         self.console.configure(state="normal")
-        for tag, style in self._ansi_tag_styles.items():
-            kwargs = {}
-            if style["foreground"]:
-                kwargs["foreground"] = style["foreground"]
-            self.console.tag_config(tag, **kwargs)
-        self.console.configure(state="disabled")
-
-        self.progress_frame = ctk.CTkScrollableFrame(self, label_text="Progress")
-        self.progress_frame.grid(row=3, column=0, padx=10, pady=(0, 10), sticky="nsew")
-        self.grid_rowconfigure(3, weight=1)
-        self._progress_widgets = {}  # id -> (label, bar)
-
-        self._pending_stdin_sender = None
-
-        # Status label for init runs
-        self.status_label = ctk.CTkLabel(self, text="")
-        self.status_label.grid(row=4, column=0, padx=10, pady=(0, 10), sticky="w")
-
-    def _ansi_insert(self, text: str):
-        """
-        Parse ANSI SGR color codes in `text` and insert with Tk tags.
-        Supports common codes: 0 (reset), 90..97 (bright), 30..37 (dark),
-        and a special case 38;5;240.
-        """
-        import re
-
-        # Quick path: no ANSI? insert as-is with default tag
-        if "\x1b[" not in text:
-            self.console.insert("end", text, ("default",))
-            return
-
-        # Map SGR codes → tag names in our palette
-        code_to_tag = {
-            "0": "default",      # reset
-            "97": "white",
-            "91": "red",
-            "92": "green",
-            "93": "yellow",
-            "94": "blue",
-            "95": "magenta",
-            "96": "cyan",
-            "90": "gray",
-            "32": "darkgreen",
-            "36": "darkcyan",
-            "33": "darkyellow",
-            "31": "darkred",
-        }
-
-        # Regex to capture SGR chunks like \x1b[31m or \x1b[38;5;240m
-        ansi_re = re.compile(r"\x1b\[([0-9;]+)m")
-
-        pos = 0
-        current_tag = "default"
-        for m in ansi_re.finditer(text):
-            # Insert plain text preceding this escape
-            if m.start() > pos:
-                self.console.insert("end", text[pos:m.start()], (current_tag,))
-
-            seq = m.group(1)  # e.g. "31" or "38;5;240"
-            if seq == "0":
-                current_tag = "default"
-            elif seq in code_to_tag:
-                current_tag = code_to_tag[seq]
-            elif seq == "38;5;240":
-                current_tag = "x_38_5_240"
-            else:
-                # Try the last element if multiple, e.g. "1;91" → "91"
-                last = seq.split(";")[-1]
-                current_tag = code_to_tag.get(last, current_tag)
-
-            pos = m.end()
-
-        # Trailing text after last escape
-        if pos < len(text):
-            self.console.insert("end", text[pos:], (current_tag,))
-
-    def _console_write_ansi(self, line: str, stream: str):
-        """
-        Write a line to console using ANSI → tag mapping.
-        Adds [ERR] prefix for stderr but keeps colorized content intact.
-        """
-        self.console.configure(state="normal")
-        prefix = "[ERR] " if stream == "stderr" else ""
-        if prefix:
-            self.console.insert("end", prefix, ("default",))
-        self._ansi_insert(line + "\n")
+        # *** MODIFICATION: Use the parser to insert text with color tags ***
+        for chunk, tags in self.ansi_parser.parse_text(text):
+            self.console.insert("end", chunk, tags)
+        self.console.insert("end", "\n") # Add newline separately
         self.console.see("end")
         self.console.configure(state="disabled")
 
-    # --- Helpers: console/progress/prompt/event ---
-    def _ui_append_console(self, text, stream):
-        self._console_write_ansi(text, stream)
+    def _make_stream_and_prompt_handlers_for(self, module_name: str):
+        """Handlers that route engine output/events to the GUI and update Installing UI for a given module."""
+        import queue as _queue
+        send_queue = _queue.Queue(maxsize=1)
 
-    def _ui_handle_event(self, evt: dict):
-        typ = evt.get("event")
-        if typ == "progress":
-            pid = evt.get("id", "default")
-            current, total = evt.get("current", 0), max(evt.get("total", 0), 1)
-            label_txt = evt.get("label", pid)
-            if pid not in self._progress_widgets:
-                row = ctk.CTkFrame(self.progress_frame)
-                name = ctk.CTkLabel(row, text=label_txt)
-                bar = ctk.CTkProgressBar(row)
-                bar.set(0.0)
-                name.pack(side="left", padx=6)
-                bar.pack(side="right", fill="x", expand=True, padx=6)
-                row.pack(fill="x", padx=6, pady=4)
-                self._progress_widgets[pid] = (name, bar)
-            name, bar = self._progress_widgets[pid]
-            bar.set(float(current) / float(total))
-            name.configure(text=f"{label_txt} ({current}/{total})")
-        elif typ == "prompt":
-            question = evt.get("message", "Input required")
-            ans = self._prompt_user(question, bool(evt.get("secret")))
-            if self._pending_stdin_sender:
-                try:
-                    self._pending_stdin_sender(ans)
-                except Exception:
-                    pass
-        elif typ in ("warning", "error"):
-            messagebox.showwarning("Module warning" if typ == "warning" else "Module error",
-                                   evt.get("message", ""))
-        elif typ == "end":
-            # no modal here; we'll handle final state after thread finishes
-            pass
-
-    def _prompt_user(self, message, secret=False):
-        d = ctk.CTkInputDialog(text=message, title="Input required")
-        return d.get_input() or ""
-
-    def open_download_dialog(self):
-        if not self.engine.is_git_installed():
-            messagebox.showerror("Git Not Found", "Git is required for this feature but it could not be found in your system's PATH.")
-            return
-        DownloadDialog(self, self.engine)
-
-    def refresh_game_list(self):
-        """Refreshes the game selector combobox with the latest list of games."""
-        print(colour=Colours.CYAN, message="GUI: Refreshing game list...")
-        available_games = self.engine.get_available_games()
-        if available_games:
-            self.game_selector.configure(values=available_games, state="normal")
-            self.game_selector.set("Select a Game...")
-        else:
-            self.game_selector.set("No games found. Download a module to begin.")
-            self.game_selector.configure(values=[""], state="disabled")
-
-        # Clear operations from view
-        for widget in self.op_list_frame.winfo_children():
-            widget.destroy()
-
-    # Create shared handlers & stdin queue for a single engine call
-    def _make_stream_and_prompt_handlers(self):
         def on_output(line, stream):
-            self.after(0, lambda: self._ui_append_console(line, stream))
+            # *** MODIFICATION: Prepend ANSI-colored prefix for stderr ***
+            if stream == "stderr":
+                colored_line = f"\x1b[91m[ERR]\x1b[0m {line}"
+                self.after(0, lambda: self._console_write(colored_line))
+            else:
+                self.after(0, lambda: self._console_write(line))
 
-        def on_event(evt):
-            self.after(0, lambda: self._ui_handle_event(evt))
-
-        send_queue = self._queue.Queue(maxsize=1)
-        self._pending_stdin_sender = lambda s: send_queue.put_nowait(s)
+        def on_event(evt: dict):
+            typ = evt.get("event")
+            if typ == "warning":
+                # Use ANSI for color
+                self.after(0, lambda: self._console_write(f"\x1b[93m⚠ {evt.get('message','')}\x1b[0m") )
+            elif typ == "error":
+                # Use ANSI for color
+                self.after(0, lambda: self._console_write(f"\x1b[91m✖ {evt.get('message','')}\x1b[0m") )
+            elif typ == "progress":
+                label = evt.get("label", module_name)
+                current, total = evt.get("current", 0), max(evt.get("total", 0), 1)
+                self.after(0, lambda: self._update_install_progress(module_name, label, current, total))
+            elif typ == "prompt":
+                question = evt.get("message", "Input required")
+                secret = bool(evt.get("secret"))
+                # Render inline prompt UI within Installing tab and wait for user submission
+                def render():
+                    self._render_install_prompt(question, secret, lambda ans: send_queue.put_nowait(ans or ""))
+                self.after(0, render)
+            # progress/end are reflected via UI/console
 
         def stdin_provider():
             try:
-                return send_queue.get(timeout=60)
-            except self._queue.Empty:
+                return send_queue.get(timeout=120)
+            except Exception:
                 return None
 
-        def cleanup():
-            self._pending_stdin_sender = None
+        return on_output, on_event, stdin_provider
 
-        return on_output, on_event, stdin_provider, cleanup
+    # ---------- Library Tab ----------
+    def _build_library_tab(self) -> None:
+        self.tab_library.grid_columnconfigure(0, weight=1)
+        self.tab_library.grid_rowconfigure(1, weight=1)
 
-    # --- Init runner (THREADED) ---
-    def on_game_selected(self, selected_game: str):
-        """Kick off init (if any) in a worker thread, then populate operation buttons."""
-        # Reset UI
-        for widget in self.op_list_frame.winfo_children():
-            widget.destroy()
-        self.console.configure(state="normal")
-        self.console.delete("1.0", "end")
-        self.console.configure(state="disabled")
-        self._progress_widgets = {}
-        self.status_label.configure(text=f"Initializing '{selected_game}'...")
+        header = ctk.CTkFrame(self.tab_library)
+        header.grid(row=0, column=0, padx=8, pady=(8, 4), sticky="ew")
+        header.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(header, text="Installed Games", font=("", 18, "bold")).grid(row=0, column=0, sticky="w")
+        ctk.CTkButton(header, text="Refresh", command=self.refresh_library).grid(row=0, column=1, padx=6)
 
-        on_output, on_event, stdin_provider, cleanup = self._make_stream_and_prompt_handlers()
+        self.lib_list = ctk.CTkScrollableFrame(self.tab_library)
+        self.lib_list.grid(row=1, column=0, padx=8, pady=(0, 8), sticky="nsew")
 
-        def worker():
-            ops = []
-            try:
-                # Run init in background so Tk loop stays responsive
-                try:
-                    ops = self.engine.load_game_operations(
-                        selected_game,
-                        interactive_pause=False,
-                        on_output=on_output,
-                        on_event=on_event,
-                        stdin_provider=stdin_provider
-                    )
-                except TypeError:
-                    # Engine without extended signature (fallback)
-                    ops = self.engine.load_game_operations(selected_game, interactive_pause=False)
-            finally:
-                cleanup()
-                self.after(0, lambda: self._post_init_operations(selected_game, ops))
+    def refresh_library(self) -> None:
+        for w in self.lib_list.winfo_children():
+            w.destroy()
 
-        threading.Thread(target=worker, daemon=True).start()
-
-    def _post_init_operations(self, selected_game: str, operations: list):
-        """Populate UI with operations after init completes."""
-        self.status_label.configure(text=f"Ready • {selected_game}")
-
-        # "Run All" button (disabled if none enabled)
-        run_all_ops = [op for op in operations if op.get("run-all")]
-        if run_all_ops:
-            is_any_enabled = any(op.get("enabled", False) for op in run_all_ops)
-            run_all_button = ctk.CTkButton(
-                self.op_list_frame,
-                text="Run All",
-                command=self.run_all_operations,
-                fg_color="#006400"
-            )
-            if not is_any_enabled:
-                run_all_button.configure(state="disabled", fg_color="gray50", text="Run All (No operations enabled)")
-            run_all_button.pack(fill="x", padx=5, pady=(5, 10))
-
-        # Individual operations
-        for op in operations:
-            op_name = op.get("Name")
-            if not op_name:
-                continue
-            is_enabled = op.get("enabled", True)
-            button = ctk.CTkButton(
-                self.op_list_frame,
-                text=op_name,
-                command=lambda op_config=op: self.run_operation(op_config)
-            )
-            if not is_enabled:
-                button.configure(state="disabled", fg_color="gray50")
-            button.pack(fill="x", padx=5, pady=2)
-
-    # --- Run All remains threaded as before ---
-    def run_all_operations(self):
-        """Run all 'run-all' operations in a separate thread."""
-        thread = threading.Thread(target=self.engine.execute_run_all)
-        thread.start()
-
-    def run_operation(self, op_config: dict):
-        """Prepare and run a selected operation, showing a prompt dialog if needed."""
-        prompts = op_config.get("prompts", [])
-        prompt_answers = {}
-
-        if not op_config.get("enabled", True):
-            messagebox.showwarning(
-                "Operation Disabled",
-                op_config.get("warning", "This operation cannot be run.")
-            )
+        games = [g for g in self.engine.get_available_games() if self.engine.is_module_installed(g)]
+        if not games:
+            ctk.CTkLabel(self.lib_list, text="No games installed yet. Go to the Store to get started.").pack(pady=12)
             return
 
-        if prompts:
-            dialog = PromptDialog(self, title=op_config.get("Name"), prompts=prompts)
-            prompt_answers = dialog.get_answers()
-            if prompt_answers is None:
+        for name in games:
+            row = ctk.CTkFrame(self.lib_list)
+            row.pack(fill="x", padx=6, pady=6)
+
+            ctk.CTkLabel(row, text=name, font=("", 14, "bold")).pack(side="left", padx=6)
+            ctk.CTkButton(row, text="Play", command=lambda n=name: self._play_game(n)).pack(side="right", padx=4)
+            ctk.CTkButton(row, text="Open Folder", fg_color="gray", command=lambda n=name: self._open_game_folder(n)).pack(side="right", padx=4)
+
+    def _play_game(self, game_name: str) -> None:
+        try:
+            launcher = getattr(self.engine, "launch_game", None)
+            if callable(launcher):
+                threading.Thread(target=lambda: launcher(game_name), daemon=True).start()
                 return
+        except Exception:
+            pass
+        self._open_game_folder(game_name)
 
-        command = self.engine.build_command(op_config, prompt_answers)
+    def _open_game_folder(self, game_name: str) -> None:
+        path = None
+        try:
+            getter = getattr(self.engine, "get_game_path", None)
+            if callable(getter):
+                path = getter(game_name)
+        except Exception:
+            path = None
+        if not path:
+            path = Path.cwd() / game_name
+        if not Path(path).exists():
+            messagebox.showinfo("Open Folder", f"Couldn't locate a folder for '{game_name}'.")
+            return
+        try:
+            import os, sys
+            if sys.platform.startswith("win"): os.startfile(path)  # type: ignore[attr-defined]
+            elif sys.platform == "darwin": os.system(f"open '{path}'")
+            else: os.system(f"xdg-open '{path}'")
+        except Exception as e:
+            messagebox.showerror("Open Folder", str(e))
 
-        on_output, on_event, stdin_provider, cleanup = self._make_stream_and_prompt_handlers()
+    # ---------- Store Tab ----------
+    def _build_store_tab(self) -> None:
+        self.tab_store.grid_columnconfigure(0, weight=1)
+        self.tab_store.grid_rowconfigure(1, weight=1)
 
+        header = ctk.CTkFrame(self.tab_store)
+        header.grid(row=0, column=0, padx=8, pady=(8, 4), sticky="ew")
+        header.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(header, text="Store", font=("", 18, "bold")).grid(row=0, column=0, sticky="w")
+        ctk.CTkButton(header, text="Refresh", command=self.refresh_store).grid(row=0, column=1, padx=6)
+
+        self.store_list = ctk.CTkScrollableFrame(self.tab_store)
+        self.store_list.grid(row=1, column=0, padx=8, pady=(0, 8), sticky="nsew")
+
+    def refresh_store(self) -> None:
+        for w in self.store_list.winfo_children():
+            w.destroy()
+
+        registry = self.engine.get_registered_modules()  # {name: {url, ...}}
+        if not registry:
+            ctk.CTkLabel(self.store_list, text="No registry entries found.").pack(pady=12)
+            return
+
+        for name, meta in registry.items():
+            url = meta.get("url", "")
+
+            row = ctk.CTkFrame(self.store_list)
+            row.pack(fill="x", padx=6, pady=6)
+
+            # Left: name + (optional) URL
+            left = ctk.CTkFrame(row, fg_color="transparent")
+            left.pack(side="left", fill="x", expand=True)
+            ctk.CTkLabel(left, text=name, font=("", 14, "bold")).pack(side="left", padx=6)
+            if url:
+                ctk.CTkLabel(left, text=url, text_color="gray70").pack(side="left")
+
+            # Right: state-aware action
+            state = self.engine.get_module_state(name)  # 'not_downloaded' | 'downloaded' | 'installed'
+
+            if state == "not_downloaded":
+                ctk.CTkButton(
+                    row, text="Download from Git", fg_color="#22577A",
+                    command=lambda u=url: self._download_module(u)
+                ).pack(side="right", padx=4)
+            elif state == "downloaded":
+                ctk.CTkButton(
+                    row, text="Install",
+                    command=lambda n=name: self._start_install(n)
+                ).pack(side="right", padx=4)
+            else:  # installed
+                ctk.CTkButton(row, text="Installed", state="disabled", fg_color="gray40").pack(side="right", padx=4)
+
+    def _download_module(self, url: str) -> None:
+        if not url:
+            messagebox.showerror("Download", "No Git URL provided for this module.")
+            return
+        if not self.engine.is_git_installed():
+            messagebox.showerror("Git required", "Git is not installed or not in PATH.")
+            return
+        self._console_write(f"Downloading module from {url}…")
         def worker():
-            env = {"TERM": "dumb"}
             try:
+                ok = self.engine.download_module(url)
+                if ok:
+                    self.after(0, self.refresh_library)
+                    self.after(0, self.refresh_store)
+                else:
+                    self.after(0, lambda: messagebox.showerror("Download", "Download failed. See console for details."))
+            except Exception as e:
+                self.after(0, lambda: messagebox.showerror("Download", f"Error: {e}"))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _start_install(self, module_name: str) -> None:
+        # Switch to Installing and create row
+        self.tabs.set("Installing")
+        self._ensure_install_row(module_name)
+        # Clear any lingering prompt UI
+        for w in self.install_prompt_frame.winfo_children():
+            w.destroy()
+        self.install_prompt_frame.grid_remove()
+        # Launch installer
+        threading.Thread(target=self._install_worker, args=(module_name,), daemon=True).start()
+
+    # ---------- Installing Tab ----------
+    def _build_installing_tab(self) -> None:
+        self.tab_installing.grid_columnconfigure(0, weight=1)
+        self.tab_installing.grid_rowconfigure(1, weight=1)
+
+        title = ctk.CTkLabel(self.tab_installing, text="Installing (in progress only)", font=("", 18, "bold"))
+        title.grid(row=0, column=0, padx=8, pady=(8, 4), sticky="w")
+
+        self.install_list = ctk.CTkScrollableFrame(self.tab_installing)
+        self.install_list.grid(row=1, column=0, padx=8, pady=(0, 8), sticky="nsew")
+
+        # Inline prompt area (shown when a child process requests input)
+        self.install_prompt_frame = ctk.CTkFrame(self.tab_installing, fg_color="transparent")
+        self.install_prompt_frame.grid(row=2, column=0, padx=0, pady=(0, 8), sticky="ew")
+        self.install_prompt_frame.grid_remove()
+
+    def _ensure_install_row(self, module_name: str) -> None:
+        if module_name in self.install_rows:
+            return
+        row = ctk.CTkFrame(self.install_list)
+        row.pack(fill="x", padx=6, pady=6)
+        name = ctk.CTkLabel(row, text=f"{module_name} — Generating...")
+        bar = ctk.CTkProgressBar(row)
+        bar.set(0.0)
+        name.pack(side="left", padx=6)
+        bar.pack(side="right", fill="x", expand=True, padx=6)
+        self.install_rows[module_name] = {"frame": row, "label": name, "bar": bar}
+
+    def _update_install_progress(self, module_name: str, label: str, current: int, total: int) -> None:
+        self._ensure_install_row(module_name)
+        w = self.install_rows[module_name]
+        w["label"].configure(text=f"{module_name} — {label} ({current}/{total})")
+        try:
+            pct = float(current) / float(total) if total else 0.0
+        except Exception:
+            pct = 0.0
+        w["bar"].set(pct)
+
+    def _remove_install_row(self, module_name: str) -> None:
+        w = self.install_rows.pop(module_name, None)
+        if w:
+            try:
+                w["frame"].destroy()
+            except Exception:
+                pass
+
+    def _render_install_prompt(self, question: str, secret: bool, submit_cb):
+        """Show a single active prompt inline on the Installing page."""
+        self.install_prompt_frame.grid()
+        for w in self.install_prompt_frame.winfo_children():
+            w.destroy()
+        row = ctk.CTkFrame(self.install_prompt_frame)
+        row.pack(fill="x", padx=8, pady=8)
+        ctk.CTkLabel(row, text=question).pack(anchor="w", padx=6, pady=(6, 3))
+        var = ctk.StringVar()
+        entry = ctk.CTkEntry(row, textvariable=var, show="*" if secret else None)
+        entry.pack(fill="x", padx=6, pady=6)
+        def _submit():
+            ans = var.get()
+            submit_cb(ans)
+            entry.configure(state="disabled")
+            btn.configure(state="disabled", text="Submitted")
+        btn = ctk.CTkButton(row, text="Submit", command=_submit)
+        btn.pack(anchor="e", padx=6, pady=(0,6))
+
+    # ---------- Install Worker ----------
+    def _install_worker(self, module_name: str) -> None:
+        registry = self.engine.get_registered_modules()
+        url = (registry.get(module_name, {}) or {}).get("url")
+        if not url:
+            self.after(0, lambda: messagebox.showerror("Install", f"No URL found for '{module_name}'."))
+            self.after(0, lambda: self._remove_install_row(module_name))
+            return
+
+        self.after(0, lambda: self._console_write(f"'{module_name}' installation started."))
+        self.after(0, self.refresh_store)
+
+        # Step 2: load operations + Run All
+        on_output, on_event, stdin_provider = self._make_stream_and_prompt_handlers_for(module_name)
+        try:
+            # This call will run 'init' scripts first and then return the user operations.
+            ops = self.engine.load_game_operations(
+                module_name,
+                interactive_pause=False,
+                on_output=on_output,
+                on_event=on_event,
+                stdin_provider=stdin_provider,
+            )
+
+            # Now that init is done and we have the operations, check for 'run-all'.
+            has_run_all = any(op.get("run-all") and op.get("enabled", True) for op in (ops or []))
+            if has_run_all:
+                self.after(0, lambda: self._console_write("Starting installation (Run All)…"))
+                # This uses the operations loaded into the engine state by the previous call.
+                self.engine.execute_run_all()
+            else:
+                # Fallback: run the first enabled op if no 'run-all' is found
+                first = next((op for op in (ops or []) if op.get("enabled", True)), None)
+                if not first:
+                    self.after(0, lambda: messagebox.showerror("Install", "No installable operations were found."))
+                    self.after(0, lambda: self._remove_install_row(module_name))
+                    return
+                cmd = self.engine.build_command(first, {})
+                self.after(0, lambda: self._console_write(f"Running: {first.get('Name','Operation')}"))
                 self.engine.execute_command(
-                    command, op_config.get("Name"),
+                    cmd,
+                    first.get("Name", module_name),
                     on_output=on_output,
                     on_event=on_event,
                     stdin_provider=stdin_provider,
-                    env_overrides=env
+                    env_overrides={"TERM": "dumb"},
                 )
-            finally:
-                cleanup()
+        except Exception as e:
+            self.after(0, lambda: messagebox.showerror("Install", f"Install error: {e}"))
+            self.after(0, lambda: self._remove_install_row(module_name))
+            return
 
-        threading.Thread(target=worker, daemon=True).start()
+        # Step 3: cleanup, refresh lists, and remove from Installing (show only in-progress)
+        self.after(0, self.refresh_library)
+        self.after(0, self.refresh_store)
+        self.after(0, lambda: self._remove_install_row(module_name))
+        self.after(0, lambda: messagebox.showinfo("Install", f"'{module_name}' installation finished."))
 
 
 
 def run() -> None:
-    app = App()
+    app = RemakeEngineGui()
     app.mainloop()
+
 
 if __name__ == "__main__":
     run()
-
-
-
-

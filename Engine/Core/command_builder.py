@@ -19,12 +19,12 @@ class CommandBuilder:
             if is_win64:
                 local = self.root_path / "runtime" / "python3" / "python.exe"
                 if local.is_file():
-                    print(colour=Colours.CYAN, message=f"Using local Python runtime: {local}")
+                    print(colour=Colours.CYAN, message=f"Using local Python runtime: {local}", prefix="ENGINE", prefix_colour=Colours.GREEN)
                     return str(local)
-                print(colour=Colours.YELLOW, message="Local Python runtime not found, checking system PATH.")
-            print(colour=Colours.CYAN, message="Using 'python' from system PATH.")
+                print(colour=Colours.YELLOW, message="Local Python runtime not found, checking system PATH.", prefix="ENGINE", prefix_colour=Colours.GREEN)
+            print(colour=Colours.CYAN, message="Using 'python' from system PATH.", prefix="ENGINE", prefix_colour=Colours.GREEN)
             return "python"
-        print(colour=Colours.CYAN, message=f"Using '{script_type}' from system PATH.")
+        print(colour=Colours.CYAN, message=f"Using '{script_type}' from system PATH.", prefix="ENGINE", prefix_colour=Colours.GREEN)
         return script_type
 
 
