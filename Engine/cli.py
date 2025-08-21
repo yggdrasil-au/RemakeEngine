@@ -1,4 +1,5 @@
-# main_cli.py
+# Engine/main_cli.py
+"""Interactive command-line interface for the RemakeEngine."""
 from typing import Literal
 import questionary
 from pathlib import Path
@@ -259,3 +260,4 @@ def run() -> None:
 
 if __name__ == "__main__":
     run()
+

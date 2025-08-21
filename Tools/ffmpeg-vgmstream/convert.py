@@ -197,8 +197,8 @@ def main() -> None:
         # avoid too many workers if not specified
         if args.workers is None:
             # Calculate 75% of CPU cores, ensuring it's a whole number and at least 1.
-            #args.workers = max(1, int(multiprocessing.cpu_count() * 0.75))
-            args.workers = int(multiprocessing.cpu_count())
+            args.workers = max(1, int(multiprocessing.cpu_count() * 0.75))
+            #args.workers = int(multiprocessing.cpu_count())
 
 
         # --- 1. Setup and Validation ---

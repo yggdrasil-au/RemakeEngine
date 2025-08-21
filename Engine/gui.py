@@ -1,4 +1,8 @@
-# main_gui.py
+"""
+Engine/gui.py
+Interactive Graphical User Interface for the RemakeEngine
+"""
+
 import customtkinter as ctk
 from pathlib import Path
 import threading
@@ -566,3 +570,7 @@ def run() -> None:
 
 if __name__ == "__main__":
     run()
+
+
+
+

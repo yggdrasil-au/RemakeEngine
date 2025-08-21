@@ -1,4 +1,5 @@
 """
+Tools/Download/main.py
 This script downloads and unpacks tool dependencies for a project.
 
 It reads a list of required tools from a module-specific manifest file
@@ -19,8 +20,8 @@ import hashlib
 
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'Engine')))
-from Utils.printer import print, Colours, error, print_verbose, print_debug, printc
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '.')))
+from Engine.Utils.printer import print, Colours, error, print_verbose, print_debug, printc
 
 
 # --- Configuration ---
@@ -116,11 +117,47 @@ def unpack_archive(archive_path, unpack_destination):
         print(colour=Colours.RED, message=f"❌ ERROR: Failed to unpack archive. The file may be corrupt. Details: {e}")
 
 
+def detect_executable(unpack_dest, patterns=None):
+    """
+    Locate an executable in the unpacked directory.
+    Falls back to platform heuristics if no patterns are given.
+    """
+    candidates = []
+
+    for root, _, files in os.walk(unpack_dest):
+        for file in files:
+            path = os.path.join(root, file)
+
+            # Skip obvious non-executables
+            if file.lower().endswith((".txt", ".md", ".json", ".ini", ".dll")):
+                continue
+
+            # If patterns are given and not empty, use them
+            if patterns and any(p.strip() and file.lower().endswith(p.lower()) for p in patterns):
+                return path
+
+            # Otherwise, collect fallback candidates
+            candidates.append(path)
+
+    # Fallback: best guess
+    if sys.platform.startswith("win"):
+        for c in candidates:
+            if c.lower().endswith(".exe"):
+                return c
+    else:
+        for c in candidates:
+            # Heuristic: no extension or marked executable
+            if "." not in os.path.basename(c) or os.access(c, os.X_OK):
+                return c
+
+    return None
+
+
 # --- Main Handler Logic ---
 
 def process_dependencies(module_manifest_path, known_tools_path, force_install=False):
     """
-    Resolves and installs dependencies, skipping existing items unless force_install is True.
+    Resolves and installs dependencies, writing install state to Tools.local.json.
     """
     if force_install:
         print(colour=Colours.MAGENTA, message="🚀 Force mode enabled: all checks for existing files will be ignored.\n")
@@ -134,34 +171,41 @@ def process_dependencies(module_manifest_path, known_tools_path, force_install=F
         print(colour=Colours.RED, message=f"Error: Could not find a required file. {e}")
         return
 
+    # Load or initialize Tools.local.json
+    tools_local_path = os.path.join(os.path.dirname(known_tools_path), "Tools.local.json")
+    if os.path.isfile(tools_local_path):
+        with open(tools_local_path, "r", encoding="utf-8") as f:
+            tools_local = json.load(f)
+    else:
+        tools_local = {}
+
     current_platform = get_platform_identifier()
     print(colour=Colours.BLUE, message=f"Running on platform: {current_platform}\n")
 
     for module_name, dependencies in module_data.items():
         print(colour=Colours.MAGENTA, message=f"--- Processing dependencies for: {module_name} ---")
         for dep in dependencies:
-            tool_name = dep.get("Name")
+            tool_name = dep.get("name") or dep.get("Name")  # support both
             tool_version = dep.get("version")
 
-            # Resolve all paths and details first
+            # Lookup in registry
             tool_entry = known_tools.get(tool_name, {}).get(tool_version)
             if not tool_entry:
-                print(colour=Colours.RED, message=f"❌ ERROR: Could not find '{tool_name}' version '{tool_version}' in the repository.\n")
+                print(colour=Colours.RED, message=f"❌ ERROR: '{tool_name}' version '{tool_version}' not in registry.\n")
                 continue
 
-            platform_details = None
+            # Resolve platform
+            platform_key, platform_details = None, None
             if current_platform in tool_entry:
-                platform_details = tool_entry[current_platform]
-                print(colour=Colours.CYAN, message=f"ℹ️  Found platform-specific entry for '{tool_name}' on '{current_platform}'")
+                platform_key, platform_details = current_platform, tool_entry[current_platform]
             else:
                 for key, value in tool_entry.items():
                     if key.startswith(current_platform):
-                        platform_details = value
-                        print(colour=Colours.CYAN, message=f"ℹ️  Found compatible platform '{key}' for '{current_platform}'")
+                        platform_key, platform_details = key, value
                         break
 
             if not platform_details:
-                print(colour=Colours.RED, message=f"❌ ERROR: No download available for '{tool_name}' on platform '{current_platform}'.\n")
+                print(colour=Colours.RED, message=f"❌ ERROR: No download for '{tool_name}' on {current_platform}.\n")
                 continue
 
             url = platform_details.get("url")
@@ -171,37 +215,56 @@ def process_dependencies(module_manifest_path, known_tools_path, force_install=F
             unpack_dest = dep.get("unpack_destination")
 
             if not url:
-                print(colour=Colours.RED, message=f"❌ ERROR: URL not defined for '{tool_name}' on platform '{current_platform}'.\n")
+                print(colour=Colours.RED, message=f"❌ ERROR: URL not defined for '{tool_name}' on {current_platform}.\n")
                 continue
 
-            # Check if the final unpacked directory already exists and is populated
-            if not force_install and should_unpack and unpack_dest and os.path.isdir(unpack_dest) and os.listdir(unpack_dest):
-                print(colour=Colours.GREEN, message=f"✅ Tool '{tool_name}' appears to be installed at '{unpack_dest}'. Skipping.\n")
+            # Already installed?
+            already_installed = (
+                not force_install and
+                tool_name in tools_local and
+                tools_local[tool_name].get("version") == tool_version and
+                os.path.isdir(tools_local[tool_name].get("install_path", "")) and
+                os.listdir(tools_local[tool_name].get("install_path", ""))
+            )
+            if already_installed:
+                print(colour=Colours.GREEN, message=f"✅ Tool '{tool_name}' already installed. Skipping.\n")
                 continue
 
             try:
                 file_name = os.path.basename(urllib.parse.urlparse(url).path)
                 downloaded_path = os.path.join(download_dest, file_name)
 
-                # Check if the archive file already exists
                 if not force_install and os.path.isfile(downloaded_path):
-                    print(colour=Colours.CYAN, message=f"ℹ️  Archive '{file_name}' already exists. Skipping download.")
+                    print(colour=Colours.CYAN, message=f"ℹ️  Archive '{file_name}' exists. Skipping download.")
                 else:
                     download_tool(url, download_dest, file_name)
 
-                # Always verify checksum, whether downloaded or found locally
                 if not verify_checksum(downloaded_path, sha256):
-                    if os.path.isfile(downloaded_path):
-                        print(colour=Colours.RED, message=f"❌ The existing file '{file_name}' is corrupt. Please run with --force to re-download.")
                     continue
 
+                exe_path = None
                 if should_unpack and unpack_dest:
                     unpack_archive(downloaded_path, unpack_dest)
+                    patterns = platform_details.get("executables", [])
+                    exe_path = detect_executable(unpack_dest, patterns)
 
-                print(colour=Colours.GREEN, message=f"✅ Successfully processed {tool_name} {tool_version}.\n")
-
+                # Write to Tools.local.json
+                tools_local[tool_name] = {
+                    "version": tool_version,
+                    "platform": current_platform,
+                    "install_path": unpack_dest if should_unpack else download_dest,
+                    "exe": exe_path,
+                    "sha256": sha256,
+                    "source_url": url
+                }
+                print(colour=Colours.GREEN, message=f"🔗 Installed {tool_name} {tool_version}")
             except Exception as e:
-                print(colour=Colours.RED, message=f"❌ An error occurred while processing {tool_name}: {e}\n")
+                print(colour=Colours.RED, message=f"❌ Error processing {tool_name}: {e}\n")
+
+    # Write back only to Tools.local.json
+    with open(tools_local_path, "w", encoding="utf-8") as f:
+        json.dump(tools_local, f, indent=4)
+    print(colour=Colours.BLUE, message=f"📝 Updated lockfile: {tools_local_path}")
 
 # --- Script Entry Point ---
 def main(module_tools_file: str, force_install: bool) -> None:

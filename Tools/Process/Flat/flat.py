@@ -1,6 +1,6 @@
 """
 flat.py (Optimized Version)
-Applies flattening universally from SourceDir's *contents* directly into DestinationDir.
+applies FilePath rules to input dir, and moves or copies to new location
 Example:
 python flat.py ".\\Source\\RootDir" ".\\Destination\\Flattened" --action move --rules ".\\custom_rules.json" --separator "__" --verify -v
 """
@@ -11,7 +11,6 @@ import re
 import time
 import json
 import argparse
-from pathlib import Path
 import concurrent.futures # Added for parallelism
 import multiprocessing
 import os
@@ -241,8 +240,8 @@ def main():
     # avoid too many workers if not specified
     if args.workers is None:
         # Calculate 75% of CPU cores, ensuring it's a whole number and at least 1.
-        #args.workers = max(1, int(multiprocessing.cpu_count() * 0.75))
-        args.workers = int(multiprocessing.cpu_count())
+        args.workers = max(1, int(multiprocessing.cpu_count() * 0.75))
+        #args.workers = int(multiprocessing.cpu_count())
 
 
     # Set global flags

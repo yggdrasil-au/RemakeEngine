@@ -1,3 +1,5 @@
+"""Core types for the Remake Engine."""
+#Engine\Core\types.py
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, Optional, Dict, Any, List, Tuple

@@ -1,0 +1,26 @@
+{
+    "Blender": {
+        "version": "4.0.2",
+        "platform": "win-x64",
+        "install_path": "./Tools/Blender",
+        "exe": "./Tools/Blender\\blender-4.0.2-windows-x64\\blender-launcher.exe",
+        "sha256": "bddb7ab6880bbb80297b93731506a48bbebdce214ee5edd17dbef8380daecded",
+        "source_url": "https://download.blender.org/release/Blender4.0/blender-4.0.2-windows-x64.zip"
+    },
+    "QuickBMS": {
+        "version": "0.12.0",
+        "platform": "win-x64",
+        "install_path": "./Tools/QuickBMS/exe",
+        "exe": "./Tools/QuickBMS/exe\\quickbms.exe",
+        "sha256": "",
+        "source_url": "https://github.com/LittleBigBug/QuickBMS/releases/download/0.12.0/quickbms_win.zip"
+    },
+    "Godot": {
+        "version": "4.4.1-stable-mono",
+        "platform": "win-x64",
+        "install_path": "./Tools/Godot",
+        "exe": "./Tools/Godot\\Godot_v4.4.1-stable_mono_win64\\Godot_v4.4.1-stable_mono_win64.exe",
+        "sha256": "",
+        "source_url": "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_mono_win64.zip"
+    }
+}
