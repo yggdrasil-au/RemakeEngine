@@ -4,83 +4,18 @@
 # - Installing: only shows in-progress installs with progress bars; removes rows when finished
 # - Install flow: load init ops then run-all (fallback to first enabled op)
 
-from pathlib import Path
-import re # Import regex module
 import threading
-import builtins as py
 import tkinter.messagebox as messagebox
 import customtkinter as ctk
-
+from pathlib import Path
+# Engine UI
+from Engine.Interface.GUI.terminal import AnsiColorParser
 # Core
 from Engine.Interface.Interface import OperationsEngine
-# Utilities
-from Engine.Utils.printer import print, Colours
+# Builtins
+import builtins as py
 
-
-class AnsiColorParser:
-    """Parses strings with ANSI escape codes and maps them to Tkinter text tags."""
-    
-    def __init__(self, widget: ctk.CTkTextbox):
-        self.widget = widget
-        # Regex to find ANSI escape codes
-        self.ansi_pattern = re.compile(r'\x1b\[([0-9;]*)m')
-        
-        # Standard ANSI color map (code -> (tag_name, hex_color))
-        self.colors = {
-            '30': ('black_fg', '#000000'), '31': ('red_fg', '#FF5555'),
-            '32': ('green_fg', '#50FA7B'), '33': ('yellow_fg', '#F1FA8C'),
-            '34': ('blue_fg', '#6272A4'), '35': ('magenta_fg', '#FF79C6'),
-            '36': ('cyan_fg', '#8BE9FD'), '37': ('white_fg', '#BFBFBF'),
-            '90': ('bright_black_fg', '#4D4D4D'), '91': ('bright_red_fg', '#FF6E67'),
-            '92': ('bright_green_fg', '#5AF78E'), '93': ('bright_yellow_fg', '#F4F99D'),
-            '94': ('bright_blue_fg', '#728EFA'), '95': ('bright_magenta_fg', '#FF92D0'),
-            '96': ('bright_cyan_fg', '#9AEDFE'), '97': ('bright_white_fg', '#F2F2F2'),
-        }
-        self._configure_tags()
-
-    def _configure_tags(self) -> None:
-        """Configures all necessary color and style tags in the target widget."""
-        for code, (tag, color) in self.colors.items():
-            self.widget.tag_config(tag, foreground=color)
-        
-        # Configure bold style
-        bold_font = ctk.CTkFont(weight="bold")
-        #self.widget.tag_config('bold', font=bold_font)
-
-    def parse_text(self, text: str) -> list[tuple[str, list[str]]]:
-        """Parses text and yields tuples of (text_chunk, list_of_tags)."""
-        segments = []
-        last_index = 0
-        current_tags = set()
-
-        for match in self.ansi_pattern.finditer(text):
-            # Add text before the match with current styling
-            start, end = match.span()
-            if start > last_index:
-                segments.append((text[last_index:start], list(current_tags)))
-            
-            last_index = end
-            
-            # Process the ANSI code
-            codes = match.group(1).split(';')
-            for code in codes:
-                if not code:  # Empty code (e.g., from ";") is treated as reset
-                    code = '0'
-                if code == '0':  # Reset
-                    current_tags.clear()
-                elif code == '1':  # Bold
-                    current_tags.add('bold')
-                elif code in self.colors:  # Apply color
-                    # Remove other foreground colors before adding a new one
-                    current_tags = {tag for tag in current_tags if not tag.endswith('_fg')}
-                    current_tags.add(self.colors[code][0])
-        
-        # Add any remaining text after the last match
-        if last_index < len(text):
-            segments.append((text[last_index:], list(current_tags)))
-            
-        return segments
-
+from Engine.Interface.GUI.utils import _console_write, _make_stream_and_prompt_handlers_for, _install_worker
 
 class RemakeEngineGui(ctk.CTk):
     def __init__(self) -> None:
@@ -113,7 +48,7 @@ class RemakeEngineGui(ctk.CTk):
         self.console = ctk.CTkTextbox(self, height=180)
         self.console.configure(state="disabled")
         self.console.grid(row=1, column=0, padx=12, pady=(0, 12), sticky="nsew")
-        
+
         # *** MODIFICATION: Initialize the ANSI parser for the console ***
         self.ansi_parser = AnsiColorParser(self.console)
 
@@ -124,58 +59,9 @@ class RemakeEngineGui(ctk.CTk):
         self.refresh_library()
         self.refresh_store()
 
-    # ---------- Shared Helpers ----------
-    def _console_write(self, text: str) -> None:
-        """Writes text to the console, parsing ANSI color codes."""
-        self.console.configure(state="normal")
-        # *** MODIFICATION: Use the parser to insert text with color tags ***
-        for chunk, tags in self.ansi_parser.parse_text(text):
-            self.console.insert("end", chunk, tags)
-        self.console.insert("end", "\n") # Add newline separately
-        self.console.see("end")
-        self.console.configure(state="disabled")
-
-    def _make_stream_and_prompt_handlers_for(self, module_name: str):
-        """Handlers that route engine output/events to the GUI and update Installing UI for a given module."""
-        import queue as _queue
-        send_queue = _queue.Queue(maxsize=1)
-
-        def on_output(line, stream):
-            # *** MODIFICATION: Prepend ANSI-colored prefix for stderr ***
-            if stream == "stderr":
-                colored_line = f"\x1b[91m[ERR]\x1b[0m {line}"
-                self.after(0, lambda: self._console_write(colored_line))
-            else:
-                self.after(0, lambda: self._console_write(line))
-
-        def on_event(evt: dict):
-            typ = evt.get("event")
-            if typ == "warning":
-                # Use ANSI for color
-                self.after(0, lambda: self._console_write(f"\x1b[93m⚠ {evt.get('message','')}\x1b[0m") )
-            elif typ == "error":
-                # Use ANSI for color
-                self.after(0, lambda: self._console_write(f"\x1b[91m✖ {evt.get('message','')}\x1b[0m") )
-            elif typ == "progress":
-                label = evt.get("label", module_name)
-                current, total = evt.get("current", 0), max(evt.get("total", 0), 1)
-                self.after(0, lambda: self._update_install_progress(module_name, label, current, total))
-            elif typ == "prompt":
-                question = evt.get("message", "Input required")
-                secret = bool(evt.get("secret"))
-                # Render inline prompt UI within Installing tab and wait for user submission
-                def render():
-                    self._render_install_prompt(question, secret, lambda ans: send_queue.put_nowait(ans or ""))
-                self.after(0, render)
-            # progress/end are reflected via UI/console
-
-        def stdin_provider():
-            try:
-                return send_queue.get(timeout=120)
-            except Exception:
-                return None
-
-        return on_output, on_event, stdin_provider
+        self._console_write = _console_write.__get__(self)
+        self._make_stream_and_prompt_handlers_for = _make_stream_and_prompt_handlers_for.__get__(self)
+        self._install_worker = _install_worker.__get__(self)
 
     # ---------- Library Tab ----------
     def _build_library_tab(self) -> None:
@@ -228,7 +114,7 @@ class RemakeEngineGui(ctk.CTk):
             path = None
         if not path:
             path = Path.cwd() / game_name
-        if not Path(path).exists():
+        if not Path(path).exists(): # type: ignore
             messagebox.showinfo("Open Folder", f"Couldn't locate a folder for '{game_name}'.")
             return
         try:
@@ -368,7 +254,7 @@ class RemakeEngineGui(ctk.CTk):
             except Exception:
                 pass
 
-    def _render_install_prompt(self, question: str, secret: bool, submit_cb):
+    def _render_install_prompt(self, question: str, secret: bool, submit_cb) -> None:
         """Show a single active prompt inline on the Installing page."""
         self.install_prompt_frame.grid()
         for w in self.install_prompt_frame.winfo_children():
@@ -387,70 +273,10 @@ class RemakeEngineGui(ctk.CTk):
         btn = ctk.CTkButton(row, text="Submit", command=_submit)
         btn.pack(anchor="e", padx=6, pady=(0,6))
 
-    # ---------- Install Worker ----------
-    def _install_worker(self, module_name: str) -> None:
-        registry = self.engine.get_registered_modules()
-        url = (registry.get(module_name, {}) or {}).get("url")
-        if not url:
-            self.after(0, lambda: messagebox.showerror("Install", f"No URL found for '{module_name}'."))
-            self.after(0, lambda: self._remove_install_row(module_name))
-            return
-
-        self.after(0, lambda: self._console_write(f"'{module_name}' installation started."))
-        self.after(0, self.refresh_store)
-
-        # Step 2: load operations + Run All
-        on_output, on_event, stdin_provider = self._make_stream_and_prompt_handlers_for(module_name)
-        try:
-            # This call will run 'init' scripts first and then return the user operations.
-            ops = self.engine.load_game_operations(
-                module_name,
-                interactive_pause=False,
-                on_output=on_output,
-                on_event=on_event,
-                stdin_provider=stdin_provider,
-            )
-
-            # Now that init is done and we have the operations, check for 'run-all'.
-            has_run_all = any(op.get("run-all") and op.get("enabled", True) for op in (ops or []))
-            if has_run_all:
-                self.after(0, lambda: self._console_write("Starting installation (Run All)…"))
-                # This uses the operations loaded into the engine state by the previous call.
-                self.engine.execute_run_all()
-            else:
-                # Fallback: run the first enabled op if no 'run-all' is found
-                first = next((op for op in (ops or []) if op.get("enabled", True)), None)
-                if not first:
-                    self.after(0, lambda: messagebox.showerror("Install", "No installable operations were found."))
-                    self.after(0, lambda: self._remove_install_row(module_name))
-                    return
-                cmd = self.engine.build_command(first, {})
-                self.after(0, lambda: self._console_write(f"Running: {first.get('Name','Operation')}"))
-                self.engine.execute_command(
-                    cmd,
-                    first.get("Name", module_name),
-                    on_output=on_output,
-                    on_event=on_event,
-                    stdin_provider=stdin_provider,
-                    env_overrides={"TERM": "dumb"},
-                )
-        except Exception as e:
-            self.after(0, lambda: messagebox.showerror("Install", f"Install error: {e}"))
-            self.after(0, lambda: self._remove_install_row(module_name))
-            return
-
-        # Step 3: cleanup, refresh lists, and remove from Installing (show only in-progress)
-        self.after(0, self.refresh_library)
-        self.after(0, self.refresh_store)
-        self.after(0, lambda: self._remove_install_row(module_name))
-        self.after(0, lambda: messagebox.showinfo("Install", f"'{module_name}' installation finished."))
-
-
 
 def run() -> None:
     app = RemakeEngineGui()
     app.mainloop()
-
 
 if __name__ == "__main__":
     run()

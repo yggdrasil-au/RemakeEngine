@@ -1,74 +1,24 @@
 # Engine/main_cli.py
 """Interactive command-line interface for the RemakeEngine."""
-from typing import Literal
 import questionary
 from pathlib import Path
-import builtins	as py
-from typing import Any
 
+# Engine UI
+from Engine.Interface.CLI.sdk import on_output, on_event, stdin_provider
 # Core
 from Engine.Interface.Interface import OperationsEngine
-# Utilities
+# Builtins
+import builtins as py
+# Engine Print
 from Engine.Utils.printer import print, Colours, error, print_verbose, print_debug, printc
 
-custom_style_fancy = questionary.Style([
-    ('question', 'white'),
-    ('answer', '#4688f1'),
-    ('pointer', 'green'),
-    ('highlighted', 'blue'),
-    ('selected', '#cc241d'),
-    ('separator', 'white'),
-    ('instruction', ''),
-    ('text', 'darkmagenta'),
-    ('disabled', '#858585 italic')
-])
+from Engine.Interface.CLI.utils import custom_style_fancy
+
 
 def run() -> None:
     """Interactive CLI front-end for the Operations Engine."""
     engine = OperationsEngine(Path.cwd())
 
-    # --- Handlers to bridge SDK events <-> CLI ---
-    #  - on_output: stream child stdout/stderr into our console
-    #  - on_event : notice "prompt"/warnings, and remember the latest question
-    #  - stdin_provider: actually read the user's answer when ProcessRunner asks
-    import sys as _sys
-    last_prompt = {"msg": "Input required"}
-    def on_output(line, stream) -> None:
-        """Stream process output to the console with appropriate coloring."""
-        target = _sys.stderr if stream == "stderr" else _sys.stdout
-        # Use your coloured printer so ANSI still looks nice in terminals that support it
-        print(colour=Colours.WHITE if stream == "stdout" else Colours.RED, message=line, file=target)
-
-    def on_event(evt) -> None:
-        """Handle events from the engine, such as prompts and warnings."""
-        if evt.get("event") == "prompt":
-            last_prompt["msg"] = evt.get("message", "Input required")
-            # Echo the question so the user sees it *before* we block for input
-            #print(colour=Colours.CYAN, message=f"? {last_prompt['msg']}")
-        elif evt.get("event") == "warning":
-            print(colour=Colours.YELLOW, message=f"⚠ {evt.get('message','')}")
-        elif evt.get("event") == "error":
-            print(colour=Colours.RED, message=f"✖ {evt.get('message','')}")
-
-    def stdin_provider() -> Any | Literal['']:
-        """Handles stdin requests from the engine by prompting the user for input."""
-        try:
-            # Flush any pending output before we ask
-            import sys as _sys
-            _sys.stdout.flush()
-            _sys.stderr.flush()
-
-            # Ask using Questionary so the TTY is in a good state
-            ans = questionary.text(
-                message=last_prompt["msg"],
-                qmark="?",
-                style=custom_style_fancy
-            ).ask()
-
-            # Normalise None (Esc/Ctrl+C) to empty string so the child can proceed
-            return "" if ans is None else ans
-        except KeyboardInterrupt:
-            return "None"
 
     while True:
         import os
@@ -137,6 +87,7 @@ def run() -> None:
             on_event=on_event,
             stdin_provider=stdin_provider
         )
+
         if not operations:
             print(colour=Colours.YELLOW, message=f"No valid operations found for {selected_game}.")
             continue
@@ -223,7 +174,7 @@ def run() -> None:
                         prompt["message"],
                         choices=prompt.get("choices", []),
                         style=custom_style_fancy,
-                        validate=validator
+                        validate=validator # type: ignore
                     ).ask()
 
                 elif prompt["type"] == "text":
