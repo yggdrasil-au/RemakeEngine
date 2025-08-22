@@ -1,4 +1,3 @@
-
 """
 Engine\\Utils\\resolver.py
 Resolves paths to downloaded tools, considering platform, version, and local overrides.
@@ -84,15 +83,24 @@ def resolve_tool(repo_root: str, tool_name: str, module_tools_file: str = None, 
         raise RuntimeError(f"No platform entry for {platform_key} in {tool_name} {version}")
 
     # --- Check Tools.local.json first
-    local_path = (
-        local_data
-        .get(tool_name, {})
+    local_tool_entry = local_data.get(tool_name, {})
+
+    # 1) Simple format: {"Tool": {"exe": "path/to/exe"}}
+    simple_exe_path = local_tool_entry.get("exe")
+    if simple_exe_path:
+        resolved_path = (repo / simple_exe_path).resolve()
+        if resolved_path.is_file():
+            return str(resolved_path)
+
+    # 2) Original nested format
+    nested_path = (
+        local_tool_entry
         .get(version, {})
         .get(platform_key, {})
         .get("path")
     )
-    if local_path and Path(local_path).is_file():
-        return str(Path(local_path).resolve())
+    if nested_path and Path(nested_path).is_file():
+        return str(Path(nested_path).resolve())
 
     # --- Otherwise, scan unpack_destination
     if not unpack_dest:
