@@ -7,7 +7,7 @@ import builtins	as py
 from typing import Any
 
 # Core
-from Engine.Core.operations_engine import OperationsEngine
+from Engine.Interface.Interface import OperationsEngine
 # Utilities
 from Engine.Utils.printer import print, Colours, error, print_verbose, print_debug, printc
 

@@ -12,7 +12,7 @@ import tkinter.messagebox as messagebox
 import customtkinter as ctk
 
 # Core
-from Engine.Core.operations_engine import OperationsEngine
+from Engine.Interface.Interface import OperationsEngine
 # Utilities
 from Engine.Utils.printer import print, Colours
 
@@ -45,7 +45,7 @@ class AnsiColorParser:
         
         # Configure bold style
         bold_font = ctk.CTkFont(weight="bold")
-        self.widget.tag_config('bold', font=bold_font)
+        #self.widget.tag_config('bold', font=bold_font)
 
     def parse_text(self, text: str) -> list[tuple[str, list[str]]]:
         """Parses text and yields tuples of (text_chunk, list_of_tags)."""
