@@ -1,6 +1,6 @@
 # Remake Engine
 
-**An extensible, interactive command-line engine for managing and executing complex workflows for various games, with a focus on community-driven configurations for reverse engineering and modding.**
+**An extensible engine with both command-line and graphical interfaces for managing and executing complex workflows for various games, with a focus on community-driven configurations for reverse engineering and modding.**
 **A general-purpose reimplementation framework for games.**
 
 Remake Engine provides a streamlined interface for developers and reverse engineers to run predefined tasks—from executing custom scripts to managing asset extraction and conversion—for a collection of games. Its power lies in its configuration-driven approach, allowing new games and their specific workflows to be added easily by defining them in JSON, without modifying the core engine.
@@ -15,6 +15,7 @@ The framework is not tied to any specific game and does not include or distribut
 
 - **Highly Extensible:** Add support for new games by simply creating configuration files and scripts.
 - **Interactive CLI:** User-friendly menus powered by `questionary` for intuitive navigation.
+- **Optional GUI:** Tkinter-based interface for browsing, installing, and running operations.
 - **Configuration-Driven:** Define all games and operations in simple JSON files (`operations.json`).
 - **Dynamic Placeholders:** Use {{...}} placeholders to inject values from the global project.json enabling flexible, per-user configuration without hardcoding paths in operations.json.
 - **Script & Tool Orchestration:** Run Python scripts and external tools (e.g., QuickBMS, FFmpeg) seamlessly.
@@ -95,12 +96,20 @@ In simple terms, it acts as a smart task runner. It scans for "game modules" in 
 From the project root:
 
 ```pwsh
-python main.py
+python main.py          # starts GUI when available
 ```
-or if you dont have python
-in windows
+
+To explicitly choose an interface:
+
 ```pwsh
-.\main.exe
+python main.py --gui    # launch the graphical interface
+python main.py --cli    # launch the command-line interface
+```
+
+On Windows without Python installed:
+
+```pwsh
+.\main.exe --gui        # or --cli
 ```
 
 ---
@@ -113,10 +122,9 @@ RemakeEngine/
 ├── project.json            # Global user config (custom paths, etc.)
 ├── package.toml            # Package metadata and dev tools
 ├── Tools/                  # Reusable scripts and external tools
-│   ├── Blender/
+│   ├── Download/
 │   ├── ffmpeg-vgmstream/
 │   ├── Process/
-│   ├── Godot/
 │   └── QuickBMS/
 ├── RemakeRegistry/
 │   └── Games/
@@ -124,22 +132,20 @@ RemakeEngine/
 │           ├── operations.json
 │           └── Scripts/
 └── Engine/
-    ├── Core/
-	│   └── operations.py
-	├── cli.py
-	├── gui.py
-	└── Utils/
-    	└── printer.py          # Colored output helper
+    ├── Core/               # Core orchestration modules
+    ├── Interface/          # Shared helpers for CLI/GUI
+    ├── cli.py              # CLI entrypoint
+    └── gui.py              # GUI entrypoint
 ```
 
 ---
 
 ## 📖 Usage
 
-1. Run `main_cli.exe` from the root.
+1. Launch the engine with `python main.py` or `main.exe`.
 2. Select a game.
 3. Choose an operation.
-4. Follow any on-screen prompts.
+4. Follow any on-screen prompts or progress.
 5. Review execution output.
 6. Repeat or switch games.
 
