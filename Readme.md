@@ -9,6 +9,8 @@ Remake Engine is an engine-agnostic toolkit designed for developers creating the
 
 The framework is not tied to any specific game and does not include or distribute any copyrighted assets. Its power lies in its extensibility, allowing new games and their specific workflows to be added easily by defining them in JSON, without modifying the core engine.
 
+for more detailed documentation [https://yggdrasil-au.github.io/RemakeEngineDocs/index.html]
+
 ---
 
 ## 🔧 Key Features
