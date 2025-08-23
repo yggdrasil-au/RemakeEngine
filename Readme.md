@@ -25,6 +25,19 @@ The framework is not tied to any specific game and does not include or distribut
 
 ---
 
+## 🎯 Project Goals
+
+1. **Enable Reimplementation of Classic Games** – Provide a general-purpose engine for rebuilding legally owned classics into modern, editable projects without resorting to emulation or binary modification.
+2. **Modular, Declarative, and Configurable Workflows** – Support new games through configuration files like `operations.json`, keeping core engine code clean and community-driven.
+3. **Bridge Between Reverse Engineering & Usability** – Offer powerful tools for technical users while keeping the CLI and Tkinter GUI approachable for non-technical modders.
+4. **Automate Tedious Rebuild Pipelines** – Orchestrate multi-step workflows with tools such as QuickBMS, Blender, and FFmpeg to reduce manual effort and errors.
+5. **Maintain Legal and Ethical Integrity** – Work only with user-supplied game data, avoiding distribution of copyrighted content and disabling asset export by default.
+6. **Maintain a Secure and Curated Core** – Limit core contributions to trusted maintainers and keep game-specific logic in separate modules.
+7. **Foster a Community Ecosystem for Module Development** – Encourage shared tooling and community-hosted modules while enforcing clean separation of engine vs. module logic.
+8. **Preserve Games Through Playable Modern Rebuilds** – Output transparent project structures that support preservation, study, and future enhancements.
+
+---
+
 ## ⚙️ How It Works
 
 Remake Engine follows a clean separation of engine vs. content:
