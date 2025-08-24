@@ -1,5 +1,4 @@
 """Tests for tool resolution helpers."""
-"""Tests for tool resolution helpers."""
 
 import json
 import platform
