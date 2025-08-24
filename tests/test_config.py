@@ -1,18 +1,21 @@
 """Tests for Engine configuration loading."""
 
+from .test_utils import pytest
+
 from Engine.Core.config import EngineConfig
 
 
-def test_load_json_file(tmp_path, capsys):
-    valid = tmp_path / "cfg.json"
-    valid.write_text('{"x": 1}', encoding="utf-8")
-    assert EngineConfig._load_json_file(valid) == {"x": 1}
+@pytest.mark.parametrize(
+    "content, expected",
+    [("{\"x\": 1}", {"x": 1}), ("{", {})],
+)
+def test_load_json_file(tmp_path, content, expected):
+    cfg = tmp_path / "cfg.json"
+    cfg.write_text(content, encoding="utf-8")
+    assert EngineConfig._load_json_file(cfg) == expected
 
-    invalid = tmp_path / "bad.json"
-    invalid.write_text('{', encoding="utf-8")
-    data = EngineConfig._load_json_file(invalid)
-    assert data == {}
 
+def test_load_json_file_missing(tmp_path):
     missing = tmp_path / "missing.json"
     assert EngineConfig._load_json_file(missing) == {}
 
