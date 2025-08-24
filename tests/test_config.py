@@ -1,7 +1,7 @@
 """Tests for Engine configuration loading."""
 
-from .test_utils import pytest
-
+import typing
+import pytest
 from Engine.Core.config import EngineConfig
 
 

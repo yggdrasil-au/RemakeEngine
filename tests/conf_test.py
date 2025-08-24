@@ -2,8 +2,8 @@
 
 import os
 import sys
-
-from .test_utils import pytest  # noqa: F401
+import typing
+import pytest
 
 # Ensure the repository root is on sys.path so ``Engine`` can be imported
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
