@@ -1,3 +1,36 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "remakeengine"
+version = "1.6.0"
+description = ""
+authors = [
+  { name = "samarixum (YGGDRASIL)" }
+]
+license = { text = "Custom Non-Commercial" }
+requires-python = ">=3.13"
+
+dependencies = [
+  "ImageHash==4.3.2",
+  "matplotlib==3.10.3",
+  "numpy==2.2.6",
+  "Pillow==11.2.1",
+  "PyQt5==5.15.11",
+  "PyQt5-sip==12.17.0",
+  "questionary==2.1.0",
+  "tqdm==4.67.1",
+  "customtkinter==5.2.0",
+]
+
+# Optional: if you want a console command (change module:function as needed)
+[project.scripts]
+remakeengine = "remakeengine.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["remakeengine"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"

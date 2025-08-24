@@ -5,7 +5,7 @@ import sys
 
 def _can_start_gui() -> bool:
     try:
-        import tkinter  # noqa: F401
+        import tkinter
         return True
     except Exception:
         return False
