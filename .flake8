@@ -1,0 +1,2 @@
+[flake8]
+exclude = runtime, build, dist, blender-4.0.2-windows-x64 reverse_engineering_stuff dev
