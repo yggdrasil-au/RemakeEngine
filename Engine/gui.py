@@ -6,8 +6,9 @@
 
 import threading
 import tkinter.messagebox as messagebox
-import customtkinter as ctk
 from pathlib import Path
+import customtkinter as ctk
+
 # Engine UI
 from Engine.Interface.GUI.terminal import AnsiColorParser
 # Core

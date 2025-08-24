@@ -1,2 +1,2 @@
 [MASTER]
-ignore=venv,.venv,build,dist,.tox,runtime,blender-4.0.2-windows-x64,dev,reverse_engineering_stuff,.history
+ignore=venv,.venv,build,dist,.tox,runtime,blender-4.0.2-windows-x64,dev,reverse_engineering_stuff,.history,RemakeRegistry

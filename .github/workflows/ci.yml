@@ -30,8 +30,8 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install pylint pytest coverage
-          # Lint
-          pylint "$(git ls-files '*.py')"
+          # Lint (exclude selected top-level directories)
+          git ls-files -z -- '*.py' ':(exclude,top)runtime/**' ':(exclude,top)blender-4.0.2-windows-x64/**' ':(exclude,top)dev/**' ':(exclude,top)reverse_engineering_stuff/**' ':(exclude,top).history/**' | xargs -0 -r pylint
           # Tests + Coverage
           coverage run -m pytest
           coverage xml

@@ -13,20 +13,16 @@ license = { text = "Custom Non-Commercial" }
 requires-python = ">=3.13"
 
 dependencies = [
-  "ImageHash==4.3.2",
-  "matplotlib==3.10.3",
-  "numpy==2.2.6",
-  "Pillow==11.3.0",
-  "PyQt5==5.15.11",
-  "PyQt5-sip==12.17.0",
-  "questionary==2.1.0",
-  "tqdm==4.67.1",
-  "customtkinter==5.2.0",
+	"ImageHash==4.3.2",
+	"matplotlib==3.10.3",
+	"numpy==2.2.6",
+	"Pillow==11.3.0",
+	"PyQt5==5.15.11",
+	"PyQt5-sip==12.17.0",
+	"questionary==2.1.0",
+	"tqdm==4.67.1",
+	"customtkinter==5.2.0",
 ]
-
-# Optional: if you want a console command (change module:function as needed)
-[project.scripts]
-remakeengine = "remakeengine.__main__:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["remakeengine"]
@@ -55,5 +51,5 @@ quote-style = "preserve"
 
 
 [tool.pylint.master]
-ignore = ["venv", ".venv", "build", "dist", ".tox", "runtime", "blender-4.0.2-windows-x64", "dev", "reverse_engineering_stuff", ".history"]
+ignore = ["venv", ".venv", "build", "dist", ".tox", "runtime", "blender-4.0.2-windows-x64", "dev", "reverse_engineering_stuff", ".history", "RemakeRegistry"]
 
