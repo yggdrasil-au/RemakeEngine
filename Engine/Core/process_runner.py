@@ -1,6 +1,6 @@
 # Engine\Core\process_runner.py
 from __future__ import annotations
-import json, os, locale, time, threading, signal
+import json, os, locale, time, threading, signal, asyncio
 from typing import List, Dict, Any, Optional, Tuple
 from queue import Queue, Empty
 import subprocess
@@ -235,3 +235,91 @@ class ProcessRunner:
                 on_event({"event": "error", "kind": "Exception", "message": str(e)})
             print(colour=Colours.RED, message=f"\nError running operation '{op_title}': {e}")
             return False
+
+
+def run_process(
+    command: List[str],
+    *,
+    timeout: Optional[float] = None,
+    check: bool = False,
+    env: Optional[Dict[str, str]] = None,
+) -> subprocess.CompletedProcess:
+    """Run a command synchronously and capture its output.
+
+    Parameters
+    ----------
+    command:
+        Sequence of command parts to execute.
+    timeout:
+        Optional timeout in seconds for the process.
+    check:
+        If ``True``, a non-zero return code raises ``CalledProcessError``.
+    env:
+        Optional environment overrides for the subprocess.
+
+    Returns
+    -------
+    subprocess.CompletedProcess
+        Completed process instance with captured output.
+    """
+
+    return subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        check=check,
+        env=env,
+    )
+
+
+async def run_process_async(
+    command: List[str],
+    *,
+    timeout: Optional[float] = None,
+    check: bool = False,
+    env: Optional[Dict[str, str]] = None,
+) -> subprocess.CompletedProcess:
+    """Asynchronously run a command and capture its output.
+
+    Parameters
+    ----------
+    command:
+        Sequence of command parts to execute.
+    timeout:
+        Optional timeout in seconds for the process.
+    check:
+        If ``True``, a non-zero return code raises ``CalledProcessError``.
+    env:
+        Optional environment overrides for the subprocess.
+
+    Returns
+    -------
+    subprocess.CompletedProcess
+        Completed process instance with captured output.
+    """
+
+    proc = await asyncio.create_subprocess_exec(
+        *command,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        env=env,
+    )
+
+    try:
+        if timeout is None:
+            stdout, stderr = await proc.communicate()
+        else:
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout)
+    except asyncio.TimeoutError:
+        proc.kill()
+        raise
+
+    cp = subprocess.CompletedProcess(
+        command, proc.returncode, stdout.decode(), stderr.decode()
+    )
+    if check and cp.returncode != 0:
+        raise subprocess.CalledProcessError(
+            cp.returncode, command, output=cp.stdout, stderr=cp.stderr
+        )
+    return cp
