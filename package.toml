@@ -1,7 +1,7 @@
 
 [project]
 name = "remakeengine"
-version = "1.7.0"
+version = "1.7.1"
 description = ""
 author = "samarixum (YGGDRASIL)"
 license = "Custom Non-Commercial"
