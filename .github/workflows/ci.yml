@@ -2,7 +2,6 @@ name: CI
 
 on:
   push:
-  pull_request:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -10,14 +9,14 @@ concurrency:
 
 jobs:
   lint:
-    name: Pylint (3.12)
+    name: Pylint (3.13)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.13'
           cache: 'pip'
       - name: Install deps
         run: |
@@ -34,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.10', '3.12']
+        python-version: ['3.10', '3.13']
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -52,7 +51,7 @@ jobs:
 
   coverage:
     # Single environment to produce coverage.xml for Sonar
-    name: Coverage (3.12)
+    name: Coverage (3.13)
     runs-on: ubuntu-latest
     needs: tests
     steps:
@@ -60,7 +59,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.13'
           cache: 'pip'
       - name: Install deps
         run: |
@@ -91,9 +90,7 @@ jobs:
         with:
           name: coverage-xml
           path: .
-      - name: Sonar scan
-        uses: SonarSource/sonarqube-scan-action@v5
+      - name: Sonar upload cloud scan
+        uses: SonarSource/sonarqube-scan-action@v5 # sends build to SonarCloud for analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: https://sonarcloud.io
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
