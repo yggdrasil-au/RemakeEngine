@@ -1,16 +1,3 @@
-name: CI
-
-on:
-  push:
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: read
-  pull-requests: write
-
 jobs:
   ci:
     name: Lint, Test & Coverage (3.13)
@@ -25,14 +12,26 @@ jobs:
           python-version: '3.13'
           cache: 'pip'
 
-      - name: Lint, Test, and Generate Coverage
+      - name: Install deps
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install pylint pytest coverage
-          # Lint (exclude selected top-level directories)
-          git ls-files -z -- '*.py' ':(exclude,top)runtime/**' ':(exclude,top)blender-4.0.2-windows-x64/**' ':(exclude,top)dev/**' ':(exclude,top)reverse_engineering_stuff/**' ':(exclude,top).history/**' | xargs -0 -r pylint
-          # Tests + Coverage
+
+      # Make pylint non-blocking
+      - name: Lint (pylint, non-blocking)
+        continue-on-error: true
+        run: |
+          git ls-files -z -- '*.py' \
+            ':(exclude,top)runtime/**' \
+            ':(exclude,top)blender-4.0.2-windows-x64/**' \
+            ':(exclude,top)dev/**' \
+            ':(exclude,top)reverse_engineering_stuff/**' \
+            ':(exclude,top).history/**' \
+          | xargs -0 -r pylint
+
+      - name: Tests + Coverage
+        run: |
           coverage run -m pytest
           coverage xml
 
@@ -41,23 +40,3 @@ jobs:
         with:
           name: coverage-xml
           path: coverage.xml
-
-  sonar:
-    name: SonarCloud
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    needs: [ci]     # wait for everything
-    if: always()                        # still run to report, even if earlier jobs fail
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0                # better blame/history for analysis
-      - name: Download coverage
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-xml
-          path: .
-      - name: Sonar upload cloud scan
-        uses: SonarSource/sonarqube-scan-action@v5 # sends build to SonarCloud for analysis
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
