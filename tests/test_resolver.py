@@ -5,18 +5,19 @@ import platform
 import sys
 from pathlib import Path
 
-from Engine.Utils.resolver import (
-    _platform_id,
-    _find_executable_under,
-    resolve_tool,
+from .test_utils import pytest
+
+from Engine.Utils.resolver import _find_executable_under, _platform_id, resolve_tool
+
+
+@pytest.mark.parametrize(
+    "use_mono, expected",
+    [(False, "linux-x64"), (True, "linux-x64-mono")],
 )
-
-
-def test_platform_id(monkeypatch):
+def test_platform_id(monkeypatch, use_mono, expected):
     monkeypatch.setattr(sys, "platform", "linux")
     monkeypatch.setattr(platform, "machine", lambda: "x86_64")
-    assert _platform_id(False) == "linux-x64"
-    assert _platform_id(True) == "linux-x64-mono"
+    assert _platform_id(use_mono) == expected
 
 
 def test_find_executable_under(tmp_path):

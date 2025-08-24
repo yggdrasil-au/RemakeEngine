@@ -1,5 +1,7 @@
 """Tests for the command builder."""
 
+from .test_utils import pytest
+
 from Engine.Core.command_builder import CommandBuilder
 
 
@@ -11,4 +13,10 @@ def test_build_basic(tmp_path):
     cmd = b.build("G", games, cfg, op, {})
     assert cmd[0] in ("python", str(tmp_path / "runtime" / "python3" / "python.exe"))
     assert cmd[2:] == ["--opt", "bar"]
+
+
+def test_build_requires_game(tmp_path):
+    b = CommandBuilder(tmp_path)
+    with pytest.raises(ValueError):
+        b.build("", {}, {}, {}, {})
 
