@@ -52,3 +52,8 @@ extend-ignore = [
 
 [tool.ruff.format]
 quote-style = "preserve"
+
+
+[tool.pylint.master]
+ignore = ["venv", ".venv", "build", "dist", ".tox", "runtime", "blender-4.0.2-windows-x64", "dev", "reverse_engineering_stuff", ".history"]
+
