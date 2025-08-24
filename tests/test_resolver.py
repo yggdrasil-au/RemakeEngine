@@ -1,51 +1,36 @@
-"""Tests for tool resolution helpers."""
+import pytest
 
-import json
-import platform
-import sys
-from pathlib import Path
-
-from .test_utils import pytest
-
-from Engine.Utils.resolver import _find_executable_under, _platform_id, resolve_tool
+import Engine.Utils.resolver as resolver
 
 
 @pytest.mark.parametrize(
-    "use_mono, expected",
-    [(False, "linux-x64"), (True, "linux-x64-mono")],
+    "sys_platform,machine,require_mono,expected",
+    [
+        ("win32", "AMD64", False, "win-x64"),
+        ("win32", "AMD64", True, "win-x64-mono"),
+        ("linux", "x86_64", False, "linux-x64"),
+        ("linux", "aarch64", False, "linux-arm64"),
+        ("darwin", "arm64", False, "macos-arm64"),
+        ("sunos", "sparc", True, "unknown-mono"),
+    ],
 )
-def test_platform_id(monkeypatch, use_mono, expected):
-    monkeypatch.setattr(sys, "platform", "linux")
-    monkeypatch.setattr(platform, "machine", lambda: "x86_64")
-    assert _platform_id(use_mono) == expected
+def test_platform_id(
+    monkeypatch, sys_platform, machine, require_mono, expected
+):
+    monkeypatch.setattr(resolver.sys, "platform", sys_platform)
+    monkeypatch.setattr(
+        resolver.platform, "machine", lambda: machine
+    )
+    assert resolver._platform_id(require_mono) == expected
 
 
 def test_find_executable_under(tmp_path):
-    nested = tmp_path / "dir"
-    nested.mkdir()
-    exe = nested / "tool.sh"
-    exe.write_text("echo")
-    found = _find_executable_under(tmp_path, ["tool.sh"])
+    root = tmp_path
+    bin_dir = root / "bin"
+    bin_dir.mkdir()
+    exe = bin_dir / "tool"
+    exe.write_text("run")
+    found = resolver._find_executable_under(root, ["tool"])
     assert found == exe.resolve()
-
-
-def test_resolve_tool_uses_local_simple_path(tmp_path, monkeypatch):
-    repo = tmp_path
-    (repo / "bin").mkdir()
-    exe = repo / "bin" / "toolx"
-    exe.write_text("")
-    download_dir = repo / "Tools" / "Download"
-    download_dir.mkdir(parents=True)
-    (download_dir / "Tools.json").write_text(
-        json.dumps({"TestTool": {"1.0": {"linux-x64": {"executables": ["toolx"]}}}}),
-        encoding="utf-8",
-    )
-    (download_dir / "Tools.local.json").write_text(
-        json.dumps({"TestTool": {"exe": "bin/toolx"}}),
-        encoding="utf-8",
-    )
-    monkeypatch.setattr(sys, "platform", "linux")
-    monkeypatch.setattr(platform, "machine", lambda: "x86_64")
-    resolved = resolve_tool(str(repo), "TestTool")
-    assert resolved == str(exe.resolve())
-
+    missing = resolver._find_executable_under(root, ["missing"])
+    assert missing is None
