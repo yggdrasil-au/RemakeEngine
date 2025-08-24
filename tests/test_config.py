@@ -6,16 +6,16 @@ from Engine.Core.config import EngineConfig
 
 
 @pytest.mark.parametrize(
-    "content, expected",
-    [("{\"x\": 1}", {"x": 1}), ("{", {})],
+    argnames="content, expected",
+    argvalues=[("{\"x\": 1}", {"x": 1}), ("{", {})],
 )
-def test_load_json_file(tmp_path, content, expected):
+def test_load_json_file(tmp_path, content, expected) -> None:
     cfg = tmp_path / "cfg.json"
     cfg.write_text(content, encoding="utf-8")
-    assert EngineConfig._load_json_file(cfg) == expected
+    assert EngineConfig._load_json_file(file_path=cfg) == expected
 
 
-def test_load_json_file_missing(tmp_path):
+def test_load_json_file_missing(tmp_path) -> None:
     missing = tmp_path / "missing.json"
-    assert EngineConfig._load_json_file(missing) == {}
+    assert EngineConfig._load_json_file(file_path=missing) == {}
 

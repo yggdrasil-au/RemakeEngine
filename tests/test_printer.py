@@ -11,35 +11,36 @@ from Engine.Utils.printer import (
 )
 
 
-def test_code_for_known_colour():
-    assert _code_for("red") == Colours.RED
-    assert _code_for(None) == ""
+def test_code_for_known_colour() -> None:
+    assert _code_for(colour="red") == Colours.RED
+    assert _code_for(colour=None) == ""
     raw = "\x1b[31m"
-    assert _code_for(raw) == raw
+    assert _code_for(colour=raw) == raw
+    assert _code_for(colour="") == ""
 
 
-def test_strip_ansi_removes_codes():
+def test_strip_ansi_removes_codes() -> None:
     text = f"{Colours.GREEN}hello{Colours.RESET}"
-    assert strip_ansi(text) == "hello"
+    assert strip_ansi(s=text) == "hello"
 
 
-def test_printc_outputs_prefix_and_message():
+def test_printc_outputs_prefix_and_message() -> None:
     buf = StringIO()
-    printc("world", colour="green", prefix="HELLO", file=buf)
-    assert strip_ansi(buf.getvalue()).strip() == "HELLO: world"
+    printc(message="world", colour="green", prefix="HELLO", file=buf)
+    assert strip_ansi(s=buf.getvalue()).strip() == "HELLO: world"
 
 
-def test_print_json_formats_output():
+def test_print_json_formats_output() -> None:
     buf = StringIO()
     data = {"a": 1}
-    print_json(data, prefix="DATA", file=buf)
-    output = strip_ansi(buf.getvalue())
+    print_json(obj=data, prefix="DATA", file=buf)
+    output = strip_ansi(s=buf.getvalue())
     assert output.startswith("DATA: {")
-    json_part = output.split("DATA: ", 1)[1]
-    assert json.loads(json_part) == data
+    json_part = output.split(sep="DATA: ", maxsplit=1)[1]
+    assert json.loads(s=json_part) == data
 
 
-def test_verbose_respects_env(monkeypatch):
+def test_verbose_respects_env(monkeypatch) -> None:
     called = []
 
     def fake_printc(*, message: str, **_kw) -> None:
@@ -47,9 +48,9 @@ def test_verbose_respects_env(monkeypatch):
 
     monkeypatch.setattr("Engine.Utils.printer.printc", fake_printc)
 
-    verbose("hidden")
+    verbose(message="hidden")
     assert called == []
 
     monkeypatch.setenv("VERBOSE", "true")
-    verbose("shown")
+    verbose(message="shown")
     assert called == ["shown"]
