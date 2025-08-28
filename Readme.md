@@ -96,6 +96,7 @@ In simple terms, it acts as a smart task runner. It scans for "game modules" in 
 
 ### Prerequisites
 
+- python 3.13
 - git
 
 ### Installation
