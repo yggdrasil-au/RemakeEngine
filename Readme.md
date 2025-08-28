@@ -104,6 +104,10 @@ In simple terms, it acts as a smart task runner. It scans for "game modules" in 
     ```pwsh
     git clone https://github.com/yggdrasil-au/RemakeEngine.git .
     ```
+2. **Clone the Tools repo:**
+    ```pwsh
+    git clone https://github.com/yggdrasil-au/RemakeEngineTools.git .
+    ```
 ---
 
 ## ▶️ Running the Tool
