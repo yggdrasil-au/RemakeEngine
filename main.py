@@ -7,22 +7,27 @@ def _can_start_gui() -> bool:
     try:
         import tkinter
         return True
-    except Exception:
+    except Exception as e:
+        print(f"GUI cannot be started, falling back to CLI. Exception: {e}")
         return False
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Remake Engine")
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("--gui", action="store_true", help="start the GUI")
-    group.add_argument("--cli", action="store_true", help="start the CLI")
-    args = parser.parse_args(argv)
+    try:
+        parser = argparse.ArgumentParser(description="Remake Engine")
+        group = parser.add_mutually_exclusive_group()
+        group.add_argument("--gui", action="store_true", help="start the GUI")
+        group.add_argument("--cli", action="store_true", help="start the CLI")
+        args = parser.parse_args(argv)
 
-    if args.gui or (not args.cli and _can_start_gui()):
-        from Engine.gui import run as run_gui
-        return run_gui()
-    else:
-        from Engine.cli import run as run_cli
-        return run_cli()
+        if args.gui or (not args.cli and _can_start_gui()):
+            from Engine.gui import run as run_gui
+            return run_gui()
+        else:
+            from Engine.cli import run as run_cli
+            return run_cli()
+    except Exception as e:
+        print(f"An Exception occurred: {e}")
+        return 1
 
 if __name__ == "__main__":
     sys.exit(main())
