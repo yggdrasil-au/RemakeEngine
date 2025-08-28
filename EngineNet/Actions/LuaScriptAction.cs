@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MoonSharp.Interpreter;
@@ -14,10 +15,14 @@ namespace RemakeEngine.Actions;
 public sealed class LuaScriptAction : IAction
 {
     private readonly string _scriptPath;
+    private readonly string[] _args;
 
-    public LuaScriptAction(string scriptPath)
+    public LuaScriptAction(string scriptPath) : this(scriptPath, Array.Empty<string>()) { }
+
+    public LuaScriptAction(string scriptPath, IEnumerable<string>? args)
     {
         _scriptPath = scriptPath;
+        _args = args is null ? Array.Empty<string>() : (args as string[] ?? new List<string>(args).ToArray());
     }
 
     public async Task ExecuteAsync(IToolResolver tools, CancellationToken cancellationToken = default)
@@ -30,6 +35,7 @@ public sealed class LuaScriptAction : IAction
 
         // Expose a simple function to resolve tool paths from Lua:
         lua.Globals["tool"] = (Func<string, string>)(tools.ResolveToolPath);
+        lua.Globals["argv"] = _args;
 
         await Task.Run(() => lua.DoString(code), cancellationToken);
     }
