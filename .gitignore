@@ -128,4 +128,7 @@ Tools/Godot/Godot_v4.4.1-stable_mono_win64/
 /Tools/TMP/QuickBMS/exe/
 /Tools/TMP/
 
+/runtime/
+/runtime/python3/Lib/site-packages/
+
 
