@@ -15,6 +15,23 @@ public sealed class CliApp
 
     public int Run(string[] args)
     {
+        // Strip global flags that Program.cs already handled, like --root PATH
+        if (args.Length > 0)
+        {
+            var list = new List<string>(args);
+            for (int i = 0; i < list.Count; )
+            {
+                if (list[i] == "--root")
+                {
+                    list.RemoveAt(i);
+                    if (i < list.Count) list.RemoveAt(i); // remove path following --root
+                    continue;
+                }
+                i++;
+            }
+            args = list.ToArray();
+        }
+
         if (args.Length == 0)
         {
             return RunInteractiveMenu();
@@ -69,6 +86,28 @@ public sealed class CliApp
         var allOps = _engine.LoadOperationsList(opsFile);
         var initOps = allOps.FindAll(op => op.TryGetValue("init", out var i) && i is bool b && b);
         var regularOps = allOps.FindAll(op => !op.ContainsKey("init") || !(op["init"] is bool bb && bb));
+        var didRunInit = false;
+
+        // Auto-run init operations once when a game is selected
+        if (initOps.Count > 0)
+        {
+            Console.Clear();
+            Console.WriteLine($"Running {initOps.Count} initialization operation(s) for {gameName}\n");
+            var okAllInit = true;
+            foreach (var op in initOps)
+            {
+                var answers = new Dictionary<string, object?>();
+                CollectAnswersForOperation(op, answers);
+                var ok = ExecuteOp(gameName, games, op, answers);
+                okAllInit &= ok;
+            }
+            didRunInit = true;
+            if (!okAllInit)
+            {
+                Console.WriteLine("One or more init operations failed. Press any key to continue…");
+                Console.ReadKey(true);
+            }
+        }
 
         while (true)
         {
@@ -105,7 +144,7 @@ public sealed class CliApp
             {
                 // Collect prompts for all selected ops: init + run-all flagged
                 var runAll = new List<Dictionary<string, object?>>();
-                runAll.AddRange(initOps);
+                if (!didRunInit) runAll.AddRange(initOps);
                 foreach (var op in regularOps)
                     if (op.TryGetValue("run-all", out var ra) && ra is bool rb && rb)
                         runAll.Add(op);

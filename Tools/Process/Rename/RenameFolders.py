@@ -6,7 +6,7 @@ import json # Added for potential future use, e.g., JSON map file
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '.')))
-from Engine.Utils.printer import print, Colours, error, warn, ok, debug, verbose
+from EnginePy.Utils.printer import print, Colours, error, warn, ok, debug, verbose
 
 
 def load_map_from_db(db_path: str, table_name: str = "rename_mappings") -> dict:

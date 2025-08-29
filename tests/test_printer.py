@@ -4,7 +4,7 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.')))
 
-from Engine.Utils.printer import (
+from EnginePy.Utils.printer import (
     Colours,
     _code_for,
     strip_ansi,
