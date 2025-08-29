@@ -9,22 +9,26 @@ using System.Threading.Tasks;
 
 namespace RemakeEngine.Tools;
 
-public sealed class ToolsDownloader
-{
+public sealed class ToolsDownloader {
     private readonly string _rootPath;
     private readonly string _centralRepoJsonPath;
 
-    public ToolsDownloader(string rootPath, string centralRepoJsonPath)
-    {
+    public ToolsDownloader(string rootPath, string centralRepoJsonPath) {
         _rootPath = rootPath;
         _centralRepoJsonPath = centralRepoJsonPath;
     }
 
-    public async Task<bool> ProcessAsync(string moduleTomlPath, bool force)
-    {
+    public async Task<bool> ProcessAsync(string moduleTomlPath, bool force) {
         WriteHeader($"Tools Downloader — manifest: {moduleTomlPath}");
         if (!File.Exists(moduleTomlPath))
             throw new FileNotFoundException("Tools manifest not found", moduleTomlPath);
+        if (!File.Exists(_centralRepoJsonPath)) {
+            // Attempt remote fallback to fetch Tools.json from the engine repo
+            try {
+                Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_centralRepoJsonPath)) ?? _rootPath);
+            } catch { }
+            RemakeEngine.Core.RemoteFallbacks.EnsureRepoFile("Tools.json", _centralRepoJsonPath);
+        }
         if (!File.Exists(_centralRepoJsonPath))
             throw new FileNotFoundException("Central tools registry not found", _centralRepoJsonPath);
 
@@ -34,8 +38,7 @@ public sealed class ToolsDownloader
         Info($"Found {toolsList.Count} tool entries.");
 
         Dictionary<string, object?> central;
-        using (var fs = File.OpenRead(_centralRepoJsonPath))
-        {
+        using (var fs = File.OpenRead(_centralRepoJsonPath)) {
             central = JsonSerializer.Deserialize<Dictionary<string, object?>>(fs, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
                       ?? new Dictionary<string, object?>();
         }
@@ -51,8 +54,7 @@ public sealed class ToolsDownloader
         using var http = new HttpClient();
         http.DefaultRequestHeaders.UserAgent.ParseAdd("GameOpsTool/2.0");
 
-        foreach (var dep in toolsList)
-        {
+        foreach (var dep in toolsList) {
             var toolName = (dep.TryGetValue("name", out var n1) ? n1 : dep.TryGetValue("Name", out var n2) ? n2 : null)?.ToString();
             var version = dep.TryGetValue("version", out var v) ? v?.ToString() : null;
             if (string.IsNullOrWhiteSpace(toolName) || string.IsNullOrWhiteSpace(version))
@@ -60,8 +62,7 @@ public sealed class ToolsDownloader
 
             Info("");
             Title($"Processing: {toolName} {version}");
-            if (!TryLookupPlatform(central, toolName!, version!, platform, out var url, out var sha256))
-            {
+            if (!TryLookupPlatform(central, toolName!, version!, platform, out var url, out var sha256)) {
                 Error($"Not in registry for platform '{platform}'.");
                 continue;
             }
@@ -78,12 +79,9 @@ public sealed class ToolsDownloader
             Info($"Download dir: {downloadDir}");
             Info($"Archive: {archivePath}");
 
-            if (!force && File.Exists(archivePath))
-            {
+            if (!force && File.Exists(archivePath)) {
                 Info("Archive exists. Skipping download (use force to re-download).");
-            }
-            else
-            {
+            } else {
                 Info("Downloading…");
                 using var resp = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
                 resp.EnsureSuccessStatusCode();
@@ -93,15 +91,11 @@ public sealed class ToolsDownloader
                 Info("Download complete.");
             }
 
-            if (string.IsNullOrWhiteSpace(sha256))
-            {
+            if (string.IsNullOrWhiteSpace(sha256)) {
                 Warn("No checksum provided — skipping verification.");
-            }
-            else
-            {
+            } else {
                 Info("Verifying checksum…");
-                if (!VerifySha256(archivePath, sha256))
-                {
+                if (!VerifySha256(archivePath, sha256)) {
                     Error("Checksum mismatch. Skipping further steps for this tool.");
                     continue;
                 }
@@ -109,17 +103,13 @@ public sealed class ToolsDownloader
             }
 
             string? exePath = null;
-            if (unpack && !string.IsNullOrWhiteSpace(unpackDest))
-            {
+            if (unpack && !string.IsNullOrWhiteSpace(unpackDest)) {
                 var dest = Path.GetFullPath(Path.Combine(_rootPath, unpackDest!));
                 Directory.CreateDirectory(dest);
                 Info($"Unpacking to: {dest}");
-                if (archivePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-                {
+                if (archivePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) {
                     ZipFile.ExtractToDirectory(archivePath, dest, overwriteFiles: true);
-                }
-                else
-                {
+                } else {
                     Warn("Archive format not supported for auto-unpack (only .zip). Leaving archive as-is.");
                 }
 
@@ -132,8 +122,7 @@ public sealed class ToolsDownloader
             }
 
             // Update lockfile entry
-            lockData[toolName!] = new Dictionary<string, object?>
-            {
+            lockData[toolName!] = new Dictionary<string, object?> {
                 ["version"] = version,
                 ["platform"] = platform,
                 ["install_path"] = string.IsNullOrWhiteSpace(unpackDest) ? Path.GetDirectoryName(archivePath) : Path.GetFullPath(Path.Combine(_rootPath, unpackDest!)),
@@ -149,19 +138,16 @@ public sealed class ToolsDownloader
         return true;
     }
 
-    private static async Task CopyStreamWithProgressAsync(Stream input, Stream output, long contentLength)
-    {
+    private static async Task CopyStreamWithProgressAsync(Stream input, Stream output, long contentLength) {
         const int BufferSize = 81920;
         var buffer = new byte[BufferSize];
         long totalRead = 0;
         int read;
         var lastDraw = DateTime.UtcNow;
-        while ((read = await input.ReadAsync(buffer.AsMemory(0, BufferSize))) > 0)
-        {
+        while ((read = await input.ReadAsync(buffer.AsMemory(0, BufferSize))) > 0) {
             await output.WriteAsync(buffer.AsMemory(0, read));
             totalRead += read;
-            if ((DateTime.UtcNow - lastDraw).TotalMilliseconds > 100)
-            {
+            if ((DateTime.UtcNow - lastDraw).TotalMilliseconds > 100) {
                 DrawProgress(totalRead, contentLength);
                 lastDraw = DateTime.UtcNow;
             }
@@ -170,18 +156,14 @@ public sealed class ToolsDownloader
         Console.WriteLine();
     }
 
-    private static void DrawProgress(long read, long total)
-    {
-        if (total > 0)
-        {
+    private static void DrawProgress(long read, long total) {
+        if (total > 0) {
             var pct = (int)(read * 100 / total);
             var barLen = 30;
             var filled = (int)(barLen * pct / 100.0);
             var bar = new string('█', filled) + new string('-', barLen - filled);
             Console.Write($"\r[{bar}] {pct,3}%  {Bytes(read)}/{Bytes(total)}   ");
-        }
-        else
-        {
+        } else {
             Console.Write($"\r{Bytes(read)} downloaded   ");
         }
     }
@@ -189,52 +171,44 @@ public sealed class ToolsDownloader
     private static string Bytes(long n)
         => n > 1024 * 1024 ? ($"{n / (1024.0 * 1024.0):0.0} MB") : ($"{n / 1024.0:0.0} KB");
 
-    private static void WriteHeader(string msg)
-    {
+    private static void WriteHeader(string msg) {
         Console.ForegroundColor = ConsoleColor.DarkCyan;
         Console.WriteLine($"\n=== {msg} ===");
         Console.ResetColor();
     }
-    private static void Title(string msg)
-    {
+    private static void Title(string msg) {
         Console.ForegroundColor = ConsoleColor.Cyan;
         Console.WriteLine(msg);
         Console.ResetColor();
     }
-    private static void Info(string msg)
-    {
-        if (string.IsNullOrEmpty(msg)) return;
+    private static void Info(string msg) {
+        if (string.IsNullOrEmpty(msg))
+            return;
         Console.ForegroundColor = ConsoleColor.Gray;
         Console.WriteLine(msg);
         Console.ResetColor();
     }
-    private static void Warn(string msg)
-    {
+    private static void Warn(string msg) {
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine($"WARN: {msg}");
         Console.ResetColor();
     }
-    private static void Error(string msg)
-    {
+    private static void Error(string msg) {
         Console.ForegroundColor = ConsoleColor.Red;
         Console.WriteLine($"ERROR: {msg}");
         Console.ResetColor();
     }
 
-    private static string GetPlatformIdentifier()
-    {
-        if (OperatingSystem.IsWindows())
-        {
+    private static string GetPlatformIdentifier() {
+        if (OperatingSystem.IsWindows()) {
             var arch = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture;
             return arch == System.Runtime.InteropServices.Architecture.X64 ? "win-x64" : "win-x86";
         }
-        if (OperatingSystem.IsLinux())
-        {
+        if (OperatingSystem.IsLinux()) {
             var arch = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture;
             return arch == System.Runtime.InteropServices.Architecture.X64 ? "linux-x64" : "linux-arm64";
         }
-        if (OperatingSystem.IsMacOS())
-        {
+        if (OperatingSystem.IsMacOS()) {
             var arch = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture;
             return arch == System.Runtime.InteropServices.Architecture.Arm64 ? "macos-arm64" : "macos-x64";
         }
@@ -247,39 +221,40 @@ public sealed class ToolsDownloader
         string version,
         string platform,
         out string url,
-        out string sha256)
-    {
-        url = string.Empty; sha256 = string.Empty;
+        out string sha256) {
+        url = string.Empty;
+        sha256 = string.Empty;
         if (!central.TryGetValue(tool, out var toolObj) || toolObj is not JsonElement toolElem || toolElem.ValueKind != JsonValueKind.Object)
             return false;
         if (!toolElem.TryGetProperty(version, out var verElem) || verElem.ValueKind != JsonValueKind.Object)
             return false;
         // exact platform or prefix match
-        if (verElem.TryGetProperty(platform, out var platElem) && platElem.ValueKind == JsonValueKind.Object)
-        {
+        if (verElem.TryGetProperty(platform, out var platElem) && platElem.ValueKind == JsonValueKind.Object) {
             if (platElem.TryGetProperty("url", out var u) && u.ValueKind == JsonValueKind.String)
                 url = u.GetString() ?? string.Empty;
             if (platElem.TryGetProperty("sha256", out var s) && s.ValueKind == JsonValueKind.String)
                 sha256 = s.GetString() ?? string.Empty;
             return !string.IsNullOrEmpty(url);
         }
-        foreach (var prop in verElem.EnumerateObject())
-        {
-            if (!prop.Name.StartsWith(platform, StringComparison.OrdinalIgnoreCase)) continue;
+        foreach (var prop in verElem.EnumerateObject()) {
+            if (!prop.Name.StartsWith(platform, StringComparison.OrdinalIgnoreCase))
+                continue;
             var val = prop.Value;
-            if (val.ValueKind != JsonValueKind.Object) continue;
+            if (val.ValueKind != JsonValueKind.Object)
+                continue;
             if (val.TryGetProperty("url", out var u2) && u2.ValueKind == JsonValueKind.String)
                 url = u2.GetString() ?? string.Empty;
             if (val.TryGetProperty("sha256", out var s2) && s2.ValueKind == JsonValueKind.String)
                 sha256 = s2.GetString() ?? string.Empty;
-            if (!string.IsNullOrEmpty(url)) return true;
+            if (!string.IsNullOrEmpty(url))
+                return true;
         }
         return false;
     }
 
-    private static bool VerifySha256(string filePath, string expected)
-    {
-        if (string.IsNullOrWhiteSpace(expected)) return true;
+    private static bool VerifySha256(string filePath, string expected) {
+        if (string.IsNullOrWhiteSpace(expected))
+            return true;
         using var sha = SHA256.Create();
         using var fs = File.OpenRead(filePath);
         var hash = sha.ComputeHash(fs);
@@ -287,18 +262,14 @@ public sealed class ToolsDownloader
         return string.Equals(got, expected, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string? FindExe(string root, string toolName)
-    {
-        try
-        {
-            foreach (var file in Directory.EnumerateFiles(root, "*.exe", SearchOption.AllDirectories))
-            {
+    private static string? FindExe(string root, string toolName) {
+        try {
+            foreach (var file in Directory.EnumerateFiles(root, "*.exe", SearchOption.AllDirectories)) {
                 var name = Path.GetFileName(file).ToLowerInvariant();
                 if (name.Contains(toolName.ToLowerInvariant()) || toolName.Equals("QuickBMS", StringComparison.OrdinalIgnoreCase) && name.Contains("quickbms"))
                     return file;
             }
-        }
-        catch { }
+        } catch { }
         return null;
     }
 }

@@ -14,7 +14,7 @@ from tqdm import tqdm
 import tempfile
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '.')))
-from EnginePy.Utils.printer import print, Colours, error, verbose, debug, print_debug, print_verbose
+from LegacyEnginePy.Utils.printer import print, Colours, error, verbose, debug, print_debug, print_verbose
 
 
 def parse_args() -> argparse.Namespace:

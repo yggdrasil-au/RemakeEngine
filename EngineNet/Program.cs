@@ -7,47 +7,53 @@ using RemakeEngine.Interface.GUI;
 using RemakeEngine.Tools;
 using System.Linq;
 
-internal static class Program
-{
-    public static int Main(string[] args)
-    {
-		try
-		{
-			var root = GetRootPath(args) ?? Directory.GetCurrentDirectory();
-			var configPath = Path.Combine(root, "project.json");
+internal static class Program {
+    public static int Main(string[] args) {
+        try {
+            var root = GetRootPath(args) ?? Directory.GetCurrentDirectory();
+            var configPath = Path.Combine(root, "project.json");
 
-			// Tool resolver: prefer TOOLS_JSON env or Tools/tools.json
-			IToolResolver tools = CreateToolResolver(root);
+            // Auto-create a minimal project.json if missing
+            if (!File.Exists(configPath)) {
+                try {
+                    Directory.CreateDirectory(root);
+                    var minimal = "{\n  \"RemakeEngine\": {\n    \"Config\": { \"project_path\": \"" + root.Replace("\\", "\\\\") + "\" },\n    \"Directories\": {},\n    \"Tools\": {}\n  }\n}";
+                    File.WriteAllText(configPath, minimal);
+                    Console.ForegroundColor = ConsoleColor.DarkYellow;
+                    Console.WriteLine($"Created default project.json at {configPath}");
+                    Console.ResetColor();
+                } catch (Exception ex) {
+                    Console.Error.WriteLine($"WARN: Could not create project.json — {ex.Message}");
+                }
+            }
 
-			var engineConfig = new EngineConfig(configPath);
-			var engine = new OperationsEngine(root, tools, engineConfig);
+            // Tool resolver: prefer TOOLS_JSON env or Tools/tools.json
+            IToolResolver tools = CreateToolResolver(root);
 
-			if (args.Length != 0 || args.Any(a => string.Equals(a, "menu", StringComparison.OrdinalIgnoreCase)))
-				return new CliApp(engine).Run(args);
-			else if (args.Length == 0 || args.Any(a => string.Equals(a, "gui", StringComparison.OrdinalIgnoreCase)))
-				return RemakeEngine.Interface.GUI.WinFormsGui.Run(engine);
-			else
-				return RemakeEngine.Interface.GUI.WinFormsGui.Run(engine);
-		}
-		catch (Exception ex)
-		{
-			Console.Error.WriteLine($"ERROR: {ex.Message}");
-			return 1;
-		}
+            var engineConfig = new EngineConfig(configPath);
+            var engine = new OperationsEngine(root, tools, engineConfig);
+
+            if (args.Length != 0 || args.Any(a => string.Equals(a, "menu", StringComparison.OrdinalIgnoreCase)))
+                return new CliApp(engine).Run(args);
+            else if (args.Length == 0 || args.Any(a => string.Equals(a, "gui", StringComparison.OrdinalIgnoreCase)))
+                return RemakeEngine.Interface.GUI.WinFormsGui.Run(engine);
+            else
+                return RemakeEngine.Interface.GUI.WinFormsGui.Run(engine);
+        } catch (Exception ex) {
+            Console.Error.WriteLine($"ERROR: {ex.Message}");
+            return 1;
+        }
     }
 
-    private static string? GetRootPath(string[] args)
-    {
-        for (int i = 0; i < args.Length; i++)
-        {
+    private static string? GetRootPath(string[] args) {
+        for (int i = 0; i < args.Length; i++) {
             if (args[i] == "--root" && i + 1 < args.Length)
                 return args[i + 1];
         }
         return null;
     }
 
-    private static IToolResolver CreateToolResolver(string root)
-    {
+    private static IToolResolver CreateToolResolver(string root) {
         var envPath = Environment.GetEnvironmentVariable("TOOLS_JSON");
         if (!string.IsNullOrWhiteSpace(envPath) && File.Exists(envPath))
             return new JsonToolResolver(envPath);
@@ -61,8 +67,7 @@ internal static class Program
             Path.Combine(toolsDir, "Tools.json"),
             Path.Combine(toolsDir, "tools.json"),
         };
-        foreach (var p in candidates)
-        {
+        foreach (var p in candidates) {
             if (File.Exists(p))
                 return new JsonToolResolver(p);
         }

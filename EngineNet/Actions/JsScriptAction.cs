@@ -12,21 +12,18 @@ namespace RemakeEngine.Actions;
 /// Executes a JavaScript file using the embedded Jint interpreter.
 /// Exposes a minimal host API to resolve registered tools.
 /// </summary>
-public sealed class JsScriptAction : IAction
-{
+public sealed class JsScriptAction:IAction {
     private readonly string _scriptPath;
     private readonly string[] _args;
 
     public JsScriptAction(string scriptPath) : this(scriptPath, Array.Empty<string>()) { }
 
-    public JsScriptAction(string scriptPath, IEnumerable<string>? args)
-    {
+    public JsScriptAction(string scriptPath, IEnumerable<string>? args) {
         _scriptPath = scriptPath;
         _args = args is null ? Array.Empty<string>() : (args as string[] ?? new List<string>(args).ToArray());
     }
 
-    public async Task ExecuteAsync(IToolResolver tools, CancellationToken cancellationToken = default)
-    {
+    public async Task ExecuteAsync(IToolResolver tools, CancellationToken cancellationToken = default) {
         if (!File.Exists(_scriptPath))
             throw new FileNotFoundException("JavaScript file not found", _scriptPath);
 

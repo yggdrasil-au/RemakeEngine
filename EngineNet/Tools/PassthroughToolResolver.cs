@@ -4,8 +4,7 @@ namespace RemakeEngine.Tools;
 /// Fallback tool resolver that simply returns the tool id as the path.
 /// Useful when tools are expected to be on PATH.
 /// </summary>
-public sealed class PassthroughToolResolver : IToolResolver
-{
+public sealed class PassthroughToolResolver:IToolResolver {
     public string ResolveToolPath(string toolId) => toolId;
 }
 

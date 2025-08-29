@@ -7,24 +7,20 @@ using RemakeEngine.Core;
 
 namespace RemakeEngine.Interface.CLI;
 
-public sealed class CliApp
-{
+public sealed class CliApp {
     private readonly OperationsEngine _engine;
 
     public CliApp(OperationsEngine engine) => _engine = engine;
 
-    public int Run(string[] args)
-    {
+    public int Run(string[] args) {
         // Strip global flags that Program.cs already handled, like --root PATH
-        if (args.Length > 0)
-        {
+        if (args.Length > 0) {
             var list = new List<string>(args);
-            for (int i = 0; i < list.Count; )
-            {
-                if (list[i] == "--root")
-                {
+            for (int i = 0; i < list.Count;) {
+                if (list[i] == "--root") {
                     list.RemoveAt(i);
-                    if (i < list.Count) list.RemoveAt(i); // remove path following --root
+                    if (i < list.Count)
+                        list.RemoveAt(i); // remove path following --root
                     continue;
                 }
                 i++;
@@ -32,13 +28,11 @@ public sealed class CliApp
             args = list.ToArray();
         }
 
-        if (args.Length == 0)
-        {
+        if (args.Length == 0) {
             return RunInteractiveMenu();
         }
 
-        if (args[0] is "-h" or "--help" or "help")
-        {
+        if (args[0] is "-h" or "--help" or "help") {
             PrintHelp();
             return 0;
         }
@@ -60,26 +54,23 @@ public sealed class CliApp
         }
     }
 
-    private int RunInteractiveMenu()
-    {
+    private int RunInteractiveMenu() {
         // 1) Pick a game
         var games = _engine.ListGames();
-        if (games.Count == 0)
-        {
+        if (games.Count == 0) {
             Console.WriteLine("No games found in RemakeRegistry/Games.");
             return 0;
         }
         var gameName = Pick("Select a game:", new List<string>(games.Keys));
-        if (string.IsNullOrEmpty(gameName)) return 0;
+        if (string.IsNullOrEmpty(gameName))
+            return 0;
 
         // 2) Load operations list and render menu
-        if (!games.TryGetValue(gameName, out var infoObj) || infoObj is not Dictionary<string, object?> info)
-        {
+        if (!games.TryGetValue(gameName, out var infoObj) || infoObj is not Dictionary<string, object?> info) {
             Console.Error.WriteLine("Selected game not found.");
             return 1;
         }
-        if (!info.TryGetValue("ops_file", out var of) || of is not string opsFile)
-        {
+        if (!info.TryGetValue("ops_file", out var of) || of is not string opsFile) {
             Console.Error.WriteLine("Selected game is missing ops_file.");
             return 1;
         }
@@ -89,35 +80,30 @@ public sealed class CliApp
         var didRunInit = false;
 
         // Auto-run init operations once when a game is selected
-        if (initOps.Count > 0)
-        {
+        if (initOps.Count > 0) {
             Console.Clear();
             Console.WriteLine($"Running {initOps.Count} initialization operation(s) for {gameName}\n");
             var okAllInit = true;
-            foreach (var op in initOps)
-            {
+            foreach (var op in initOps) {
                 var answers = new Dictionary<string, object?>();
                 CollectAnswersForOperation(op, answers);
                 var ok = ExecuteOp(gameName, games, op, answers);
                 okAllInit &= ok;
             }
             didRunInit = true;
-            if (!okAllInit)
-            {
+            if (!okAllInit) {
                 Console.WriteLine("One or more init operations failed. Press any key to continue…");
                 Console.ReadKey(true);
             }
         }
 
-        while (true)
-        {
+        while (true) {
             Console.Clear();
             Console.WriteLine($"--- Operations for: {gameName}");
             var menu = new List<string>();
             menu.Add("Run All");
             menu.Add("---------------");
-            foreach (var op in regularOps)
-            {
+            foreach (var op in regularOps) {
                 var name = op.TryGetValue("Name", out var n) && n is string s && !string.IsNullOrWhiteSpace(s)
                     ? s : Path.GetFileName(op.TryGetValue("script", out var sc) ? sc?.ToString() ?? "(unnamed)" : "(unnamed)");
                 menu.Add(name);
@@ -128,23 +114,22 @@ public sealed class CliApp
 
             Console.WriteLine("? Select an operation: (Use arrow keys)");
             var idx = SelectFromMenu(menu, highlightSeparators: true);
-            if (idx < 0) return 0; // canceled
+            if (idx < 0)
+                return 0; // canceled
 
             var selection = menu[idx];
-            if (selection == "Change Game")
-            {
+            if (selection == "Change Game") {
                 // Restart the full menu loop by re-picking game
                 return RunInteractiveMenu();
             }
-            if (selection == "Exit")
-            {
+            if (selection == "Exit") {
                 return 0;
             }
-            if (selection == "Run All")
-            {
+            if (selection == "Run All") {
                 // Collect prompts for all selected ops: init + run-all flagged
                 var runAll = new List<Dictionary<string, object?>>();
-                if (!didRunInit) runAll.AddRange(initOps);
+                if (!didRunInit)
+                    runAll.AddRange(initOps);
                 foreach (var op in regularOps)
                     if (op.TryGetValue("run-all", out var ra) && ra is bool rb && rb)
                         runAll.Add(op);
@@ -152,8 +137,7 @@ public sealed class CliApp
                 Console.Clear();
                 Console.WriteLine($"Running {runAll.Count} operations for {gameName}…\n");
                 var okAll = true;
-                foreach (var op in runAll)
-                {
+                foreach (var op in runAll) {
                     var answers = new Dictionary<string, object?>();
                     CollectAnswersForOperation(op, answers);
                     var ok = ExecuteOp(gameName, games, op, answers);
@@ -166,8 +150,7 @@ public sealed class CliApp
 
             // Otherwise, run a single operation (by index within regular ops)
             var opIndex = idx - 2; // skip first two menu items
-            if (opIndex >= 0 && opIndex < regularOps.Count)
-            {
+            if (opIndex >= 0 && opIndex < regularOps.Count) {
                 var op = regularOps[opIndex];
                 var answers = new Dictionary<string, object?>();
                 CollectAnswersForOperation(op, answers);
@@ -180,15 +163,14 @@ public sealed class CliApp
         }
     }
 
-    private bool ExecuteOp(string game, IDictionary<string, object?> games, Dictionary<string, object?> op, Dictionary<string, object?> answers)
-    {
+    private bool ExecuteOp(string game, IDictionary<string, object?> games, Dictionary<string, object?> op, Dictionary<string, object?> answers) {
         var type = (op.TryGetValue("script_type", out var st) ? st?.ToString() : null)?.ToLowerInvariant();
-        if (type == "engine")
-        {
+        if (type == "engine") {
             return _engine.ExecuteEngineOperationAsync(game, games, op, answers).GetAwaiter().GetResult();
         }
         var parts = _engine.BuildCommand(game, games, op, answers);
-        if (parts.Count < 2) return false;
+        if (parts.Count < 2)
+            return false;
         var title = op.TryGetValue("Name", out var n) ? n?.ToString() ?? Path.GetFileName(parts[1]) : Path.GetFileName(parts[1]);
         return _engine.ExecuteCommand(
             parts,
@@ -200,42 +182,32 @@ public sealed class CliApp
         );
     }
 
-    private static string Pick(string title, IList<string> options)
-    {
+    private static string Pick(string title, IList<string> options) {
         Console.Clear();
         Console.WriteLine(title);
         var idx = SelectFromMenu(options);
         return idx >= 0 && idx < options.Count ? options[idx] : string.Empty;
     }
 
-    private static int SelectFromMenu(IList<string> items, bool highlightSeparators = false)
-    {
+    private static int SelectFromMenu(IList<string> items, bool highlightSeparators = false) {
         int index = 0;
         ConsoleKey key;
-        do
-        {
+        do {
             // Render
             Console.CursorVisible = false;
-            for (int i = 0; i < items.Count; i++)
-            {
+            for (int i = 0; i < items.Count; i++) {
                 var line = items[i];
                 var isSep = line == "---------------";
-                if (i == index)
-                {
+                if (i == index) {
                     Console.ForegroundColor = ConsoleColor.Cyan;
                     Console.WriteLine($"> {line}");
                     Console.ResetColor();
-                }
-                else
-                {
-                    if (isSep && highlightSeparators)
-                    {
+                } else {
+                    if (isSep && highlightSeparators) {
                         Console.ForegroundColor = ConsoleColor.DarkGray;
                         Console.WriteLine($"  {line}");
                         Console.ResetColor();
-                    }
-                    else
-                    {
+                    } else {
                         Console.WriteLine($"  {line}");
                     }
                 }
@@ -243,16 +215,15 @@ public sealed class CliApp
 
             var keyInfo = Console.ReadKey(true);
             key = keyInfo.Key;
-            if (key == ConsoleKey.DownArrow)
-            {
-                do { index = (index + 1) % items.Count; } while (items[index] == "---------------");
-            }
-            else if (key == ConsoleKey.UpArrow)
-            {
-                do { index = (index - 1 + items.Count) % items.Count; } while (items[index] == "---------------");
-            }
-            else if (key == ConsoleKey.Escape)
-            {
+            if (key == ConsoleKey.DownArrow) {
+                do {
+                    index = (index + 1) % items.Count;
+                } while (items[index] == "---------------");
+            } else if (key == ConsoleKey.UpArrow) {
+                do {
+                    index = (index - 1 + items.Count) % items.Count;
+                } while (items[index] == "---------------");
+            } else if (key == ConsoleKey.Escape) {
                 return -1;
             }
 
@@ -267,23 +238,19 @@ public sealed class CliApp
     // --- Handlers to bridge SDK events <-> CLI ---
     private static string _lastPrompt = "Input required";
 
-    private static void OnOutput(string line, string stream)
-    {
+    private static void OnOutput(string line, string stream) {
         var prev = Console.ForegroundColor;
-        try
-        {
+        try {
             Console.ForegroundColor = (stream == "stderr") ? ConsoleColor.Red : ConsoleColor.Gray;
             Console.WriteLine(line);
-        }
-        finally { Console.ForegroundColor = prev; }
+        } finally { Console.ForegroundColor = prev; }
     }
 
-    private static void OnEvent(Dictionary<string, object?> evt)
-    {
-        if (!evt.TryGetValue("event", out var typObj)) return;
+    private static void OnEvent(Dictionary<string, object?> evt) {
+        if (!evt.TryGetValue("event", out var typObj))
+            return;
         var typ = typObj?.ToString();
-        switch (typ)
-        {
+        switch (typ) {
             case "prompt":
                 _lastPrompt = evt.TryGetValue("message", out var m) ? (m?.ToString() ?? "Input required") : "Input required";
                 var prev = Console.ForegroundColor;
@@ -300,48 +267,38 @@ public sealed class CliApp
         }
     }
 
-    private static string? StdinProvider()
-    {
-        try
-        {
+    private static string? StdinProvider() {
+        try {
             Console.Write("> ");
             return Console.ReadLine();
-        }
-        catch
-        {
+        } catch {
             return string.Empty;
         }
     }
 
-    private static void WriteColored(string message, ConsoleColor color)
-    {
+    private static void WriteColored(string message, ConsoleColor color) {
         var prev = Console.ForegroundColor;
         Console.ForegroundColor = color;
         Console.WriteLine(message);
         Console.ForegroundColor = prev;
     }
 
-    private int ListGames()
-    {
+    private int ListGames() {
         var games = _engine.ListGames();
-        if (games.Count == 0)
-        {
+        if (games.Count == 0) {
             Console.WriteLine("No games found in RemakeRegistry/Games.");
             return 0;
         }
-        foreach (var (name, obj) in games)
-        {
+        foreach (var (name, obj) in games) {
             if (obj is Dictionary<string, object?> dict && dict.TryGetValue("game_root", out var root))
                 Console.WriteLine($"- {name}  (root: {root})");
         }
         return 0;
     }
 
-    private int ListOps(string game)
-    {
+    private int ListOps(string game) {
         var games = _engine.ListGames();
-        if (!games.TryGetValue(game, out var g))
-        {
+        if (!games.TryGetValue(game, out var g)) {
             Console.Error.WriteLine($"Game '{game}' not found.");
             return 1;
         }
@@ -352,39 +309,34 @@ public sealed class CliApp
         return 0;
     }
 
-    private int RunGroup(string game, string group)
-    {
+    private int RunGroup(string game, string group) {
         var games = _engine.ListGames();
-        if (!games.TryGetValue(game, out var g))
-        {
+        if (!games.TryGetValue(game, out var g)) {
             Console.Error.WriteLine($"Game '{game}' not found.");
             return 1;
         }
-        if (g is not Dictionary<string, object?> gdict)
-        {
+        if (g is not Dictionary<string, object?> gdict) {
             Console.Error.WriteLine($"Game '{game}' has invalid metadata.");
             return 1;
         }
-        if (!gdict.TryGetValue("ops_file", out var of) || of is not string opsFile)
-        {
+        if (!gdict.TryGetValue("ops_file", out var of) || of is not string opsFile) {
             Console.Error.WriteLine($"Game '{game}' missing ops_file.");
             return 1;
         }
         var doc = _engine.LoadOperations(opsFile);
-        if (!doc.TryGetValue(group, out var ops))
-        {
+        if (!doc.TryGetValue(group, out var ops)) {
             Console.Error.WriteLine($"Group '{group}' not in {Path.GetFileName(opsFile)}.");
             return 1;
         }
 
         // Execute each operation with live output and SDK prompts
         var okAll = true;
-        foreach (var op in ops)
-        {
+        foreach (var op in ops) {
             var answers = new Dictionary<string, object?>();
             CollectAnswersForOperation(op, answers);
             var parts = _engine.BuildCommand(game, games, op, answers);
-            if (parts.Count < 2) continue;
+            if (parts.Count < 2)
+                continue;
             var title = op.TryGetValue("Name", out var n) ? n?.ToString() ?? Path.GetFileName(parts[1]) : Path.GetFileName(parts[1]);
             var ok = _engine.ExecuteCommand(
                 parts,
@@ -399,19 +351,18 @@ public sealed class CliApp
         return okAll ? 0 : 1;
     }
 
-    private static void CollectAnswersForOperation(Dictionary<string, object?> op, Dictionary<string, object?> answers)
-    {
+    private static void CollectAnswersForOperation(Dictionary<string, object?> op, Dictionary<string, object?> answers) {
         if (!op.TryGetValue("prompts", out var promptsObj) || promptsObj is not IList<object?> prompts)
             return;
-        foreach (var p in prompts)
-        {
-            if (p is not Dictionary<string, object?> prompt) continue;
+        foreach (var p in prompts) {
+            if (p is not Dictionary<string, object?> prompt)
+                continue;
             var name = prompt.TryGetValue("Name", out var n) ? n?.ToString() ?? "" : "";
             var type = prompt.TryGetValue("type", out var t) ? t?.ToString() ?? "" : "";
-            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(type)) continue;
+            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(type))
+                continue;
 
-            switch (type)
-            {
+            switch (type) {
                 case "confirm":
                     Console.Write($"{name} [y/N]: ");
                     var c = Console.ReadLine();
@@ -433,8 +384,7 @@ public sealed class CliApp
         }
     }
 
-    private static void PrintHelp()
-    {
+    private static void PrintHelp() {
         Console.WriteLine(@"RemakeEngine CLI (C#)
 
 Usage:
@@ -449,8 +399,7 @@ Environment:
 ");
     }
 
-    private static string GetArg(string[] args, int index, string error)
-    {
+    private static string GetArg(string[] args, int index, string error) {
         if (args.Length <= index)
             throw new ArgumentException(error);
         return args[index];

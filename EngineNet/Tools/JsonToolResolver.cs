@@ -10,23 +10,18 @@ namespace RemakeEngine.Tools;
 ///  - { "ffmpeg": { "exe": "./Tools/ffmpeg/bin/ffmpeg.exe", ... }, ... }
 /// Unknown shapes are ignored. Relative paths resolve relative to the JSON file.
 /// </summary>
-public sealed class JsonToolResolver : IToolResolver
-{
+public sealed class JsonToolResolver:IToolResolver {
     private readonly Dictionary<string, string> _tools = new(System.StringComparer.OrdinalIgnoreCase);
     private readonly string _baseDir;
 
-    public JsonToolResolver(string jsonPath)
-    {
+    public JsonToolResolver(string jsonPath) {
         _baseDir = Path.GetDirectoryName(Path.GetFullPath(jsonPath)) ?? Directory.GetCurrentDirectory();
         using var stream = File.OpenRead(jsonPath);
         using var doc = JsonDocument.Parse(stream);
-        if (doc.RootElement.ValueKind == JsonValueKind.Object)
-        {
-            foreach (var prop in doc.RootElement.EnumerateObject())
-            {
+        if (doc.RootElement.ValueKind == JsonValueKind.Object) {
+            foreach (var prop in doc.RootElement.EnumerateObject()) {
                 var path = ExtractPath(prop.Value);
-                if (!string.IsNullOrWhiteSpace(path))
-                {
+                if (!string.IsNullOrWhiteSpace(path)) {
                     var resolved = path!;
                     if (!Path.IsPathRooted(resolved))
                         resolved = Path.GetFullPath(Path.Combine(_baseDir, resolved));
@@ -36,10 +31,8 @@ public sealed class JsonToolResolver : IToolResolver
         }
     }
 
-    private static string? ExtractPath(JsonElement value)
-    {
-        switch (value.ValueKind)
-        {
+    private static string? ExtractPath(JsonElement value) {
+        switch (value.ValueKind) {
             case JsonValueKind.String:
                 return value.GetString();
             case JsonValueKind.Object:
@@ -55,8 +48,7 @@ public sealed class JsonToolResolver : IToolResolver
         }
     }
 
-    public string ResolveToolPath(string toolId)
-    {
+    public string ResolveToolPath(string toolId) {
         if (_tools.TryGetValue(toolId, out var path))
             return path;
         // Fallback to PATH lookup by returning the id

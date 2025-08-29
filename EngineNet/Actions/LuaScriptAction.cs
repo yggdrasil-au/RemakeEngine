@@ -12,21 +12,18 @@ namespace RemakeEngine.Actions;
 /// Executes a Lua script using the embedded MoonSharp interpreter.
 /// Exposes a minimal host API that allows scripts to resolve registered tools.
 /// </summary>
-public sealed class LuaScriptAction : IAction
-{
+public sealed class LuaScriptAction:IAction {
     private readonly string _scriptPath;
     private readonly string[] _args;
 
     public LuaScriptAction(string scriptPath) : this(scriptPath, Array.Empty<string>()) { }
 
-    public LuaScriptAction(string scriptPath, IEnumerable<string>? args)
-    {
+    public LuaScriptAction(string scriptPath, IEnumerable<string>? args) {
         _scriptPath = scriptPath;
         _args = args is null ? Array.Empty<string>() : (args as string[] ?? new List<string>(args).ToArray());
     }
 
-    public async Task ExecuteAsync(IToolResolver tools, CancellationToken cancellationToken = default)
-    {
+    public async Task ExecuteAsync(IToolResolver tools, CancellationToken cancellationToken = default) {
         if (!File.Exists(_scriptPath))
             throw new FileNotFoundException("Lua script not found", _scriptPath);
 
