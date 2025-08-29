@@ -111,14 +111,17 @@ public sealed class CliApp
                     if (op.TryGetValue("run-all", out var ra) && ra is bool rb && rb)
                         runAll.Add(op);
 
-                var answers = new Dictionary<string, object?>();
-                foreach (var op in runAll)
-                    CollectAnswersForOperation(op, answers);
-
                 Console.Clear();
                 Console.WriteLine($"Running {runAll.Count} operations for {gameName}…\n");
-                var ok = _engine.RunOperationGroupAsync(gameName, games, "run-all", runAll, answers).GetAwaiter().GetResult();
-                Console.WriteLine(ok ? "Completed successfully. Press any key to continue…" : "One or more operations failed. Press any key to continue…");
+                var okAll = true;
+                foreach (var op in runAll)
+                {
+                    var answers = new Dictionary<string, object?>();
+                    CollectAnswersForOperation(op, answers);
+                    var ok = ExecuteOp(gameName, games, op, answers);
+                    okAll &= ok;
+                }
+                Console.WriteLine(okAll ? "Completed successfully. Press any key to continue…" : "One or more operations failed. Press any key to continue…");
                 Console.ReadKey(true);
                 continue;
             }
@@ -132,11 +135,31 @@ public sealed class CliApp
                 CollectAnswersForOperation(op, answers);
                 Console.Clear();
                 Console.WriteLine($"Running: {selection}\n");
-                var ok = _engine.RunSingleOperationAsync(gameName, games, op, answers).GetAwaiter().GetResult();
+                var ok = ExecuteOp(gameName, games, op, answers);
                 Console.WriteLine(ok ? "Completed successfully. Press any key to continue…" : "Operation failed. Press any key to continue…");
                 Console.ReadKey(true);
             }
         }
+    }
+
+    private bool ExecuteOp(string game, IDictionary<string, object?> games, Dictionary<string, object?> op, Dictionary<string, object?> answers)
+    {
+        var type = (op.TryGetValue("script_type", out var st) ? st?.ToString() : null)?.ToLowerInvariant();
+        if (type == "engine")
+        {
+            return _engine.ExecuteEngineOperationAsync(game, games, op, answers).GetAwaiter().GetResult();
+        }
+        var parts = _engine.BuildCommand(game, games, op, answers);
+        if (parts.Count < 2) return false;
+        var title = op.TryGetValue("Name", out var n) ? n?.ToString() ?? Path.GetFileName(parts[1]) : Path.GetFileName(parts[1]);
+        return _engine.ExecuteCommand(
+            parts,
+            title,
+            onOutput: OnOutput,
+            onEvent: OnEvent,
+            stdinProvider: StdinProvider,
+            envOverrides: new Dictionary<string, object?> { ["TERM"] = "dumb" }
+        );
     }
 
     private static string Pick(string title, IList<string> options)
@@ -203,6 +226,63 @@ public sealed class CliApp
         return index;
     }
 
+    // --- Handlers to bridge SDK events <-> CLI ---
+    private static string _lastPrompt = "Input required";
+
+    private static void OnOutput(string line, string stream)
+    {
+        var prev = Console.ForegroundColor;
+        try
+        {
+            Console.ForegroundColor = (stream == "stderr") ? ConsoleColor.Red : ConsoleColor.Gray;
+            Console.WriteLine(line);
+        }
+        finally { Console.ForegroundColor = prev; }
+    }
+
+    private static void OnEvent(Dictionary<string, object?> evt)
+    {
+        if (!evt.TryGetValue("event", out var typObj)) return;
+        var typ = typObj?.ToString();
+        switch (typ)
+        {
+            case "prompt":
+                _lastPrompt = evt.TryGetValue("message", out var m) ? (m?.ToString() ?? "Input required") : "Input required";
+                var prev = Console.ForegroundColor;
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine($"? {_lastPrompt}");
+                Console.ForegroundColor = prev;
+                break;
+            case "warning":
+                WriteColored($"⚠ {evt.GetValueOrDefault("message", "")}", ConsoleColor.Yellow);
+                break;
+            case "error":
+                WriteColored($"✖ {evt.GetValueOrDefault("message", "")}", ConsoleColor.Red);
+                break;
+        }
+    }
+
+    private static string? StdinProvider()
+    {
+        try
+        {
+            Console.Write("> ");
+            return Console.ReadLine();
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    private static void WriteColored(string message, ConsoleColor color)
+    {
+        var prev = Console.ForegroundColor;
+        Console.ForegroundColor = color;
+        Console.WriteLine(message);
+        Console.ForegroundColor = prev;
+    }
+
     private int ListGames()
     {
         var games = _engine.ListGames();
@@ -255,13 +335,26 @@ public sealed class CliApp
             return 1;
         }
 
-        var answers = new Dictionary<string, object?>();
-        // Collect prompt answers per operation before build (basic: text/confirm/checkbox)
+        // Execute each operation with live output and SDK prompts
+        var okAll = true;
         foreach (var op in ops)
+        {
+            var answers = new Dictionary<string, object?>();
             CollectAnswersForOperation(op, answers);
-
-        var ok = _engine.RunOperationGroupAsync(game, games, group, ops, answers).GetAwaiter().GetResult();
-        return ok ? 0 : 1;
+            var parts = _engine.BuildCommand(game, games, op, answers);
+            if (parts.Count < 2) continue;
+            var title = op.TryGetValue("Name", out var n) ? n?.ToString() ?? Path.GetFileName(parts[1]) : Path.GetFileName(parts[1]);
+            var ok = _engine.ExecuteCommand(
+                parts,
+                title,
+                onOutput: OnOutput,
+                onEvent: OnEvent,
+                stdinProvider: StdinProvider,
+                envOverrides: new Dictionary<string, object?> { ["TERM"] = "dumb" }
+            );
+            okAll &= ok;
+        }
+        return okAll ? 0 : 1;
     }
 
     private static void CollectAnswersForOperation(Dictionary<string, object?> op, Dictionary<string, object?> answers)

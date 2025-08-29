@@ -31,6 +31,25 @@ public sealed class ProcessRunner
             return false;
         }
 
+        // Verbose: show exactly what will be executed
+        try
+        {
+            Console.ForegroundColor = ConsoleColor.DarkCyan;
+            Console.WriteLine("\nExecuting command:");
+            Console.ResetColor();
+            Console.WriteLine("  " + FormatCommand(commandParts));
+            Console.WriteLine($"  cwd: {Directory.GetCurrentDirectory()}");
+            if (envOverrides != null && envOverrides.Count > 0)
+            {
+                Console.WriteLine("  env overrides:");
+                foreach (var kv in envOverrides)
+                {
+                    Console.WriteLine($"    {kv.Key}={kv.Value}");
+                }
+            }
+        }
+        catch { /* ignore formatting errors */ }
+
         var psi = new ProcessStartInfo
         {
             FileName = commandParts[0],
@@ -211,5 +230,26 @@ public sealed class ProcessRunner
             }
         }
         catch { /* ignore */ }
+    }
+
+    private static string FormatCommand(IList<string> parts)
+    {
+        var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < parts.Count; i++)
+        {
+            if (i > 0) sb.Append(' ');
+            sb.Append(QuoteArg(parts[i] ?? string.Empty));
+        }
+        return sb.ToString();
+    }
+
+    private static string QuoteArg(string arg)
+    {
+        if (string.IsNullOrEmpty(arg)) return "\"\"";
+        bool needsQuotes = arg.IndexOfAny(new[] { ' ', '\t', '"' }) >= 0;
+        if (!needsQuotes) return arg;
+        // Escape embedded quotes by backslash
+        var escaped = arg.Replace("\"", "\\\"");
+        return "\"" + escaped + "\"";
     }
 }

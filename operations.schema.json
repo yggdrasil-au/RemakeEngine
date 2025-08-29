@@ -21,7 +21,7 @@
         "script_type": {
           "type": "string",
           "description": "Interpreter to invoke (python, lua, js).",
-          "enum": ["python", "lua", "js"],
+          "enum": ["python", "lua", "js", "engine"],
           "default": "python"
         },
         "args": {
