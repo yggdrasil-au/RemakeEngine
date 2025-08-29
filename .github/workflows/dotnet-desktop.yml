@@ -102,7 +102,7 @@ jobs:
     runs-on: windows-latest
     env:
       Solution_Name: RemakeEngine.sln
-      App_Project: path\to\YourWpfOrWinFormsProject.csproj
+      App_Project: EngineNet\EngineNet.csproj
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
