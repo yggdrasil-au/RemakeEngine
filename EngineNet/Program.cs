@@ -22,7 +22,7 @@ internal static class Program
 			var engineConfig = new EngineConfig(configPath);
 			var engine = new OperationsEngine(root, tools, engineConfig);
 
-			if (args.Length != 0 || args.Any(a => string.Equals(a, "cli", StringComparison.OrdinalIgnoreCase)))
+			if (args.Length != 0 || args.Any(a => string.Equals(a, "menu", StringComparison.OrdinalIgnoreCase)))
 				return new CliApp(engine).Run(args);
 			else if (args.Length == 0 || args.Any(a => string.Equals(a, "gui", StringComparison.OrdinalIgnoreCase)))
 				return RemakeEngine.Interface.GUI.WinFormsGui.Run(engine);

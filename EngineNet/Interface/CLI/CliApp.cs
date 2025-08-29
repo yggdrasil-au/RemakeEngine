@@ -27,8 +27,7 @@ public sealed class CliApp
         }
 
         var cmd = args[0].ToLowerInvariant();
-        switch (cmd)
-        {
+        switch (cmd) {
             case "menu":
                 return RunInteractiveMenu();
             case "list-games":
@@ -400,6 +399,7 @@ public sealed class CliApp
         Console.WriteLine(@"RemakeEngine CLI (C#)
 
 Usage:
+  engine [--root PATH] menu
   engine [--root PATH] list-games
   engine [--root PATH] list-ops <game>
   engine [--root PATH] run <game> <group>
