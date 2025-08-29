@@ -94,3 +94,32 @@ jobs:
         run: dotnet test $env:Solution_Name --configuration $env:Configuration --no-build --verbosity normal
         env:
           Configuration: ${{ matrix.configuration }}
+  release:
+    if: startsWith(github.ref, 'refs/tags/')    # only on tags
+    needs: build
+    runs-on: windows-latest
+    env:
+      Solution_Name: RemakeEngine.sln
+      App_Project: path\to\YourWpfOrWinFormsProject.csproj
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: 8.0.x }
+
+      # Publish a Release build (win-x64); tweak RID/self-contained to taste
+      - name: Publish
+        shell: pwsh
+        run: dotnet publish $env:App_Project -c Release -r win-x64 -o out\win-x64 --no-self-contained /p:PublishSingleFile=true
+
+      - name: Zip artifact
+        shell: pwsh
+        run: Compress-Archive -Path out\win-x64\* -DestinationPath app-win-x64.zip
+
+      - name: Create GitHub Release and upload artifact
+        env: { GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} }
+        shell: pwsh
+        run: |
+          gh release create "${{ github.ref_name }}" app-win-x64.zip `
+            --title "${{ github.ref_name }}" `
+            --notes "Automated release for ${{ github.ref_name }}"
