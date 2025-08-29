@@ -120,7 +120,7 @@ jobs:
 
       - name: Create GitHub Release and upload artifact
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.SUPERSECRET_TOKEN }}
         shell: pwsh
         run: |
           gh release create "${{ github.ref_name }}" app-win-x64.zip `
