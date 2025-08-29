@@ -6,6 +6,7 @@
 .vscode/
 .VSCodeCounter/
 .history/
+.vs/
 
 ############################
 # Python / Testing
@@ -29,6 +30,7 @@ build/
 dist/
 EngineNet/bin/
 EngineNet/obj/
+EngineNet.csproj.user
 
 ############################
 # Logs
