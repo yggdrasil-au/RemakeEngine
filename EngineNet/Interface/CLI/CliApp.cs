@@ -400,10 +400,10 @@ public sealed class CliApp
         Console.WriteLine(@"RemakeEngine CLI (C#)
 
 Usage:
-  engine -- cli                 # interactive menu
-  engine -- cli [--root PATH] list-games
-  engine -- cli [--root PATH] list-ops <game>
-  engine -- cli [--root PATH] run <game> <group>
+  engine [--root PATH] list-games
+  engine [--root PATH] list-ops <game>
+  engine [--root PATH] run <game> <group>
+  engine [--root PATH] gui
 
 Environment:
   TOOLS_JSON   Path to tools mapping JSON (defaults to Tools/tools.json)

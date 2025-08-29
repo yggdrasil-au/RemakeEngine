@@ -22,11 +22,14 @@ internal static class Program
             var engineConfig = new EngineConfig(configPath);
             var engine = new OperationsEngine(root, tools, engineConfig);
 
-            // Modes: 'cli' -> command-line; default -> GUI
-            if (args.Length > 0 && string.Equals(args[0], "cli", StringComparison.OrdinalIgnoreCase))
-                return new CliApp(engine).Run(args.Skip(1).ToArray());
+            // Mode selection:
+            // - If no args: launch GUI
+            // - If any arg is 'gui': launch GUI
+            // - Otherwise: run CLI with provided args
+            if (args.Length == 0 || args.Any(a => string.Equals(a, "gui", StringComparison.OrdinalIgnoreCase)))
+                return RemakeEngine.Interface.GUI.WinFormsGui.Run(engine);
 
-            return RemakeEngine.Interface.GUI.WinFormsGui.Run(engine);
+            return new CliApp(engine).Run(args);
         }
         catch (Exception ex)
         {
