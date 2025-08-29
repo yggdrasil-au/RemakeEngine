@@ -11,31 +11,29 @@ internal static class Program
 {
     public static int Main(string[] args)
     {
-        try
-        {
-            var root = GetRootPath(args) ?? Directory.GetCurrentDirectory();
-            var configPath = Path.Combine(root, "project.json");
+		try
+		{
+			var root = GetRootPath(args) ?? Directory.GetCurrentDirectory();
+			var configPath = Path.Combine(root, "project.json");
 
-            // Tool resolver: prefer TOOLS_JSON env or Tools/tools.json
-            IToolResolver tools = CreateToolResolver(root);
+			// Tool resolver: prefer TOOLS_JSON env or Tools/tools.json
+			IToolResolver tools = CreateToolResolver(root);
 
-            var engineConfig = new EngineConfig(configPath);
-            var engine = new OperationsEngine(root, tools, engineConfig);
+			var engineConfig = new EngineConfig(configPath);
+			var engine = new OperationsEngine(root, tools, engineConfig);
 
-            // Mode selection:
-            // - If no args: launch GUI
-            // - If any arg is 'gui': launch GUI
-            // - Otherwise: run CLI with provided args
-            if (args.Length == 0 || args.Any(a => string.Equals(a, "gui", StringComparison.OrdinalIgnoreCase)))
-                return RemakeEngine.Interface.GUI.WinFormsGui.Run(engine);
-
-            return new CliApp(engine).Run(args);
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine($"ERROR: {ex.Message}");
-            return 1;
-        }
+			if (args.Length != 0 || args.Any(a => string.Equals(a, "cli", StringComparison.OrdinalIgnoreCase)))
+				return new CliApp(engine).Run(args);
+			else if (args.Length == 0 || args.Any(a => string.Equals(a, "gui", StringComparison.OrdinalIgnoreCase)))
+				return RemakeEngine.Interface.GUI.WinFormsGui.Run(engine);
+			else
+				return RemakeEngine.Interface.GUI.WinFormsGui.Run(engine);
+		}
+		catch (Exception ex)
+		{
+			Console.Error.WriteLine($"ERROR: {ex.Message}");
+			return 1;
+		}
     }
 
     private static string? GetRootPath(string[] args)
