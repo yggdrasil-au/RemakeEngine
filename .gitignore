@@ -1,85 +1,81 @@
-# .gitignore for RemakeEngine
+# RemakeEngine .gitignore (organized)
 
-### IDE / Editor specific ###
+############################
+# IDE / Editor
+############################
 .vscode/
 .VSCodeCounter/
 .history/
 
-
+############################
+# Python / Testing
+############################
+__pycache__/
+**/__pycache__/
+*.pyc
 .pytest_cache/
+remakeengine/Scripts/activate/
 
-### Godot ###
-.godot/
+############################
+# Godot
+############################
+/.godot/
 /godot/
 
-### Build artifacts / Dependencies ###
+############################
+# Build Artifacts / Dependencies
+############################
 build/
 dist/
+EngineNet/bin/
+EngineNet/obj/
 
-### Logs ###
+############################
+# Logs
+############################
 *.log
 main.log
 
-### Configuration / History ###
+############################
+# Configuration / Project History
+############################
 config.ini
 project.json
 
-### Asset/Texture mapping cache ###
+############################
+# Asset / Texture Mapping Cache
+############################
 texture_mapping.json
 asset_mapping.json
 asset_map.sqlite
 
-### Python cache ###
-__pycache__/
-*.pyc
-**/__pycache__/*
-
-remakeengine/Scripts/activate/
-
-sandbox/
-
-# git submodules
-.gitmodules
-RemakeRegistry/Games/
-
-### Temporary / Backup / Archived ###
-/TMP/
-old/
-OldModules/
-OldRemakeRegistry/
-dev/
-*.blend1
-GameFiles1/
-#uv_map_extract/
-
-### Tools ###
-# Note: It's better to not commit tool binaries to the repo.
-# scripts are used to download/install them.
+############################
+# Tools & Local Tooling
+# (prefer fetching these via scripts rather than committing binaries)
+############################
 /Tools/Blender/blender-4.0.2-windows-x64/
 /Tools/Godot/Godot_v4.4.1-stable_mono_win64/
 /Tools/QuickBMS/
 /Tools/TMP/
+Tools.local.json
+/blender-4.0.2-windows-x64/
 
-### Documentation (external repo) ###
+############################
+# Documentation (external repos)
+############################
 remake-engine-docs/
 RemakeEngineDocs/
 
-reverse_engineering_stuff/
-
-### Test / Debug / Investigation ###
-.test/
-test/
-investigation_tools/blank.blend
-investigation_tools/blank.blend1
-
-### Generated Game Files (RemakeEngine output) ###
+############################
+# Generated Game Files (RemakeEngine output)
+############################
 /Game/
 /GameFiles/
 /game/
 
-### Original Game Files (to not be committed) ###
-# These are files extracted from the original game.
-# To avoid copyright issues, they should not be in the repository.
+############################
+# Original Game Files (do not commit for licensing/copyright)
+############################
 /Source/
 /SourceData/
 LightTOC
@@ -113,24 +109,35 @@ localereftableD4815ED6.txt
 *.uix
 *.vfb
 *.vp6
+
+############################
+# Tests / Debug / Investigation
+############################
+.test/
+test/
+investigation_tools/blank.blend
+investigation_tools/blank.blend1
+
+############################
+# Temporary / Backup / Archived
+############################
+/TMP/
+old/
+OldModules/
+OldRemakeRegistry/
+dev/
+GameFiles1/
 *.blend1
+# uv_map_extract/
 
-# game test
-/godot
-/godot/GameTest/
-godot/
-godot/assetTest/
-/.godot/
+############################
+# Repo/Submodules
+############################
+.gitmodules
+RemakeRegistry/Games/
 
-# godot exe
-Tools/Godot/Godot_v4.4.1-stable_mono_win64/
-/blender-4.0.2-windows-x64/
-/Tools/TMP/QuickBMS/exe/
-/Tools/TMP/
-
-
-EngineNet/bin/
-EngineNet/obj/
-
-Tools.local.json1
-Tools.local.json
+############################
+# Misc Workspace
+############################
+sandbox/
+reverse_engineering_stuff/

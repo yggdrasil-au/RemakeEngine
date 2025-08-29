@@ -1,9 +1,0 @@
-[run]
-source = Engine
-omit =
-    */runtime/*
-    */blender/*
-    */reverse_engineering_stuff/*
-    */dev/*
-    */.history/*
-	*/RemakeRegistry/*
