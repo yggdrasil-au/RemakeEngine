@@ -40,10 +40,10 @@ name: .NET Build & Test
 
 on:
   push:
-    branches: [ "main" ]
+    #branches: [ "main" ]
     tags: [ "v*" ]     # create a release when you push a tag like v1.2.3
-  pull_request:
-    branches: [ "main" ]
+  #pull_request:
+    #branches: [ "main" ]
   workflow_dispatch: {} # allow manual runs
 
 jobs:
