@@ -132,3 +132,5 @@ Tools/Godot/Godot_v4.4.1-stable_mono_win64/
 EngineNet/bin/
 EngineNet/obj/
 
+Tools.local.*
+

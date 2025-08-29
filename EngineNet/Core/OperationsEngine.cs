@@ -181,84 +181,137 @@ public sealed class OperationsEngine {
         var action = s.ToString()?.ToLowerInvariant();
         switch (action) {
             case "download_tools": {
-                    // Expect a 'tools_manifest' value (path), or fallback to first arg
-                    string? manifest = null;
-                    if (op.TryGetValue("tools_manifest", out var tm) && tm is not null)
-                        manifest = tm.ToString();
-                    else if (op.TryGetValue("args", out var argsObj) && argsObj is IList<object?> list && list.Count > 0)
-                        manifest = list[0]?.ToString();
+				// Expect a 'tools_manifest' value (path), or fallback to first arg
+				string? manifest = null;
+				if (op.TryGetValue("tools_manifest", out var tm) && tm is not null)
+					manifest = tm.ToString();
+				else if (op.TryGetValue("args", out var argsObj) && argsObj is IList<object?> list && list.Count > 0)
+					manifest = list[0]?.ToString();
 
-                    if (string.IsNullOrWhiteSpace(manifest)) return false;
+				if (string.IsNullOrWhiteSpace(manifest)) return false;
 
-                    var ctx = new Dictionary<string, object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase);
-                    if (!games.TryGetValue(currentGame, out var gobj) || gobj is not IDictionary<string, object?> gdict)
-                        throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
-                    ctx["Game"] = new Dictionary<string, object?>
-                    {
-                        ["RootPath"] = gdict.TryGetValue("game_root", out var gr) ? gr?.ToString() : string.Empty,
-                        ["Name"] = currentGame,
-                    };
-                    var resolvedManifest = Placeholders.Resolve(manifest!, ctx)?.ToString() ?? manifest!;
-                    var central = Path.Combine(_rootPath, "Tools.json");
-                    var force = false;
-                    if (promptAnswers.TryGetValue("force download", out var fd) && fd is bool b1) force = b1;
-                    if (promptAnswers.TryGetValue("force_download", out var fd2) && fd2 is bool b2) force = b2;
+				var ctx = new Dictionary<string, object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase);
+				if (!games.TryGetValue(currentGame, out var gobj) || gobj is not IDictionary<string, object?> gdict)
+					throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
+				ctx["Game"] = new Dictionary<string, object?>
+				{
+					["RootPath"] = gdict.TryGetValue("game_root", out var gr) ? gr?.ToString() : string.Empty,
+					["Name"] = currentGame,
+				};
+				var resolvedManifest = Placeholders.Resolve(manifest!, ctx)?.ToString() ?? manifest!;
+				var central = Path.Combine(_rootPath, "Tools.json");
+				var force = false;
+				if (promptAnswers.TryGetValue("force download", out var fd) && fd is bool b1) force = b1;
+				if (promptAnswers.TryGetValue("force_download", out var fd2) && fd2 is bool b2) force = b2;
 
-                    var dl = new Tools.ToolsDownloader(_rootPath, central);
-                    await dl.ProcessAsync(resolvedManifest, force);
-                    return true;
-                }
+				var dl = new Tools.ToolsDownloader(_rootPath, central);
+				await dl.ProcessAsync(resolvedManifest, force);
+				return true;
+			}
+			case "format-extract":
+			case "format_extract": {
+				// Determine input file format
+				var format = op.TryGetValue("format", out var ft) ? ft?.ToString()?.ToLowerInvariant() : null;
+
+				// Resolve args (used for both TXD and media conversions)
+				var ctx = new Dictionary<string, object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase);
+				if (!games.TryGetValue(currentGame, out var gobj) || gobj is not IDictionary<string, object?> gdict2)
+					throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
+				ctx["Game"] = new Dictionary<string, object?> {
+					["RootPath"] = gdict2.TryGetValue("game_root", out var gr2) ? gr2?.ToString() : string.Empty,
+					["Name"] = currentGame,
+				};
+
+				var args = new List<string>();
+				if (op.TryGetValue("args", out var aobj) && aobj is IList<object?> aList) {
+					var resolved = (IList<object?>)(Placeholders.Resolve(aList, ctx) ?? new List<object?>());
+					foreach (var a in resolved)
+						if (a is not null) args.Add(a.ToString()!);
+				}
+
+				// If format is TXD, delegate to existing Python handler
+				if (string.Equals(format, "txd", StringComparison.OrdinalIgnoreCase)) {
+					var scriptPath = System.IO.Path.Combine(_rootPath, "EnginePy", "FormatHandlers", "Export_txd.py");
+					var pythonExe = ResolvePythonExecutable();
+
+					var parts = new List<string> { pythonExe, scriptPath };
+					parts.AddRange(args);
+
+					var runner = new ProcessRunner();
+					// Use simple console handlers to ensure output visibility
+					ProcessRunner.OutputHandler outH = (line, stream) => {
+						var prev = Console.ForegroundColor;
+						Console.ForegroundColor = (stream == "stderr") ? ConsoleColor.Red : ConsoleColor.Gray;
+						Console.WriteLine(line);
+						Console.ForegroundColor = prev;
+					};
+					return runner.Execute(
+						parts,
+						op.TryGetValue("Name", out var nn) ? nn?.ToString() ?? "format-extract" : "format-extract",
+						onOutput: outH,
+						onEvent: null,
+						stdinProvider: null,
+						envOverrides: new Dictionary<string, object?> { ["TERM"] = "dumb" },
+						cancellationToken: cancellationToken);
+				} else if (string.Equals(format, "str", StringComparison.OrdinalIgnoreCase)) {
+					// Use existing BMS extraction script
+					var scriptPath = System.IO.Path.Combine(_rootPath, "Tools", "QuickBMS", "bms_extract.py");
+					var pythonExe = ResolvePythonExecutable();
+					var runner = new ProcessRunner();
+					// Use simple console handlers to ensure output visibility
+					ProcessRunner.OutputHandler outH = (line, stream) =>
+					{
+						var prev = Console.ForegroundColor;
+						Console.ForegroundColor = (stream == "stderr") ? ConsoleColor.Red : ConsoleColor.Gray;
+						Console.WriteLine(line);
+						Console.ForegroundColor = prev;
+					};
+					var parts = new List<string> { pythonExe, scriptPath };
+					parts.AddRange(args);
+					return runner.Execute(
+						parts,
+						op.TryGetValue("Name", out var nn) ? nn?.ToString() ?? "format-extract" : "format-extract",
+						onOutput: outH,
+						onEvent: null,
+						stdinProvider: null,
+						envOverrides: new Dictionary<string, object?> { ["TERM"] = "dumb" },
+						cancellationToken: cancellationToken);
+				} else {
+					return false;
+				}
+			}
             case "format-convert":
             case "format_convert": {
-                    // Determine format
-                    var format = op.TryGetValue("format", out var ft) ? ft?.ToString()?.ToLowerInvariant() : null;
-                    if (string.IsNullOrWhiteSpace(format))
-                        format = op.TryGetValue("file_type", out var ft2) ? ft2?.ToString()?.ToLowerInvariant() : null;
+				// Determine tool
+				var tool = op.TryGetValue("tool", out var ft) ? ft?.ToString()?.ToLowerInvariant() : null;
 
-                    // Only TXD is supported currently
-                    if (format != "txd")
-                        return false;
+				// Resolve args (used for both TXD and media conversions)
+				var ctx = new Dictionary<string, object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase);
+				if (!games.TryGetValue(currentGame, out var gobj) || gobj is not IDictionary<string, object?> gdict2)
+					throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
+				ctx["Game"] = new Dictionary<string, object?> {
+					["RootPath"] = gdict2.TryGetValue("game_root", out var gr2) ? gr2?.ToString() : string.Empty,
+					["Name"] = currentGame,
+				};
 
-                    // Resolve args (e.g., input path, optional -o output)
-                    var ctx = new Dictionary<string, object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase);
-                    if (!games.TryGetValue(currentGame, out var gobj) || gobj is not IDictionary<string, object?> gdict2)
-                        throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
-                    ctx["Game"] = new Dictionary<string, object?> {
-                        ["RootPath"] = gdict2.TryGetValue("game_root", out var gr2) ? gr2?.ToString() : string.Empty,
-                        ["Name"] = currentGame,
-                    };
+				var args = new List<string>();
+				if (op.TryGetValue("args", out var aobj) && aobj is IList<object?> aList) {
+					var resolved = (IList<object?>)(Placeholders.Resolve(aList, ctx) ?? new List<object?>());
+					foreach (var a in resolved)
+						if (a is not null) args.Add(a.ToString()!);
+				}
 
-                    var args = new List<string>();
-                    if (op.TryGetValue("args", out var aobj) && aobj is IList<object?> aList) {
-                        var resolved = (IList<object?>)(Placeholders.Resolve(aList, ctx) ?? new List<object?>());
-                        foreach (var a in resolved)
-                            if (a is not null) args.Add(a.ToString()!);
-                    }
-
-                    // Path to handler script
-                    var scriptPath = System.IO.Path.Combine(_rootPath, "EnginePy", "FormatHandlers", "Export_txd.py");
-                    var pythonExe = ResolvePythonExecutable();
-
-                    var parts = new List<string> { pythonExe, scriptPath };
-                    parts.AddRange(args);
-
-                    var runner = new ProcessRunner();
-                    // Use simple console handlers to ensure output visibility
-                    ProcessRunner.OutputHandler outH = (line, stream) => {
-                        var prev = Console.ForegroundColor;
-                        Console.ForegroundColor = (stream == "stderr") ? ConsoleColor.Red : ConsoleColor.Gray;
-                        Console.WriteLine(line);
-                        Console.ForegroundColor = prev;
-                    };
-                    return runner.Execute(
-                        parts,
-                        op.TryGetValue("Name", out var nn) ? nn?.ToString() ?? "format-convert" : "format-convert",
-                        onOutput: outH,
-                        onEvent: null,
-                        stdinProvider: null,
-                        envOverrides: new Dictionary<string, object?> { ["TERM"] = "dumb" },
-                        cancellationToken: cancellationToken);
-                }
+				if (string.Equals(tool, "ffmpeg", StringComparison.OrdinalIgnoreCase) || string.Equals(tool, "vgmstream", StringComparison.OrdinalIgnoreCase)) {
+					// attempt built-in media conversion (ffmpeg/vgmstream) using the same CLI args
+					Console.ForegroundColor = ConsoleColor.DarkCyan;
+					Console.WriteLine("\n>>> Built-in media conversion");
+					Console.ResetColor();
+					var okMedia = MediaConverter.Run(args);
+					return okMedia;
+				} else {
+					return false;
+				}
+			}
             default:
                 return false;
         }

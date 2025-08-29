@@ -322,7 +322,11 @@ public sealed class CliApp
             Console.Error.WriteLine($"Game '{game}' not found.");
             return 1;
         }
-        var gdict = (Dictionary<string, object?>)g;
+        if (g is not Dictionary<string, object?> gdict)
+        {
+            Console.Error.WriteLine($"Game '{game}' has invalid metadata.");
+            return 1;
+        }
         if (!gdict.TryGetValue("ops_file", out var of) || of is not string opsFile)
         {
             Console.Error.WriteLine($"Game '{game}' missing ops_file.");

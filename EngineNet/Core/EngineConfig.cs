@@ -34,7 +34,7 @@ public sealed class EngineConfig
                 using var doc = JsonDocument.Parse(fs);
                 if (doc.RootElement.ValueKind == JsonValueKind.Object)
                 {
-                    return (Dictionary<string, object?>)ToDotNet(doc.RootElement);
+                    return (ToDotNet(doc.RootElement) as Dictionary<string, object?>) ?? new Dictionary<string, object?>();
                 }
                 // Fallback to direct deserialize for simple maps
                 fs.Position = 0;
@@ -49,7 +49,7 @@ public sealed class EngineConfig
         return new Dictionary<string, object?>();
     }
 
-    private static object ToDotNet(JsonElement el)
+    private static object? ToDotNet(JsonElement el)
     {
         switch (el.ValueKind)
         {
