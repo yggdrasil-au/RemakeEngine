@@ -77,6 +77,36 @@ public sealed class LuaScriptAction:IAction {
             return new EngineSdk.Progress(total, pid, label);
         });
 
+        // sdk: config and filesystem helpers
+        var sdk = new Table(lua);
+        sdk["ensure_project_config"] = (Func<string, string>)((root) => ConfigHelpers.EnsureProjectConfig(root));
+        sdk["validate_source_dir"] = (Func<string, bool>)((dir) => {
+            try { ConfigHelpers.ValidateSourceDir(dir); return true; }
+            catch { return false; }
+        });
+        sdk["copy_dir"] = (Func<string, string, DynValue, bool>)((src, dst, overwrite) => {
+            try {
+                var ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
+                ConfigHelpers.CopyDirectory(src, dst, ow);
+                return true;
+            } catch { return false; }
+        });
+        sdk["move_dir"] = (Func<string, string, DynValue, bool>)((src, dst, overwrite) => {
+            try {
+                var ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
+                ConfigHelpers.MoveDirectory(src, dst, ow);
+                return true;
+            } catch { return false; }
+        });
+        sdk["find_subdir"] = (Func<string, string, string?>)((baseDir, name) => ConfigHelpers.FindSubdir(baseDir, name));
+        sdk["has_all_subdirs"] = (Func<string, Table, bool>)((baseDir, names) => {
+            try {
+                var list = TableToStringList(names);
+                return ConfigHelpers.HasAllSubdirs(baseDir, list);
+            } catch { return false; }
+        });
+        lua.Globals["sdk"] = sdk;
+
         await Task.Run(() => lua.DoString(code), cancellationToken);
     }
 
@@ -121,5 +151,16 @@ public sealed class LuaScriptAction:IAction {
             return list;
         }
         return TableToDictionary(t);
+    }
+
+    private static List<string> TableToStringList(Table t) {
+        var list = new List<string>();
+        for (int i = 1; ; i++) {
+            var dv = t.Get(i);
+            if (dv.Type == DataType.Nil || dv.Type == DataType.Void) break;
+            var s = dv.Type == DataType.String ? dv.String : dv.ToPrintString();
+            list.Add(s);
+        }
+        return list;
     }
 }
