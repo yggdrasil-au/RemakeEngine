@@ -5,7 +5,7 @@
 
 Remake Engine has moved from its original Python implementation to a C#/.NET core called **EngineNet**. The legacy Python code is kept under `LegacyEnginePy`, but all new development targets the C# engine and its cross-platform interfaces.
 
-Remake Engine provides a streamlined interface for developers and reverse engineers to run predefined tasks—from executing custom scripts to managing asset extraction and conversion—for a collection of games. Its power lies in its configuration-driven approach, allowing new games and their specific workflows to be added easily by defining them in JSON, without modifying the core engine.
+Remake Engine provides a streamlined interface for developers and reverse engineers to run predefined tasks—from executing custom scripts to managing asset extraction and conversion—for a collection of games. Its power lies in its configuration-driven approach, allowing new games and their specific workflows to be added easily by defining them in JSON or TOML, without modifying the core engine.
 
 For more detailed documentation visit [https://yggdrasil-au.github.io/RemakeEngineDocs/index.html](https://yggdrasil-au.github.io/RemakeEngineDocs/index.html).
 
@@ -17,8 +17,8 @@ For more detailed documentation visit [https://yggdrasil-au.github.io/RemakeEngi
 - **Highly Extensible:** Add support for new games by simply creating configuration files and scripts.
 - **Interactive CLI:** Cross-platform command-line interface.
 - **Optional GUI:** Avalonia-based interface for browsing, installing, and running operations on Windows, macOS, and Linux.
-- **Configuration-Driven:** Define all games and operations in simple JSON files (`operations.json`).
-- **Dynamic Placeholders:** Use `{{...}}` placeholders to inject values from the global `project.json`, enabling flexible, per-user configuration without hardcoding paths in `operations.json`.
+- **Configuration-Driven:** Define all games and operations in simple JSON/TOML files (`operations.(json/toml)`).
+- **Dynamic Placeholders:** Use `{{...}}` placeholders to inject values from the global `project.json`, enabling flexible, per-user configuration without hardcoding paths in `operations.(json/toml)`.
 - **Script & Tool Orchestration:** Run Lua, JavaScript, and legacy Python scripts or external tools (e.g., QuickBMS, FFmpeg) seamlessly.
 - **Flexible Prompting:** Built-in prompt system collects input at runtime, with support for conditional logic and validation.
 - **Community-Oriented:** Designed to foster a shared ecosystem for reverse engineering workflows.
@@ -29,7 +29,7 @@ For more detailed documentation visit [https://yggdrasil-au.github.io/RemakeEngi
 ## 🎯 Project Goals
 
 1. **Enable Reimplementation of Classic Games** – Provide a general-purpose engine for rebuilding legally owned classics into modern, editable projects without resorting to emulation or binary modification.
-2. **Modular, Declarative, and Configurable Workflows** – Support new games through configuration files like `operations.json`, keeping core engine code clean and community-driven.
+2. **Modular, Declarative, and Configurable Workflows** – Support new games through configuration files like `operations.(json/toml)`, keeping core engine code clean and community-driven.
 3. **Bridge Between Reverse Engineering & Usability** – Offer powerful tools for technical users while keeping the CLI and Avalonia GUI approachable for non-technical modders.
 4. **Automate Tedious Rebuild Pipelines** – Orchestrate multi-step workflows with tools such as QuickBMS, Blender, and FFmpeg to reduce manual effort and errors.
 5. **Maintain Legal and Ethical Integrity** – Work only with user-supplied game data, avoiding distribution of copyrighted content and disabling asset export by default.
@@ -81,7 +81,7 @@ To explicitly choose an interface:
 
 ```pwsh
 dotnet run --project EngineNet -- --gui    # launch the graphical interface
-dotnet run --project EngineNet -- --cli    # launch the command-line interface
+dotnet run --project EngineNet -- --cli    # launch the interactive command-line interface
 ```
 
 ---
@@ -96,7 +96,7 @@ RemakeEngine/
 ├── RemakeRegistry/
 │   └── Games/
 │       └── <GameName Platform>
-│           ├── operations.json
+│           ├── operations.(json/toml)
 │           └── Scripts/
 ├── Tools/                              # Reusable scripts and external tools
 ├── project.json                        # Global user config (custom paths, etc.)

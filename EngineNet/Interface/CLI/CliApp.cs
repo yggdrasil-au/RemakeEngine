@@ -220,9 +220,10 @@ public partial class CliApp {
     }
 
 
-    private static void CollectAnswersForOperation(Dictionary<string, object?> op, Dictionary<string, object?> answers) {
+    private static void CollectAnswersForOperation(Dictionary<string, object?> op, Dictionary<string, object?> answers, bool defaultsOnly) {
         if (!op.TryGetValue("prompts", out var promptsObj) || promptsObj is not IList<object?> prompts)
             return;
+
         foreach (var p in prompts) {
             if (p is not Dictionary<string, object?> prompt)
                 continue;
@@ -230,6 +231,13 @@ public partial class CliApp {
             var type = prompt.TryGetValue("type", out var t) ? t?.ToString() ?? "" : "";
             if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(type))
                 continue;
+
+            if (defaultsOnly) {
+                // Use explicit default when available; otherwise leave unset
+                if (prompt.TryGetValue("default", out var defVal))
+                    answers[name] = defVal;
+                continue;
+            }
 
             switch (type) {
                 case "confirm":

@@ -7,6 +7,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using RemakeEngine.Actions;
 using RemakeEngine.Tools;
+using Tomlyn;
+using Tomlyn.Model;
 
 namespace RemakeEngine.Core;
 
@@ -112,20 +114,37 @@ public sealed class OperationsEngine {
     }
 
     public List<Dictionary<string, object?>> LoadOperationsList(string opsFile) {
-        using var fs = File.OpenRead(opsFile);
-        using var doc = JsonDocument.Parse(fs);
-        if (doc.RootElement.ValueKind == JsonValueKind.Array) {
+        var ext = Path.GetExtension(opsFile);
+        if (ext.Equals(".toml", StringComparison.OrdinalIgnoreCase)) {
+            var tdoc = Toml.Parse(File.ReadAllText(opsFile));
+            var model = tdoc.ToModel();
             var list = new List<Dictionary<string, object?>>();
-            foreach (var item in doc.RootElement.EnumerateArray()) {
+            if (model is TomlTable table) {
+                foreach (var kv in table) {
+                    if (kv.Value is TomlTableArray arr) {
+                        foreach (var item in arr) {
+                            if (item is TomlTable tt)
+                                list.Add(ToMap(tt));
+                        }
+                    }
+                }
+            }
+            return list;
+        }
+		using var fs = File.OpenRead(opsFile);
+        using var jdoc = JsonDocument.Parse(fs);
+        if (jdoc.RootElement.ValueKind == JsonValueKind.Array) {
+            var list = new List<Dictionary<string, object?>>();
+            foreach (var item in jdoc.RootElement.EnumerateArray()) {
                 if (item.ValueKind == JsonValueKind.Object)
                     list.Add(ToMap(item));
             }
             return list;
         }
-        if (doc.RootElement.ValueKind == JsonValueKind.Object) {
+        if (jdoc.RootElement.ValueKind == JsonValueKind.Object) {
             // Fallback: flatten grouped format into a single list (preserving group order)
             var flat = new List<Dictionary<string, object?>>();
-            foreach (var prop in doc.RootElement.EnumerateObject()) {
+            foreach (var prop in jdoc.RootElement.EnumerateObject()) {
                 if (prop.Value.ValueKind == JsonValueKind.Array) {
                     foreach (var item in prop.Value.EnumerateArray()) {
                         if (item.ValueKind == JsonValueKind.Object)
@@ -139,9 +158,29 @@ public sealed class OperationsEngine {
     }
 
     public Dictionary<string, List<Dictionary<string, object?>>> LoadOperations(string opsFile) {
+        var ext = Path.GetExtension(opsFile);
+        if (ext.Equals(".toml", StringComparison.OrdinalIgnoreCase)) {
+            var tdoc = Toml.Parse(File.ReadAllText(opsFile));
+            var model = tdoc.ToModel();
+            var result = new Dictionary<string, List<Dictionary<string, object?>>>(StringComparer.OrdinalIgnoreCase);
+            if (model is TomlTable table) {
+                foreach (var kv in table) {
+                    if (kv.Value is TomlTableArray arr) {
+                        var list = new List<Dictionary<string, object?>>();
+                        foreach (var item in arr) {
+                            if (item is TomlTable tt)
+                                list.Add(ToMap(tt));
+                        }
+                        result[kv.Key] = list;
+                    }
+                }
+            }
+            return result;
+        }
+
         using var fs = File.OpenRead(opsFile);
         using var doc = JsonDocument.Parse(fs);
-        var result = new Dictionary<string, List<Dictionary<string, object?>>>(StringComparer.OrdinalIgnoreCase);
+        var resultJson = new Dictionary<string, List<Dictionary<string, object?>>>(StringComparer.OrdinalIgnoreCase);
         if (doc.RootElement.ValueKind == JsonValueKind.Object) {
             foreach (var prop in doc.RootElement.EnumerateObject()) {
                 var list = new List<Dictionary<string, object?>>();
@@ -151,10 +190,10 @@ public sealed class OperationsEngine {
                             list.Add(ToMap(item));
                     }
                 }
-                result[prop.Name] = list;
+                resultJson[prop.Name] = list;
             }
         }
-        return result;
+        return resultJson;
     }
 
     private static Dictionary<string, object?> ToMap(JsonElement obj) {
@@ -184,20 +223,49 @@ public sealed class OperationsEngine {
         return list;
     }
 
-    public async Task<bool> RunOperationGroupAsync(
-        string gameName,
-        IDictionary<string, object?> games,
-        string groupName,
-        IList<Dictionary<string, object?>> operations,
-        IDictionary<string, object?> promptAnswers,
-        CancellationToken cancellationToken = default) {
-        var success = true;
-        foreach (var op in operations) {
-            if (!await RunSingleOperationAsync(gameName, games, op, promptAnswers, cancellationToken))
-                success = false;
-        }
-        return success;
+    private static Dictionary<string, object?> ToMap(TomlTable table) {
+        var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var kv in table)
+            dict[kv.Key] = FromToml(kv.Value);
+        return dict;
     }
+
+    private static object? FromToml(object? value) {
+        switch (value) {
+            case TomlTable tt:
+                return ToMap(tt);
+            case TomlTableArray ta:
+                var listTa = new List<object?>();
+                foreach (var item in ta)
+                    listTa.Add(FromToml(item));
+                return listTa;
+            case TomlArray arr:
+                var listArr = new List<object?>();
+                foreach (var item in arr)
+                    listArr.Add(FromToml(item));
+                return listArr;
+            default:
+                return value;
+        }
+    }
+
+
+    public async Task<bool> RunOperationGroupAsync(
+		string gameName,
+		IDictionary<string, object?> games,
+		string groupName,
+		IList<Dictionary<string, object?>> operations,
+		IDictionary<string, object?> promptAnswers,
+		CancellationToken cancellationToken = default)
+	{
+		var success = true;
+		foreach (var op in operations)
+		{
+			if (!await RunSingleOperationAsync(gameName, games, op, promptAnswers, cancellationToken))
+				success = false;
+		}
+		return success;
+	}
 
     public async Task<bool> RunSingleOperationAsync(
         string currentGame,
@@ -472,8 +540,14 @@ public sealed class OperationsEngine {
         CancellationToken cancellationToken = default)
     {
         var gameDir = System.IO.Path.Combine(_rootPath, "RemakeRegistry", "Games", name);
-        var opsFile = System.IO.Path.Combine(gameDir, "operations.json");
-        if (!File.Exists(opsFile))
+        var opsToml = System.IO.Path.Combine(gameDir, "operations.toml");
+        var opsJson = System.IO.Path.Combine(gameDir, "operations.json");
+        string? opsFile = null;
+        if (File.Exists(opsToml))
+            opsFile = opsToml;
+        else if (File.Exists(opsJson))
+            opsFile = opsJson;
+        if (opsFile is null)
             return false;
 
         // Build a minimal games map for the command builder

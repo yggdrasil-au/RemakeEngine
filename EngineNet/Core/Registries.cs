@@ -44,18 +44,25 @@ public sealed class Registries {
             return games;
 
         foreach (var dir in Directory.EnumerateDirectories(_gamesRegistryPath)) {
-            var ops = System.IO.Path.Combine(dir, "operations.json");
-            if (!File.Exists(ops))
+            var opsToml = Path.Combine(dir, "operations.toml");
+            var opsJson = Path.Combine(dir, "operations.json");
+            string? ops = null;
+            if (File.Exists(opsToml))
+                ops = opsToml;
+            else if (File.Exists(opsJson))
+                ops = opsJson;
+            if (ops is null)
                 continue;
 
             var name = new DirectoryInfo(dir).Name;
             games[name] = new GameInfo(
-                opsFile: System.IO.Path.GetFullPath(ops),
-                gameRoot: System.IO.Path.GetFullPath(dir)
+                opsFile: Path.GetFullPath(ops),
+                gameRoot: Path.GetFullPath(dir)
             );
         }
         return games;
     }
+
 
     public Dictionary<string, GameInfo> DiscoverInstalledGames()
 	{
@@ -63,11 +70,17 @@ public sealed class Registries {
 		if (!Directory.Exists(_gamesRegistryPath))
 			return games;
 
-		foreach (var dir in Directory.EnumerateDirectories(_gamesRegistryPath))
-		{
-			var ops = System.IO.Path.Combine(dir, "operations.json");
-			if (!File.Exists(ops))
-				continue;
+                foreach (var dir in Directory.EnumerateDirectories(_gamesRegistryPath))
+                {
+                        var opsToml = Path.Combine(dir, "operations.toml");
+                        var opsJson = Path.Combine(dir, "operations.json");
+                        string? ops = null;
+                        if (File.Exists(opsToml))
+                                ops = opsToml;
+                        else if (File.Exists(opsJson))
+                                ops = opsJson;
+                        if (ops is null)
+                                continue;
 
 			var gameToml = System.IO.Path.Combine(dir, "game.toml");
 			if (!File.Exists(gameToml))

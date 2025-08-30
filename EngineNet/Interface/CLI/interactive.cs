@@ -60,7 +60,8 @@ public partial class CliApp {
             var okAllInit = true;
             foreach (var op in initOps) {
                 var answers = new Dictionary<string, object?>();
-                CollectAnswersForOperation(op, answers);
+                // Initialization runs non-interactively; use defaults when provided
+                CollectAnswersForOperation(op, answers, defaultsOnly: true);
                 var ok = ExecuteOp(gameName, games, op, answers);
                 okAllInit &= ok;
             }
@@ -113,7 +114,8 @@ public partial class CliApp {
                 var okAll = true;
                 foreach (var op in runAll) {
                     var answers = new Dictionary<string, object?>();
-                    CollectAnswersForOperation(op, answers);
+                    // In run-all mode, do not prompt; prefer defaults when available
+                    CollectAnswersForOperation(op, answers, defaultsOnly: true);
                     var ok = ExecuteOp(gameName, games, op, answers);
                     okAll &= ok;
                 }
@@ -127,7 +129,8 @@ public partial class CliApp {
             if (opIndex >= 0 && opIndex < regularOps.Count) {
                 var op = regularOps[opIndex];
                 var answers = new Dictionary<string, object?>();
-                CollectAnswersForOperation(op, answers);
+                // For manual single-op run, prompt interactively
+                CollectAnswersForOperation(op, answers, defaultsOnly: false);
                 Console.Clear();
                 Console.WriteLine($"Running: {selection}\n");
                 var ok = ExecuteOp(gameName, games, op, answers);

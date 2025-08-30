@@ -15,13 +15,26 @@ namespace RemakeEngine.Core;
 /// Supports mode=ffmpeg|vgmstream with type=audio|video and preserves directory structure.
 /// </summary>
 public static class MediaConverter {
+    private const string ToolFfmpeg = "ffmpeg";
+    private const string ToolVgmstream = "vgmstream";
+    private const string VgmstreamCliName = "vgmstream-cli";
+    private const string VgmstreamCliExe = "vgmstream-cli.exe";
+    private const string TypeAudio = "audio";
+    private const string TypeVideo = "video";
+
+    private sealed class ActiveJob {
+        public string Tool = string.Empty;      // ffmpeg | vgmstream
+        public string File = string.Empty;      // file name only
+        public DateTime StartedUtc = DateTime.UtcNow;
+    }
+
     private sealed class Options {
         public string Mode = string.Empty;                // ffmpeg | vgmstream
         public string Type = string.Empty;                // audio | video
         public string Source = string.Empty;              // directory
         public string Target = string.Empty;              // directory
-        public string InputExt = string.Empty;            // .vp6, .snu
-        public string OutputExt = string.Empty;           // .ogv, .wav
+        public string InputExt = string.Empty;            // eg .vp6, .snu
+        public string OutputExt = string.Empty;           // eg .ogv, .wav
         public bool Overwrite = false;
         public bool GodotCompatible = false;
         public string? FfmpegPath;                        // ffmpeg/ffmpeg.exe
@@ -35,15 +48,19 @@ public static class MediaConverter {
         public bool Debug = false;
     }
 
+    // Tracks currently running external conversions (for progress panel)
+    private static readonly ConcurrentDictionary<int, ActiveJob> s_active = new();
+    private static readonly object s_consoleLock = new();
+
     public static bool Run(IList<string> args) {
         try {
             var opt = Parse(args);
 
             // Resolve executables if not provided
-            if (string.Equals(opt.Mode, "ffmpeg", StringComparison.OrdinalIgnoreCase))
-                opt.FfmpegPath = opt.FfmpegPath ?? Which("ffmpeg") ?? Which("ffmpeg.exe") ?? "ffmpeg";
-            else if (string.Equals(opt.Mode, "vgmstream", StringComparison.OrdinalIgnoreCase))
-                opt.VgmstreamCli = opt.VgmstreamCli ?? Which("vgmstream-cli") ?? Which("vgmstream-cli.exe") ?? "vgmstream-cli";
+            if (string.Equals(opt.Mode, ToolFfmpeg, StringComparison.OrdinalIgnoreCase))
+                opt.FfmpegPath = opt.FfmpegPath ?? Which(ToolFfmpeg) ?? Which("ffmpeg.exe") ?? ToolFfmpeg;
+            else if (string.Equals(opt.Mode, ToolVgmstream, StringComparison.OrdinalIgnoreCase))
+                opt.VgmstreamCli = opt.VgmstreamCli ?? Which(VgmstreamCliName) ?? Which(VgmstreamCliExe) ?? VgmstreamCliName;
 
             if (!Directory.Exists(opt.Source)) {
                 WriteError($"Source directory not found: {opt.Source}");
@@ -80,6 +97,7 @@ public static class MediaConverter {
             var progressTask = StartProgressTask(
                 total: allFiles.Count,
                 snapshot: () => (Volatile.Read(ref processed), Volatile.Read(ref success), Volatile.Read(ref skipped), Volatile.Read(ref errors)),
+                activeSnapshot: () => s_active.Values.ToList(),
                 token: progressCts.Token);
             Parallel.ForEach(allFiles, po, src => {
                 try {
@@ -111,7 +129,7 @@ public static class MediaConverter {
             progressCts.Cancel();
             try {
                 progressTask.Wait();
-            } catch { /* ignore */ }
+            } catch { /* safe to ignore: console may not support cursor positioning in this host */ }
 
             WriteInfo("\n--- Conversion Completed ---");
             Console.ForegroundColor = ConsoleColor.Green;
@@ -141,71 +159,141 @@ public static class MediaConverter {
         }
     }
 
-    // Simple console progress bar updated on a timer
-    private static Task StartProgressTask(int total, Func<(int processed, int ok, int skip, int err)> snapshot, CancellationToken token) {
+    // Multi-line progress panel: total bar + list of active subprocesses
+    private static Task StartProgressTask(
+        int total,
+        Func<(int processed, int ok, int skip, int err)> snapshot,
+        Func<List<ActiveJob>> activeSnapshot,
+        CancellationToken token) {
         return Task.Run(() => {
-            var lastDrawn = string.Empty;
-            while (!token.IsCancellationRequested) {
-                Draw(snapshot(), total, ref lastDrawn);
-                Thread.Sleep(150);
+            int panelTop;
+            int lastLines = 0;
+            try {
+                lock (s_consoleLock) {
+                    // Reserve a few lines for the panel beneath current cursor
+                    panelTop = Console.CursorTop;
+                }
+            } catch {
+                panelTop = 0;
             }
-            // Final draw and newline
-            Draw(snapshot(), total, ref lastDrawn);
-            Console.WriteLine();
+
+            int spinnerIndex = 0;
+            var spinner = new[] { '|', '/', '-', '\\' };
+            while (!token.IsCancellationRequested) {
+                var s = snapshot();
+                var actives = activeSnapshot();
+                var lines = BuildPanelLines(total, s, actives, spinner[spinnerIndex % spinner.Length]);
+                spinnerIndex = (spinnerIndex + 1) & 0x7fffffff;
+                DrawPanel(lines, ref panelTop, ref lastLines);
+                Thread.Sleep(200);
+            }
+            // Final draw
+            var finalS = snapshot();
+            var finalAct = activeSnapshot();
+            var finalLines = BuildPanelLines(total, finalS, finalAct, ' ');
+            DrawPanel(finalLines, ref panelTop, ref lastLines);
         });
     }
 
-    private static void Draw((int processed, int ok, int skip, int err) s, int total, ref string last) {
-        if (total <= 0)
-            return;
-        var percent = Math.Clamp(total == 0 ? 1.0 : (double)s.processed / total, 0.0, 1.0);
-        const int width = 30;
+    private static List<string> BuildPanelLines(int total, (int processed, int ok, int skip, int err) s, List<ActiveJob> actives, char spinner) {
+        var lines = new List<string>(2 + actives.Count);
+        if (total < 0) total = 0;
+        var percent = Math.Clamp(total == 0 ? 1.0 : (double)s.processed / Math.Max(1, total), 0.0, 1.0);
+        var width = 30;
+        try { width = Math.Max(10, Math.Min(40, Console.WindowWidth - 60)); } catch { /* ignore */ }
         int filled = (int)Math.Round(percent * width);
-        var sb = new StringBuilder(128);
-        sb.Append("Converting Files ");
-        sb.Append('[');
-        for (int i = 0; i < width; i++)
-            sb.Append(i < filled ? '#' : '-');
-        sb.Append(']');
-        sb.Append(' ');
-        sb.Append((int)Math.Round(percent * 100));
-        sb.Append('%');
-        sb.Append(' ');
-        sb.Append(s.processed);
-        sb.Append('/');
-        sb.Append(total);
-        sb.Append(" (ok=");
-        sb.Append(s.ok);
-        sb.Append(", skip=");
-        sb.Append(s.skip);
-        sb.Append(", err=");
-        sb.Append(s.err);
-        sb.Append(')');
+        var bar = new StringBuilder(width + 32);
+        bar.Append("Converting Files ");
+        bar.Append('[');
+        for (int i = 0; i < width; i++) bar.Append(i < filled ? '#' : '-');
+        bar.Append(']');
+        bar.Append(' ');
+        bar.Append((int)Math.Round(percent * 100));
+        bar.Append('%');
+        bar.Append(' ');
+        bar.Append(s.processed);
+        bar.Append('/');
+        bar.Append(total);
+        bar.Append(" (ok="); bar.Append(s.ok);
+        bar.Append(", skip="); bar.Append(s.skip);
+        bar.Append(", err="); bar.Append(s.err);
+        bar.Append(')');
+        lines.Add(bar.ToString());
 
-        var line = sb.ToString();
-        if (line != last) {
-            last = line;
+        // Active subprocesses
+        if (actives.Count == 0) {
+            lines.Add("Active: none");
+        } else {
+            lines.Add($"Active subprocesses: {actives.Count}");
+            // Show up to degree of parallelism (or 8) lines
+            int max = 8;
+            try { max = Math.Max(1, Math.Min(16, Environment.ProcessorCount)); } catch { /* ignore */ }
+            var now = DateTime.UtcNow;
+            foreach (var job in actives.OrderBy(j => j.StartedUtc).Take(max)) {
+                var elapsed = now - job.StartedUtc;
+                var elStr = elapsed.TotalHours >= 1 ? $"{(int)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}" : $"{elapsed.Minutes:00}:{elapsed.Seconds:00}";
+                var file = job.File;
+                // Trim long names to fit
+                int maxFile = 50;
+                try { maxFile = Math.Max(18, (Console.WindowWidth - 20)); } catch { /* ignore */ }
+                if (file.Length > maxFile) file = file.Substring(0, maxFile - 3) + "...";
+                lines.Add($"  {spinner} {job.Tool} · {file} · {elStr}");
+            }
+            if (actives.Count > 8)
+                lines.Add($"  … and {actives.Count - Math.Min(actives.Count, 8)} more");
+        }
+        return lines;
+    }
+
+    private static void DrawPanel(IReadOnlyList<string> lines, ref int panelTop, ref int lastLines) {
+        lock (s_consoleLock) {
             try {
-                Console.Write("\r" + line);
-            } catch { /* ignore */ }
+                // Position to start of panel
+                Console.SetCursorPosition(0, panelTop);
+                // Write each line padded to width
+                int width;
+                try { width = Math.Max(20, Console.WindowWidth - 1); } catch { width = 120; }
+                for (int i = 0; i < lines.Count; i++) {
+                    var line = lines[i];
+                    if (line.Length > width) line = line.Substring(0, width);
+                    Console.Write(line.PadRight(width));
+                    if (i < lines.Count - 1) Console.Write('\n');
+                }
+                // Clear remaining previous lines if panel shrunk
+                for (int i = lines.Count; i < lastLines; i++) {
+                    Console.Write('\n');
+                    Console.Write(new string(' ', Math.Max(20, Console.WindowWidth - 1)));
+                }
+                lastLines = lines.Count;
+                // Leave cursor at end of panel
+                Console.SetCursorPosition(0, panelTop + lastLines);
+            } catch {
+                // Fallback: write a simple single-line summary
+                try {
+                    Console.Write("\r" + (lines.Count > 0 ? lines[0] : string.Empty));
+                } catch { /* safe to ignore: best-effort rendering */ }
+            }
         }
     }
 
     private static (bool ok, string? message) ConvertOne(string srcPath, string destPath, Options opt) {
         try {
             // Build external commands
-            if (string.Equals(opt.Mode, "ffmpeg", StringComparison.OrdinalIgnoreCase)) {
-                var ff = opt.FfmpegPath ?? "ffmpeg";
-                if (string.Equals(opt.Type, "video", StringComparison.OrdinalIgnoreCase)) {
+            if (string.Equals(opt.Mode, ToolFfmpeg, StringComparison.OrdinalIgnoreCase)) {
+                var ff = opt.FfmpegPath ?? ToolFfmpeg;
+                if (string.Equals(opt.Type, TypeVideo, StringComparison.OrdinalIgnoreCase)) {
                     var args = new List<string> {
                         "-y",
                         "-i", srcPath,
                         "-c:v", opt.VideoCodec,
                         "-q:v", opt.VideoQuality,
+                        "-loglevel", "error",
                         destPath
                     };
-                    return Exec(ff, args, opt.Debug);
-                } else if (string.Equals(opt.Type, "audio", StringComparison.OrdinalIgnoreCase)) {
+                    RegisterActive("ffmpeg", srcPath);
+                    try { return Exec(ff, args, opt.Debug); }
+                    finally { UnregisterActive(); }
+                } else if (string.Equals(opt.Type, TypeAudio, StringComparison.OrdinalIgnoreCase)) {
                     if (opt.GodotCompatible) {
                         // Split quad to two stereo files
                         var basePath = Path.Combine(Path.GetDirectoryName(destPath)!, Path.GetFileNameWithoutExtension(destPath));
@@ -218,7 +306,9 @@ public static class MediaConverter {
                             "-map", "[FRONT]", outFront,
                             "-map", "[REAR]", outRear,
                         };
-                        return Exec(ff, args, opt.Debug);
+                        RegisterActive("ffmpeg", srcPath);
+                        try { return Exec(ff, args, opt.Debug); }
+                        finally { UnregisterActive(); }
                     } else {
                         var args = new List<string> {
                             "-y",
@@ -228,23 +318,27 @@ public static class MediaConverter {
                             "-loglevel", "error",
                             destPath
                         };
-                        return Exec(ff, args, opt.Debug);
+                        RegisterActive("ffmpeg", srcPath);
+                        try { return Exec(ff, args, opt.Debug); }
+                        finally { UnregisterActive(); }
                     }
                 } else
                     return (false, $"Unsupported type: {opt.Type}");
             } else if (string.Equals(opt.Mode, "vgmstream", StringComparison.OrdinalIgnoreCase)) {
-                var vg = opt.VgmstreamCli ?? "vgmstream-cli";
-                if (string.Equals(opt.Type, "audio", StringComparison.OrdinalIgnoreCase)) {
+                var vg = opt.VgmstreamCli ?? VgmstreamCliName;
+                if (string.Equals(opt.Type, TypeAudio, StringComparison.OrdinalIgnoreCase)) {
                     if (opt.GodotCompatible) {
                         // First decode to temp wav via vgmstream, then split via ffmpeg
                         var tmpWav = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".wav");
                         try {
                             var a1 = new List<string> { "-o", tmpWav, srcPath };
+                            RegisterActive("vgmstream", srcPath);
                             var (ok1, msg1) = Exec(vg, a1, opt.Debug);
+                            UnregisterActive();
                             if (!ok1)
                                 return (false, msg1);
 
-                            var ff = opt.FfmpegPath ?? Which("ffmpeg") ?? Which("ffmpeg.exe") ?? "ffmpeg";
+                            var ff = opt.FfmpegPath ?? Which(ToolFfmpeg) ?? Which("ffmpeg.exe") ?? ToolFfmpeg;
                             var basePath = Path.Combine(Path.GetDirectoryName(destPath)!, Path.GetFileNameWithoutExtension(destPath));
                             var outFront = basePath + "_front" + opt.OutputExt;
                             var outRear = basePath + "_rear" + opt.OutputExt;
@@ -255,7 +349,9 @@ public static class MediaConverter {
                                 "-map", "[FRONT]", outFront,
                                 "-map", "[REAR]", outRear,
                             };
+                            RegisterActive("ffmpeg", Path.GetFileName(tmpWav));
                             var (ok2, msg2) = Exec(ff, a2, opt.Debug);
+                            UnregisterActive();
                             if (!ok2)
                                 return (false, msg2);
                             return (true, null);
@@ -267,7 +363,9 @@ public static class MediaConverter {
                         }
                     } else {
                         var a = new List<string> { "-o", destPath, srcPath };
-                        return Exec(vg, a, opt.Debug);
+                        RegisterActive("vgmstream", srcPath);
+                        try { return Exec(vg, a, opt.Debug); }
+                        finally { UnregisterActive(); }
                     }
                 } else {
                     return (false, "vgmstream-cli does not support video conversion.");
@@ -279,9 +377,24 @@ public static class MediaConverter {
             try {
                 if (File.Exists(destPath))
                     File.Delete(destPath);
-            } catch { /* ignore */ }
+            } catch { /* safe to ignore: best-effort temp file cleanup */ }
             return (false, ex.Message);
         }
+    }
+
+    private static void RegisterActive(string tool, string srcPath) {
+        try {
+            var key = Thread.CurrentThread.ManagedThreadId;
+            s_active[key] = new ActiveJob {
+                Tool = tool,
+                File = Path.GetFileName(srcPath),
+                StartedUtc = DateTime.UtcNow
+            };
+        } catch { /* ignore */ }
+    }
+
+    private static void UnregisterActive() {
+        try { s_active.TryRemove(Thread.CurrentThread.ManagedThreadId, out _); } catch { /* ignore */ }
     }
 
     private static (bool ok, string? message) Exec(string fileName, IList<string> arguments, bool passthroughOutput) {
@@ -294,18 +407,34 @@ public static class MediaConverter {
             p.StartInfo.CreateNoWindow = true;
             p.StartInfo.RedirectStandardError = !passthroughOutput;
             p.StartInfo.RedirectStandardOutput = !passthroughOutput;
-            if (passthroughOutput) {
-                p.StartInfo.RedirectStandardError = false;
-                p.StartInfo.RedirectStandardOutput = false;
-            }
+            try { p.StartInfo.StandardErrorEncoding = Encoding.UTF8; } catch { /* non-critical: default encoding is fine */ }
+            try { p.StartInfo.StandardOutputEncoding = Encoding.UTF8; } catch { /* non-critical: default encoding is fine */ }
+
             if (!p.Start())
                 return (false, "failed to start process");
+
+            StringBuilder? errBuf = null;
+            StringBuilder? outBuf = null;
+            if (!passthroughOutput) {
+                errBuf = new StringBuilder(8 * 1024);
+                outBuf = new StringBuilder(8 * 1024);
+                p.ErrorDataReceived += (_, e) => { if (e.Data != null) { lock (errBuf!) errBuf!.AppendLine(e.Data); } };
+                p.OutputDataReceived += (_, e) => { if (e.Data != null) { lock (outBuf!) outBuf!.AppendLine(e.Data); } };
+                try { p.BeginErrorReadLine(); } catch { /* non-critical: process may not support async read in some hosts */ }
+                try { p.BeginOutputReadLine(); } catch { /* non-critical */ }
+            }
+
             p.WaitForExit();
+
             if (p.ExitCode == 0)
                 return (true, null);
+
             if (!passthroughOutput) {
-                var err = p.StandardError.ReadToEnd();
-                return (false, string.IsNullOrWhiteSpace(err) ? $"exit code {p.ExitCode}" : err.Trim());
+                var err = errBuf?.ToString() ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(err))
+                    err = outBuf?.ToString() ?? string.Empty;
+                var msg = string.IsNullOrWhiteSpace(err) ? $"exit code {p.ExitCode}" : err.Trim();
+                return (false, msg);
             }
             return (false, $"exit code {p.ExitCode}");
         } catch (Exception ex) {

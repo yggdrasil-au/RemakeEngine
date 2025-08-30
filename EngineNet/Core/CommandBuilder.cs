@@ -57,6 +57,20 @@ public sealed class CommandBuilder {
         }
 
         if (op.TryGetValue("prompts", out var promptsObj) && promptsObj is IList<object?> prompts) {
+            // First pass: seed promptAnswers with defaults so conditions can evaluate
+            foreach (var p in prompts) {
+                if (p is not IDictionary<string, object?> prompt)
+                    continue;
+                var name = prompt.TryGetValue("Name", out var n) ? n?.ToString() ?? "" : "";
+                var type = prompt.TryGetValue("type", out var t) ? t?.ToString() ?? "" : "";
+                if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(type))
+                    continue;
+                if (!promptAnswers.ContainsKey(name) && prompt.TryGetValue("default", out var defVal)) {
+                    promptAnswers[name] = defVal;
+                }
+            }
+
+            // Second pass: map answers to CLI args respecting conditions
             foreach (var p in prompts) {
                 if (p is not IDictionary<string, object?> prompt)
                     continue;
@@ -105,4 +119,3 @@ public sealed class CommandBuilder {
         return parts;
     }
 }
-
