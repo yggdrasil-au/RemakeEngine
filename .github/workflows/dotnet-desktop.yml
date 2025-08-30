@@ -116,13 +116,14 @@ jobs:
 
       - name: Zip artifact
         shell: pwsh
-        run: Compress-Archive -Path out\win-x64\* -DestinationPath app-win-x64.zip
+        run: Compress-Archive -Path out\win-x64\* -DestinationPath RemakeEngineCore-win-x64.zip
 
       - name: Create GitHub Release and upload artifact
         env:
           GITHUB_TOKEN: ${{ secrets.SUPERSECRET_TOKEN }}
         shell: pwsh
         run: |
-          gh release create "${{ github.ref_name }}" app-win-x64.zip `
+          gh release create "${{ github.ref_name }}" RemakeEngineCore-win-x64.zip `
             --title "${{ github.ref_name }}" `
             --notes "Automated release for ${{ github.ref_name }}"
+

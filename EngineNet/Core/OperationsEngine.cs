@@ -259,7 +259,7 @@ public sealed class OperationsEngine {
                         cancellationToken: cancellationToken);
                 } else if (string.Equals(format, "str", StringComparison.OrdinalIgnoreCase)) {
                     // Use existing BMS extraction script
-                    var scriptPath = System.IO.Path.Combine(_rootPath, "Tools", "QuickBMS", "bms_extract.py");
+                    var scriptPath = System.IO.Path.Combine(_rootPath, "EnginePy", "Tooling", "bms_extract.py");
                     var pythonExe = ResolvePythonExecutable();
                     var runner = new ProcessRunner();
                     // Use simple console handlers to ensure output visibility
