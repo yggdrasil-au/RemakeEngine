@@ -45,11 +45,10 @@ Remake Engine follows a clean separation of engine vs. content:
 
 - **Engine:** C# code in `EngineNet/` provides the CLI, loads configurations, resolves placeholders, and executes operations. The optional GUI lives in `EngineNet.Interface.GUI.Avalonia/`.
 - **Content:**
-  - `RemakeRegistry/Games/<GameName>/`: Contains `operations.json`, scripts, and game-specific assets. Currently `scripts/init.lua` is the only script ported to Lua/JavaScript; other scripts remain legacy Windows-only Python.
   - `project.json`: Optional global config file defining paths and settings, accessible via placeholders.
   - `Tools/`: Contains shared tools, scripts, or executables used by multiple games.
 
-Example modules such as [TheSimpsonsGame-PS3](https://github.com/Superposition28/TheSimpsonsGame-PS3) demonstrate the new Lua/JS workflow.
+Example modules such as [TheSimpsonsGame-PS3](https://github.com/Superposition28/TheSimpsonsGame-PS3) demonstrate the new Lua workflow.
 
 ---
 
