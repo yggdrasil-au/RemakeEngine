@@ -45,13 +45,60 @@ public sealed class Registries {
 
         foreach (var dir in Directory.EnumerateDirectories(_gamesRegistryPath)) {
             var ops = System.IO.Path.Combine(dir, "operations.json");
-            if (File.Exists(ops)) {
-                var name = new DirectoryInfo(dir).Name;
-                games[name] = new GameInfo(
-                    opsFile: System.IO.Path.GetFullPath(ops),
-                    gameRoot: System.IO.Path.GetFullPath(dir)
-                );
+            if (!File.Exists(ops))
+                continue;
+
+            var gameToml = System.IO.Path.Combine(dir, "game.toml");
+            if (!File.Exists(gameToml))
+                continue; // not installed – requires a valid game.toml
+
+            // Parse a minimal subset of TOML: top-level key = "value" pairs
+            string? exePath = null;
+            string? title = null;
+            try {
+                foreach (var raw in File.ReadAllLines(gameToml)) {
+                    var line = raw.Trim();
+                    if (line.Length == 0 || line.StartsWith("#"))
+                        continue;
+                    // ignore tables/arrays
+                    if (line.StartsWith("[") && line.EndsWith("]"))
+                        continue;
+                    var eq = line.IndexOf('=');
+                    if (eq <= 0)
+                        continue;
+                    var key = line.Substring(0, eq).Trim();
+                    var valRaw = line.Substring(eq + 1).Trim();
+                    string? val;
+                    if (valRaw.StartsWith("\"") && valRaw.EndsWith("\""))
+                        val = valRaw.Substring(1, valRaw.Length - 2);
+                    else
+                        val = valRaw;
+
+                    if (key.Equals("exe", StringComparison.OrdinalIgnoreCase) || key.Equals("executable", StringComparison.OrdinalIgnoreCase))
+                        exePath = val;
+                    else if (key.Equals("title", StringComparison.OrdinalIgnoreCase) || key.Equals("name", StringComparison.OrdinalIgnoreCase))
+                        title = val;
+                }
+            } catch {
+                // malformed game.toml – reject
+                continue;
             }
+
+            if (string.IsNullOrWhiteSpace(exePath))
+                continue;
+
+            // Resolve and validate executable
+            var exeFull = System.IO.Path.IsPathRooted(exePath!) ? exePath! : System.IO.Path.Combine(dir, exePath!);
+            if (!File.Exists(exeFull))
+                continue; // exe missing – not installed
+
+            var name = new DirectoryInfo(dir).Name;
+            games[name] = new GameInfo(
+                opsFile: System.IO.Path.GetFullPath(ops),
+                gameRoot: System.IO.Path.GetFullPath(dir),
+                exePath: System.IO.Path.GetFullPath(exeFull),
+                title: title
+            );
         }
         return games;
     }

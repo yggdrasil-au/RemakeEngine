@@ -13,10 +13,17 @@ public sealed class GameInfo {
     public string GameRoot {
         get;
     }
+    public string? ExePath {
+        get;
+    }
+    public string? Title {
+        get;
+    }
 
-    public GameInfo(string opsFile, string gameRoot) {
+    public GameInfo(string opsFile, string gameRoot, string? exePath = null, string? title = null) {
         OpsFile = opsFile;
         GameRoot = gameRoot;
+        ExePath = exePath;
+        Title = title;
     }
 }
-

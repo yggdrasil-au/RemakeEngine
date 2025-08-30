@@ -30,12 +30,67 @@ public sealed class OperationsEngine {
     public Dictionary<string, object?> ListGames() {
         var games = new Dictionary<string, object?>();
         foreach (var kv in _registries.DiscoverGames()) {
-            games[kv.Key] = new Dictionary<string, object?> {
+            var info = new Dictionary<string, object?> {
                 ["game_root"] = kv.Value.GameRoot,
                 ["ops_file"] = kv.Value.OpsFile
             };
+            if (!string.IsNullOrWhiteSpace(kv.Value.ExePath))
+                info["exe"] = kv.Value.ExePath;
+            if (!string.IsNullOrWhiteSpace(kv.Value.Title))
+                info["title"] = kv.Value.Title;
+            games[kv.Key] = info;
         }
         return games;
+    }
+
+    // Installed-only helpers
+    public Dictionary<string, object?> GetInstalledGames()
+        => ListGames();
+
+    public bool IsModuleInstalled(string name) {
+        var games = _registries.DiscoverGames();
+        return games.ContainsKey(name);
+    }
+
+    public string? GetGameExecutable(string name) {
+        var games = _registries.DiscoverGames();
+        if (games.TryGetValue(name, out var gi))
+            return gi.ExePath;
+        return null;
+    }
+
+    public string? GetGamePath(string name) {
+        // Prefer DiscoverGames (installed) first, then fall back to downloaded location
+        var games = _registries.DiscoverGames();
+        if (games.TryGetValue(name, out var gi))
+            return gi.GameRoot;
+        var dir = System.IO.Path.Combine(_rootPath, "RemakeRegistry", "Games", name);
+        return Directory.Exists(dir) ? dir : null;
+    }
+
+    public bool LaunchGame(string name) {
+        var exe = GetGameExecutable(name);
+        var root = GetGamePath(name) ?? _rootPath;
+        if (string.IsNullOrWhiteSpace(exe) || !File.Exists(exe))
+            return false;
+        try {
+            var psi = new System.Diagnostics.ProcessStartInfo {
+                FileName = exe!,
+                WorkingDirectory = root!,
+                UseShellExecute = true
+            };
+            System.Diagnostics.Process.Start(psi);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    public string GetModuleState(string name) {
+        var dir = System.IO.Path.Combine(_rootPath, "RemakeRegistry", "Games", name);
+        if (!Directory.Exists(dir))
+            return "not_downloaded";
+        return IsModuleInstalled(name) ? "installed" : "downloaded";
     }
 
     public List<Dictionary<string, object?>> LoadOperationsList(string opsFile) {
@@ -357,4 +412,56 @@ public sealed class OperationsEngine {
 
     // --- Module management ---
     public bool DownloadModule(string url) => _git.CloneModule(url);
+
+    // Install a downloaded module by running the "run-all" group (fallback to first group or flat list)
+    public async Task<bool> InstallModuleAsync(
+        string name,
+        ProcessRunner.OutputHandler? onOutput = null,
+        ProcessRunner.EventHandler? onEvent = null,
+        ProcessRunner.StdinProvider? stdinProvider = null,
+        CancellationToken cancellationToken = default)
+    {
+        var gameDir = System.IO.Path.Combine(_rootPath, "RemakeRegistry", "Games", name);
+        var opsFile = System.IO.Path.Combine(gameDir, "operations.json");
+        if (!File.Exists(opsFile))
+            return false;
+
+        // Build a minimal games map for the command builder
+        var games = new Dictionary<string, object?> {
+            [name] = new Dictionary<string, object?> {
+                ["game_root"] = gameDir,
+                ["ops_file"] = opsFile,
+            }
+        };
+
+        // Load groups or flatten
+        var groups = LoadOperations(opsFile);
+        IList<Dictionary<string, object?>> opsList;
+        if (groups.Count > 0) {
+            // Prefer a key named "run-all" (any case)
+            var key = groups.Keys.FirstOrDefault(k => string.Equals(k, "run-all", StringComparison.OrdinalIgnoreCase))
+                      ?? groups.Keys.First();
+            opsList = groups[key];
+        } else {
+            opsList = LoadOperationsList(opsFile);
+        }
+        if (opsList.Count == 0)
+            return false;
+
+        // Run each op streaming output and events
+        var okAll = true;
+        foreach (var op in opsList) {
+            if (cancellationToken.IsCancellationRequested)
+                break;
+            var parts = BuildCommand(name, games, op, new Dictionary<string, object?>());
+            if (parts.Count == 0)
+                continue;
+            var title = op.TryGetValue("Name", out var n) ? n?.ToString() ?? System.IO.Path.GetFileName(parts[1]) : System.IO.Path.GetFileName(parts[1]);
+            var ok = ExecuteCommand(parts, title, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, cancellationToken: cancellationToken);
+            if (!ok)
+                okAll = false;
+        }
+
+        return okAll;
+    }
 }
