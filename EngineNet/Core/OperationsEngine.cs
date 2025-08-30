@@ -16,6 +16,7 @@ public sealed class OperationsEngine {
     private readonly EngineConfig _engineConfig;
     private readonly Registries _registries;
     private readonly CommandBuilder _builder;
+    private readonly GitTools _git;
 
     public OperationsEngine(string rootPath, IToolResolver tools, EngineConfig engineConfig) {
         _rootPath = rootPath;
@@ -23,6 +24,7 @@ public sealed class OperationsEngine {
         _engineConfig = engineConfig;
         _registries = new Registries(rootPath);
         _builder = new CommandBuilder(rootPath);
+        _git = new GitTools(System.IO.Path.Combine(rootPath, "RemakeRegistry", "Games"));
     }
 
     public Dictionary<string, object?> ListGames() {
@@ -352,4 +354,7 @@ public sealed class OperationsEngine {
             envOverrides: envOverrides,
             cancellationToken: cancellationToken);
     }
+
+    // --- Module management ---
+    public bool DownloadModule(string url) => _git.CloneModule(url);
 }

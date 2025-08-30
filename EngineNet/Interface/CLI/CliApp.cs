@@ -55,11 +55,22 @@ public sealed class CliApp {
     }
 
     private int RunInteractiveMenu() {
-        // 1) Pick a game
+        // 1) Pick a game, or offer to download a module if none exist
         var games = _engine.ListGames();
-        if (games.Count == 0) {
+        while (games.Count == 0) {
+            Console.Clear();
             Console.WriteLine("No games found in RemakeRegistry/Games.");
-            return 0;
+            var actions = new List<string> { "Download module (URL)…", "Exit" };
+            Console.WriteLine("? Choose an action:");
+            var aidx = SelectFromMenu(actions);
+            if (aidx < 0 || actions[aidx] == "Exit")
+                return 0;
+            if (actions[aidx].StartsWith("Download")) {
+                var url = PromptText("Enter Git URL of the module");
+                if (!string.IsNullOrWhiteSpace(url))
+                    _engine.DownloadModule(url);
+                games = _engine.ListGames();
+            }
         }
         var gameName = Pick("Select a game:", new List<string>(games.Keys));
         if (string.IsNullOrEmpty(gameName))
@@ -109,6 +120,7 @@ public sealed class CliApp {
                 menu.Add(name);
             }
             menu.Add("---------------");
+            menu.Add("Download module (URL)…");
             menu.Add("Change Game");
             menu.Add("Exit");
 
@@ -121,6 +133,13 @@ public sealed class CliApp {
             if (selection == "Change Game") {
                 // Restart the full menu loop by re-picking game
                 return RunInteractiveMenu();
+            }
+            if (selection.StartsWith("Download module")) {
+                var url = PromptText("Enter Git URL of the module");
+                if (!string.IsNullOrWhiteSpace(url))
+                    _engine.DownloadModule(url);
+                games = _engine.ListGames();
+                continue;
             }
             if (selection == "Exit") {
                 return 0;
@@ -165,9 +184,13 @@ public sealed class CliApp {
 
     private bool ExecuteOp(string game, IDictionary<string, object?> games, Dictionary<string, object?> op, Dictionary<string, object?> answers) {
         var type = (op.TryGetValue("script_type", out var st) ? st?.ToString() : null)?.ToLowerInvariant();
-        if (type == "engine") {
-            return _engine.ExecuteEngineOperationAsync(game, games, op, answers).GetAwaiter().GetResult();
+
+        // Use embedded handlers for engine/lua/js to avoid external dependencies
+        if (type == "engine" || type == "lua" || type == "js") {
+            return _engine.RunSingleOperationAsync(game, games, op, answers).GetAwaiter().GetResult();
         }
+
+        // Default: build and execute as external command (e.g., python)
         var parts = _engine.BuildCommand(game, games, op, answers);
         if (parts.Count < 2)
             return false;
@@ -187,6 +210,11 @@ public sealed class CliApp {
         Console.WriteLine(title);
         var idx = SelectFromMenu(options);
         return idx >= 0 && idx < options.Count ? options[idx] : string.Empty;
+    }
+
+    private static string PromptText(string title) {
+        Console.Write($"{title}: ");
+        try { return Console.ReadLine() ?? string.Empty; } catch { return string.Empty; }
     }
 
     private static int SelectFromMenu(IList<string> items, bool highlightSeparators = false) {
@@ -334,11 +362,19 @@ public sealed class CliApp {
         foreach (var op in ops) {
             var answers = new Dictionary<string, object?>();
             CollectAnswersForOperation(op, answers);
+
+            var type = (op.TryGetValue("script_type", out var st) ? st?.ToString() : null)?.ToLowerInvariant();
+            if (type == "engine" || type == "lua" || type == "js") {
+                var ok = _engine.RunSingleOperationAsync(game, games, op, answers).GetAwaiter().GetResult();
+                okAll &= ok;
+                continue;
+            }
+
             var parts = _engine.BuildCommand(game, games, op, answers);
             if (parts.Count < 2)
                 continue;
             var title = op.TryGetValue("Name", out var n) ? n?.ToString() ?? Path.GetFileName(parts[1]) : Path.GetFileName(parts[1]);
-            var ok = _engine.ExecuteCommand(
+            var okExt = _engine.ExecuteCommand(
                 parts,
                 title,
                 onOutput: OnOutput,
@@ -346,7 +382,7 @@ public sealed class CliApp {
                 stdinProvider: StdinProvider,
                 envOverrides: new Dictionary<string, object?> { ["TERM"] = "dumb" }
             );
-            okAll &= ok;
+            okAll &= okExt;
         }
         return okAll ? 0 : 1;
     }

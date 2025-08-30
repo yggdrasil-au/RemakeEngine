@@ -88,7 +88,8 @@ public class MainForm:Form {
         foreach (var (name, metaObj) in reg) {
             var row = new Panel { Width = _storeList.ClientSize.Width - 30, Height = 34, Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top };
             var lbl = new Label { Text = name, AutoSize = true, Left = 6, Top = 8 };
-            var btn = new Button { Text = "Not Implemented", Enabled = false, Width = 120, Left = row.Width - 126, Top = 4, Anchor = AnchorStyles.Top | AnchorStyles.Right };
+            var btn = new Button { Text = "Install", Enabled = true, Width = 120, Left = row.Width - 126, Top = 4, Anchor = AnchorStyles.Top | AnchorStyles.Right };
+            btn.Click += (_, __) => InstallModuleFromRegistry(name, metaObj);
             row.Controls.Add(lbl);
             row.Controls.Add(btn);
             _storeList.Controls.Add(row);
@@ -174,5 +175,31 @@ public class MainForm:Form {
         dlg.Controls.Add(ok);
         return dlg.ShowDialog() == DialogResult.OK ? tb.Text : null;
     }
-}
 
+    private void InstallModuleFromRegistry(string name, object? metaObj) {
+        try {
+            if (metaObj is not Dictionary<string, object?> meta) {
+                MessageBox.Show("Invalid registry entry.", "Install", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            if (!meta.TryGetValue("url", out var u) || u is not string url || string.IsNullOrWhiteSpace(url)) {
+                MessageBox.Show("No Git URL in registry for this module.", "Install", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            // Run clone in background to keep UI responsive
+            _tabInstalling.Text = $"Installing – {name}";
+            _tabs.SelectedTab = _tabInstalling;
+            Task.Run(() => {
+                var ok = _engine.DownloadModule(url);
+                BeginInvoke(new Action(() => {
+                    MessageBox.Show(ok ? $"Installed '{name}'." : $"Failed to install '{name}'.", "Install");
+                    RefreshLibrary();
+                    RefreshStore();
+                    _tabs.SelectedTab = _tabStore;
+                }));
+            });
+        } catch (Exception ex) {
+            MessageBox.Show(ex.Message, "Install", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+}
