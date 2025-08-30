@@ -463,7 +463,7 @@ public sealed class OperationsEngine {
     // --- Module management ---
     public bool DownloadModule(string url) => _git.CloneModule(url);
 
-    // Install a downloaded module by running the "run-all" group (fallback to first group or flat list)
+    // Install a downloaded module by running the "run-all" operation
     public async Task<bool> InstallModuleAsync(
         string name,
         ProcessRunner.OutputHandler? onOutput = null,
