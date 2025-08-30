@@ -14,13 +14,11 @@ public sealed class CommandBuilder {
         if (scriptType == "python") {
             var isWin = OperatingSystem.IsWindows();
             if (isWin) {
-                var local = Path.Combine(_rootPath, "runtime", "python3", "python.exe");
-                if (File.Exists(local))
-                    return local;
+				return "python";
             }
-            return "python";
+            return "python3";
         }
-        return scriptType; // e.g., "lua", "js", or any interpreter in PATH
+        return scriptType; // just returns script type as executable name
     }
 
     public List<string> Build(

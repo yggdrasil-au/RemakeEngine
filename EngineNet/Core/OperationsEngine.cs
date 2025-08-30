@@ -213,37 +213,47 @@ public sealed class OperationsEngine {
         var scriptPath = parts[1];
         var args = parts.Skip(2).ToArray();
 
-        switch (scriptType) {
-            case "lua": {
-                var action = new LuaScriptAction(scriptPath, args);
-                await action.ExecuteAsync(_tools, cancellationToken);
-                return true;
-            }
-            case "js": {
-                var action = new JsScriptAction(scriptPath, args);
-                await action.ExecuteAsync(_tools, cancellationToken);
-                return true;
-            }
-            case "engine": {
-                try {
-                    var action = op.TryGetValue("script", out var s) ? s?.ToString() : null;
-                    var title = op.TryGetValue("Name", out var n) ? n?.ToString() ?? action : action;
-                    Console.ForegroundColor = ConsoleColor.DarkCyan;
-                    Console.WriteLine($"\n>>> Engine operation: {title}");
-                    Console.ResetColor();
-                    var ok = await ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, cancellationToken);
-                    return ok;
-                } catch (Exception ex) {
-                    Console.Error.WriteLine($"ERROR: {ex.Message}");
-                    return false;
+        var result = false;
+        try {
+            switch (scriptType) {
+                case "lua": {
+                    var action = new LuaScriptAction(scriptPath, args);
+                    await action.ExecuteAsync(_tools, cancellationToken);
+                    result = true;
+                    break;
+                }
+                case "js": {
+                    var action = new JsScriptAction(scriptPath, args);
+                    await action.ExecuteAsync(_tools, cancellationToken);
+                    result = true;
+                    break;
+                }
+                case "engine": {
+                    try {
+                        var action = op.TryGetValue("script", out var s) ? s?.ToString() : null;
+                        var title = op.TryGetValue("Name", out var n) ? n?.ToString() ?? action : action;
+                        Console.ForegroundColor = ConsoleColor.DarkCyan;
+                        Console.WriteLine($"\n>>> Engine operation: {title}");
+                        Console.ResetColor();
+                        result = await ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, cancellationToken);
+                    } catch (Exception ex) {
+                        Console.Error.WriteLine($"ERROR: {ex.Message}");
+                        result = false;
+                    }
+                    break;
+                }
+                case "python":
+                default: {
+                    var runner = new ProcessRunner();
+                    result = runner.Execute(parts, Path.GetFileName(scriptPath), cancellationToken: cancellationToken);
+                    break;
                 }
             }
-            case "python":
-            default: {
-                var runner = new ProcessRunner();
-                return runner.Execute(parts, Path.GetFileName(scriptPath), cancellationToken: cancellationToken);
-            }
+        } finally {
+            // Ensure we pick up any config changes (e.g., init.lua writes project.json)
+            ReloadProjectConfig();
         }
+        return result;
     }
 
     public async Task<bool> ExecuteEngineOperationAsync(
@@ -275,7 +285,7 @@ public sealed class OperationsEngine {
                     ["Name"] = currentGame,
                 };
                 var resolvedManifest = Placeholders.Resolve(manifest!, ctx)?.ToString() ?? manifest!;
-                var central = Path.Combine(_rootPath, "Tools.json");
+                var central = Path.Combine(_rootPath, "RemakeRegistry/Tools.json");
                 var force = false;
                 if (promptAnswers.TryGetValue("force download", out var fd) && fd is bool b1)
                     force = b1;
@@ -334,7 +344,7 @@ public sealed class OperationsEngine {
                         cancellationToken: cancellationToken);
                 } else if (string.Equals(format, "str", StringComparison.OrdinalIgnoreCase)) {
                     // Use existing BMS extraction script
-                    var scriptPath = System.IO.Path.Combine(_rootPath, "EnginePy", "Tooling", "bms_extract.py");
+                    var scriptPath = System.IO.Path.Combine(_rootPath, "EnginePy", "FormatHandlers", "bms_extract.py");
                     var pythonExe = ResolvePythonExecutable();
                     var runner = new ProcessRunner();
                     // Use simple console handlers to ensure output visibility
@@ -398,6 +408,28 @@ public sealed class OperationsEngine {
 
     private string ResolvePythonExecutable() {
         return "python";
+    }
+
+    // Refresh in-memory config from project.json so placeholders resolve with latest values.
+    private void ReloadProjectConfig() {
+        try {
+            var projectJson = Path.Combine(_rootPath, "project.json");
+            if (!File.Exists(projectJson))
+                return;
+            using var fs = File.OpenRead(projectJson);
+            using var doc = JsonDocument.Parse(fs);
+            if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                return;
+            var map = ToMap(doc.RootElement);
+            var data = _engineConfig.Data;
+            if (data is null)
+                return;
+            data.Clear();
+            foreach (var kv in map)
+                data[kv.Key] = kv.Value;
+        } catch {
+            // Non-fatal; keep previous config if reload fails.
+        }
     }
 
 
@@ -476,6 +508,8 @@ public sealed class OperationsEngine {
                 continue;
             var title = op.TryGetValue("Name", out var n) ? n?.ToString() ?? System.IO.Path.GetFileName(parts[1]) : System.IO.Path.GetFileName(parts[1]);
             var ok = ExecuteCommand(parts, title, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, cancellationToken: cancellationToken);
+            // After each operation, refresh project.json in memory for subsequent resolutions.
+            ReloadProjectConfig();
             if (!ok)
                 okAll = false;
         }

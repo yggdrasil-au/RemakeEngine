@@ -6,7 +6,7 @@ import time
 
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'LegacyEnginePy')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '.')))
 from LegacyEnginePy.Utils.printer import print, Colours
 from LegacyEnginePy.Utils import Engine_sdk as sdk  # prompt, progress, warn, error, start, end
 

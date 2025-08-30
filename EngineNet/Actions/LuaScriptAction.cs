@@ -160,6 +160,20 @@ public sealed class LuaScriptAction:IAction {
         // lfs shim
         var lfs = new Table(lua);
         lfs["currentdir"] = (Func<string>)(() => Environment.CurrentDirectory);
+        // lfs.mkdir(path) -> true on success, nil on failure (minimal behavior)
+        lfs["mkdir"] = (Func<string, DynValue>)((path) =>
+        {
+            try
+            {
+                Directory.CreateDirectory(path);
+                return DynValue.True;
+            }
+            catch (Exception)
+            {
+                // Return nil to indicate failure; message not used by current scripts
+                return DynValue.Nil;
+            }
+        });
         lfs["attributes"] = (Func<string, DynValue>)((path) =>
         {
             if (Directory.Exists(path))
@@ -331,7 +345,8 @@ public sealed class LuaScriptAction:IAction {
 
     private static List<string> TableToStringList(Table t) {
         var list = new List<string>();
-        for (int i = 1; ; i++) {
+    // Iterate up to the numeric length; stop when we hit a Nil entry
+    for (int i = 1; i <= t.Length; i++) {
             var dv = t.Get(i);
             if (dv.Type == DataType.Nil || dv.Type == DataType.Void) break;
             var s = dv.Type == DataType.String ? dv.String : dv.ToPrintString();
