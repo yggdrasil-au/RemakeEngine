@@ -1,0 +1,55 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="RemakeEngine.Interface.GUI.Avalonia.Views.MainWindow"
+        Width="1024" Height="700"
+        Title="RemakeEngine – Play">
+  <TabControl>
+    <TabItem Header="Library">
+      <DockPanel>
+        <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="8">
+          <TextBlock Text="Installed Games" VerticalAlignment="Center"/>
+          <Button Content="Refresh" Command="{Binding RefreshLibraryCommand}" HorizontalAlignment="Right" Margin="8,0,0,0"/>
+        </StackPanel>
+        <ScrollViewer>
+          <ItemsControl ItemsSource="{Binding Library}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="4" ColumnDefinitions="*,Auto">
+                  <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                  <Button Grid.Column="1" Content="Run…" Command="{Binding DataContext.RunGameCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </DockPanel>
+    </TabItem>
+
+    <TabItem Header="Store">
+      <DockPanel>
+        <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="8">
+          <TextBlock Text="Store" VerticalAlignment="Center"/>
+          <Button Content="Refresh" Command="{Binding RefreshStoreCommand}" HorizontalAlignment="Right" Margin="8,0,0,0"/>
+        </StackPanel>
+        <ScrollViewer>
+          <ItemsControl ItemsSource="{Binding Store}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="4" ColumnDefinitions="*,Auto">
+                  <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                  <Button Grid.Column="1" Content="Install" Command="{Binding DataContext.InstallModuleCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </DockPanel>
+    </TabItem>
+
+    <TabItem Header="Installing">
+      <Grid>
+        <TextBlock Text="Installing…" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+      </Grid>
+    </TabItem>
+  </TabControl>
+</Window>

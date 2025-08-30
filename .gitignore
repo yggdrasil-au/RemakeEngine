@@ -28,9 +28,11 @@ remakeengine/Scripts/activate/
 ############################
 build/
 dist/
-EngineNet/bin/
-EngineNet/obj/
-EngineNet.csproj.user
+bin/
+obj/
+EngineNet/Interface/GUI.Avalonia/bin/
+EngineNet/Interface/GUI.Avalonia/obj/
+*.csproj.user
 
 ############################
 # Logs

@@ -72,9 +72,29 @@ public sealed class CliApp {
                 games = _engine.ListGames();
             }
         }
-        var gameName = Pick("Select a game:", new List<string>(games.Keys));
-        if (string.IsNullOrEmpty(gameName))
-            return 0;
+        // Allow managing modules from the game selection menu
+        string gameName;
+        while (true) {
+            Console.Clear();
+            Console.WriteLine("Select a game:");
+            var gameMenu = new List<string>(games.Keys);
+            gameMenu.Add("---------------");
+            gameMenu.Add("Download module (URL)…");
+            gameMenu.Add("Exit");
+            var gidx = SelectFromMenu(gameMenu, highlightSeparators: true);
+            if (gidx < 0 || gameMenu[gidx] == "Exit")
+                return 0;
+            var gsel = gameMenu[gidx];
+            if (gsel.StartsWith("Download module")) {
+                var url = PromptText("Enter Git URL of the module");
+                if (!string.IsNullOrWhiteSpace(url))
+                    _engine.DownloadModule(url);
+                games = _engine.ListGames();
+                continue; // show game list again
+            }
+            gameName = gsel;
+            break;
+        }
 
         // 2) Load operations list and render menu
         if (!games.TryGetValue(gameName, out var infoObj) || infoObj is not Dictionary<string, object?> info) {
@@ -120,7 +140,6 @@ public sealed class CliApp {
                 menu.Add(name);
             }
             menu.Add("---------------");
-            menu.Add("Download module (URL)…");
             menu.Add("Change Game");
             menu.Add("Exit");
 
@@ -133,13 +152,6 @@ public sealed class CliApp {
             if (selection == "Change Game") {
                 // Restart the full menu loop by re-picking game
                 return RunInteractiveMenu();
-            }
-            if (selection.StartsWith("Download module")) {
-                var url = PromptText("Enter Git URL of the module");
-                if (!string.IsNullOrWhiteSpace(url))
-                    _engine.DownloadModule(url);
-                games = _engine.ListGames();
-                continue;
             }
             if (selection == "Exit") {
                 return 0;

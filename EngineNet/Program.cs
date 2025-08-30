@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using RemakeEngine.Core;
 using RemakeEngine.Interface.CLI;
-using RemakeEngine.Interface.GUI;
 using RemakeEngine.Tools;
 using System.Linq;
 
@@ -36,9 +35,9 @@ internal static class Program {
             if (args.Length != 0 || args.Any(a => string.Equals(a, "menu", StringComparison.OrdinalIgnoreCase)))
                 return new CliApp(engine).Run(args);
             else if (args.Length == 0 || args.Any(a => string.Equals(a, "gui", StringComparison.OrdinalIgnoreCase)))
-                return RemakeEngine.Interface.GUI.WinFormsGui.Run(engine);
+                return RemakeEngine.Interface.GUI.Avalonia.AvaloniaGui.Run(engine);
             else
-                return RemakeEngine.Interface.GUI.WinFormsGui.Run(engine);
+                return RemakeEngine.Interface.GUI.Avalonia.AvaloniaGui.Run(engine);
         } catch (Exception ex) {
             Console.Error.WriteLine($"ERROR: {ex.Message}");
             return 1;

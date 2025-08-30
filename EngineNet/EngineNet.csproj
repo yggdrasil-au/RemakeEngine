@@ -11,4 +11,7 @@
     <PackageReference Include="MoonSharp" Version="2.0.0" />
     <PackageReference Include="Jint" Version="4.4.1" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EngineNet.Interface.GUI.Avalonia\EngineNet.Interface.GUI.Avalonia.csproj" />
+  </ItemGroup>
 </Project>

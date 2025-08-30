@@ -12,9 +12,9 @@
 			"path": "RemakeRegistry/Games/SimpsonsHitAndRun",
 			"url": "https://github.com/Superposition28/SimpsonsHitAndRun.git"
 		},
-		"TheSimpsonsRoadRage": {
-			"path": "RemakeRegistry/Games/TheSimpsonsRoadRage",
-			"url": "https://github.com/Superposition28/TheSimpsonsRoadRage.git"
+		"TheSimpsonsRoadRage-PS2": {
+			"path": "RemakeRegistry/Games/TheSimpsonsRoadRage-PS2",
+			"url": "https://github.com/Superposition28/TheSimpsonsRoadRage-PS2.git"
 		}
 	}
 }
