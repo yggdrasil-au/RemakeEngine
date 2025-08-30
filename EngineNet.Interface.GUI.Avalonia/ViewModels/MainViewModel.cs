@@ -189,24 +189,40 @@ public sealed class MainViewModel : System.ComponentModel.INotifyPropertyChanged
         PromptIsVisible = false; PromptQuestion = null; PromptAnswer = string.Empty; OnPropertyChanged(nameof(PromptQuestion)); OnPropertyChanged(nameof(PromptAnswer));
 
         // Handlers
-        System.Action<string, string> outH = (line, stream) =>
+    System.Action<string, string> outH = (line, stream) =>
         {
             Dispatcher.UIThread.Post(() => { ConsoleText += (string.IsNullOrEmpty(ConsoleText) ? "" : "\r\n") + line; });
         };
-        System.Action<System.Collections.Generic.Dictionary<string, object?>> evtH = (evt) =>
+    System.Action<System.Collections.Generic.Dictionary<string, object?>> evtH = (evt) =>
+    {
+        var kind = evt.TryGetValue("event", out var e) ? e?.ToString() ?? string.Empty : string.Empty;
+        if (string.Equals(kind, "prompt", StringComparison.OrdinalIgnoreCase))
         {
-            var kind = evt.TryGetValue("event", out var e) ? e?.ToString() ?? string.Empty : string.Empty;
-            if (string.Equals(kind, "prompt", StringComparison.OrdinalIgnoreCase))
-            {
-                var msg = evt.TryGetValue("message", out var m) ? m?.ToString() ?? "Input required" : "Input required";
-                Dispatcher.UIThread.Post(() => { PromptQuestion = msg; PromptIsVisible = true; OnPropertyChanged(nameof(PromptQuestion)); });
-                _activePromptTcs = new System.Threading.Tasks.TaskCompletionSource<string?>();
-            }
-            else if (string.Equals(kind, "progress", StringComparison.OrdinalIgnoreCase))
-            {
-                var label = evt.TryGetValue("label", out var l) ? l?.ToString() ?? "Working" : "Working";
-                int current = 0, total = 0;
-                try { if (evt.TryGetValue("current", out var c)) current = Convert.ToInt32(c); } catch { }
+            var msg = evt.TryGetValue("message", out var m) ? m?.ToString() ?? "Input required" : "Input required";
+            Dispatcher.UIThread.Post(() => { PromptQuestion = msg; PromptIsVisible = true; OnPropertyChanged(nameof(PromptQuestion)); });
+            _activePromptTcs = new System.Threading.Tasks.TaskCompletionSource<string?>();
+        }
+        else if (string.Equals(kind, "print", StringComparison.OrdinalIgnoreCase))
+        {
+            var msg = evt.TryGetValue("message", out var m) ? m?.ToString() ?? string.Empty : string.Empty;
+            // For now, append plain text; GUI TextBox does not render colors
+            Dispatcher.UIThread.Post(() => { ConsoleText += (string.IsNullOrEmpty(ConsoleText) ? "" : "\r\n") + msg; });
+        }
+        else if (string.Equals(kind, "warning", StringComparison.OrdinalIgnoreCase))
+        {
+            var msg = evt.TryGetValue("message", out var m) ? m?.ToString() ?? string.Empty : string.Empty;
+            Dispatcher.UIThread.Post(() => { ConsoleText += (string.IsNullOrEmpty(ConsoleText) ? "" : "\r\n") + "⚠ " + msg; });
+        }
+        else if (string.Equals(kind, "error", StringComparison.OrdinalIgnoreCase))
+        {
+            var msg = evt.TryGetValue("message", out var m) ? m?.ToString() ?? string.Empty : string.Empty;
+            Dispatcher.UIThread.Post(() => { ConsoleText += (string.IsNullOrEmpty(ConsoleText) ? "" : "\r\n") + "✖ " + msg; });
+        }
+        else if (string.Equals(kind, "progress", StringComparison.OrdinalIgnoreCase))
+        {
+            var label = evt.TryGetValue("label", out var l) ? l?.ToString() ?? "Working" : "Working";
+            int current = 0, total = 0;
+            try { if (evt.TryGetValue("current", out var c)) current = Convert.ToInt32(c); } catch { }
                 try { if (evt.TryGetValue("total", out var t)) total = Convert.ToInt32(t); } catch { }
                 UpdateInstallProgress(moduleName, label, current, total);
             }
@@ -215,9 +231,20 @@ public sealed class MainViewModel : System.ComponentModel.INotifyPropertyChanged
                 Dispatcher.UIThread.Post(() => { RemoveInstallRow(moduleName); RefreshStore(); RefreshLibrary(); PromptIsVisible = false; OnPropertyChanged(nameof(PromptQuestion)); });
             }
         };
-        System.Func<string?> stdin = () => _activePromptTcs?.Task.GetAwaiter().GetResult();
+    System.Func<string?> stdin = () => _activePromptTcs?.Task.GetAwaiter().GetResult();
+    // Convert to engine-specific delegate types via reflection to avoid compile-time reference
+    var engineType = _engine.GetType();
+    var asm = engineType.Assembly;
+    var prType = asm.GetType("RemakeEngine.Core.ProcessRunner");
+    var outputHandlerType = prType?.GetNestedType("OutputHandler");
+    var eventHandlerType = prType?.GetNestedType("EventHandler");
+    var stdinProviderType = prType?.GetNestedType("StdinProvider");
 
-        var task = (System.Threading.Tasks.Task<bool>)_engine.InstallModuleAsync(moduleName, outH, evtH, stdin);
+    var outDel = outputHandlerType != null ? System.Delegate.CreateDelegate(outputHandlerType, outH.Target!, outH.Method, true) : null;
+    var evtDel = eventHandlerType != null ? System.Delegate.CreateDelegate(eventHandlerType, evtH.Target!, evtH.Method, true) : null;
+    var stdinDel = stdinProviderType != null ? System.Delegate.CreateDelegate(stdinProviderType, stdin.Target!, stdin.Method, true) : null;
+
+    var task = (System.Threading.Tasks.Task<bool>)_engine.InstallModuleAsync(moduleName, outDel, evtDel, stdinDel);
         return task;
     }
 

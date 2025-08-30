@@ -45,23 +45,41 @@ public sealed class OperationsEngine {
 
     // Installed-only helpers
     public Dictionary<string, object?> GetInstalledGames()
-        => ListGames();
+    {
+        var games = new Dictionary<string, object?>();
+        foreach (var kv in _registries.DiscoverInstalledGames())
+        {
+            var info = new Dictionary<string, object?> {
+                ["game_root"] = kv.Value.GameRoot,
+                ["ops_file"] = kv.Value.OpsFile
+            };
+            if (!string.IsNullOrWhiteSpace(kv.Value.ExePath))
+                info["exe"] = kv.Value.ExePath;
+            if (!string.IsNullOrWhiteSpace(kv.Value.Title))
+                info["title"] = kv.Value.Title;
+            games[kv.Key] = info;
+        }
+        return games;
+    }
+
+    public IReadOnlyDictionary<string, object?> GetRegisteredModules()
+        => _registries.GetRegisteredModules();
 
     public bool IsModuleInstalled(string name) {
-        var games = _registries.DiscoverGames();
+        var games = _registries.DiscoverInstalledGames();
         return games.ContainsKey(name);
     }
 
     public string? GetGameExecutable(string name) {
-        var games = _registries.DiscoverGames();
+        var games = _registries.DiscoverInstalledGames();
         if (games.TryGetValue(name, out var gi))
             return gi.ExePath;
         return null;
     }
 
     public string? GetGamePath(string name) {
-        // Prefer DiscoverGames (installed) first, then fall back to downloaded location
-        var games = _registries.DiscoverGames();
+        // Prefer installed location first, then fall back to downloaded location
+        var games = _registries.DiscoverInstalledGames();
         if (games.TryGetValue(name, out var gi))
             return gi.GameRoot;
         var dir = System.IO.Path.Combine(_rootPath, "RemakeRegistry", "Games", name);

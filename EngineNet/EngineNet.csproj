@@ -1,17 +1,37 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <OutputType>Exe</OutputType>
-    <LangVersion>latest</LangVersion>
-    <UseWindowsForms>true</UseWindowsForms>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="MoonSharp" Version="2.0.0" />
-    <PackageReference Include="Jint" Version="4.4.1" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\EngineNet.Interface.GUI.Avalonia\EngineNet.Interface.GUI.Avalonia.csproj" />
-  </ItemGroup>
+	<PropertyGroup>
+		<TargetFrameworks>
+			<!-- Cross-platform target for Linux/macOS/Windows via Avalonia/console -->
+			net8.0;
+			net9.0;
+			<!-- macOS/osx target -->
+			net8.0-macos;
+			net9.0-macos;
+			<!-- Windows UI target -->
+			net8.0-windows10.0.19041.0;
+			net9.0-windows10.0.19041.0;
+		</TargetFrameworks>
+
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<OutputType>Exe</OutputType>
+		<LangVersion>latest</LangVersion>
+		<!-- Only enable WinForms when building for Windows -->
+		<UseWindowsForms Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">true</UseWindowsForms>
+
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</SupportedOSPlatformVersion>
+		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</TargetPlatformMinVersion>
+
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="MoonSharp" Version="2.0.0" />
+		<PackageReference Include="Jint" Version="4.4.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\EngineNet.Interface.GUI.Avalonia\EngineNet.Interface.GUI.Avalonia.csproj" />
+	</ItemGroup>
+
 </Project>

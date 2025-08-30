@@ -7,6 +7,7 @@ using MoonSharp.Interpreter;
 using RemakeEngine.Tools;
 using RemakeEngine.Utils;
 using System.Globalization;
+using System.Text.Json;
 
 namespace RemakeEngine.Actions;
 
@@ -53,7 +54,7 @@ public sealed class LuaScriptAction:IAction {
         UserData.RegisterType<EngineSdk.Progress>();
 
         // EngineSdk wrappers
-        lua.Globals["warn"] = (Action<string>)EngineSdk.Warn;
+		lua.Globals["warn"] = (Action<string>)EngineSdk.Warn;
         lua.Globals["error"] = (Action<string>)EngineSdk.Error;
 
         // emit(event, data?) where data is an optional Lua table
@@ -64,7 +65,7 @@ public sealed class LuaScriptAction:IAction {
         });
 
         // prompt(message, id?, secret?) -> string
-        lua.Globals["prompt"] = (Func<DynValue, DynValue, DynValue, string>)((message, id, secret) => {
+		lua.Globals["prompt"] = (Func<DynValue, DynValue, DynValue, string>)((message, id, secret) => {
             var msg = message.Type == DataType.String ? message.String : message.ToPrintString();
             var pid = (id.Type == DataType.Nil || id.Type == DataType.Void) ? "q1" : (id.Type == DataType.String ? id.String : id.ToPrintString());
             var sec = (secret.Type == DataType.Boolean) && secret.Boolean;
@@ -72,18 +73,43 @@ public sealed class LuaScriptAction:IAction {
         });
 
         // progress(total, id?, label?) -> EngineSdk.Progress userdata
-        lua.Globals["progress"] = (Func<int, string?, string?, EngineSdk.Progress>)((total, id, label) => {
+		lua.Globals["progress"] = (Func<int, string?, string?, EngineSdk.Progress>)((total, id, label) => {
             var pid = string.IsNullOrEmpty(id) ? "p1" : id!;
             return new EngineSdk.Progress(total, pid, label);
         });
 
-        // sdk: config and filesystem helpers
-        var sdk = new Table(lua);
+        // sdk: config/filesystem helpers + terminal print helpers
+		var sdk = new Table(lua);
+        // color/colour print: accepts either (color, message[, newline]) or a table { colour=?, color=?, message=?, newline=? }
+        CallbackFunction colorPrintFunc = new CallbackFunction((ctx, args) =>
+        {
+            string? color = null; string message = string.Empty; bool newline = true;
+            if (args.Count >= 2 && (args[0].Type == DataType.String || args[0].Type == DataType.UserData))
+            {
+                // color, message, [newline]
+                color = args[0].ToPrintString();
+                message = args[1].Type == DataType.String ? args[1].String : args[1].ToPrintString();
+                if (args.Count >= 3 && args[2].Type == DataType.Boolean) newline = args[2].Boolean;
+            }
+            else if (args.Count >= 1 && args[0].Type == DataType.Table)
+            {
+                var t = args[0].Table;
+                var c = t.Get("color"); if (c.IsNil()) c = t.Get("colour");
+                if (!c.IsNil()) color = c.Type == DataType.String ? c.String : c.ToPrintString();
+                var m = t.Get("message"); if (!m.IsNil()) message = m.Type == DataType.String ? m.String : m.ToPrintString();
+                var nl = t.Get("newline"); if (!nl.IsNil() && nl.Type == DataType.Boolean) newline = nl.Boolean;
+            }
+            EngineSdk.Print(message, color, newline);
+            return DynValue.Nil;
+        });
+        sdk["color_print"] = DynValue.NewCallback(colorPrintFunc);
+        sdk["colour_print"] = DynValue.NewCallback(colorPrintFunc);
         sdk["ensure_project_config"] = (Func<string, string>)((root) => ConfigHelpers.EnsureProjectConfig(root));
         sdk["validate_source_dir"] = (Func<string, bool>)((dir) => {
             try { ConfigHelpers.ValidateSourceDir(dir); return true; }
             catch { return false; }
         });
+
         sdk["copy_dir"] = (Func<string, string, DynValue, bool>)((src, dst, overwrite) => {
             try {
                 var ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
@@ -107,7 +133,157 @@ public sealed class LuaScriptAction:IAction {
         });
         lua.Globals["sdk"] = sdk;
 
+        // Preload minimal shims for LuaFileSystem (lfs) and dkjson used by game modules
+		PreloadShimModules(lua, _scriptPath);
+		Console.WriteLine($"Running lua script '{_scriptPath}' with {_args.Length} args...");
         await Task.Run(() => lua.DoString(code), cancellationToken);
+    }
+
+    private static void PreloadShimModules(Script lua, string scriptPath)
+    {
+        // Ensure package.loaded exists
+        var package = lua.Globals.Get("package").IsNil() ? new Table(lua) : lua.Globals.Get("package").Table;
+        if (package.Get("loaded").IsNil()) package["loaded"] = new Table(lua);
+        var loaded = package.Get("loaded").Table;
+
+        // Minimal 'require' shim: return preloaded modules from package.loaded
+        if (lua.Globals.Get("require").IsNil())
+        {
+            lua.Globals["require"] = (Func<string, DynValue>)(name =>
+            {
+                var mod = loaded.Get(name);
+                if (!mod.IsNil()) return mod;
+                throw new ScriptRuntimeException($"module '{name}' not found (only preloaded modules available)");
+            });
+        }
+
+        // lfs shim
+        var lfs = new Table(lua);
+        lfs["currentdir"] = (Func<string>)(() => Environment.CurrentDirectory);
+        lfs["attributes"] = (Func<string, DynValue>)((path) =>
+        {
+            if (Directory.Exists(path))
+            {
+                var t = new Table(lua);
+                t["mode"] = "directory";
+                return DynValue.NewTable(t);
+            }
+            if (File.Exists(path))
+            {
+                var info = new FileInfo(path);
+                var t = new Table(lua);
+                t["mode"] = "file";
+                t["size"] = info.Length;
+                t["modtime"] = info.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture);
+                return DynValue.NewTable(t);
+            }
+            return DynValue.Nil;
+        });
+        lfs["dir"] = (Func<string, DynValue>)((path) =>
+        {
+            // Return an iterator function like lfs.dir
+            IEnumerable<string> Enumerate()
+            {
+                // In real lfs, '.' and '..' are included; we'll include them for compatibility
+                yield return ".";
+                yield return "..";
+                if (Directory.Exists(path))
+                {
+                    foreach (var entry in Directory.EnumerateFileSystemEntries(path))
+                    {
+                        yield return Path.GetFileName(entry);
+                    }
+                }
+            }
+            var enumerator = Enumerate().GetEnumerator();
+            CallbackFunction iterator = new CallbackFunction((ctx, args) =>
+            {
+                if (enumerator.MoveNext())
+                {
+                    return DynValue.NewString(enumerator.Current);
+                }
+                return DynValue.Nil;
+            });
+            return DynValue.NewCallback(iterator);
+        });
+        loaded["lfs"] = DynValue.NewTable(lfs);
+
+        // dkjson shim: provides encode(value, opts?) and decode(string)
+        var dkjson = new Table(lua);
+        dkjson["encode"] = (Func<DynValue, DynValue, string>)((val, opts) =>
+        {
+            bool indent = false;
+            if (opts.Type == DataType.Table)
+            {
+                var indentVal = opts.Table.Get("indent");
+                indent = indentVal.Type == DataType.Boolean && indentVal.Boolean;
+            }
+            var obj = FromDynValue(val);
+            var jsonOpts = new JsonSerializerOptions { WriteIndented = indent };
+            return JsonSerializer.Serialize(obj, jsonOpts);
+        });
+        dkjson["decode"] = (Func<string, DynValue>)((json) =>
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                return JsonElementToDynValue(lua, doc.RootElement);
+            }
+            catch
+            {
+                return DynValue.Nil; // caller will treat as error
+            }
+        });
+        loaded["dkjson"] = DynValue.NewTable(dkjson);
+
+        // debug shim: provide getinfo with .source used by modules to find their file path
+        var debugTbl = lua.Globals.Get("debug").IsNil() ? new Table(lua) : lua.Globals.Get("debug").Table;
+        debugTbl["getinfo"] = (Func<DynValue, DynValue, DynValue>)((level, what) =>
+        {
+            var t = new Table(lua);
+            // Lua expects '@' prefix for file paths
+            t["source"] = "@" + scriptPath;
+            return DynValue.NewTable(t);
+        });
+        lua.Globals["debug"] = debugTbl;
+
+        // publish back package (in case it didn't exist)
+        lua.Globals["package"] = package;
+    }
+
+    private static DynValue JsonElementToDynValue(Script lua, JsonElement el)
+    {
+        switch (el.ValueKind)
+        {
+            case JsonValueKind.Object:
+                var t = new Table(lua);
+                foreach (var p in el.EnumerateObject())
+                {
+                    t[p.Name] = JsonElementToDynValue(lua, p.Value);
+                }
+                return DynValue.NewTable(t);
+            case JsonValueKind.Array:
+                var arr = new Table(lua);
+                int i = 1;
+                foreach (var item in el.EnumerateArray())
+                {
+                    arr[i++] = JsonElementToDynValue(lua, item);
+                }
+                return DynValue.NewTable(arr);
+            case JsonValueKind.String:
+                return DynValue.NewString(el.GetString() ?? string.Empty);
+            case JsonValueKind.Number:
+                if (el.TryGetDouble(out var d)) return DynValue.NewNumber(d);
+                return DynValue.NewNumber(0);
+            case JsonValueKind.True:
+                return DynValue.True;
+            case JsonValueKind.False:
+                return DynValue.False;
+            case JsonValueKind.Null:
+            case JsonValueKind.Undefined:
+            default:
+                return DynValue.Nil;
+        }
     }
 
     private static IDictionary<string, object?> TableToDictionary(Table table) {

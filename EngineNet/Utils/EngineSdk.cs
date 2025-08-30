@@ -11,6 +11,13 @@ namespace RemakeEngine.Utils;
 /// </summary>
 public static class EngineSdk {
     public const string Prefix = "@@REMAKE@@ ";
+    /// <summary>
+    /// Optional in-process event sink. When set, Emit will invoke this
+    /// delegate with the event payload. If <see cref="MuteStdoutWhenLocalSink"/>
+    /// is true, stdout emission is suppressed to avoid double-printing.
+    /// </summary>
+    public static Action<Dictionary<string, object?>>? LocalEventSink { get; set; }
+    public static bool MuteStdoutWhenLocalSink { get; set; } = true;
 
     private static readonly JsonSerializerOptions JsonOpts = new() {
         WriteIndented = false,
@@ -29,6 +36,16 @@ public static class EngineSdk {
         if (data != null) {
             foreach (var kv in data)
                 payload[kv.Key] = kv.Value;
+        }
+
+        // Notify in-process sink first (if any)
+        if (LocalEventSink != null) {
+            try {
+                // Pass a shallow copy to avoid accidental modifications by receivers
+                LocalEventSink(new Dictionary<string, object?>(payload, StringComparer.Ordinal));
+            } catch { /* ignore sink errors */ }
+            if (MuteStdoutWhenLocalSink)
+                return;
         }
 
         string json;
@@ -60,6 +77,16 @@ public static class EngineSdk {
     /// Report an error to the engine UI/log (does not exit the process).
     /// </summary>
     public static void Error(string message) => Emit("error", new Dictionary<string, object?> { ["message"] = message });
+
+    /// <summary>
+    /// Informational message (non-warning).
+    /// </summary>
+    public static void Info(string message) => Print(message, color: "cyan");
+
+    /// <summary>
+    /// Success message (green).
+    /// </summary>
+    public static void Success(string message) => Print(message, color: "green");
 
     /// <summary>
     /// Mark the start of an operation or phase.
@@ -128,5 +155,25 @@ public static class EngineSdk {
             });
         }
     }
-}
 
+    // --- Terminal printing helpers ---
+    /// <summary>
+    /// Emit a colored print event. Color names are case-insensitive and map to typical console colors:
+    /// default, gray, darkgray, red, darkred, green, darkgreen, yellow, darkyellow, blue, darkblue, magenta, darkmagenta, cyan, darkcyan, white.
+    /// </summary>
+    public static void Print(string message, string? color = null, bool newline = true) {
+        var data = new Dictionary<string, object?> {
+            ["message"] = message,
+            ["color"] = string.IsNullOrWhiteSpace(color) ? null : color,
+            ["newline"] = newline
+        };
+        Emit("print", data);
+    }
+
+    /// <summary>
+    /// Emit a colored print event using a ConsoleColor.
+    /// </summary>
+    public static void Print(string message, ConsoleColor color, bool newline = true) {
+        Print(message, color.ToString(), newline);
+    }
+}

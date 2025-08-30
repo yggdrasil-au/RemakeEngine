@@ -27,7 +27,7 @@ public sealed class ToolsDownloader {
             try {
                 Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_centralRepoJsonPath)) ?? _rootPath);
             } catch { }
-            RemakeEngine.Core.RemoteFallbacks.EnsureRepoFile("Tools.json", _centralRepoJsonPath);
+            RemakeEngine.Core.RemoteFallbacks.EnsureRepoFile("RemakeRegistry/Tools.json", _centralRepoJsonPath);
         }
         if (!File.Exists(_centralRepoJsonPath))
             throw new FileNotFoundException("Central tools registry not found", _centralRepoJsonPath);

@@ -1,16 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text.Json;
 using RemakeEngine.Core;
+using RemakeEngine.Utils;
 
 namespace RemakeEngine.Interface.CLI;
 
-public sealed class CliApp {
-    private readonly OperationsEngine _engine;
+public partial class CliApp {
+    private readonly RemakeEngine.Core.OperationsEngine _engine;
 
-    public CliApp(OperationsEngine engine) => _engine = engine;
+    public CliApp(RemakeEngine.Core.OperationsEngine engine) => _engine = engine;
 
     public int Run(string[] args) {
         // Strip global flags that Program.cs already handled, like --root PATH
@@ -32,21 +28,20 @@ public sealed class CliApp {
             return RunInteractiveMenu();
         }
 
-        if (args[0] is "-h" or "--help" or "help") {
-            PrintHelp();
-            return 0;
-        }
-
         var cmd = args[0].ToLowerInvariant();
         switch (cmd) {
-            case "menu":
+			case "help":
+			case "-h":
+			case "--help":
+				PrintHelp();
+				return 0;
+			case "--cli":
+            case "--menu":
                 return RunInteractiveMenu();
-            case "list-games":
+            case "--list-games":
                 return ListGames();
-            case "list-ops":
+            case "--list-ops":
                 return ListOps(GetArg(args, 1, "<game> required for list-ops"));
-            case "run":
-                return RunGroup(GetArg(args, 1, "<game> required"), GetArg(args, 2, "<group> required"));
             default:
                 Console.Error.WriteLine($"Unknown command '{args[0]}'.");
                 PrintHelp();
@@ -54,142 +49,73 @@ public sealed class CliApp {
         }
     }
 
-    private int RunInteractiveMenu() {
-        // 1) Pick a game, or offer to download a module if none exist
+    private int ListGames() {
         var games = _engine.ListGames();
-        while (games.Count == 0) {
-            Console.Clear();
+        if (games.Count == 0) {
             Console.WriteLine("No games found in RemakeRegistry/Games.");
-            var actions = new List<string> { "Download module (URL)…", "Exit" };
-            Console.WriteLine("? Choose an action:");
-            var aidx = SelectFromMenu(actions);
-            if (aidx < 0 || actions[aidx] == "Exit")
-                return 0;
-            if (actions[aidx].StartsWith("Download")) {
-                var url = PromptText("Enter Git URL of the module");
-                if (!string.IsNullOrWhiteSpace(url))
-                    _engine.DownloadModule(url);
-                games = _engine.ListGames();
-            }
+            return 0;
         }
-        // Allow managing modules from the game selection menu
-        string gameName;
+        foreach (var (name, obj) in games) {
+            if (obj is Dictionary<string, object?> dict && dict.TryGetValue("game_root", out var root))
+                Console.WriteLine($"- {name}  (root: {root})");
+        }
+        return 0;
+    }
+
+    private void ShowDownloadMenu() {
         while (true) {
             Console.Clear();
-            Console.WriteLine("Select a game:");
-            var gameMenu = new List<string>(games.Keys);
-            gameMenu.Add("---------------");
-            gameMenu.Add("Download module (URL)…");
-            gameMenu.Add("Exit");
-            var gidx = SelectFromMenu(gameMenu, highlightSeparators: true);
-            if (gidx < 0 || gameMenu[gidx] == "Exit")
-                return 0;
-            var gsel = gameMenu[gidx];
-            if (gsel.StartsWith("Download module")) {
-                var url = PromptText("Enter Git URL of the module");
-                if (!string.IsNullOrWhiteSpace(url))
-                    _engine.DownloadModule(url);
-                games = _engine.ListGames();
-                continue; // show game list again
-            }
-            gameName = gsel;
-            break;
-        }
+            Console.WriteLine("Download module:");
+            var items = new List<string> {
+                "From registry (RemakeRegistry/register.json)…",
+                "From Git URL…",
+                "Back"
+            };
+            Console.WriteLine("? Choose a source:");
+            var idx = SelectFromMenu(items);
+            if (idx < 0 || items[idx] == "Back")
+                return;
 
-        // 2) Load operations list and render menu
-        if (!games.TryGetValue(gameName, out var infoObj) || infoObj is not Dictionary<string, object?> info) {
-            Console.Error.WriteLine("Selected game not found.");
-            return 1;
-        }
-        if (!info.TryGetValue("ops_file", out var of) || of is not string opsFile) {
-            Console.Error.WriteLine("Selected game is missing ops_file.");
-            return 1;
-        }
-        var allOps = _engine.LoadOperationsList(opsFile);
-        var initOps = allOps.FindAll(op => op.TryGetValue("init", out var i) && i is bool b && b);
-        var regularOps = allOps.FindAll(op => !op.ContainsKey("init") || !(op["init"] is bool bb && bb));
-        var didRunInit = false;
-
-        // Auto-run init operations once when a game is selected
-        if (initOps.Count > 0) {
-            Console.Clear();
-            Console.WriteLine($"Running {initOps.Count} initialization operation(s) for {gameName}\n");
-            var okAllInit = true;
-            foreach (var op in initOps) {
-                var answers = new Dictionary<string, object?>();
-                CollectAnswersForOperation(op, answers);
-                var ok = ExecuteOp(gameName, games, op, answers);
-                okAllInit &= ok;
-            }
-            didRunInit = true;
-            if (!okAllInit) {
-                Console.WriteLine("One or more init operations failed. Press any key to continue…");
-                Console.ReadKey(true);
-            }
-        }
-
-        while (true) {
-            Console.Clear();
-            Console.WriteLine($"--- Operations for: {gameName}");
-            var menu = new List<string>();
-            menu.Add("Run All");
-            menu.Add("---------------");
-            foreach (var op in regularOps) {
-                var name = op.TryGetValue("Name", out var n) && n is string s && !string.IsNullOrWhiteSpace(s)
-                    ? s : Path.GetFileName(op.TryGetValue("script", out var sc) ? sc?.ToString() ?? "(unnamed)" : "(unnamed)");
-                menu.Add(name);
-            }
-            menu.Add("---------------");
-            menu.Add("Change Game");
-            menu.Add("Exit");
-
-            Console.WriteLine("? Select an operation: (Use arrow keys)");
-            var idx = SelectFromMenu(menu, highlightSeparators: true);
-            if (idx < 0)
-                return 0; // canceled
-
-            var selection = menu[idx];
-            if (selection == "Change Game") {
-                // Restart the full menu loop by re-picking game
-                return RunInteractiveMenu();
-            }
-            if (selection == "Exit") {
-                return 0;
-            }
-            if (selection == "Run All") {
-                // Collect prompts for all selected ops: init + run-all flagged
-                var runAll = new List<Dictionary<string, object?>>();
-                if (!didRunInit)
-                    runAll.AddRange(initOps);
-                foreach (var op in regularOps)
-                    if (op.TryGetValue("run-all", out var ra) && ra is bool rb && rb)
-                        runAll.Add(op);
-
-                Console.Clear();
-                Console.WriteLine($"Running {runAll.Count} operations for {gameName}…\n");
-                var okAll = true;
-                foreach (var op in runAll) {
-                    var answers = new Dictionary<string, object?>();
-                    CollectAnswersForOperation(op, answers);
-                    var ok = ExecuteOp(gameName, games, op, answers);
-                    okAll &= ok;
+            var choice = items[idx];
+            if (choice.StartsWith("From registry")) {
+                // Load registry entries and list modules
+                var regs = _engine.GetRegisteredModules();
+                if (regs.Count == 0) {
+                    Console.WriteLine("No modules in registry. Press any key to go back…");
+                    Console.ReadKey(true);
+                    continue;
                 }
-                Console.WriteLine(okAll ? "Completed successfully. Press any key to continue…" : "One or more operations failed. Press any key to continue…");
-                Console.ReadKey(true);
-                continue;
+
+                var names = regs.Keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase).ToList();
+                names.Add("Back");
+                Console.Clear();
+                Console.WriteLine("Select a module to download:");
+                var mIdx = SelectFromMenu(names);
+                if (mIdx < 0 || names[mIdx] == "Back")
+                    continue;
+
+                var name = names[mIdx];
+                if (!regs.TryGetValue(name, out var obj) || obj is not Dictionary<string, object?> mod) {
+                    Console.WriteLine("Invalid module entry. Press any key…");
+                    Console.ReadKey(true);
+                    continue;
+                }
+                var url = mod.TryGetValue("url", out var u) ? u?.ToString() : null;
+                if (string.IsNullOrWhiteSpace(url)) {
+                    Console.WriteLine("Selected module has no URL. Press any key…");
+                    Console.ReadKey(true);
+                    continue;
+                }
+                _engine.DownloadModule(url!);
+                // After download, return to previous menu so games list can refresh
+                return;
             }
 
-            // Otherwise, run a single operation (by index within regular ops)
-            var opIndex = idx - 2; // skip first two menu items
-            if (opIndex >= 0 && opIndex < regularOps.Count) {
-                var op = regularOps[opIndex];
-                var answers = new Dictionary<string, object?>();
-                CollectAnswersForOperation(op, answers);
-                Console.Clear();
-                Console.WriteLine($"Running: {selection}\n");
-                var ok = ExecuteOp(gameName, games, op, answers);
-                Console.WriteLine(ok ? "Completed successfully. Press any key to continue…" : "Operation failed. Press any key to continue…");
-                Console.ReadKey(true);
+            if (choice.StartsWith("From Git URL")) {
+                var url = PromptText("Enter Git URL of the module");
+                if (!string.IsNullOrWhiteSpace(url))
+                    _engine.DownloadModule(url);
+                return;
             }
         }
     }
@@ -199,7 +125,17 @@ public sealed class CliApp {
 
         // Use embedded handlers for engine/lua/js to avoid external dependencies
         if (type == "engine" || type == "lua" || type == "js") {
-            return _engine.RunSingleOperationAsync(game, games, op, answers).GetAwaiter().GetResult();
+            // Route in-process SDK events to our terminal renderer and suppress raw @@REMAKE@@ lines
+            var prevSink = EngineSdk.LocalEventSink;
+            var prevMute = EngineSdk.MuteStdoutWhenLocalSink;
+            try {
+                EngineSdk.LocalEventSink = RemakeEngine.Utils.TerminalUtils.OnEvent;
+                EngineSdk.MuteStdoutWhenLocalSink = true;
+                return _engine.RunSingleOperationAsync(game, games, op, answers).GetAwaiter().GetResult();
+            } finally {
+                EngineSdk.LocalEventSink = prevSink;
+                EngineSdk.MuteStdoutWhenLocalSink = prevMute;
+            }
         }
 
         // Default: build and execute as external command (e.g., python)
@@ -210,23 +146,18 @@ public sealed class CliApp {
         return _engine.ExecuteCommand(
             parts,
             title,
-            onOutput: OnOutput,
-            onEvent: OnEvent,
-            stdinProvider: StdinProvider,
+            onOutput: RemakeEngine.Utils.TerminalUtils.OnOutput,
+            onEvent: RemakeEngine.Utils.TerminalUtils.OnEvent,
+            stdinProvider: RemakeEngine.Utils.TerminalUtils.StdinProvider,
             envOverrides: new Dictionary<string, object?> { ["TERM"] = "dumb" }
         );
     }
 
-    private static string Pick(string title, IList<string> options) {
-        Console.Clear();
-        Console.WriteLine(title);
-        var idx = SelectFromMenu(options);
-        return idx >= 0 && idx < options.Count ? options[idx] : string.Empty;
-    }
-
     private static string PromptText(string title) {
         Console.Write($"{title}: ");
-        try { return Console.ReadLine() ?? string.Empty; } catch { return string.Empty; }
+        try {
+            return Console.ReadLine() ?? string.Empty;
+        } catch { return string.Empty; }
     }
 
     private static int SelectFromMenu(IList<string> items, bool highlightSeparators = false) {
@@ -275,67 +206,6 @@ public sealed class CliApp {
         return index;
     }
 
-    // --- Handlers to bridge SDK events <-> CLI ---
-    private static string _lastPrompt = "Input required";
-
-    private static void OnOutput(string line, string stream) {
-        var prev = Console.ForegroundColor;
-        try {
-            Console.ForegroundColor = (stream == "stderr") ? ConsoleColor.Red : ConsoleColor.Gray;
-            Console.WriteLine(line);
-        } finally { Console.ForegroundColor = prev; }
-    }
-
-    private static void OnEvent(Dictionary<string, object?> evt) {
-        if (!evt.TryGetValue("event", out var typObj))
-            return;
-        var typ = typObj?.ToString();
-        switch (typ) {
-            case "prompt":
-                _lastPrompt = evt.TryGetValue("message", out var m) ? (m?.ToString() ?? "Input required") : "Input required";
-                var prev = Console.ForegroundColor;
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine($"? {_lastPrompt}");
-                Console.ForegroundColor = prev;
-                break;
-            case "warning":
-                WriteColored($"⚠ {evt.GetValueOrDefault("message", "")}", ConsoleColor.Yellow);
-                break;
-            case "error":
-                WriteColored($"✖ {evt.GetValueOrDefault("message", "")}", ConsoleColor.Red);
-                break;
-        }
-    }
-
-    private static string? StdinProvider() {
-        try {
-            Console.Write("> ");
-            return Console.ReadLine();
-        } catch {
-            return string.Empty;
-        }
-    }
-
-    private static void WriteColored(string message, ConsoleColor color) {
-        var prev = Console.ForegroundColor;
-        Console.ForegroundColor = color;
-        Console.WriteLine(message);
-        Console.ForegroundColor = prev;
-    }
-
-    private int ListGames() {
-        var games = _engine.ListGames();
-        if (games.Count == 0) {
-            Console.WriteLine("No games found in RemakeRegistry/Games.");
-            return 0;
-        }
-        foreach (var (name, obj) in games) {
-            if (obj is Dictionary<string, object?> dict && dict.TryGetValue("game_root", out var root))
-                Console.WriteLine($"- {name}  (root: {root})");
-        }
-        return 0;
-    }
-
     private int ListOps(string game) {
         var games = _engine.ListGames();
         if (!games.TryGetValue(game, out var g)) {
@@ -349,55 +219,6 @@ public sealed class CliApp {
         return 0;
     }
 
-    private int RunGroup(string game, string group) {
-        var games = _engine.ListGames();
-        if (!games.TryGetValue(game, out var g)) {
-            Console.Error.WriteLine($"Game '{game}' not found.");
-            return 1;
-        }
-        if (g is not Dictionary<string, object?> gdict) {
-            Console.Error.WriteLine($"Game '{game}' has invalid metadata.");
-            return 1;
-        }
-        if (!gdict.TryGetValue("ops_file", out var of) || of is not string opsFile) {
-            Console.Error.WriteLine($"Game '{game}' missing ops_file.");
-            return 1;
-        }
-        var doc = _engine.LoadOperations(opsFile);
-        if (!doc.TryGetValue(group, out var ops)) {
-            Console.Error.WriteLine($"Group '{group}' not in {Path.GetFileName(opsFile)}.");
-            return 1;
-        }
-
-        // Execute each operation with live output and SDK prompts
-        var okAll = true;
-        foreach (var op in ops) {
-            var answers = new Dictionary<string, object?>();
-            CollectAnswersForOperation(op, answers);
-
-            var type = (op.TryGetValue("script_type", out var st) ? st?.ToString() : null)?.ToLowerInvariant();
-            if (type == "engine" || type == "lua" || type == "js") {
-                var ok = _engine.RunSingleOperationAsync(game, games, op, answers).GetAwaiter().GetResult();
-                okAll &= ok;
-                continue;
-            }
-
-            var parts = _engine.BuildCommand(game, games, op, answers);
-            if (parts.Count < 2)
-                continue;
-            var title = op.TryGetValue("Name", out var n) ? n?.ToString() ?? Path.GetFileName(parts[1]) : Path.GetFileName(parts[1]);
-            var okExt = _engine.ExecuteCommand(
-                parts,
-                title,
-                onOutput: OnOutput,
-                onEvent: OnEvent,
-                stdinProvider: StdinProvider,
-                envOverrides: new Dictionary<string, object?> { ["TERM"] = "dumb" }
-            );
-            okAll &= okExt;
-        }
-        return okAll ? 0 : 1;
-    }
 
     private static void CollectAnswersForOperation(Dictionary<string, object?> op, Dictionary<string, object?> answers) {
         if (!op.TryGetValue("prompts", out var promptsObj) || promptsObj is not IList<object?> prompts)
@@ -434,17 +255,15 @@ public sealed class CliApp {
 
     private static void PrintHelp() {
         Console.WriteLine(@"RemakeEngine CLI (C#)
+			Usage:
+			engine [--root PATH] --menu
+			engine [--root PATH] --list-games
+			engine [--root PATH] --list-ops <game>
+			engine [--root PATH] --gui
 
-Usage:
-  engine [--root PATH] menu
-  engine [--root PATH] list-games
-  engine [--root PATH] list-ops <game>
-  engine [--root PATH] run <game> <group>
-  engine [--root PATH] gui
-
-Environment:
-  TOOLS_JSON   Path to tools mapping JSON (defaults to Tools/tools.json)
-");
+			Environment:
+			TOOLS_JSON   Path to tools mapping JSON (defaults to Tools/tools.json)
+		");
     }
 
     private static string GetArg(string[] args, int index, string error) {
