@@ -215,10 +215,13 @@ jobs:
           set -euo pipefail
           tag="${{ github.ref_name }}"
           mkdir -p upload
+          # use GNU find from Git Bash
           find dist -type f -name '*.zip' -exec cp {} upload/ \;
           echo "Assets:"; ls -1 upload
+
+          # IMPORTANT: the backslashes must be the last char on the line (no trailing spaces/comments)
           gh release create "$tag" upload/*.zip \
-            --repo "${{ github.repository }}" \   # <-- remove need for .git
+            --repo "${{ github.repository }}" \
             --title "$tag" \
             --notes "Automated multi-platform release for $tag"
 

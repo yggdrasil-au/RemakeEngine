@@ -215,11 +215,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.SUPERSECRET_TOKEN }}   # works with PAT too
         run: |
-          set -euo pipefail
-          tag="${{ github.ref_name }}"
-          mkdir -p upload
-          find dist -type f -name '*.zip' -exec cp {} upload/ \;
-          gh release create "$tag" upload/*.zip \
-            --title "$tag" \
-            --notes "Automated multi-platform release for $tag"
-
+          $ErrorActionPreference = "Stop"
+          $tag = "${{ github.ref_name }}"
+          New-Item -ItemType Directory -Path upload -Force | Out-Null
+          Get-ChildItem -Path dist -Recurse -Filter *.zip | Copy-Item -Destination upload -Force
+          $zips = (Get-ChildItem upload\*.zip).FullName
+          gh release create $tag $zips --title $tag --notes "Automated multi-platform release for $tag"
