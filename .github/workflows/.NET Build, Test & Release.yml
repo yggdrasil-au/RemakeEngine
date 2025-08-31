@@ -106,35 +106,35 @@ jobs:
           # Windows
           - os: windows-latest
             rid: win-x64
-          - os: windows-latest
-            rid: win-arm64
+          #- os: windows-latest
+          #  rid: win-arm64
           # Linux
-          - os: ubuntu-latest
-            rid: linux-x64
-          - os: ubuntu-latest
-            rid: linux-arm64
+          #- os: ubuntu-latest
+          #  rid: linux-x64
+          #- os: ubuntu-latest
+          #  rid: linux-arm64
           # macOS (Intel/x64 and Apple Silicon/arm64)
-          - os: macos-13
-            rid: osx-x64
-          - os: macos-14
-            rid: osx-arm64
-    runs-on: ${{ matrix.os }}
+          #- os: macos-13
+          #  rid: osx-x64
+          #- os: macos-14
+          #  rid: osx-arm64
+    #runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     env:
-      App_Project: EngineNet/EngineNet.csproj
+      Solution_Name: RemakeEngine.sln
+      App_Project: EngineNet\EngineNet.csproj
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        with: { fetch-depth: 0 }
 
       - name: Setup .NET SDK 8.x
         uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.x
+        with: { dotnet-version: 8.0.x }
 
       - name: Publish (${{ matrix.rid }})
         shell: pwsh
-        run: dotnet publish "$App_Project" -v:d -c Release -f net8.0 -r ${{ matrix.rid }} --self-contained true -o out/${{ matrix.rid }} -p:PublishSingleFile=true
+        run: dotnet publish EngineNet\EngineNet.csproj -v:d -c Release -f net8.0 -r ${{ matrix.rid }} --self-contained true -o out/${{ matrix.rid }} -p:PublishSingleFile=true
 
       - name: Package zip (Windows)
         if: runner.os == 'Windows'
@@ -146,9 +146,9 @@ jobs:
 
       - name: Package zip (Unix)
         if: runner.os != 'Windows'
-        shell: pwsh
+        shell: bash
         run: |
-          $zipName = "EngineNet-${{ matrix.rid }}-${{ github.ref_name }}.zip"
+          zipName="EngineNet-${{ matrix.rid }}-${{ github.ref_name }}.zip"
           (cd "out/${{ matrix.rid }}" && zip -q -r "../$zipName" .)
           mv "out/${{ matrix.rid }}/../$zipName" "$zipName"
           echo "ZIP_NAME=$zipName" >> "$GITHUB_ENV"
