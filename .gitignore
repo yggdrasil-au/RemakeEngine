@@ -17,6 +17,9 @@ __pycache__/
 .pytest_cache/
 remakeengine/Scripts/activate/
 
+coverage.opencover.xml
+
+
 ############################
 # Godot
 ############################
@@ -116,6 +119,8 @@ localereftableD4815ED6.txt
 test/
 investigation_tools/blank.blend
 investigation_tools/blank.blend1
+
+
 
 ############################
 # Temporary / Backup / Archived
