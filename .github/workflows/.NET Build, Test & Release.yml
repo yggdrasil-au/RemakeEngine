@@ -71,16 +71,16 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Restore
-        shell: bash
+        shell: pwsh
         run: dotnet restore "$Solution_Name" -p:TargetFramework=$ForceTFM
 
       - name: Build
-        shell: bash
+        shell: pwsh
         run: dotnet build "$Solution_Name" -c "${{ matrix.configuration }}" --no-restore -p:TargetFramework=$ForceTFM
 
       - name: Discover tests
         id: discover_tests
-        shell: bash
+        shell: pwsh
         run: |
           if find . -type f -name "*Tests.csproj" | grep -q .; then
             echo "found=true" >> "$GITHUB_OUTPUT"
@@ -92,12 +92,12 @@ jobs:
 
       - name: Test
         if: steps.discover_tests.outputs.found == 'true'
-        shell: bash
+        shell: pwsh
         run: dotnet test "$Solution_Name" -c "${{ matrix.configuration }}" --no-build -p:TargetFramework=$ForceTFM --verbosity normal
 
   release_matrix:
     name: Release build (${{ matrix.rid }} on ${{ matrix.os }})
-    if: startsWith(github.ref, 'refs/tags/')
+    #if: startsWith(github.ref, 'refs/tags/')
     needs: build
     strategy:
       fail-fast: false
@@ -106,13 +106,13 @@ jobs:
           # Windows
           - os: windows-latest
             rid: win-x64
-          #- os: windows-latest
-          #  rid: win-arm64
+          - os: windows-latest
+            rid: win-arm64
           # Linux
-          #- os: ubuntu-latest
-          #  rid: linux-x64
-          #- os: ubuntu-latest
-          #  rid: linux-arm64
+          - os: windows-latest
+            rid: linux-x64
+          - os: windows-latest
+            rid: linux-arm64
           # macOS (Intel/x64 and Apple Silicon/arm64)
           #- os: macos-13
           #  rid: osx-x64
@@ -146,7 +146,7 @@ jobs:
 
       - name: Package zip (Unix)
         if: runner.os != 'Windows'
-        shell: bash
+        shell: pwsh
         run: |
           zipName="EngineNet-${{ matrix.rid }}-${{ github.ref_name }}.zip"
           (cd "out/${{ matrix.rid }}" && zip -q -r "../$zipName" .)
