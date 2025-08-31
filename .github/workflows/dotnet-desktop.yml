@@ -46,6 +46,9 @@ on:
     #branches: [ "main" ]
   workflow_dispatch: {} # allow manual runs
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build & Test (${{ matrix.os }} | ${{ matrix.configuration }})
@@ -97,7 +100,7 @@ jobs:
 
   release_matrix:
     name: Release build (${{ matrix.rid }} on ${{ matrix.os }})
-    if: startsWith(github.ref, 'refs/tags/')
+  if: ${{ always() && startsWith(github.ref, 'refs/tags/') }}
     needs: build
     strategy:
       fail-fast: false
@@ -165,7 +168,7 @@ jobs:
 
   publish_release:
     name: Create GitHub Release
-    if: startsWith(github.ref, 'refs/tags/')
+    if: ${{ always() && startsWith(github.ref, 'refs/tags/') }}
     needs: release_matrix
     runs-on: ubuntu-latest
     steps:
@@ -175,9 +178,32 @@ jobs:
           path: dist
 
       - name: List artifacts
-        run: ls -laR dist
+        run: |
+          if [ -d dist ]; then
+            ls -laR dist
+          else
+            echo "No artifacts directory present."
+          fi
+
+      - name: Check for assets
+        id: check_assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -d dist ]; then
+            count=$(find dist -type f -name '*.zip' | wc -l | xargs)
+          else
+            count=0
+          fi
+          echo "Found $count archive(s)"
+          if [ "$count" -gt 0 ]; then
+            echo "HAS_ASSETS=true" >> "$GITHUB_ENV"
+          else
+            echo "HAS_ASSETS=false" >> "$GITHUB_ENV"
+          fi
 
       - name: Create release and upload assets
+        if: env.HAS_ASSETS == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
