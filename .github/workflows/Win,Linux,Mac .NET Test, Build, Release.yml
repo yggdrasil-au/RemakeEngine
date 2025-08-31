@@ -36,7 +36,7 @@
 # For a complete CI/CD sample to get started with GitHub Action workflows for Desktop Applications,
 # refer to https://github.com/microsoft/github-actions-for-desktop-apps
 
-name: .NET Build, Test & Release
+name: Win,Linux,Mac .NET Test, Build, Release.yml
 
 on:
   push:
@@ -198,24 +198,19 @@ jobs:
           retention-days: 7
 
   publish_release:
-    name: Create GitHub Release
     if: startsWith(github.ref, 'refs/tags/')
     needs: release_matrix
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    runs-on: windows-latest
+    permissions: { contents: write }
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: dist
+      - uses: actions/download-artifact@v4
+        with: { path: dist }
 
-      - name: List artifacts
-        run: ls -laR dist
+      - run: ls -laR dist
 
       - name: Create release and upload assets
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.SUPERSECRET_TOKEN }}   # gh prefers GH_TOKEN
         run: |
           set -euo pipefail
           tag="${{ github.ref_name }}"
@@ -223,5 +218,7 @@ jobs:
           find dist -type f -name '*.zip' -exec cp {} upload/ \;
           echo "Assets:"; ls -1 upload
           gh release create "$tag" upload/*.zip \
+            --repo "${{ github.repository }}" \   # <-- remove need for .git
             --title "$tag" \
             --notes "Automated multi-platform release for $tag"
+
