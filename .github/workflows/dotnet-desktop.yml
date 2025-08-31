@@ -46,9 +46,6 @@ on:
     #branches: [ "main" ]
   workflow_dispatch: {} # allow manual runs
 
-permissions:
-  contents: write
-
 jobs:
   build:
     name: Build & Test (${{ matrix.os }} | ${{ matrix.configuration }})
@@ -100,27 +97,27 @@ jobs:
 
   release_matrix:
     name: Release build (${{ matrix.rid }} on ${{ matrix.os }})
-    if: ${{ always() && startsWith(github.ref, 'refs/tags/') }}
+    if: startsWith(github.ref, 'refs/tags/')
     needs: build
     strategy:
       fail-fast: false
       matrix:
         include:
-            # Windows
-            - os: windows-latest
-              rid: win-x64
-            - os: windows-latest
-              rid: win-arm64
-            # Linux
-            - os: ubuntu-latest
-              rid: linux-x64
-            - os: ubuntu-latest
-              rid: linux-arm64
-            # macOS (Intel/x64 and Apple Silicon/arm64)
-            - os: macos-13
-              rid: osx-x64
-            - os: macos-14
-              rid: osx-arm64
+          # Windows
+          - os: windows-latest
+            rid: win-x64
+          - os: windows-latest
+            rid: win-arm64
+          # Linux
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: ubuntu-latest
+            rid: linux-arm64
+          # macOS (Intel/x64 and Apple Silicon/arm64)
+          - os: macos-13
+            rid: osx-x64
+          - os: macos-14
+            rid: osx-arm64
     runs-on: ${{ matrix.os }}
     env:
       App_Project: EngineNet/EngineNet.csproj
@@ -168,7 +165,7 @@ jobs:
 
   publish_release:
     name: Create GitHub Release
-    if: ${{ always() && startsWith(github.ref, 'refs/tags/') }}
+    if: startsWith(github.ref, 'refs/tags/')
     needs: release_matrix
     runs-on: ubuntu-latest
     steps:
@@ -178,32 +175,9 @@ jobs:
           path: dist
 
       - name: List artifacts
-        run: |
-          if [ -d dist ]; then
-            ls -laR dist
-          else
-            echo "No artifacts directory present."
-          fi
-
-      - name: Check for assets
-        id: check_assets
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -d dist ]; then
-            count=$(find dist -type f -name '*.zip' | wc -l | xargs)
-          else
-            count=0
-          fi
-          echo "Found $count archive(s)"
-          if [ "$count" -gt 0 ]; then
-            echo "HAS_ASSETS=true" >> "$GITHUB_ENV"
-          else
-            echo "HAS_ASSETS=false" >> "$GITHUB_ENV"
-          fi
+        run: ls -laR dist
 
       - name: Create release and upload assets
-        if: env.HAS_ASSETS == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
