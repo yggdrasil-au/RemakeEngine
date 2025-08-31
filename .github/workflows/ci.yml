@@ -13,23 +13,60 @@ permissions:
 
 jobs:
   ci:
-    name: Lint & Build
+    name: Build, Test, Sonar (.NET)
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v4
-
-  sonar:
-    name: SonarCloud
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    needs: [ci]                 # wait for CI
-    if: always()                # still run to report, even if earlier jobs fail
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0        # better blame/history for analysis
-      - name: Sonar upload cloud scan
-        uses: SonarSource/sonarqube-scan-action@v5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install SonarScanner for .NET
+        run: dotnet tool install --global dotnet-sonarscanner
+
+      - name: SonarCloud Begin
+        run: |
+          dotnet-sonarscanner begin \
+            /k:"yggdrasil-au_RemakeEngine" \
+            /o:"yggdrasil-au" \
+            /d:sonar.host.url="https://sonarcloud.io" \
+            /d:sonar.token="$SONAR_TOKEN" \
+            /d:sonar.sources="EngineNet" \
+            /d:sonar.tests="EngineNet.Tests" \
+            /d:sonar.cs.opencover.reportsPaths="EngineNet.Tests/TestResults/**/coverage.opencover.xml"
+
+      - name: Restore
+        run: |
+          dotnet restore EngineNet/EngineNet.csproj
+          dotnet restore EngineNet.Tests/EngineNet.Tests.csproj
+
+      - name: Build
+        run: |
+          dotnet build EngineNet/EngineNet.csproj --no-restore -c Release -f net8.0
+          dotnet build EngineNet.Tests/EngineNet.Tests.csproj --no-restore -c Release -f net8.0
+
+      - name: Test with coverage (OpenCover)
+        run: |
+          dotnet test EngineNet.Tests/EngineNet.Tests.csproj \
+            --no-build -c Release \
+            --results-directory EngineNet.Tests/TestResults \
+            --collect "XPlat Code Coverage" \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+
+      - name: SonarCloud End
+        run: dotnet-sonarscanner end /d:sonar.token="$SONAR_TOKEN"
+
+      - name: Upload coverage artifact (OpenCover)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-opencover
+          path: EngineNet.Tests/TestResults/**/coverage.opencover.xml

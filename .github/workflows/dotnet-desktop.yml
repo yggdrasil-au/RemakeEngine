@@ -36,7 +36,7 @@
 # For a complete CI/CD sample to get started with GitHub Action workflows for Desktop Applications,
 # refer to https://github.com/microsoft/github-actions-for-desktop-apps
 
-name: .NET Build & Test
+name: .NET Build, Test & Release
 
 on:
   push:
@@ -48,82 +48,145 @@ on:
 
 jobs:
   build:
+    name: Build & Test (${{ matrix.os }} | ${{ matrix.configuration }})
     strategy:
       fail-fast: false
       matrix:
+        os: [windows-latest, ubuntu-latest, macos-14]
         configuration: [Debug, Release]
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
     env:
       Solution_Name: RemakeEngine.sln
+      # Limit to .NET 8 to avoid needing .NET 9 SDK
+      ForceTFM: net8.0
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup .NET SDK
+      - name: Setup .NET SDK 8.x
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
 
       - name: Restore
-        shell: pwsh
-        run: dotnet restore $env:Solution_Name
+        shell: bash
+        run: dotnet restore "$Solution_Name" -p:TargetFramework=$ForceTFM
 
       - name: Build
-        shell: pwsh
-        run: dotnet build $env:Solution_Name --configuration $env:Configuration --no-restore
-        env:
-          Configuration: ${{ matrix.configuration }}
+        shell: bash
+        run: dotnet build "$Solution_Name" -c "${{ matrix.configuration }}" --no-restore -p:TargetFramework=$ForceTFM
 
       - name: Discover tests
         id: discover_tests
-        shell: pwsh
+        shell: bash
         run: |
-          $tests = Get-ChildItem -Recurse -Filter *Tests.csproj | Select-Object -ExpandProperty FullName
-          if ($tests -and $tests.Count -gt 0) {
-            "found=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            # optional: log discovered projects
-            $tests -join "`n" | Write-Host
-          } else {
-            "found=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            Write-Host "No test projects found (skipping dotnet test)."
-          }
+          if find . -type f -name "*Tests.csproj" | grep -q .; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            find . -type f -name "*Tests.csproj" -print
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "No test projects found (skipping dotnet test)."
+          fi
 
       - name: Test
         if: steps.discover_tests.outputs.found == 'true'
-        shell: pwsh
-        run: dotnet test $env:Solution_Name --configuration $env:Configuration --no-build --verbosity normal
-        env:
-          Configuration: ${{ matrix.configuration }}
-  release:
-    if: startsWith(github.ref, 'refs/tags/')    # only on tags
+        shell: bash
+        run: dotnet test "$Solution_Name" -c "${{ matrix.configuration }}" --no-build -p:TargetFramework=$ForceTFM --verbosity normal
+
+  release_matrix:
+    name: Release build (${{ matrix.rid }} on ${{ matrix.os }})
+    if: startsWith(github.ref, 'refs/tags/')
     needs: build
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows
+          - os: windows-latest
+            rid: win-x64
+          - os: windows-latest
+            rid: win-arm64
+          # Linux
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: ubuntu-latest
+            rid: linux-arm64
+          # macOS (Intel/x64 and Apple Silicon/arm64)
+          - os: macos-13
+            rid: osx-x64
+          - os: macos-14
+            rid: osx-arm64
+    runs-on: ${{ matrix.os }}
     env:
-      Solution_Name: RemakeEngine.sln
-      App_Project: EngineNet\EngineNet.csproj
+      App_Project: EngineNet/EngineNet.csproj
+      ForceTFM: net8.0
     steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-      - uses: actions/setup-dotnet@v4
-        with: { dotnet-version: 8.0.x }
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # Publish a Release build (win-x64); tweak RID/self-contained to taste
-      - name: Publish
-        shell: pwsh
-        run: dotnet publish $env:App_Project -c Release -r win-x64 -o out\win-x64 --no-self-contained /p:PublishSingleFile=true
+      - name: Setup .NET SDK 8.x
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
 
-      - name: Zip artifact
-        shell: pwsh
-        run: Compress-Archive -Path out\win-x64\* -DestinationPath RemakeEngineCore-win-x64.zip
+      - name: Publish (${{ matrix.rid }})
+        shell: bash
+        run: |
+          outdir="out/${{ matrix.rid }}"
+          dotnet publish "$App_Project" -c Release -f "$ForceTFM" -r "${{ matrix.rid }}" -o "$outdir" \
+            --self-contained false -p:PublishSingleFile=true
 
-      - name: Create GitHub Release and upload artifact
-        env:
-          GITHUB_TOKEN: ${{ secrets.SUPERSECRET_TOKEN }}
+      - name: Package zip (Windows)
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          gh release create "${{ github.ref_name }}" RemakeEngineCore-win-x64.zip `
-            --title "${{ github.ref_name }}" `
-            --notes "Automated release for ${{ github.ref_name }}"
+          $zipName = "EngineNet-${{ matrix.rid }}-${{ github.ref_name }}.zip"
+          Compress-Archive -Path "out/${{ matrix.rid }}/*" -DestinationPath $zipName
+          echo "ZIP_NAME=$zipName" | Out-File -FilePath $env:GITHUB_ENV -Append
 
+      - name: Package zip (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          zipName="EngineNet-${{ matrix.rid }}-${{ github.ref_name }}.zip"
+          (cd "out/${{ matrix.rid }}" && zip -q -r "../$zipName" .)
+          mv "out/${{ matrix.rid }}/../$zipName" "$zipName"
+          echo "ZIP_NAME=$zipName" >> "$GITHUB_ENV"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ZIP_NAME }}
+          path: ${{ env.ZIP_NAME }}
+
+  publish_release:
+    name: Create GitHub Release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: release_matrix
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: List artifacts
+        run: ls -laR dist
+
+      - name: Create release and upload assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="${{ github.ref_name }}"
+          # Flatten artifacts into a single directory
+          mkdir -p upload
+          find dist -type f -name '*.zip' -exec cp {} upload/ \;
+          echo "Assets:"; ls -1 upload
+          gh release create "$tag" upload/*.zip \
+            --title "$tag" \
+            --notes "Automated multi-platform release for $tag"

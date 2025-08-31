@@ -106,10 +106,22 @@ public static class MediaConverter {
                     Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
 
                     // Pre-skip if destination exists and not overwriting
-                    if (!opt.Overwrite && File.Exists(dest)) {
-                        System.Threading.Interlocked.Increment(ref skipped);
-                        System.Threading.Interlocked.Increment(ref processed);
-                        return;
+                    if (!opt.Overwrite) {
+                        if (opt.GodotCompatible && string.Equals(opt.Type, TypeAudio, StringComparison.OrdinalIgnoreCase)) {
+                            // In Godot mode we produce two files: *_front and *_rear
+                            var basePath = Path.Combine(Path.GetDirectoryName(dest)!, Path.GetFileNameWithoutExtension(dest));
+                            var outFront = basePath + "_front" + opt.OutputExt;
+                            var outRear = basePath + "_rear" + opt.OutputExt;
+                            if (File.Exists(outFront) && File.Exists(outRear)) {
+                                System.Threading.Interlocked.Increment(ref skipped);
+                                System.Threading.Interlocked.Increment(ref processed);
+                                return;
+                            }
+                        } else if (File.Exists(dest)) {
+                            System.Threading.Interlocked.Increment(ref skipped);
+                            System.Threading.Interlocked.Increment(ref processed);
+                            return;
+                        }
                     }
 
                     var (ok, msg) = ConvertOne(src, dest, opt);
@@ -300,11 +312,20 @@ public static class MediaConverter {
                         var outFront = basePath + "_front" + opt.OutputExt;
                         var outRear = basePath + "_rear" + opt.OutputExt;
                         var args = new List<string> {
-                            "-y", "-i", srcPath,
+                            "-y",
+                            "-loglevel", "error",
+                            "-i", srcPath,
                             "-filter_complex",
                             "[0:a]channelsplit=channel_layout=quad[FL][FR][BL][BR];[FL][FR]join=inputs=2:channel_layout=stereo[FRONT];[BL][BR]join=inputs=2:channel_layout=stereo[REAR]",
-                            "-map", "[FRONT]", outFront,
-                            "-map", "[REAR]", outRear,
+                            // Apply codec/quality per output to ensure both files use desired settings
+                            "-map", "[FRONT]",
+                            "-c:a", opt.AudioCodec,
+                            "-q:a", opt.AudioQuality,
+                            outFront,
+                            "-map", "[REAR]",
+                            "-c:a", opt.AudioCodec,
+                            "-q:a", opt.AudioQuality,
+                            outRear,
                         };
                         RegisterActive("ffmpeg", srcPath);
                         try { return Exec(ff, args, opt.Debug); }
@@ -343,11 +364,20 @@ public static class MediaConverter {
                             var outFront = basePath + "_front" + opt.OutputExt;
                             var outRear = basePath + "_rear" + opt.OutputExt;
                             var a2 = new List<string> {
-                                "-y", "-i", tmpWav,
+                                "-y",
+                                "-loglevel", "error",
+                                "-i", tmpWav,
                                 "-filter_complex",
                                 "[0:a]channelsplit=channel_layout=quad[FL][FR][BL][BR];[FL][FR]join=inputs=2:channel_layout=stereo[FRONT];[BL][BR]join=inputs=2:channel_layout=stereo[REAR]",
-                                "-map", "[FRONT]", outFront,
-                                "-map", "[REAR]", outRear,
+                                // Apply codec/quality per output
+                                "-map", "[FRONT]",
+                                "-c:a", opt.AudioCodec,
+                                "-q:a", opt.AudioQuality,
+                                outFront,
+                                "-map", "[REAR]",
+                                "-c:a", opt.AudioCodec,
+                                "-q:a", opt.AudioQuality,
+                                outRear,
                             };
                             RegisterActive("ffmpeg", Path.GetFileName(tmpWav));
                             var (ok2, msg2) = Exec(ff, a2, opt.Debug);
