@@ -43,20 +43,20 @@ jobs:
             /d:sonar.tests="EngineNet.Tests" \
             /d:sonar.cs.opencover.reportsPaths="EngineNet.Tests/TestResults/**/coverage.opencover.xml"
 
-      - name: Restore
+      - name: Restore (net8.0 only)
         run: |
-          dotnet restore EngineNet/EngineNet.csproj
-          dotnet restore EngineNet.Tests/EngineNet.Tests.csproj
+          dotnet restore EngineNet/EngineNet.csproj -p:TargetFramework=net8.0
+          dotnet restore EngineNet.Tests/EngineNet.Tests.csproj -p:TargetFramework=net8.0
 
-      - name: Build
+      - name: Build (net8.0)
         run: |
           dotnet build EngineNet/EngineNet.csproj --no-restore -c Release -f net8.0
           dotnet build EngineNet.Tests/EngineNet.Tests.csproj --no-restore -c Release -f net8.0
 
-      - name: Test with coverage (OpenCover)
+      - name: Test with coverage (OpenCover, net8.0)
         run: |
           dotnet test EngineNet.Tests/EngineNet.Tests.csproj \
-            --no-build -c Release \
+            --no-build -c Release -f net8.0 \
             --results-directory EngineNet.Tests/TestResults \
             --collect "XPlat Code Coverage" \
             -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover

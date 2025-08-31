@@ -64,8 +64,9 @@ public class CommandBuilderTests
 
         var parts = b.Build("TestGame", games, engineConfig, op, new Dictionary<string, object?>());
 
-        Assert.True(parts.Count >= 2);
-        Assert.Equal("python", parts[0]); // On Windows this should be python
+    Assert.True(parts.Count >= 2);
+    var expectedPython = OperatingSystem.IsWindows() ? "python" : "python3";
+    Assert.Equal(expectedPython, parts[0]); // On Windows this should be python
         Assert.Equal(System.IO.Path.Combine(root, "run.py").Replace('\\','/'), parts[1].Replace('\\','/'));
         Assert.Equal(4, parts.Count);
         Assert.Equal("-o", parts[2]);
@@ -123,8 +124,9 @@ public class CommandBuilderTests
 
         var parts = b.Build("TestGame", games, new Dictionary<string, object?>(), op, answers);
 
-        // Expect: python do.py --go --mods a b --path C:/default --sub fine
-        Assert.Equal("python", parts[0]);
+    // Expect: python[3] do.py --go --mods a b --path C:/default --sub fine
+    var expectedPython = OperatingSystem.IsWindows() ? "python" : "python3";
+    Assert.Equal(expectedPython, parts[0]);
         Assert.Equal("do.py", parts[1]);
         Assert.Contains("--go", parts);
         var modsIdx = parts.IndexOf("--mods");
