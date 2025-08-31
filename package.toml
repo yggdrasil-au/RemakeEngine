@@ -1,6 +1,11 @@
-currentVersion = "v2.3.0-A"
+currentVersion = "v2.3.1-A"
 
 [[releases]]
 version = "v2.3.0-A"
 date = "2025-08-31T16:54:39.4337423+10:00"
 tag = "v2.3.0-A"
+
+[[releases]]
+version = "v2.3.1-A"
+date = "2025-08-31T17:17:09.779641+10:00"
+tag = "v2.3.1-A"
