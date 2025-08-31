@@ -31,15 +31,19 @@ public sealed class OperationsEngine {
 
     public Dictionary<string, object?> ListGames() {
         var games = new Dictionary<string, object?>();
+        // Also look up installed games to enrich entries with exe/title when available
+        var installed = _registries.DiscoverInstalledGames();
         foreach (var kv in _registries.DiscoverGames()) {
             var info = new Dictionary<string, object?> {
                 ["game_root"] = kv.Value.GameRoot,
                 ["ops_file"] = kv.Value.OpsFile
             };
-            if (!string.IsNullOrWhiteSpace(kv.Value.ExePath))
-                info["exe"] = kv.Value.ExePath;
-            if (!string.IsNullOrWhiteSpace(kv.Value.Title))
-                info["title"] = kv.Value.Title;
+            if (installed.TryGetValue(kv.Key, out var gi)) {
+                if (!string.IsNullOrWhiteSpace(gi.ExePath))
+                    info["exe"] = gi.ExePath;
+                if (!string.IsNullOrWhiteSpace(gi.Title))
+                    info["title"] = gi.Title;
+            }
             games[kv.Key] = info;
         }
         return games;
