@@ -149,14 +149,14 @@ jobs:
 
       # Optional: Sign (Windows only) using Base64_Encoded_Pfx & Pfx_Key secrets
       # - name: Decode code signing cert
-      #   if: runner.os == 'Windows'
+      #   if: matrix.rid == 'win-x64' || matrix.rid == 'win-arm64'
       #   shell: pwsh
       #   run: |
       #     $bytes = [Convert]::FromBase64String("${{ secrets.Base64_Encoded_Pfx }}")
       #     [IO.File]::WriteAllBytes("signingcert.pfx", $bytes)
       #
       # - name: Import cert (Windows)
-      #   if: runner.os == 'Windows'
+      #   if: matrix.rid == 'win-x64' || matrix.rid == 'win-arm64'
       #   shell: pwsh
       #   run: |
       #     $pwd = ConvertTo-SecureString "${{ secrets.Pfx_Key }}" -AsPlainText -Force
@@ -180,15 +180,6 @@ jobs:
           $zipName = "EngineNet-${{ matrix.rid }}-${{ github.ref_name }}.zip"
           Compress-Archive -Path "out/${{ matrix.rid }}/*" -DestinationPath $zipName
           "ZIP_NAME=$zipName" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-      - name: Package zip (Unix)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          zipName="EngineNet-${{ matrix.rid }}-${{ github.ref_name }}.zip"
-          (cd "out/${{ matrix.rid }}" && zip -q -r "../$zipName" .)
-          mv "out/${{ matrix.rid }}/../$zipName" "$zipName"
-          echo "ZIP_NAME=$zipName" >> "$GITHUB_ENV"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
