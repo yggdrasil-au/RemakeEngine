@@ -69,15 +69,10 @@ jobs:
               /d:sonar.token="${{ secrets.SONAR_TOKEN }}" `
               /d:sonar.cs.opencover.reportsPaths="EngineNet.Tests/TestResults/**/coverage.opencover.xml"
 
-      - name: Restore (solution)
-        shell: powershell
-        run: |
-          dotnet restore RemakeEngine.sln
-
       - name: Build (solution)
         shell: powershell
         run: |
-          dotnet build RemakeEngine.sln --no-restore -c Release
+          dotnet build RemakeEngine.sln -c Release
 
       - name: Test with coverage (OpenCover, net8.0)
         shell: powershell
