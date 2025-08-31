@@ -120,8 +120,7 @@ jobs:
             rid: osx-arm64
     runs-on: ${{ matrix.os }}
     env:
-      App_Project: EngineNet/EngineNet.csproj
-      ForceTFM: net8.0
+      App_Project: EngineNet\EngineNet.csproj
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -136,9 +135,7 @@ jobs:
       - name: Publish (${{ matrix.rid }})
         shell: bash
         run: |
-          outdir="out/${{ matrix.rid }}"
-          dotnet publish "$App_Project" -c Release -f "$ForceTFM" -r "${{ matrix.rid }}" -o "$outdir" \
-            --self-contained false -p:PublishSingleFile=true
+          dotnet publish EngineNet\EngineNet.csproj -v:d -c Release -f net8.0 -r ${{ matrix.rid }} --self-contained true -o out/${{ matrix.rid }} -p:PublishSingleFile=true
 
       - name: Package zip (Windows)
         if: runner.os == 'Windows'
