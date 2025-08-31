@@ -1,140 +1,214 @@
+"""
+Release helper: validates a version, updates TOML + Sonar, commits, pushes, and tags.
+
+Python 3.11+ (uses tomllib)
+"""
+from __future__ import annotations
+
 import argparse
-import time
 import os
 import re
 import subprocess
 import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import cast, Iterable, Sequence
 from datetime import datetime, timezone
 import tomllib  # Python 3.11+ for TOML parsing
 
-VERSION_RE = re.compile(pattern=r'^[vV]?\d+(\.\d+){1,3}([\-+][0-9A-Za-z\.-]+)?$')
+# Accepts: 1.2, 1.2.3, 1.2.3.4, optional leading v/V, and optional -/+-suffix
+VERSION_RE = re.compile(r"^[vV]?\d+(?:\.\d+){1,3}(?:[\-+][0-9A-Za-z\.-]+)?$")
 
-def format_cmd(cmd) -> str:
+# ----------------- subprocess helpers -----------------
+
+def _format_cmd(cmd: Sequence[str] | str) -> str:
     if isinstance(cmd, str):
         return cmd
-    return " ".join([f'"{c}"' if " " in c else str(object=c) for c in cmd])
+    # Purely for pretty printing (no shell involved).
+    return " ".join([f'"{c}"' if (" " in str(c)) else str(c) for c in cmd])
 
-def run(cmd, dry_run=False) -> None:
-    print(f"› {format_cmd(cmd=cmd)}")
+
+def run(cmd: Sequence[str] | str, *, dry_run: bool = False) -> None:
+    print(f"› {_format_cmd(cmd)}")
     if dry_run:
         return
-    res = subprocess.run(args=cmd, shell=isinstance(cmd, str))
+    res = subprocess.run(cmd, check=False, text=True, shell=isinstance(cmd, str))
     if res.returncode != 0:
-        raise RuntimeError(f"Command failed: {format_cmd(cmd=cmd)}")
+        raise RuntimeError(f"Command failed ({res.returncode}): {_format_cmd(cmd)}")
 
-def run_capture(cmd) -> tuple[int, str]:
-    res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+def run_capture(cmd: Sequence[str] | str) -> tuple[int, str]:
+    res = subprocess.run(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        shell=isinstance(cmd, str),
+    )
     return res.returncode, (res.stdout or "").strip()
 
-# --- version compare helpers (numeric-only) ---
-def _numeric_version_tuple(ver: str) -> tuple[int, ...]:
-    """Extract numeric dotted version as a 4-int tuple, ignoring letters and suffixes."""
+# Normalize to the numeric/core part (drop an optional leading v/V).
+def _version_core(ver: str) -> str:
+    v = (ver or "").strip()
+    if v and v[0] in ("v", "V"):
+        v = v[1:]
+    return v
+
+# ----------------- version helpers -----------------
+
+@dataclass(frozen=True)
+class ParsedVersion:
+    nums: tuple[int, int, int, int]  # padded to 4
+    suffix: str  # "" if none
+
+
+def _parse_version(ver: str) -> ParsedVersion | None:
     if not ver:
-        return ()
+        return None
     v = ver.strip()
     if v and v[0] in ("v", "V"):
         v = v[1:]
-    m = re.match(r'^(\d+(?:\.\d+){0,3})', v)
+    m = re.match(r"^(\d+(?:\.\d+){0,3})(.*)$", v)
     if not m:
-        return ()
-    parts = [int(p) for p in m.group(1).split(".")]
+        return None
+    nums_s = m.group(1)
+    suffix = m.group(2) or ""
+    parts = [int(p) for p in nums_s.split(".")]
     while len(parts) < 4:
         parts.append(0)
-    return tuple(parts[:4])
+    # The while loop ensures parts has at least 4 elements, so parts[:4] is safe.
+    # Cast to satisfy type checkers that can't infer the tuple's fixed size.
+    return ParsedVersion(cast(tuple[int, int, int, int], tuple(parts[:4])), suffix)
 
-def _is_newer_version(new_ver: str, cur_ver: str) -> bool:
-    """Return True if new_ver > cur_ver based on numeric parts only."""
-    return _numeric_version_tuple(new_ver) > _numeric_version_tuple(cur_ver)
-# --- end version compare helpers ---
 
-# --- TOML helpers ---
+def _is_newer(new_ver: str, cur_ver: str, *, allow_equal_final: bool = True) -> bool:
+    """Numeric-first compare; treat final (no suffix) > prerelease with same numerics.
+
+    If allow_equal_final is True and numerics are equal, return True when new has no
+    suffix and current has a suffix (e.g., 1.2.3 > 1.2.3-rc.1).
+    """
+    n = _parse_version(new_ver)
+    c = _parse_version(cur_ver)
+    if not n or not c:
+        return False
+    if n.nums > c.nums:
+        return True
+    if n.nums < c.nums:
+        return False
+    # numerics equal
+    if allow_equal_final and n.suffix == "" and c.suffix != "":
+        return True
+    return False
+
+# ----------------- TOML helpers -----------------
+
 def _toml_escape(s: str) -> str:
-    return str(object=s).replace("\\", "\\\\").replace('"', '\\"')
+    return str(s).replace("\\", "\\\\").replace('"', '\\"')
 
-def _toml_write(path: str, obj: dict) -> None:
-    lines = []
-    # currentVersion
+
+def _toml_write(path: Path, obj: dict) -> None:
+    lines: list[str] = []
     cur = obj.get("currentVersion", "")
-    lines.append(f'currentVersion = "{_toml_escape(s=cur)}"')
-    # releases
+    lines.append(f'currentVersion = "{_toml_escape(cur)}"')
     releases = obj.get("releases") or []
     for r in releases:
         lines.append("")
         lines.append("[[releases]]")
         for key in ("version", "date", "tag"):
             if key in r and r[key] is not None:
-                lines.append(f'{key} = "{_toml_escape(s=r[key])}"')
-    lines.append("")  # trailing newline
-    with open(file=path, mode="w", encoding="utf-8", newline="") as f:
-        f.write("\n".join(lines))
+                lines.append(f'{key} = "{_toml_escape(r[key])}"')
+    lines.append("")
+    path.write_text("\n".join(lines), encoding="utf-8", newline="\n")
 
-def _toml_read(path: str) -> dict | None:
-    if not os.path.exists(path=path):
+
+def _toml_read(path: Path) -> dict | None:
+    if not path.exists():
         return None
-    with open(file=path, mode="rb") as f:
+    with path.open("rb") as f:
         return tomllib.load(f)
-# --- end TOML helpers ---
+
+# ----------------- git + file ops -----------------
+
 
 def ensure_repo_root() -> None:
-    code, out = run_capture(cmd=["git", "rev-parse", "--show-toplevel"])
+    code, out = run_capture(["git", "rev-parse", "--show-toplevel"])
     if code != 0 or not out:
         raise RuntimeError("Not a Git repository.")
-    os.chdir(path=out)
+    os.chdir(out)
 
-def ensure_on_branch(branch) -> None:
-    code, out = run_capture(cmd=["git", "rev-parse", "--abbrev-ref", "HEAD"])
+
+def ensure_on_branch(branch: str) -> None:
+    code, out = run_capture(["git", "rev-parse", "--abbrev-ref", "HEAD"])
     if code != 0:
         raise RuntimeError("Failed to get current branch.")
     current = out.strip()
     if current != branch:
         raise RuntimeError(f"Not on branch '{branch}' (current: '{current}').")
 
+
 def ensure_git_clean() -> None:
-    code, out = run_capture(cmd=["git", "status", "--porcelain"])
+    code, out = run_capture(["git", "status", "--porcelain=v1"])
     if code != 0:
         raise RuntimeError("Failed to read git status.")
     if out:
-        print(f"Unstaged changes found:\n{out}")
+        print(f"Uncommitted changes found:\n{out}")
         raise RuntimeError("Working tree not clean. Commit or stash changes first.")
 
-def ensure_remote_up_to_date(branch, dry_run=False) -> None:
-    run(cmd=["git", "fetch", "origin", "--quiet"], dry_run=dry_run)
-    code, local = run_capture(cmd=["git", "rev-parse", branch])
+
+def ensure_remote_up_to_date(branch: str, *, dry_run: bool = False) -> None:
+    run(["git", "fetch", "origin", "--quiet"], dry_run=dry_run)
+    code, local = run_capture(["git", "rev-parse", branch])
     if code != 0 or not local:
         raise RuntimeError(f"Failed to resolve local {branch}.")
-    code, remote = run_capture(cmd=["git", "rev-parse", f"origin/{branch}"])
+    code, remote = run_capture(["git", "rev-parse", f"origin/{branch}"])
     if code != 0 or not remote:
         raise RuntimeError(f"Remote branch origin/{branch} not found. Push or set upstream first.")
     if local.strip() != remote.strip():
-        raise RuntimeError(f"Local {branch} ({local.strip()}) differs from origin/{branch} ({remote.strip()}). Pull/rebase first.")
+        raise RuntimeError(
+            f"Local {branch} ({local.strip()}) differs from origin/{branch} ({remote.strip()}). Pull/rebase first."
+        )
 
-def ensure_tag_doesnt_exist(version, dry_run=False) -> None:
-    run(cmd=["git", "fetch", "--tags", "--quiet"], dry_run=dry_run)
-    res = subprocess.run(args=["git", "rev-parse", "-q", "--verify", f"refs/tags/{version}"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    if res.returncode == 0:
-        raise RuntimeError(f"Tag '{version}' already exists.")
 
-def update_sonar(sonar_path, version, dry_run=False) -> None:
-    content = ""
-    if os.path.exists(path=sonar_path):
-        with open(file=sonar_path, mode="r", encoding="utf-8") as f:
-            content = f.read()
-    if re.search(pattern=r'(?m)^\s*sonar\.projectVersion\s*=', string=content):
-        content = re.sub(pattern=r'(?m)^\s*sonar\.projectVersion\s*=.*$', repl=f"sonar.projectVersion={version}", string=content)
+def _tag_exists(tag: str) -> bool:
+    res = subprocess.run(["git", "rev-parse", "-q", "--verify", f"refs/tags/{tag}"],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return res.returncode == 0
+
+
+def ensure_tag_doesnt_exist(version: str, *, tag_prefix: str = "", dry_run: bool = False) -> str:
+    run(["git", "fetch", "--tags", "--quiet"], dry_run=dry_run)
+    core = _version_core(version)  # e.g., "1.2.3"
+    # The tag we will actually create (no double-"v"):
+    if tag_prefix:
+        tag = f"{tag_prefix}{core}"
     else:
-        if content and not content.endswith("\n"):
-            content += "\n"
-        content += f"sonar.projectVersion={version}\n"
+        # If no prefix chosen, preserve an input "v1.2.3" literally; otherwise use core.
+        tag = version if version.startswith(("v", "V")) else core
+    # Check likely duplicates: the chosen tag, plain core, and "v" + core.
+    candidates = {tag, core, f"v{core}"}
+    for t in candidates:
+        if _tag_exists(t):
+            raise RuntimeError(f"Tag '{t}' already exists.")
+    return tag
+
+
+def update_sonar(sonar_path: Path, version: str, *, dry_run: bool = False) -> None:
+    content = sonar_path.read_text(encoding="utf-8") if sonar_path.exists() else ""
+    if re.search(r"(?m)^\s*sonar\.projectVersion\s*=", content):
+        new_content = re.sub(r"(?m)^\s*sonar\.projectVersion\s*=.*$",
+                             f"sonar.projectVersion={version}", content)
+    else:
+        new_content = (content + ("\n" if content and not content.endswith("\n") else "")) + \
+                      f"sonar.projectVersion={version}\n"
     if not dry_run:
-        with open(file=sonar_path, mode="w", encoding="utf-8", newline="") as f:
-            f.write(content)
+        sonar_path.write_text(new_content, encoding="utf-8", newline="\n")
     print(f"Updated {sonar_path}")
 
-def update_meta(meta_path, version, dry_run=False) -> None:
-    now = datetime.now(tz=timezone.utc).astimezone().isoformat()
-    entry = {"version": version, "date": now, "tag": version}
 
-    meta = None
+def update_meta(meta_path: Path, version: str, *, tag_for_meta: str, dry_run: bool = False) -> None:
+    now = datetime.now(tz=timezone.utc).astimezone().isoformat()
+    entry = {"version": version, "date": now, "tag": tag_for_meta}
+
     try:
         meta = _toml_read(meta_path)
     except Exception:
@@ -143,90 +217,118 @@ def update_meta(meta_path, version, dry_run=False) -> None:
     if not isinstance(meta, dict):
         meta = {"currentVersion": version, "releases": [entry]}
     else:
-        if "releases" not in meta or not isinstance(meta.get("releases"), list):
-            meta["releases"] = []
-        if any((r or {}).get("version") == version for r in meta["releases"]):
+        releases = meta.get("releases")
+        if not isinstance(releases, list):
+            releases = []
+        if any((r or {}).get("version") == version for r in releases):
             raise RuntimeError(f"Version '{version}' already exists in {meta_path}.")
         meta["currentVersion"] = version
-        meta["releases"] = list(meta["releases"]) + [entry]
+        releases = list(releases) + [entry]
+        meta["releases"] = releases
 
     if not dry_run:
-        _toml_write(path=meta_path, obj=meta)
+        _toml_write(meta_path, meta)
     print(f"Updated {meta_path}")
 
-def get_current_version() -> str | None:
+
+def get_current_version(meta_path: Path) -> str | None:
     try:
-        meta = _toml_read(path="package.toml")
+        meta = _toml_read(meta_path)
         if meta:
             return meta.get("currentVersion")
         return None
     except Exception:
         return None
 
-def main(argv=None):
-    parser = argparse.ArgumentParser(add_help=True)
-    parser.add_argument("Command", choices=["publish"])
-    parser.add_argument("Subcommand", choices=["release"])
-    parser.add_argument("-v", "--version", "--Version", dest="version", required=True)
-    parser.add_argument("--MetaPath", dest="meta_path", default="package.toml")
-    parser.add_argument("--SonarPath", dest="sonar_path", default=".sonarcloud.properties")
-    parser.add_argument("--Branch", dest="branch", default="main")
-    parser.add_argument("--DryRun", dest="dry_run", action="store_true", default=False)
-    args = parser.parse_args(args=argv)
+# ----------------- CLI -----------------
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    p = argparse.ArgumentParser()
+    p.add_argument("Command", choices=["publish"])  # reserved for future expansion
+    p.add_argument("Subcommand", choices=["release"])  # ditto
+    p.add_argument("-v", "--version", "--Version", dest="version", required=True)
+    p.add_argument("--meta-path", dest="meta_path", default="package.toml")
+    p.add_argument("--sonar-path", dest="sonar_path", default=".sonarcloud.properties")
+    p.add_argument("--branch", dest="branch", default="main")
+    p.add_argument("--dry-run", dest="dry_run", action="store_true", default=False)
+    p.add_argument("--tag-prefix", dest="tag_prefix", default="v")  # triggers .Net release CI in .github\workflows\Win,Linux,Mac .NET Test, Build, Release.yml, by detecting a "v" prefix in the tag
+    p.add_argument(
+        "--allow-equal-final",
+        dest="allow_equal_final",
+        action="store_true",
+        default=True,
+        help="Treat X.Y.Z (final) as newer than X.Y.Z-<pre> even with equal numerics.",
+    )
+
+    args = p.parse_args(argv)
 
     version = args.version
-    if not VERSION_RE.match(string=version or ""):
+    if not VERSION_RE.match(version or ""):
         print(f"Invalid version format: '{version}'", file=sys.stderr)
         return 1
 
-    # Ensure the input version is newer than the current version (compare numeric parts only, ignore letters like -alpha/-A)
-    current_version = get_current_version()
+    meta_path = Path(args.meta_path)
+    sonar_path = Path(args.sonar_path)
+
+    # Ensure the input version is newer than the current version
+    current_version = get_current_version(meta_path)
     if current_version:
-        if not _numeric_version_tuple(ver=current_version):
+        if not _parse_version(current_version):
             print(f"Stored current version '{current_version}' is invalid.", file=sys.stderr)
             return 1
-        if not _is_newer_version(new_ver=version, cur_ver=current_version):
-            print(f"Input version {version} must be newer than current version {current_version} (numeric comparison only).", file=sys.stderr)
+        if not _is_newer(version, current_version, allow_equal_final=args.allow_equal_final):
+            print(
+                (
+                    "Input version {nv} must be newer than current version {cv} (numeric-first; "
+                    "final > prerelease if enabled)."
+                ).format(nv=version, cv=current_version),
+                file=sys.stderr,
+            )
             return 1
 
     try:
         if args.Command == "publish" and args.Subcommand == "release":
             print(f"Publishing release {version} to branch {args.branch}")
             ensure_repo_root()
-            ensure_on_branch(branch=args.branch)
+            ensure_on_branch(args.branch)
             ensure_git_clean()
-            ensure_remote_up_to_date(branch=args.branch, dry_run=args.dry_run)
-            ensure_tag_doesnt_exist(version=version, dry_run=args.dry_run)
+            ensure_remote_up_to_date(args.branch, dry_run=args.dry_run)
+
+            # Tag checks & normalization
+            tag = ensure_tag_doesnt_exist(version, tag_prefix=args.tag_prefix, dry_run=args.dry_run)
 
             print("updating sonarcloud metadata")
-            update_sonar(sonar_path=args.sonar_path, version=version, dry_run=args.dry_run)
+            update_sonar(sonar_path, version, dry_run=args.dry_run)
+
             print("updating package metadata")
-            update_meta(meta_path=args.meta_path, version=version, dry_run=args.dry_run)
+            # Record the *actual* tag string we will create (with prefix) in the TOML
+            update_meta(meta_path, version, tag_for_meta=tag, dry_run=args.dry_run)
 
             print("staging changes")
-            run(cmd=["git", "add", "--", args.sonar_path, args.meta_path], dry_run=args.dry_run)
-            time.sleep(5)
-            print("committing changes")
-            run(cmd=["git", "commit", "-m", f"chore(release): {version}"], dry_run=args.dry_run)
-            time.sleep(5)
-            print("pushing changes")
-            run(cmd=["git", "push", "origin", args.branch], dry_run=args.dry_run)
-            time.sleep(5)
-            print("tagging release")
-            run(cmd=["git", "tag", "-a", version, "-m", f"Release {version}"], dry_run=args.dry_run)
-            time.sleep(5)
-            print("pushing tag")
-            run(cmd=["git", "push", "origin", version], dry_run=args.dry_run)
-            time.sleep(5)
+            run(["git", "add", "--", str(sonar_path), str(meta_path)], dry_run=args.dry_run)
 
-            print(f"Done. CI should detect tag {version}.")
+            print("committing changes")
+            run(["git", "commit", "-m", f"release: {version}"], dry_run=args.dry_run)
+
+            print("pushing changes")
+            run(["git", "push", "origin", args.branch], dry_run=args.dry_run)
+
+            print("tagging release")
+            run(["git", "tag", "-a", tag, "-m", f"Release {version}"], dry_run=args.dry_run)
+
+            print("pushing tag")
+            run(["git", "push", "origin", tag], dry_run=args.dry_run)
+
+            print(f"Done. CI should detect tag {tag}.")
             return 0
         else:
             print("Unknown command. Use: publish release -v <version>", file=sys.stderr)
             return 1
     except Exception as e:
-        print(str(object=e), file=sys.stderr)
+        print(str(e), file=sys.stderr)
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())
