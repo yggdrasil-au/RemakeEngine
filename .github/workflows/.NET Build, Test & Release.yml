@@ -118,7 +118,7 @@ jobs:
             rid: osx-x64
           - os: macos-14
             rid: osx-arm64
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     env:
       App_Project: EngineNet/EngineNet.csproj
     steps:
@@ -133,9 +133,8 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Publish (${{ matrix.rid }})
-        shell: bash
-        run: |
-          dotnet publish "$App_Project" -v:d -c Release -f net8.0 -r ${{ matrix.rid }} --self-contained true -o out/${{ matrix.rid }} -p:PublishSingleFile=true
+        shell: pwsh
+        run: dotnet publish "$App_Project" -v:d -c Release -f net8.0 -r ${{ matrix.rid }} --self-contained true -o out/${{ matrix.rid }} -p:PublishSingleFile=true
 
       - name: Package zip (Windows)
         if: runner.os == 'Windows'
@@ -147,9 +146,9 @@ jobs:
 
       - name: Package zip (Unix)
         if: runner.os != 'Windows'
-        shell: bash
+        shell: pwsh
         run: |
-          zipName="EngineNet-${{ matrix.rid }}-${{ github.ref_name }}.zip"
+          $zipName = "EngineNet-${{ matrix.rid }}-${{ github.ref_name }}.zip"
           (cd "out/${{ matrix.rid }}" && zip -q -r "../$zipName" .)
           mv "out/${{ matrix.rid }}/../$zipName" "$zipName"
           echo "ZIP_NAME=$zipName" >> "$GITHUB_ENV"
