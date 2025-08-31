@@ -48,8 +48,6 @@ Remake Engine follows a clean separation of engine vs. content:
   - `project.json`: Optional global config file defining paths and settings, accessible via placeholders.
   - `Tools/`: Contains shared tools, scripts, or executables used by multiple games.
 
-Example modules such as [TheSimpsonsGame-PS3](https://github.com/Superposition28/TheSimpsonsGame-PS3) demonstrate the new Lua workflow.
-
 ---
 
 ## 🚀 Getting Started

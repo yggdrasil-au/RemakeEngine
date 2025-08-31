@@ -49,8 +49,8 @@ def resolve_tool(repo_root: str, tool_name: str, module_tools_file: str = None, 
     - Returns the resolved absolute path to the tool's executable
     """
     repo = Path(repo_root)
-    central = repo / "Tools" / "Tools.json"
-    local = repo / "Tools" / "Tools.local.json"
+    central = repo / "RemakeRegistry" / "Tools.json"
+    local = repo / "Tools.local.json"
 
     # --- Load registries
     data = json.loads(central.read_text(encoding="utf-8"))

@@ -55,14 +55,9 @@ asset_map.sqlite
 
 ############################
 # Tools & Local Tooling
-# (prefer fetching these via scripts rather than committing binaries)
 ############################
-/Tools/Blender/blender-4.0.2-windows-x64/
-/Tools/Godot/Godot_v4.4.1-stable_mono_win64/
-/Tools/QuickBMS/
-/Tools/TMP/
+/Tools/**
 Tools.local.json
-/blender-4.0.2-windows-x64/
 
 ############################
 # Documentation (external repos)
