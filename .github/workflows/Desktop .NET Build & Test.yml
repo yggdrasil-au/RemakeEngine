@@ -41,11 +41,12 @@ name: Desktop .NET Build & Test
 on:
   push:
     branches: [ "main" ]
-    #tags: [ "v*" ]     # create a release when you push a tag like v1.2.3
+    tags: [ "win-v*" ]     # create a release when you push a tag like win-v1.2.3
   workflow_dispatch: {} # allow manual runs
 
 jobs:
   build:
+    if: startsWith(github.ref, 'refs/tags/')    # only on tags
     strategy:
       fail-fast: false
       matrix:
@@ -95,7 +96,7 @@ jobs:
         env:
           Configuration: ${{ matrix.configuration }}
   release:
-    #if: startsWith(github.ref, 'refs/tags/')    # only on tags
+    if: startsWith(github.ref, 'refs/tags/')    # only on tags
     needs: build
     runs-on: windows-latest
     env:
