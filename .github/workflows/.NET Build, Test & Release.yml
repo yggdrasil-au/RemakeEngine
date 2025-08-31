@@ -162,7 +162,7 @@ jobs:
   publish_release:
     name: Create GitHub Release
     if: startsWith(github.ref, 'refs/tags/')
-    #needs: release_matrix
+    needs: release_matrix
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
