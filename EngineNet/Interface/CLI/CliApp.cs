@@ -8,11 +8,11 @@ public partial class CliApp {
 
     public CliApp(RemakeEngine.Core.OperationsEngine engine) => _engine = engine;
 
-    public int Run(string[] args) {
+    public Int32 Run(String[] args) {
         // Strip global flags that Program.cs already handled, like --root PATH
         if (args.Length > 0) {
-            var list = new List<string>(args);
-            for (int i = 0; i < list.Count;) {
+            List<String> list = new List<String>(args);
+            for (Int32 i = 0; i < list.Count;) {
                 if (list[i] == "--root") {
                     list.RemoveAt(i);
                     if (i < list.Count)
@@ -28,7 +28,7 @@ public partial class CliApp {
             return RunInteractiveMenu();
         }
 
-        var cmd = args[0].ToLowerInvariant();
+        String cmd = args[0].ToLowerInvariant();
         switch (cmd) {
 			case "help":
 			case "-h":
@@ -49,14 +49,14 @@ public partial class CliApp {
         }
     }
 
-    private int ListGames() {
-        var games = _engine.ListGames();
+    private Int32 ListGames() {
+        Dictionary<String, Object?> games = _engine.ListGames();
         if (games.Count == 0) {
             Console.WriteLine("No games found in RemakeRegistry/Games.");
             return 0;
         }
-        foreach (var (name, obj) in games) {
-            if (obj is Dictionary<string, object?> dict && dict.TryGetValue("game_root", out var root))
+        foreach ((String name, Object obj) in games) {
+            if (obj is Dictionary<String, Object?> dict && dict.TryGetValue("game_root", out Object? root))
                 Console.WriteLine($"- {name}  (root: {root})");
         }
         return 0;
@@ -66,42 +66,42 @@ public partial class CliApp {
         while (true) {
             Console.Clear();
             Console.WriteLine("Download module:");
-            var items = new List<string> {
+            List<String> items = new List<String> {
                 "From registry (RemakeRegistry/register.json)…",
                 "From Git URL…",
                 "Back"
             };
             Console.WriteLine("? Choose a source:");
-            var idx = SelectFromMenu(items);
+            Int32 idx = SelectFromMenu(items);
             if (idx < 0 || items[idx] == "Back")
                 return;
 
-            var choice = items[idx];
+            String choice = items[idx];
             if (choice.StartsWith("From registry")) {
                 // Load registry entries and list modules
-                var regs = _engine.GetRegisteredModules();
+                IReadOnlyDictionary<String, Object?> regs = _engine.GetRegisteredModules();
                 if (regs.Count == 0) {
                     Console.WriteLine("No modules in registry. Press any key to go back…");
                     Console.ReadKey(true);
                     continue;
                 }
 
-                var names = regs.Keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase).ToList();
+                List<String> names = regs.Keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase).ToList();
                 names.Add("Back");
                 Console.Clear();
                 Console.WriteLine("Select a module to download:");
-                var mIdx = SelectFromMenu(names);
+                Int32 mIdx = SelectFromMenu(names);
                 if (mIdx < 0 || names[mIdx] == "Back")
                     continue;
 
-                var name = names[mIdx];
-                if (!regs.TryGetValue(name, out var obj) || obj is not Dictionary<string, object?> mod) {
+                String name = names[mIdx];
+                if (!regs.TryGetValue(name, out Object? obj) || obj is not Dictionary<String, Object?> mod) {
                     Console.WriteLine("Invalid module entry. Press any key…");
                     Console.ReadKey(true);
                     continue;
                 }
-                var url = mod.TryGetValue("url", out var u) ? u?.ToString() : null;
-                if (string.IsNullOrWhiteSpace(url)) {
+                String? url = mod.TryGetValue("url", out Object? u) ? u?.ToString() : null;
+                if (String.IsNullOrWhiteSpace(url)) {
                     Console.WriteLine("Selected module has no URL. Press any key…");
                     Console.ReadKey(true);
                     continue;
@@ -112,22 +112,22 @@ public partial class CliApp {
             }
 
             if (choice.StartsWith("From Git URL")) {
-                var url = PromptText("Enter Git URL of the module");
-                if (!string.IsNullOrWhiteSpace(url))
+                String url = PromptText("Enter Git URL of the module");
+                if (!String.IsNullOrWhiteSpace(url))
                     _engine.DownloadModule(url);
                 return;
             }
         }
     }
 
-    private bool ExecuteOp(string game, IDictionary<string, object?> games, Dictionary<string, object?> op, Dictionary<string, object?> answers) {
-        var type = (op.TryGetValue("script_type", out var st) ? st?.ToString() : null)?.ToLowerInvariant();
+    private Boolean ExecuteOp(String game, IDictionary<String, Object?> games, Dictionary<String, Object?> op, Dictionary<String, Object?> answers) {
+        String? type = (op.TryGetValue("script_type", out Object? st) ? st?.ToString() : null)?.ToLowerInvariant();
 
         // Use embedded handlers for engine/lua/js to avoid external dependencies
         if (type == "engine" || type == "lua" || type == "js") {
             // Route in-process SDK events to our terminal renderer and suppress raw @@REMAKE@@ lines
-            var prevSink = EngineSdk.LocalEventSink;
-            var prevMute = EngineSdk.MuteStdoutWhenLocalSink;
+            Action<Dictionary<String, Object?>>? prevSink = EngineSdk.LocalEventSink;
+            Boolean prevMute = EngineSdk.MuteStdoutWhenLocalSink;
             try {
                 EngineSdk.LocalEventSink = RemakeEngine.Utils.TerminalUtils.OnEvent;
                 EngineSdk.MuteStdoutWhenLocalSink = true;
@@ -139,36 +139,36 @@ public partial class CliApp {
         }
 
         // Default: build and execute as external command (e.g., python)
-        var parts = _engine.BuildCommand(game, games, op, answers);
+        List<String> parts = _engine.BuildCommand(game, games, op, answers);
         if (parts.Count < 2)
             return false;
-        var title = op.TryGetValue("Name", out var n) ? n?.ToString() ?? Path.GetFileName(parts[1]) : Path.GetFileName(parts[1]);
+        String title = op.TryGetValue("Name", out Object? n) ? n?.ToString() ?? Path.GetFileName(parts[1]) : Path.GetFileName(parts[1]);
         return _engine.ExecuteCommand(
             parts,
             title,
             onOutput: RemakeEngine.Utils.TerminalUtils.OnOutput,
             onEvent: RemakeEngine.Utils.TerminalUtils.OnEvent,
             stdinProvider: RemakeEngine.Utils.TerminalUtils.StdinProvider,
-            envOverrides: new Dictionary<string, object?> { ["TERM"] = "dumb" }
+            envOverrides: new Dictionary<String, Object?> { ["TERM"] = "dumb" }
         );
     }
 
-    private static string PromptText(string title) {
+    private static String PromptText(String title) {
         Console.Write($"{title}: ");
         try {
-            return Console.ReadLine() ?? string.Empty;
-        } catch { return string.Empty; }
+            return Console.ReadLine() ?? String.Empty;
+        } catch { return String.Empty; }
     }
 
-    private static int SelectFromMenu(IList<string> items, bool highlightSeparators = false) {
-        int index = 0;
+    private static Int32 SelectFromMenu(IList<String> items, Boolean highlightSeparators = false) {
+        Int32 index = 0;
         ConsoleKey key;
         do {
             // Render
             Console.CursorVisible = false;
-            for (int i = 0; i < items.Count; i++) {
-                var line = items[i];
-                var isSep = line == "---------------";
+            for (Int32 i = 0; i < items.Count; i++) {
+                String line = items[i];
+                Boolean isSep = line == "---------------";
                 if (i == index) {
                     Console.ForegroundColor = ConsoleColor.Cyan;
                     Console.WriteLine($"> {line}");
@@ -184,7 +184,7 @@ public partial class CliApp {
                 }
             }
 
-            var keyInfo = Console.ReadKey(true);
+            ConsoleKeyInfo keyInfo = Console.ReadKey(true);
             key = keyInfo.Key;
             if (key == ConsoleKey.DownArrow) {
                 do {
@@ -206,35 +206,35 @@ public partial class CliApp {
         return index;
     }
 
-    private int ListOps(string game) {
-        var games = _engine.ListGames();
-        if (!games.TryGetValue(game, out var g)) {
+    private Int32 ListOps(String game) {
+        Dictionary<String, Object?> games = _engine.ListGames();
+        if (!games.TryGetValue(game, out Object? g)) {
             Console.Error.WriteLine($"Game '{game}' not found.");
             return 1;
         }
-        var opsFile = (g is Dictionary<string, object?> gdict && gdict.TryGetValue("ops_file", out var of) && of is string s) ? s : throw new ArgumentException($"Game '{game}' missing ops_file.");
-        var doc = _engine.LoadOperations(opsFile);
-        foreach (var group in doc.Keys)
+        String opsFile = (g is Dictionary<String, Object?> gdict && gdict.TryGetValue("ops_file", out Object? of) && of is String s) ? s : throw new ArgumentException($"Game '{game}' missing ops_file.");
+        Dictionary<String, List<Dictionary<String, Object?>>> doc = _engine.LoadOperations(opsFile);
+        foreach (String group in doc.Keys)
             Console.WriteLine(group);
         return 0;
     }
 
 
-    private static void CollectAnswersForOperation(Dictionary<string, object?> op, Dictionary<string, object?> answers, bool defaultsOnly) {
-        if (!op.TryGetValue("prompts", out var promptsObj) || promptsObj is not IList<object?> prompts)
+    private static void CollectAnswersForOperation(Dictionary<String, Object?> op, Dictionary<String, Object?> answers, Boolean defaultsOnly) {
+        if (!op.TryGetValue("prompts", out Object? promptsObj) || promptsObj is not IList<Object?> prompts)
             return;
 
-        foreach (var p in prompts) {
-            if (p is not Dictionary<string, object?> prompt)
+        foreach (Object? p in prompts) {
+            if (p is not Dictionary<String, Object?> prompt)
                 continue;
-            var name = prompt.TryGetValue("Name", out var n) ? n?.ToString() ?? "" : "";
-            var type = prompt.TryGetValue("type", out var t) ? t?.ToString() ?? "" : "";
-            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(type))
+            String name = prompt.TryGetValue("Name", out Object? n) ? n?.ToString() ?? "" : "";
+            String type = prompt.TryGetValue("type", out Object? t) ? t?.ToString() ?? "" : "";
+            if (String.IsNullOrEmpty(name) || String.IsNullOrEmpty(type))
                 continue;
 
             if (defaultsOnly) {
                 // Use explicit default when available; otherwise leave unset
-                if (prompt.TryGetValue("default", out var defVal))
+                if (prompt.TryGetValue("default", out Object? defVal))
                     answers[name] = defVal;
                 continue;
             }
@@ -242,14 +242,14 @@ public partial class CliApp {
             switch (type) {
                 case "confirm":
                     Console.Write($"{name} [y/N]: ");
-                    var c = Console.ReadLine();
+                    String? c = Console.ReadLine();
                     answers[name] = c != null && c.Trim().StartsWith("y", StringComparison.OrdinalIgnoreCase);
                     break;
 
                 case "checkbox":
                     Console.WriteLine($"{name} (comma-separated values): ");
-                    var line = Console.ReadLine() ?? string.Empty;
-                    answers[name] = line.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Cast<object?>().ToList();
+                    String line = Console.ReadLine() ?? String.Empty;
+                    answers[name] = line.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Cast<Object?>().ToList();
                     break;
 
                 case "text":
@@ -274,9 +274,7 @@ public partial class CliApp {
 		");
     }
 
-    private static string GetArg(string[] args, int index, string error) {
-        if (args.Length <= index)
-            throw new ArgumentException(error);
-        return args[index];
+    private static String GetArg(String[] args, Int32 index, String error) {
+        return args.Length <= index ? throw new ArgumentException(error) : args[index];
     }
 }

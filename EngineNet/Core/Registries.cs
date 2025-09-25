@@ -5,18 +5,18 @@ using System.IO;
 namespace RemakeEngine.Core;
 
 public sealed class Registries {
-    private readonly string _rootPath;
-    private readonly string _gamesRegistryPath;
-    private readonly string _modulesRegistryPath;
+    private readonly String _rootPath;
+    private readonly String _gamesRegistryPath;
+    private readonly String _modulesRegistryPath;
 
-    private Dictionary<string, object?> _modules = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<String, Object?> _modules = new(StringComparer.OrdinalIgnoreCase);
 
-    public Registries(string rootPath) {
+    public Registries(String rootPath) {
         _rootPath = rootPath;
 
         // Preferred locations (relative to working root)
-        var gamesRel = System.IO.Path.Combine(rootPath, "RemakeRegistry", "Games");
-        var modulesRel = System.IO.Path.Combine(rootPath, "RemakeRegistry", "register.json");
+        String gamesRel = System.IO.Path.Combine(rootPath, "RemakeRegistry", "Games");
+        String modulesRel = System.IO.Path.Combine(rootPath, "RemakeRegistry", "register.json");
 
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(modulesRel) ?? rootPath);
 
@@ -32,21 +32,19 @@ public sealed class Registries {
 
     public void RefreshModules() => _modules = EngineConfig.LoadJsonFile(_modulesRegistryPath);
 
-    public IReadOnlyDictionary<string, object?> GetRegisteredModules() {
-        if (_modules.TryGetValue("modules", out var m) && m is Dictionary<string, object?> dict)
-            return dict;
-        return new Dictionary<string, object?>();
+    public IReadOnlyDictionary<String, Object?> GetRegisteredModules() {
+        return _modules.TryGetValue("modules", out Object? m) && m is Dictionary<String, Object?> dict ? dict : new Dictionary<String, Object?>();
     }
 
-    public Dictionary<string, GameInfo> DiscoverGames() {
-        var games = new Dictionary<string, GameInfo>(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<String, GameInfo> DiscoverGames() {
+        Dictionary<String, GameInfo> games = new Dictionary<String, GameInfo>(StringComparer.OrdinalIgnoreCase);
         if (!Directory.Exists(_gamesRegistryPath))
             return games;
 
-        foreach (var dir in Directory.EnumerateDirectories(_gamesRegistryPath)) {
-            var opsToml = Path.Combine(dir, "operations.toml");
-            var opsJson = Path.Combine(dir, "operations.json");
-            string? ops = null;
+        foreach (String dir in Directory.EnumerateDirectories(_gamesRegistryPath)) {
+            String opsToml = Path.Combine(dir, "operations.toml");
+            String opsJson = Path.Combine(dir, "operations.json");
+            String? ops = null;
             if (File.Exists(opsToml))
                 ops = opsToml;
             else if (File.Exists(opsJson))
@@ -54,7 +52,7 @@ public sealed class Registries {
             if (ops is null)
                 continue;
 
-            var name = new DirectoryInfo(dir).Name;
+            String name = new DirectoryInfo(dir).Name;
             games[name] = new GameInfo(
                 opsFile: Path.GetFullPath(ops),
                 gameRoot: Path.GetFullPath(dir)
@@ -64,17 +62,17 @@ public sealed class Registries {
     }
 
 
-    public Dictionary<string, GameInfo> DiscoverInstalledGames()
+    public Dictionary<String, GameInfo> DiscoverInstalledGames()
 	{
-		var games = new Dictionary<string, GameInfo>(StringComparer.OrdinalIgnoreCase);
+        Dictionary<String, GameInfo> games = new Dictionary<String, GameInfo>(StringComparer.OrdinalIgnoreCase);
 		if (!Directory.Exists(_gamesRegistryPath))
 			return games;
 
-                foreach (var dir in Directory.EnumerateDirectories(_gamesRegistryPath))
+                foreach (String dir in Directory.EnumerateDirectories(_gamesRegistryPath))
                 {
-                        var opsToml = Path.Combine(dir, "operations.toml");
-                        var opsJson = Path.Combine(dir, "operations.json");
-                        string? ops = null;
+            String opsToml = Path.Combine(dir, "operations.toml");
+            String opsJson = Path.Combine(dir, "operations.json");
+            String? ops = null;
                         if (File.Exists(opsToml))
                                 ops = opsToml;
                         else if (File.Exists(opsJson))
@@ -82,35 +80,31 @@ public sealed class Registries {
                         if (ops is null)
                                 continue;
 
-			var gameToml = System.IO.Path.Combine(dir, "game.toml");
+            String gameToml = System.IO.Path.Combine(dir, "game.toml");
 			if (!File.Exists(gameToml))
 				continue; // not installed – requires a valid game.toml
 
-			// Parse a minimal subset of TOML: top-level key = "value" pairs
-			string? exePath = null;
-			string? title = null;
+            // Parse a minimal subset of TOML: top-level key = "value" pairs
+            String? exePath = null;
+            String? title = null;
 			try
 			{
-				foreach (var raw in File.ReadAllLines(gameToml))
+				foreach (String raw in File.ReadAllLines(gameToml))
 				{
-					var line = raw.Trim();
+                    String line = raw.Trim();
 					if (line.Length == 0 || line.StartsWith("#"))
 						continue;
 					// ignore tables/arrays
 					if (line.StartsWith("[") && line.EndsWith("]"))
 						continue;
-					var eq = line.IndexOf('=');
+                    Int32 eq = line.IndexOf('=');
 					if (eq <= 0)
 						continue;
-					var key = line.Substring(0, eq).Trim();
-					var valRaw = line.Substring(eq + 1).Trim();
-					string? val;
-					if (valRaw.StartsWith("\"") && valRaw.EndsWith("\""))
-						val = valRaw.Substring(1, valRaw.Length - 2);
-					else
-						val = valRaw;
+                    String key = line.Substring(0, eq).Trim();
+                    String valRaw = line.Substring(eq + 1).Trim();
+                    String? val = valRaw.StartsWith("\"") && valRaw.EndsWith("\"") ? valRaw.Substring(1, valRaw.Length - 2) : valRaw;
 
-					if (key.Equals("exe", StringComparison.OrdinalIgnoreCase) || key.Equals("executable", StringComparison.OrdinalIgnoreCase))
+                    if (key.Equals("exe", StringComparison.OrdinalIgnoreCase) || key.Equals("executable", StringComparison.OrdinalIgnoreCase))
 						exePath = val;
 					else if (key.Equals("title", StringComparison.OrdinalIgnoreCase) || key.Equals("name", StringComparison.OrdinalIgnoreCase))
 						title = val;
@@ -122,15 +116,15 @@ public sealed class Registries {
 				continue;
 			}
 
-			if (string.IsNullOrWhiteSpace(exePath))
+			if (String.IsNullOrWhiteSpace(exePath))
 				continue;
 
-			// Resolve and validate executable
-			var exeFull = System.IO.Path.IsPathRooted(exePath!) ? exePath! : System.IO.Path.Combine(dir, exePath!);
+            // Resolve and validate executable
+            String exeFull = System.IO.Path.IsPathRooted(exePath!) ? exePath! : System.IO.Path.Combine(dir, exePath!);
 			if (!File.Exists(exeFull))
 				continue; // exe missing – not installed
 
-			var name = new DirectoryInfo(dir).Name;
+            String name = new DirectoryInfo(dir).Name;
 			games[name] = new GameInfo(
 				opsFile: System.IO.Path.GetFullPath(ops),
 				gameRoot: System.IO.Path.GetFullPath(dir),

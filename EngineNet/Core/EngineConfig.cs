@@ -7,14 +7,14 @@ using System.Text.Json.Serialization;
 namespace RemakeEngine.Core;
 
 public sealed class EngineConfig {
-    public string Path {
+    public String Path {
         get;
     }
-    public IDictionary<string, object?> Data => _data;
+    public IDictionary<String, Object?> Data => _data;
 
-    private Dictionary<string, object?> _data = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<String, Object?> _data = new(StringComparer.OrdinalIgnoreCase);
 
-    public EngineConfig(string path) {
+    public EngineConfig(String path) {
         Path = path;
         Reload();
     }
@@ -23,44 +23,44 @@ public sealed class EngineConfig {
         _data = LoadJsonFile(Path);
     }
 
-    public static Dictionary<string, object?> LoadJsonFile(string filePath) {
+    public static Dictionary<String, Object?> LoadJsonFile(String filePath) {
         try {
             if (File.Exists(filePath)) {
-                using var fs = File.OpenRead(filePath);
-                using var doc = JsonDocument.Parse(fs);
+                using FileStream fs = File.OpenRead(filePath);
+                using JsonDocument doc = JsonDocument.Parse(fs);
                 if (doc.RootElement.ValueKind == JsonValueKind.Object) {
-                    return (ToDotNet(doc.RootElement) as Dictionary<string, object?>) ?? new Dictionary<string, object?>();
+                    return (ToDotNet(doc.RootElement) as Dictionary<String, Object?>) ?? new Dictionary<String, Object?>();
                 }
                 // Fallback to direct deserialize for simple maps
                 fs.Position = 0;
-                var dict = JsonSerializer.Deserialize<Dictionary<string, object?>>(fs, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                return dict ?? new Dictionary<string, object?>();
+                Dictionary<String, Object?>? dict = JsonSerializer.Deserialize<Dictionary<String, Object?>>(fs, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                return dict ?? new Dictionary<String, Object?>();
             }
         } catch {
             // fall through to empty map
         }
-        return new Dictionary<string, object?>();
+        return new Dictionary<String, Object?>();
     }
 
-    private static object? ToDotNet(JsonElement el) {
+    private static Object? ToDotNet(JsonElement el) {
         switch (el.ValueKind) {
             case JsonValueKind.Object:
-                var obj = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-                foreach (var prop in el.EnumerateObject()) {
+                Dictionary<String, Object?> obj = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+                foreach (JsonProperty prop in el.EnumerateObject()) {
                     obj[prop.Name] = ToDotNet(prop.Value);
                 }
                 return obj;
             case JsonValueKind.Array:
-                var list = new List<object?>();
-                foreach (var item in el.EnumerateArray())
+                List<Object?> list = new List<Object?>();
+                foreach (JsonElement item in el.EnumerateArray())
                     list.Add(ToDotNet(item));
                 return list;
             case JsonValueKind.String:
                 return el.GetString();
             case JsonValueKind.Number:
-                if (el.TryGetInt64(out var l))
+                if (el.TryGetInt64(out Int64 l))
                     return l;
-                if (el.TryGetDouble(out var d))
+                if (el.TryGetDouble(out Double d))
                     return d;
                 return el.GetRawText();
             case JsonValueKind.True:

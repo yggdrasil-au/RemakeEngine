@@ -5,6 +5,6 @@ namespace RemakeEngine.Tools;
 /// Useful when tools are expected to be on PATH.
 /// </summary>
 public sealed class PassthroughToolResolver:IToolResolver {
-    public string ResolveToolPath(string toolId) => toolId;
+    public String ResolveToolPath(String toolId) => toolId;
 }
 

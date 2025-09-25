@@ -3,24 +3,24 @@ using System;
 namespace RemakeEngine.Core;
 
 public static class Types {
-    public const string RemakePrefix = "@@REMAKE@@ ";
+    public const String RemakePrefix = "@@REMAKE@@ ";
 }
 
 public sealed class GameInfo {
-    public string OpsFile {
+    public String OpsFile {
         get;
     }
-    public string GameRoot {
+    public String GameRoot {
         get;
     }
-    public string? ExePath {
+    public String? ExePath {
         get;
     }
-    public string? Title {
+    public String? Title {
         get;
     }
 
-    public GameInfo(string opsFile, string gameRoot, string? exePath = null, string? title = null) {
+    public GameInfo(String opsFile, String gameRoot, String? exePath = null, String? title = null) {
         OpsFile = opsFile;
         GameRoot = gameRoot;
         ExePath = exePath;

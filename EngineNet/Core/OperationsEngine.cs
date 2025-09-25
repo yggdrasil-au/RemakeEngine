@@ -13,14 +13,14 @@ using Tomlyn.Model;
 namespace RemakeEngine.Core;
 
 public sealed class OperationsEngine {
-    private readonly string _rootPath;
+    private readonly String _rootPath;
     private readonly IToolResolver _tools;
     private readonly EngineConfig _engineConfig;
     private readonly Registries _registries;
     private readonly CommandBuilder _builder;
     private readonly GitTools _git;
 
-    public OperationsEngine(string rootPath, IToolResolver tools, EngineConfig engineConfig) {
+    public OperationsEngine(String rootPath, IToolResolver tools, EngineConfig engineConfig) {
         _rootPath = rootPath;
         _tools = tools;
         _engineConfig = engineConfig;
@@ -29,19 +29,19 @@ public sealed class OperationsEngine {
         _git = new GitTools(System.IO.Path.Combine(rootPath, "RemakeRegistry", "Games"));
     }
 
-    public Dictionary<string, object?> ListGames() {
-        var games = new Dictionary<string, object?>();
+    public Dictionary<String, Object?> ListGames() {
+        Dictionary<String, Object?> games = new Dictionary<String, Object?>();
         // Also look up installed games to enrich entries with exe/title when available
-        var installed = _registries.DiscoverInstalledGames();
-        foreach (var kv in _registries.DiscoverGames()) {
-            var info = new Dictionary<string, object?> {
+        Dictionary<String, GameInfo> installed = _registries.DiscoverInstalledGames();
+        foreach (KeyValuePair<String, GameInfo> kv in _registries.DiscoverGames()) {
+            Dictionary<String, Object?> info = new Dictionary<String, Object?> {
                 ["game_root"] = kv.Value.GameRoot,
                 ["ops_file"] = kv.Value.OpsFile
             };
-            if (installed.TryGetValue(kv.Key, out var gi)) {
-                if (!string.IsNullOrWhiteSpace(gi.ExePath))
+            if (installed.TryGetValue(kv.Key, out GameInfo? gi)) {
+                if (!String.IsNullOrWhiteSpace(gi.ExePath))
                     info["exe"] = gi.ExePath;
-                if (!string.IsNullOrWhiteSpace(gi.Title))
+                if (!String.IsNullOrWhiteSpace(gi.Title))
                     info["title"] = gi.Title;
             }
             games[kv.Key] = info;
@@ -50,55 +50,53 @@ public sealed class OperationsEngine {
     }
 
     // Installed-only helpers
-    public Dictionary<string, object?> GetInstalledGames()
+    public Dictionary<String, Object?> GetInstalledGames()
     {
-        var games = new Dictionary<string, object?>();
-        foreach (var kv in _registries.DiscoverInstalledGames())
+        Dictionary<String, Object?> games = new Dictionary<String, Object?>();
+        foreach (KeyValuePair<String, GameInfo> kv in _registries.DiscoverInstalledGames())
         {
-            var info = new Dictionary<string, object?> {
+            Dictionary<String, Object?> info = new Dictionary<String, Object?> {
                 ["game_root"] = kv.Value.GameRoot,
                 ["ops_file"] = kv.Value.OpsFile
             };
-            if (!string.IsNullOrWhiteSpace(kv.Value.ExePath))
+            if (!String.IsNullOrWhiteSpace(kv.Value.ExePath))
                 info["exe"] = kv.Value.ExePath;
-            if (!string.IsNullOrWhiteSpace(kv.Value.Title))
+            if (!String.IsNullOrWhiteSpace(kv.Value.Title))
                 info["title"] = kv.Value.Title;
             games[kv.Key] = info;
         }
         return games;
     }
 
-    public IReadOnlyDictionary<string, object?> GetRegisteredModules()
+    public IReadOnlyDictionary<String, Object?> GetRegisteredModules()
         => _registries.GetRegisteredModules();
 
-    public bool IsModuleInstalled(string name) {
-        var games = _registries.DiscoverInstalledGames();
+    public Boolean IsModuleInstalled(String name) {
+        Dictionary<String, GameInfo> games = _registries.DiscoverInstalledGames();
         return games.ContainsKey(name);
     }
 
-    public string? GetGameExecutable(string name) {
-        var games = _registries.DiscoverInstalledGames();
-        if (games.TryGetValue(name, out var gi))
-            return gi.ExePath;
-        return null;
+    public String? GetGameExecutable(String name) {
+        Dictionary<String, GameInfo> games = _registries.DiscoverInstalledGames();
+        return games.TryGetValue(name, out GameInfo? gi) ? gi.ExePath : null;
     }
 
-    public string? GetGamePath(string name) {
+    public String? GetGamePath(String name) {
         // Prefer installed location first, then fall back to downloaded location
-        var games = _registries.DiscoverInstalledGames();
-        if (games.TryGetValue(name, out var gi))
+        Dictionary<String, GameInfo> games = _registries.DiscoverInstalledGames();
+        if (games.TryGetValue(name, out GameInfo? gi))
             return gi.GameRoot;
-        var dir = System.IO.Path.Combine(_rootPath, "RemakeRegistry", "Games", name);
+        String dir = System.IO.Path.Combine(_rootPath, "RemakeRegistry", "Games", name);
         return Directory.Exists(dir) ? dir : null;
     }
 
-    public bool LaunchGame(string name) {
-        var exe = GetGameExecutable(name);
-        var root = GetGamePath(name) ?? _rootPath;
-        if (string.IsNullOrWhiteSpace(exe) || !File.Exists(exe))
+    public Boolean LaunchGame(String name) {
+        String? exe = GetGameExecutable(name);
+        String root = GetGamePath(name) ?? _rootPath;
+        if (String.IsNullOrWhiteSpace(exe) || !File.Exists(exe))
             return false;
         try {
-            var psi = new System.Diagnostics.ProcessStartInfo {
+            System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
                 FileName = exe!,
                 WorkingDirectory = root!,
                 UseShellExecute = true
@@ -110,23 +108,21 @@ public sealed class OperationsEngine {
         }
     }
 
-    public string GetModuleState(string name) {
-        var dir = System.IO.Path.Combine(_rootPath, "RemakeRegistry", "Games", name);
-        if (!Directory.Exists(dir))
-            return "not_downloaded";
-        return IsModuleInstalled(name) ? "installed" : "downloaded";
+    public String GetModuleState(String name) {
+        String dir = System.IO.Path.Combine(_rootPath, "RemakeRegistry", "Games", name);
+        return !Directory.Exists(dir) ? "not_downloaded" : IsModuleInstalled(name) ? "installed" : "downloaded";
     }
 
-    public List<Dictionary<string, object?>> LoadOperationsList(string opsFile) {
-        var ext = Path.GetExtension(opsFile);
+    public List<Dictionary<String, Object?>> LoadOperationsList(String opsFile) {
+        String ext = Path.GetExtension(opsFile);
         if (ext.Equals(".toml", StringComparison.OrdinalIgnoreCase)) {
-            var tdoc = Toml.Parse(File.ReadAllText(opsFile));
-            var model = tdoc.ToModel();
-            var list = new List<Dictionary<string, object?>>();
+            Tomlyn.Syntax.DocumentSyntax tdoc = Toml.Parse(File.ReadAllText(opsFile));
+            TomlTable model = tdoc.ToModel();
+            List<Dictionary<String, Object?>> list = new List<Dictionary<String, Object?>>();
             if (model is TomlTable table) {
-                foreach (var kv in table) {
+                foreach (KeyValuePair<String, Object> kv in table) {
                     if (kv.Value is TomlTableArray arr) {
-                        foreach (var item in arr) {
+                        foreach (TomlTable item in arr) {
                             if (item is TomlTable tt)
                                 list.Add(ToMap(tt));
                         }
@@ -135,11 +131,11 @@ public sealed class OperationsEngine {
             }
             return list;
         }
-		using var fs = File.OpenRead(opsFile);
-        using var jdoc = JsonDocument.Parse(fs);
+		using FileStream fs = File.OpenRead(opsFile);
+        using JsonDocument jdoc = JsonDocument.Parse(fs);
         if (jdoc.RootElement.ValueKind == JsonValueKind.Array) {
-            var list = new List<Dictionary<string, object?>>();
-            foreach (var item in jdoc.RootElement.EnumerateArray()) {
+            List<Dictionary<String, Object?>> list = new List<Dictionary<String, Object?>>();
+            foreach (JsonElement item in jdoc.RootElement.EnumerateArray()) {
                 if (item.ValueKind == JsonValueKind.Object)
                     list.Add(ToMap(item));
             }
@@ -147,10 +143,10 @@ public sealed class OperationsEngine {
         }
         if (jdoc.RootElement.ValueKind == JsonValueKind.Object) {
             // Fallback: flatten grouped format into a single list (preserving group order)
-            var flat = new List<Dictionary<string, object?>>();
-            foreach (var prop in jdoc.RootElement.EnumerateObject()) {
+            List<Dictionary<String, Object?>> flat = new List<Dictionary<String, Object?>>();
+            foreach (JsonProperty prop in jdoc.RootElement.EnumerateObject()) {
                 if (prop.Value.ValueKind == JsonValueKind.Array) {
-                    foreach (var item in prop.Value.EnumerateArray()) {
+                    foreach (JsonElement item in prop.Value.EnumerateArray()) {
                         if (item.ValueKind == JsonValueKind.Object)
                             flat.Add(ToMap(item));
                     }
@@ -161,17 +157,17 @@ public sealed class OperationsEngine {
         return new();
     }
 
-    public Dictionary<string, List<Dictionary<string, object?>>> LoadOperations(string opsFile) {
-        var ext = Path.GetExtension(opsFile);
+    public Dictionary<String, List<Dictionary<String, Object?>>> LoadOperations(String opsFile) {
+        String ext = Path.GetExtension(opsFile);
         if (ext.Equals(".toml", StringComparison.OrdinalIgnoreCase)) {
-            var tdoc = Toml.Parse(File.ReadAllText(opsFile));
-            var model = tdoc.ToModel();
-            var result = new Dictionary<string, List<Dictionary<string, object?>>>(StringComparer.OrdinalIgnoreCase);
+            Tomlyn.Syntax.DocumentSyntax tdoc = Toml.Parse(File.ReadAllText(opsFile));
+            TomlTable model = tdoc.ToModel();
+            Dictionary<String, List<Dictionary<String, Object?>>> result = new Dictionary<String, List<Dictionary<String, Object?>>>(StringComparer.OrdinalIgnoreCase);
             if (model is TomlTable table) {
-                foreach (var kv in table) {
+                foreach (KeyValuePair<String, Object> kv in table) {
                     if (kv.Value is TomlTableArray arr) {
-                        var list = new List<Dictionary<string, object?>>();
-                        foreach (var item in arr) {
+                        List<Dictionary<String, Object?>> list = new List<Dictionary<String, Object?>>();
+                        foreach (TomlTable item in arr) {
                             if (item is TomlTable tt)
                                 list.Add(ToMap(tt));
                         }
@@ -182,14 +178,14 @@ public sealed class OperationsEngine {
             return result;
         }
 
-        using var fs = File.OpenRead(opsFile);
-        using var doc = JsonDocument.Parse(fs);
-        var resultJson = new Dictionary<string, List<Dictionary<string, object?>>>(StringComparer.OrdinalIgnoreCase);
+        using FileStream fs = File.OpenRead(opsFile);
+        using JsonDocument doc = JsonDocument.Parse(fs);
+        Dictionary<String, List<Dictionary<String, Object?>>> resultJson = new Dictionary<String, List<Dictionary<String, Object?>>>(StringComparer.OrdinalIgnoreCase);
         if (doc.RootElement.ValueKind == JsonValueKind.Object) {
-            foreach (var prop in doc.RootElement.EnumerateObject()) {
-                var list = new List<Dictionary<string, object?>>();
+            foreach (JsonProperty prop in doc.RootElement.EnumerateObject()) {
+                List<Dictionary<String, Object?>> list = new List<Dictionary<String, Object?>>();
                 if (prop.Value.ValueKind == JsonValueKind.Array) {
-                    foreach (var item in prop.Value.EnumerateArray()) {
+                    foreach (JsonElement item in prop.Value.EnumerateArray()) {
                         if (item.ValueKind == JsonValueKind.Object)
                             list.Add(ToMap(item));
                     }
@@ -200,52 +196,52 @@ public sealed class OperationsEngine {
         return resultJson;
     }
 
-    private static Dictionary<string, object?> ToMap(JsonElement obj) {
-        var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-        foreach (var p in obj.EnumerateObject()) {
+    private static Dictionary<String, Object?> ToMap(JsonElement obj) {
+        Dictionary<String, Object?> dict = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+        foreach (JsonProperty p in obj.EnumerateObject()) {
             dict[p.Name] = FromJson(p.Value);
         }
         return dict;
     }
 
-    private static object? FromJson(JsonElement el) {
+    private static Object? FromJson(JsonElement el) {
         return el.ValueKind switch {
             JsonValueKind.Object => ToMap(el),
             JsonValueKind.Array => ToList(el),
             JsonValueKind.String => el.GetString(),
-            JsonValueKind.Number => el.TryGetInt64(out var l) ? l : el.TryGetDouble(out var d) ? d : el.GetRawText(),
+            JsonValueKind.Number => el.TryGetInt64(out Int64 l) ? l : el.TryGetDouble(out global::System.Double d) ? d : el.GetRawText(),
             JsonValueKind.True => true,
             JsonValueKind.False => false,
             _ => null
         };
     }
 
-    private static List<object?> ToList(JsonElement arr) {
-        var list = new List<object?>();
-        foreach (var item in arr.EnumerateArray())
+    private static List<Object?> ToList(JsonElement arr) {
+        List<Object?> list = new List<Object?>();
+        foreach (JsonElement item in arr.EnumerateArray())
             list.Add(FromJson(item));
         return list;
     }
 
-    private static Dictionary<string, object?> ToMap(TomlTable table) {
-        var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-        foreach (var kv in table)
+    private static Dictionary<String, Object?> ToMap(TomlTable table) {
+        Dictionary<String, Object?> dict = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+        foreach (KeyValuePair<String, Object> kv in table)
             dict[kv.Key] = FromToml(kv.Value);
         return dict;
     }
 
-    private static object? FromToml(object? value) {
+    private static Object? FromToml(Object? value) {
         switch (value) {
             case TomlTable tt:
                 return ToMap(tt);
             case TomlTableArray ta:
-                var listTa = new List<object?>();
-                foreach (var item in ta)
+                List<Object?> listTa = new List<Object?>();
+                foreach (TomlTable item in ta)
                     listTa.Add(FromToml(item));
                 return listTa;
             case TomlArray arr:
-                var listArr = new List<object?>();
-                foreach (var item in arr)
+                List<Object?> listArr = new List<Object?>();
+                foreach (Object? item in arr)
                     listArr.Add(FromToml(item));
                 return listArr;
             default:
@@ -254,16 +250,16 @@ public sealed class OperationsEngine {
     }
 
 
-    public async Task<bool> RunOperationGroupAsync(
-		string gameName,
-		IDictionary<string, object?> games,
-		string groupName,
-		IList<Dictionary<string, object?>> operations,
-		IDictionary<string, object?> promptAnswers,
+    public async Task<Boolean> RunOperationGroupAsync(
+        String gameName,
+		IDictionary<String, Object?> games,
+        String groupName,
+		IList<Dictionary<String, Object?>> operations,
+		IDictionary<String, Object?> promptAnswers,
 		CancellationToken cancellationToken = default)
 	{
-		var success = true;
-		foreach (var op in operations)
+        Boolean success = true;
+		foreach (Dictionary<String, Object?> op in operations)
 		{
 			if (!await RunSingleOperationAsync(gameName, games, op, promptAnswers, cancellationToken))
 				success = false;
@@ -271,39 +267,39 @@ public sealed class OperationsEngine {
 		return success;
 	}
 
-    public async Task<bool> RunSingleOperationAsync(
-        string currentGame,
-        IDictionary<string, object?> games,
-        IDictionary<string, object?> op,
-        IDictionary<string, object?> promptAnswers,
+    public async Task<Boolean> RunSingleOperationAsync(
+        String currentGame,
+        IDictionary<String, Object?> games,
+        IDictionary<String, Object?> op,
+        IDictionary<String, Object?> promptAnswers,
         CancellationToken cancellationToken = default) {
-        var scriptType = (op.TryGetValue("script_type", out var st) ? st?.ToString() : null)?.ToLowerInvariant() ?? "python";
-        var parts = _builder.Build(currentGame, games, _engineConfig.Data, op, promptAnswers);
+        String scriptType = (op.TryGetValue("script_type", out Object? st) ? st?.ToString() : null)?.ToLowerInvariant() ?? "python";
+        List<String> parts = _builder.Build(currentGame, games, _engineConfig.Data, op, promptAnswers);
         if (parts.Count < 2)
             return false;
 
-        var scriptPath = parts[1];
-        var args = parts.Skip(2).ToArray();
+        String scriptPath = parts[1];
+        String[] args = parts.Skip(2).ToArray();
 
-        var result = false;
+        Boolean result = false;
         try {
             switch (scriptType) {
                 case "lua": {
-                    var action = new LuaScriptAction(scriptPath, args);
+                    LuaScriptAction action = new LuaScriptAction(scriptPath, args);
                     await action.ExecuteAsync(_tools, cancellationToken);
                     result = true;
                     break;
                 }
                 case "js": {
-                    var action = new JsScriptAction(scriptPath, args);
+                    JsScriptAction action = new JsScriptAction(scriptPath, args);
                     await action.ExecuteAsync(_tools, cancellationToken);
                     result = true;
                     break;
                 }
                 case "engine": {
                     try {
-                        var action = op.TryGetValue("script", out var s) ? s?.ToString() : null;
-                        var title = op.TryGetValue("Name", out var n) ? n?.ToString() ?? action : action;
+                        String? action = op.TryGetValue("script", out Object? s) ? s?.ToString() : null;
+                        String? title = op.TryGetValue("Name", out Object? n) ? n?.ToString() ?? action : action;
                         Console.ForegroundColor = ConsoleColor.DarkCyan;
                         Console.WriteLine($"\n>>> Engine operation: {title}");
                         Console.ResetColor();
@@ -316,7 +312,7 @@ public sealed class OperationsEngine {
                 }
                 case "python":
                 default: {
-                    var runner = new ProcessRunner();
+                    ProcessRunner runner = new ProcessRunner();
                     result = runner.Execute(parts, Path.GetFileName(scriptPath), cancellationToken: cancellationToken);
                     break;
                 }
@@ -328,114 +324,82 @@ public sealed class OperationsEngine {
         return result;
     }
 
-    public async Task<bool> ExecuteEngineOperationAsync(
-        string currentGame,
-        IDictionary<string, object?> games,
-        IDictionary<string, object?> op,
-        IDictionary<string, object?> promptAnswers,
+    public async Task<Boolean> ExecuteEngineOperationAsync(
+        String currentGame,
+        IDictionary<String, Object?> games,
+        IDictionary<String, Object?> op,
+        IDictionary<String, Object?> promptAnswers,
         CancellationToken cancellationToken = default) {
-        if (!op.TryGetValue("script", out var s) || s is null)
+        if (!op.TryGetValue("script", out Object? s) || s is null)
             return false;
-        var action = s.ToString()?.ToLowerInvariant();
+        String? action = s.ToString()?.ToLowerInvariant();
         switch (action) {
             case "download_tools": {
                 // Expect a 'tools_manifest' value (path), or fallback to first arg
-                string? manifest = null;
-                if (op.TryGetValue("tools_manifest", out var tm) && tm is not null)
+                String? manifest = null;
+                if (op.TryGetValue("tools_manifest", out Object? tm) && tm is not null)
                     manifest = tm.ToString();
-                else if (op.TryGetValue("args", out var argsObj) && argsObj is IList<object?> list && list.Count > 0)
+                else if (op.TryGetValue("args", out Object? argsObj) && argsObj is IList<Object?> list && list.Count > 0)
                     manifest = list[0]?.ToString();
 
-                if (string.IsNullOrWhiteSpace(manifest))
+                if (String.IsNullOrWhiteSpace(manifest))
                     return false;
 
-                var ctx = new Dictionary<string, object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase);
-                if (!games.TryGetValue(currentGame, out var gobj) || gobj is not IDictionary<string, object?> gdict)
+                Dictionary<String, Object?> ctx = new Dictionary<String, Object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase);
+                if (!games.TryGetValue(currentGame, out Object? gobj) || gobj is not IDictionary<String, Object?> gdict)
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
-                ctx["Game"] = new Dictionary<string, object?> {
-                    ["RootPath"] = gdict.TryGetValue("game_root", out var gr) ? gr?.ToString() : string.Empty,
+                ctx["Game"] = new Dictionary<String, Object?> {
+                    ["RootPath"] = gdict.TryGetValue("game_root", out Object? gr) ? gr?.ToString() : String.Empty,
                     ["Name"] = currentGame,
                 };
-                var resolvedManifest = Placeholders.Resolve(manifest!, ctx)?.ToString() ?? manifest!;
-                var central = Path.Combine(_rootPath, "RemakeRegistry/Tools.json");
-                var force = false;
-                if (promptAnswers.TryGetValue("force download", out var fd) && fd is bool b1)
+                String resolvedManifest = Placeholders.Resolve(manifest!, ctx)?.ToString() ?? manifest!;
+                String central = Path.Combine(_rootPath, "RemakeRegistry/Tools.json");
+                Boolean force = false;
+                if (promptAnswers.TryGetValue("force download", out Object? fd) && fd is Boolean b1)
                     force = b1;
-                if (promptAnswers.TryGetValue("force_download", out var fd2) && fd2 is bool b2)
+                if (promptAnswers.TryGetValue("force_download", out Object? fd2) && fd2 is Boolean b2)
                     force = b2;
 
-                var dl = new Tools.ToolsDownloader(_rootPath, central);
+                ToolsDownloader dl = new Tools.ToolsDownloader(_rootPath, central);
                 await dl.ProcessAsync(resolvedManifest, force);
                 return true;
             }
             case "format-extract":
             case "format_extract": {
                 // Determine input file format
-                var format = op.TryGetValue("format", out var ft) ? ft?.ToString()?.ToLowerInvariant() : null;
+                String? format = op.TryGetValue("format", out Object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
 
                 // Resolve args (used for both TXD and media conversions)
-                var ctx = new Dictionary<string, object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase);
-                if (!games.TryGetValue(currentGame, out var gobj) || gobj is not IDictionary<string, object?> gdict2)
+                Dictionary<String, Object?> ctx = new Dictionary<String, Object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase);
+                if (!games.TryGetValue(currentGame, out Object? gobj) || gobj is not IDictionary<String, Object?> gdict2)
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
-                ctx["Game"] = new Dictionary<string, object?> {
-                    ["RootPath"] = gdict2.TryGetValue("game_root", out var gr2) ? gr2?.ToString() : string.Empty,
+                ctx["Game"] = new Dictionary<String, Object?> {
+                    ["RootPath"] = gdict2.TryGetValue("game_root", out Object? gr2) ? gr2?.ToString() : String.Empty,
                     ["Name"] = currentGame,
                 };
 
-                var args = new List<string>();
-                if (op.TryGetValue("args", out var aobj) && aobj is IList<object?> aList) {
-                    var resolved = (IList<object?>)(Placeholders.Resolve(aList, ctx) ?? new List<object?>());
-                    foreach (var a in resolved)
+                List<String> args = new List<String>();
+                if (op.TryGetValue("args", out Object? aobj) && aobj is IList<Object?> aList) {
+                    IList<Object?> resolved = (IList<Object?>)(Placeholders.Resolve(aList, ctx) ?? new List<Object?>());
+                    foreach (Object? a in resolved)
                         if (a is not null)
                             args.Add(a.ToString()!);
                 }
 
-                // If format is TXD, delegate to existing Python handler
-                if (string.Equals(format, "txd", StringComparison.OrdinalIgnoreCase)) {
-                    var scriptPath = System.IO.Path.Combine(_rootPath, "EnginePy", "FormatHandlers", "Export_txd.py");
-                    var pythonExe = ResolvePythonExecutable();
+                // If format is TXD, use built-in extractor
 
-                    var parts = new List<string> { pythonExe, scriptPath };
-                    parts.AddRange(args);
-
-                    var runner = new ProcessRunner();
-                    // Use simple console handlers to ensure output visibility
-                    ProcessRunner.OutputHandler outH = (line, stream) => {
-                        var prev = Console.ForegroundColor;
-                        Console.ForegroundColor = (stream == "stderr") ? ConsoleColor.Red : ConsoleColor.Gray;
-                        Console.WriteLine(line);
-                        Console.ForegroundColor = prev;
-                    };
-                    return runner.Execute(
-                        parts,
-                        op.TryGetValue("Name", out var nn) ? nn?.ToString() ?? "format-extract" : "format-extract",
-                        onOutput: outH,
-                        onEvent: null,
-                        stdinProvider: null,
-                        envOverrides: new Dictionary<string, object?> { ["TERM"] = "dumb" },
-                        cancellationToken: cancellationToken);
-                } else if (string.Equals(format, "str", StringComparison.OrdinalIgnoreCase)) {
-                    // Use existing BMS extraction script
-                    var scriptPath = System.IO.Path.Combine(_rootPath, "EnginePy", "FormatHandlers", "bms_extract.py");
-                    var pythonExe = ResolvePythonExecutable();
-                    var runner = new ProcessRunner();
-                    // Use simple console handlers to ensure output visibility
-                    ProcessRunner.OutputHandler outH = (line, stream) => {
-                        var prev = Console.ForegroundColor;
-                        Console.ForegroundColor = (stream == "stderr") ? ConsoleColor.Red : ConsoleColor.Gray;
-                        Console.WriteLine(line);
-                        Console.ForegroundColor = prev;
-                    };
-                    var parts = new List<string> { pythonExe, scriptPath };
-                    parts.AddRange(args);
-                    return runner.Execute(
-                        parts,
-                        op.TryGetValue("Name", out var nn) ? nn?.ToString() ?? "format-extract" : "format-extract",
-                        onOutput: outH,
-                        onEvent: null,
-                        stdinProvider: null,
-                        envOverrides: new Dictionary<string, object?> { ["TERM"] = "dumb" },
-                        cancellationToken: cancellationToken);
+                if (String.Equals(format, "txd", StringComparison.OrdinalIgnoreCase)) {
+                    Console.ForegroundColor = ConsoleColor.DarkCyan;
+                    Console.WriteLine("\n>>> Built-in TXD extraction");
+                    Console.ResetColor();
+                    Boolean okTxd = TxdExtractor.Run(args);
+                    return okTxd;
+                } else if (String.Equals(format, "str", StringComparison.OrdinalIgnoreCase)) {
+                    Console.ForegroundColor = ConsoleColor.DarkCyan;
+                    Console.WriteLine("\\n>>> Built-in BMS extraction");
+                    Console.ResetColor();
+                    Boolean okBms = QuickBmsExtractor.Run(args);
+                    return okBms;
                 } else {
                     return false;
                 }
@@ -443,61 +407,110 @@ public sealed class OperationsEngine {
             case "format-convert":
             case "format_convert": {
                 // Determine tool
-                var tool = op.TryGetValue("tool", out var ft) ? ft?.ToString()?.ToLowerInvariant() : null;
+                String? tool = op.TryGetValue("tool", out Object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
 
                 // Resolve args (used for both TXD and media conversions)
-                var ctx = new Dictionary<string, object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase);
-                if (!games.TryGetValue(currentGame, out var gobj) || gobj is not IDictionary<string, object?> gdict2)
+                Dictionary<String, Object?> ctx = new Dictionary<String, Object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase);
+                if (!games.TryGetValue(currentGame, out Object? gobj) || gobj is not IDictionary<String, Object?> gdict2)
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
-                ctx["Game"] = new Dictionary<string, object?> {
-                    ["RootPath"] = gdict2.TryGetValue("game_root", out var gr2) ? gr2?.ToString() : string.Empty,
+                ctx["Game"] = new Dictionary<String, Object?> {
+                    ["RootPath"] = gdict2.TryGetValue("game_root", out Object? gr2) ? gr2?.ToString() : String.Empty,
                     ["Name"] = currentGame,
                 };
 
-                var args = new List<string>();
-                if (op.TryGetValue("args", out var aobj) && aobj is IList<object?> aList) {
-                    var resolved = (IList<object?>)(Placeholders.Resolve(aList, ctx) ?? new List<object?>());
-                    foreach (var a in resolved)
+                List<String> args = new List<String>();
+                if (op.TryGetValue("args", out Object? aobj) && aobj is IList<Object?> aList) {
+                    IList<Object?> resolved = (IList<Object?>)(Placeholders.Resolve(aList, ctx) ?? new List<Object?>());
+                    foreach (Object? a in resolved)
                         if (a is not null)
                             args.Add(a.ToString()!);
                 }
 
-                if (string.Equals(tool, "ffmpeg", StringComparison.OrdinalIgnoreCase) || string.Equals(tool, "vgmstream", StringComparison.OrdinalIgnoreCase)) {
+                if (String.Equals(tool, "ffmpeg", StringComparison.OrdinalIgnoreCase) || String.Equals(tool, "vgmstream", StringComparison.OrdinalIgnoreCase)) {
                     // attempt built-in media conversion (ffmpeg/vgmstream) using the same CLI args
                     Console.ForegroundColor = ConsoleColor.DarkCyan;
                     Console.WriteLine("\n>>> Built-in media conversion");
                     Console.ResetColor();
-                    var okMedia = MediaConverter.Run(args);
+                    Boolean okMedia = MediaConverter.Run(args);
                     return okMedia;
                 } else {
                     return false;
                 }
             }
+            case "validate-files":
+            case "validate_files": {
+                Dictionary<String, Object?> ctx = new Dictionary<String, Object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase);
+                if (!games.TryGetValue(currentGame, out Object? gobjValidate) || gobjValidate is not IDictionary<String, Object?> gdictValidate)
+                    throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
+                ctx["Game"] = new Dictionary<String, Object?> {
+                    ["RootPath"] = gdictValidate.TryGetValue("game_root", out Object? grValidate) ? grValidate?.ToString() : String.Empty,
+                    ["Name"] = currentGame,
+                };
+
+                List<String> argsValidate = new List<String>();
+                if (op.TryGetValue("args", out Object? aobjValidate) && aobjValidate is IList<Object?> aListValidate) {
+                    IList<Object?> resolved = (IList<Object?>)(Placeholders.Resolve(aListValidate, ctx) ?? new List<Object?>());
+                    foreach (Object? a in resolved)
+                        if (a is not null)
+                            argsValidate.Add(a.ToString()!);
+                }
+
+                Console.ForegroundColor = ConsoleColor.DarkCyan;
+                Console.WriteLine("\n>>> Built-in file validation");
+                Console.ResetColor();
+                Boolean okValidate = FileValidator.Run(argsValidate);
+                return okValidate;
+            }
+            case "rename-folders":
+            case "rename_folders": {
+                Dictionary<String, Object?> ctx = new Dictionary<String, Object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase);
+                if (!games.TryGetValue(currentGame, out Object? gobj3) || gobj3 is not IDictionary<String, Object?> gdict3)
+                    throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
+                ctx["Game"] = new Dictionary<String, Object?> {
+                    ["RootPath"] = gdict3.TryGetValue("game_root", out Object? gr3) ? gr3?.ToString() : String.Empty,
+                    ["Name"] = currentGame,
+                };
+
+                List<String> args = new List<String>();
+                if (op.TryGetValue("args", out Object? aobjRename) && aobjRename is IList<Object?> aListRename) {
+                    IList<Object?> resolved = (IList<Object?>)(Placeholders.Resolve(aListRename, ctx) ?? new List<Object?>());
+                    foreach (Object? a in resolved)
+                        if (a is not null)
+                            args.Add(a.ToString()!);
+                }
+
+                Console.ForegroundColor = ConsoleColor.DarkCyan;
+                Console.WriteLine("\n>>> Built-in folder rename");
+                Console.ResetColor();
+                Boolean okRename = FolderRenamer.Run(args);
+                return okRename;
+            }
+
             default:
                 return false;
         }
     }
 
-    private string ResolvePythonExecutable() {
+    private String ResolvePythonExecutable() {
         return "python";
     }
 
     // Refresh in-memory config from project.json so placeholders resolve with latest values.
     private void ReloadProjectConfig() {
         try {
-            var projectJson = Path.Combine(_rootPath, "project.json");
+            String projectJson = Path.Combine(_rootPath, "project.json");
             if (!File.Exists(projectJson))
                 return;
-            using var fs = File.OpenRead(projectJson);
-            using var doc = JsonDocument.Parse(fs);
+            using FileStream fs = File.OpenRead(projectJson);
+            using JsonDocument doc = JsonDocument.Parse(fs);
             if (doc.RootElement.ValueKind != JsonValueKind.Object)
                 return;
-            var map = ToMap(doc.RootElement);
-            var data = _engineConfig.Data;
+            Dictionary<String, Object?> map = ToMap(doc.RootElement);
+            IDictionary<String, Object?>? data = _engineConfig.Data;
             if (data is null)
                 return;
             data.Clear();
-            foreach (var kv in map)
+            foreach (KeyValuePair<String, Object?> kv in map)
                 data[kv.Key] = kv.Value;
         } catch {
             // Non-fatal; keep previous config if reload fails.
@@ -506,22 +519,22 @@ public sealed class OperationsEngine {
 
 
     // --- CLI helpers to match Python CLI behavior ---
-    public List<string> BuildCommand(
-        string currentGame,
-        IDictionary<string, object?> games,
-        IDictionary<string, object?> op,
-        IDictionary<string, object?> promptAnswers)
+    public List<String> BuildCommand(
+        String currentGame,
+        IDictionary<String, Object?> games,
+        IDictionary<String, Object?> op,
+        IDictionary<String, Object?> promptAnswers)
         => _builder.Build(currentGame, games, _engineConfig.Data, op, promptAnswers);
 
-    public bool ExecuteCommand(
-        IList<string> commandParts,
-        string title,
+    public Boolean ExecuteCommand(
+        IList<String> commandParts,
+        String title,
         ProcessRunner.OutputHandler? onOutput = null,
         ProcessRunner.EventHandler? onEvent = null,
         ProcessRunner.StdinProvider? stdinProvider = null,
-        IDictionary<string, object?>? envOverrides = null,
+        IDictionary<String, Object?>? envOverrides = null,
         CancellationToken cancellationToken = default) {
-        var runner = new ProcessRunner();
+        ProcessRunner runner = new ProcessRunner();
         return runner.Execute(
             commandParts,
             title,
@@ -533,20 +546,20 @@ public sealed class OperationsEngine {
     }
 
     // --- Module management ---
-    public bool DownloadModule(string url) => _git.CloneModule(url);
+    public Boolean DownloadModule(String url) => _git.CloneModule(url);
 
     // Install a downloaded module by running the "run-all" operation
-    public async Task<bool> InstallModuleAsync(
-        string name,
+    public async Task<Boolean> InstallModuleAsync(
+        String name,
         ProcessRunner.OutputHandler? onOutput = null,
         ProcessRunner.EventHandler? onEvent = null,
         ProcessRunner.StdinProvider? stdinProvider = null,
         CancellationToken cancellationToken = default)
     {
-        var gameDir = System.IO.Path.Combine(_rootPath, "RemakeRegistry", "Games", name);
-        var opsToml = System.IO.Path.Combine(gameDir, "operations.toml");
-        var opsJson = System.IO.Path.Combine(gameDir, "operations.json");
-        string? opsFile = null;
+        String gameDir = System.IO.Path.Combine(_rootPath, "RemakeRegistry", "Games", name);
+        String opsToml = System.IO.Path.Combine(gameDir, "operations.toml");
+        String opsJson = System.IO.Path.Combine(gameDir, "operations.json");
+        String? opsFile = null;
         if (File.Exists(opsToml))
             opsFile = opsToml;
         else if (File.Exists(opsJson))
@@ -555,19 +568,19 @@ public sealed class OperationsEngine {
             return false;
 
         // Build a minimal games map for the command builder
-        var games = new Dictionary<string, object?> {
-            [name] = new Dictionary<string, object?> {
+        Dictionary<String, Object?> games = new Dictionary<String, Object?> {
+            [name] = new Dictionary<String, Object?> {
                 ["game_root"] = gameDir,
                 ["ops_file"] = opsFile,
             }
         };
 
         // Load groups or flatten
-        var groups = LoadOperations(opsFile);
-        IList<Dictionary<string, object?>> opsList;
+        Dictionary<String, List<Dictionary<String, Object?>>> groups = LoadOperations(opsFile);
+        IList<Dictionary<String, Object?>> opsList;
         if (groups.Count > 0) {
             // Prefer a key named "run-all" (any case)
-            var key = groups.Keys.FirstOrDefault(k => string.Equals(k, "run-all", StringComparison.OrdinalIgnoreCase))
+            String key = groups.Keys.FirstOrDefault(k => String.Equals(k, "run-all", StringComparison.OrdinalIgnoreCase))
                       ?? groups.Keys.First();
             opsList = groups[key];
         } else {
@@ -577,15 +590,15 @@ public sealed class OperationsEngine {
             return false;
 
         // Run each op streaming output and events
-        var okAll = true;
-        foreach (var op in opsList) {
+        Boolean okAll = true;
+        foreach (Dictionary<String, Object?> op in opsList) {
             if (cancellationToken.IsCancellationRequested)
                 break;
-            var parts = BuildCommand(name, games, op, new Dictionary<string, object?>());
+            List<String> parts = BuildCommand(name, games, op, new Dictionary<String, Object?>());
             if (parts.Count == 0)
                 continue;
-            var title = op.TryGetValue("Name", out var n) ? n?.ToString() ?? System.IO.Path.GetFileName(parts[1]) : System.IO.Path.GetFileName(parts[1]);
-            var ok = ExecuteCommand(parts, title, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, cancellationToken: cancellationToken);
+            String title = op.TryGetValue("Name", out Object? n) ? n?.ToString() ?? System.IO.Path.GetFileName(parts[1]) : System.IO.Path.GetFileName(parts[1]);
+            Boolean ok = ExecuteCommand(parts, title, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, cancellationToken: cancellationToken);
             // After each operation, refresh project.json in memory for subsequent resolutions.
             ReloadProjectConfig();
             if (!ok)

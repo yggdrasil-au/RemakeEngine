@@ -11,17 +11,17 @@ using System.Threading;
 namespace RemakeEngine.Core;
 
 public sealed class ProcessRunner {
-    public delegate void OutputHandler(string line, string streamName);
-    public delegate void EventHandler(Dictionary<string, object?> evt);
-    public delegate string? StdinProvider();
+    public delegate void OutputHandler(String line, String streamName);
+    public delegate void EventHandler(Dictionary<String, Object?> evt);
+    public delegate String? StdinProvider();
 
-    public bool Execute(
-        IList<string> commandParts,
-        string opTitle,
+    public Boolean Execute(
+        IList<String> commandParts,
+        String opTitle,
         OutputHandler? onOutput = null,
         EventHandler? onEvent = null,
         StdinProvider? stdinProvider = null,
-        IDictionary<string, object?>? envOverrides = null,
+        IDictionary<String, Object?>? envOverrides = null,
         CancellationToken cancellationToken = default) {
         if (commandParts is null || commandParts.Count < 2) {
             onOutput?.Invoke($"Operation '{opTitle}' has no script to execute. Skipping.", "stderr");
@@ -37,13 +37,13 @@ public sealed class ProcessRunner {
             Console.WriteLine($"  cwd: {Directory.GetCurrentDirectory()}");
             if (envOverrides != null && envOverrides.Count > 0) {
                 Console.WriteLine("  env overrides:");
-                foreach (var kv in envOverrides) {
+                foreach (KeyValuePair<String, Object?> kv in envOverrides) {
                     Console.WriteLine($"    {kv.Key}={kv.Value}");
                 }
             }
         } catch { /* ignore formatting errors */ }
 
-        var psi = new ProcessStartInfo {
+        ProcessStartInfo psi = new ProcessStartInfo {
             FileName = commandParts[0],
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -53,15 +53,15 @@ public sealed class ProcessRunner {
             StandardOutputEncoding = Encoding.UTF8,
             StandardErrorEncoding = Encoding.UTF8,
         };
-        for (int i = 1; i < commandParts.Count; i++)
+        for (Int32 i = 1; i < commandParts.Count; i++)
             psi.ArgumentList.Add(commandParts[i]);
 
         foreach (DictionaryEntry de in Environment.GetEnvironmentVariables())
-            psi.Environment[de.Key.ToString()!] = de.Value?.ToString() ?? string.Empty;
+            psi.Environment[de.Key.ToString()!] = de.Value?.ToString() ?? String.Empty;
 
         if (envOverrides != null)
-            foreach (var kv in envOverrides)
-                psi.Environment[kv.Key] = kv.Value?.ToString() ?? string.Empty;
+            foreach (KeyValuePair<String, Object?> kv in envOverrides)
+                psi.Environment[kv.Key] = kv.Value?.ToString() ?? String.Empty;
 
         // Encourage line-buffered UTF-8 for child Python
         if (!psi.Environment.ContainsKey("PYTHONUNBUFFERED"))
@@ -69,9 +69,9 @@ public sealed class ProcessRunner {
         if (!psi.Environment.ContainsKey("PYTHONIOENCODING"))
             psi.Environment["PYTHONIOENCODING"] = "utf-8";
 
-        using var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
+        using Process proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
 
-        var q = new BlockingCollection<(string stream, string line)>(boundedCapacity: 1000);
+        BlockingCollection<(String stream, String line)> q = new BlockingCollection<(String stream, String line)>(boundedCapacity: 1000);
 
         DataReceivedEventHandler outHandler = (_, e) => { if (e.Data != null) q.Add(("stdout", e.Data)); };
         DataReceivedEventHandler errHandler = (_, e) => { if (e.Data != null) q.Add(("stderr", e.Data)); };
@@ -85,26 +85,26 @@ public sealed class ProcessRunner {
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
 
-            bool awaitingPrompt = false;
-            string? lastPromptMsg = null;
-            bool suppressPromptEcho = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ENGINE_SUPPRESS_PROMPT_ECHO"));
+            Boolean awaitingPrompt = false;
+            String? lastPromptMsg = null;
+            Boolean suppressPromptEcho = !String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ENGINE_SUPPRESS_PROMPT_ECHO"));
 
-            void SendToChild(string? text) {
+            void SendToChild(String? text) {
                 try {
-                    proc.StandardInput.WriteLine(text ?? string.Empty);
+                    proc.StandardInput.WriteLine(text ?? String.Empty);
                     proc.StandardInput.Flush();
                 } catch { /* ignore */ }
             }
 
-            string? HandleLine(string line, string streamName) {
+            String? HandleLine(String line, String streamName) {
                 if (line.StartsWith(Types.RemakePrefix, StringComparison.Ordinal)) {
-                    var payload = line.Substring(Types.RemakePrefix.Length).Trim();
+                    String payload = line.Substring(Types.RemakePrefix.Length).Trim();
                     try {
-                        var evt = JsonSerializer.Deserialize<Dictionary<string, object?>>(payload) ?? new();
-                        if (evt.TryGetValue("event", out var evType) && (evType?.ToString() ?? "") == "prompt") {
+                        Dictionary<String, Object?> evt = JsonSerializer.Deserialize<Dictionary<String, Object?>>(payload) ?? new();
+                        if (evt.TryGetValue("event", out Object? evType) && (evType?.ToString() ?? "") == "prompt") {
                             if (!suppressPromptEcho)
                                 onEvent?.Invoke(evt);
-                            return evt.TryGetValue("message", out var msg) ? msg?.ToString() ?? "Input required" : "Input required";
+                            return evt.TryGetValue("message", out Object? msg) ? msg?.ToString() ?? "Input required" : "Input required";
                         }
                         onEvent?.Invoke(evt);
                         return null;
@@ -121,24 +121,24 @@ public sealed class ProcessRunner {
             while (!proc.HasExited) {
                 if (cancellationToken.IsCancellationRequested) {
                     TryTerminate(proc);
-                    onEvent?.Invoke(new Dictionary<string, object?> { ["event"] = "end", ["success"] = false, ["exit_code"] = 130 });
+                    onEvent?.Invoke(new Dictionary<String, Object?> { ["event"] = "end", ["success"] = false, ["exit_code"] = 130 });
                     return false;
                 }
 
-                if (!q.TryTake(out var item, 100))
+                if (!q.TryTake(out (String stream, String line) item, 100))
                     continue;
 
-                var promptMsg = HandleLine(item.line, item.stream);
+                String? promptMsg = HandleLine(item.line, item.stream);
                 if (promptMsg != null) {
                     awaitingPrompt = true;
                     lastPromptMsg = promptMsg;
                 }
 
                 if (awaitingPrompt && !proc.HasExited) {
-                    string? ans;
+                    String? ans;
                     try {
                         ans = stdinProvider?.Invoke();
-                    } catch { ans = string.Empty; }
+                    } catch { ans = String.Empty; }
                     SendToChild(ans);
                     awaitingPrompt = false;
                     lastPromptMsg = null;
@@ -146,34 +146,34 @@ public sealed class ProcessRunner {
             }
 
             // Drain any remaining
-            while (q.TryTake(out var item)) {
-                var promptMsg = HandleLine(item.line, item.stream);
+            while (q.TryTake(out (String stream, String line) item)) {
+                String? promptMsg = HandleLine(item.line, item.stream);
                 if (promptMsg != null) {
-                    string? ans;
+                    String? ans;
                     try {
                         ans = stdinProvider?.Invoke();
-                    } catch { ans = string.Empty; }
+                    } catch { ans = String.Empty; }
                     SendToChild(ans);
                 }
             }
 
-            var rc = proc.ExitCode;
+            Int32 rc = proc.ExitCode;
             if (rc == 0) {
-                onEvent?.Invoke(new Dictionary<string, object?> { ["event"] = "end", ["success"] = true, ["exit_code"] = 0 });
+                onEvent?.Invoke(new Dictionary<String, Object?> { ["event"] = "end", ["success"] = true, ["exit_code"] = 0 });
                 return true;
             } else {
-                onEvent?.Invoke(new Dictionary<string, object?> { ["event"] = "end", ["success"] = false, ["exit_code"] = rc });
+                onEvent?.Invoke(new Dictionary<String, Object?> { ["event"] = "end", ["success"] = false, ["exit_code"] = rc });
                 return false;
             }
         } catch (OperationCanceledException) {
             TryTerminate(proc);
-            onEvent?.Invoke(new Dictionary<string, object?> { ["event"] = "end", ["success"] = false, ["exit_code"] = 130 });
+            onEvent?.Invoke(new Dictionary<String, Object?> { ["event"] = "end", ["success"] = false, ["exit_code"] = 130 });
             return false;
         } catch (FileNotFoundException) {
-            onEvent?.Invoke(new Dictionary<string, object?> { ["event"] = "error", ["kind"] = "FileNotFoundError", ["message"] = "Command or script not found." });
+            onEvent?.Invoke(new Dictionary<String, Object?> { ["event"] = "error", ["kind"] = "FileNotFoundError", ["message"] = "Command or script not found." });
             return false;
         } catch (Exception ex) {
-            onEvent?.Invoke(new Dictionary<string, object?> { ["event"] = "error", ["kind"] = "Exception", ["message"] = ex.Message });
+            onEvent?.Invoke(new Dictionary<String, Object?> { ["event"] = "error", ["kind"] = "Exception", ["message"] = ex.Message });
             return false;
         } finally {
             try {
@@ -191,24 +191,24 @@ public sealed class ProcessRunner {
         } catch { /* ignore */ }
     }
 
-    private static string FormatCommand(IList<string> parts) {
-        var sb = new System.Text.StringBuilder();
-        for (int i = 0; i < parts.Count; i++) {
+    private static String FormatCommand(IList<String> parts) {
+        StringBuilder sb = new System.Text.StringBuilder();
+        for (Int32 i = 0; i < parts.Count; i++) {
             if (i > 0)
                 sb.Append(' ');
-            sb.Append(QuoteArg(parts[i] ?? string.Empty));
+            sb.Append(QuoteArg(parts[i] ?? String.Empty));
         }
         return sb.ToString();
     }
 
-    private static string QuoteArg(string arg) {
-        if (string.IsNullOrEmpty(arg))
+    private static String QuoteArg(String arg) {
+        if (String.IsNullOrEmpty(arg))
             return "\"\"";
-        bool needsQuotes = arg.IndexOfAny(new[] { ' ', '\t', '"' }) >= 0;
+        Boolean needsQuotes = arg.IndexOfAny(new[] { ' ', '\t', '"' }) >= 0;
         if (!needsQuotes)
             return arg;
         // Escape embedded quotes by backslash
-        var escaped = arg.Replace("\"", "\\\"");
+        String escaped = arg.Replace("\"", "\\\"");
         return "\"" + escaped + "\"";
     }
 }

@@ -1,15 +1,15 @@
 namespace RemakeEngine.Interface.CLI;
 
 public partial class CliApp {
-    private int RunInteractiveMenu() {
+    private Int32 RunInteractiveMenu() {
         // 1) Pick a game, or offer to download a module if none exist
-        var games = _engine.ListGames();
+        Dictionary<String, Object?> games = _engine.ListGames();
         while (games.Count == 0) {
             Console.Clear();
             Console.WriteLine("No games found in RemakeRegistry/Games.");
-            var actions = new List<string> { "Download module…", "Exit" };
+            List<String> actions = new List<String> { "Download module…", "Exit" };
             Console.WriteLine("? Choose an action:");
-            var aidx = SelectFromMenu(actions);
+            Int32 aidx = SelectFromMenu(actions);
             if (aidx < 0 || actions[aidx] == "Exit")
                 return 0;
             if (actions[aidx].StartsWith("Download")) {
@@ -18,18 +18,18 @@ public partial class CliApp {
             }
         }
         // Allow managing modules from the game selection menu
-        string gameName;
+        String gameName;
         while (true) {
             Console.Clear();
             Console.WriteLine("Select a game:");
-            var gameMenu = new List<string>(games.Keys);
+            List<String> gameMenu = new List<String>(games.Keys);
             gameMenu.Add("---------------");
             gameMenu.Add("Download module…");
             gameMenu.Add("Exit");
-            var gidx = SelectFromMenu(gameMenu, highlightSeparators: true);
+            Int32 gidx = SelectFromMenu(gameMenu, highlightSeparators: true);
             if (gidx < 0 || gameMenu[gidx] == "Exit")
                 return 0;
-            var gsel = gameMenu[gidx];
+            String gsel = gameMenu[gidx];
             if (gsel.StartsWith("Download module")) {
                 ShowDownloadMenu();
                 games = _engine.ListGames();
@@ -40,29 +40,29 @@ public partial class CliApp {
         }
 
         // 2) Load operations list and render menu
-        if (!games.TryGetValue(gameName, out var infoObj) || infoObj is not Dictionary<string, object?> info) {
+        if (!games.TryGetValue(gameName, out Object? infoObj) || infoObj is not Dictionary<String, Object?> info) {
             Console.Error.WriteLine("Selected game not found.");
             return 1;
         }
-        if (!info.TryGetValue("ops_file", out var of) || of is not string opsFile) {
+        if (!info.TryGetValue("ops_file", out Object? of) || of is not String opsFile) {
             Console.Error.WriteLine("Selected game is missing ops_file.");
             return 1;
         }
-        var allOps = _engine.LoadOperationsList(opsFile);
-        var initOps = allOps.FindAll(op => op.TryGetValue("init", out var i) && i is bool b && b);
-        var regularOps = allOps.FindAll(op => !op.ContainsKey("init") || !(op["init"] is bool bb && bb));
-        var didRunInit = false;
+        List<Dictionary<String, Object?>> allOps = _engine.LoadOperationsList(opsFile);
+        List<Dictionary<String, Object?>> initOps = allOps.FindAll(op => op.TryGetValue("init", out Object? i) && i is Boolean b && b);
+        List<Dictionary<String, Object?>> regularOps = allOps.FindAll(op => !op.ContainsKey("init") || !(op["init"] is Boolean bb && bb));
+        Boolean didRunInit = false;
 
         // Auto-run init operations once when a game is selected
         if (initOps.Count > 0) {
             Console.Clear();
             Console.WriteLine($"Running {initOps.Count} initialization operation(s) for {gameName}\n");
-            var okAllInit = true;
-            foreach (var op in initOps) {
-                var answers = new Dictionary<string, object?>();
+            Boolean okAllInit = true;
+            foreach (Dictionary<String, Object?> op in initOps) {
+                Dictionary<String, Object?> answers = new Dictionary<String, Object?>();
                 // Initialization runs non-interactively; use defaults when provided
                 CollectAnswersForOperation(op, answers, defaultsOnly: true);
-                var ok = ExecuteOp(gameName, games, op, answers);
+                Boolean ok = ExecuteOp(gameName, games, op, answers);
                 okAllInit &= ok;
             }
             didRunInit = true;
@@ -75,12 +75,12 @@ public partial class CliApp {
         while (true) {
             Console.Clear();
             Console.WriteLine($"--- Operations for: {gameName}");
-            var menu = new List<string>();
+            List<String> menu = new List<String>();
             menu.Add("Run All");
             menu.Add("---------------");
-            foreach (var op in regularOps) {
-                var name = op.TryGetValue("Name", out var n) && n is string s && !string.IsNullOrWhiteSpace(s)
-                    ? s : Path.GetFileName(op.TryGetValue("script", out var sc) ? sc?.ToString() ?? "(unnamed)" : "(unnamed)");
+            foreach (Dictionary<String, Object?> op in regularOps) {
+                String name = op.TryGetValue("Name", out Object? n) && n is String s && !String.IsNullOrWhiteSpace(s)
+                    ? s : Path.GetFileName(op.TryGetValue("script", out Object? sc) ? sc?.ToString() ?? "(unnamed)" : "(unnamed)");
                 menu.Add(name);
             }
             menu.Add("---------------");
@@ -88,11 +88,11 @@ public partial class CliApp {
             menu.Add("Exit");
 
             Console.WriteLine("? Select an operation: (Use arrow keys)");
-            var idx = SelectFromMenu(menu, highlightSeparators: true);
+            Int32 idx = SelectFromMenu(menu, highlightSeparators: true);
             if (idx < 0)
                 return 0; // canceled
 
-            var selection = menu[idx];
+            String selection = menu[idx];
             if (selection == "Change Game") {
                 // Restart the full menu loop by re-picking game
                 return RunInteractiveMenu();
@@ -102,21 +102,21 @@ public partial class CliApp {
             }
             if (selection == "Run All") {
                 // Collect prompts for all selected ops: init + run-all flagged
-                var runAll = new List<Dictionary<string, object?>>();
+                List<Dictionary<String, Object?>> runAll = new List<Dictionary<String, Object?>>();
                 if (!didRunInit)
                     runAll.AddRange(initOps);
-                foreach (var op in regularOps)
-                    if (op.TryGetValue("run-all", out var ra) && ra is bool rb && rb)
+                foreach (Dictionary<String, Object?> op in regularOps)
+                    if (op.TryGetValue("run-all", out Object? ra) && ra is Boolean rb && rb)
                         runAll.Add(op);
 
                 Console.Clear();
                 Console.WriteLine($"Running {runAll.Count} operations for {gameName}…\n");
-                var okAll = true;
-                foreach (var op in runAll) {
-                    var answers = new Dictionary<string, object?>();
+                Boolean okAll = true;
+                foreach (Dictionary<String, Object?> op in runAll) {
+                    Dictionary<String, Object?> answers = new Dictionary<String, Object?>();
                     // In run-all mode, do not prompt; prefer defaults when available
                     CollectAnswersForOperation(op, answers, defaultsOnly: true);
-                    var ok = ExecuteOp(gameName, games, op, answers);
+                    Boolean ok = ExecuteOp(gameName, games, op, answers);
                     okAll &= ok;
                 }
                 Console.WriteLine(okAll ? "Completed successfully. Press any key to continue…" : "One or more operations failed. Press any key to continue…");
@@ -125,15 +125,15 @@ public partial class CliApp {
             }
 
             // Otherwise, run a single operation (by index within regular ops)
-            var opIndex = idx - 2; // skip first two menu items
+            Int32 opIndex = idx - 2; // skip first two menu items
             if (opIndex >= 0 && opIndex < regularOps.Count) {
-                var op = regularOps[opIndex];
-                var answers = new Dictionary<string, object?>();
+                Dictionary<String, Object?> op = regularOps[opIndex];
+                Dictionary<String, Object?> answers = new Dictionary<String, Object?>();
                 // For manual single-op run, prompt interactively
                 CollectAnswersForOperation(op, answers, defaultsOnly: false);
                 Console.Clear();
                 Console.WriteLine($"Running: {selection}\n");
-                var ok = ExecuteOp(gameName, games, op, answers);
+                Boolean ok = ExecuteOp(gameName, games, op, answers);
                 Console.WriteLine(ok ? "Completed successfully. Press any key to continue…" : "Operation failed. Press any key to continue…");
                 Console.ReadKey(true);
             }

@@ -11,18 +11,18 @@ namespace RemakeEngine.Tools;
 ///   [[tool]] blocks with keys: name (string), version (string), destination (string), unpack (bool), unpack_destination (string).
 /// </summary>
 public static class SimpleToml {
-    public static List<Dictionary<string, object?>> ReadTools(string path) {
-        var tools = new List<Dictionary<string, object?>>(4);
-        Dictionary<string, object?>? current = null;
+    public static List<Dictionary<String, Object?>> ReadTools(String path) {
+        List<Dictionary<String, Object?>> tools = new List<Dictionary<String, Object?>>(4);
+        Dictionary<String, Object?>? current = null;
 
-        foreach (var raw in File.ReadAllLines(path)) {
-            var line = raw.Trim();
+        foreach (String raw in File.ReadAllLines(path)) {
+            String line = raw.Trim();
             if (line.Length == 0 || line.StartsWith("#"))
                 continue;
             if (line.StartsWith("[[") && line.EndsWith("]]")) {
-                var table = line.Substring(2, line.Length - 4).Trim();
-                if (string.Equals(table, "tool", StringComparison.OrdinalIgnoreCase)) {
-                    current = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                String table = line.Substring(2, line.Length - 4).Trim();
+                if (String.Equals(table, "tool", StringComparison.OrdinalIgnoreCase)) {
+                    current = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
                     tools.Add(current);
                 } else {
                     current = null;
@@ -33,14 +33,14 @@ public static class SimpleToml {
                 continue;
 
             // key = value (value supports strings, booleans)
-            var eq = line.IndexOf('=');
+            Int32 eq = line.IndexOf('=');
             if (eq <= 0)
                 continue;
-            var key = line.Substring(0, eq).Trim();
-            var valRaw = line.Substring(eq + 1).Trim();
+            String key = line.Substring(0, eq).Trim();
+            String valRaw = line.Substring(eq + 1).Trim();
             if (valRaw.StartsWith("\"") && valRaw.EndsWith("\"")) {
                 current[key] = valRaw.Substring(1, valRaw.Length - 2);
-            } else if (bool.TryParse(valRaw, out var b)) {
+            } else if (Boolean.TryParse(valRaw, out Boolean b)) {
                 current[key] = b;
             } else {
                 // leave as raw string

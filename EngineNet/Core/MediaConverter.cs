@@ -15,51 +15,51 @@ namespace RemakeEngine.Core;
 /// Supports mode=ffmpeg|vgmstream with type=audio|video and preserves directory structure.
 /// </summary>
 public static class MediaConverter {
-    private const string ToolFfmpeg = "ffmpeg";
-    private const string ToolVgmstream = "vgmstream";
-    private const string VgmstreamCliName = "vgmstream-cli";
-    private const string VgmstreamCliExe = "vgmstream-cli.exe";
-    private const string TypeAudio = "audio";
-    private const string TypeVideo = "video";
+    private const String ToolFfmpeg = "ffmpeg";
+    private const String ToolVgmstream = "vgmstream";
+    private const String VgmstreamCliName = "vgmstream-cli";
+    private const String VgmstreamCliExe = "vgmstream-cli.exe";
+    private const String TypeAudio = "audio";
+    private const String TypeVideo = "video";
 
     private sealed class ActiveJob {
-        public string Tool = string.Empty;      // ffmpeg | vgmstream
-        public string File = string.Empty;      // file name only
+        public String Tool = String.Empty;      // ffmpeg | vgmstream
+        public String File = String.Empty;      // file name only
         public DateTime StartedUtc = DateTime.UtcNow;
     }
 
     private sealed class Options {
-        public string Mode = string.Empty;                // ffmpeg | vgmstream
-        public string Type = string.Empty;                // audio | video
-        public string Source = string.Empty;              // directory
-        public string Target = string.Empty;              // directory
-        public string InputExt = string.Empty;            // eg .vp6, .snu
-        public string OutputExt = string.Empty;           // eg .ogv, .wav
-        public bool Overwrite = false;
-        public bool GodotCompatible = false;
-        public string? FfmpegPath;                        // ffmpeg/ffmpeg.exe
-        public string? VgmstreamCli;                      // vgmstream-cli/vgmstream-cli.exe
-        public string VideoCodec = "libtheora";
-        public string VideoQuality = "10";
-        public string AudioCodec = "libvorbis";
-        public string AudioQuality = "10";
-        public int? Workers = null;                       // default 75% cores
-        public bool Verbose = false;
-        public bool Debug = false;
+        public String Mode = String.Empty;                // ffmpeg | vgmstream
+        public String Type = String.Empty;                // audio | video
+        public String Source = String.Empty;              // directory
+        public String Target = String.Empty;              // directory
+        public String InputExt = String.Empty;            // eg .vp6, .snu
+        public String OutputExt = String.Empty;           // eg .ogv, .wav
+        public Boolean Overwrite = false;
+        public Boolean GodotCompatible = false;
+        public String? FfmpegPath;                        // ffmpeg/ffmpeg.exe
+        public String? VgmstreamCli;                      // vgmstream-cli/vgmstream-cli.exe
+        public String VideoCodec = "libtheora";
+        public String VideoQuality = "10";
+        public String AudioCodec = "libvorbis";
+        public String AudioQuality = "10";
+        public Int32? Workers = null;                       // default 75% cores
+        public Boolean Verbose = false;
+        public Boolean Debug = false;
     }
 
     // Tracks currently running external conversions (for progress panel)
-    private static readonly ConcurrentDictionary<int, ActiveJob> s_active = new();
-    private static readonly object s_consoleLock = new();
+    private static readonly ConcurrentDictionary<Int32, ActiveJob> s_active = new();
+    private static readonly Object s_consoleLock = new();
 
-    public static bool Run(IList<string> args) {
+    public static Boolean Run(IList<String> args) {
         try {
-            var opt = Parse(args);
+            Options opt = Parse(args);
 
             // Resolve executables if not provided
-            if (string.Equals(opt.Mode, ToolFfmpeg, StringComparison.OrdinalIgnoreCase))
+            if (String.Equals(opt.Mode, ToolFfmpeg, StringComparison.OrdinalIgnoreCase))
                 opt.FfmpegPath = opt.FfmpegPath ?? Which(ToolFfmpeg) ?? Which("ffmpeg.exe") ?? ToolFfmpeg;
-            else if (string.Equals(opt.Mode, ToolVgmstream, StringComparison.OrdinalIgnoreCase))
+            else if (String.Equals(opt.Mode, ToolVgmstream, StringComparison.OrdinalIgnoreCase))
                 opt.VgmstreamCli = opt.VgmstreamCli ?? Which(VgmstreamCliName) ?? Which(VgmstreamCliExe) ?? VgmstreamCliName;
 
             if (!Directory.Exists(opt.Source)) {
@@ -69,14 +69,14 @@ public static class MediaConverter {
             Directory.CreateDirectory(opt.Target);
 
             if (opt.Workers is null) {
-                var cores = Math.Max(1, Environment.ProcessorCount);
-                opt.Workers = Math.Max(1, (int)Math.Floor(cores * 0.75));
+                Int32 cores = Math.Max(1, Environment.ProcessorCount);
+                opt.Workers = Math.Max(1, (Int32)Math.Floor(cores * 0.75));
             }
 
             WriteInfo($"--- Starting {opt.Mode.ToUpperInvariant()} Conversion ---");
             WriteVerbose(opt.Verbose, $"Using executable: {(opt.Mode == "ffmpeg" ? opt.FfmpegPath : opt.VgmstreamCli)}");
 
-            var allFiles = Directory.EnumerateFiles(opt.Source, "*" + opt.InputExt, SearchOption.AllDirectories)
+            List<String> allFiles = Directory.EnumerateFiles(opt.Source, "*" + opt.InputExt, SearchOption.AllDirectories)
                                      .Where(p => p.EndsWith(opt.InputExt, StringComparison.OrdinalIgnoreCase))
                                      .ToList();
             if (allFiles.Count == 0) {
@@ -86,33 +86,33 @@ public static class MediaConverter {
 
             WriteInfo($"Found {allFiles.Count} files to process with {opt.Workers} workers.");
 
-            var success = 0;
-            var skipped = 0;
-            var errors = 0;
-            var processed = 0;
-            var errorList = new ConcurrentBag<(string file, string message)>();
+            Int32 success = 0;
+            Int32 skipped = 0;
+            Int32 errors = 0;
+            Int32 processed = 0;
+            ConcurrentBag<(String file, String message)> errorList = new ConcurrentBag<(String file, String message)>();
 
-            var po = new ParallelOptions { MaxDegreeOfParallelism = opt.Workers ?? 1 };
-            using var progressCts = new CancellationTokenSource();
-            var progressTask = StartProgressTask(
+            ParallelOptions po = new ParallelOptions { MaxDegreeOfParallelism = opt.Workers ?? 1 };
+            using CancellationTokenSource progressCts = new CancellationTokenSource();
+            Task progressTask = StartProgressTask(
                 total: allFiles.Count,
                 snapshot: () => (Volatile.Read(ref processed), Volatile.Read(ref success), Volatile.Read(ref skipped), Volatile.Read(ref errors)),
                 activeSnapshot: () => s_active.Values.ToList(),
                 token: progressCts.Token);
             Parallel.ForEach(allFiles, po, src => {
                 try {
-                    var rel = Path.GetRelativePath(opt.Source, src);
-                    var dest = Path.ChangeExtension(Path.Combine(opt.Target, rel), opt.OutputExt);
+                    String rel = Path.GetRelativePath(opt.Source, src);
+                    String dest = Path.ChangeExtension(Path.Combine(opt.Target, rel), opt.OutputExt);
                     Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
 
                     // Pre-skip if destination exists and not overwriting
                     if (!opt.Overwrite) {
-                        if (opt.GodotCompatible && string.Equals(opt.Type, TypeAudio, StringComparison.OrdinalIgnoreCase)) {
-                            // In Godot mode we produce two files: *_front and *_rear
-                            var basePath = Path.Combine(Path.GetDirectoryName(dest)!, Path.GetFileNameWithoutExtension(dest));
-                            var outFront = basePath + "_front" + opt.OutputExt;
-                            var outRear = basePath + "_rear" + opt.OutputExt;
-                            if (File.Exists(outFront) && File.Exists(outRear)) {
+                        if (opt.GodotCompatible && String.Equals(opt.Type, TypeAudio, StringComparison.OrdinalIgnoreCase)) {
+                            // In Godot mode we may produce two files (quad split) or a single file
+                            String basePath = Path.Combine(Path.GetDirectoryName(dest)!, Path.GetFileNameWithoutExtension(dest));
+                            String outFront = basePath + "_front" + opt.OutputExt;
+                            String outRear = basePath + "_rear" + opt.OutputExt;
+                            if ((File.Exists(outFront) && File.Exists(outRear)) || File.Exists(dest)) {
                                 System.Threading.Interlocked.Increment(ref skipped);
                                 System.Threading.Interlocked.Increment(ref processed);
                                 return;
@@ -124,7 +124,7 @@ public static class MediaConverter {
                         }
                     }
 
-                    var (ok, msg) = ConvertOne(src, dest, opt);
+                    (Boolean ok, String msg) = ConvertOne(src, dest, opt);
                     if (ok)
                         System.Threading.Interlocked.Increment(ref success);
                     else {
@@ -156,7 +156,7 @@ public static class MediaConverter {
 
             if (!errorList.IsEmpty) {
                 WriteError("\nEncountered the following errors:");
-                foreach (var (file, msg) in errorList) {
+                foreach ((String file, String msg) in errorList) {
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine($"  - File: {file}\n    Reason: {msg}");
                     Console.ResetColor();
@@ -173,13 +173,13 @@ public static class MediaConverter {
 
     // Multi-line progress panel: total bar + list of active subprocesses
     private static Task StartProgressTask(
-        int total,
-        Func<(int processed, int ok, int skip, int err)> snapshot,
+        Int32 total,
+        Func<(Int32 processed, Int32 ok, Int32 skip, Int32 err)> snapshot,
         Func<List<ActiveJob>> activeSnapshot,
         CancellationToken token) {
         return Task.Run(() => {
-            int panelTop;
-            int lastLines = 0;
+            Int32 panelTop;
+            Int32 lastLines = 0;
             try {
                 lock (s_consoleLock) {
                     // Reserve a few lines for the panel beneath current cursor
@@ -189,38 +189,38 @@ public static class MediaConverter {
                 panelTop = 0;
             }
 
-            int spinnerIndex = 0;
-            var spinner = new[] { '|', '/', '-', '\\' };
+            Int32 spinnerIndex = 0;
+            Char[] spinner = new[] { '|', '/', '-', '\\' };
             while (!token.IsCancellationRequested) {
-                var s = snapshot();
-                var actives = activeSnapshot();
-                var lines = BuildPanelLines(total, s, actives, spinner[spinnerIndex % spinner.Length]);
+                (Int32 processed, Int32 ok, Int32 skip, Int32 err) s = snapshot();
+                List<ActiveJob> actives = activeSnapshot();
+                List<String> lines = BuildPanelLines(total, s, actives, spinner[spinnerIndex % spinner.Length]);
                 spinnerIndex = (spinnerIndex + 1) & 0x7fffffff;
                 DrawPanel(lines, ref panelTop, ref lastLines);
                 Thread.Sleep(200);
             }
             // Final draw
-            var finalS = snapshot();
-            var finalAct = activeSnapshot();
-            var finalLines = BuildPanelLines(total, finalS, finalAct, ' ');
+            (Int32 processed, Int32 ok, Int32 skip, Int32 err) finalS = snapshot();
+            List<ActiveJob> finalAct = activeSnapshot();
+            List<String> finalLines = BuildPanelLines(total, finalS, finalAct, ' ');
             DrawPanel(finalLines, ref panelTop, ref lastLines);
         });
     }
 
-    private static List<string> BuildPanelLines(int total, (int processed, int ok, int skip, int err) s, List<ActiveJob> actives, char spinner) {
-        var lines = new List<string>(2 + actives.Count);
+    private static List<String> BuildPanelLines(Int32 total, (Int32 processed, Int32 ok, Int32 skip, Int32 err) s, List<ActiveJob> actives, Char spinner) {
+        List<String> lines = new List<String>(2 + actives.Count);
         if (total < 0) total = 0;
-        var percent = Math.Clamp(total == 0 ? 1.0 : (double)s.processed / Math.Max(1, total), 0.0, 1.0);
-        var width = 30;
+        Double percent = Math.Clamp(total == 0 ? 1.0 : (Double)s.processed / Math.Max(1, total), 0.0, 1.0);
+        Int32 width = 30;
         try { width = Math.Max(10, Math.Min(40, Console.WindowWidth - 60)); } catch { /* ignore */ }
-        int filled = (int)Math.Round(percent * width);
-        var bar = new StringBuilder(width + 32);
+        Int32 filled = (Int32)Math.Round(percent * width);
+        StringBuilder bar = new StringBuilder(width + 32);
         bar.Append("Converting Files ");
         bar.Append('[');
-        for (int i = 0; i < width; i++) bar.Append(i < filled ? '#' : '-');
+        for (Int32 i = 0; i < width; i++) bar.Append(i < filled ? '#' : '-');
         bar.Append(']');
         bar.Append(' ');
-        bar.Append((int)Math.Round(percent * 100));
+        bar.Append((Int32)Math.Round(percent * 100));
         bar.Append('%');
         bar.Append(' ');
         bar.Append(s.processed);
@@ -238,15 +238,15 @@ public static class MediaConverter {
         } else {
             lines.Add($"Active subprocesses: {actives.Count}");
             // Show up to degree of parallelism (or 8) lines
-            int max = 8;
+            Int32 max = 8;
             try { max = Math.Max(1, Math.Min(16, Environment.ProcessorCount)); } catch { /* ignore */ }
-            var now = DateTime.UtcNow;
-            foreach (var job in actives.OrderBy(j => j.StartedUtc).Take(max)) {
-                var elapsed = now - job.StartedUtc;
-                var elStr = elapsed.TotalHours >= 1 ? $"{(int)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}" : $"{elapsed.Minutes:00}:{elapsed.Seconds:00}";
-                var file = job.File;
+            DateTime now = DateTime.UtcNow;
+            foreach (ActiveJob? job in actives.OrderBy(j => j.StartedUtc).Take(max)) {
+                TimeSpan elapsed = now - job.StartedUtc;
+                String elStr = elapsed.TotalHours >= 1 ? $"{(Int32)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}" : $"{elapsed.Minutes:00}:{elapsed.Seconds:00}";
+                String file = job.File;
                 // Trim long names to fit
-                int maxFile = 50;
+                Int32 maxFile = 50;
                 try { maxFile = Math.Max(18, (Console.WindowWidth - 20)); } catch { /* ignore */ }
                 if (file.Length > maxFile) file = file.Substring(0, maxFile - 3) + "...";
                 lines.Add($"  {spinner} {job.Tool} · {file} · {elStr}");
@@ -257,24 +257,24 @@ public static class MediaConverter {
         return lines;
     }
 
-    private static void DrawPanel(IReadOnlyList<string> lines, ref int panelTop, ref int lastLines) {
+    private static void DrawPanel(IReadOnlyList<String> lines, ref Int32 panelTop, ref Int32 lastLines) {
         lock (s_consoleLock) {
             try {
                 // Position to start of panel
                 Console.SetCursorPosition(0, panelTop);
                 // Write each line padded to width
-                int width;
+                Int32 width;
                 try { width = Math.Max(20, Console.WindowWidth - 1); } catch { width = 120; }
-                for (int i = 0; i < lines.Count; i++) {
-                    var line = lines[i];
+                for (Int32 i = 0; i < lines.Count; i++) {
+                    String line = lines[i];
                     if (line.Length > width) line = line.Substring(0, width);
                     Console.Write(line.PadRight(width));
                     if (i < lines.Count - 1) Console.Write('\n');
                 }
                 // Clear remaining previous lines if panel shrunk
-                for (int i = lines.Count; i < lastLines; i++) {
+                for (Int32 i = lines.Count; i < lastLines; i++) {
                     Console.Write('\n');
-                    Console.Write(new string(' ', Math.Max(20, Console.WindowWidth - 1)));
+                    Console.Write(new String(' ', Math.Max(20, Console.WindowWidth - 1)));
                 }
                 lastLines = lines.Count;
                 // Leave cursor at end of panel
@@ -282,19 +282,19 @@ public static class MediaConverter {
             } catch {
                 // Fallback: write a simple single-line summary
                 try {
-                    Console.Write("\r" + (lines.Count > 0 ? lines[0] : string.Empty));
+                    Console.Write("\r" + (lines.Count > 0 ? lines[0] : String.Empty));
                 } catch { /* safe to ignore: best-effort rendering */ }
             }
         }
     }
 
-    private static (bool ok, string? message) ConvertOne(string srcPath, string destPath, Options opt) {
+    private static (Boolean ok, String? message) ConvertOne(String srcPath, String destPath, Options opt) {
         try {
             // Build external commands
-            if (string.Equals(opt.Mode, ToolFfmpeg, StringComparison.OrdinalIgnoreCase)) {
-                var ff = opt.FfmpegPath ?? ToolFfmpeg;
-                if (string.Equals(opt.Type, TypeVideo, StringComparison.OrdinalIgnoreCase)) {
-                    var args = new List<string> {
+            if (String.Equals(opt.Mode, ToolFfmpeg, StringComparison.OrdinalIgnoreCase)) {
+                String ff = opt.FfmpegPath ?? ToolFfmpeg;
+                if (String.Equals(opt.Type, TypeVideo, StringComparison.OrdinalIgnoreCase)) {
+                    List<String> args = new List<String> {
                         "-y",
                         "-i", srcPath,
                         "-c:v", opt.VideoCodec,
@@ -305,86 +305,99 @@ public static class MediaConverter {
                     RegisterActive("ffmpeg", srcPath);
                     try { return Exec(ff, args, opt.Debug); }
                     finally { UnregisterActive(); }
-                } else if (string.Equals(opt.Type, TypeAudio, StringComparison.OrdinalIgnoreCase)) {
+                } else if (String.Equals(opt.Type, TypeAudio, StringComparison.OrdinalIgnoreCase)) {
                     if (opt.GodotCompatible) {
                         // Split quad to two stereo files
-                        var basePath = Path.Combine(Path.GetDirectoryName(destPath)!, Path.GetFileNameWithoutExtension(destPath));
-                        var outFront = basePath + "_front" + opt.OutputExt;
-                        var outRear = basePath + "_rear" + opt.OutputExt;
-                        var args = new List<string> {
+                        String basePath = Path.Combine(Path.GetDirectoryName(destPath)!, Path.GetFileNameWithoutExtension(destPath));
+                        String outFront = basePath + "_front" + opt.OutputExt;
+                        String outRear = basePath + "_rear" + opt.OutputExt;
+                        List<String> args = new List<String> {
                             "-y",
                             "-loglevel", "error",
                             "-i", srcPath,
                             "-filter_complex",
                             "[0:a]channelsplit=channel_layout=quad[FL][FR][BL][BR];[FL][FR]join=inputs=2:channel_layout=stereo[FRONT];[BL][BR]join=inputs=2:channel_layout=stereo[REAR]",
-                            // Apply codec/quality per output to ensure both files use desired settings
-                            "-map", "[FRONT]",
-                            "-c:a", opt.AudioCodec,
-                            "-q:a", opt.AudioQuality,
-                            outFront,
-                            "-map", "[REAR]",
-                            "-c:a", opt.AudioCodec,
-                            "-q:a", opt.AudioQuality,
-                            outRear,
                         };
+                        // Apply codec/quality per output to ensure both files use desired settings
+                        args.AddRange(new [] { "-map", "[FRONT]" });
+                        args.AddRange(BuildAudioCodecArgs(opt.OutputExt, opt.AudioCodec, opt.AudioQuality));
+                        args.Add(outFront);
+                        args.AddRange(new [] { "-map", "[REAR]" });
+                        args.AddRange(BuildAudioCodecArgs(opt.OutputExt, opt.AudioCodec, opt.AudioQuality));
+                        args.Add(outRear);
                         RegisterActive("ffmpeg", srcPath);
                         try { return Exec(ff, args, opt.Debug); }
                         finally { UnregisterActive(); }
                     } else {
-                        var args = new List<string> {
+                        List<String> args = new List<String> {
                             "-y",
                             "-i", srcPath,
-                            "-c:a", opt.AudioCodec,
-                            "-q:a", opt.AudioQuality,
                             "-loglevel", "error",
-                            destPath
                         };
+                        args.AddRange(BuildAudioCodecArgs(opt.OutputExt, opt.AudioCodec, opt.AudioQuality));
+                        args.Add(destPath);
                         RegisterActive("ffmpeg", srcPath);
                         try { return Exec(ff, args, opt.Debug); }
                         finally { UnregisterActive(); }
                     }
                 } else
                     return (false, $"Unsupported type: {opt.Type}");
-            } else if (string.Equals(opt.Mode, "vgmstream", StringComparison.OrdinalIgnoreCase)) {
-                var vg = opt.VgmstreamCli ?? VgmstreamCliName;
-                if (string.Equals(opt.Type, TypeAudio, StringComparison.OrdinalIgnoreCase)) {
+            } else if (String.Equals(opt.Mode, "vgmstream", StringComparison.OrdinalIgnoreCase)) {
+                String vg = opt.VgmstreamCli ?? VgmstreamCliName;
+                if (String.Equals(opt.Type, TypeAudio, StringComparison.OrdinalIgnoreCase)) {
                     if (opt.GodotCompatible) {
                         // First decode to temp wav via vgmstream, then split via ffmpeg
-                        var tmpWav = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".wav");
+                        String tmpWav = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".wav");
                         try {
-                            var a1 = new List<string> { "-o", tmpWav, srcPath };
+                            List<String> a1 = new List<String> { "-o", tmpWav, srcPath };
                             RegisterActive("vgmstream", srcPath);
-                            var (ok1, msg1) = Exec(vg, a1, opt.Debug);
+                            (Boolean ok1, String msg1) = Exec(vg, a1, opt.Debug);
                             UnregisterActive();
                             if (!ok1)
                                 return (false, msg1);
 
-                            var ff = opt.FfmpegPath ?? Which(ToolFfmpeg) ?? Which("ffmpeg.exe") ?? ToolFfmpeg;
-                            var basePath = Path.Combine(Path.GetDirectoryName(destPath)!, Path.GetFileNameWithoutExtension(destPath));
-                            var outFront = basePath + "_front" + opt.OutputExt;
-                            var outRear = basePath + "_rear" + opt.OutputExt;
-                            var a2 = new List<string> {
-                                "-y",
-                                "-loglevel", "error",
-                                "-i", tmpWav,
-                                "-filter_complex",
-                                "[0:a]channelsplit=channel_layout=quad[FL][FR][BL][BR];[FL][FR]join=inputs=2:channel_layout=stereo[FRONT];[BL][BR]join=inputs=2:channel_layout=stereo[REAR]",
-                                // Apply codec/quality per output
-                                "-map", "[FRONT]",
-                                "-c:a", opt.AudioCodec,
-                                "-q:a", opt.AudioQuality,
-                                outFront,
-                                "-map", "[REAR]",
-                                "-c:a", opt.AudioCodec,
-                                "-q:a", opt.AudioQuality,
-                                outRear,
-                            };
-                            RegisterActive("ffmpeg", Path.GetFileName(tmpWav));
-                            var (ok2, msg2) = Exec(ff, a2, opt.Debug);
-                            UnregisterActive();
-                            if (!ok2)
-                                return (false, msg2);
-                            return (true, null);
+                            String ff = opt.FfmpegPath ?? Which(ToolFfmpeg) ?? Which("ffmpeg.exe") ?? ToolFfmpeg;
+                            Int32? channels = TryReadWavChannels(tmpWav);
+                            if (channels == 4) {
+                                String basePath = Path.Combine(Path.GetDirectoryName(destPath)!, Path.GetFileNameWithoutExtension(destPath));
+                                String outFront = basePath + "_front" + opt.OutputExt;
+                                String outRear = basePath + "_rear" + opt.OutputExt;
+                                List<String> a2 = new List<String> {
+                                    "-y",
+                                    "-loglevel", "error",
+                                    "-i", tmpWav,
+                                    "-filter_complex",
+                                    "[0:a]channelsplit=channel_layout=quad[FL][FR][BL][BR];[FL][FR]join=inputs=2:channel_layout=stereo[FRONT];[BL][BR]join=inputs=2:channel_layout=stereo[REAR]",
+                                };
+                                // FRONT
+                                a2.AddRange(new [] { "-map", "[FRONT]" });
+                                a2.AddRange(BuildAudioCodecArgs(opt.OutputExt, opt.AudioCodec, opt.AudioQuality));
+                                a2.Add(outFront);
+                                // REAR
+                                a2.AddRange(new [] { "-map", "[REAR]" });
+                                a2.AddRange(BuildAudioCodecArgs(opt.OutputExt, opt.AudioCodec, opt.AudioQuality));
+                                a2.Add(outRear);
+                                RegisterActive("ffmpeg", Path.GetFileName(tmpWav));
+                                (Boolean ok2, String msg2) = Exec(ff, a2, opt.Debug);
+                                UnregisterActive();
+                                if (!ok2)
+                                    return (false, msg2);
+                                return (true, null);
+                            } else {
+                                List<String> a2 = new List<String> {
+                                    "-y",
+                                    "-loglevel", "error",
+                                    "-i", tmpWav,
+                                };
+                                a2.AddRange(BuildAudioCodecArgs(opt.OutputExt, opt.AudioCodec, opt.AudioQuality));
+                                a2.Add(destPath);
+                                RegisterActive("ffmpeg", Path.GetFileName(tmpWav));
+                                (Boolean ok2, String msg2) = Exec(ff, a2, opt.Debug);
+                                UnregisterActive();
+                                if (!ok2)
+                                    return (false, msg2);
+                                return (true, null);
+                            }
                         } finally {
                             try {
                                 if (File.Exists(tmpWav))
@@ -392,7 +405,7 @@ public static class MediaConverter {
                             } catch { /* ignore */ }
                         }
                     } else {
-                        var a = new List<string> { "-o", destPath, srcPath };
+                        List<String> a = new List<String> { "-o", destPath, srcPath };
                         RegisterActive("vgmstream", srcPath);
                         try { return Exec(vg, a, opt.Debug); }
                         finally { UnregisterActive(); }
@@ -412,9 +425,9 @@ public static class MediaConverter {
         }
     }
 
-    private static void RegisterActive(string tool, string srcPath) {
+    private static void RegisterActive(String tool, String srcPath) {
         try {
-            var key = Thread.CurrentThread.ManagedThreadId;
+            Int32 key = Thread.CurrentThread.ManagedThreadId;
             s_active[key] = new ActiveJob {
                 Tool = tool,
                 File = Path.GetFileName(srcPath),
@@ -427,11 +440,11 @@ public static class MediaConverter {
         try { s_active.TryRemove(Thread.CurrentThread.ManagedThreadId, out _); } catch { /* ignore */ }
     }
 
-    private static (bool ok, string? message) Exec(string fileName, IList<string> arguments, bool passthroughOutput) {
+    private static (Boolean ok, String? message) Exec(String fileName, IList<String> arguments, Boolean passthroughOutput) {
         try {
-            using var p = new Process();
+            using Process p = new Process();
             p.StartInfo.FileName = fileName;
-            foreach (var a in arguments)
+            foreach (String a in arguments)
                 p.StartInfo.ArgumentList.Add(a);
             p.StartInfo.UseShellExecute = false;
             p.StartInfo.CreateNoWindow = true;
@@ -460,10 +473,10 @@ public static class MediaConverter {
                 return (true, null);
 
             if (!passthroughOutput) {
-                var err = errBuf?.ToString() ?? string.Empty;
-                if (string.IsNullOrWhiteSpace(err))
-                    err = outBuf?.ToString() ?? string.Empty;
-                var msg = string.IsNullOrWhiteSpace(err) ? $"exit code {p.ExitCode}" : err.Trim();
+                String err = errBuf?.ToString() ?? String.Empty;
+                if (String.IsNullOrWhiteSpace(err))
+                    err = outBuf?.ToString() ?? String.Empty;
+                String msg = String.IsNullOrWhiteSpace(err) ? $"exit code {p.ExitCode}" : err.Trim();
                 return (false, msg);
             }
             return (false, $"exit code {p.ExitCode}");
@@ -472,12 +485,54 @@ public static class MediaConverter {
         }
     }
 
-    private static Options Parse(IList<string> argv) {
-        var o = new Options();
+    private static List<String> BuildAudioCodecArgs(String outputExt, String requestedCodec, String requestedQuality) {
+        // Choose sane defaults based on container. WAV should be PCM, not Vorbis.
+        if (outputExt.Equals(".wav", StringComparison.OrdinalIgnoreCase)) {
+            return new List<String> { "-c:a", "pcm_s16le" };
+        }
+        String codec = String.IsNullOrWhiteSpace(requestedCodec) ? "libvorbis" : requestedCodec;
+        List<String> args = new List<String> { "-c:a", codec };
+        if (!String.IsNullOrWhiteSpace(requestedQuality)) {
+            args.AddRange(new [] { "-q:a", requestedQuality });
+        }
+        return args;
+    }
+
+    private static Int32? TryReadWavChannels(String path) {
+        try {
+            using FileStream fs = File.OpenRead(path);
+            using BinaryReader br = new BinaryReader(fs, Encoding.ASCII, leaveOpen: false);
+            String riff = new String(br.ReadChars(4));
+            br.ReadUInt32(); // file size
+            String wave = new String(br.ReadChars(4));
+            if (riff != "RIFF" || wave != "WAVE") return null;
+            // Find 'fmt ' chunk
+            while (fs.Position + 8 <= fs.Length) {
+                String id = new String(br.ReadChars(4));
+                UInt32 size = br.ReadUInt32();
+                if (id == "fmt ") {
+                    UInt16 audioFormat = br.ReadUInt16();
+                    UInt16 channels = br.ReadUInt16();
+                    // skip rest of fmt
+                    Int64 remaining = (Int64)size - 4;
+                    if (remaining > 0) fs.Position = Math.Min(fs.Length, fs.Position + remaining);
+                    return channels;
+                } else {
+                    fs.Position = Math.Min(fs.Length, fs.Position + size);
+                }
+                // chunks are word-aligned
+                if ((size & 1) != 0 && fs.Position < fs.Length) fs.Position++;
+            }
+        } catch { /* ignore parse errors */ }
+        return null;
+    }
+
+    private static Options Parse(IList<String> argv) {
+        Options o = new Options();
         // Simple argv parser (supports both short and long flags)
-        for (int i = 0; i < argv.Count; i++) {
-            var a = argv[i] ?? string.Empty;
-            string NextVal() => (++i < argv.Count) ? argv[i] ?? string.Empty : throw new ArgumentException($"Missing value for {a}");
+        for (Int32 i = 0; i < argv.Count; i++) {
+            String a = argv[i] ?? String.Empty;
+            String NextVal() => (++i < argv.Count) ? argv[i] ?? String.Empty : throw new ArgumentException($"Missing value for {a}");
 
             switch (a) {
                 case "-m":
@@ -530,7 +585,7 @@ public static class MediaConverter {
                     break;
                 case "-w":
                 case "--workers":
-                    if (int.TryParse(NextVal(), out var w))
+                    if (Int32.TryParse(NextVal(), out Int32 w))
                         o.Workers = Math.Max(1, w);
                     break;
                 case "-v":
@@ -547,39 +602,33 @@ public static class MediaConverter {
             }
         }
 
-        if (string.IsNullOrWhiteSpace(o.Mode))
+        if (String.IsNullOrWhiteSpace(o.Mode))
             throw new ArgumentException("--mode (-m) is required");
-        if (string.IsNullOrWhiteSpace(o.Type))
+        if (String.IsNullOrWhiteSpace(o.Type))
             throw new ArgumentException("--type is required");
-        if (string.IsNullOrWhiteSpace(o.Source))
+        if (String.IsNullOrWhiteSpace(o.Source))
             throw new ArgumentException("--source (-s) is required");
-        if (string.IsNullOrWhiteSpace(o.Target))
+        if (String.IsNullOrWhiteSpace(o.Target))
             throw new ArgumentException("--target (-t) is required");
-        if (string.IsNullOrWhiteSpace(o.InputExt))
-            throw new ArgumentException("--input-ext (-i) is required");
-        if (string.IsNullOrWhiteSpace(o.OutputExt))
-            throw new ArgumentException("--output-ext (-o) is required");
-        return o;
+        return String.IsNullOrWhiteSpace(o.InputExt)
+            ? throw new ArgumentException("--input-ext (-i) is required")
+            : String.IsNullOrWhiteSpace(o.OutputExt) ? throw new ArgumentException("--output-ext (-o) is required") : o;
     }
 
-    private static string NormalizeDir(string path) {
-        if (string.IsNullOrWhiteSpace(path))
-            return path;
-        return Path.GetFullPath(path);
+    private static String NormalizeDir(String path) {
+        return String.IsNullOrWhiteSpace(path) ? path : Path.GetFullPath(path);
     }
 
-    private static string EnsureDot(string ext) {
-        if (string.IsNullOrWhiteSpace(ext))
-            return ext;
-        return ext.StartsWith('.') ? ext : "." + ext;
+    private static String EnsureDot(String ext) {
+        return String.IsNullOrWhiteSpace(ext) ? ext : ext.StartsWith('.') ? ext : "." + ext;
     }
 
-    private static string? Which(string name) {
+    private static String? Which(String name) {
         try {
-            var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-            foreach (var dir in path.Split(Path.PathSeparator)) {
+            String path = Environment.GetEnvironmentVariable("PATH") ?? String.Empty;
+            foreach (String dir in path.Split(Path.PathSeparator)) {
                 try {
-                    var candidate = Path.Combine(dir, name);
+                    String candidate = Path.Combine(dir, name);
                     if (File.Exists(candidate))
                         return candidate;
                 } catch { /* ignore */ }
@@ -588,25 +637,25 @@ public static class MediaConverter {
         return null;
     }
 
-    private static void WriteInfo(string msg) {
+    private static void WriteInfo(String msg) {
         Console.ForegroundColor = ConsoleColor.Cyan;
         Console.WriteLine(msg);
         Console.ResetColor();
     }
 
-    private static void WriteWarn(string msg) {
+    private static void WriteWarn(String msg) {
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine(msg);
         Console.ResetColor();
     }
 
-    private static void WriteError(string msg) {
+    private static void WriteError(String msg) {
         Console.ForegroundColor = ConsoleColor.Red;
         Console.Error.WriteLine(msg);
         Console.ResetColor();
     }
 
-    private static void WriteVerbose(bool enabled, string msg) {
+    private static void WriteVerbose(Boolean enabled, String msg) {
         if (!enabled)
             return;
         Console.ForegroundColor = ConsoleColor.DarkGray;

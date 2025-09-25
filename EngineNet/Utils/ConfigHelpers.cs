@@ -13,13 +13,13 @@ public static class ConfigHelpers {
     /// Ensure a minimal project.json exists under <paramref name="rootDir"/>.
     /// If missing, creates a skeleton file similar to EngineNet.Program. Returns the config path.
     /// </summary>
-    public static string EnsureProjectConfig(string rootDir) {
-        if (string.IsNullOrWhiteSpace(rootDir)) throw new ArgumentException("rootDir is empty");
+    public static String EnsureProjectConfig(String rootDir) {
+        if (String.IsNullOrWhiteSpace(rootDir)) throw new ArgumentException("rootDir is empty");
         Directory.CreateDirectory(rootDir);
-        var configPath = Path.Combine(rootDir, "project.json");
+        String configPath = Path.Combine(rootDir, "project.json");
         if (!File.Exists(configPath)) {
             // Keep consistent with EngineNet/Program.cs default content
-            var minimal = "{\n  \"RemakeEngine\": {\n    \"Config\": { \"project_path\": \"" + rootDir.Replace("\\", "\\\\") + "\" },\n    \"Directories\": {},\n    \"Tools\": {}\n  }\n}";
+            String minimal = "{\n  \"RemakeEngine\": {\n    \"Config\": { \"project_path\": \"" + rootDir.Replace("\\", "\\\\") + "\" },\n    \"Directories\": {},\n    \"Tools\": {}\n  }\n}";
             File.WriteAllText(configPath, minimal);
         }
         return configPath;
@@ -29,14 +29,14 @@ public static class ConfigHelpers {
     /// Validates that a source directory exists and is accessible.
     /// Throws if invalid.
     /// </summary>
-    public static void ValidateSourceDir(string dir) {
-        if (string.IsNullOrWhiteSpace(dir))
+    public static void ValidateSourceDir(String dir) {
+        if (String.IsNullOrWhiteSpace(dir))
             throw new ArgumentException("Source directory path is empty");
         if (!Directory.Exists(dir))
             throw new DirectoryNotFoundException($"Source directory not found: {dir}");
         // Basic access check: attempt to enumerate one entry (if any)
         try {
-            using var _ = Directory.EnumerateFileSystemEntries(dir).GetEnumerator();
+            using IEnumerator<String> _ = Directory.EnumerateFileSystemEntries(dir).GetEnumerator();
         } catch (Exception ex) {
             throw new IOException($"Cannot access source directory '{dir}': {ex.Message}", ex);
         }
@@ -46,9 +46,9 @@ public static class ConfigHelpers {
     /// Recursively copy a directory to destination. Creates destination if needed.
     /// If <paramref name="overwrite"/> is false and destination exists, throws.
     /// </summary>
-    public static void CopyDirectory(string sourceDir, string destDir, bool overwrite = false) {
-        if (string.IsNullOrWhiteSpace(sourceDir)) throw new ArgumentException("sourceDir is empty");
-        if (string.IsNullOrWhiteSpace(destDir)) throw new ArgumentException("destDir is empty");
+    public static void CopyDirectory(String sourceDir, String destDir, Boolean overwrite = false) {
+        if (String.IsNullOrWhiteSpace(sourceDir)) throw new ArgumentException("sourceDir is empty");
+        if (String.IsNullOrWhiteSpace(destDir)) throw new ArgumentException("destDir is empty");
         if (!Directory.Exists(sourceDir)) throw new DirectoryNotFoundException($"Source not found: {sourceDir}");
 
         if (Directory.Exists(destDir)) {
@@ -58,17 +58,17 @@ public static class ConfigHelpers {
             Directory.CreateDirectory(destDir);
         }
 
-        var srcRoot = Path.GetFullPath(sourceDir);
-        var dstRoot = Path.GetFullPath(destDir);
+        String srcRoot = Path.GetFullPath(sourceDir);
+        String dstRoot = Path.GetFullPath(destDir);
 
-        foreach (var dir in Directory.EnumerateDirectories(srcRoot, "*", SearchOption.AllDirectories)) {
-            var rel = Path.GetRelativePath(srcRoot, dir);
-            var target = Path.Combine(dstRoot, rel);
+        foreach (String dir in Directory.EnumerateDirectories(srcRoot, "*", SearchOption.AllDirectories)) {
+            String rel = Path.GetRelativePath(srcRoot, dir);
+            String target = Path.Combine(dstRoot, rel);
             Directory.CreateDirectory(target);
         }
-        foreach (var file in Directory.EnumerateFiles(srcRoot, "*", SearchOption.AllDirectories)) {
-            var rel = Path.GetRelativePath(srcRoot, file);
-            var target = Path.Combine(dstRoot, rel);
+        foreach (String file in Directory.EnumerateFiles(srcRoot, "*", SearchOption.AllDirectories)) {
+            String rel = Path.GetRelativePath(srcRoot, file);
+            String target = Path.Combine(dstRoot, rel);
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             File.Copy(file, target, overwrite: true);
         }
@@ -79,9 +79,9 @@ public static class ConfigHelpers {
     /// destination exists, throws. If moving across volumes or into an existing destination,
     /// falls back to copy+delete.
     /// </summary>
-    public static void MoveDirectory(string sourceDir, string destDir, bool overwrite = false) {
-        if (string.IsNullOrWhiteSpace(sourceDir)) throw new ArgumentException("sourceDir is empty");
-        if (string.IsNullOrWhiteSpace(destDir)) throw new ArgumentException("destDir is empty");
+    public static void MoveDirectory(String sourceDir, String destDir, Boolean overwrite = false) {
+        if (String.IsNullOrWhiteSpace(sourceDir)) throw new ArgumentException("sourceDir is empty");
+        if (String.IsNullOrWhiteSpace(destDir)) throw new ArgumentException("destDir is empty");
         if (!Directory.Exists(sourceDir)) throw new DirectoryNotFoundException($"Source not found: {sourceDir}");
 
         if (Directory.Exists(destDir)) {
@@ -107,12 +107,12 @@ public static class ConfigHelpers {
     /// named <paramref name="name"/>. Comparison is case-insensitive on Windows.
     /// Returns null if not found.
     /// </summary>
-    public static string? FindSubdir(string baseDir, string name, bool caseInsensitive = true) {
+    public static String? FindSubdir(String baseDir, String name, Boolean caseInsensitive = true) {
         if (!Directory.Exists(baseDir)) return null;
-        var cmp = caseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        StringComparer cmp = caseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
         try {
-            foreach (var d in Directory.EnumerateDirectories(baseDir)) {
-                var dn = new DirectoryInfo(d).Name;
+            foreach (String d in Directory.EnumerateDirectories(baseDir)) {
+                String dn = new DirectoryInfo(d).Name;
                 if (cmp.Equals(dn, name)) return d;
             }
         } catch { }
@@ -123,10 +123,10 @@ public static class ConfigHelpers {
     /// Checks whether all subdirectory names in <paramref name="names"/> exist directly under <paramref name="baseDir"/>.
     /// Comparison is case-insensitive on Windows by default.
     /// </summary>
-    public static bool HasAllSubdirs(string baseDir, IEnumerable<string> names, bool caseInsensitive = true) {
+    public static Boolean HasAllSubdirs(String baseDir, IEnumerable<String> names, Boolean caseInsensitive = true) {
         if (!Directory.Exists(baseDir)) return false;
-        var cmp = caseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
-        HashSet<string> existing;
+        StringComparer cmp = caseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        HashSet<String> existing;
         try {
             existing = Directory.EnumerateDirectories(baseDir)
                 .Select(d => new DirectoryInfo(d).Name)
@@ -134,8 +134,8 @@ public static class ConfigHelpers {
         } catch {
             return false;
         }
-        foreach (var n in names) {
-            if (string.IsNullOrWhiteSpace(n)) continue;
+        foreach (String n in names) {
+            if (String.IsNullOrWhiteSpace(n)) continue;
             if (!existing.Contains(n)) return false;
         }
         return true;

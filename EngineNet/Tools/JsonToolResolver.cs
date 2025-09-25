@@ -11,18 +11,18 @@ namespace RemakeEngine.Tools;
 /// Unknown shapes are ignored. Relative paths resolve relative to the JSON file.
 /// </summary>
 public sealed class JsonToolResolver:IToolResolver {
-    private readonly Dictionary<string, string> _tools = new(System.StringComparer.OrdinalIgnoreCase);
-    private readonly string _baseDir;
+    private readonly Dictionary<String, String> _tools = new(System.StringComparer.OrdinalIgnoreCase);
+    private readonly String _baseDir;
 
-    public JsonToolResolver(string jsonPath) {
+    public JsonToolResolver(String jsonPath) {
         _baseDir = Path.GetDirectoryName(Path.GetFullPath(jsonPath)) ?? Directory.GetCurrentDirectory();
-        using var stream = File.OpenRead(jsonPath);
-        using var doc = JsonDocument.Parse(stream);
+        using FileStream stream = File.OpenRead(jsonPath);
+        using JsonDocument doc = JsonDocument.Parse(stream);
         if (doc.RootElement.ValueKind == JsonValueKind.Object) {
-            foreach (var prop in doc.RootElement.EnumerateObject()) {
-                var path = ExtractPath(prop.Value);
-                if (!string.IsNullOrWhiteSpace(path)) {
-                    var resolved = path!;
+            foreach (JsonProperty prop in doc.RootElement.EnumerateObject()) {
+                String? path = ExtractPath(prop.Value);
+                if (!String.IsNullOrWhiteSpace(path)) {
+                    String resolved = path!;
                     if (!Path.IsPathRooted(resolved))
                         resolved = Path.GetFullPath(Path.Combine(_baseDir, resolved));
                     _tools[prop.Name] = resolved;
@@ -31,16 +31,16 @@ public sealed class JsonToolResolver:IToolResolver {
         }
     }
 
-    private static string? ExtractPath(JsonElement value) {
+    private static String? ExtractPath(JsonElement value) {
         switch (value.ValueKind) {
             case JsonValueKind.String:
                 return value.GetString();
             case JsonValueKind.Object:
-                if (value.TryGetProperty("exe", out var exe) && exe.ValueKind == JsonValueKind.String)
+                if (value.TryGetProperty("exe", out JsonElement exe) && exe.ValueKind == JsonValueKind.String)
                     return exe.GetString();
-                if (value.TryGetProperty("path", out var path) && path.ValueKind == JsonValueKind.String)
+                if (value.TryGetProperty("path", out JsonElement path) && path.ValueKind == JsonValueKind.String)
                     return path.GetString();
-                if (value.TryGetProperty("command", out var cmd) && cmd.ValueKind == JsonValueKind.String)
+                if (value.TryGetProperty("command", out JsonElement cmd) && cmd.ValueKind == JsonValueKind.String)
                     return cmd.GetString();
                 return null;
             default:
@@ -48,8 +48,8 @@ public sealed class JsonToolResolver:IToolResolver {
         }
     }
 
-    public string ResolveToolPath(string toolId) {
-        if (_tools.TryGetValue(toolId, out var path))
+    public String ResolveToolPath(String toolId) {
+        if (_tools.TryGetValue(toolId, out String? path))
             return path;
         // Fallback to PATH lookup by returning the id
         return toolId;

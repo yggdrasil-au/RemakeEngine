@@ -20,8 +20,7 @@
 
 	</PropertyGroup>
 
-	<!-- Opt-in macOS TFM only when building on a machine with the required workloads installed.
-	     Enable via: dotnet build -p:IncludeMacOS=true -->
+	<!-- Opt-in macOS TFM only when building on a machine with the required workloads installed. Enable via: dotnet build -p:IncludeMacOS=true -->
 	<PropertyGroup Condition="'$(IncludeMacOS)' == 'true'">
 		<TargetFrameworks>$(TargetFrameworks);net8.0-macos</TargetFrameworks>
 	</PropertyGroup>
@@ -30,6 +29,7 @@
 			<PackageReference Include="MoonSharp" Version="2.0.0" />
 			<PackageReference Include="Jint" Version="4.4.1" />
 			<PackageReference Include="Tomlyn" Version="0.19.0" />
+			<PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.5" />
 	</ItemGroup>
 
 	<ItemGroup>

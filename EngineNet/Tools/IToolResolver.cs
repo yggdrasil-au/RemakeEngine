@@ -9,5 +9,5 @@ public interface IToolResolver {
     /// </summary>
     /// <param name="toolId">Logical identifier of the tool (e.g. "ffmpeg").</param>
     /// <returns>Absolute filesystem path to the tool executable.</returns>
-    string ResolveToolPath(string toolId);
+    String ResolveToolPath(String toolId);
 }

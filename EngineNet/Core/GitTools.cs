@@ -11,15 +11,15 @@ namespace RemakeEngine.Core;
 /// Mirrors LegacyEnginePy/Core/git_tools.py behavior.
 /// </summary>
 public sealed class GitTools {
-    private readonly string _gamesDir;
+    private readonly String _gamesDir;
 
-    public GitTools(string gamesDir) {
+    public GitTools(String gamesDir) {
         _gamesDir = gamesDir;
     }
 
-    public static bool IsGitInstalled() {
+    public static Boolean IsGitInstalled() {
         try {
-            var psi = new ProcessStartInfo {
+            ProcessStartInfo psi = new ProcessStartInfo {
                 FileName = "git",
                 ArgumentList = { "--version" },
                 RedirectStandardOutput = true,
@@ -29,7 +29,7 @@ public sealed class GitTools {
                 StandardOutputEncoding = Encoding.UTF8,
                 StandardErrorEncoding = Encoding.UTF8,
             };
-            using var p = Process.Start(psi);
+            using Process? p = Process.Start(psi);
             p!.WaitForExit(3000);
             return p.ExitCode == 0;
         } catch {
@@ -37,8 +37,8 @@ public sealed class GitTools {
         }
     }
 
-    public bool CloneModule(string url) {
-        if (string.IsNullOrWhiteSpace(url))
+    public Boolean CloneModule(String url) {
+        if (String.IsNullOrWhiteSpace(url))
             return false;
 
         if (!IsGitInstalled()) {
@@ -46,8 +46,8 @@ public sealed class GitTools {
             return false;
         }
         try {
-            var repoName = GuessRepoName(url);
-            var target = System.IO.Path.Combine(_gamesDir, repoName);
+            String repoName = GuessRepoName(url);
+            String target = System.IO.Path.Combine(_gamesDir, repoName);
             if (Directory.Exists(target)) {
                 WriteColored($"Directory '{repoName}' already exists. Skipping download.", ConsoleColor.Yellow, prefix: "ENGINE");
                 return true;
@@ -57,7 +57,7 @@ public sealed class GitTools {
             WriteColored($"Downloading '{repoName}' from '{url}'...", ConsoleColor.Cyan, prefix: "ENGINE");
             WriteColored($"Target directory: '{target}'", ConsoleColor.Cyan, prefix: "ENGINE");
 
-            var psi = new ProcessStartInfo {
+            ProcessStartInfo psi = new ProcessStartInfo {
                 FileName = "git",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -70,7 +70,7 @@ public sealed class GitTools {
             psi.ArgumentList.Add(url);
             psi.ArgumentList.Add(target);
 
-            using var proc = Process.Start(psi);
+            using Process? proc = Process.Start(psi);
             if (proc is null)
                 throw new InvalidOperationException("Failed to start git");
 
@@ -79,7 +79,7 @@ public sealed class GitTools {
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
             proc.WaitForExit();
-            var rc = proc.ExitCode;
+            Int32 rc = proc.ExitCode;
             if (rc == 0) {
                 WriteColored($"\nSuccessfully downloaded '{repoName}'.", ConsoleColor.Green, prefix: "ENGINE");
                 return true;
@@ -92,26 +92,26 @@ public sealed class GitTools {
         }
     }
 
-    private static string GuessRepoName(string url) {
+    private static String GuessRepoName(String url) {
         try {
-            var uri = new Uri(url);
-            var leaf = System.IO.Path.GetFileName(uri.AbsolutePath);
+            Uri uri = new Uri(url);
+            String leaf = System.IO.Path.GetFileName(uri.AbsolutePath);
             if (leaf.EndsWith(".git", StringComparison.OrdinalIgnoreCase))
                 leaf = leaf.Substring(0, leaf.Length - 4);
-            if (!string.IsNullOrWhiteSpace(leaf))
+            if (!String.IsNullOrWhiteSpace(leaf))
                 return leaf;
         } catch { /* fall back to string parsing */ }
-        var tail = url.Replace("\\", "/");
-        var idx = tail.LastIndexOf('/');
-        var name = idx >= 0 ? tail.Substring(idx + 1) : tail;
+        String tail = url.Replace("\\", "/");
+        Int32 idx = tail.LastIndexOf('/');
+        String name = idx >= 0 ? tail.Substring(idx + 1) : tail;
         return name.EndsWith(".git", StringComparison.OrdinalIgnoreCase) ? name[..^4] : name;
     }
 
-    private static void WriteColored(string message, ConsoleColor color, string? prefix = null) {
-        var prev = Console.ForegroundColor;
+    private static void WriteColored(String message, ConsoleColor color, String? prefix = null) {
+        ConsoleColor prev = Console.ForegroundColor;
         try {
             Console.ForegroundColor = color;
-            if (!string.IsNullOrWhiteSpace(prefix))
+            if (!String.IsNullOrWhiteSpace(prefix))
                 Console.Write($"[{prefix}] ");
             Console.WriteLine(message);
         } finally {

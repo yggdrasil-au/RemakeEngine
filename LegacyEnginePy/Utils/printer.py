@@ -181,24 +181,24 @@ def print(
     #use_colour = _ansi_enabled_for(file) # doesn't work
     use_colour = True
 
-    msg = message
-    if prefix:
-        pcol = _code_for(prefix_colour or _cfg.default_prefix_colour)
-        if use_colour and pcol:
-            msg = f"{pcol}{prefix}:{SGR_RESET} {msg}"
-        else:
-            msg = f"{prefix}: {msg}"
 
-    mcol = _code_for(colour)
     styles = ""
     if use_colour:
         if bold:
             styles += SGR_BOLD
         if underline:
             styles += SGR_UNDERLINE
+    msg = message
+    if prefix:
+        pcol = _code_for(prefix_colour or _cfg.default_prefix_colour)
+        if use_colour and pcol:
+            msg = f"{pcol}{prefix}:{SGR_RESET} {_code_for(colour)} {msg} {SGR_RESET}"
+        else:
+            msg = f"{prefix}: {_code_for(colour)} {msg} {SGR_RESET}"
 
-    if use_colour and (styles or mcol):
-        py.print(f"{styles}{mcol}{msg}{SGR_RESET}", file=file, flush=flush)
+
+    if use_colour and (styles):
+        py.print(f"{styles}{msg}", file=file, flush=flush)
     else:
         py.print(msg, file=file, flush=flush)
 

@@ -300,6 +300,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
             print("updating sonarcloud metadata")
             update_sonar(sonar_path, version, dry_run=args.dry_run)
+            update_sonar("sonar-project.properties", version=version, dry_run=args.dry_run)
 
             print("updating package metadata")
             # Record the *actual* tag string we will create (with prefix) in the TOML
