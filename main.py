@@ -192,8 +192,10 @@ def ensure_tag_doesnt_exist(version: str, *, tag_prefix: str = "", dry_run: bool
     return tag
 
 
-def update_sonar(sonar_path: Path, version: str, *, dry_run: bool = False) -> None:
-    content = sonar_path.read_text(encoding="utf-8") if sonar_path.exists() else ""
+def update_sonar(sonar_path: Path | str, version: str, *, dry_run: bool = False) -> None:
+    # Normalize input to Path to handle both str and Path callers
+    p = Path(sonar_path)
+    content = p.read_text(encoding="utf-8") if p.exists() else ""
     if re.search(r"(?m)^\s*sonar\.projectVersion\s*=", content):
         new_content = re.sub(r"(?m)^\s*sonar\.projectVersion\s*=.*$",
                              f"sonar.projectVersion={version}", content)
@@ -201,16 +203,16 @@ def update_sonar(sonar_path: Path, version: str, *, dry_run: bool = False) -> No
         new_content = (content + ("\n" if content and not content.endswith("\n") else "")) + \
                       f"sonar.projectVersion={version}\n"
     if not dry_run:
-        sonar_path.write_text(new_content, encoding="utf-8", newline="\n")
-    print(f"Updated {sonar_path}")
+        p.write_text(new_content, encoding="utf-8", newline="\n")
+    print(f"Updated {p}")
 
 
-def update_meta(meta_path: Path, version: str, *, tag_for_meta: str, dry_run: bool = False) -> None:
+def update_meta(meta_path: Path | str, version: str, *, tag_for_meta: str, dry_run: bool = False) -> None:
     now = datetime.now(tz=timezone.utc).astimezone().isoformat()
     entry = {"version": version, "date": now, "tag": tag_for_meta}
 
     try:
-        meta = _toml_read(meta_path)
+        meta = _toml_read(Path(meta_path))
     except Exception:
         meta = None
 
@@ -227,8 +229,8 @@ def update_meta(meta_path: Path, version: str, *, tag_for_meta: str, dry_run: bo
         meta["releases"] = releases
 
     if not dry_run:
-        _toml_write(meta_path, meta)
-    print(f"Updated {meta_path}")
+        _toml_write(Path(meta_path), meta)
+    print(f"Updated {Path(meta_path)}")
 
 
 def get_current_version(meta_path: Path) -> str | None:
@@ -248,9 +250,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("Command", choices=["publish"])  # reserved for future expansion
     p.add_argument("Subcommand", choices=["release"])  # ditto
     p.add_argument("-v", "--version", "--Version", dest="version", required=True)
-    p.add_argument("--meta-path", dest="meta_path", default="package.toml")
-    p.add_argument("--sonar-path", dest="sonar_path", default=".sonarcloud.properties")
-    p.add_argument("--branch", dest="branch", default="main")
+    # Support both kebab-case and the capitalized variants users often try
+    p.add_argument("--meta-path", "--MetaPath", dest="meta_path", default="package.toml")
+    p.add_argument("--sonar-path", "--SonarPath", dest="sonar_path", default=".sonarcloud.properties")
+    p.add_argument("--branch", "--Branch", dest="branch", default="main")
     p.add_argument("--dry-run", dest="dry_run", action="store_true", default=False)
     p.add_argument("--tag-prefix", dest="tag_prefix", default="v")  # triggers .Net release CI in .github\workflows\Win,Linux,Mac .NET Test, Build, Release.yml, by detecting a "v" prefix in the tag
     p.add_argument(
