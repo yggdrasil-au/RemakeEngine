@@ -3,7 +3,7 @@ using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace RemakeEngine.Core;
+namespace RemakeEngine.Sys;
 
 public static class RemoteFallbacks {
     private const String RepoOwner = "yggdrasil-au";

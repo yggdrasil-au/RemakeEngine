@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Text;
 
-namespace RemakeEngine.Core;
+namespace RemakeEngine.Sys;
 
 /// <summary>
 /// Lightweight Git helper to clone game modules into the local registry.

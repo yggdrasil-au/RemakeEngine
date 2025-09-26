@@ -1,10 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using Microsoft.Data.Sqlite;
 
-namespace RemakeEngine.Core;
+namespace RemakeEngine.Sys;
 
 public static class FileValidator {
     private sealed class Options {

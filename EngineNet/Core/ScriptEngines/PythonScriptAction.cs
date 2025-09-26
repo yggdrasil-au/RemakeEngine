@@ -1,19 +1,18 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
+
+
 using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
-using RemakeEngine.Core;
+
+// internal usings
+using RemakeEngine.Sys;
 using RemakeEngine.Tools;
 
-namespace RemakeEngine.Actions;
+namespace RemakeEngine.Core.ScriptEngines;
 
 /// <summary>
 /// Executes a Python script via an external interpreter (system or local runtime).
 /// Streams output and supports @@REMAKE@@ structured prompt events.
 /// </summary>
-public sealed class PythonScriptAction:IAction {
+public sealed class PythonScriptAction:Helpers.IAction {
     private readonly String _scriptPath;
     private readonly IReadOnlyList<String> _args;
     private readonly String? _rootPath;

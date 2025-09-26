@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
-namespace RemakeEngine.Core;
+namespace RemakeEngine.Sys;
 
 /// <summary>
 /// Provides a built-in replacement for EnginePy\FormatHandlers\bms_extract.py.

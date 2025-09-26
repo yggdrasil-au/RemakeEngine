@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using RemakeEngine.Core;
 
-namespace RemakeEngine.Core;
+namespace RemakeEngine.Sys;
 
 public sealed class CommandBuilder {
     private readonly String _rootPath;

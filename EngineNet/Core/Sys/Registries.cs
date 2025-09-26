@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 
-namespace RemakeEngine.Core;
+namespace RemakeEngine.Sys;
 
 public sealed class Registries {
     private readonly String _rootPath;

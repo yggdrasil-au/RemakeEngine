@@ -1,218 +1,218 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TestRun id="6b0c1760-a442-4abf-a54c-9f762dbee65f" name="samki@PC17 2025-08-31 18:22:32" runUser="PC17\samki" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
-  <Times creation="2025-08-31T18:22:32.2396431+10:00" queuing="2025-08-31T18:22:32.2396434+10:00" start="2025-08-31T18:22:30.6494711+10:00" finish="2025-08-31T18:22:34.0788687+10:00" />
-  <TestSettings name="default" id="2acf1560-8d3b-4367-97f6-6aa57663fd29">
-    <Deployment runDeploymentRoot="samki_PC17_2025-08-31_18_22_32" />
+<TestRun id="dd94b960-c471-4585-9362-a78cbee691b4" name="samki@PC17 2025-09-25 16:50:48" runUser="PC17\samki" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2025-09-25T16:50:48.5325583+10:00" queuing="2025-09-25T16:50:48.5325586+10:00" start="2025-09-25T16:50:47.7195858+10:00" finish="2025-09-25T16:50:50.4444090+10:00" />
+  <TestSettings name="default" id="67f857e9-14fa-4e3d-a008-2b60cff84c4a">
+    <Deployment runDeploymentRoot="samki_PC17_2025-09-25_16_50_48" />
   </TestSettings>
   <Results>
-    <UnitTestResult executionId="c8e268cc-3285-47c1-8ab2-59501781173d" testId="1ecbc66c-0727-08c4-b0ea-bac2fc2f5a05" testName="EngineNet.Tests.OperationsEngineTests.LoadOperationsList_Parses_Json_Array" computerName="PC17" duration="00:00:00.0638746" startTime="2025-08-31T18:22:32.3774743+10:00" endTime="2025-08-31T18:22:32.3774745+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c8e268cc-3285-47c1-8ab2-59501781173d" />
-    <UnitTestResult executionId="f5c41f87-7ed5-4629-ab1e-59f1cde2f9f8" testId="70c3d111-4ccc-c6db-eb34-d771288c18bf" testName="EngineNet.Tests.CommandBuilderTests.Build_Throws_When_NoGameLoaded" computerName="PC17" duration="00:00:00.0006097" startTime="2025-08-31T18:22:32.2245199+10:00" endTime="2025-08-31T18:22:32.2245199+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f5c41f87-7ed5-4629-ab1e-59f1cde2f9f8" />
-    <UnitTestResult executionId="284b929d-30c0-475c-8b5c-32b7c883d0bc" testId="cd7e7686-8a05-bac9-ea8f-f9bb638ad10b" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.InstallModuleAsync_Paths" computerName="PC17" duration="00:00:00.0066728" startTime="2025-08-31T18:22:32.6232291+10:00" endTime="2025-08-31T18:22:32.6232294+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="284b929d-30c0-475c-8b5c-32b7c883d0bc" />
-    <UnitTestResult executionId="82d2e32b-8895-437d-9fe1-061c2f0741ea" testId="fead6ed0-87bc-0f57-c4bb-166c267df20e" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.InstallModuleAsync_JsonArray_Flattens" computerName="PC17" duration="00:00:00.0044870" startTime="2025-08-31T18:22:32.6278231+10:00" endTime="2025-08-31T18:22:32.6278235+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="82d2e32b-8895-437d-9fe1-061c2f0741ea" />
-    <UnitTestResult executionId="f94dcce6-febb-4e44-8c37-cccbebcd87c7" testId="ce9f66f6-6d08-ce8c-e244-48f0a0cd56e9" testName="EngineNet.Tests.PlaceholdersTests.Resolve_LeavesUnknownTokens" computerName="PC17" duration="00:00:00.0000703" startTime="2025-08-31T18:22:32.2252409+10:00" endTime="2025-08-31T18:22:32.2252409+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f94dcce6-febb-4e44-8c37-cccbebcd87c7" />
-    <UnitTestResult executionId="d41a457a-50a6-4546-a203-a71ec734c40e" testId="5f5306e1-bd7c-ecd9-f655-8fdfc5c21d1a" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.LoadOperationsList_Json_Array_Types_Coverage" computerName="PC17" duration="00:00:00.0047060" startTime="2025-08-31T18:22:32.6091324+10:00" endTime="2025-08-31T18:22:32.6091328+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d41a457a-50a6-4546-a203-a71ec734c40e" />
-    <UnitTestResult executionId="32b4d853-b2a5-4ab5-bfd0-957d9af530c3" testId="17828155-9e23-b08a-e9bd-da99810ac0fb" testName="EngineNet.Tests.RegistriesTests.DiscoverGames_Finds_Toml_And_Json" computerName="PC17" duration="00:00:00.0031804" startTime="2025-08-31T18:22:32.2254120+10:00" endTime="2025-08-31T18:22:32.2254121+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="32b4d853-b2a5-4ab5-bfd0-957d9af530c3" />
-    <UnitTestResult executionId="40fc3d58-e0f5-4ad1-acfb-7802869557ce" testId="111c0219-f2b6-ba06-5933-a5ac22b73028" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.RunSingleOperationAsync_Python_Case_Label" computerName="PC17" duration="00:00:00.1058474" startTime="2025-08-31T18:22:33.8759219+10:00" endTime="2025-08-31T18:22:33.8759223+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="40fc3d58-e0f5-4ad1-acfb-7802869557ce" />
-    <UnitTestResult executionId="b1d9aef9-a1ad-4000-bc91-8dbecce38d31" testId="e039e900-a6a3-1f68-4403-62cd4b13064a" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.RunSingleOperationAsync_Covers_All_Types" computerName="PC17" duration="00:00:00.0715794" startTime="2025-08-31T18:22:33.7526096+10:00" endTime="2025-08-31T18:22:33.7526100+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b1d9aef9-a1ad-4000-bc91-8dbecce38d31" />
-    <UnitTestResult executionId="cec0f87c-2739-456d-917f-cc71febcdec8" testId="9025050d-60bf-79ee-475c-703dbe7eee0e" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.BuildCommand_and_ExecuteCommand_Wrappers" computerName="PC17" duration="00:00:00.0042371" startTime="2025-08-31T18:22:32.6134825+10:00" endTime="2025-08-31T18:22:32.6134828+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cec0f87c-2739-456d-917f-cc71febcdec8" />
-    <UnitTestResult executionId="5d3a3e52-f154-4815-b65c-04c509663d4e" testId="24aa07ef-9d34-0e71-f572-9e00fd633652" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.ExecuteEngineOperationAsync_Throws_On_Unknown_Game" computerName="PC17" duration="00:00:00.0049327" startTime="2025-08-31T18:22:32.2264813+10:00" endTime="2025-08-31T18:22:32.2264814+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5d3a3e52-f154-4815-b65c-04c509663d4e" />
-    <UnitTestResult executionId="d54b026f-1291-47d5-920d-d2bd546bcb38" testId="a7d5f1a3-8dbc-cd97-2d4d-f5382b6649e9" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.GetRegisteredModules_Covers_Method" computerName="PC17" duration="00:00:00.0018123" startTime="2025-08-31T18:22:32.3112165+10:00" endTime="2025-08-31T18:22:32.3112167+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d54b026f-1291-47d5-920d-d2bd546bcb38" />
-    <UnitTestResult executionId="cfe0cbf3-1a44-4804-8b84-ff432969ee9a" testId="a6e2b031-6cad-5a54-d5aa-52f2f1a26fae" testName="EngineNet.Tests.PlaceholdersTests.Resolve_RecursesCollections" computerName="PC17" duration="00:00:00.0029745" startTime="2025-08-31T18:22:32.2251124+10:00" endTime="2025-08-31T18:22:32.2251124+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cfe0cbf3-1a44-4804-8b84-ff432969ee9a" />
-    <UnitTestResult executionId="30e39072-bdb4-462a-8c85-261dead8ed48" testId="3020bb36-e0a3-b224-bdaa-73c076bdbefb" testName="EngineNet.Tests.EngineConfigTests.LoadJsonFile_ParsesNested" computerName="PC17" duration="00:00:00.1611393" startTime="2025-08-31T18:22:32.2111012+10:00" endTime="2025-08-31T18:22:32.2111012+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="30e39072-bdb4-462a-8c85-261dead8ed48" />
-    <UnitTestResult executionId="9defc351-a802-4e73-bf94-2ac4a52c15f1" testId="ff46a674-c7e1-6456-1309-f671872711df" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.ExecuteEngineOperationAsync_All_Cases" computerName="PC17" duration="00:00:00.2930144" startTime="2025-08-31T18:22:32.6043322+10:00" endTime="2025-08-31T18:22:32.6043326+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9defc351-a802-4e73-bf94-2ac4a52c15f1" />
-    <UnitTestResult executionId="9461052c-be0e-442b-8501-13598e5ae801" testId="ea447854-7f3c-0f75-6101-4783ce6b04f3" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.InstallModuleAsync_Groups_No_RunAll_Chooses_First" computerName="PC17" duration="00:00:00.0046489" startTime="2025-08-31T18:22:33.7699714+10:00" endTime="2025-08-31T18:22:33.7699717+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9461052c-be0e-442b-8501-13598e5ae801" />
-    <UnitTestResult executionId="1c383d56-aa5c-4a28-806e-7f2e99de78d5" testId="30a176aa-492d-8451-d25e-c6d51656ed30" testName="EngineNet.Tests.CommandBuilderTests.Build_Maps_Prompts_With_Conditions" computerName="PC17" duration="00:00:00.1632337" startTime="2025-08-31T18:22:32.2119754+10:00" endTime="2025-08-31T18:22:32.2119755+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1c383d56-aa5c-4a28-806e-7f2e99de78d5" />
-    <UnitTestResult executionId="11785399-857c-465f-b93c-fb654baf14da" testId="5654e402-2775-d388-7ea1-bc91bf66c672" testName="EngineNet.Tests.PlaceholdersTests.Resolve_ReplacesSimpleTokens" computerName="PC17" duration="00:00:00.1624205" startTime="2025-08-31T18:22:32.2117872+10:00" endTime="2025-08-31T18:22:32.2117873+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="11785399-857c-465f-b93c-fb654baf14da" />
-    <UnitTestResult executionId="db1229f0-10b9-4b01-8a73-181205ce839a" testId="8cecdeb1-8d3c-fb21-ae34-bb360e325cef" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.RunSingleOperationAsync_Engine_ExceptionHandled" computerName="PC17" duration="00:00:00.0025139" startTime="2025-08-31T18:22:32.2434390+10:00" endTime="2025-08-31T18:22:32.2434391+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="db1229f0-10b9-4b01-8a73-181205ce839a" />
-    <UnitTestResult executionId="ea74eebc-7c48-4254-b5da-4d2768697134" testId="96b60375-4c3b-d433-ea7e-a1a6ea86dfa6" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.ListGames_and_InstalledGames_and_States" computerName="PC17" duration="00:00:00.0658157" startTime="2025-08-31T18:22:32.3093401+10:00" endTime="2025-08-31T18:22:32.3093403+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ea74eebc-7c48-4254-b5da-4d2768697134" />
-    <UnitTestResult executionId="843dff50-5612-4580-a2cc-6ad528f0b63f" testId="95c7e351-a8f8-4a01-5797-e6a55a184861" testName="EngineNet.Tests.OperationsEngineTests.LoadOperationsList_Parses_Toml_Array_Of_Tables" computerName="PC17" duration="00:00:00.0642518" startTime="2025-08-31T18:22:32.4418046+10:00" endTime="2025-08-31T18:22:32.4418049+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="843dff50-5612-4580-a2cc-6ad528f0b63f" />
-    <UnitTestResult executionId="9eafdb61-b70a-4137-a933-2b9799a0c7ef" testId="129f75cc-fc43-ea5e-f08b-cde15b596deb" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.ReloadProjectConfig_All_Paths" computerName="PC17" duration="00:00:00.1731785" startTime="2025-08-31T18:22:32.2254840+10:00" endTime="2025-08-31T18:22:32.2254840+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9eafdb61-b70a-4137-a933-2b9799a0c7ef" />
-    <UnitTestResult executionId="472b70cf-a2b8-42e8-91e3-00131bf2660f" testId="8ac54234-2fe4-66e7-3064-0fe93ea0c7f3" testName="EngineNet.Tests.CommandBuilderTests.Build_Defaults_To_Python_And_Resolves_Placeholders" computerName="PC17" duration="00:00:00.0012581" startTime="2025-08-31T18:22:32.2253238+10:00" endTime="2025-08-31T18:22:32.2253238+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="472b70cf-a2b8-42e8-91e3-00131bf2660f" />
-    <UnitTestResult executionId="fa3eca94-9e52-481a-8eff-7bcfc0affb0b" testId="5ad508f9-a57c-bf1f-9543-fea13f09abc7" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.LoadOperations_Toml_Groups_With_Nested_Types" computerName="PC17" duration="00:00:00.0178093" startTime="2025-08-31T18:22:32.2408658+10:00" endTime="2025-08-31T18:22:32.2408659+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fa3eca94-9e52-481a-8eff-7bcfc0affb0b" />
-    <UnitTestResult executionId="19cbc5a2-d634-4eb1-9d9d-f78c1789106a" testId="f5e6a149-f868-bea9-f650-5629eecbb277" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.ExecuteEngineOperationAsync_DownloadTools_MissingManifest_ReturnsFalse" computerName="PC17" duration="00:00:00.0028813" startTime="2025-08-31T18:22:32.6164632+10:00" endTime="2025-08-31T18:22:32.6164636+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="19cbc5a2-d634-4eb1-9d9d-f78c1789106a" />
-    <UnitTestResult executionId="7fba572a-ecb9-470b-8cdb-18f71cc39b7a" testId="4ff14dc8-0c01-c8b9-0da8-8845aa1ee661" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.LoadOperationsList_JsonObject_Flattens_Groups" computerName="PC17" duration="00:00:00.0019706" startTime="2025-08-31T18:22:32.6298851+10:00" endTime="2025-08-31T18:22:32.6298854+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7fba572a-ecb9-470b-8cdb-18f71cc39b7a" />
-    <UnitTestResult executionId="f0550836-d49d-4db7-98f0-a4bb3ed44ecf" testId="439f59a5-1e68-a99b-c24c-aa77fcb085bf" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.DownloadModule_Invokes_Git" computerName="PC17" duration="00:00:01.0501586" startTime="2025-08-31T18:22:33.6801938+10:00" endTime="2025-08-31T18:22:33.6801946+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f0550836-d49d-4db7-98f0-a4bb3ed44ecf" />
-    <UnitTestResult executionId="4ba0ed68-297d-42fb-8ef9-1417c8f4ea4c" testId="f35cdd57-bbac-d13c-c8a7-09726a484e46" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.RunOperationGroupAsync_Aggregates_Success" computerName="PC17" duration="00:00:00.0121240" startTime="2025-08-31T18:22:33.7652396+10:00" endTime="2025-08-31T18:22:33.7652398+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4ba0ed68-297d-42fb-8ef9-1417c8f4ea4c" />
-    <UnitTestResult executionId="e0e86748-b549-46db-9826-63759d3b486c" testId="b67ef712-351e-7e57-d08a-d44b448cf480" testName="EngineNet.Tests.CommandBuilderTests.Build_ReturnsEmpty_When_NoScript" computerName="PC17" duration="00:00:00.0001968" startTime="2025-08-31T18:22:32.2247863+10:00" endTime="2025-08-31T18:22:32.2247864+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e0e86748-b549-46db-9826-63759d3b486c" />
-    <UnitTestResult executionId="80daa16e-6975-4cee-8d18-238f1dfec3e7" testId="59a60383-6d7c-6133-bd4b-5d84f788a41b" testName="EngineNet.Tests.CommandBuilderTests.Build_Throws_When_UnknownGame" computerName="PC17" duration="00:00:00.0001366" startTime="2025-08-31T18:22:32.2249598+10:00" endTime="2025-08-31T18:22:32.2249599+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="80daa16e-6975-4cee-8d18-238f1dfec3e7" />
-    <UnitTestResult executionId="4325b63b-0142-46a0-ab64-0325ae15bab2" testId="0e5d25b1-6332-4a56-3f79-bba86ee32a2d" testName="EngineNet.Tests.ProcessRunnerTests.Execute_Echoes_Output_And_Parses_Events" computerName="PC17" duration="00:00:00.1927292" startTime="2025-08-31T18:22:32.2375665+10:00" endTime="2025-08-31T18:22:32.2375667+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4325b63b-0142-46a0-ab64-0325ae15bab2" />
-    <UnitTestResult executionId="9e103c88-db0f-466c-9a0e-b7d7ba442643" testId="f22fecce-9e05-0c16-323d-886acf60f114" testName="EngineNet.Tests.OperationsEngineTests.LoadOperations_Parses_Json_Grouped" computerName="PC17" duration="00:00:00.2686932" startTime="2025-08-31T18:22:32.3135235+10:00" endTime="2025-08-31T18:22:32.3135237+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9e103c88-db0f-466c-9a0e-b7d7ba442643" />
-    <UnitTestResult executionId="4b34ea54-8ece-4cd5-8f79-4d9372cd34bc" testId="18547971-3b39-62b3-9389-dad6219d1ef6" testName="EngineNet.Tests.RegistriesTests.DiscoverInstalledGames_Requires_Valid_GameToml_And_Exe" computerName="PC17" duration="00:00:00.1638984" startTime="2025-08-31T18:22:32.2243371+10:00" endTime="2025-08-31T18:22:32.2243372+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4b34ea54-8ece-4cd5-8f79-4d9372cd34bc" />
-    <UnitTestResult executionId="b5ff6585-328e-45c8-aa28-e3bd310d31f6" testId="84da9067-81a4-f8e4-e050-0f39d7ce8a58" testName="EngineNet.Tests.ToolsJsonSchemaTests.ToolsJson_FollowsExpectedSchema" computerName="PC17" duration="00:00:00.1607762" startTime="2025-08-31T18:22:32.2071120+10:00" endTime="2025-08-31T18:22:32.2071206+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b5ff6585-328e-45c8-aa28-e3bd310d31f6" />
+    <UnitTestResult executionId="000b5b58-9635-4761-bfff-13f2703905af" testId="fead6ed0-87bc-0f57-c4bb-166c267df20e" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.InstallModuleAsync_JsonArray_Flattens" computerName="PC17" duration="00:00:00.0125425" startTime="2025-09-25T16:50:48.7354617+10:00" endTime="2025-09-25T16:50:48.7354620+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="000b5b58-9635-4761-bfff-13f2703905af" />
+    <UnitTestResult executionId="191c6f9f-174b-41a6-ab9c-c8ffe5f2aca8" testId="b67ef712-351e-7e57-d08a-d44b448cf480" testName="EngineNet.Tests.CommandBuilderTests.Build_ReturnsEmpty_When_NoScript" computerName="PC17" duration="00:00:00.0002928" startTime="2025-09-25T16:50:48.5147590+10:00" endTime="2025-09-25T16:50:48.5147590+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="191c6f9f-174b-41a6-ab9c-c8ffe5f2aca8" />
+    <UnitTestResult executionId="017b2904-ceeb-4a00-baaf-c902ea81fd04" testId="f5e6a149-f868-bea9-f650-5629eecbb277" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.ExecuteEngineOperationAsync_DownloadTools_MissingManifest_ReturnsFalse" computerName="PC17" duration="00:00:00.0025770" startTime="2025-09-25T16:50:48.7033115+10:00" endTime="2025-09-25T16:50:48.7033117+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="017b2904-ceeb-4a00-baaf-c902ea81fd04" />
+    <UnitTestResult executionId="e236fa1b-6b1a-48d0-8973-fd824eb6b040" testId="5654e402-2775-d388-7ea1-bc91bf66c672" testName="EngineNet.Tests.PlaceholdersTests.Resolve_ReplacesSimpleTokens" computerName="PC17" duration="00:00:00.4639991" startTime="2025-09-25T16:50:48.4964736+10:00" endTime="2025-09-25T16:50:48.4964737+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e236fa1b-6b1a-48d0-8973-fd824eb6b040" />
+    <UnitTestResult executionId="d400dc67-1923-4570-bdfd-5935707ab48a" testId="9025050d-60bf-79ee-475c-703dbe7eee0e" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.BuildCommand_and_ExecuteCommand_Wrappers" computerName="PC17" duration="00:00:00.0039185" startTime="2025-09-25T16:50:48.7006462+10:00" endTime="2025-09-25T16:50:48.7006465+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d400dc67-1923-4570-bdfd-5935707ab48a" />
+    <UnitTestResult executionId="0b767d7b-ffd7-435c-b679-11eca1fd6399" testId="ce9f66f6-6d08-ce8c-e244-48f0a0cd56e9" testName="EngineNet.Tests.PlaceholdersTests.Resolve_LeavesUnknownTokens" computerName="PC17" duration="00:00:00.0000900" startTime="2025-09-25T16:50:48.5149249+10:00" endTime="2025-09-25T16:50:48.5149250+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0b767d7b-ffd7-435c-b679-11eca1fd6399" />
+    <UnitTestResult executionId="3744768d-46b1-4db2-9f3a-2aa19211ed0d" testId="111c0219-f2b6-ba06-5933-a5ac22b73028" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.RunSingleOperationAsync_Python_Case_Label" computerName="PC17" duration="00:00:00.1054222" startTime="2025-09-25T16:50:50.3928828+10:00" endTime="2025-09-25T16:50:50.3928831+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3744768d-46b1-4db2-9f3a-2aa19211ed0d" />
+    <UnitTestResult executionId="4068582b-3b12-482e-9e40-cb0815fdf9f6" testId="f22fecce-9e05-0c16-323d-886acf60f114" testName="EngineNet.Tests.OperationsEngineTests.LoadOperations_Parses_Json_Grouped" computerName="PC17" duration="00:00:00.8351430" startTime="2025-09-25T16:50:48.8635769+10:00" endTime="2025-09-25T16:50:48.8635773+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4068582b-3b12-482e-9e40-cb0815fdf9f6" />
+    <UnitTestResult executionId="5407e65c-f163-499a-b104-5ebfd57acb41" testId="0e5d25b1-6332-4a56-3f79-bba86ee32a2d" testName="EngineNet.Tests.ProcessRunnerTests.Execute_Echoes_Output_And_Parses_Events" computerName="PC17" duration="00:00:00.4947119" startTime="2025-09-25T16:50:48.5230423+10:00" endTime="2025-09-25T16:50:48.5230427+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5407e65c-f163-499a-b104-5ebfd57acb41" />
+    <UnitTestResult executionId="e6f41125-bf63-4cb6-a9c9-5a959f32c8fe" testId="a7d5f1a3-8dbc-cd97-2d4d-f5382b6649e9" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.GetRegisteredModules_Covers_Method" computerName="PC17" duration="00:00:00.0019027" startTime="2025-09-25T16:50:48.6700481+10:00" endTime="2025-09-25T16:50:48.6700484+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e6f41125-bf63-4cb6-a9c9-5a959f32c8fe" />
+    <UnitTestResult executionId="42f2bfb2-c90f-4704-964f-9fa0cd58c09d" testId="3020bb36-e0a3-b224-bdaa-73c076bdbefb" testName="EngineNet.Tests.EngineConfigTests.LoadJsonFile_ParsesNested" computerName="PC17" duration="00:00:00.4656602" startTime="2025-09-25T16:50:48.5145078+10:00" endTime="2025-09-25T16:50:48.5145081+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="42f2bfb2-c90f-4704-964f-9fa0cd58c09d" />
+    <UnitTestResult executionId="9bf4c533-2426-4e90-9352-8bdcaa96f3e4" testId="84da9067-81a4-f8e4-e050-0f39d7ce8a58" testName="EngineNet.Tests.ToolsJsonSchemaTests.ToolsJson_FollowsExpectedSchema" computerName="PC17" duration="00:00:00.4615034" startTime="2025-09-25T16:50:48.4929382+10:00" endTime="2025-09-25T16:50:48.4929981+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9bf4c533-2426-4e90-9352-8bdcaa96f3e4" />
+    <UnitTestResult executionId="40d0d561-6229-459a-9241-26a3f079a935" testId="cd7e7686-8a05-bac9-ea8f-f9bb638ad10b" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.InstallModuleAsync_Paths" computerName="PC17" duration="00:00:00.0194028" startTime="2025-09-25T16:50:48.7228119+10:00" endTime="2025-09-25T16:50:48.7228124+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="40d0d561-6229-459a-9241-26a3f079a935" />
+    <UnitTestResult executionId="0f0efe7f-6975-4b25-bf4e-5dbc2cde07e2" testId="f35cdd57-bbac-d13c-c8a7-09726a484e46" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.RunOperationGroupAsync_Aggregates_Success" computerName="PC17" duration="00:00:00.0218631" startTime="2025-09-25T16:50:50.2770629+10:00" endTime="2025-09-25T16:50:50.2770631+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0f0efe7f-6975-4b25-bf4e-5dbc2cde07e2" />
+    <UnitTestResult executionId="32bc87c0-e6f7-40a5-baf9-f53b8b1ce9d0" testId="ff46a674-c7e1-6456-1309-f671872711df" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.ExecuteEngineOperationAsync_All_Cases" computerName="PC17" duration="00:00:00.0174355" startTime="2025-09-25T16:50:48.6875679+10:00" endTime="2025-09-25T16:50:48.6875682+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="32bc87c0-e6f7-40a5-baf9-f53b8b1ce9d0" />
+    <UnitTestResult executionId="5ba80ef2-73cd-4b6a-80f7-6bc7cea79214" testId="4ff14dc8-0c01-c8b9-0da8-8845aa1ee661" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.LoadOperationsList_JsonObject_Flattens_Groups" computerName="PC17" duration="00:00:00.0096107" startTime="2025-09-25T16:50:48.7451855+10:00" endTime="2025-09-25T16:50:48.7451859+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5ba80ef2-73cd-4b6a-80f7-6bc7cea79214" />
+    <UnitTestResult executionId="404019ef-edf8-47f2-b3b5-e984dfc7a47c" testId="1ecbc66c-0727-08c4-b0ea-bac2fc2f5a05" testName="EngineNet.Tests.OperationsEngineTests.LoadOperationsList_Parses_Json_Array" computerName="PC17" duration="00:00:00.0248047" startTime="2025-09-25T16:50:48.8884829+10:00" endTime="2025-09-25T16:50:48.8884833+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="404019ef-edf8-47f2-b3b5-e984dfc7a47c" />
+    <UnitTestResult executionId="802086bb-5049-423a-b7a3-67c29774aedd" testId="95c7e351-a8f8-4a01-5797-e6a55a184861" testName="EngineNet.Tests.OperationsEngineTests.LoadOperationsList_Parses_Toml_Array_Of_Tables" computerName="PC17" duration="00:00:00.0248126" startTime="2025-09-25T16:50:48.9133888+10:00" endTime="2025-09-25T16:50:48.9133890+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="802086bb-5049-423a-b7a3-67c29774aedd" />
+    <UnitTestResult executionId="00354bdb-b601-4ff3-b62f-1b36b95dad26" testId="18547971-3b39-62b3-9389-dad6219d1ef6" testName="EngineNet.Tests.RegistriesTests.DiscoverInstalledGames_Requires_Valid_GameToml_And_Exe" computerName="PC17" duration="00:00:00.4675771" startTime="2025-09-25T16:50:48.5148303+10:00" endTime="2025-09-25T16:50:48.5148303+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00354bdb-b601-4ff3-b62f-1b36b95dad26" />
+    <UnitTestResult executionId="6891decd-e14a-48e0-a369-0bd40522bdbc" testId="129f75cc-fc43-ea5e-f08b-cde15b596deb" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.ReloadProjectConfig_All_Paths" computerName="PC17" duration="00:00:00.4864714" startTime="2025-09-25T16:50:48.5149722+10:00" endTime="2025-09-25T16:50:48.5149722+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6891decd-e14a-48e0-a369-0bd40522bdbc" />
+    <UnitTestResult executionId="5f9ee8de-1d1b-46ef-8853-17eaeedeb46f" testId="24aa07ef-9d34-0e71-f572-9e00fd633652" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.ExecuteEngineOperationAsync_Throws_On_Unknown_Game" computerName="PC17" duration="00:00:00.0060955" startTime="2025-09-25T16:50:48.5210134+10:00" endTime="2025-09-25T16:50:48.5210137+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5f9ee8de-1d1b-46ef-8853-17eaeedeb46f" />
+    <UnitTestResult executionId="71eccbae-ddcd-4caa-ae58-219c4d8a231c" testId="59a60383-6d7c-6133-bd4b-5d84f788a41b" testName="EngineNet.Tests.CommandBuilderTests.Build_Throws_When_UnknownGame" computerName="PC17" duration="00:00:00.0001849" startTime="2025-09-25T16:50:48.5147996+10:00" endTime="2025-09-25T16:50:48.5147997+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="71eccbae-ddcd-4caa-ae58-219c4d8a231c" />
+    <UnitTestResult executionId="c6904275-d9b5-496b-bc18-03eb2238e324" testId="8ac54234-2fe4-66e7-3064-0fe93ea0c7f3" testName="EngineNet.Tests.CommandBuilderTests.Build_Defaults_To_Python_And_Resolves_Placeholders" computerName="PC17" duration="00:00:00.0020435" startTime="2025-09-25T16:50:48.5148774+10:00" endTime="2025-09-25T16:50:48.5148775+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c6904275-d9b5-496b-bc18-03eb2238e324" />
+    <UnitTestResult executionId="85c4b4a2-18d3-4fb7-8742-675b5c0ac614" testId="70c3d111-4ccc-c6db-eb34-d771288c18bf" testName="EngineNet.Tests.CommandBuilderTests.Build_Throws_When_NoGameLoaded" computerName="PC17" duration="00:00:00.0012983" startTime="2025-09-25T16:50:48.5146816+10:00" endTime="2025-09-25T16:50:48.5146817+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="85c4b4a2-18d3-4fb7-8742-675b5c0ac614" />
+    <UnitTestResult executionId="59ac2bd8-d158-4a3f-a50d-f6ef22d0c293" testId="5f5306e1-bd7c-ecd9-f655-8fdfc5c21d1a" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.LoadOperationsList_Json_Array_Types_Coverage" computerName="PC17" duration="00:00:00.0089567" startTime="2025-09-25T16:50:48.6966221+10:00" endTime="2025-09-25T16:50:48.6966226+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="59ac2bd8-d158-4a3f-a50d-f6ef22d0c293" />
+    <UnitTestResult executionId="d5f6a185-20d0-46ff-898f-b07c9b80731a" testId="8cecdeb1-8d3c-fb21-ae34-bb360e325cef" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.RunSingleOperationAsync_Engine_ExceptionHandled" computerName="PC17" duration="00:00:00.0028287" startTime="2025-09-25T16:50:48.5969773+10:00" endTime="2025-09-25T16:50:48.5969776+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d5f6a185-20d0-46ff-898f-b07c9b80731a" />
+    <UnitTestResult executionId="f376a9a2-972b-4384-a9c7-a2fedda5f14a" testId="30a176aa-492d-8451-d25e-c6d51656ed30" testName="EngineNet.Tests.CommandBuilderTests.Build_Maps_Prompts_With_Conditions" computerName="PC17" duration="00:00:00.4648118" startTime="2025-09-25T16:50:48.4970453+10:00" endTime="2025-09-25T16:50:48.4970454+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f376a9a2-972b-4384-a9c7-a2fedda5f14a" />
+    <UnitTestResult executionId="35251f44-efb9-4265-84d5-daed4df377ae" testId="e039e900-a6a3-1f68-4403-62cd4b13064a" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.RunSingleOperationAsync_Covers_All_Types" computerName="PC17" duration="00:00:00.3215335" startTime="2025-09-25T16:50:50.2545709+10:00" endTime="2025-09-25T16:50:50.2545713+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="35251f44-efb9-4265-84d5-daed4df377ae" />
+    <UnitTestResult executionId="9faf91e5-c701-4cdc-890c-261f0f302133" testId="5ad508f9-a57c-bf1f-9543-fea13f09abc7" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.LoadOperations_Toml_Groups_With_Nested_Types" computerName="PC17" duration="00:00:00.0729380" startTime="2025-09-25T16:50:48.5940589+10:00" endTime="2025-09-25T16:50:48.5940591+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9faf91e5-c701-4cdc-890c-261f0f302133" />
+    <UnitTestResult executionId="a67413db-c396-4b67-a0e6-6a7a61b5138b" testId="96b60375-4c3b-d433-ea7e-a1a6ea86dfa6" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.ListGames_and_InstalledGames_and_States" computerName="PC17" duration="00:00:00.0709697" startTime="2025-09-25T16:50:48.6680497+10:00" endTime="2025-09-25T16:50:48.6680501+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a67413db-c396-4b67-a0e6-6a7a61b5138b" />
+    <UnitTestResult executionId="dc7a1bf3-2d10-4014-8d75-f4be40e9e3bf" testId="17828155-9e23-b08a-e9bd-da99810ac0fb" testName="EngineNet.Tests.RegistriesTests.DiscoverGames_Finds_Toml_And_Json" computerName="PC17" duration="00:00:00.0043595" startTime="2025-09-25T16:50:48.5149405+10:00" endTime="2025-09-25T16:50:48.5149406+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="dc7a1bf3-2d10-4014-8d75-f4be40e9e3bf" />
+    <UnitTestResult executionId="f32b545b-bd7c-41ea-bb57-465adaee1249" testId="439f59a5-1e68-a99b-c24c-aa77fcb085bf" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.DownloadModule_Invokes_Git" computerName="PC17" duration="00:00:01.1866477" startTime="2025-09-25T16:50:49.9319775+10:00" endTime="2025-09-25T16:50:49.9319778+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f32b545b-bd7c-41ea-bb57-465adaee1249" />
+    <UnitTestResult executionId="e61167d7-25da-4ff3-b9ea-1cf1f87fe4b4" testId="a6e2b031-6cad-5a54-d5aa-52f2f1a26fae" testName="EngineNet.Tests.PlaceholdersTests.Resolve_RecursesCollections" computerName="PC17" duration="00:00:00.0063478" startTime="2025-09-25T16:50:48.5148956+10:00" endTime="2025-09-25T16:50:48.5148957+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e61167d7-25da-4ff3-b9ea-1cf1f87fe4b4" />
+    <UnitTestResult executionId="26be04f2-9d76-4727-8d02-6909e238502d" testId="ea447854-7f3c-0f75-6101-4783ce6b04f3" testName="EngineNet.Tests.OperationsEngineFullCoverageTests.InstallModuleAsync_Groups_No_RunAll_Chooses_First" computerName="PC17" duration="00:00:00.0102117" startTime="2025-09-25T16:50:50.2873605+10:00" endTime="2025-09-25T16:50:50.2873608+10:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="26be04f2-9d76-4727-8d02-6909e238502d" />
   </Results>
   <TestDefinitions>
-    <UnitTest name="EngineNet.Tests.ProcessRunnerTests.Execute_Echoes_Output_And_Parses_Events" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="0e5d25b1-6332-4a56-3f79-bba86ee32a2d">
-      <Execution id="4325b63b-0142-46a0-ab64-0325ae15bab2" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.ProcessRunnerTests" name="Execute_Echoes_Output_And_Parses_Events" />
+    <UnitTest name="EngineNet.Tests.ProcessRunnerTests.Execute_Echoes_Output_And_Parses_Events" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="0e5d25b1-6332-4a56-3f79-bba86ee32a2d">
+      <Execution id="5407e65c-f163-499a-b104-5ebfd57acb41" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.ProcessRunnerTests" name="Execute_Echoes_Output_And_Parses_Events" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.LoadOperationsList_Json_Array_Types_Coverage" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="5f5306e1-bd7c-ecd9-f655-8fdfc5c21d1a">
-      <Execution id="d41a457a-50a6-4546-a203-a71ec734c40e" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="LoadOperationsList_Json_Array_Types_Coverage" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.LoadOperationsList_Json_Array_Types_Coverage" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="5f5306e1-bd7c-ecd9-f655-8fdfc5c21d1a">
+      <Execution id="59ac2bd8-d158-4a3f-a50d-f6ef22d0c293" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="LoadOperationsList_Json_Array_Types_Coverage" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.GetRegisteredModules_Covers_Method" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="a7d5f1a3-8dbc-cd97-2d4d-f5382b6649e9">
-      <Execution id="d54b026f-1291-47d5-920d-d2bd546bcb38" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="GetRegisteredModules_Covers_Method" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.GetRegisteredModules_Covers_Method" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="a7d5f1a3-8dbc-cd97-2d4d-f5382b6649e9">
+      <Execution id="e6f41125-bf63-4cb6-a9c9-5a959f32c8fe" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="GetRegisteredModules_Covers_Method" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.CommandBuilderTests.Build_ReturnsEmpty_When_NoScript" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="b67ef712-351e-7e57-d08a-d44b448cf480">
-      <Execution id="e0e86748-b549-46db-9826-63759d3b486c" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.CommandBuilderTests" name="Build_ReturnsEmpty_When_NoScript" />
+    <UnitTest name="EngineNet.Tests.CommandBuilderTests.Build_ReturnsEmpty_When_NoScript" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="b67ef712-351e-7e57-d08a-d44b448cf480">
+      <Execution id="191c6f9f-174b-41a6-ab9c-c8ffe5f2aca8" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.CommandBuilderTests" name="Build_ReturnsEmpty_When_NoScript" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.CommandBuilderTests.Build_Throws_When_UnknownGame" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="59a60383-6d7c-6133-bd4b-5d84f788a41b">
-      <Execution id="80daa16e-6975-4cee-8d18-238f1dfec3e7" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.CommandBuilderTests" name="Build_Throws_When_UnknownGame" />
+    <UnitTest name="EngineNet.Tests.CommandBuilderTests.Build_Throws_When_UnknownGame" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="59a60383-6d7c-6133-bd4b-5d84f788a41b">
+      <Execution id="71eccbae-ddcd-4caa-ae58-219c4d8a231c" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.CommandBuilderTests" name="Build_Throws_When_UnknownGame" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.ExecuteEngineOperationAsync_DownloadTools_MissingManifest_ReturnsFalse" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="f5e6a149-f868-bea9-f650-5629eecbb277">
-      <Execution id="19cbc5a2-d634-4eb1-9d9d-f78c1789106a" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="ExecuteEngineOperationAsync_DownloadTools_MissingManifest_ReturnsFalse" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.ExecuteEngineOperationAsync_DownloadTools_MissingManifest_ReturnsFalse" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="f5e6a149-f868-bea9-f650-5629eecbb277">
+      <Execution id="017b2904-ceeb-4a00-baaf-c902ea81fd04" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="ExecuteEngineOperationAsync_DownloadTools_MissingManifest_ReturnsFalse" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.DownloadModule_Invokes_Git" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="439f59a5-1e68-a99b-c24c-aa77fcb085bf">
-      <Execution id="f0550836-d49d-4db7-98f0-a4bb3ed44ecf" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="DownloadModule_Invokes_Git" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.DownloadModule_Invokes_Git" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="439f59a5-1e68-a99b-c24c-aa77fcb085bf">
+      <Execution id="f32b545b-bd7c-41ea-bb57-465adaee1249" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="DownloadModule_Invokes_Git" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.InstallModuleAsync_Paths" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="cd7e7686-8a05-bac9-ea8f-f9bb638ad10b">
-      <Execution id="284b929d-30c0-475c-8b5c-32b7c883d0bc" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="InstallModuleAsync_Paths" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.InstallModuleAsync_Paths" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="cd7e7686-8a05-bac9-ea8f-f9bb638ad10b">
+      <Execution id="40d0d561-6229-459a-9241-26a3f079a935" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="InstallModuleAsync_Paths" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.InstallModuleAsync_JsonArray_Flattens" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="fead6ed0-87bc-0f57-c4bb-166c267df20e">
-      <Execution id="82d2e32b-8895-437d-9fe1-061c2f0741ea" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="InstallModuleAsync_JsonArray_Flattens" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.InstallModuleAsync_JsonArray_Flattens" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="fead6ed0-87bc-0f57-c4bb-166c267df20e">
+      <Execution id="000b5b58-9635-4761-bfff-13f2703905af" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="InstallModuleAsync_JsonArray_Flattens" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.CommandBuilderTests.Build_Throws_When_NoGameLoaded" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="70c3d111-4ccc-c6db-eb34-d771288c18bf">
-      <Execution id="f5c41f87-7ed5-4629-ab1e-59f1cde2f9f8" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.CommandBuilderTests" name="Build_Throws_When_NoGameLoaded" />
+    <UnitTest name="EngineNet.Tests.CommandBuilderTests.Build_Throws_When_NoGameLoaded" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="70c3d111-4ccc-c6db-eb34-d771288c18bf">
+      <Execution id="85c4b4a2-18d3-4fb7-8742-675b5c0ac614" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.CommandBuilderTests" name="Build_Throws_When_NoGameLoaded" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.RunOperationGroupAsync_Aggregates_Success" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="f35cdd57-bbac-d13c-c8a7-09726a484e46">
-      <Execution id="4ba0ed68-297d-42fb-8ef9-1417c8f4ea4c" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="RunOperationGroupAsync_Aggregates_Success" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.RunOperationGroupAsync_Aggregates_Success" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="f35cdd57-bbac-d13c-c8a7-09726a484e46">
+      <Execution id="0f0efe7f-6975-4b25-bf4e-5dbc2cde07e2" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="RunOperationGroupAsync_Aggregates_Success" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.ReloadProjectConfig_All_Paths" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="129f75cc-fc43-ea5e-f08b-cde15b596deb">
-      <Execution id="9eafdb61-b70a-4137-a933-2b9799a0c7ef" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="ReloadProjectConfig_All_Paths" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.ReloadProjectConfig_All_Paths" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="129f75cc-fc43-ea5e-f08b-cde15b596deb">
+      <Execution id="6891decd-e14a-48e0-a369-0bd40522bdbc" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="ReloadProjectConfig_All_Paths" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.ExecuteEngineOperationAsync_All_Cases" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="ff46a674-c7e1-6456-1309-f671872711df">
-      <Execution id="9defc351-a802-4e73-bf94-2ac4a52c15f1" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="ExecuteEngineOperationAsync_All_Cases" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.ExecuteEngineOperationAsync_All_Cases" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="ff46a674-c7e1-6456-1309-f671872711df">
+      <Execution id="32bc87c0-e6f7-40a5-baf9-f53b8b1ce9d0" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="ExecuteEngineOperationAsync_All_Cases" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.RegistriesTests.DiscoverInstalledGames_Requires_Valid_GameToml_And_Exe" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="18547971-3b39-62b3-9389-dad6219d1ef6">
-      <Execution id="4b34ea54-8ece-4cd5-8f79-4d9372cd34bc" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.RegistriesTests" name="DiscoverInstalledGames_Requires_Valid_GameToml_And_Exe" />
+    <UnitTest name="EngineNet.Tests.RegistriesTests.DiscoverInstalledGames_Requires_Valid_GameToml_And_Exe" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="18547971-3b39-62b3-9389-dad6219d1ef6">
+      <Execution id="00354bdb-b601-4ff3-b62f-1b36b95dad26" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.RegistriesTests" name="DiscoverInstalledGames_Requires_Valid_GameToml_And_Exe" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.InstallModuleAsync_Groups_No_RunAll_Chooses_First" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="ea447854-7f3c-0f75-6101-4783ce6b04f3">
-      <Execution id="9461052c-be0e-442b-8501-13598e5ae801" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="InstallModuleAsync_Groups_No_RunAll_Chooses_First" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.InstallModuleAsync_Groups_No_RunAll_Chooses_First" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="ea447854-7f3c-0f75-6101-4783ce6b04f3">
+      <Execution id="26be04f2-9d76-4727-8d02-6909e238502d" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="InstallModuleAsync_Groups_No_RunAll_Chooses_First" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineTests.LoadOperations_Parses_Json_Grouped" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="f22fecce-9e05-0c16-323d-886acf60f114">
-      <Execution id="9e103c88-db0f-466c-9a0e-b7d7ba442643" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineTests" name="LoadOperations_Parses_Json_Grouped" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineTests.LoadOperations_Parses_Json_Grouped" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="f22fecce-9e05-0c16-323d-886acf60f114">
+      <Execution id="4068582b-3b12-482e-9e40-cb0815fdf9f6" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineTests" name="LoadOperations_Parses_Json_Grouped" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.EngineConfigTests.LoadJsonFile_ParsesNested" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="3020bb36-e0a3-b224-bdaa-73c076bdbefb">
-      <Execution id="30e39072-bdb4-462a-8c85-261dead8ed48" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.EngineConfigTests" name="LoadJsonFile_ParsesNested" />
+    <UnitTest name="EngineNet.Tests.EngineConfigTests.LoadJsonFile_ParsesNested" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="3020bb36-e0a3-b224-bdaa-73c076bdbefb">
+      <Execution id="42f2bfb2-c90f-4704-964f-9fa0cd58c09d" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.EngineConfigTests" name="LoadJsonFile_ParsesNested" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.RegistriesTests.DiscoverGames_Finds_Toml_And_Json" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="17828155-9e23-b08a-e9bd-da99810ac0fb">
-      <Execution id="32b4d853-b2a5-4ab5-bfd0-957d9af530c3" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.RegistriesTests" name="DiscoverGames_Finds_Toml_And_Json" />
+    <UnitTest name="EngineNet.Tests.RegistriesTests.DiscoverGames_Finds_Toml_And_Json" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="17828155-9e23-b08a-e9bd-da99810ac0fb">
+      <Execution id="dc7a1bf3-2d10-4014-8d75-f4be40e9e3bf" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.RegistriesTests" name="DiscoverGames_Finds_Toml_And_Json" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.ListGames_and_InstalledGames_and_States" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="96b60375-4c3b-d433-ea7e-a1a6ea86dfa6">
-      <Execution id="ea74eebc-7c48-4254-b5da-4d2768697134" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="ListGames_and_InstalledGames_and_States" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.ListGames_and_InstalledGames_and_States" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="96b60375-4c3b-d433-ea7e-a1a6ea86dfa6">
+      <Execution id="a67413db-c396-4b67-a0e6-6a7a61b5138b" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="ListGames_and_InstalledGames_and_States" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.RunSingleOperationAsync_Engine_ExceptionHandled" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="8cecdeb1-8d3c-fb21-ae34-bb360e325cef">
-      <Execution id="db1229f0-10b9-4b01-8a73-181205ce839a" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="RunSingleOperationAsync_Engine_ExceptionHandled" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.RunSingleOperationAsync_Engine_ExceptionHandled" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="8cecdeb1-8d3c-fb21-ae34-bb360e325cef">
+      <Execution id="d5f6a185-20d0-46ff-898f-b07c9b80731a" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="RunSingleOperationAsync_Engine_ExceptionHandled" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineTests.LoadOperationsList_Parses_Toml_Array_Of_Tables" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="95c7e351-a8f8-4a01-5797-e6a55a184861">
-      <Execution id="843dff50-5612-4580-a2cc-6ad528f0b63f" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineTests" name="LoadOperationsList_Parses_Toml_Array_Of_Tables" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineTests.LoadOperationsList_Parses_Toml_Array_Of_Tables" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="95c7e351-a8f8-4a01-5797-e6a55a184861">
+      <Execution id="802086bb-5049-423a-b7a3-67c29774aedd" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineTests" name="LoadOperationsList_Parses_Toml_Array_Of_Tables" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.CommandBuilderTests.Build_Defaults_To_Python_And_Resolves_Placeholders" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="8ac54234-2fe4-66e7-3064-0fe93ea0c7f3">
-      <Execution id="472b70cf-a2b8-42e8-91e3-00131bf2660f" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.CommandBuilderTests" name="Build_Defaults_To_Python_And_Resolves_Placeholders" />
+    <UnitTest name="EngineNet.Tests.CommandBuilderTests.Build_Defaults_To_Python_And_Resolves_Placeholders" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="8ac54234-2fe4-66e7-3064-0fe93ea0c7f3">
+      <Execution id="c6904275-d9b5-496b-bc18-03eb2238e324" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.CommandBuilderTests" name="Build_Defaults_To_Python_And_Resolves_Placeholders" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.RunSingleOperationAsync_Python_Case_Label" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="111c0219-f2b6-ba06-5933-a5ac22b73028">
-      <Execution id="40fc3d58-e0f5-4ad1-acfb-7802869557ce" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="RunSingleOperationAsync_Python_Case_Label" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.RunSingleOperationAsync_Python_Case_Label" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="111c0219-f2b6-ba06-5933-a5ac22b73028">
+      <Execution id="3744768d-46b1-4db2-9f3a-2aa19211ed0d" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="RunSingleOperationAsync_Python_Case_Label" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.ExecuteEngineOperationAsync_Throws_On_Unknown_Game" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="24aa07ef-9d34-0e71-f572-9e00fd633652">
-      <Execution id="5d3a3e52-f154-4815-b65c-04c509663d4e" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="ExecuteEngineOperationAsync_Throws_On_Unknown_Game" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.ExecuteEngineOperationAsync_Throws_On_Unknown_Game" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="24aa07ef-9d34-0e71-f572-9e00fd633652">
+      <Execution id="5f9ee8de-1d1b-46ef-8853-17eaeedeb46f" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="ExecuteEngineOperationAsync_Throws_On_Unknown_Game" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.PlaceholdersTests.Resolve_ReplacesSimpleTokens" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="5654e402-2775-d388-7ea1-bc91bf66c672">
-      <Execution id="11785399-857c-465f-b93c-fb654baf14da" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.PlaceholdersTests" name="Resolve_ReplacesSimpleTokens" />
+    <UnitTest name="EngineNet.Tests.PlaceholdersTests.Resolve_ReplacesSimpleTokens" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="5654e402-2775-d388-7ea1-bc91bf66c672">
+      <Execution id="e236fa1b-6b1a-48d0-8973-fd824eb6b040" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.PlaceholdersTests" name="Resolve_ReplacesSimpleTokens" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.CommandBuilderTests.Build_Maps_Prompts_With_Conditions" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="30a176aa-492d-8451-d25e-c6d51656ed30">
-      <Execution id="1c383d56-aa5c-4a28-806e-7f2e99de78d5" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.CommandBuilderTests" name="Build_Maps_Prompts_With_Conditions" />
+    <UnitTest name="EngineNet.Tests.CommandBuilderTests.Build_Maps_Prompts_With_Conditions" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="30a176aa-492d-8451-d25e-c6d51656ed30">
+      <Execution id="f376a9a2-972b-4384-a9c7-a2fedda5f14a" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.CommandBuilderTests" name="Build_Maps_Prompts_With_Conditions" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineTests.LoadOperationsList_Parses_Json_Array" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="1ecbc66c-0727-08c4-b0ea-bac2fc2f5a05">
-      <Execution id="c8e268cc-3285-47c1-8ab2-59501781173d" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineTests" name="LoadOperationsList_Parses_Json_Array" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineTests.LoadOperationsList_Parses_Json_Array" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="1ecbc66c-0727-08c4-b0ea-bac2fc2f5a05">
+      <Execution id="404019ef-edf8-47f2-b3b5-e984dfc7a47c" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineTests" name="LoadOperationsList_Parses_Json_Array" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.LoadOperations_Toml_Groups_With_Nested_Types" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="5ad508f9-a57c-bf1f-9543-fea13f09abc7">
-      <Execution id="fa3eca94-9e52-481a-8eff-7bcfc0affb0b" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="LoadOperations_Toml_Groups_With_Nested_Types" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.LoadOperations_Toml_Groups_With_Nested_Types" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="5ad508f9-a57c-bf1f-9543-fea13f09abc7">
+      <Execution id="9faf91e5-c701-4cdc-890c-261f0f302133" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="LoadOperations_Toml_Groups_With_Nested_Types" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.BuildCommand_and_ExecuteCommand_Wrappers" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="9025050d-60bf-79ee-475c-703dbe7eee0e">
-      <Execution id="cec0f87c-2739-456d-917f-cc71febcdec8" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="BuildCommand_and_ExecuteCommand_Wrappers" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.BuildCommand_and_ExecuteCommand_Wrappers" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="9025050d-60bf-79ee-475c-703dbe7eee0e">
+      <Execution id="d400dc67-1923-4570-bdfd-5935707ab48a" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="BuildCommand_and_ExecuteCommand_Wrappers" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.RunSingleOperationAsync_Covers_All_Types" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="e039e900-a6a3-1f68-4403-62cd4b13064a">
-      <Execution id="b1d9aef9-a1ad-4000-bc91-8dbecce38d31" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="RunSingleOperationAsync_Covers_All_Types" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.RunSingleOperationAsync_Covers_All_Types" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="e039e900-a6a3-1f68-4403-62cd4b13064a">
+      <Execution id="35251f44-efb9-4265-84d5-daed4df377ae" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="RunSingleOperationAsync_Covers_All_Types" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.ToolsJsonSchemaTests.ToolsJson_FollowsExpectedSchema" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="84da9067-81a4-f8e4-e050-0f39d7ce8a58">
-      <Execution id="b5ff6585-328e-45c8-aa28-e3bd310d31f6" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.ToolsJsonSchemaTests" name="ToolsJson_FollowsExpectedSchema" />
+    <UnitTest name="EngineNet.Tests.ToolsJsonSchemaTests.ToolsJson_FollowsExpectedSchema" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="84da9067-81a4-f8e4-e050-0f39d7ce8a58">
+      <Execution id="9bf4c533-2426-4e90-9352-8bdcaa96f3e4" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.ToolsJsonSchemaTests" name="ToolsJson_FollowsExpectedSchema" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.PlaceholdersTests.Resolve_RecursesCollections" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="a6e2b031-6cad-5a54-d5aa-52f2f1a26fae">
-      <Execution id="cfe0cbf3-1a44-4804-8b84-ff432969ee9a" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.PlaceholdersTests" name="Resolve_RecursesCollections" />
+    <UnitTest name="EngineNet.Tests.PlaceholdersTests.Resolve_RecursesCollections" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="a6e2b031-6cad-5a54-d5aa-52f2f1a26fae">
+      <Execution id="e61167d7-25da-4ff3-b9ea-1cf1f87fe4b4" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.PlaceholdersTests" name="Resolve_RecursesCollections" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.LoadOperationsList_JsonObject_Flattens_Groups" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="4ff14dc8-0c01-c8b9-0da8-8845aa1ee661">
-      <Execution id="7fba572a-ecb9-470b-8cdb-18f71cc39b7a" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="LoadOperationsList_JsonObject_Flattens_Groups" />
+    <UnitTest name="EngineNet.Tests.OperationsEngineFullCoverageTests.LoadOperationsList_JsonObject_Flattens_Groups" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="4ff14dc8-0c01-c8b9-0da8-8845aa1ee661">
+      <Execution id="5ba80ef2-73cd-4b6a-80f7-6bc7cea79214" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.OperationsEngineFullCoverageTests" name="LoadOperationsList_JsonObject_Flattens_Groups" />
     </UnitTest>
-    <UnitTest name="EngineNet.Tests.PlaceholdersTests.Resolve_LeavesUnknownTokens" storage="a:\dev\games\remakeengine\main\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="ce9f66f6-6d08-ce8c-e244-48f0a0cd56e9">
-      <Execution id="f94dcce6-febb-4e44-8c37-cccbebcd87c7" />
-      <TestMethod codeBase="A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.PlaceholdersTests" name="Resolve_LeavesUnknownTokens" />
+    <UnitTest name="EngineNet.Tests.PlaceholdersTests.Resolve_LeavesUnknownTokens" storage="a:\dev\github\yggdrasil-au\public\remakeengine\remakeengine\enginenet.tests\bin\debug\net8.0\enginenet.tests.dll" id="ce9f66f6-6d08-ce8c-e244-48f0a0cd56e9">
+      <Execution id="0b767d7b-ffd7-435c-b679-11eca1fd6399" />
+      <TestMethod codeBase="A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0\EngineNet.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="EngineNet.Tests.PlaceholdersTests" name="Resolve_LeavesUnknownTokens" />
     </UnitTest>
   </TestDefinitions>
   <TestEntries>
-    <TestEntry testId="1ecbc66c-0727-08c4-b0ea-bac2fc2f5a05" executionId="c8e268cc-3285-47c1-8ab2-59501781173d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="70c3d111-4ccc-c6db-eb34-d771288c18bf" executionId="f5c41f87-7ed5-4629-ab1e-59f1cde2f9f8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="cd7e7686-8a05-bac9-ea8f-f9bb638ad10b" executionId="284b929d-30c0-475c-8b5c-32b7c883d0bc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="fead6ed0-87bc-0f57-c4bb-166c267df20e" executionId="82d2e32b-8895-437d-9fe1-061c2f0741ea" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="ce9f66f6-6d08-ce8c-e244-48f0a0cd56e9" executionId="f94dcce6-febb-4e44-8c37-cccbebcd87c7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="5f5306e1-bd7c-ecd9-f655-8fdfc5c21d1a" executionId="d41a457a-50a6-4546-a203-a71ec734c40e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="17828155-9e23-b08a-e9bd-da99810ac0fb" executionId="32b4d853-b2a5-4ab5-bfd0-957d9af530c3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="111c0219-f2b6-ba06-5933-a5ac22b73028" executionId="40fc3d58-e0f5-4ad1-acfb-7802869557ce" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="e039e900-a6a3-1f68-4403-62cd4b13064a" executionId="b1d9aef9-a1ad-4000-bc91-8dbecce38d31" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="9025050d-60bf-79ee-475c-703dbe7eee0e" executionId="cec0f87c-2739-456d-917f-cc71febcdec8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="24aa07ef-9d34-0e71-f572-9e00fd633652" executionId="5d3a3e52-f154-4815-b65c-04c509663d4e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="a7d5f1a3-8dbc-cd97-2d4d-f5382b6649e9" executionId="d54b026f-1291-47d5-920d-d2bd546bcb38" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="a6e2b031-6cad-5a54-d5aa-52f2f1a26fae" executionId="cfe0cbf3-1a44-4804-8b84-ff432969ee9a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="3020bb36-e0a3-b224-bdaa-73c076bdbefb" executionId="30e39072-bdb4-462a-8c85-261dead8ed48" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="ff46a674-c7e1-6456-1309-f671872711df" executionId="9defc351-a802-4e73-bf94-2ac4a52c15f1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="ea447854-7f3c-0f75-6101-4783ce6b04f3" executionId="9461052c-be0e-442b-8501-13598e5ae801" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="30a176aa-492d-8451-d25e-c6d51656ed30" executionId="1c383d56-aa5c-4a28-806e-7f2e99de78d5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="5654e402-2775-d388-7ea1-bc91bf66c672" executionId="11785399-857c-465f-b93c-fb654baf14da" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="8cecdeb1-8d3c-fb21-ae34-bb360e325cef" executionId="db1229f0-10b9-4b01-8a73-181205ce839a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="96b60375-4c3b-d433-ea7e-a1a6ea86dfa6" executionId="ea74eebc-7c48-4254-b5da-4d2768697134" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="95c7e351-a8f8-4a01-5797-e6a55a184861" executionId="843dff50-5612-4580-a2cc-6ad528f0b63f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="129f75cc-fc43-ea5e-f08b-cde15b596deb" executionId="9eafdb61-b70a-4137-a933-2b9799a0c7ef" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="8ac54234-2fe4-66e7-3064-0fe93ea0c7f3" executionId="472b70cf-a2b8-42e8-91e3-00131bf2660f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="5ad508f9-a57c-bf1f-9543-fea13f09abc7" executionId="fa3eca94-9e52-481a-8eff-7bcfc0affb0b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="f5e6a149-f868-bea9-f650-5629eecbb277" executionId="19cbc5a2-d634-4eb1-9d9d-f78c1789106a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="4ff14dc8-0c01-c8b9-0da8-8845aa1ee661" executionId="7fba572a-ecb9-470b-8cdb-18f71cc39b7a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="439f59a5-1e68-a99b-c24c-aa77fcb085bf" executionId="f0550836-d49d-4db7-98f0-a4bb3ed44ecf" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="f35cdd57-bbac-d13c-c8a7-09726a484e46" executionId="4ba0ed68-297d-42fb-8ef9-1417c8f4ea4c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="b67ef712-351e-7e57-d08a-d44b448cf480" executionId="e0e86748-b549-46db-9826-63759d3b486c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="59a60383-6d7c-6133-bd4b-5d84f788a41b" executionId="80daa16e-6975-4cee-8d18-238f1dfec3e7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="0e5d25b1-6332-4a56-3f79-bba86ee32a2d" executionId="4325b63b-0142-46a0-ab64-0325ae15bab2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="f22fecce-9e05-0c16-323d-886acf60f114" executionId="9e103c88-db0f-466c-9a0e-b7d7ba442643" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="18547971-3b39-62b3-9389-dad6219d1ef6" executionId="4b34ea54-8ece-4cd5-8f79-4d9372cd34bc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="84da9067-81a4-f8e4-e050-0f39d7ce8a58" executionId="b5ff6585-328e-45c8-aa28-e3bd310d31f6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="fead6ed0-87bc-0f57-c4bb-166c267df20e" executionId="000b5b58-9635-4761-bfff-13f2703905af" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b67ef712-351e-7e57-d08a-d44b448cf480" executionId="191c6f9f-174b-41a6-ab9c-c8ffe5f2aca8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f5e6a149-f868-bea9-f650-5629eecbb277" executionId="017b2904-ceeb-4a00-baaf-c902ea81fd04" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5654e402-2775-d388-7ea1-bc91bf66c672" executionId="e236fa1b-6b1a-48d0-8973-fd824eb6b040" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9025050d-60bf-79ee-475c-703dbe7eee0e" executionId="d400dc67-1923-4570-bdfd-5935707ab48a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ce9f66f6-6d08-ce8c-e244-48f0a0cd56e9" executionId="0b767d7b-ffd7-435c-b679-11eca1fd6399" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="111c0219-f2b6-ba06-5933-a5ac22b73028" executionId="3744768d-46b1-4db2-9f3a-2aa19211ed0d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f22fecce-9e05-0c16-323d-886acf60f114" executionId="4068582b-3b12-482e-9e40-cb0815fdf9f6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0e5d25b1-6332-4a56-3f79-bba86ee32a2d" executionId="5407e65c-f163-499a-b104-5ebfd57acb41" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a7d5f1a3-8dbc-cd97-2d4d-f5382b6649e9" executionId="e6f41125-bf63-4cb6-a9c9-5a959f32c8fe" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3020bb36-e0a3-b224-bdaa-73c076bdbefb" executionId="42f2bfb2-c90f-4704-964f-9fa0cd58c09d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="84da9067-81a4-f8e4-e050-0f39d7ce8a58" executionId="9bf4c533-2426-4e90-9352-8bdcaa96f3e4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cd7e7686-8a05-bac9-ea8f-f9bb638ad10b" executionId="40d0d561-6229-459a-9241-26a3f079a935" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f35cdd57-bbac-d13c-c8a7-09726a484e46" executionId="0f0efe7f-6975-4b25-bf4e-5dbc2cde07e2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ff46a674-c7e1-6456-1309-f671872711df" executionId="32bc87c0-e6f7-40a5-baf9-f53b8b1ce9d0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4ff14dc8-0c01-c8b9-0da8-8845aa1ee661" executionId="5ba80ef2-73cd-4b6a-80f7-6bc7cea79214" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1ecbc66c-0727-08c4-b0ea-bac2fc2f5a05" executionId="404019ef-edf8-47f2-b3b5-e984dfc7a47c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="95c7e351-a8f8-4a01-5797-e6a55a184861" executionId="802086bb-5049-423a-b7a3-67c29774aedd" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="18547971-3b39-62b3-9389-dad6219d1ef6" executionId="00354bdb-b601-4ff3-b62f-1b36b95dad26" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="129f75cc-fc43-ea5e-f08b-cde15b596deb" executionId="6891decd-e14a-48e0-a369-0bd40522bdbc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="24aa07ef-9d34-0e71-f572-9e00fd633652" executionId="5f9ee8de-1d1b-46ef-8853-17eaeedeb46f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="59a60383-6d7c-6133-bd4b-5d84f788a41b" executionId="71eccbae-ddcd-4caa-ae58-219c4d8a231c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8ac54234-2fe4-66e7-3064-0fe93ea0c7f3" executionId="c6904275-d9b5-496b-bc18-03eb2238e324" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="70c3d111-4ccc-c6db-eb34-d771288c18bf" executionId="85c4b4a2-18d3-4fb7-8742-675b5c0ac614" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5f5306e1-bd7c-ecd9-f655-8fdfc5c21d1a" executionId="59ac2bd8-d158-4a3f-a50d-f6ef22d0c293" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8cecdeb1-8d3c-fb21-ae34-bb360e325cef" executionId="d5f6a185-20d0-46ff-898f-b07c9b80731a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="30a176aa-492d-8451-d25e-c6d51656ed30" executionId="f376a9a2-972b-4384-a9c7-a2fedda5f14a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e039e900-a6a3-1f68-4403-62cd4b13064a" executionId="35251f44-efb9-4265-84d5-daed4df377ae" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5ad508f9-a57c-bf1f-9543-fea13f09abc7" executionId="9faf91e5-c701-4cdc-890c-261f0f302133" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="96b60375-4c3b-d433-ea7e-a1a6ea86dfa6" executionId="a67413db-c396-4b67-a0e6-6a7a61b5138b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="17828155-9e23-b08a-e9bd-da99810ac0fb" executionId="dc7a1bf3-2d10-4014-8d75-f4be40e9e3bf" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="439f59a5-1e68-a99b-c24c-aa77fcb085bf" executionId="f32b545b-bd7c-41ea-bb57-465adaee1249" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a6e2b031-6cad-5a54-d5aa-52f2f1a26fae" executionId="e61167d7-25da-4ff3-b9ea-1cf1f87fe4b4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ea447854-7f3c-0f75-6101-4783ce6b04f3" executionId="26be04f2-9d76-4727-8d02-6909e238502d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
   </TestEntries>
   <TestLists>
     <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
@@ -221,89 +221,72 @@
   <ResultSummary outcome="Completed">
     <Counters total="34" executed="34" passed="34" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
     <Output>
-      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.5.8+bd6d97b49a (64-bit .NET 8.0.19)&#xD;
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.5.8+bd6d97b49a (64-bit .NET 8.0.20)&#xD;
 [xUnit.net 00:00:00.04]   Discovering: EngineNet.Tests&#xD;
-[xUnit.net 00:00:00.05]   Discovered:  EngineNet.Tests&#xD;
-[xUnit.net 00:00:00.05]   Starting:    EngineNet.Tests&#xD;
+[xUnit.net 00:00:00.06]   Discovered:  EngineNet.Tests&#xD;
+[xUnit.net 00:00:00.06]   Starting:    EngineNet.Tests&#xD;
 Executing command:&#xD;
-  cmd.exe /c C:\Users\samki\AppData\Local\Temp\enginenet_evt_fb268ef9cc7a4a928cdf7ceb72b1081b.cmd&#xD;
-  cwd: A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0&#xD;
-Executing command:&#xD;
-  foobar x.py&#xD;
-  cwd: A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0&#xD;
+  cmd.exe /c C:\Users\samki\AppData\Local\Temp\enginenet_evt_60e0b38b55c9462c92c5219603d63bf3.cmd&#xD;
+  cwd: A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0&#xD;
 Executing command:&#xD;
   foobar x.py&#xD;
-  cwd: A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0&#xD;
+  cwd: A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0&#xD;
 Executing command:&#xD;
   foobar x.py&#xD;
-  cwd: A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0&#xD;
+  cwd: A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0&#xD;
+Executing command:&#xD;
+  foobar x.py&#xD;
+  cwd: A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0&#xD;
 &gt;&gt;&gt; Engine operation: download_tools&#xD;
-Fetched missing file from GitHub: RemakeRegistry\register.json -&gt; C:\Users\samki\AppData\Local\Temp\enginenet_ops_50c3b24796914e77aa8bf5d1398ff204\RemakeRegistry\register.json&#xD;
-=== Tools Downloader - manifest: C:\Users\samki\AppData\Local\Temp\enginenet_ops_0219b3d733184d34a04f13c7c6d6c2fc\tools.toml ===&#xD;
+=== Tools Downloader - manifest: C:\Users\samki\AppData\Local\Temp\enginenet_ops_9041a14ac9c24a5c81a172e59e207580\tools.toml ===&#xD;
 Platform: win-x64&#xD;
 Found 0 tool entries.&#xD;
-Lockfile written: C:\Users\samki\AppData\Local\Temp\enginenet_ops_0219b3d733184d34a04f13c7c6d6c2fc\Tools.local.json&#xD;
-Executing command:&#xD;
-  python C:\Users\samki\AppData\Local\Temp\enginenet_ops_0219b3d733184d34a04f13c7c6d6c2fc\EnginePy\FormatHandlers\Export_txd.py -i input.txd&#xD;
-  cwd: A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0&#xD;
-  env overrides:&#xD;
-    TERM=dumb&#xD;
-python: can't open file 'C:\\Users\\samki\\AppData\\Local\\Temp\\enginenet_ops_0219b3d733184d34a04f13c7c6d6c2fc\\EnginePy\\FormatHandlers\\Export_txd.py': [Errno 2] No such file or directory&#xD;
-Fetched missing file from GitHub: RemakeRegistry\register.json -&gt; C:\Users\samki\AppData\Local\Temp\enginenet_ops_5f86c3ef1c914a5bafdd3836ddec5a7b\RemakeRegistry\register.json&#xD;
-Fetched missing file from GitHub: RemakeRegistry\register.json -&gt; C:\Users\samki\AppData\Local\Temp\enginenet_ops_016a9969440f4764bee65abc308b4843\RemakeRegistry\register.json&#xD;
-Executing command:&#xD;
-  python C:\Users\samki\AppData\Local\Temp\enginenet_ops_0219b3d733184d34a04f13c7c6d6c2fc\EnginePy\FormatHandlers\bms_extract.py -i input.str&#xD;
-  cwd: A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0&#xD;
-  env overrides:&#xD;
-    TERM=dumb&#xD;
-python: can't open file 'C:\\Users\\samki\\AppData\\Local\\Temp\\enginenet_ops_0219b3d733184d34a04f13c7c6d6c2fc\\EnginePy\\FormatHandlers\\bms_extract.py': [Errno 2] No such file or directory&#xD;
+Lockfile written: C:\Users\samki\AppData\Local\Temp\enginenet_ops_9041a14ac9c24a5c81a172e59e207580\Tools.local.json&#xD;
+&gt;&gt;&gt; Built-in TXD extraction&#xD;
+Unknown argument '-i'.&#xD;
+\n&gt;&gt;&gt; Built-in BMS extraction&#xD;
+--quickbms is required.&#xD;
 &gt;&gt;&gt; Built-in media conversion&#xD;
-Source directory not found: C:\Users\samki\AppData\Local\Temp\enginenet_ops_0219b3d733184d34a04f13c7c6d6c2fc\src_missing&#xD;
+Source directory not found: C:\Users\samki\AppData\Local\Temp\enginenet_ops_9041a14ac9c24a5c81a172e59e207580\src_missing&#xD;
 &gt;&gt;&gt; Built-in media conversion&#xD;
-Source directory not found: C:\Users\samki\AppData\Local\Temp\enginenet_ops_0219b3d733184d34a04f13c7c6d6c2fc\src_missing2&#xD;
+Source directory not found: C:\Users\samki\AppData\Local\Temp\enginenet_ops_9041a14ac9c24a5c81a172e59e207580\src_missing2&#xD;
 Executing command:&#xD;
   definitely-not-a-real-exe arg&#xD;
-  cwd: A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0&#xD;
+  cwd: A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0&#xD;
 Executing command:&#xD;
   foobar a.py&#xD;
-  cwd: A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0&#xD;
+  cwd: A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0&#xD;
 Executing command:&#xD;
   foobar a.py&#xD;
-  cwd: A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0&#xD;
+  cwd: A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0&#xD;
 [ENGINE] Downloading 'repo' from 'https://example.com/repo.git'...&#xD;
-[ENGINE] Target directory: 'C:\Users\samki\AppData\Local\Temp\enginenet_ops_461ffa8116f1485cbcff70122fbe8b54\RemakeRegistry\Games\repo'&#xD;
-[ENGINE] Cloning into 'C:\Users\samki\AppData\Local\Temp\enginenet_ops_461ffa8116f1485cbcff70122fbe8b54\RemakeRegistry\Games\repo'...&#xD;
+[ENGINE] Target directory: 'C:\Users\samki\AppData\Local\Temp\enginenet_ops_87600bd0973849b78faf77de5ae6feff\RemakeRegistry\Games\repo'&#xD;
+Fetched missing file from GitHub: RemakeRegistry\register.json -&gt; C:\Users\samki\AppData\Local\Temp\enginenet_ops_2bfd8e2b4db84c989b42d563c26bbb13\RemakeRegistry\register.json&#xD;
+Fetched missing file from GitHub: RemakeRegistry\register.json -&gt; C:\Users\samki\AppData\Local\Temp\enginenet_ops_2e3a97cb58444ca693cb45659bc824e2\RemakeRegistry\register.json&#xD;
+Fetched missing file from GitHub: RemakeRegistry\register.json -&gt; C:\Users\samki\AppData\Local\Temp\enginenet_ops_9cd1ae6407134e0393ddbeb4198b43bc\RemakeRegistry\register.json&#xD;
+[ENGINE] Cloning into 'C:\Users\samki\AppData\Local\Temp\enginenet_ops_87600bd0973849b78faf77de5ae6feff\RemakeRegistry\Games\repo'...&#xD;
 [ENGINE] fatal: repository 'https://example.com/repo.git/' not found&#xD;
 [ENGINE] &#xD;
 Failed to download 'repo'. Git exited with code 128.&#xD;
-Running lua script 'C:\Users\samki\AppData\Local\Temp\enginenet_ops_420811a0d3c740d6afff4fbb22a2657c\test.lua' with 0 args...&#xD;
+Running lua script 'C:\Users\samki\AppData\Local\Temp\enginenet_ops_20e4ceeec4d141d8905df81901db9b30\test.lua' with 0 args...&#xD;
 hi&#xD;
 &gt;&gt;&gt; Engine operation: unknown_action&#xD;
 Executing command:&#xD;
-  foobar C:\Users\samki\AppData\Local\Temp\enginenet_ops_420811a0d3c740d6afff4fbb22a2657c\noop.py&#xD;
-  cwd: A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0&#xD;
-Running lua script 'C:\Users\samki\AppData\Local\Temp\enginenet_ops_48aee618004c44fa972ffdcfb5b87ef3\ok.lua' with 0 args...&#xD;
+  foobar C:\Users\samki\AppData\Local\Temp\enginenet_ops_20e4ceeec4d141d8905df81901db9b30\noop.py&#xD;
+  cwd: A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0&#xD;
+Running lua script 'C:\Users\samki\AppData\Local\Temp\enginenet_ops_2222bb071bf741e6b5e1f07488158443\ok.lua' with 0 args...&#xD;
 ok&#xD;
 Executing command:&#xD;
-  foobar C:\Users\samki\AppData\Local\Temp\enginenet_ops_48aee618004c44fa972ffdcfb5b87ef3\noop.py&#xD;
-  cwd: A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0&#xD;
+  foobar C:\Users\samki\AppData\Local\Temp\enginenet_ops_2222bb071bf741e6b5e1f07488158443\noop.py&#xD;
+  cwd: A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0&#xD;
 Executing command:&#xD;
   foobar a.py&#xD;
-  cwd: A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0&#xD;
+  cwd: A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0&#xD;
 Executing command:&#xD;
-  python C:\Users\samki\AppData\Local\Temp\enginenet_ops_5c29a4ba0c374440a60cb90632745583\p.py&#xD;
-  cwd: A:\Dev\Games\RemakeEngine\Main\EngineNet.Tests\bin\Debug\net8.0&#xD;
-[xUnit.net 00:00:01.91]   Finished:    EngineNet.Tests&#xD;
+  python C:\Users\samki\AppData\Local\Temp\enginenet_ops_2a85490893d446c9882447ff2e54891b\p.py&#xD;
+  cwd: A:\Dev\github\yggdrasil-au\public\RemakeEngine\RemakeEngine\EngineNet.Tests\bin\Debug\net8.0&#xD;
+[xUnit.net 00:00:02.45]   Finished:    EngineNet.Tests&#xD;
 </StdOut>
     </Output>
-    <CollectorDataEntries>
-      <Collector agentName="PC17" uri="datacollector://microsoft/CoverletCodeCoverage/1.0" collectorDisplayName="XPlat code coverage">
-        <UriAttachments>
-          <UriAttachment>
-            <A href="PC17\coverage.opencover.xml"></A>
-          </UriAttachment>
-        </UriAttachments>
-      </Collector>
-    </CollectorDataEntries>
   </ResultSummary>
 </TestRun>

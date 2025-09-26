@@ -1,12 +1,10 @@
-using RemakeEngine.Core;
-using RemakeEngine.Utils;
 
 namespace RemakeEngine.Interface.CLI;
 
 public partial class CliApp {
-    private readonly RemakeEngine.Core.OperationsEngine _engine;
+    private readonly Core.OperationsEngine _engine;
 
-    public CliApp(RemakeEngine.Core.OperationsEngine engine) => _engine = engine;
+    public CliApp(Core.OperationsEngine engine) => _engine = engine;
 
     public Int32 Run(String[] args) {
         // Strip global flags that Program.cs already handled, like --root PATH
@@ -30,12 +28,12 @@ public partial class CliApp {
 
         String cmd = args[0].ToLowerInvariant();
         switch (cmd) {
-			case "help":
-			case "-h":
-			case "--help":
-				PrintHelp();
-				return 0;
-			case "--cli":
+            case "help":
+            case "-h":
+            case "--help":
+                PrintHelp();
+                return 0;
+            case "--cli":
             case "--menu":
                 return RunInteractiveMenu();
             case "--list-games":
@@ -55,7 +53,7 @@ public partial class CliApp {
             Console.WriteLine("No games found in RemakeRegistry/Games.");
             return 0;
         }
-        foreach ((String name, Object obj) in games) {
+        foreach ((String name, Object? obj) in games) {
             if (obj is Dictionary<String, Object?> dict && dict.TryGetValue("game_root", out Object? root))
                 Console.WriteLine($"- {name}  (root: {root})");
         }
@@ -126,15 +124,15 @@ public partial class CliApp {
         // Use embedded handlers for engine/lua/js to avoid external dependencies
         if (type == "engine" || type == "lua" || type == "js") {
             // Route in-process SDK events to our terminal renderer and suppress raw @@REMAKE@@ lines
-            Action<Dictionary<String, Object?>>? prevSink = EngineSdk.LocalEventSink;
-            Boolean prevMute = EngineSdk.MuteStdoutWhenLocalSink;
+            Action<Dictionary<String, Object?>>? prevSink = Sys.EngineSdk.LocalEventSink;
+            Boolean prevMute = Sys.EngineSdk.MuteStdoutWhenLocalSink;
             try {
-                EngineSdk.LocalEventSink = RemakeEngine.Utils.TerminalUtils.OnEvent;
-                EngineSdk.MuteStdoutWhenLocalSink = true;
+                Sys.EngineSdk.LocalEventSink = Sys.TerminalUtils.OnEvent;
+                Sys.EngineSdk.MuteStdoutWhenLocalSink = true;
                 return _engine.RunSingleOperationAsync(game, games, op, answers).GetAwaiter().GetResult();
             } finally {
-                EngineSdk.LocalEventSink = prevSink;
-                EngineSdk.MuteStdoutWhenLocalSink = prevMute;
+                Sys.EngineSdk.LocalEventSink = prevSink;
+                Sys.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
             }
         }
 
@@ -146,9 +144,9 @@ public partial class CliApp {
         return _engine.ExecuteCommand(
             parts,
             title,
-            onOutput: RemakeEngine.Utils.TerminalUtils.OnOutput,
-            onEvent: RemakeEngine.Utils.TerminalUtils.OnEvent,
-            stdinProvider: RemakeEngine.Utils.TerminalUtils.StdinProvider,
+            onOutput: Sys.TerminalUtils.OnOutput,
+            onEvent: Sys.TerminalUtils.OnEvent,
+            stdinProvider: Sys.TerminalUtils.StdinProvider,
             envOverrides: new Dictionary<String, Object?> { ["TERM"] = "dumb" }
         );
     }

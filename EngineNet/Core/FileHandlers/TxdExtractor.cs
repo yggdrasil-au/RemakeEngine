@@ -1,11 +1,7 @@
-using System;
 using System.Buffers.Binary;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text;
 
-namespace RemakeEngine.Core;
+namespace RemakeEngine.Sys;
 
 public static class TxdExtractor {
     private sealed class Options {

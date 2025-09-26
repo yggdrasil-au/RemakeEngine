@@ -1,10 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using RemakeEngine.Core;
 using RemakeEngine.Interface.CLI;
 using RemakeEngine.Tools;
-using System.Linq;
 
 namespace RemakeEngine;
 
@@ -12,8 +8,8 @@ internal static class Program {
     public static Int32 Main(String[] args) {
         try {
             String root = GetRootPath(args) ?? TryFindProjectRoot(Directory.GetCurrentDirectory())
-                      ?? TryFindProjectRoot(AppContext.BaseDirectory)
-                      ?? Directory.GetCurrentDirectory();
+                                            ?? TryFindProjectRoot(AppContext.BaseDirectory)
+                                            ?? Directory.GetCurrentDirectory();
             String configPath = Path.Combine(root, "project.json");
 
             // Auto-create a minimal project.json if missing
@@ -71,10 +67,13 @@ internal static class Program {
                 if (Directory.Exists(games))
                     return dir!;
                 DirectoryInfo? parent = Directory.GetParent(dir!);
-                if (parent is null) break;
+                if (parent is null)
+                    break;
                 dir = parent.FullName;
             }
-        } catch { /* ignore */ }
+        } catch {
+            /* ignore */
+        }
         return null;
     }
 
@@ -85,8 +84,7 @@ internal static class Program {
 
         // Prefer Tools.local.json if present, then Tools.json
         String RemakeRegistryDir = Path.Combine(root, "RemakeRegistry");
-        String[] candidates = new[]
-        {
+        String[] candidates = new[] {
             Path.Combine(root, "Tools.local.json"),
             Path.Combine(root, "tools.local.json"),
             Path.Combine(RemakeRegistryDir, "Tools.json"),

@@ -1,11 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.IO.Compression;
-using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace RemakeEngine.Tools;
 
@@ -27,7 +22,7 @@ public sealed class ToolsDownloader {
             try {
                 Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_centralRepoJsonPath)) ?? _rootPath);
             } catch { }
-            RemakeEngine.Core.RemoteFallbacks.EnsureRepoFile("RemakeRegistry/Tools.json", _centralRepoJsonPath);
+            Sys.RemoteFallbacks.EnsureRepoFile("RemakeRegistry/Tools.json", _centralRepoJsonPath);
         }
         if (!File.Exists(_centralRepoJsonPath))
             throw new FileNotFoundException("Central tools registry not found", _centralRepoJsonPath);
@@ -39,8 +34,7 @@ public sealed class ToolsDownloader {
 
         Dictionary<String, Object?> central;
         using (FileStream fs = File.OpenRead(_centralRepoJsonPath)) {
-            central = JsonSerializer.Deserialize<Dictionary<String, Object?>>(fs, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-                      ?? new Dictionary<String, Object?>();
+            central = JsonSerializer.Deserialize<Dictionary<String, Object?>>(fs, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new Dictionary<String, Object?>();
         }
 
         // Lockfile at root Tools folder

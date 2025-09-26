@@ -1,8 +1,5 @@
-using System.Threading;
-using System.Threading.Tasks;
-using RemakeEngine.Tools;
 
-namespace RemakeEngine.Actions;
+namespace RemakeEngine.Core.ScriptEngines.Helpers;
 
 /// <summary>
 /// Represents a single executable step within a game module.
@@ -13,5 +10,5 @@ public interface IAction {
     /// </summary>
     /// <param name="tools">Resolver for locating external tools.</param>
     /// <param name="cancellationToken">Optional cancellation token.</param>
-    Task ExecuteAsync(IToolResolver tools, CancellationToken cancellationToken = default);
+    Task ExecuteAsync(Tools.IToolResolver tools, CancellationToken cancellationToken = default);
 }

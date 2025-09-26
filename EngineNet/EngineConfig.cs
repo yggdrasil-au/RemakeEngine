@@ -1,10 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
-namespace RemakeEngine.Core;
+namespace RemakeEngine;
 
 public sealed class EngineConfig {
     public String Path {

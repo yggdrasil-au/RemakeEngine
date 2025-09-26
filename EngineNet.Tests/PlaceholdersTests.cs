@@ -10,42 +10,42 @@ public class PlaceholdersTests
     [Fact]
     public void Resolve_ReplacesSimpleTokens()
     {
-        var ctx = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+        Dictionary<String, Object?> ctx = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase)
         {
-            ["User"] = new Dictionary<string, object?> {
+            ["User"] = new Dictionary<String, Object?> {
                 ["Name"] = "Bart"
             }
         };
-        var input = "hello {{User.Name}}";
-        var result = Placeholders.Resolve(input, ctx);
+        String input = "hello {{User.Name}}";
+        Object? result = RemakeEngine.Sys.Placeholders.Resolve(input, ctx);
         Assert.Equal("hello Bart", result);
     }
 
     [Fact]
     public void Resolve_LeavesUnknownTokens()
     {
-        var ctx = new Dictionary<string, object?>();
-        var input = "hi {{missing}}";
-        var result = Placeholders.Resolve(input, ctx);
+        Dictionary<String, Object?> ctx = new Dictionary<String, Object?>();
+        String input = "hi {{missing}}";
+        Object? result = RemakeEngine.Sys.Placeholders.Resolve(input, ctx);
         Assert.Equal("hi {{missing}}", result);
     }
 
     [Fact]
     public void Resolve_RecursesCollections()
     {
-        var ctx = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+        Dictionary<String, Object?> ctx = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase)
         {
-            ["Root"] = new Dictionary<string, object?> { ["Path"] = "/games/foo" }
+            ["Root"] = new Dictionary<String, Object?> { ["Path"] = "/games/foo" }
         };
-        var input = new Dictionary<string, object?>
+        Dictionary<String, Object?> input = new Dictionary<String, Object?>
         {
             ["a"] = "{{Root.Path}}/bin",
-            ["b"] = new List<object?> { "x", "{{Root.Path}}/y" }
+            ["b"] = new List<Object?> { "x", "{{Root.Path}}/y" }
         };
-        var resolved = (Dictionary<string, object?>?)Placeholders.Resolve(input, ctx);
+        Dictionary<String, Object?>? resolved = (Dictionary<String, Object?>?)RemakeEngine.Sys.Placeholders.Resolve(input, ctx);
         Assert.NotNull(resolved);
         Assert.Equal("/games/foo/bin", resolved!["a"]);
-        var b = Assert.IsType<List<object?>>(resolved["b"]);
-        Assert.Equal(new object?[]{"x", "/games/foo/y"}, b);
+        List<Object?> b = Assert.IsType<List<Object?>>(resolved["b"]);
+        Assert.Equal(new Object?[]{"x", "/games/foo/y"}, b);
     }
 }

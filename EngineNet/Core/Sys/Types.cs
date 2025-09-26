@@ -1,6 +1,5 @@
-using System;
 
-namespace RemakeEngine.Core;
+namespace RemakeEngine.Sys;
 
 public static class Types {
     public const String RemakePrefix = "@@REMAKE@@ ";

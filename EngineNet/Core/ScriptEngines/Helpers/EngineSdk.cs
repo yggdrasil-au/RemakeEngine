@@ -1,9 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
 
-namespace RemakeEngine.Utils;
+
+namespace RemakeEngine.Sys;
 
 /// <summary>
 /// Lightweight SDK to communicate with the Remake Engine runner via stdout JSON events.
@@ -16,10 +13,12 @@ public static class EngineSdk {
     /// delegate with the event payload. If <see cref="MuteStdoutWhenLocalSink"/>
     /// is true, stdout emission is suppressed to avoid double-printing.
     /// </summary>
-    public static Action<Dictionary<String, Object?>>? LocalEventSink { get; set; }
+    public static Action<Dictionary<String, Object?>>? LocalEventSink {
+        get; set;
+    }
     public static Boolean MuteStdoutWhenLocalSink { get; set; } = true;
 
-    private static readonly JsonSerializerOptions JsonOpts = new() {
+    private static readonly System.Text.Json.JsonSerializerOptions JsonOpts = new() {
         WriteIndented = false,
         PropertyNamingPolicy = null,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never
@@ -50,13 +49,13 @@ public static class EngineSdk {
 
         String json;
         try {
-            json = JsonSerializer.Serialize(payload, JsonOpts);
+            json = System.Text.Json.JsonSerializer.Serialize(payload, JsonOpts);
         } catch {
             // As a last resort, stringify values to avoid serialization failures
             Dictionary<String, Object?> safe = new Dictionary<String, Object?>(StringComparer.Ordinal);
             foreach (KeyValuePair<String, Object?> kv in payload)
                 safe[kv.Key] = kv.Value?.ToString();
-            json = JsonSerializer.Serialize(safe, JsonOpts);
+            json = System.Text.Json.JsonSerializer.Serialize(safe, JsonOpts);
         }
 
         try {

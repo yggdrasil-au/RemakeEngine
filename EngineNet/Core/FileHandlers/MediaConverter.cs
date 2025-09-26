@@ -8,7 +8,7 @@ using System.Threading;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RemakeEngine.Core;
+namespace RemakeEngine.Sys;
 
 /// <summary>
 /// Built-in media converter that mirrors Tools/ffmpeg-vgmstream/convert.py behavior.
@@ -124,7 +124,7 @@ public static class MediaConverter {
                         }
                     }
 
-                    (Boolean ok, String msg) = ConvertOne(src, dest, opt);
+                    (Boolean ok, String? msg) = ConvertOne(src, dest, opt);
                     if (ok)
                         System.Threading.Interlocked.Increment(ref success);
                     else {
@@ -351,7 +351,7 @@ public static class MediaConverter {
                         try {
                             List<String> a1 = new List<String> { "-o", tmpWav, srcPath };
                             RegisterActive("vgmstream", srcPath);
-                            (Boolean ok1, String msg1) = Exec(vg, a1, opt.Debug);
+                            (Boolean ok1, String? msg1) = Exec(vg, a1, opt.Debug);
                             UnregisterActive();
                             if (!ok1)
                                 return (false, msg1);
@@ -378,7 +378,7 @@ public static class MediaConverter {
                                 a2.AddRange(BuildAudioCodecArgs(opt.OutputExt, opt.AudioCodec, opt.AudioQuality));
                                 a2.Add(outRear);
                                 RegisterActive("ffmpeg", Path.GetFileName(tmpWav));
-                                (Boolean ok2, String msg2) = Exec(ff, a2, opt.Debug);
+                                (Boolean ok2, String? msg2) = Exec(ff, a2, opt.Debug);
                                 UnregisterActive();
                                 if (!ok2)
                                     return (false, msg2);
@@ -392,7 +392,7 @@ public static class MediaConverter {
                                 a2.AddRange(BuildAudioCodecArgs(opt.OutputExt, opt.AudioCodec, opt.AudioQuality));
                                 a2.Add(destPath);
                                 RegisterActive("ffmpeg", Path.GetFileName(tmpWav));
-                                (Boolean ok2, String msg2) = Exec(ff, a2, opt.Debug);
+                                (Boolean ok2, String? msg2) = Exec(ff, a2, opt.Debug);
                                 UnregisterActive();
                                 if (!ok2)
                                     return (false, msg2);
@@ -602,15 +602,15 @@ public static class MediaConverter {
             }
         }
 
-        if (String.IsNullOrWhiteSpace(o.Mode))
-            throw new ArgumentException("--mode (-m) is required");
-        if (String.IsNullOrWhiteSpace(o.Type))
-            throw new ArgumentException("--type is required");
-        if (String.IsNullOrWhiteSpace(o.Source))
-            throw new ArgumentException("--source (-s) is required");
-        if (String.IsNullOrWhiteSpace(o.Target))
-            throw new ArgumentException("--target (-t) is required");
-        return String.IsNullOrWhiteSpace(o.InputExt)
+        return String.IsNullOrWhiteSpace(o.Mode)
+            ? throw new ArgumentException("--mode (-m) is required")
+            : String.IsNullOrWhiteSpace(o.Type)
+            ? throw new ArgumentException("--type is required")
+            : String.IsNullOrWhiteSpace(o.Source)
+            ? throw new ArgumentException("--source (-s) is required")
+            : String.IsNullOrWhiteSpace(o.Target)
+            ? throw new ArgumentException("--target (-t) is required")
+            : String.IsNullOrWhiteSpace(o.InputExt)
             ? throw new ArgumentException("--input-ext (-i) is required")
             : String.IsNullOrWhiteSpace(o.OutputExt) ? throw new ArgumentException("--output-ext (-o) is required") : o;
     }

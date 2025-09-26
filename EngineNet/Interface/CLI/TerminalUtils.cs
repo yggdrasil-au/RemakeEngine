@@ -1,5 +1,5 @@
 
-namespace RemakeEngine.Utils;
+namespace RemakeEngine.Sys;
 
 public class TerminalUtils {
 

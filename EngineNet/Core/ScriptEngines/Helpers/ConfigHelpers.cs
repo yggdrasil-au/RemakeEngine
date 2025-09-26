@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
-namespace RemakeEngine.Utils;
+namespace RemakeEngine.Sys;
 
 /// <summary>
 /// Utility helpers for common project setup and filesystem operations used by scripts.
@@ -14,7 +10,8 @@ public static class ConfigHelpers {
     /// If missing, creates a skeleton file similar to EngineNet.Program. Returns the config path.
     /// </summary>
     public static String EnsureProjectConfig(String rootDir) {
-        if (String.IsNullOrWhiteSpace(rootDir)) throw new ArgumentException("rootDir is empty");
+        if (String.IsNullOrWhiteSpace(rootDir))
+            throw new ArgumentException("rootDir is empty");
         Directory.CreateDirectory(rootDir);
         String configPath = Path.Combine(rootDir, "project.json");
         if (!File.Exists(configPath)) {
@@ -47,9 +44,12 @@ public static class ConfigHelpers {
     /// If <paramref name="overwrite"/> is false and destination exists, throws.
     /// </summary>
     public static void CopyDirectory(String sourceDir, String destDir, Boolean overwrite = false) {
-        if (String.IsNullOrWhiteSpace(sourceDir)) throw new ArgumentException("sourceDir is empty");
-        if (String.IsNullOrWhiteSpace(destDir)) throw new ArgumentException("destDir is empty");
-        if (!Directory.Exists(sourceDir)) throw new DirectoryNotFoundException($"Source not found: {sourceDir}");
+        if (String.IsNullOrWhiteSpace(sourceDir))
+            throw new ArgumentException("sourceDir is empty");
+        if (String.IsNullOrWhiteSpace(destDir))
+            throw new ArgumentException("destDir is empty");
+        if (!Directory.Exists(sourceDir))
+            throw new DirectoryNotFoundException($"Source not found: {sourceDir}");
 
         if (Directory.Exists(destDir)) {
             if (!overwrite)
@@ -80,9 +80,12 @@ public static class ConfigHelpers {
     /// falls back to copy+delete.
     /// </summary>
     public static void MoveDirectory(String sourceDir, String destDir, Boolean overwrite = false) {
-        if (String.IsNullOrWhiteSpace(sourceDir)) throw new ArgumentException("sourceDir is empty");
-        if (String.IsNullOrWhiteSpace(destDir)) throw new ArgumentException("destDir is empty");
-        if (!Directory.Exists(sourceDir)) throw new DirectoryNotFoundException($"Source not found: {sourceDir}");
+        if (String.IsNullOrWhiteSpace(sourceDir))
+            throw new ArgumentException("sourceDir is empty");
+        if (String.IsNullOrWhiteSpace(destDir))
+            throw new ArgumentException("destDir is empty");
+        if (!Directory.Exists(sourceDir))
+            throw new DirectoryNotFoundException($"Source not found: {sourceDir}");
 
         if (Directory.Exists(destDir)) {
             if (!overwrite)
@@ -108,12 +111,14 @@ public static class ConfigHelpers {
     /// Returns null if not found.
     /// </summary>
     public static String? FindSubdir(String baseDir, String name, Boolean caseInsensitive = true) {
-        if (!Directory.Exists(baseDir)) return null;
+        if (!Directory.Exists(baseDir))
+            return null;
         StringComparer cmp = caseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
         try {
             foreach (String d in Directory.EnumerateDirectories(baseDir)) {
                 String dn = new DirectoryInfo(d).Name;
-                if (cmp.Equals(dn, name)) return d;
+                if (cmp.Equals(dn, name))
+                    return d;
             }
         } catch { }
         return null;
@@ -124,7 +129,8 @@ public static class ConfigHelpers {
     /// Comparison is case-insensitive on Windows by default.
     /// </summary>
     public static Boolean HasAllSubdirs(String baseDir, IEnumerable<String> names, Boolean caseInsensitive = true) {
-        if (!Directory.Exists(baseDir)) return false;
+        if (!Directory.Exists(baseDir))
+            return false;
         StringComparer cmp = caseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
         HashSet<String> existing;
         try {
@@ -135,8 +141,10 @@ public static class ConfigHelpers {
             return false;
         }
         foreach (String n in names) {
-            if (String.IsNullOrWhiteSpace(n)) continue;
-            if (!existing.Contains(n)) return false;
+            if (String.IsNullOrWhiteSpace(n))
+                continue;
+            if (!existing.Contains(n))
+                return false;
         }
         return true;
     }

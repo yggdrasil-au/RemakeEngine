@@ -1,9 +1,8 @@
-using System;
+
 using System.Collections;
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace RemakeEngine.Core;
+namespace RemakeEngine.Sys;
 
 /// <summary>
 /// Utilities to resolve string placeholders within arbitrarily nested objects.
