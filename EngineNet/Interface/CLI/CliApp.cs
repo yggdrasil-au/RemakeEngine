@@ -222,39 +222,104 @@ public partial class CliApp {
         if (!op.TryGetValue("prompts", out Object? promptsObj) || promptsObj is not IList<Object?> prompts)
             return;
 
+        // Helper to set an empty value based on prompt type
+        static Object? EmptyForType(String t) => t switch {
+            "confirm" => false,
+            "checkbox" => new List<Object?>(),
+            _ => null
+        };
+
+        if (defaultsOnly) {
+            // In defaultsOnly mode, we don't prompt. Apply defaults while respecting conditions.
+            foreach (Object? p in prompts) {
+                if (p is not Dictionary<String, Object?> prompt)
+                    continue;
+                String name = prompt.TryGetValue("Name", out Object? n) ? n?.ToString() ?? "" : "";
+                String type = prompt.TryGetValue("type", out Object? t) ? t?.ToString() ?? "" : "";
+                if (String.IsNullOrEmpty(name) || String.IsNullOrEmpty(type))
+                    continue;
+
+                // Evaluate condition if present using current 'answers' state
+                if (prompt.TryGetValue("condition", out Object? condObj) && condObj is String condName) {
+                    if (!answers.TryGetValue(condName, out Object? condVal)) {
+                        // If condition value not yet present, attempt to seed from its default (if a matching prompt exists earlier or later)
+                        // Find the prompt with Name == condName and use its default if any
+                        foreach (Object? q in prompts) {
+                            if (q is Dictionary<String, Object?> qp && (qp.TryGetValue("Name", out Object? qn) ? qn?.ToString() : null) == condName) {
+                                if (!answers.ContainsKey(condName) && qp.TryGetValue("default", out Object? cd))
+                                    answers[condName] = cd;
+                                break;
+                            }
+                        }
+                    }
+                    if (!answers.TryGetValue(condName, out Object? cv) || cv is not Boolean cb || !cb) {
+                        // Condition is false -> set empty value and skip
+                        answers[name] = EmptyForType(type);
+                        continue;
+                    }
+                }
+
+                if (prompt.TryGetValue("default", out Object? defVal))
+                    answers[name] = defVal;
+                else
+                    answers[name] = EmptyForType(type);
+            }
+            return;
+        }
+
+        // Interactive mode: walk prompts in order, honoring conditions
         foreach (Object? p in prompts) {
             if (p is not Dictionary<String, Object?> prompt)
                 continue;
             String name = prompt.TryGetValue("Name", out Object? n) ? n?.ToString() ?? "" : "";
-            String type = prompt.TryGetValue("type", out Object? t) ? t?.ToString() ?? "" : "";
+            String type = prompt.TryGetValue("type", out Object? tt) ? tt?.ToString() ?? "" : "";
             if (String.IsNullOrEmpty(name) || String.IsNullOrEmpty(type))
                 continue;
 
-            if (defaultsOnly) {
-                // Use explicit default when available; otherwise leave unset
-                if (prompt.TryGetValue("default", out Object? defVal))
-                    answers[name] = defVal;
-                continue;
+            // If there's a condition and it's false, skip asking and assign an empty value
+            if (prompt.TryGetValue("condition", out Object? cond) && cond is String condName) {
+                if (!answers.TryGetValue(condName, out Object? condVal) || condVal is not Boolean b || !b) {
+                    answers[name] = EmptyForType(type);
+                    continue;
+                }
             }
 
             switch (type) {
-                case "confirm":
-                    Console.Write($"{name} [y/N]: ");
+                case "confirm": {
+                    // Show default hint when available
+                    String defHint = prompt.TryGetValue("default", out Object? dv) && dv is Boolean db ? (db ? "Y" : "N") : "N";
+                    Console.Write($"{name} [y/N] (default {defHint}): ");
                     String? c = Console.ReadLine();
-                    answers[name] = c != null && c.Trim().StartsWith("y", StringComparison.OrdinalIgnoreCase);
-                    break;
+                    Boolean val = c != null && c.Trim().Length > 0
+                        ? c.Trim().StartsWith("y", StringComparison.OrdinalIgnoreCase)
+                        : (prompt.TryGetValue("default", out Object? d) && d is Boolean bd && bd);
+                    answers[name] = val;
+                    break; }
 
-                case "checkbox":
-                    Console.WriteLine($"{name} (comma-separated values): ");
+                case "checkbox": {
+                    // Present choices if available
+                    if (prompt.TryGetValue("choices", out Object? ch) && ch is IList<Object?> choices && choices.Count > 0) {
+                        Console.WriteLine($"{name} - choose one or more (comma-separated). Choices: {String.Join(", ", choices.Select(x => x?.ToString()))}");
+                    } else {
+                        Console.WriteLine($"{name} (comma-separated values): ");
+                    }
                     String line = Console.ReadLine() ?? String.Empty;
-                    answers[name] = line.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Cast<Object?>().ToList();
-                    break;
+                    List<Object?> selected = line.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Cast<Object?>().ToList();
+                    // If user entered nothing, fall back to default if provided
+                    if (selected.Count == 0 && prompt.TryGetValue("default", out Object? def) && def is IList<Object?> defList)
+                        selected = defList.Select(x => (Object?)x).ToList();
+                    answers[name] = selected;
+                    break; }
 
                 case "text":
-                default:
+                default: {
                     Console.Write($"{name}: ");
-                    answers[name] = Console.ReadLine();
-                    break;
+                    String? v = Console.ReadLine();
+                    if (String.IsNullOrEmpty(v) && prompt.TryGetValue("default", out Object? defVal))
+                        answers[name] = defVal;
+                    else
+                        answers[name] = v;
+                    break; }
             }
         }
     }

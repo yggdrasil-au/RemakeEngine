@@ -1,8 +1,16 @@
 // MoonSharp -- Lua interpreter
 using MoonSharp.Interpreter;
 
+using System.Data;
+using System.Diagnostics;
 using System.Globalization;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
+using System.Threading;
+
+using Microsoft.Data.Sqlite;
 
 using RemakeEngine.Sys;
 using RemakeEngine.Tools;
@@ -50,6 +58,7 @@ public sealed class LuaScriptAction:Helpers.IAction {
 
         // Register types used as userdata
         UserData.RegisterType<EngineSdk.Progress>();
+        UserData.RegisterType<SqliteHandle>();
 
         // EngineSdk wrappers
         lua.Globals["warn"] = (Action<String>)EngineSdk.Warn;
@@ -137,12 +146,414 @@ public sealed class LuaScriptAction:Helpers.IAction {
                 return ConfigHelpers.HasAllSubdirs(baseDir, list);
             } catch { return false; }
         });
+        sdk["ensure_dir"] = (Func<String, Boolean>)(path => {
+            try {
+                Directory.CreateDirectory(path);
+                return true;
+            } catch { return false; }
+        });
+        sdk["path_exists"] = (Func<String, Boolean>)FsUtils.PathExists;
+        sdk["lexists"] = (Func<String, Boolean>)FsUtils.PathExistsIncludingLinks;
+        sdk["is_dir"] = (Func<String, Boolean>)Directory.Exists;
+        sdk["is_file"] = (Func<String, Boolean>)File.Exists;
+        sdk["remove_dir"] = (Func<String, Boolean>)(path => {
+            try {
+                if (Directory.Exists(path))
+                    Directory.Delete(path, true);
+                return true;
+            } catch { return false; }
+        });
+        sdk["remove_file"] = (Func<String, Boolean>)(path => {
+            try {
+                if (FsUtils.IsSymlink(path) || File.Exists(path))
+                    File.Delete(path);
+                return true;
+            } catch { return false; }
+        });
+        sdk["copy_file"] = (Func<String, String, DynValue, Boolean>)((src, dst, overwrite) => {
+            try {
+                Boolean ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
+                File.Copy(src, dst, ow);
+                return true;
+            } catch { return false; }
+        });
+        sdk["create_symlink"] = (Func<String, String, Boolean, Boolean>)FsUtils.CreateSymlink;
+        sdk["is_symlink"] = (Func<String, Boolean>)FsUtils.IsSymlink;
+        sdk["realpath"] = (Func<String, String?>)FsUtils.RealPath;
+        sdk["readlink"] = (Func<String, String?>)FsUtils.ReadLink;
+        sdk["sleep"] = (Action<Double>)(seconds => {
+            if (Double.IsNaN(seconds) || Double.IsInfinity(seconds) || seconds <= 0)
+                return;
+            try {
+                Thread.Sleep(TimeSpan.FromSeconds(seconds));
+            } catch { }
+        });
+        sdk["md5"] = (Func<String, String>)(text => {
+            try {
+                Byte[] data = MD5.HashData(Encoding.UTF8.GetBytes(text ?? String.Empty));
+                return Convert.ToHexString(data).ToLowerInvariant();
+            } catch {
+                return String.Empty;
+            }
+        });
+        sdk["run_process"] = DynValue.NewCallback((ctx, args) => {
+            if (args.Count < 1 || args[0].Type != DataType.Table)
+                throw new ScriptRuntimeException("run_process expects argument table");
+            Table commandArgs = args[0].Table;
+            Table? options = args.Count > 1 && args[1].Type == DataType.Table ? args[1].Table : null;
+            return RunProcess(lua, commandArgs, options);
+        });
         lua.Globals["sdk"] = sdk;
+        lua.Globals["sqlite"] = CreateSqliteModule(lua);
 
         // Preload minimal shims for LuaFileSystem (lfs) and dkjson used by game modules
         PreloadShimModules(lua, _scriptPath);
         Console.WriteLine($"Running lua script '{_scriptPath}' with {_args.Length} args...");
+        Console.WriteLine($"input args: {string.Join(", ", _args)}");
         await Task.Run(() => lua.DoString(code), cancellationToken);
+    }
+
+    private static Table CreateSqliteModule(Script lua) {
+        Table module = new Table(lua);
+        module["open"] = DynValue.NewCallback((ctx, args) => {
+            if (args.Count < 1 || args[0].Type != DataType.String)
+                throw new ScriptRuntimeException("sqlite.open(path) requires a string path");
+            String path = args[0].String;
+            SqliteHandle handle = new SqliteHandle(lua, path);
+            return DynValue.NewTable(CreateSqliteHandleTable(lua, handle));
+        });
+        return module;
+    }
+
+    private static Table CreateSqliteHandleTable(Script lua, SqliteHandle handle) {
+        Table table = new Table(lua);
+        table["exec"] = DynValue.NewCallback((ctx, args) => {
+            Int32 offset = (args.Count > 0 && args[0].Type == DataType.Table) ? 1 : 0;
+            if (args.Count <= offset || args[offset].Type != DataType.String)
+                throw new ScriptRuntimeException("sqlite handle exec(sql [, params])");
+            String sql = args[offset].String;
+            Table? paramTable = args.Count > offset + 1 && args[offset + 1].Type == DataType.Table ? args[offset + 1].Table : null;
+            Int32 affected = handle.Execute(sql, paramTable);
+            return DynValue.NewNumber(affected);
+        });
+        table["query"] = DynValue.NewCallback((ctx, args) => {
+            Int32 offset = (args.Count > 0 && args[0].Type == DataType.Table) ? 1 : 0;
+            if (args.Count <= offset || args[offset].Type != DataType.String)
+                throw new ScriptRuntimeException("sqlite handle query(sql [, params])");
+            String sql = args[offset].String;
+            Table? paramTable = args.Count > offset + 1 && args[offset + 1].Type == DataType.Table ? args[offset + 1].Table : null;
+            return handle.Query(sql, paramTable);
+        });
+        table["begin"] = DynValue.NewCallback((ctx, args) => {
+            handle.BeginTransaction();
+            return DynValue.Nil;
+        });
+        table["commit"] = DynValue.NewCallback((ctx, args) => {
+            handle.Commit();
+            return DynValue.Nil;
+        });
+        table["rollback"] = DynValue.NewCallback((ctx, args) => {
+            handle.Rollback();
+            return DynValue.Nil;
+        });
+        table["close"] = DynValue.NewCallback((ctx, args) => {
+            handle.Dispose();
+            return DynValue.Nil;
+        });
+        table["dispose"] = table.Get("close");
+        table["__handle"] = UserData.Create(handle);
+        return table;
+    }
+    private static DynValue RunProcess(Script lua, Table commandArgs, Table? options) {
+        if (commandArgs == null)
+            throw new ScriptRuntimeException("run_process expects argument table");
+        List<String> arguments = TableToStringList(commandArgs);
+        if (arguments.Count == 0)
+            throw new ScriptRuntimeException("run_process requires at least one argument (executable path)");
+
+        String fileName = arguments[0];
+        ProcessStartInfo psi = new ProcessStartInfo {
+            FileName = fileName,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+        for (Int32 i = 1; i < arguments.Count; i++)
+            psi.ArgumentList.Add(arguments[i]);
+
+        Boolean captureStdout = true;
+        Boolean captureStderr = true;
+        Int32? timeoutMs = null;
+        if (options != null) {
+            DynValue cwd = options.Get("cwd");
+            if (!cwd.IsNil() && cwd.Type == DataType.String)
+                psi.WorkingDirectory = cwd.String;
+
+            DynValue captureStdoutOpt = options.Get("capture_stdout");
+            if (captureStdoutOpt.Type == DataType.Boolean)
+                captureStdout = captureStdoutOpt.Boolean;
+
+            DynValue captureStderrOpt = options.Get("capture_stderr");
+            if (captureStderrOpt.Type == DataType.Boolean)
+                captureStderr = captureStderrOpt.Boolean;
+
+            DynValue timeoutOpt = options.Get("timeout_ms");
+            if (timeoutOpt.Type == DataType.Number)
+                timeoutMs = (Int32)Math.Max(0, timeoutOpt.Number);
+
+            DynValue envOpt = options.Get("env");
+            if (envOpt.Type == DataType.Table) {
+                foreach (TablePair pair in envOpt.Table.Pairs) {
+                    if (pair.Key.Type == DataType.String && pair.Value.Type == DataType.String)
+                        psi.Environment[pair.Key.String] = pair.Value.String;
+                }
+            }
+        }
+
+        if (!captureStdout)
+            psi.RedirectStandardOutput = false;
+        if (!captureStderr)
+            psi.RedirectStandardError = false;
+
+        StringBuilder stdoutBuilder = new StringBuilder();
+        StringBuilder stderrBuilder = new StringBuilder();
+
+        using Process process = new Process();
+        process.StartInfo = psi;
+        if (captureStdout)
+            process.OutputDataReceived += (_, e) => { if (e.Data != null) stdoutBuilder.AppendLine(e.Data); };
+        if (captureStderr)
+            process.ErrorDataReceived += (_, e) => { if (e.Data != null) stderrBuilder.AppendLine(e.Data); };
+
+        try {
+            process.Start();
+            if (captureStdout)
+                process.BeginOutputReadLine();
+            if (captureStderr)
+                process.BeginErrorReadLine();
+            if (timeoutMs.HasValue) {
+                if (!process.WaitForExit(timeoutMs.Value)) {
+                    try { process.Kill(entireProcessTree: true); } catch { }
+                    throw new ScriptRuntimeException($"Process '{fileName}' timed out after {timeoutMs.Value} ms");
+                }
+            } else {
+                process.WaitForExit();
+            }
+        } catch (Exception ex) {
+            throw new ScriptRuntimeException($"Failed to run process '{fileName}': {ex.Message}");
+        }
+
+        Table result = new Table(lua);
+        result["exit_code"] = process.ExitCode;
+        result["success"] = process.ExitCode == 0;
+        if (captureStdout)
+            result["stdout"] = stdoutBuilder.ToString();
+        if (captureStderr)
+            result["stderr"] = stderrBuilder.ToString();
+        return DynValue.NewTable(result);
+    }
+    private sealed class SqliteHandle : IDisposable {
+        private readonly Script _script;
+        private readonly SqliteConnection _connection;
+        private SqliteTransaction? _transaction;
+        private Boolean _disposed;
+
+        public SqliteHandle(Script script, String path) {
+            _script = script;
+            String fullPath = Path.GetFullPath(path);
+            SqliteConnectionStringBuilder builder = new SqliteConnectionStringBuilder {
+                DataSource = fullPath
+            };
+            _connection = new SqliteConnection(builder.ConnectionString);
+            _connection.Open();
+        }
+
+        public Int32 Execute(String sql, Table? parameters) {
+            EnsureNotDisposed();
+            using SqliteCommand command = _connection.CreateCommand();
+            command.CommandText = sql;
+            if (_transaction != null)
+                command.Transaction = _transaction;
+            BindParameters(command, parameters);
+            return command.ExecuteNonQuery();
+        }
+
+        public DynValue Query(String sql, Table? parameters) {
+            EnsureNotDisposed();
+            using SqliteCommand command = _connection.CreateCommand();
+            command.CommandText = sql;
+            if (_transaction != null)
+                command.Transaction = _transaction;
+            BindParameters(command, parameters);
+            using SqliteDataReader reader = command.ExecuteReader();
+            Table result = new Table(_script);
+            Int32 index = 1;
+            while (reader.Read()) {
+                Table row = new Table(_script);
+                for (Int32 i = 0; i < reader.FieldCount; i++) {
+                    String columnName = reader.GetName(i);
+                    Object? value = reader.GetValue(i);
+                    row[columnName] = ToDynValue(_script, value);
+                }
+                result[index++] = DynValue.NewTable(row);
+            }
+            return DynValue.NewTable(result);
+        }
+
+        public void BeginTransaction() {
+            EnsureNotDisposed();
+            _transaction ??= _connection.BeginTransaction();
+        }
+
+        public void Commit() {
+            if (_disposed)
+                return;
+            if (_transaction != null) {
+                _transaction.Commit();
+                _transaction.Dispose();
+                _transaction = null;
+            }
+        }
+
+        public void Rollback() {
+            if (_disposed)
+                return;
+            if (_transaction != null) {
+                _transaction.Rollback();
+                _transaction.Dispose();
+                _transaction = null;
+            }
+        }
+
+        public void Dispose() {
+            if (_disposed)
+                return;
+            try {
+                _transaction?.Dispose();
+                _connection.Dispose();
+            } finally {
+                _transaction = null;
+                _disposed = true;
+            }
+        }
+
+        private void EnsureNotDisposed() {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(SqliteHandle));
+        }
+
+        private static void BindParameters(SqliteCommand command, Table? parameters) {
+            if (parameters == null)
+                return;
+            IDictionary<String, Object?> dict = TableToDictionary(parameters);
+            foreach (KeyValuePair<String, Object?> kv in dict) {
+                SqliteParameter parameter = command.CreateParameter();
+                String name = kv.Key;
+                if (!name.StartsWith(":", StringComparison.Ordinal) && !name.StartsWith("@", StringComparison.Ordinal) && !name.StartsWith("$", StringComparison.Ordinal))
+                    name = ":" + name;
+                parameter.ParameterName = name;
+                parameter.Value = kv.Value ?? DBNull.Value;
+                command.Parameters.Add(parameter);
+            }
+        }
+    }
+
+    private static DynValue ToDynValue(Script lua, Object? value) {
+        if (value is null || value is DBNull)
+            return DynValue.Nil;
+        return value switch {
+            Boolean b => DynValue.NewBoolean(b),
+            Byte bt => DynValue.NewNumber(bt),
+            SByte sb => DynValue.NewNumber(sb),
+            Int16 i16 => DynValue.NewNumber(i16),
+            UInt16 ui16 => DynValue.NewNumber(ui16),
+            Int32 i32 => DynValue.NewNumber(i32),
+            UInt32 ui32 => DynValue.NewNumber(ui32),
+            Int64 i64 => DynValue.NewNumber(i64),
+            UInt64 ui64 => DynValue.NewNumber(ui64),
+            Single f => DynValue.NewNumber(f),
+            Double d => DynValue.NewNumber(d),
+            Decimal dec => DynValue.NewNumber((Double)dec),
+            DateTime dt => DynValue.NewString(dt.ToString("o", CultureInfo.InvariantCulture)),
+            Byte[] bytes => DynValue.NewString(Convert.ToHexString(bytes)),
+            String s => DynValue.NewString(s),
+            _ => DynValue.NewString(value.ToString() ?? String.Empty)
+        };
+    }
+
+    private static class FsUtils {
+        public static Boolean PathExists(String path) => Directory.Exists(path) || File.Exists(path);
+
+        public static Boolean PathExistsIncludingLinks(String path) {
+            if (PathExists(path))
+                return true;
+            try {
+                FileSystemInfo info = GetInfo(path);
+                if (info.Exists)
+                    return true;
+                return info.LinkTarget != null;
+            } catch {
+                return false;
+            }
+        }
+
+        public static Boolean IsSymlink(String path) {
+            try {
+                FileSystemInfo info = GetInfo(path);
+                return info.LinkTarget != null || info.Attributes.HasFlag(FileAttributes.ReparsePoint);
+            } catch {
+                return false;
+            }
+        }
+
+        public static Boolean CreateSymlink(String source, String destination, Boolean isDirectory) {
+            try {
+                String destFull = Path.GetFullPath(destination);
+                String srcFull = Path.GetFullPath(source);
+                String? parent = Path.GetDirectoryName(destFull);
+                if (!String.IsNullOrEmpty(parent))
+                    Directory.CreateDirectory(parent);
+                if (isDirectory)
+                    Directory.CreateSymbolicLink(destFull, srcFull);
+                else
+                    File.CreateSymbolicLink(destFull, srcFull);
+                return true;
+            } catch {
+                return false;
+            }
+        }
+
+        public static String? RealPath(String path) {
+            try {
+                return Path.GetFullPath(path);
+            } catch {
+                return null;
+            }
+        }
+
+        public static String? ReadLink(String path) {
+            try {
+                FileSystemInfo info = GetInfo(path);
+                return info.LinkTarget;
+            } catch {
+                return null;
+            }
+        }
+
+        private static FileSystemInfo GetInfo(String path) {
+            String full = Path.GetFullPath(path);
+            DirectoryInfo dirInfo = new DirectoryInfo(full);
+            if (dirInfo.Exists)
+                return dirInfo;
+            FileInfo fileInfo = new FileInfo(full);
+            if (fileInfo.Exists)
+                return fileInfo;
+            // Determine based on trailing separator
+            if (full.EndsWith(Path.DirectorySeparatorChar) || full.EndsWith(Path.AltDirectorySeparatorChar))
+                return new DirectoryInfo(full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            return fileInfo;
+        }
     }
 
     private static void PreloadShimModules(Script lua, String scriptPath) {

@@ -151,7 +151,7 @@ public sealed partial class OperationsEngine {
                     Console.ForegroundColor = ConsoleColor.DarkCyan;
                     Console.WriteLine("\\n>>> Built-in BMS extraction");
                     Console.ResetColor();
-                    Boolean okBms = Sys.QuickBmsExtractor.Run(args);
+                    Boolean okBms = FileHandlers.QuickBmsExtractor.Run(args);
                     return okBms;
                 } else {
                     return false;

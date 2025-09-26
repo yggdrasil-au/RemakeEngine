@@ -137,8 +137,8 @@ GameFiles1/
 ############################
 # Repo/Submodules
 ############################
-.gitmodules
-RemakeRegistry/Games/
+#.gitmodules
+#RemakeRegistry/Games/
 
 ############################
 # Misc Workspace

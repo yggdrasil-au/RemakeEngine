@@ -1,0 +1,15 @@
+[submodule "RemakeRegistry/Games/TheSimpsonsGame-PS3"]
+    path = RemakeRegistry/Games/TheSimpsonsGame-PS3
+    url = https://github.com/Superposition28/TheSimpsonsGame-PS3.git
+[submodule "RemakeRegistry/Games/TheSimpsonsGame-PS2"]
+    path = RemakeRegistry/Games/TheSimpsonsGame-PS2
+    url = https://github.com/Superposition28/TheSimpsonsGame-PS2.git
+[submodule "RemakeRegistry/Games/SimpsonsHitAndRun"]
+    path = RemakeRegistry/Games/SimpsonsHitAndRun
+    url = https://github.com/Superposition28/SimpsonsHitAndRun.git
+[submodule "RemakeRegistry/Games/TheSimpsonsRoadRage-PS2"]
+    path = RemakeRegistry/Games/TheSimpsonsRoadRage-PS2
+    url = https://github.com/Superposition28/TheSimpsonsRoadRage-PS2.git
+[submodule "RemakeEngineDocs"]
+    path = RemakeEngineDocs
+    url = https://github.com/yggdrasil-au/RemakeEngineDocs.git
