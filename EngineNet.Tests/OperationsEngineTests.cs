@@ -27,7 +27,7 @@ public class OperationsEngineTests
         String ops = System.IO.Path.Combine(td.Path, "operations.toml");
         File.WriteAllText(ops, "[[copy]]\nName='Copy'\nscript='copy.py'\n\n[[run]]\nName='Run'\nscript='run.py'\n");
 
-        OperationsEngine eng = new OperationsEngine(td.Path, new PassthroughToolResolver(), new RemakeEngine.Sys.EngineConfig(System.IO.Path.Combine(td.Path, "project.json")));
+        OperationsEngine eng = new OperationsEngine(td.Path, new PassthroughToolResolver(), new RemakeEngine.EngineConfig(System.IO.Path.Combine(td.Path, "project.json")));
         List<Dictionary<String, Object?>> list = eng.LoadOperationsList(ops);
         Assert.Equal(2, list.Count);
         Assert.Contains(list, m => String.Equals(m["Name"]?.ToString(), "Copy", StringComparison.OrdinalIgnoreCase));
@@ -40,7 +40,7 @@ public class OperationsEngineTests
         using TempDir td = new TempDir();
         String ops = System.IO.Path.Combine(td.Path, "operations.json");
         File.WriteAllText(ops, "[{\"Name\":\"A\",\"script\":\"a.py\"},{\"Name\":\"B\",\"script\":\"b.py\"}]");
-        OperationsEngine eng = new OperationsEngine(td.Path, new PassthroughToolResolver(), new RemakeEngine.Sys.EngineConfig(System.IO.Path.Combine(td.Path, "project.json")));
+        OperationsEngine eng = new OperationsEngine(td.Path, new PassthroughToolResolver(), new RemakeEngine.EngineConfig(System.IO.Path.Combine(td.Path, "project.json")));
         List<Dictionary<String, Object?>> list = eng.LoadOperationsList(ops);
         Assert.Equal(2, list.Count);
         Assert.Equal("A", list[0]["Name"]?.ToString());
@@ -53,7 +53,7 @@ public class OperationsEngineTests
         using TempDir td = new TempDir();
         String ops = System.IO.Path.Combine(td.Path, "operations.json");
         File.WriteAllText(ops, "{\"group1\":[{\"Name\":\"A\"}],\"group2\":[{\"Name\":\"B\"}]}\n");
-        OperationsEngine eng = new OperationsEngine(td.Path, new PassthroughToolResolver(), new RemakeEngine.Sys.EngineConfig(System.IO.Path.Combine(td.Path, "project.json")));
+        OperationsEngine eng = new OperationsEngine(td.Path, new PassthroughToolResolver(), new RemakeEngine.EngineConfig(System.IO.Path.Combine(td.Path, "project.json")));
         Dictionary<String, List<Dictionary<String, Object?>>> groups = eng.LoadOperations(ops);
         Assert.True(groups.ContainsKey("group1"));
         Assert.True(groups.ContainsKey("group2"));
@@ -83,7 +83,7 @@ public class OperationsEngineFullCoverageTests
     {
         String projectJson = System.IO.Path.Combine(root, "project.json");
         File.WriteAllText(projectJson, "{}\n");
-        return new OperationsEngine(root, new PassthroughToolResolver(), new RemakeEngine.Sys.EngineConfig(projectJson));
+        return new OperationsEngine(root, new PassthroughToolResolver(), new RemakeEngine.EngineConfig(projectJson));
     }
 
     private static Dictionary<String, Object?> MakeGamesMap(String root, String gameName, String opsPath)
@@ -204,7 +204,7 @@ public class OperationsEngineFullCoverageTests
     {
         using TempRoot td = new TempRoot();
         String proj = System.IO.Path.Combine(td.Path, "project.json");
-        var cfg = new RemakeEngine.Sys.EngineConfig(proj);
+        var cfg = new RemakeEngine.EngineConfig(proj);
         OperationsEngine eng = new OperationsEngine(td.Path, new PassthroughToolResolver(), cfg);
 
         String opsPath = System.IO.Path.Combine(td.Path, "ops.json");

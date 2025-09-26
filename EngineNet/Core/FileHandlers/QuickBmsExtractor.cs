@@ -1,5 +1,5 @@
 
-namespace RemakeEngine.Sys;
+namespace RemakeEngine.Core.FileHandlers;
 
 /// <summary>
 /// Provides a built-in replacement for EnginePy\FormatHandlers\bms_extract.py.
@@ -54,7 +54,7 @@ public static class QuickBmsExtractor {
         WriteInfo($"Starting QuickBMS extraction using script '{options.BmsScript}'.");
         WriteInfo($"Found {files.Count} file(s) to process.");
 
-        ProcessRunner runner = new ProcessRunner();
+        Sys.ProcessRunner runner = new Sys.ProcessRunner();
         Boolean okAll = true;
         Int32 done = 0;
         Int32 succeeded = 0;
@@ -233,7 +233,16 @@ public static class QuickBmsExtractor {
 
     private static readonly Object s_consoleLock = new();
 
+    private static readonly String s_prefix = "[QBMS-Extract] ";
+
     private static void Write(ConsoleColor colour, String message, Boolean isError = false) {
+        // Ensure all messages emitted from this extractor have a consistent prefix unless
+        // they are already tagged as coming from the wrapped quickbms process.
+        if (!String.IsNullOrEmpty(message) &&
+            !message.StartsWith("[quickbms]", StringComparison.OrdinalIgnoreCase) &&
+            !message.StartsWith(s_prefix, StringComparison.Ordinal)) {
+            message = s_prefix + message;
+        }
         lock (s_consoleLock) {
             ConsoleColor previous = Console.ForegroundColor;
             Console.ForegroundColor = colour;

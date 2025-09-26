@@ -162,9 +162,9 @@ public sealed class ToolsDownloader {
         }
     }
 
-    private static String Bytes(Int64 n)
-        => n > 1024 * 1024 ? ($"{n / (1024.0 * 1024.0):0.0} MB") : ($"{n / 1024.0:0.0} KB");
-
+    private static String Bytes(Int64 n) {
+        return n > 1024 * 1024 ? $"{n / (1024.0 * 1024.0):0.0} MB" : $"{n / 1024.0:0.0} KB";
+    }
     private static void WriteHeader(String msg) {
         Console.ForegroundColor = ConsoleColor.DarkCyan;
         Console.WriteLine($"\n=== {msg} ===");
@@ -224,31 +224,35 @@ public sealed class ToolsDownloader {
             return false;
         // exact platform or prefix match
         if (verElem.TryGetProperty(platform, out JsonElement platElem) && platElem.ValueKind == JsonValueKind.Object) {
-            if (platElem.TryGetProperty("url", out JsonElement u) && u.ValueKind == JsonValueKind.String)
+            if (platElem.TryGetProperty("url", out JsonElement u) && u.ValueKind == JsonValueKind.String) {
                 url = u.GetString() ?? String.Empty;
-            if (platElem.TryGetProperty("sha256", out JsonElement s) && s.ValueKind == JsonValueKind.String)
+            } if (platElem.TryGetProperty("sha256", out JsonElement s) && s.ValueKind == JsonValueKind.String) {
                 sha256 = s.GetString() ?? String.Empty;
+            }
             return !String.IsNullOrEmpty(url);
         }
         foreach (JsonProperty prop in verElem.EnumerateObject()) {
-            if (!prop.Name.StartsWith(platform, StringComparison.OrdinalIgnoreCase))
+            if (!prop.Name.StartsWith(platform, StringComparison.OrdinalIgnoreCase)) {
                 continue;
+            }
             JsonElement val = prop.Value;
-            if (val.ValueKind != JsonValueKind.Object)
+            if (val.ValueKind != JsonValueKind.Object) {
                 continue;
-            if (val.TryGetProperty("url", out JsonElement u2) && u2.ValueKind == JsonValueKind.String)
+            } if (val.TryGetProperty("url", out JsonElement u2) && u2.ValueKind == JsonValueKind.String) {
                 url = u2.GetString() ?? String.Empty;
-            if (val.TryGetProperty("sha256", out JsonElement s2) && s2.ValueKind == JsonValueKind.String)
+            } if (val.TryGetProperty("sha256", out JsonElement s2) && s2.ValueKind == JsonValueKind.String) {
                 sha256 = s2.GetString() ?? String.Empty;
-            if (!String.IsNullOrEmpty(url))
+            } if (!String.IsNullOrEmpty(url)) {
                 return true;
+            }
         }
         return false;
     }
 
     private static Boolean VerifySha256(String filePath, String expected) {
-        if (String.IsNullOrWhiteSpace(expected))
+        if (String.IsNullOrWhiteSpace(expected)) {
             return true;
+        }
         using SHA256 sha = SHA256.Create();
         using FileStream fs = File.OpenRead(filePath);
         Byte[] hash = sha.ComputeHash(fs);
@@ -260,10 +264,13 @@ public sealed class ToolsDownloader {
         try {
             foreach (String file in Directory.EnumerateFiles(root, "*.exe", SearchOption.AllDirectories)) {
                 String name = Path.GetFileName(file).ToLowerInvariant();
-                if (name.Contains(toolName.ToLowerInvariant()) || toolName.Equals("QuickBMS", StringComparison.OrdinalIgnoreCase) && name.Contains("quickbms"))
+                if (name.Contains(toolName.ToLowerInvariant()) || toolName.Equals("QuickBMS", StringComparison.OrdinalIgnoreCase) && name.Contains("quickbms")) {
                     return file;
+                }
             }
-        } catch { }
+        } catch {
+            // ignore
+        }
         return null;
     }
 }
