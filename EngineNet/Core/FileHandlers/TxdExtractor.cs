@@ -1,7 +1,7 @@
 using System.Buffers.Binary;
 using System.Text;
 
-namespace RemakeEngine.Sys;
+namespace RemakeEngine.Core.FileHandlers;
 
 public static class TxdExtractor {
     private sealed class Options {

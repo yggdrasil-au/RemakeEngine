@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
 
-namespace RemakeEngine.Sys;
+namespace RemakeEngine.Core.FileHandlers;
 
 /// <summary>
 /// Provides a built-in replacement for the legacy RenameFolders.py utility.

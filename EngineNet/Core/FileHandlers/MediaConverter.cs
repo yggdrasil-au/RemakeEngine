@@ -1,14 +1,9 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace RemakeEngine.Sys;
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Text;
+
+namespace RemakeEngine.Core.FileHandlers;
 
 /// <summary>
 /// Built-in media converter that mirrors Tools/ffmpeg-vgmstream/convert.py behavior.

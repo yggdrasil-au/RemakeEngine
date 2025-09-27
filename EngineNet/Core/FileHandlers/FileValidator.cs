@@ -1,6 +1,6 @@
 using Microsoft.Data.Sqlite;
 
-namespace RemakeEngine.Sys;
+namespace RemakeEngine.Core.FileHandlers;
 
 public static class FileValidator {
     private sealed class Options {

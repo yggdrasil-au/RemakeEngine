@@ -1,5 +1,5 @@
 using System.Text.Json;
-
+using FileHandlers = RemakeEngine.Core.FileHandlers;
 namespace RemakeEngine.Core;
 
 public sealed partial class OperationsEngine {
@@ -145,7 +145,7 @@ public sealed partial class OperationsEngine {
                     Console.ForegroundColor = ConsoleColor.DarkCyan;
                     Console.WriteLine("\n>>> Built-in TXD extraction");
                     Console.ResetColor();
-                    Boolean okTxd = Sys.TxdExtractor.Run(args);
+                    Boolean okTxd = FileHandlers.TxdExtractor.Run(args);
                     return okTxd;
                 } else if (String.Equals(format, "str", StringComparison.OrdinalIgnoreCase)) {
                     Console.ForegroundColor = ConsoleColor.DarkCyan;
@@ -184,7 +184,7 @@ public sealed partial class OperationsEngine {
                     Console.ForegroundColor = ConsoleColor.DarkCyan;
                     Console.WriteLine("\n>>> Built-in media conversion");
                     Console.ResetColor();
-                    Boolean okMedia = Sys.MediaConverter.Run(args);
+                    Boolean okMedia = FileHandlers.MediaConverter.Run(args);
                     return okMedia;
                 } else {
                     return false;
@@ -211,7 +211,7 @@ public sealed partial class OperationsEngine {
                 Console.ForegroundColor = ConsoleColor.DarkCyan;
                 Console.WriteLine("\n>>> Built-in file validation");
                 Console.ResetColor();
-                Boolean okValidate = Sys.FileValidator.Run(argsValidate);
+                Boolean okValidate = FileHandlers.FileValidator.Run(argsValidate);
                 return okValidate;
             }
             case "rename-folders":
@@ -235,8 +235,32 @@ public sealed partial class OperationsEngine {
                 Console.ForegroundColor = ConsoleColor.DarkCyan;
                 Console.WriteLine("\n>>> Built-in folder rename");
                 Console.ResetColor();
-                Boolean okRename = Sys.FolderRenamer.Run(args);
+                Boolean okRename = FileHandlers.FolderRenamer.Run(args);
                 return okRename;
+            }
+            case "flatten":
+            case "flatten-folder-structure": {
+                Dictionary<String, Object?> ctx = new Dictionary<String, Object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase);
+                if (!games.TryGetValue(currentGame, out Object? gobjFlatten) || gobjFlatten is not IDictionary<String, Object?> gdictFlatten)
+                    throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
+                ctx["Game"] = new Dictionary<String, Object?> {
+                    ["RootPath"] = gdictFlatten.TryGetValue("game_root", out Object? grFlatten) ? grFlatten?.ToString() : String.Empty,
+                    ["Name"] = currentGame,
+                };
+
+                List<String> argsFlatten = new List<String>();
+                if (op.TryGetValue("args", out Object? aobjFlatten) && aobjFlatten is IList<Object?> aListFlatten) {
+                    IList<Object?> resolved = (IList<Object?>)(Sys.Placeholders.Resolve(aListFlatten, ctx) ?? new List<Object?>());
+                    foreach (Object? a in resolved)
+                        if (a is not null)
+                            argsFlatten.Add(a.ToString()!);
+                }
+
+                Console.ForegroundColor = ConsoleColor.DarkCyan;
+                Console.WriteLine("\n>>> Built-in directory flatten");
+                Console.ResetColor();
+                Boolean okFlatten = FileHandlers.DirectoryFlattener.Run(argsFlatten);
+                return okFlatten;
             }
 
             default:
