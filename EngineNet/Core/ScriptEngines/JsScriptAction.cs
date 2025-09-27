@@ -1,8 +1,6 @@
 // Jint -- JS interpreter
 using Jint;
 
-// internal usings
-using RemakeEngine.Sys;
 
 namespace RemakeEngine.Core.ScriptEngines;
 

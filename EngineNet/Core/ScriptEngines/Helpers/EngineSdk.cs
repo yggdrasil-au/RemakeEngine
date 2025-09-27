@@ -1,6 +1,6 @@
 
 
-namespace RemakeEngine.Sys;
+namespace RemakeEngine.Core.ScriptEngines.Helpers;
 
 /// <summary>
 /// Lightweight SDK to communicate with the Remake Engine runner via stdout JSON events.

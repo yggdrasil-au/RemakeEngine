@@ -179,15 +179,9 @@ public static class MediaConverter {
         CancellationToken token) {
         return Task.Run(() => {
             Int32 panelTop;
-            Int32 lastLines = 0;
-            try {
-                lock (s_consoleLock) {
-                    // Reserve a few lines for the panel beneath current cursor
-                    panelTop = Console.CursorTop;
-                }
-            } catch {
-                panelTop = 0;
-            }
+            Int32 lastLines;
+            // Prepare console area for progress panel: clear when possible, otherwise reserve lines to avoid scroll
+            TryInitProgressPanel(out panelTop, out lastLines);
 
             Int32 spinnerIndex = 0;
             Char[] spinner = new[] { '|', '/', '-', '\\' };
@@ -205,6 +199,42 @@ public static class MediaConverter {
             List<String> finalLines = BuildPanelLines(total, finalS, finalAct, ' ');
             DrawPanel(finalLines, ref panelTop, ref lastLines);
         });
+    }
+
+    // Clears the console at the start if supported, otherwise reserves vertical space so the panel can redraw without scrolling
+    private static void TryInitProgressPanel(out Int32 panelTop, out Int32 lastLines) {
+        panelTop = 0;
+        lastLines = 0;
+        try {
+            lock (s_consoleLock) {
+                try {
+                    Console.Clear();
+                    panelTop = 0;
+                    lastLines = 0;
+                    return;
+                } catch {
+                    // Fallback: cannot clear (e.g., redirected output). Reserve rows instead.
+                }
+
+                // Reserve enough lines below the current cursor so that redrawing doesn't cause the buffer to scroll.
+                panelTop = Console.CursorTop;
+                Int32 reserve = EstimateMaxPanelLines();
+                for (Int32 i = 0; i < reserve; i++) Console.WriteLine();
+                try { Console.SetCursorPosition(0, panelTop); } catch { /* ignore */ }
+                // Tell DrawPanel that there are already 'reserve' blank lines to overwrite/clear
+                lastLines = reserve;
+            }
+        } catch {
+            // As a last resort, keep defaults (top=0, lastLines=0)
+        }
+    }
+
+    // Heuristic for maximum number of lines the panel may need (progress + header + up to N active jobs + optional overflow line)
+    private static Int32 EstimateMaxPanelLines() {
+        Int32 procs = 8;
+        try { procs = Math.Max(1, Math.Min(16, Environment.ProcessorCount)); } catch { /* ignore */ }
+        // 1 (progress) + 1 (header/none) + procs (active job lines) + 1 ("... and more")
+        return 1 + 1 + procs + 1;
     }
 
     private static List<String> BuildPanelLines(Int32 total, (Int32 processed, Int32 ok, Int32 skip, Int32 err) s, List<ActiveJob> actives, Char spinner) {

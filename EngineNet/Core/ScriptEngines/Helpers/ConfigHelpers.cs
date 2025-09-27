@@ -1,5 +1,5 @@
 
-namespace RemakeEngine.Sys;
+namespace RemakeEngine.Core.ScriptEngines.Helpers;
 
 /// <summary>
 /// Utility helpers for common project setup and filesystem operations used by scripts.

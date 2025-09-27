@@ -124,15 +124,15 @@ public partial class CliApp {
         // Use embedded handlers for engine/lua/js to avoid external dependencies
         if (type == "engine" || type == "lua" || type == "js") {
             // Route in-process SDK events to our terminal renderer and suppress raw @@REMAKE@@ lines
-            Action<Dictionary<String, Object?>>? prevSink = Sys.EngineSdk.LocalEventSink;
-            Boolean prevMute = Sys.EngineSdk.MuteStdoutWhenLocalSink;
+            Action<Dictionary<String, Object?>>? prevSink = Core.ScriptEngines.Helpers.EngineSdk.LocalEventSink;
+            Boolean prevMute = Core.ScriptEngines.Helpers.EngineSdk.MuteStdoutWhenLocalSink;
             try {
-                Sys.EngineSdk.LocalEventSink = Sys.TerminalUtils.OnEvent;
-                Sys.EngineSdk.MuteStdoutWhenLocalSink = true;
+                Core.ScriptEngines.Helpers.EngineSdk.LocalEventSink = Sys.TerminalUtils.OnEvent;
+                Core.ScriptEngines.Helpers.EngineSdk.MuteStdoutWhenLocalSink = true;
                 return _engine.RunSingleOperationAsync(game, games, op, answers).GetAwaiter().GetResult();
             } finally {
-                Sys.EngineSdk.LocalEventSink = prevSink;
-                Sys.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
+                Core.ScriptEngines.Helpers.EngineSdk.LocalEventSink = prevSink;
+                Core.ScriptEngines.Helpers.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
             }
         }
 
