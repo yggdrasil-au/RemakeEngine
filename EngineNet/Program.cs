@@ -1,8 +1,15 @@
-using RemakeEngine.Core;
-using RemakeEngine.Interface.CLI;
-using RemakeEngine.Tools;
 
-namespace RemakeEngine;
+//
+using System;
+using System.IO;
+using System.Buffers;
+using System.Linq;
+//
+using EngineNet.Core;
+using EngineNet.Interface.CLI;
+using EngineNet.Tools;
+
+namespace EngineNet;
 
 internal static class Program {
     public static Int32 Main(String[] args) {
@@ -51,8 +58,9 @@ internal static class Program {
 
     private static String? GetRootPath(String[] args) {
         for (Int32 i = 0; i < args.Length; i++) {
-            if (args[i] == "--root" && i + 1 < args.Length)
+            if (args[i] == "--root" && i + 1 < args.Length) {
                 return args[i + 1];
+            }
         }
         return null;
     }
@@ -60,15 +68,19 @@ internal static class Program {
     // Walk upwards from a starting directory to find a folder containing RemakeRegistry/Games
     private static String? TryFindProjectRoot(String? startDir) {
         try {
-            String? dir = String.IsNullOrWhiteSpace(startDir) ? null : System.IO.Path.GetFullPath(startDir!);
+            String? dir = String.IsNullOrWhiteSpace(startDir) ? null : Path.GetFullPath(startDir!);
             while (!String.IsNullOrEmpty(dir)) {
-                String reg = System.IO.Path.Combine(dir!, "RemakeRegistry");
-                String games = System.IO.Path.Combine(reg, "Games");
-                if (Directory.Exists(games))
+                String reg = Path.Combine(dir!, "RemakeRegistry");
+                String games = Path.Combine(reg, "Games");
+                if (Directory.Exists(games)) {
                     return dir!;
+                }
+
                 DirectoryInfo? parent = Directory.GetParent(dir!);
-                if (parent is null)
+                if (parent is null) {
                     break;
+                }
+
                 dir = parent.FullName;
             }
         } catch {
@@ -79,8 +91,9 @@ internal static class Program {
 
     private static IToolResolver CreateToolResolver(String root) {
         String? envPath = Environment.GetEnvironmentVariable("TOOLS_JSON");
-        if (!String.IsNullOrWhiteSpace(envPath) && File.Exists(envPath))
+        if (!String.IsNullOrWhiteSpace(envPath) && File.Exists(envPath)) {
             return new JsonToolResolver(envPath);
+        }
 
         // Prefer Tools.local.json if present, then Tools.json
         String RemakeRegistryDir = Path.Combine(root, "RemakeRegistry");

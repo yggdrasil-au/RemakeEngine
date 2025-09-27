@@ -1,4 +1,5 @@
-namespace RemakeEngine.Tools;
+using System;
+namespace EngineNet.Tools;
 
 /// <summary>
 /// Provides paths to external command-line tools required by actions.

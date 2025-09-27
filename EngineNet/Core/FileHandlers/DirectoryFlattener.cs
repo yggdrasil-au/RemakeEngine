@@ -1,11 +1,17 @@
+//
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Threading;
 
-namespace RemakeEngine.Core.FileHandlers;
+namespace EngineNet.Core.FileHandlers;
 
 /// <summary>
 /// Flattens a directory tree by collapsing linear directory chains while copying or moving files.
@@ -32,6 +38,11 @@ public static class DirectoryFlattener {
 
     private static readonly Object ConsoleLock = new();
 
+    /// <summary>
+    /// Flattens a directory tree by copying or moving files into a single-level structure.
+    /// </summary>
+    /// <param name="args">CLI-style args: --source DIR --dest DIR [--action copy|move] [--separator S] [--rules FILE] [--verify] [--workers N] [--verbose] [--debug]</param>
+    /// <returns>True if all operations succeed (or nothing to do); false otherwise.</returns>
     public static Boolean Run(IList<String> args) {
         Options options;
         try {
@@ -56,10 +67,9 @@ public static class DirectoryFlattener {
             return false;
         }
 
-        if (options.Workers is null)
-            options.Workers = Math.Max(1, (Int32)Math.Floor(Environment.ProcessorCount * 0.75));
-        else
-            options.Workers = Math.Max(1, options.Workers.Value);
+        options.Workers = options.Workers is null
+            ? Math.Max(1, (Int32)Math.Floor(Environment.ProcessorCount * 0.75))
+            : Math.Max(1, options.Workers.Value);
 
         List<Rule> rules;
         try {
@@ -74,8 +84,10 @@ public static class DirectoryFlattener {
         WriteInfo($"Destination: '{options.DestinationDir}'");
         WriteInfo($"Action: '{options.Action.ToUpperInvariant()}'");
         WriteInfo($"Workers: {options.Workers}");
-        if (options.Verify)
+        if (options.Verify) {
             WriteWarn("SHA256 hash verification is ENABLED (slower).");
+        }
+
         WriteSeparator();
 
         Stopwatch sw = Stopwatch.StartNew();
@@ -96,25 +108,28 @@ public static class DirectoryFlattener {
         sw.Stop();
 
         WriteSeparator();
-        if (success)
+        if (success) {
             WriteSuccess($"Process ({options.Action}) completed successfully in {sw.Elapsed.TotalSeconds:F2} seconds.");
-        else
+        } else {
             WriteError($"Process ({options.Action}) completed with errors in {sw.Elapsed.TotalSeconds:F2} seconds.");
+        }
 
         return success;
     }
 
     private static Options Parse(IList<String> args) {
-        if (args is null || args.Count < 2)
+        if (args is null || args.Count < 2) {
             throw new ArgumentException("Missing required arguments: source_dir destination_dir.");
+        }
 
         Options options = new Options();
         List<String> positional = new();
 
         for (Int32 i = 0; i < args.Count; i++) {
             String current = args[i];
-            if (String.IsNullOrWhiteSpace(current))
+            if (String.IsNullOrWhiteSpace(current)) {
                 continue;
+            }
 
             switch (current) {
                 case "--action":
@@ -140,63 +155,82 @@ public static class DirectoryFlattener {
                 case "-w":
                 case "--workers": {
                     String value = ExpectValue(args, ref i, current);
-                    if (!Int32.TryParse(value, out Int32 workers) || workers <= 0)
+                    if (!Int32.TryParse(value, out Int32 workers) || workers <= 0) {
                         throw new ArgumentException("--workers expects a positive integer.");
+                    }
+
                     options.Workers = workers;
                     break;
                 }
                 default:
-                    if (current.StartsWith("-", StringComparison.Ordinal))
+                    if (current.StartsWith("-", StringComparison.Ordinal)) {
                         throw new ArgumentException($"Unknown argument '{current}'.");
+                    }
+
                     positional.Add(current);
                     break;
             }
         }
-        if (positional.Count != 2)
+        if (positional.Count != 2) {
             throw new ArgumentException($"Expected source and destination directory arguments (received {positional.Count}).");
+        }
+
         options.SourceDir = positional[0];
         options.DestinationDir = positional[1];
 
-        if (!String.Equals(options.Action, "copy", StringComparison.OrdinalIgnoreCase) &&
-            !String.Equals(options.Action, "move", StringComparison.OrdinalIgnoreCase))
-            throw new ArgumentException("--action must be 'copy' or 'move'.");
-
-        return options;
+        return !String.Equals(options.Action, "copy", StringComparison.OrdinalIgnoreCase) &&
+            !String.Equals(options.Action, "move", StringComparison.OrdinalIgnoreCase)
+            ? throw new ArgumentException("--action must be 'copy' or 'move'.")
+            : options;
     }
 
     private static String ExpectValue(IList<String> args, ref Int32 index, String option) {
-        if (index + 1 >= args.Count)
+        if (index + 1 >= args.Count) {
             throw new ArgumentException($"Option '{option}' expects a value.");
+        }
+
         index += 1;
         return args[index];
     }
 
     private static List<Rule> LoadRules(String? path) {
         List<Rule> rules = new();
-        if (String.IsNullOrWhiteSpace(path))
+        if (String.IsNullOrWhiteSpace(path)) {
             return rules;
+        }
 
         String fullPath = NormalizeFile(path);
-        if (!File.Exists(fullPath))
+        if (!File.Exists(fullPath)) {
             throw new FileNotFoundException($"Sanitisation rules file not found: {fullPath}");
+        }
 
         String text = File.ReadAllText(fullPath);
         using JsonDocument doc = JsonDocument.Parse(text);
-        if (doc.RootElement.ValueKind != JsonValueKind.Array)
+        if (doc.RootElement.ValueKind != JsonValueKind.Array) {
             throw new InvalidDataException("Rules JSON must be an array of rule objects.");
+        }
 
         foreach (JsonElement element in doc.RootElement.EnumerateArray()) {
-            if (element.ValueKind != JsonValueKind.Object)
+            if (element.ValueKind != JsonValueKind.Object) {
                 continue;
+            }
+
             Rule rule = new Rule();
-            if (element.TryGetProperty("pattern", out JsonElement patternElem) && patternElem.ValueKind != JsonValueKind.Null)
+            if (element.TryGetProperty("pattern", out JsonElement patternElem) && patternElem.ValueKind != JsonValueKind.Null) {
                 rule.Pattern = patternElem.GetString() ?? String.Empty;
-            if (element.TryGetProperty("replacement", out JsonElement replacementElem) && replacementElem.ValueKind != JsonValueKind.Null)
+            }
+
+            if (element.TryGetProperty("replacement", out JsonElement replacementElem) && replacementElem.ValueKind != JsonValueKind.Null) {
                 rule.Replacement = replacementElem.GetString() ?? String.Empty;
-            if (element.TryGetProperty("is_regex", out JsonElement regexElem) && regexElem.ValueKind == JsonValueKind.True)
+            }
+
+            if (element.TryGetProperty("is_regex", out JsonElement regexElem) && regexElem.ValueKind == JsonValueKind.True) {
                 rule.IsRegex = true;
-            if (!String.IsNullOrEmpty(rule.Pattern))
+            }
+
+            if (!String.IsNullOrEmpty(rule.Pattern)) {
                 rules.Add(rule);
+            }
         }
 
         WriteInfo($"Loaded {rules.Count} sanitisation rule(s) from '{fullPath}'.");
@@ -214,17 +248,19 @@ public static class DirectoryFlattener {
 
         WriteSuccess($"Processing Source Directory: '{sourcePath}'");
 
-        if (!String.IsNullOrEmpty(accumulatedName))
+        if (!String.IsNullOrEmpty(accumulatedName)) {
             accumulatedName = SanitizeName(accumulatedName, rules, options);
+        }
 
         List<String> childDirs = new();
         List<String> childFiles = new();
         try {
             foreach (String entry in Directory.EnumerateFileSystemEntries(sourcePath)) {
-                if (Directory.Exists(entry))
+                if (Directory.Exists(entry)) {
                     childDirs.Add(entry);
-                else if (File.Exists(entry))
+                } else if (File.Exists(entry)) {
                     childFiles.Add(entry);
+                }
             }
         } catch (Exception ex) {
             WriteError($"Error reading contents of '{sourcePath}': {ex.Message}");
@@ -280,13 +316,15 @@ public static class DirectoryFlattener {
                 }
             });
 
-            if (failed != 0)
+            if (failed != 0) {
                 return false;
+            }
         }
 
         foreach (String dir in childDirs) {
-            if (!ProcessDirectory(dir, finalDestDir, String.Empty, baseDestination, rootSource, options, rules))
+            if (!ProcessDirectory(dir, finalDestDir, String.Empty, baseDestination, rootSource, options, rules)) {
                 return false;
+            }
         }
 
         return true;
@@ -308,9 +346,11 @@ public static class DirectoryFlattener {
                 }
             } else {
                 String? sourceHash = null;
-                if (options.Verify)
+                if (options.Verify) {
                     sourceHash = ComputeHash(sourceFile);
-        File.Move(sourceFile, destinationFile, overwrite: true);
+                }
+
+                File.Move(sourceFile, destinationFile, overwrite: true);
 
                 if (options.Verify) {
                     String destHash = ComputeHash(destinationFile);
@@ -378,18 +418,20 @@ public static class DirectoryFlattener {
     }
 
     private static String SanitizeName(String input, List<Rule> rules, Options options) {
-        if (rules.Count == 0)
+        if (rules.Count == 0) {
             return input;
+        }
 
         String result = input;
         foreach (Rule rule in rules) {
-            if (String.IsNullOrEmpty(rule.Pattern))
+            if (String.IsNullOrEmpty(rule.Pattern)) {
                 continue;
+            }
+
             try {
-                if (rule.IsRegex)
-                    result = Regex.Replace(result, rule.Pattern, rule.Replacement ?? String.Empty);
-                else
-                    result = result.Replace(rule.Pattern, rule.Replacement ?? String.Empty);
+                result = rule.IsRegex
+                    ? Regex.Replace(result, rule.Pattern, rule.Replacement ?? String.Empty)
+                    : result.Replace(rule.Pattern, rule.Replacement ?? String.Empty);
             } catch (ArgumentException ex) {
                 WriteWarn($"Regex error in rule '{rule.Pattern}': {ex.Message}");
             } catch (Exception ex) {
@@ -397,8 +439,10 @@ public static class DirectoryFlattener {
             }
         }
 
-        if (options.Debug)
+        if (options.Debug) {
             WriteDetail(ConsoleColor.DarkGray, $"Sanitised '{input}' -> '{result}'");
+        }
+
         return result;
     }
 
@@ -434,8 +478,10 @@ public static class DirectoryFlattener {
 
     private static String ToHex(Byte[] data) {
         StringBuilder sb = new StringBuilder(data.Length * 2);
-        foreach (Byte b in data)
+        foreach (Byte b in data) {
             sb.Append(b.ToString("x2"));
+        }
+
         return sb.ToString();
     }
 
@@ -447,8 +493,9 @@ public static class DirectoryFlattener {
     private static void WriteSeparator() => Write(ConsoleColor.Gray, new String('-', 50));
 
     private static void WriteVerbose(Options options, String message) {
-        if (options.Verbose)
+        if (options.Verbose) {
             WriteDetail(ConsoleColor.DarkGray, message);
+        }
     }
 
     private static void WriteDetail(ConsoleColor colour, String message) => Write(colour, message);
@@ -457,10 +504,12 @@ public static class DirectoryFlattener {
         lock (ConsoleLock) {
             ConsoleColor previous = Console.ForegroundColor;
             Console.ForegroundColor = colour;
-            if (isError)
+            if (isError) {
                 Console.Error.WriteLine(Format(message));
-            else
+            } else {
                 Console.WriteLine(Format(message));
+            }
+
             Console.ForegroundColor = previous;
         }
     }

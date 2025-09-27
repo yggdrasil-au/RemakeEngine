@@ -1,19 +1,25 @@
 // MoonSharp -- Lua interpreter
 using MoonSharp.Interpreter;
 //
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Diagnostics;
-using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
+using System.Threading;
+using System.Globalization;
+using System.Runtime.InteropServices;
 //
 using Microsoft.Data.Sqlite;
+// internal usings
+using EngineNet.Core.ScriptEngines.Helpers;
+using EngineNet.Tools;
+using EngineNet.Core.Sys;
 
-//
-using RemakeEngine.Core.ScriptEngines.Helpers;
-using RemakeEngine.Tools;
-
-namespace RemakeEngine.Core.ScriptEngines;
+namespace EngineNet.Core.ScriptEngines;
 
 /// <summary>
 /// Executes a Lua script using the embedded MoonSharp interpreter.
@@ -32,7 +38,7 @@ namespace RemakeEngine.Core.ScriptEngines;
 ///
 /// All helpers wrap RemakeEngine.Utils.EngineSdk for consistent engine integration.
 /// </summary>
-public sealed class LuaScriptAction:Helpers.IAction {
+public sealed class LuaScriptAction:IAction {
     private readonly String _scriptPath;
     private readonly String[] _args;
 
@@ -40,18 +46,19 @@ public sealed class LuaScriptAction:Helpers.IAction {
 
     public LuaScriptAction(String scriptPath, IEnumerable<String>? args) {
         _scriptPath = scriptPath;
-        _args = args is null ? Array.Empty<String>() : (args as String[] ?? new List<String>(args).ToArray());
+        _args = args is null ? Array.Empty<String>() : args as String[] ?? new List<String>(args).ToArray();
     }
 
     public async Task ExecuteAsync(IToolResolver tools, CancellationToken cancellationToken = default) {
-        if (!File.Exists(_scriptPath))
+        if (!File.Exists(_scriptPath)) {
             throw new FileNotFoundException("Lua script not found", _scriptPath);
+        }
 
         String code = await File.ReadAllTextAsync(_scriptPath, cancellationToken);
         Script lua = new Script();
 
         // Expose a simple function to resolve tool paths from Lua:
-        lua.Globals["tool"] = (Func<String, String>)(tools.ResolveToolPath);
+        lua.Globals["tool"] = (Func<String, String>)tools.ResolveToolPath;
         lua.Globals["argv"] = _args;
 
         // Register types used as userdata
@@ -65,15 +72,15 @@ public sealed class LuaScriptAction:Helpers.IAction {
         // emit(event, data?) where data is an optional Lua table
         lua.Globals["emit"] = (Action<DynValue, DynValue>)((ev, data) => {
             String evName = ev.Type == DataType.String ? ev.String : ev.ToPrintString();
-            IDictionary<String, Object?>? dict = (data.Type == DataType.Nil || data.Type == DataType.Void) ? null : TableToDictionary(data.Table);
+            IDictionary<String, Object?>? dict = data.Type == DataType.Nil || data.Type == DataType.Void ? null : TableToDictionary(data.Table);
             EngineSdk.Emit(evName, dict);
         });
 
         // prompt(message, id?, secret?) -> string
         lua.Globals["prompt"] = (Func<DynValue, DynValue, DynValue, String>)((message, id, secret) => {
             String msg = message.Type == DataType.String ? message.String : message.ToPrintString();
-            String pid = (id.Type == DataType.Nil || id.Type == DataType.Void) ? "q1" : (id.Type == DataType.String ? id.String : id.ToPrintString());
-            Boolean sec = (secret.Type == DataType.Boolean) && secret.Boolean;
+            String pid = id.Type == DataType.Nil || id.Type == DataType.Void ? "q1" : id.Type == DataType.String ? id.String : id.ToPrintString();
+            Boolean sec = secret.Type == DataType.Boolean && secret.Boolean;
             return EngineSdk.Prompt(msg, pid, sec);
         });
 
@@ -94,21 +101,29 @@ public sealed class LuaScriptAction:Helpers.IAction {
                 // color, message, [newline]
                 color = args[0].ToPrintString();
                 message = args[1].Type == DataType.String ? args[1].String : args[1].ToPrintString();
-                if (args.Count >= 3 && args[2].Type == DataType.Boolean)
+                if (args.Count >= 3 && args[2].Type == DataType.Boolean) {
                     newline = args[2].Boolean;
+                }
             } else if (args.Count >= 1 && args[0].Type == DataType.Table) {
                 Table t = args[0].Table;
                 DynValue c = t.Get("color");
-                if (c.IsNil())
+                if (c.IsNil()) {
                     c = t.Get("colour");
-                if (!c.IsNil())
+                }
+
+                if (!c.IsNil()) {
                     color = c.Type == DataType.String ? c.String : c.ToPrintString();
+                }
+
                 DynValue m = t.Get("message");
-                if (!m.IsNil())
+                if (!m.IsNil()) {
                     message = m.Type == DataType.String ? m.String : m.ToPrintString();
+                }
+
                 DynValue nl = t.Get("newline");
-                if (!nl.IsNil() && nl.Type == DataType.Boolean)
+                if (!nl.IsNil() && nl.Type == DataType.Boolean) {
                     newline = nl.Boolean;
+                }
             }
             EngineSdk.Print(message, color, newline);
             return DynValue.Nil;
@@ -156,15 +171,19 @@ public sealed class LuaScriptAction:Helpers.IAction {
         sdk["is_file"] = (Func<String, Boolean>)File.Exists;
         sdk["remove_dir"] = (Func<String, Boolean>)(path => {
             try {
-                if (Directory.Exists(path))
+                if (Directory.Exists(path)) {
                     Directory.Delete(path, true);
+                }
+
                 return true;
             } catch { return false; }
         });
         sdk["remove_file"] = (Func<String, Boolean>)(path => {
             try {
-                if (FsUtils.IsSymlink(path) || File.Exists(path))
+                if (FsUtils.IsSymlink(path) || File.Exists(path)) {
                     File.Delete(path);
+                }
+
                 return true;
             } catch { return false; }
         });
@@ -180,8 +199,10 @@ public sealed class LuaScriptAction:Helpers.IAction {
         sdk["realpath"] = (Func<String, String?>)FsUtils.RealPath;
         sdk["readlink"] = (Func<String, String?>)FsUtils.ReadLink;
         sdk["sleep"] = (Action<Double>)(seconds => {
-            if (Double.IsNaN(seconds) || Double.IsInfinity(seconds) || seconds <= 0)
+            if (Double.IsNaN(seconds) || Double.IsInfinity(seconds) || seconds <= 0) {
                 return;
+            }
+
             try {
                 Thread.Sleep(TimeSpan.FromSeconds(seconds));
             } catch { }
@@ -194,9 +215,22 @@ public sealed class LuaScriptAction:Helpers.IAction {
                 return String.Empty;
             }
         });
+        // exec(args[, options]) -> { success=bool, exit_code=int }
+        // options: { cwd=string, env=table, new_terminal=bool, keep_open=bool, title=string, wait=bool }
+        sdk["exec"] = DynValue.NewCallback((ctx, args) => {
+            if (args.Count < 1 || args[0].Type != DataType.Table) {
+                throw new ScriptRuntimeException("exec expects first argument to be an array/table of strings (command + args)");
+            }
+
+            Table commandArgs = args[0].Table;
+            Table? options = args.Count > 1 && args[1].Type == DataType.Table ? args[1].Table : null;
+            return ExecProcess(lua, commandArgs, options);
+        });
         sdk["run_process"] = DynValue.NewCallback((ctx, args) => {
-            if (args.Count < 1 || args[0].Type != DataType.Table)
+            if (args.Count < 1 || args[0].Type != DataType.Table) {
                 throw new ScriptRuntimeException("run_process expects argument table");
+            }
+
             Table commandArgs = args[0].Table;
             Table? options = args.Count > 1 && args[1].Type == DataType.Table ? args[1].Table : null;
             return RunProcess(lua, commandArgs, options);
@@ -207,15 +241,17 @@ public sealed class LuaScriptAction:Helpers.IAction {
         // Preload minimal shims for LuaFileSystem (lfs) and dkjson used by game modules
         PreloadShimModules(lua, _scriptPath);
         Console.WriteLine($"Running lua script '{_scriptPath}' with {_args.Length} args...");
-        Console.WriteLine($"input args: {string.Join(", ", _args)}");
+        Console.WriteLine($"input args: {String.Join(", ", _args)}");
         await Task.Run(() => lua.DoString(code), cancellationToken);
     }
 
     private static Table CreateSqliteModule(Script lua) {
         Table module = new Table(lua);
         module["open"] = DynValue.NewCallback((ctx, args) => {
-            if (args.Count < 1 || args[0].Type != DataType.String)
+            if (args.Count < 1 || args[0].Type != DataType.String) {
                 throw new ScriptRuntimeException("sqlite.open(path) requires a string path");
+            }
+
             String path = args[0].String;
             SqliteHandle handle = new SqliteHandle(lua, path);
             return DynValue.NewTable(CreateSqliteHandleTable(lua, handle));
@@ -226,18 +262,22 @@ public sealed class LuaScriptAction:Helpers.IAction {
     private static Table CreateSqliteHandleTable(Script lua, SqliteHandle handle) {
         Table table = new Table(lua);
         table["exec"] = DynValue.NewCallback((ctx, args) => {
-            Int32 offset = (args.Count > 0 && args[0].Type == DataType.Table) ? 1 : 0;
-            if (args.Count <= offset || args[offset].Type != DataType.String)
+            Int32 offset = args.Count > 0 && args[0].Type == DataType.Table ? 1 : 0;
+            if (args.Count <= offset || args[offset].Type != DataType.String) {
                 throw new ScriptRuntimeException("sqlite handle exec(sql [, params])");
+            }
+
             String sql = args[offset].String;
             Table? paramTable = args.Count > offset + 1 && args[offset + 1].Type == DataType.Table ? args[offset + 1].Table : null;
             Int32 affected = handle.Execute(sql, paramTable);
             return DynValue.NewNumber(affected);
         });
         table["query"] = DynValue.NewCallback((ctx, args) => {
-            Int32 offset = (args.Count > 0 && args[0].Type == DataType.Table) ? 1 : 0;
-            if (args.Count <= offset || args[offset].Type != DataType.String)
+            Int32 offset = args.Count > 0 && args[0].Type == DataType.Table ? 1 : 0;
+            if (args.Count <= offset || args[offset].Type != DataType.String) {
                 throw new ScriptRuntimeException("sqlite handle query(sql [, params])");
+            }
+
             String sql = args[offset].String;
             Table? paramTable = args.Count > offset + 1 && args[offset + 1].Type == DataType.Table ? args[offset + 1].Table : null;
             return handle.Query(sql, paramTable);
@@ -263,11 +303,14 @@ public sealed class LuaScriptAction:Helpers.IAction {
         return table;
     }
     private static DynValue RunProcess(Script lua, Table commandArgs, Table? options) {
-        if (commandArgs == null)
+        if (commandArgs == null) {
             throw new ScriptRuntimeException("run_process expects argument table");
+        }
+
         List<String> arguments = TableToStringList(commandArgs);
-        if (arguments.Count == 0)
+        if (arguments.Count == 0) {
             throw new ScriptRuntimeException("run_process requires at least one argument (executable path)");
+        }
 
         String fileName = arguments[0];
         ProcessStartInfo psi = new ProcessStartInfo {
@@ -277,62 +320,80 @@ public sealed class LuaScriptAction:Helpers.IAction {
             RedirectStandardError = true,
             CreateNoWindow = true
         };
-        for (Int32 i = 1; i < arguments.Count; i++)
+        for (Int32 i = 1; i < arguments.Count; i++) {
             psi.ArgumentList.Add(arguments[i]);
+        }
 
         Boolean captureStdout = true;
         Boolean captureStderr = true;
         Int32? timeoutMs = null;
         if (options != null) {
             DynValue cwd = options.Get("cwd");
-            if (!cwd.IsNil() && cwd.Type == DataType.String)
+            if (!cwd.IsNil() && cwd.Type == DataType.String) {
                 psi.WorkingDirectory = cwd.String;
+            }
 
             DynValue captureStdoutOpt = options.Get("capture_stdout");
-            if (captureStdoutOpt.Type == DataType.Boolean)
+            if (captureStdoutOpt.Type == DataType.Boolean) {
                 captureStdout = captureStdoutOpt.Boolean;
+            }
 
             DynValue captureStderrOpt = options.Get("capture_stderr");
-            if (captureStderrOpt.Type == DataType.Boolean)
+            if (captureStderrOpt.Type == DataType.Boolean) {
                 captureStderr = captureStderrOpt.Boolean;
+            }
 
             DynValue timeoutOpt = options.Get("timeout_ms");
-            if (timeoutOpt.Type == DataType.Number)
+            if (timeoutOpt.Type == DataType.Number) {
                 timeoutMs = (Int32)Math.Max(0, timeoutOpt.Number);
+            }
 
             DynValue envOpt = options.Get("env");
             if (envOpt.Type == DataType.Table) {
                 foreach (TablePair pair in envOpt.Table.Pairs) {
-                    if (pair.Key.Type == DataType.String && pair.Value.Type == DataType.String)
+                    if (pair.Key.Type == DataType.String && pair.Value.Type == DataType.String) {
                         psi.Environment[pair.Key.String] = pair.Value.String;
+                    }
                 }
             }
         }
 
-        if (!captureStdout)
+        if (!captureStdout) {
             psi.RedirectStandardOutput = false;
-        if (!captureStderr)
+        }
+
+        if (!captureStderr) {
             psi.RedirectStandardError = false;
+        }
 
         StringBuilder stdoutBuilder = new StringBuilder();
         StringBuilder stderrBuilder = new StringBuilder();
 
         using Process process = new Process();
         process.StartInfo = psi;
-        if (captureStdout)
-            process.OutputDataReceived += (_, e) => { if (e.Data != null) stdoutBuilder.AppendLine(e.Data); };
-        if (captureStderr)
-            process.ErrorDataReceived += (_, e) => { if (e.Data != null) stderrBuilder.AppendLine(e.Data); };
+        if (captureStdout) {
+            process.OutputDataReceived += (_, e) => { if (e.Data != null) { stdoutBuilder.AppendLine(e.Data); } };
+        }
+
+        if (captureStderr) {
+            process.ErrorDataReceived += (_, e) => { if (e.Data != null) { stderrBuilder.AppendLine(e.Data); } };
+        }
 
         try {
             process.Start();
-            if (captureStdout)
+            if (captureStdout) {
                 process.BeginOutputReadLine();
-            if (captureStderr)
+            }
+
+            if (captureStderr) {
                 process.BeginErrorReadLine();
+            }
+
             if (timeoutMs.HasValue) {
                 if (!process.WaitForExit(timeoutMs.Value)) {
-                    try { process.Kill(entireProcessTree: true); } catch { }
+                    try {
+                        process.Kill(entireProcessTree: true);
+                    } catch { }
                     throw new ScriptRuntimeException($"Process '{fileName}' timed out after {timeoutMs.Value} ms");
                 }
             } else {
@@ -345,13 +406,197 @@ public sealed class LuaScriptAction:Helpers.IAction {
         Table result = new Table(lua);
         result["exit_code"] = process.ExitCode;
         result["success"] = process.ExitCode == 0;
-        if (captureStdout)
+        if (captureStdout) {
             result["stdout"] = stdoutBuilder.ToString();
-        if (captureStderr)
+        }
+
+        if (captureStderr) {
             result["stderr"] = stderrBuilder.ToString();
+        }
+
         return DynValue.NewTable(result);
     }
-    private sealed class SqliteHandle : IDisposable {
+    private static DynValue ExecProcess(Script lua, Table commandArgs, Table? options) {
+        if (commandArgs == null) {
+            throw new ScriptRuntimeException("exec expects argument table");
+        }
+
+        List<String> parts = TableToStringList(commandArgs);
+        if (parts.Count == 0) {
+            throw new ScriptRuntimeException("exec requires at least one argument (executable path)");
+        }
+
+        String cwd = String.Empty;
+        Boolean newTerminal = false;
+        Boolean keepOpen = false;
+        Boolean wait = true;
+        String? title = null;
+        Dictionary<String, Object?> env = new Dictionary<String, Object?>(StringComparer.Ordinal);
+
+        if (options != null) {
+            DynValue v;
+            v = options.Get("cwd");
+            if (!v.IsNil() && v.Type == DataType.String) { cwd = v.String; }
+
+            v = options.Get("new_terminal");
+            if (v.Type == DataType.Boolean) { newTerminal = v.Boolean; }
+
+            v = options.Get("keep_open");
+            if (v.Type == DataType.Boolean) { keepOpen = v.Boolean; }
+
+            v = options.Get("wait");
+            if (v.Type == DataType.Boolean) { wait = v.Boolean; }
+
+            v = options.Get("title");
+            if (v.Type == DataType.String) { title = v.String; }
+
+            v = options.Get("env");
+            if (v.Type == DataType.Table) {
+                foreach (TablePair p in v.Table.Pairs) {
+                    if (p.Key.Type == DataType.String) {
+                        String k = p.Key.String;
+                        Object? val = FromDynValue(p.Value);
+                        env[k] = val?.ToString();
+                    }
+                }
+            }
+        }
+
+        // If requested to open in a new terminal window, best-effort platform specific handling
+        if (newTerminal) {
+            Int32 exitCode = 0;
+            try {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                    // Run the target directly with a visible window; do not redirect streams
+                    ProcessStartInfo psi = new ProcessStartInfo {
+                        UseShellExecute = true,
+                        FileName = parts[0],
+                        Arguments = BuildArguments(parts, 1),
+                        CreateNoWindow = false,
+                        WindowStyle = ProcessWindowStyle.Normal,
+                    };
+                    if (!String.IsNullOrEmpty(cwd)) { psi.WorkingDirectory = cwd; }
+                    foreach (KeyValuePair<String, Object?> kv in env) { psi.Environment[kv.Key] = kv.Value?.ToString() ?? String.Empty; }
+
+                    using Process p = new Process { StartInfo = psi };
+                    p.Start();
+                    if (wait) {
+                        p.WaitForExit();
+                        exitCode = p.ExitCode;
+                    } else {
+                        exitCode = 0; // not waited; assume success for now
+                    }
+                } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+                    // Try to launch a terminal emulator; fall back to current window streaming
+                    String cmdline = BuildCommandLine(parts);
+                    String term = FindTerminalEmulator();
+                    if (term != String.Empty) {
+                        ProcessStartInfo psi = new ProcessStartInfo {
+                            UseShellExecute = false,
+                            RedirectStandardOutput = false,
+                            RedirectStandardError = false,
+                            RedirectStandardInput = false,
+                            CreateNoWindow = false,
+                        };
+                        if (term.Contains("gnome-terminal", StringComparison.OrdinalIgnoreCase)) {
+                            psi.FileName = term;
+                            psi.ArgumentList.Add("--");
+                            psi.ArgumentList.Add("bash");
+                            psi.ArgumentList.Add("-lc");
+                            psi.ArgumentList.Add(keepOpen ? cmdline + "; exec bash" : cmdline);
+                        } else {
+                            // xterm and others
+                            psi.FileName = term;
+                            psi.ArgumentList.Add("-e");
+                            psi.ArgumentList.Add(keepOpen ? $"bash -lc \"{cmdline}; exec bash\"" : $"bash -lc \"{cmdline}\"");
+                        }
+                        if (!String.IsNullOrEmpty(cwd)) { psi.WorkingDirectory = cwd; }
+                        using Process p = new Process { StartInfo = psi };
+                        p.Start();
+                        if (wait) { p.WaitForExit(); exitCode = p.ExitCode; } else { exitCode = 0; }
+                    } else {
+                        // No terminal emulator found; stream in current window instead
+                        return ExecInCurrentTerminal(lua, parts, cwd, env);
+                    }
+                }
+            } catch (Exception ex) {
+                throw new ScriptRuntimeException($"Failed to start new terminal: {ex.Message}");
+            }
+
+            Table result = new Table(lua);
+            result["exit_code"] = exitCode;
+            result["success"] = exitCode == 0;
+            return DynValue.NewTable(result);
+        }
+
+        // Default: stream in current engine output using ProcessRunner
+        return ExecInCurrentTerminal(lua, parts, cwd, env);
+    }
+
+    private static DynValue ExecInCurrentTerminal(Script lua, List<String> parts, String cwd, IDictionary<String, Object?> env) {
+        ProcessRunner runner = new ProcessRunner();
+        Int32 exit = -1;
+        // Merge env overrides
+        Dictionary<String, Object?> envOverrides = new Dictionary<String, Object?>(env, StringComparer.Ordinal);
+        if (!String.IsNullOrEmpty(cwd)) {
+            envOverrides["PWD"] = cwd;
+        }
+
+        // Print each line through EngineSdk
+        Boolean ok = runner.Execute(
+            commandParts: parts,
+            opTitle: Path.GetFileName(parts[0]),
+            onOutput: (line, stream) => {
+                // Map stderr to red for visibility
+                String? color = stream == "stderr" ? "red" : null;
+                EngineSdk.Print(line, color, true);
+            },
+            onEvent: (evt) => {
+                if (evt.TryGetValue("event", out Object? ev) && (ev?.ToString() ?? String.Empty) == "end") {
+                    if (evt.TryGetValue("exit_code", out Object? code) && Int32.TryParse(code?.ToString(), out Int32 c)) {
+                        exit = c;
+                    }
+                }
+            },
+            stdinProvider: null,
+            envOverrides: envOverrides,
+            cancellationToken: default
+        );
+
+        Table result = new Table(lua);
+        result["exit_code"] = exit >= 0 ? exit : (ok ? 0 : 1);
+        result["success"] = ok && (exit == 0 || exit == -1);
+        return DynValue.NewTable(result);
+    }
+
+    private static String BuildArguments(List<String> args, Int32 startIdx) {
+        StringBuilder sb = new StringBuilder();
+        for (Int32 i = startIdx; i < args.Count; i++) {
+            if (i > startIdx) sb.Append(' ');
+            sb.Append(QuoteArg(args[i] ?? String.Empty));
+        }
+        return sb.ToString();
+    }
+
+    private static String QuoteArg(String arg) {
+        if (String.IsNullOrEmpty(arg)) return "\"\"";
+        if (arg.IndexOfAny(new[] { ' ', '\t', '"' }) < 0) return arg;
+        return "\"" + arg.Replace("\"", "\\\"") + "\"";
+    }
+
+    private static String BuildCommandLine(List<String> parts) {
+        return BuildArguments(parts, 0);
+    }
+
+    private static String FindTerminalEmulator() {
+        try {
+            // Try common terminals
+            String[] candidates = new[] { "/usr/bin/gnome-terminal", "/usr/bin/konsole", "/usr/bin/xterm", "/usr/bin/alacritty", "/usr/bin/xfce4-terminal" };
+            foreach (String c in candidates) { if (File.Exists(c)) return c; }
+        } catch { }
+        return String.Empty;
+    }
+    private sealed class SqliteHandle:IDisposable {
         private readonly Script _script;
         private readonly SqliteConnection _connection;
         private SqliteTransaction? _transaction;
@@ -371,8 +616,10 @@ public sealed class LuaScriptAction:Helpers.IAction {
             EnsureNotDisposed();
             using SqliteCommand command = _connection.CreateCommand();
             command.CommandText = sql;
-            if (_transaction != null)
+            if (_transaction != null) {
                 command.Transaction = _transaction;
+            }
+
             BindParameters(command, parameters);
             return command.ExecuteNonQuery();
         }
@@ -381,8 +628,10 @@ public sealed class LuaScriptAction:Helpers.IAction {
             EnsureNotDisposed();
             using SqliteCommand command = _connection.CreateCommand();
             command.CommandText = sql;
-            if (_transaction != null)
+            if (_transaction != null) {
                 command.Transaction = _transaction;
+            }
+
             BindParameters(command, parameters);
             using SqliteDataReader reader = command.ExecuteReader();
             Table result = new Table(_script);
@@ -405,8 +654,10 @@ public sealed class LuaScriptAction:Helpers.IAction {
         }
 
         public void Commit() {
-            if (_disposed)
+            if (_disposed) {
                 return;
+            }
+
             if (_transaction != null) {
                 _transaction.Commit();
                 _transaction.Dispose();
@@ -415,8 +666,10 @@ public sealed class LuaScriptAction:Helpers.IAction {
         }
 
         public void Rollback() {
-            if (_disposed)
+            if (_disposed) {
                 return;
+            }
+
             if (_transaction != null) {
                 _transaction.Rollback();
                 _transaction.Dispose();
@@ -425,8 +678,10 @@ public sealed class LuaScriptAction:Helpers.IAction {
         }
 
         public void Dispose() {
-            if (_disposed)
+            if (_disposed) {
                 return;
+            }
+
             try {
                 _transaction?.Dispose();
                 _connection.Dispose();
@@ -437,19 +692,24 @@ public sealed class LuaScriptAction:Helpers.IAction {
         }
 
         private void EnsureNotDisposed() {
-            if (_disposed)
+            if (_disposed) {
                 throw new ObjectDisposedException(nameof(SqliteHandle));
+            }
         }
 
         private static void BindParameters(SqliteCommand command, Table? parameters) {
-            if (parameters == null)
+            if (parameters == null) {
                 return;
+            }
+
             IDictionary<String, Object?> dict = TableToDictionary(parameters);
             foreach (KeyValuePair<String, Object?> kv in dict) {
                 SqliteParameter parameter = command.CreateParameter();
                 String name = kv.Key;
-                if (!name.StartsWith(":", StringComparison.Ordinal) && !name.StartsWith("@", StringComparison.Ordinal) && !name.StartsWith("$", StringComparison.Ordinal))
+                if (!name.StartsWith(":", StringComparison.Ordinal) && !name.StartsWith("@", StringComparison.Ordinal) && !name.StartsWith("$", StringComparison.Ordinal)) {
                     name = ":" + name;
+                }
+
                 parameter.ParameterName = name;
                 parameter.Value = kv.Value ?? DBNull.Value;
                 command.Parameters.Add(parameter);
@@ -458,39 +718,39 @@ public sealed class LuaScriptAction:Helpers.IAction {
     }
 
     private static DynValue ToDynValue(Script lua, Object? value) {
-        if (value is null || value is DBNull)
-            return DynValue.Nil;
-        return value switch {
-            Boolean b => DynValue.NewBoolean(b),
-            Byte bt => DynValue.NewNumber(bt),
-            SByte sb => DynValue.NewNumber(sb),
-            Int16 i16 => DynValue.NewNumber(i16),
-            UInt16 ui16 => DynValue.NewNumber(ui16),
-            Int32 i32 => DynValue.NewNumber(i32),
-            UInt32 ui32 => DynValue.NewNumber(ui32),
-            Int64 i64 => DynValue.NewNumber(i64),
-            UInt64 ui64 => DynValue.NewNumber(ui64),
-            Single f => DynValue.NewNumber(f),
-            Double d => DynValue.NewNumber(d),
-            Decimal dec => DynValue.NewNumber((Double)dec),
-            DateTime dt => DynValue.NewString(dt.ToString("o", CultureInfo.InvariantCulture)),
-            Byte[] bytes => DynValue.NewString(Convert.ToHexString(bytes)),
-            String s => DynValue.NewString(s),
-            _ => DynValue.NewString(value.ToString() ?? String.Empty)
-        };
+        return value is null || value is DBNull
+            ? DynValue.Nil
+            : value switch {
+                Boolean b => DynValue.NewBoolean(b),
+                Byte bt => DynValue.NewNumber(bt),
+                SByte sb => DynValue.NewNumber(sb),
+                Int16 i16 => DynValue.NewNumber(i16),
+                UInt16 ui16 => DynValue.NewNumber(ui16),
+                Int32 i32 => DynValue.NewNumber(i32),
+                UInt32 ui32 => DynValue.NewNumber(ui32),
+                Int64 i64 => DynValue.NewNumber(i64),
+                UInt64 ui64 => DynValue.NewNumber(ui64),
+                Single f => DynValue.NewNumber(f),
+                Double d => DynValue.NewNumber(d),
+                Decimal dec => DynValue.NewNumber((Double)dec),
+                DateTime dt => DynValue.NewString(dt.ToString("o", CultureInfo.InvariantCulture)),
+                Byte[] bytes => DynValue.NewString(Convert.ToHexString(bytes)),
+                String s => DynValue.NewString(s),
+                _ => DynValue.NewString(value.ToString() ?? String.Empty)
+            };
     }
 
     private static class FsUtils {
         public static Boolean PathExists(String path) => Directory.Exists(path) || File.Exists(path);
 
         public static Boolean PathExistsIncludingLinks(String path) {
-            if (PathExists(path))
+            if (PathExists(path)) {
                 return true;
+            }
+
             try {
                 FileSystemInfo info = GetInfo(path);
-                if (info.Exists)
-                    return true;
-                return info.LinkTarget != null;
+                return info.Exists ? true : info.LinkTarget != null;
             } catch {
                 return false;
             }
@@ -510,12 +770,16 @@ public sealed class LuaScriptAction:Helpers.IAction {
                 String destFull = Path.GetFullPath(destination);
                 String srcFull = Path.GetFullPath(source);
                 String? parent = Path.GetDirectoryName(destFull);
-                if (!String.IsNullOrEmpty(parent))
+                if (!String.IsNullOrEmpty(parent)) {
                     Directory.CreateDirectory(parent);
-                if (isDirectory)
+                }
+
+                if (isDirectory) {
                     Directory.CreateSymbolicLink(destFull, srcFull);
-                else
+                } else {
                     File.CreateSymbolicLink(destFull, srcFull);
+                }
+
                 return true;
             } catch {
                 return false;
@@ -542,23 +806,28 @@ public sealed class LuaScriptAction:Helpers.IAction {
         private static FileSystemInfo GetInfo(String path) {
             String full = Path.GetFullPath(path);
             DirectoryInfo dirInfo = new DirectoryInfo(full);
-            if (dirInfo.Exists)
+            if (dirInfo.Exists) {
                 return dirInfo;
+            }
+
             FileInfo fileInfo = new FileInfo(full);
-            if (fileInfo.Exists)
+            if (fileInfo.Exists) {
                 return fileInfo;
+            }
             // Determine based on trailing separator
-            if (full.EndsWith(Path.DirectorySeparatorChar) || full.EndsWith(Path.AltDirectorySeparatorChar))
-                return new DirectoryInfo(full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-            return fileInfo;
+            return full.EndsWith(Path.DirectorySeparatorChar) || full.EndsWith(Path.AltDirectorySeparatorChar)
+                ? new DirectoryInfo(full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
+                : fileInfo;
         }
     }
 
     private static void PreloadShimModules(Script lua, String scriptPath) {
         // Ensure package.loaded exists
         Table package = lua.Globals.Get("package").IsNil() ? new Table(lua) : lua.Globals.Get("package").Table;
-        if (package.Get("loaded").IsNil())
+        if (package.Get("loaded").IsNil()) {
             package["loaded"] = new Table(lua);
+        }
+
         Table loaded = package.Get("loaded").Table;
 
         // Minimal 'require' shim: return preloaded modules from package.loaded
@@ -571,7 +840,7 @@ public sealed class LuaScriptAction:Helpers.IAction {
 
         // lfs shim
         Table lfs = new Table(lua);
-        lfs["currentdir"] = (Func<String>)(() => Environment.CurrentDirectory);
+        lfs["currentdir"] = () => Environment.CurrentDirectory;
         // lfs.mkdir(path) -> true on success, nil on failure (minimal behavior)
         lfs["mkdir"] = (Func<String, DynValue>)((path) => {
             try {
@@ -672,8 +941,10 @@ public sealed class LuaScriptAction:Helpers.IAction {
             case JsonValueKind.String:
                 return DynValue.NewString(el.GetString() ?? String.Empty);
             case JsonValueKind.Number:
-                if (el.TryGetDouble(out Double d))
+                if (el.TryGetDouble(out Double d)) {
                     return DynValue.NewNumber(d);
+                }
+
                 return DynValue.NewNumber(0);
             case JsonValueKind.True:
                 return DynValue.True;
@@ -715,8 +986,9 @@ public sealed class LuaScriptAction:Helpers.IAction {
         Boolean arrayLike = true;
         foreach (TablePair pair in t.Pairs) {
             count++;
-            if (pair.Key.Type != DataType.Number)
+            if (pair.Key.Type != DataType.Number) {
                 arrayLike = false;
+            }
         }
         if (arrayLike) {
             List<Object?> list = new List<Object?>(count);
@@ -734,8 +1006,10 @@ public sealed class LuaScriptAction:Helpers.IAction {
         // Iterate up to the numeric length; stop when we hit a Nil entry
         for (Int32 i = 1; i <= t.Length; i++) {
             DynValue dv = t.Get(i);
-            if (dv.Type == DataType.Nil || dv.Type == DataType.Void)
+            if (dv.Type == DataType.Nil || dv.Type == DataType.Void) {
                 break;
+            }
+
             String s = dv.Type == DataType.String ? dv.String : dv.ToPrintString();
             list.Add(s);
         }

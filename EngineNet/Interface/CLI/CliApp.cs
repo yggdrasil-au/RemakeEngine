@@ -1,5 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
-namespace RemakeEngine.Interface.CLI;
+namespace EngineNet.Interface.CLI;
 
 public partial class CliApp {
     private readonly Core.OperationsEngine _engine;
@@ -13,8 +17,10 @@ public partial class CliApp {
             for (Int32 i = 0; i < list.Count;) {
                 if (list[i] == "--root") {
                     list.RemoveAt(i);
-                    if (i < list.Count)
+                    if (i < list.Count) {
                         list.RemoveAt(i); // remove path following --root
+                    }
+
                     continue;
                 }
                 i++;
@@ -54,8 +60,9 @@ public partial class CliApp {
             return 0;
         }
         foreach ((String name, Object? obj) in games) {
-            if (obj is Dictionary<String, Object?> dict && dict.TryGetValue("game_root", out Object? root))
+            if (obj is Dictionary<String, Object?> dict && dict.TryGetValue("game_root", out Object? root)) {
                 Console.WriteLine($"- {name}  (root: {root})");
+            }
         }
         return 0;
     }
@@ -71,8 +78,9 @@ public partial class CliApp {
             };
             Console.WriteLine("? Choose a source:");
             Int32 idx = SelectFromMenu(items);
-            if (idx < 0 || items[idx] == "Back")
+            if (idx < 0 || items[idx] == "Back") {
                 return;
+            }
 
             String choice = items[idx];
             if (choice.StartsWith("From registry")) {
@@ -89,8 +97,9 @@ public partial class CliApp {
                 Console.Clear();
                 Console.WriteLine("Select a module to download:");
                 Int32 mIdx = SelectFromMenu(names);
-                if (mIdx < 0 || names[mIdx] == "Back")
+                if (mIdx < 0 || names[mIdx] == "Back") {
                     continue;
+                }
 
                 String name = names[mIdx];
                 if (!regs.TryGetValue(name, out Object? obj) || obj is not Dictionary<String, Object?> mod) {
@@ -111,8 +120,10 @@ public partial class CliApp {
 
             if (choice.StartsWith("From Git URL")) {
                 String url = PromptText("Enter Git URL of the module");
-                if (!String.IsNullOrWhiteSpace(url))
+                if (!String.IsNullOrWhiteSpace(url)) {
                     _engine.DownloadModule(url);
+                }
+
                 return;
             }
         }
@@ -127,7 +138,7 @@ public partial class CliApp {
             Action<Dictionary<String, Object?>>? prevSink = Core.ScriptEngines.Helpers.EngineSdk.LocalEventSink;
             Boolean prevMute = Core.ScriptEngines.Helpers.EngineSdk.MuteStdoutWhenLocalSink;
             try {
-                Core.ScriptEngines.Helpers.EngineSdk.LocalEventSink = Sys.TerminalUtils.OnEvent;
+                Core.ScriptEngines.Helpers.EngineSdk.LocalEventSink = TerminalUtils.OnEvent;
                 Core.ScriptEngines.Helpers.EngineSdk.MuteStdoutWhenLocalSink = true;
                 return _engine.RunSingleOperationAsync(game, games, op, answers).GetAwaiter().GetResult();
             } finally {
@@ -138,15 +149,17 @@ public partial class CliApp {
 
         // Default: build and execute as external command (e.g., python)
         List<String> parts = _engine.BuildCommand(game, games, op, answers);
-        if (parts.Count < 2)
+        if (parts.Count < 2) {
             return false;
+        }
+
         String title = op.TryGetValue("Name", out Object? n) ? n?.ToString() ?? Path.GetFileName(parts[1]) : Path.GetFileName(parts[1]);
         return _engine.ExecuteCommand(
             parts,
             title,
-            onOutput: Sys.TerminalUtils.OnOutput,
-            onEvent: Sys.TerminalUtils.OnEvent,
-            stdinProvider: Sys.TerminalUtils.StdinProvider,
+            onOutput: TerminalUtils.OnOutput,
+            onEvent: TerminalUtils.OnEvent,
+            stdinProvider: TerminalUtils.StdinProvider,
             envOverrides: new Dictionary<String, Object?> { ["TERM"] = "dumb" }
         );
     }
@@ -212,15 +225,18 @@ public partial class CliApp {
         }
         String opsFile = (g is Dictionary<String, Object?> gdict && gdict.TryGetValue("ops_file", out Object? of) && of is String s) ? s : throw new ArgumentException($"Game '{game}' missing ops_file.");
         Dictionary<String, List<Dictionary<String, Object?>>> doc = _engine.LoadOperations(opsFile);
-        foreach (String group in doc.Keys)
+        foreach (String group in doc.Keys) {
             Console.WriteLine(group);
+        }
+
         return 0;
     }
 
 
     private static void CollectAnswersForOperation(Dictionary<String, Object?> op, Dictionary<String, Object?> answers, Boolean defaultsOnly) {
-        if (!op.TryGetValue("prompts", out Object? promptsObj) || promptsObj is not IList<Object?> prompts)
+        if (!op.TryGetValue("prompts", out Object? promptsObj) || promptsObj is not IList<Object?> prompts) {
             return;
+        }
 
         // Helper to set an empty value based on prompt type
         static Object? EmptyForType(String t) => t switch {
@@ -232,12 +248,15 @@ public partial class CliApp {
         if (defaultsOnly) {
             // In defaultsOnly mode, we don't prompt. Apply defaults while respecting conditions.
             foreach (Object? p in prompts) {
-                if (p is not Dictionary<String, Object?> prompt)
+                if (p is not Dictionary<String, Object?> prompt) {
                     continue;
+                }
+
                 String name = prompt.TryGetValue("Name", out Object? n) ? n?.ToString() ?? "" : "";
                 String type = prompt.TryGetValue("type", out Object? t) ? t?.ToString() ?? "" : "";
-                if (String.IsNullOrEmpty(name) || String.IsNullOrEmpty(type))
+                if (String.IsNullOrEmpty(name) || String.IsNullOrEmpty(type)) {
                     continue;
+                }
 
                 // Evaluate condition if present using current 'answers' state
                 if (prompt.TryGetValue("condition", out Object? condObj) && condObj is String condName) {
@@ -246,8 +265,10 @@ public partial class CliApp {
                         // Find the prompt with Name == condName and use its default if any
                         foreach (Object? q in prompts) {
                             if (q is Dictionary<String, Object?> qp && (qp.TryGetValue("Name", out Object? qn) ? qn?.ToString() : null) == condName) {
-                                if (!answers.ContainsKey(condName) && qp.TryGetValue("default", out Object? cd))
+                                if (!answers.ContainsKey(condName) && qp.TryGetValue("default", out Object? cd)) {
                                     answers[condName] = cd;
+                                }
+
                                 break;
                             }
                         }
@@ -259,22 +280,22 @@ public partial class CliApp {
                     }
                 }
 
-                if (prompt.TryGetValue("default", out Object? defVal))
-                    answers[name] = defVal;
-                else
-                    answers[name] = EmptyForType(type);
+                answers[name] = prompt.TryGetValue("default", out Object? defVal) ? defVal : EmptyForType(type);
             }
             return;
         }
 
         // Interactive mode: walk prompts in order, honoring conditions
         foreach (Object? p in prompts) {
-            if (p is not Dictionary<String, Object?> prompt)
+            if (p is not Dictionary<String, Object?> prompt) {
                 continue;
+            }
+
             String name = prompt.TryGetValue("Name", out Object? n) ? n?.ToString() ?? "" : "";
             String type = prompt.TryGetValue("type", out Object? tt) ? tt?.ToString() ?? "" : "";
-            if (String.IsNullOrEmpty(name) || String.IsNullOrEmpty(type))
+            if (String.IsNullOrEmpty(name) || String.IsNullOrEmpty(type)) {
                 continue;
+            }
 
             // If there's a condition and it's false, skip asking and assign an empty value
             if (prompt.TryGetValue("condition", out Object? cond) && cond is String condName) {
@@ -306,8 +327,10 @@ public partial class CliApp {
                     String line = Console.ReadLine() ?? String.Empty;
                     List<Object?> selected = line.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Cast<Object?>().ToList();
                     // If user entered nothing, fall back to default if provided
-                    if (selected.Count == 0 && prompt.TryGetValue("default", out Object? def) && def is IList<Object?> defList)
+                    if (selected.Count == 0 && prompt.TryGetValue("default", out Object? def) && def is IList<Object?> defList) {
                         selected = defList.Select(x => (Object?)x).ToList();
+                    }
+
                     answers[name] = selected;
                     break; }
 
@@ -315,10 +338,7 @@ public partial class CliApp {
                 default: {
                     Console.Write($"{name}: ");
                     String? v = Console.ReadLine();
-                    if (String.IsNullOrEmpty(v) && prompt.TryGetValue("default", out Object? defVal))
-                        answers[name] = defVal;
-                    else
-                        answers[name] = v;
+                    answers[name] = String.IsNullOrEmpty(v) && prompt.TryGetValue("default", out Object? defVal) ? defVal : v;
                     break; }
             }
         }

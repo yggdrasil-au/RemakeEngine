@@ -1,9 +1,17 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Text.Json;
 using Tomlyn;
 using Tomlyn.Model;
-namespace RemakeEngine.Core;
+namespace EngineNet.Core;
 
 public sealed partial class OperationsEngine {
+    /// <summary>
+    /// Loads a flat list of operations from a TOML or JSON file.
+    /// </summary>
+    /// <param name="opsFile">Path to operations.toml or operations.json.</param>
+    /// <returns>List of operation maps (dictionary of string to object).</returns>
     public List<Dictionary<String, Object?>> LoadOperationsList(String opsFile) {
         String ext = Path.GetExtension(opsFile);
         if (ext.Equals(".toml", StringComparison.OrdinalIgnoreCase)) {
@@ -14,8 +22,9 @@ public sealed partial class OperationsEngine {
                 foreach (KeyValuePair<String, Object> kv in table) {
                     if (kv.Value is TomlTableArray arr) {
                         foreach (TomlTable item in arr) {
-                            if (item is TomlTable tt)
+                            if (item is TomlTable tt) {
                                 list.Add(ToMap(tt));
+                            }
                         }
                     }
                 }
@@ -27,8 +36,9 @@ public sealed partial class OperationsEngine {
         if (jdoc.RootElement.ValueKind == JsonValueKind.Array) {
             List<Dictionary<String, Object?>> list = new List<Dictionary<String, Object?>>();
             foreach (JsonElement item in jdoc.RootElement.EnumerateArray()) {
-                if (item.ValueKind == JsonValueKind.Object)
+                if (item.ValueKind == JsonValueKind.Object) {
                     list.Add(ToMap(item));
+                }
             }
             return list;
         }
@@ -38,8 +48,9 @@ public sealed partial class OperationsEngine {
             foreach (JsonProperty prop in jdoc.RootElement.EnumerateObject()) {
                 if (prop.Value.ValueKind == JsonValueKind.Array) {
                     foreach (JsonElement item in prop.Value.EnumerateArray()) {
-                        if (item.ValueKind == JsonValueKind.Object)
+                        if (item.ValueKind == JsonValueKind.Object) {
                             flat.Add(ToMap(item));
+                        }
                     }
                 }
             }
@@ -48,6 +59,11 @@ public sealed partial class OperationsEngine {
         return new();
     }
 
+    /// <summary>
+    /// Loads grouped operations from a TOML or JSON file.
+    /// </summary>
+    /// <param name="opsFile">Path to operations.toml or operations.json.</param>
+    /// <returns>Dictionary mapping group name to a list of operations.</returns>
     public Dictionary<String, List<Dictionary<String, Object?>>> LoadOperations(String opsFile) {
         String ext = Path.GetExtension(opsFile);
         if (ext.Equals(".toml", StringComparison.OrdinalIgnoreCase)) {
@@ -59,8 +75,9 @@ public sealed partial class OperationsEngine {
                     if (kv.Value is TomlTableArray arr) {
                         List<Dictionary<String, Object?>> list = new List<Dictionary<String, Object?>>();
                         foreach (TomlTable item in arr) {
-                            if (item is TomlTable tt)
+                            if (item is TomlTable tt) {
                                 list.Add(ToMap(tt));
+                            }
                         }
                         result[kv.Key] = list;
                     }
@@ -77,8 +94,9 @@ public sealed partial class OperationsEngine {
                 List<Dictionary<String, Object?>> list = new List<Dictionary<String, Object?>>();
                 if (prop.Value.ValueKind == JsonValueKind.Array) {
                     foreach (JsonElement item in prop.Value.EnumerateArray()) {
-                        if (item.ValueKind == JsonValueKind.Object)
+                        if (item.ValueKind == JsonValueKind.Object) {
                             list.Add(ToMap(item));
+                        }
                     }
                 }
                 resultJson[prop.Name] = list;
@@ -109,15 +127,19 @@ public sealed partial class OperationsEngine {
 
     private static List<Object?> ToList(JsonElement arr) {
         List<Object?> list = new List<Object?>();
-        foreach (JsonElement item in arr.EnumerateArray())
+        foreach (JsonElement item in arr.EnumerateArray()) {
             list.Add(FromJson(item));
+        }
+
         return list;
     }
 
     private static Dictionary<String, Object?> ToMap(TomlTable table) {
         Dictionary<String, Object?> dict = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
-        foreach (KeyValuePair<String, Object> kv in table)
+        foreach (KeyValuePair<String, Object> kv in table) {
             dict[kv.Key] = FromToml(kv.Value);
+        }
+
         return dict;
     }
 
@@ -127,13 +149,17 @@ public sealed partial class OperationsEngine {
                 return ToMap(tt);
             case TomlTableArray ta:
                 List<Object?> listTa = new List<Object?>();
-                foreach (TomlTable item in ta)
+                foreach (TomlTable item in ta) {
                     listTa.Add(FromToml(item));
+                }
+
                 return listTa;
             case TomlArray arr:
                 List<Object?> listArr = new List<Object?>();
-                foreach (Object? item in arr)
+                foreach (Object? item in arr) {
                     listArr.Add(FromToml(item));
+                }
+
                 return listArr;
             default:
                 return value;

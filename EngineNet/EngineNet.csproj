@@ -7,7 +7,7 @@
 			net8.0-windows10.0.19041.0;
 		</TargetFrameworks>
 
-		<ImplicitUsings>enable</ImplicitUsings>
+		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<OutputType>Exe</OutputType>
 		<LangVersion>latest</LangVersion>

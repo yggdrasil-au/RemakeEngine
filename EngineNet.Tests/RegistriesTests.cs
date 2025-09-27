@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using RemakeEngine.Core;
 using Xunit;
 
 namespace EngineNet.Tests;
@@ -45,8 +44,8 @@ public class RegistriesTests
         // JSON operations
         File.WriteAllText(System.IO.Path.Combine(g3, "operations.json"), "[ { \"Name\": \"Do\", \"script\": \"do.py\" } ]");
 
-        RemakeEngine.Sys.Registries reg = new RemakeEngine.Sys.Registries(td.Path);
-        Dictionary<String, RemakeEngine.Sys.GameInfo> games = reg.DiscoverGames();
+        EngineNet.Core.Sys.Registries reg = new EngineNet.Core.Sys.Registries(td.Path);
+        Dictionary<String, EngineNet.Core.Sys.GameInfo> games = reg.DiscoverGames();
         Assert.Contains("GameA", games.Keys);
         Assert.Contains("GameC", games.Keys);
         Assert.DoesNotContain("GameB", games.Keys);
@@ -77,10 +76,10 @@ public class RegistriesTests
 
         File.WriteAllText(System.IO.Path.Combine(g1, "game.toml"), "title = \"My Game\"\nexe = \"" + exePathRel.Replace("\\", "\\\\") + "\"\n");
 
-        RemakeEngine.Sys.Registries reg = new RemakeEngine.Sys.Registries(td.Path);
-        Dictionary<String, RemakeEngine.Sys.GameInfo> games = reg.DiscoverInstalledGames();
+        EngineNet.Core.Sys.Registries reg = new EngineNet.Core.Sys.Registries(td.Path);
+        Dictionary<String, EngineNet.Core.Sys.GameInfo> games = reg.DiscoverInstalledGames();
         Assert.Contains("GameA", games.Keys);
-        RemakeEngine.Sys.GameInfo info = games["GameA"];
+        EngineNet.Core.Sys.GameInfo info = games["GameA"];
         Assert.NotNull(info.ExePath);
         Assert.True(System.IO.Path.IsPathRooted(info.ExePath!));
         Assert.Equal("My Game", info.Title);

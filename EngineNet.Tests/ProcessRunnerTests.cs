@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using RemakeEngine.Core;
 using Xunit;
 
 namespace EngineNet.Tests;
@@ -15,9 +14,9 @@ public class ProcessRunnerTests
 
         // Create a small batch script that emits a normal line and a REMAKE event line
         String tmpBat = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "enginenet_evt_" + Guid.NewGuid().ToString("N") + ".cmd");
-        System.IO.File.WriteAllText(tmpBat, "@echo off\r\necho hello\r\necho " + RemakeEngine.Sys.Types.RemakePrefix + "{\"event\":\"progress\",\"percent\":50}\r\n");
+        System.IO.File.WriteAllText(tmpBat, "@echo off\r\necho hello\r\necho " + EngineNet.Core.Sys.Types.RemakePrefix + "{\"event\":\"progress\",\"percent\":50}\r\n");
 
-        RemakeEngine.Sys.ProcessRunner runner = new RemakeEngine.Sys.ProcessRunner();
+        EngineNet.Core.Sys.ProcessRunner runner = new EngineNet.Core.Sys.ProcessRunner();
         List<(String line, String stream)> outputs = new List<(String line, String stream)>();
         List<Dictionary<String, Object?>> events = new List<Dictionary<String, Object?>>();
 
@@ -26,7 +25,7 @@ public class ProcessRunnerTests
         Boolean ok = runner.Execute(
             parts,
             opTitle: "script-test",
-            onOutput: (l, s) => outputs.Add((l, s)),
+            onOutput: (string l, string s) => outputs.Add((l, s)),
             onEvent: e => events.Add(e)
         );
 

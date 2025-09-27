@@ -1,3 +1,4 @@
+using EngineNet.Tools;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,16 +7,13 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading.Tasks;
-using RemakeEngine.Tools;
 using Xunit;
 
 namespace EngineNet.Tests;
 
-public class SimpleTomlTests
-{
+public class SimpleTomlTests {
     [Fact]
-    public void ReadTools_ParsesMultipleToolTables()
-    {
+    public void ReadTools_ParsesMultipleToolTables() {
         using TempDir dir = new TempDir();
         String path = System.IO.Path.Combine(dir.Path, "tools.toml");
         File.WriteAllText(path, "[[tool]]\nname = \"Foo\"\nversion = \"1.0\"\ndestination = \"./foo\"\nunpack = true\n\n[[tool]]\nName = \"Bar\"\nversion = \"2.0\"\nunknown = 123\n\n[[other]]\nName = \"Ignored\"\n");
@@ -33,23 +31,25 @@ public class SimpleTomlTests
         Assert.Equal("123", second["unknown"]);
     }
 
-    private sealed class TempDir: IDisposable
-    {
-        public String Path { get; }
-        public TempDir()
-        {
+    private sealed class TempDir:IDisposable {
+        public String Path {
+            get;
+        }
+        public TempDir() {
             Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "enginetest_simpletoml_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
         }
-        public void Dispose() { try { Directory.Delete(Path, recursive: true); } catch { } }
+        public void Dispose() {
+            try {
+                Directory.Delete(Path, recursive: true);
+            } catch { }
+        }
     }
 }
 
-public class JsonToolResolverTests
-{
+public class JsonToolResolverTests {
     [Fact]
-    public void ResolveToolPath_UsesMappingsAndFallsBack()
-    {
+    public void ResolveToolPath_UsesMappingsAndFallsBack() {
         using TempDir dir = new TempDir();
         String jsonPath = System.IO.Path.Combine(dir.Path, "tools.json");
         Directory.CreateDirectory(System.IO.Path.Combine(dir.Path, "bin"));
@@ -77,37 +77,37 @@ public class JsonToolResolverTests
     }
 
     [Fact]
-    public void PassthroughResolver_ReturnsToolId()
-    {
+    public void PassthroughResolver_ReturnsToolId() {
         PassthroughToolResolver resolver = new PassthroughToolResolver();
         Assert.Equal("example", resolver.ResolveToolPath("example"));
     }
 
-    private sealed class TempDir: IDisposable
-    {
-        public String Path { get; }
-        public TempDir()
-        {
+    private sealed class TempDir:IDisposable {
+        public String Path {
+            get;
+        }
+        public TempDir() {
             Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "enginetest_jsontools_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
         }
-        public void Dispose() { try { Directory.Delete(Path, recursive: true); } catch { } }
+        public void Dispose() {
+            try {
+                Directory.Delete(Path, recursive: true);
+            } catch { }
+        }
     }
 }
 
-public class ToolsDownloaderTests
-{
+public class ToolsDownloaderTests {
     [Fact]
-    public async Task ProcessAsync_ThrowsWhenManifestMissing()
-    {
+    public async Task ProcessAsync_ThrowsWhenManifestMissing() {
         using TempDir dir = new TempDir();
         ToolsDownloader downloader = new ToolsDownloader(dir.Path, System.IO.Path.Combine(dir.Path, "central.json"));
         await Assert.ThrowsAsync<FileNotFoundException>(() => downloader.ProcessAsync(System.IO.Path.Combine(dir.Path, "missing.toml"), force: false));
     }
 
     [Fact]
-    public async Task ProcessAsync_SkipsDownloadAndUpdatesLockFile()
-    {
+    public async Task ProcessAsync_SkipsDownloadAndUpdatesLockFile() {
         using TempDir dir = new TempDir();
         String centralJson = System.IO.Path.Combine(dir.Path, "Tools.json");
         String manifestPath = System.IO.Path.Combine(dir.Path, "module.toml");
@@ -140,8 +140,7 @@ public class ToolsDownloaderTests
     }
 
     [Fact]
-    public async Task ProcessAsync_UnpacksZipAndCapturesExecutable()
-    {
+    public async Task ProcessAsync_UnpacksZipAndCapturesExecutable() {
         using TempDir dir = new TempDir();
         String centralJson = System.IO.Path.Combine(dir.Path, "Tools.json");
         String manifestPath = System.IO.Path.Combine(dir.Path, "module.toml");
@@ -180,21 +179,24 @@ public class ToolsDownloaderTests
         Assert.Equal(expectedExePath, exe, StringComparer.OrdinalIgnoreCase);
     }
 
-    private static String GetPlatform()
-    {
+    private static String GetPlatform() {
         MethodInfo method = typeof(ToolsDownloader).GetMethod("GetPlatformIdentifier", BindingFlags.NonPublic | BindingFlags.Static)!;
         return (String)method.Invoke(null, Array.Empty<Object>())!;
     }
 
-    private sealed class TempDir: IDisposable
-    {
-        public String Path { get; }
-        public TempDir()
-        {
+    private sealed class TempDir:IDisposable {
+        public String Path {
+            get;
+        }
+        public TempDir() {
             Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "enginetest_toolsdown_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
         }
-        public void Dispose() { try { Directory.Delete(Path, recursive: true); } catch { } }
+        public void Dispose() {
+            try {
+                Directory.Delete(Path, recursive: true);
+            } catch { }
+        }
     }
 }
 

@@ -1,16 +1,49 @@
-using System.Collections.Concurrent;
-using System.Collections;
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
+using System.Collections.Concurrent;
+using System.Collections;
 
-namespace RemakeEngine.Sys;
+namespace EngineNet.Core.Sys;
 
+/// <summary>
+/// Executes external processes while streaming output and handling structured
+/// engine events embedded in stdout/stderr. Lines starting with <see cref="Types.RemakePrefix"/>
+/// are parsed as JSON event payloads and forwarded to <c>onEvent</c>.
+/// Supports interactive prompts by invoking <c>stdinProvider</c> when a prompt event is received.
+/// </summary>
 public sealed class ProcessRunner {
+    /// <summary>
+    /// Callback to receive a single line of output from the child process.
+    /// </summary>
+    /// <param name="line">Text of the line.</param>
+    /// <param name="streamName">"stdout" or "stderr".</param>
     public delegate void OutputHandler(String line, String streamName);
+    /// <summary>
+    /// Callback to receive a structured engine event decoded from the child output.
+    /// </summary>
     public delegate void EventHandler(Dictionary<String, Object?> evt);
+    /// <summary>
+    /// Provider used to gather user input when a prompt event is seen.
+    /// Return value is written to the child's stdin with a trailing newline.
+    /// </summary>
     public delegate String? StdinProvider();
 
+    /// <summary>
+    /// Execute a command line and stream output until completion or cancellation.
+    /// </summary>
+    /// <param name="commandParts">Executable followed by its arguments. Must contain at least two items when running scripts.</param>
+    /// <param name="opTitle">Human-readable operation title used in diagnostics.</param>
+    /// <param name="onOutput">Optional callback for stdout/stderr lines.</param>
+    /// <param name="onEvent">Optional callback for structured events.</param>
+    /// <param name="stdinProvider">Optional provider for prompt responses.</param>
+    /// <param name="envOverrides">Optional environment variables to inject/override for the child.</param>
+    /// <param name="cancellationToken">Token to abort execution.</param>
+    /// <returns>True on zero exit code; false otherwise.</returns>
     public Boolean Execute(
         IList<String> commandParts,
         String opTitle,
@@ -49,32 +82,40 @@ public sealed class ProcessRunner {
             StandardOutputEncoding = Encoding.UTF8,
             StandardErrorEncoding = Encoding.UTF8,
         };
-        for (Int32 i = 1; i < commandParts.Count; i++)
+        for (Int32 i = 1; i < commandParts.Count; i++) {
             psi.ArgumentList.Add(commandParts[i]);
+        }
 
-        foreach (DictionaryEntry de in Environment.GetEnvironmentVariables())
+        foreach (DictionaryEntry de in Environment.GetEnvironmentVariables()) {
             psi.Environment[de.Key.ToString()!] = de.Value?.ToString() ?? String.Empty;
+        }
 
-        if (envOverrides != null)
-            foreach (KeyValuePair<String, Object?> kv in envOverrides)
+        if (envOverrides != null) {
+            foreach (KeyValuePair<String, Object?> kv in envOverrides) {
                 psi.Environment[kv.Key] = kv.Value?.ToString() ?? String.Empty;
+            }
+        }
 
         // Encourage line-buffered UTF-8 for child Python
-        if (!psi.Environment.ContainsKey("PYTHONUNBUFFERED"))
+        if (!psi.Environment.ContainsKey("PYTHONUNBUFFERED")) {
             psi.Environment["PYTHONUNBUFFERED"] = "1";
-        if (!psi.Environment.ContainsKey("PYTHONIOENCODING"))
+        }
+
+        if (!psi.Environment.ContainsKey("PYTHONIOENCODING")) {
             psi.Environment["PYTHONIOENCODING"] = "utf-8";
+        }
 
         using Process proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
 
         BlockingCollection<(String stream, String line)> q = new BlockingCollection<(String stream, String line)>(boundedCapacity: 1000);
 
-        DataReceivedEventHandler outHandler = (_, e) => { if (e.Data != null) q.Add(("stdout", e.Data)); };
-        DataReceivedEventHandler errHandler = (_, e) => { if (e.Data != null) q.Add(("stderr", e.Data)); };
+        DataReceivedEventHandler outHandler = (_, e) => { if (e.Data != null) { q.Add(("stdout", e.Data)); } };
+        DataReceivedEventHandler errHandler = (_, e) => { if (e.Data != null) { q.Add(("stderr", e.Data)); } };
 
         try {
-            if (!proc.Start())
+            if (!proc.Start()) {
                 throw new InvalidOperationException("Failed to start process");
+            }
 
             proc.OutputDataReceived += outHandler;
             proc.ErrorDataReceived += errHandler;
@@ -98,8 +139,10 @@ public sealed class ProcessRunner {
                     try {
                         Dictionary<String, Object?> evt = JsonSerializer.Deserialize<Dictionary<String, Object?>>(payload) ?? new();
                         if (evt.TryGetValue("event", out Object? evType) && (evType?.ToString() ?? "") == "prompt") {
-                            if (!suppressPromptEcho)
+                            if (!suppressPromptEcho) {
                                 onEvent?.Invoke(evt);
+                            }
+
                             return evt.TryGetValue("message", out Object? msg) ? msg?.ToString() ?? "Input required" : "Input required";
                         }
                         onEvent?.Invoke(evt);
@@ -121,8 +164,9 @@ public sealed class ProcessRunner {
                     return false;
                 }
 
-                if (!q.TryTake(out (String stream, String line) item, 100))
+                if (!q.TryTake(out (String stream, String line) item, 100)) {
                     continue;
+                }
 
                 String? promptMsg = HandleLine(item.line, item.stream);
                 if (promptMsg != null) {
@@ -188,21 +232,26 @@ public sealed class ProcessRunner {
     }
 
     private static String FormatCommand(IList<String> parts) {
-        StringBuilder sb = new System.Text.StringBuilder();
+        StringBuilder sb = new StringBuilder();
         for (Int32 i = 0; i < parts.Count; i++) {
-            if (i > 0)
+            if (i > 0) {
                 sb.Append(' ');
+            }
+
             sb.Append(QuoteArg(parts[i] ?? String.Empty));
         }
         return sb.ToString();
     }
 
     private static String QuoteArg(String arg) {
-        if (String.IsNullOrEmpty(arg))
+        if (String.IsNullOrEmpty(arg)) {
             return "\"\"";
+        }
+
         Boolean needsQuotes = arg.IndexOfAny(new[] { ' ', '\t', '"' }) >= 0;
-        if (!needsQuotes)
+        if (!needsQuotes) {
             return arg;
+        }
         // Escape embedded quotes by backslash
         String escaped = arg.Replace("\"", "\\\"");
         return "\"" + escaped + "\"";

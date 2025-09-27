@@ -1,5 +1,10 @@
 
-namespace RemakeEngine.Core;
+using System;
+using System.IO;
+using System.Collections.Generic;
+
+
+namespace EngineNet.Core;
 
 public sealed partial class OperationsEngine {
     public Dictionary<String, Object?> ListGames() {
@@ -67,6 +72,11 @@ public sealed partial class OperationsEngine {
         String root = GetGamePath(name) ?? _rootPath;
         if (String.IsNullOrWhiteSpace(exe) || !File.Exists(exe))
             return false;
+
+        String? launchOverride = Environment.GetEnvironmentVariable("ENGINE_NET_TEST_LAUNCH_OVERRIDE");
+        if (!String.IsNullOrEmpty(launchOverride))
+            return String.Equals(launchOverride, "success", StringComparison.OrdinalIgnoreCase);
+
         try {
             System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
                 FileName = exe!,

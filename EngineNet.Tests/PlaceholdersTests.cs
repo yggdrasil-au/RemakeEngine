@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using RemakeEngine.Core;
 using Xunit;
 
 namespace EngineNet.Tests;
@@ -17,7 +16,7 @@ public class PlaceholdersTests
             }
         };
         String input = "hello {{User.Name}}";
-        Object? result = RemakeEngine.Sys.Placeholders.Resolve(input, ctx);
+        Object? result = EngineNet.Core.Sys.Placeholders.Resolve(input, ctx);
         Assert.Equal("hello Bart", result);
     }
 
@@ -26,7 +25,7 @@ public class PlaceholdersTests
     {
         Dictionary<String, Object?> ctx = new Dictionary<String, Object?>();
         String input = "hi {{missing}}";
-        Object? result = RemakeEngine.Sys.Placeholders.Resolve(input, ctx);
+        Object? result = EngineNet.Core.Sys.Placeholders.Resolve(input, ctx);
         Assert.Equal("hi {{missing}}", result);
     }
 
@@ -42,7 +41,7 @@ public class PlaceholdersTests
             ["a"] = "{{Root.Path}}/bin",
             ["b"] = new List<Object?> { "x", "{{Root.Path}}/y" }
         };
-        Dictionary<String, Object?>? resolved = (Dictionary<String, Object?>?)RemakeEngine.Sys.Placeholders.Resolve(input, ctx);
+        Dictionary<String, Object?>? resolved = (Dictionary<String, Object?>?)EngineNet.Core.Sys.Placeholders.Resolve(input, ctx);
         Assert.NotNull(resolved);
         Assert.Equal("/games/foo/bin", resolved!["a"]);
         List<Object?> b = Assert.IsType<List<Object?>>(resolved["b"]);

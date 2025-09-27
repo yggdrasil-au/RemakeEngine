@@ -1,8 +1,10 @@
-
-using System.Collections;
+using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace RemakeEngine.Sys;
+using System.Collections;
+
+namespace EngineNet.Core.Sys;
 
 /// <summary>
 /// Utilities to resolve string placeholders within arbitrarily nested objects.
@@ -33,23 +35,28 @@ public static class Placeholders {
     /// </returns>
     public static Object? Resolve(Object? value, IDictionary<String, Object?> context) {
         // Nulls are returned unchanged.
-        if (value is null)
+        if (value is null) {
             return null;
+        }
 
         // If it's a dictionary, resolve each value and return a new dictionary.
         if (value is IDictionary<String, Object?> dict) {
             // Note: output dictionary uses case-insensitive keys for convenience.
             Dictionary<String, Object?> outDict = new Dictionary<String, Object?>(dict.Count, StringComparer.OrdinalIgnoreCase);
-            foreach (KeyValuePair<String, Object?> kv in dict)
+            foreach (KeyValuePair<String, Object?> kv in dict) {
                 outDict[kv.Key] = Resolve(kv.Value, context); // Recurse into values
+            }
+
             return outDict;
         }
 
         // If it's a list, resolve each element and return a new list.
         if (value is IList list) {
             List<Object?> outList = new List<Object?>(list.Count);
-            foreach (Object? item in list)
+            foreach (Object? item in list) {
                 outList.Add(Resolve(item, context)); // Recurse into items
+            }
+
             return outList;
         }
 
@@ -77,10 +84,12 @@ public static class Placeholders {
         foreach (String part in dotted.Split('.')) {
             // Traverse only dictionaries with string keys; bail out if structure doesn't match.
             if (current is IDictionary<String, Object?> d) {
-                if (!d.TryGetValue(part, out current))
+                if (!d.TryGetValue(part, out current)) {
                     return null; // Missing key
-            } else
+                }
+            } else {
                 return null; // Hit a non-dictionary before finishing the path
+            }
         }
         // Convert the resolved terminal value to string (if not null).
         return current?.ToString();

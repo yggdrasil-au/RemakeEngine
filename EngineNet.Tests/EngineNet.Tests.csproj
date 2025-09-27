@@ -18,9 +18,12 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Avalonia.Headless" Version="11.0.10" />
+    <PackageReference Include="Avalonia.Headless.XUnit" Version="11.0.10" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\EngineNet\EngineNet.csproj" />
+    <ProjectReference Include="..\EngineNet.Interface.GUI.Avalonia\EngineNet.Interface.GUI.Avalonia.csproj" />
   </ItemGroup>
 </Project>

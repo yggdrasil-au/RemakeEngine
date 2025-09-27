@@ -1,9 +1,15 @@
-
+//
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
+using System.Threading;
+using System.Linq;
 
-namespace RemakeEngine.Core.FileHandlers;
+namespace EngineNet.Core.FileHandlers;
 
 /// <summary>
 /// Built-in media converter that mirrors Tools/ffmpeg-vgmstream/convert.py behavior.
@@ -47,15 +53,24 @@ public static class MediaConverter {
     private static readonly ConcurrentDictionary<Int32, ActiveJob> s_active = new();
     private static readonly Object s_consoleLock = new();
 
+    /// <summary>
+    /// Converts media files using ffmpeg or vgmstream while preserving directory layout.
+    /// </summary>
+    /// <param name="args">
+    /// CLI-style arguments. Required: --mode ffmpeg|vgmstream, --type audio|video, --source DIR, --target DIR,
+    /// --input-ext .ext, --output-ext .ext. Optional: --overwrite, --ffmpeg PATH, --vgmstream PATH,
+    /// --workers N, --godot, --verbose, --debug, codec/quality options.</param>
+    /// <returns>True if all files were processed successfully; false otherwise.</returns>
     public static Boolean Run(IList<String> args) {
         try {
             Options opt = Parse(args);
 
             // Resolve executables if not provided
-            if (String.Equals(opt.Mode, ToolFfmpeg, StringComparison.OrdinalIgnoreCase))
+            if (String.Equals(opt.Mode, ToolFfmpeg, StringComparison.OrdinalIgnoreCase)) {
                 opt.FfmpegPath = opt.FfmpegPath ?? Which(ToolFfmpeg) ?? Which("ffmpeg.exe") ?? ToolFfmpeg;
-            else if (String.Equals(opt.Mode, ToolVgmstream, StringComparison.OrdinalIgnoreCase))
+            } else if (String.Equals(opt.Mode, ToolVgmstream, StringComparison.OrdinalIgnoreCase)) {
                 opt.VgmstreamCli = opt.VgmstreamCli ?? Which(VgmstreamCliName) ?? Which(VgmstreamCliExe) ?? VgmstreamCliName;
+            }
 
             if (!Directory.Exists(opt.Source)) {
                 WriteError($"Source directory not found: {opt.Source}");
@@ -108,29 +123,29 @@ public static class MediaConverter {
                             String outFront = basePath + "_front" + opt.OutputExt;
                             String outRear = basePath + "_rear" + opt.OutputExt;
                             if ((File.Exists(outFront) && File.Exists(outRear)) || File.Exists(dest)) {
-                                System.Threading.Interlocked.Increment(ref skipped);
-                                System.Threading.Interlocked.Increment(ref processed);
+                                Interlocked.Increment(ref skipped);
+                                Interlocked.Increment(ref processed);
                                 return;
                             }
                         } else if (File.Exists(dest)) {
-                            System.Threading.Interlocked.Increment(ref skipped);
-                            System.Threading.Interlocked.Increment(ref processed);
+                            Interlocked.Increment(ref skipped);
+                            Interlocked.Increment(ref processed);
                             return;
                         }
                     }
 
                     (Boolean ok, String? msg) = ConvertOne(src, dest, opt);
-                    if (ok)
-                        System.Threading.Interlocked.Increment(ref success);
-                    else {
-                        System.Threading.Interlocked.Increment(ref errors);
+                    if (ok) {
+                        Interlocked.Increment(ref success);
+                    } else {
+                        Interlocked.Increment(ref errors);
                         errorList.Add((Path.GetFileName(src), msg ?? "unknown error"));
                     }
-                    System.Threading.Interlocked.Increment(ref processed);
+                    Interlocked.Increment(ref processed);
                 } catch (Exception ex) {
-                    System.Threading.Interlocked.Increment(ref errors);
+                    Interlocked.Increment(ref errors);
                     errorList.Add((Path.GetFileName(src), ex.Message));
-                    System.Threading.Interlocked.Increment(ref processed);
+                    Interlocked.Increment(ref processed);
                 }
             });
             progressCts.Cancel();
@@ -214,7 +229,10 @@ public static class MediaConverter {
                 // Reserve enough lines below the current cursor so that redrawing doesn't cause the buffer to scroll.
                 panelTop = Console.CursorTop;
                 Int32 reserve = EstimateMaxPanelLines();
-                for (Int32 i = 0; i < reserve; i++) Console.WriteLine();
+                for (Int32 i = 0; i < reserve; i++) {
+                    Console.WriteLine();
+                }
+
                 try { Console.SetCursorPosition(0, panelTop); } catch { /* ignore */ }
                 // Tell DrawPanel that there are already 'reserve' blank lines to overwrite/clear
                 lastLines = reserve;
@@ -234,7 +252,10 @@ public static class MediaConverter {
 
     private static List<String> BuildPanelLines(Int32 total, (Int32 processed, Int32 ok, Int32 skip, Int32 err) s, List<ActiveJob> actives, Char spinner) {
         List<String> lines = new List<String>(2 + actives.Count);
-        if (total < 0) total = 0;
+        if (total < 0) {
+            total = 0;
+        }
+
         Double percent = Math.Clamp(total == 0 ? 1.0 : (Double)s.processed / Math.Max(1, total), 0.0, 1.0);
         Int32 width = 30;
         try { width = Math.Max(10, Math.Min(40, Console.WindowWidth - 60)); } catch { /* ignore */ }
@@ -242,7 +263,10 @@ public static class MediaConverter {
         StringBuilder bar = new StringBuilder(width + 32);
         bar.Append("Converting Files ");
         bar.Append('[');
-        for (Int32 i = 0; i < width; i++) bar.Append(i < filled ? '#' : '-');
+        for (Int32 i = 0; i < width; i++) {
+            bar.Append(i < filled ? '#' : '-');
+        }
+
         bar.Append(']');
         bar.Append(' ');
         bar.Append((Int32)Math.Round(percent * 100));
@@ -272,12 +296,16 @@ public static class MediaConverter {
                 String file = job.File;
                 // Trim long names to fit
                 Int32 maxFile = 50;
-                try { maxFile = Math.Max(18, (Console.WindowWidth - 20)); } catch { /* ignore */ }
-                if (file.Length > maxFile) file = file.Substring(0, maxFile - 3) + "...";
+                try { maxFile = Math.Max(18, Console.WindowWidth - 20); } catch { /* ignore */ }
+                if (file.Length > maxFile) {
+                    file = file.Substring(0, maxFile - 3) + "...";
+                }
+
                 lines.Add($"  {spinner} {job.Tool} · {file} · {elStr}");
             }
-            if (actives.Count > 8)
+            if (actives.Count > 8) {
                 lines.Add($"  … and {actives.Count - Math.Min(actives.Count, 8)} more");
+            }
         }
         return lines;
     }
@@ -292,9 +320,14 @@ public static class MediaConverter {
                 try { width = Math.Max(20, Console.WindowWidth - 1); } catch { width = 120; }
                 for (Int32 i = 0; i < lines.Count; i++) {
                     String line = lines[i];
-                    if (line.Length > width) line = line.Substring(0, width);
+                    if (line.Length > width) {
+                        line = line.Substring(0, width);
+                    }
+
                     Console.Write(line.PadRight(width));
-                    if (i < lines.Count - 1) Console.Write('\n');
+                    if (i < lines.Count - 1) {
+                        Console.Write('\n');
+                    }
                 }
                 // Clear remaining previous lines if panel shrunk
                 for (Int32 i = lines.Count; i < lastLines; i++) {
@@ -365,8 +398,9 @@ public static class MediaConverter {
                         try { return Exec(ff, args, opt.Debug); }
                         finally { UnregisterActive(); }
                     }
-                } else
+                } else {
                     return (false, $"Unsupported type: {opt.Type}");
+                }
             } else if (String.Equals(opt.Mode, "vgmstream", StringComparison.OrdinalIgnoreCase)) {
                 String vg = opt.VgmstreamCli ?? VgmstreamCliName;
                 if (String.Equals(opt.Type, TypeAudio, StringComparison.OrdinalIgnoreCase)) {
@@ -378,8 +412,9 @@ public static class MediaConverter {
                             RegisterActive("vgmstream", srcPath);
                             (Boolean ok1, String? msg1) = Exec(vg, a1, opt.Debug);
                             UnregisterActive();
-                            if (!ok1)
+                            if (!ok1) {
                                 return (false, msg1);
+                            }
 
                             String ff = opt.FfmpegPath ?? Which(ToolFfmpeg) ?? Which("ffmpeg.exe") ?? ToolFfmpeg;
                             Int32? channels = TryReadWavChannels(tmpWav);
@@ -405,8 +440,10 @@ public static class MediaConverter {
                                 RegisterActive("ffmpeg", Path.GetFileName(tmpWav));
                                 (Boolean ok2, String? msg2) = Exec(ff, a2, opt.Debug);
                                 UnregisterActive();
-                                if (!ok2)
+                                if (!ok2) {
                                     return (false, msg2);
+                                }
+
                                 return (true, null);
                             } else {
                                 List<String> a2 = new List<String> {
@@ -419,14 +456,17 @@ public static class MediaConverter {
                                 RegisterActive("ffmpeg", Path.GetFileName(tmpWav));
                                 (Boolean ok2, String? msg2) = Exec(ff, a2, opt.Debug);
                                 UnregisterActive();
-                                if (!ok2)
+                                if (!ok2) {
                                     return (false, msg2);
+                                }
+
                                 return (true, null);
                             }
                         } finally {
                             try {
-                                if (File.Exists(tmpWav))
+                                if (File.Exists(tmpWav)) {
                                     File.Delete(tmpWav);
+                                }
                             } catch { /* ignore */ }
                         }
                     } else {
@@ -443,8 +483,9 @@ public static class MediaConverter {
             return (false, $"Unsupported mode: {opt.Mode}");
         } catch (Exception ex) {
             try {
-                if (File.Exists(destPath))
+                if (File.Exists(destPath)) {
                     File.Delete(destPath);
+                }
             } catch { /* safe to ignore: best-effort temp file cleanup */ }
             return (false, ex.Message);
         }
@@ -469,8 +510,10 @@ public static class MediaConverter {
         try {
             using Process p = new Process();
             p.StartInfo.FileName = fileName;
-            foreach (String a in arguments)
+            foreach (String a in arguments) {
                 p.StartInfo.ArgumentList.Add(a);
+            }
+
             p.StartInfo.UseShellExecute = false;
             p.StartInfo.CreateNoWindow = true;
             p.StartInfo.RedirectStandardError = !passthroughOutput;
@@ -478,29 +521,33 @@ public static class MediaConverter {
             try { p.StartInfo.StandardErrorEncoding = Encoding.UTF8; } catch { /* non-critical: default encoding is fine */ }
             try { p.StartInfo.StandardOutputEncoding = Encoding.UTF8; } catch { /* non-critical: default encoding is fine */ }
 
-            if (!p.Start())
+            if (!p.Start()) {
                 return (false, "failed to start process");
+            }
 
             StringBuilder? errBuf = null;
             StringBuilder? outBuf = null;
             if (!passthroughOutput) {
                 errBuf = new StringBuilder(8 * 1024);
                 outBuf = new StringBuilder(8 * 1024);
-                p.ErrorDataReceived += (_, e) => { if (e.Data != null) { lock (errBuf!) errBuf!.AppendLine(e.Data); } };
-                p.OutputDataReceived += (_, e) => { if (e.Data != null) { lock (outBuf!) outBuf!.AppendLine(e.Data); } };
+                p.ErrorDataReceived += (_, e) => { if (e.Data != null) { lock (errBuf!) { errBuf!.AppendLine(e.Data); } } };
+                p.OutputDataReceived += (_, e) => { if (e.Data != null) { lock (outBuf!) { outBuf!.AppendLine(e.Data); } } };
                 try { p.BeginErrorReadLine(); } catch { /* non-critical: process may not support async read in some hosts */ }
                 try { p.BeginOutputReadLine(); } catch { /* non-critical */ }
             }
 
             p.WaitForExit();
 
-            if (p.ExitCode == 0)
+            if (p.ExitCode == 0) {
                 return (true, null);
+            }
 
             if (!passthroughOutput) {
                 String err = errBuf?.ToString() ?? String.Empty;
-                if (String.IsNullOrWhiteSpace(err))
+                if (String.IsNullOrWhiteSpace(err)) {
                     err = outBuf?.ToString() ?? String.Empty;
+                }
+
                 String msg = String.IsNullOrWhiteSpace(err) ? $"exit code {p.ExitCode}" : err.Trim();
                 return (false, msg);
             }
@@ -530,7 +577,9 @@ public static class MediaConverter {
             String riff = new String(br.ReadChars(4));
             br.ReadUInt32(); // file size
             String wave = new String(br.ReadChars(4));
-            if (riff != "RIFF" || wave != "WAVE") return null;
+            if (riff != "RIFF" || wave != "WAVE") {
+                return null;
+            }
             // Find 'fmt ' chunk
             while (fs.Position + 8 <= fs.Length) {
                 String id = new String(br.ReadChars(4));
@@ -540,13 +589,18 @@ public static class MediaConverter {
                     UInt16 channels = br.ReadUInt16();
                     // skip rest of fmt
                     Int64 remaining = (Int64)size - 4;
-                    if (remaining > 0) fs.Position = Math.Min(fs.Length, fs.Position + remaining);
+                    if (remaining > 0) {
+                        fs.Position = Math.Min(fs.Length, fs.Position + remaining);
+                    }
+
                     return channels;
                 } else {
                     fs.Position = Math.Min(fs.Length, fs.Position + size);
                 }
                 // chunks are word-aligned
-                if ((size & 1) != 0 && fs.Position < fs.Length) fs.Position++;
+                if ((size & 1) != 0 && fs.Position < fs.Length) {
+                    fs.Position++;
+                }
             }
         } catch { /* ignore parse errors */ }
         return null;
@@ -557,7 +611,7 @@ public static class MediaConverter {
         // Simple argv parser (supports both short and long flags)
         for (Int32 i = 0; i < argv.Count; i++) {
             String a = argv[i] ?? String.Empty;
-            String NextVal() => (++i < argv.Count) ? argv[i] ?? String.Empty : throw new ArgumentException($"Missing value for {a}");
+            String NextVal() => ++i < argv.Count ? argv[i] ?? String.Empty : throw new ArgumentException($"Missing value for {a}");
 
             switch (a) {
                 case "-m":
@@ -610,8 +664,10 @@ public static class MediaConverter {
                     break;
                 case "-w":
                 case "--workers":
-                    if (Int32.TryParse(NextVal(), out Int32 w))
+                    if (Int32.TryParse(NextVal(), out Int32 w)) {
                         o.Workers = Math.Max(1, w);
+                    }
+
                     break;
                 case "-v":
                 case "--verbose":
@@ -654,8 +710,9 @@ public static class MediaConverter {
             foreach (String dir in path.Split(Path.PathSeparator)) {
                 try {
                     String candidate = Path.Combine(dir, name);
-                    if (File.Exists(candidate))
+                    if (File.Exists(candidate)) {
                         return candidate;
+                    }
                 } catch { /* ignore */ }
             }
         } catch { /* ignore */ }
@@ -681,8 +738,10 @@ public static class MediaConverter {
     }
 
     private static void WriteVerbose(Boolean enabled, String msg) {
-        if (!enabled)
+        if (!enabled) {
             return;
+        }
+
         Console.ForegroundColor = ConsoleColor.DarkGray;
         Console.WriteLine(msg);
         Console.ResetColor();

@@ -1,5 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
 
-namespace RemakeEngine.Interface.CLI;
+namespace EngineNet.Interface.CLI;
 
 public partial class CliApp {
     private Int32 RunInteractiveMenu() {
@@ -11,8 +14,10 @@ public partial class CliApp {
             List<String> actions = new List<String> { "Download module…", "Exit" };
             Console.WriteLine("? Choose an action:");
             Int32 aidx = SelectFromMenu(actions);
-            if (aidx < 0 || actions[aidx] == "Exit")
+            if (aidx < 0 || actions[aidx] == "Exit") {
                 return 0;
+            }
+
             if (actions[aidx].StartsWith("Download")) {
                 ShowDownloadMenu();
                 games = _engine.ListGames();
@@ -28,8 +33,10 @@ public partial class CliApp {
             gameMenu.Add("Download module…");
             gameMenu.Add("Exit");
             Int32 gidx = SelectFromMenu(gameMenu, highlightSeparators: true);
-            if (gidx < 0 || gameMenu[gidx] == "Exit")
+            if (gidx < 0 || gameMenu[gidx] == "Exit") {
                 return 0;
+            }
+
             String gsel = gameMenu[gidx];
             if (gsel.StartsWith("Download module")) {
                 ShowDownloadMenu();
@@ -90,8 +97,9 @@ public partial class CliApp {
 
             Console.WriteLine("? Select an operation: (Use arrow keys)");
             Int32 idx = SelectFromMenu(menu, highlightSeparators: true);
-            if (idx < 0)
+            if (idx < 0) {
                 return 0; // canceled
+            }
 
             String selection = menu[idx];
             if (selection == "Change Game") {
@@ -104,11 +112,15 @@ public partial class CliApp {
             if (selection == "Run All") {
                 // Collect prompts for all selected ops: init + run-all flagged
                 List<Dictionary<String, Object?>> runAll = new List<Dictionary<String, Object?>>();
-                if (!didRunInit)
+                if (!didRunInit) {
                     runAll.AddRange(initOps);
-                foreach (Dictionary<String, Object?> op in regularOps)
-                    if (op.TryGetValue("run-all", out Object? ra) && ra is Boolean rb && rb)
+                }
+
+                foreach (Dictionary<String, Object?> op in regularOps) {
+                    if (op.TryGetValue("run-all", out Object? ra) && ra is Boolean rb && rb) {
                         runAll.Add(op);
+                    }
+                }
 
                 Console.Clear();
                 Console.WriteLine($"Running {runAll.Count} operations for {gameName}…\n");

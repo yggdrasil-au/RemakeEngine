@@ -1,5 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
-namespace RemakeEngine.Core.ScriptEngines.Helpers;
+namespace EngineNet.Core.ScriptEngines.Helpers;
 
 /// <summary>
 /// Utility helpers for common project setup and filesystem operations used by scripts.
@@ -10,8 +14,10 @@ public static class ConfigHelpers {
     /// If missing, creates a skeleton file similar to EngineNet.Program. Returns the config path.
     /// </summary>
     public static String EnsureProjectConfig(String rootDir) {
-        if (String.IsNullOrWhiteSpace(rootDir))
+        if (String.IsNullOrWhiteSpace(rootDir)) {
             throw new ArgumentException("rootDir is empty");
+        }
+
         Directory.CreateDirectory(rootDir);
         String configPath = Path.Combine(rootDir, "project.json");
         if (!File.Exists(configPath)) {
@@ -27,10 +33,13 @@ public static class ConfigHelpers {
     /// Throws if invalid.
     /// </summary>
     public static void ValidateSourceDir(String dir) {
-        if (String.IsNullOrWhiteSpace(dir))
+        if (String.IsNullOrWhiteSpace(dir)) {
             throw new ArgumentException("Source directory path is empty");
-        if (!Directory.Exists(dir))
+        }
+
+        if (!Directory.Exists(dir)) {
             throw new DirectoryNotFoundException($"Source directory not found: {dir}");
+        }
         // Basic access check: attempt to enumerate one entry (if any)
         try {
             using IEnumerator<String> _ = Directory.EnumerateFileSystemEntries(dir).GetEnumerator();
@@ -44,16 +53,22 @@ public static class ConfigHelpers {
     /// If <paramref name="overwrite"/> is false and destination exists, throws.
     /// </summary>
     public static void CopyDirectory(String sourceDir, String destDir, Boolean overwrite = false) {
-        if (String.IsNullOrWhiteSpace(sourceDir))
+        if (String.IsNullOrWhiteSpace(sourceDir)) {
             throw new ArgumentException("sourceDir is empty");
-        if (String.IsNullOrWhiteSpace(destDir))
+        }
+
+        if (String.IsNullOrWhiteSpace(destDir)) {
             throw new ArgumentException("destDir is empty");
-        if (!Directory.Exists(sourceDir))
+        }
+
+        if (!Directory.Exists(sourceDir)) {
             throw new DirectoryNotFoundException($"Source not found: {sourceDir}");
+        }
 
         if (Directory.Exists(destDir)) {
-            if (!overwrite)
+            if (!overwrite) {
                 throw new IOException($"Destination already exists: {destDir}");
+            }
         } else {
             Directory.CreateDirectory(destDir);
         }
@@ -80,16 +95,22 @@ public static class ConfigHelpers {
     /// falls back to copy+delete.
     /// </summary>
     public static void MoveDirectory(String sourceDir, String destDir, Boolean overwrite = false) {
-        if (String.IsNullOrWhiteSpace(sourceDir))
+        if (String.IsNullOrWhiteSpace(sourceDir)) {
             throw new ArgumentException("sourceDir is empty");
-        if (String.IsNullOrWhiteSpace(destDir))
+        }
+
+        if (String.IsNullOrWhiteSpace(destDir)) {
             throw new ArgumentException("destDir is empty");
-        if (!Directory.Exists(sourceDir))
+        }
+
+        if (!Directory.Exists(sourceDir)) {
             throw new DirectoryNotFoundException($"Source not found: {sourceDir}");
+        }
 
         if (Directory.Exists(destDir)) {
-            if (!overwrite)
+            if (!overwrite) {
                 throw new IOException($"Destination already exists: {destDir}");
+            }
             // We'll merge by copy then delete source
             CopyDirectory(sourceDir, destDir, overwrite: true);
             Directory.Delete(sourceDir, recursive: true);
@@ -111,14 +132,17 @@ public static class ConfigHelpers {
     /// Returns null if not found.
     /// </summary>
     public static String? FindSubdir(String baseDir, String name, Boolean caseInsensitive = true) {
-        if (!Directory.Exists(baseDir))
+        if (!Directory.Exists(baseDir)) {
             return null;
+        }
+
         StringComparer cmp = caseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
         try {
             foreach (String d in Directory.EnumerateDirectories(baseDir)) {
                 String dn = new DirectoryInfo(d).Name;
-                if (cmp.Equals(dn, name))
+                if (cmp.Equals(dn, name)) {
                     return d;
+                }
             }
         } catch { }
         return null;
@@ -129,8 +153,10 @@ public static class ConfigHelpers {
     /// Comparison is case-insensitive on Windows by default.
     /// </summary>
     public static Boolean HasAllSubdirs(String baseDir, IEnumerable<String> names, Boolean caseInsensitive = true) {
-        if (!Directory.Exists(baseDir))
+        if (!Directory.Exists(baseDir)) {
             return false;
+        }
+
         StringComparer cmp = caseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
         HashSet<String> existing;
         try {
@@ -141,10 +167,13 @@ public static class ConfigHelpers {
             return false;
         }
         foreach (String n in names) {
-            if (String.IsNullOrWhiteSpace(n))
+            if (String.IsNullOrWhiteSpace(n)) {
                 continue;
-            if (!existing.Contains(n))
+            }
+
+            if (!existing.Contains(n)) {
                 return false;
+            }
         }
         return true;
     }

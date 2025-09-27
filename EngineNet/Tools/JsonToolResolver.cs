@@ -1,8 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 
-namespace RemakeEngine.Tools;
+namespace EngineNet.Tools;
 
 /// <summary>
 /// Loads tool paths from JSON. Supports either:
@@ -11,7 +12,7 @@ namespace RemakeEngine.Tools;
 /// Unknown shapes are ignored. Relative paths resolve relative to the JSON file.
 /// </summary>
 public sealed class JsonToolResolver:IToolResolver {
-    private readonly Dictionary<String, String> _tools = new(System.StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<String, String> _tools = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     private readonly String _baseDir;
 
     public JsonToolResolver(String jsonPath) {
@@ -23,8 +24,10 @@ public sealed class JsonToolResolver:IToolResolver {
                 String? path = ExtractPath(prop.Value);
                 if (!String.IsNullOrWhiteSpace(path)) {
                     String resolved = path!;
-                    if (!Path.IsPathRooted(resolved))
+                    if (!Path.IsPathRooted(resolved)) {
                         resolved = Path.GetFullPath(Path.Combine(_baseDir, resolved));
+                    }
+
                     _tools[prop.Name] = resolved;
                 }
             }
@@ -36,12 +39,18 @@ public sealed class JsonToolResolver:IToolResolver {
             case JsonValueKind.String:
                 return value.GetString();
             case JsonValueKind.Object:
-                if (value.TryGetProperty("exe", out JsonElement exe) && exe.ValueKind == JsonValueKind.String)
+                if (value.TryGetProperty("exe", out JsonElement exe) && exe.ValueKind == JsonValueKind.String) {
                     return exe.GetString();
-                if (value.TryGetProperty("path", out JsonElement path) && path.ValueKind == JsonValueKind.String)
+                }
+
+                if (value.TryGetProperty("path", out JsonElement path) && path.ValueKind == JsonValueKind.String) {
                     return path.GetString();
-                if (value.TryGetProperty("command", out JsonElement cmd) && cmd.ValueKind == JsonValueKind.String)
+                }
+
+                if (value.TryGetProperty("command", out JsonElement cmd) && cmd.ValueKind == JsonValueKind.String) {
                     return cmd.GetString();
+                }
+
                 return null;
             default:
                 return null;
@@ -49,8 +58,9 @@ public sealed class JsonToolResolver:IToolResolver {
     }
 
     public String ResolveToolPath(String toolId) {
-        if (_tools.TryGetValue(toolId, out String? path))
+        if (_tools.TryGetValue(toolId, out String? path)) {
             return path;
+        }
         // Fallback to PATH lookup by returning the id
         return toolId;
     }

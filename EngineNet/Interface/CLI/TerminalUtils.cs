@@ -1,5 +1,7 @@
+using System;
+using System.Collections.Generic;
 
-namespace RemakeEngine.Sys;
+namespace EngineNet.Interface.CLI;
 
 public class TerminalUtils {
 
@@ -10,7 +12,10 @@ public class TerminalUtils {
         Console.ForegroundColor = prev;
     }
     private static ConsoleColor MapColor(String? name) {
-        if (String.IsNullOrWhiteSpace(name)) return ConsoleColor.Gray;
+        if (String.IsNullOrWhiteSpace(name)) {
+            return ConsoleColor.Gray;
+        }
+
         switch (name.Trim().ToLowerInvariant()) {
             case "default": return ConsoleColor.Gray;
             case "black": return ConsoleColor.Black;
@@ -45,7 +50,7 @@ public class TerminalUtils {
     public static void OnOutput(String line, String stream) {
         ConsoleColor prev = Console.ForegroundColor;
         try {
-            Console.ForegroundColor = (stream == "stderr") ? ConsoleColor.Red : ConsoleColor.Gray;
+            Console.ForegroundColor = stream == "stderr" ? ConsoleColor.Red : ConsoleColor.Gray;
             Console.WriteLine(line);
         } finally { Console.ForegroundColor = prev; }
     }
@@ -53,28 +58,37 @@ public class TerminalUtils {
     private static String _lastPrompt = "Input required";
 
     public static void OnEvent(Dictionary<String, Object?> evt) {
-        if (!evt.TryGetValue("event", out Object? typObj))
+        if (!evt.TryGetValue("event", out Object? typObj)) {
             return;
+        }
+
         String? typ = typObj?.ToString();
         ConsoleColor prev = Console.ForegroundColor;
 
         switch (typ)
 		{
 			case "print":
-                String msg = evt.TryGetValue("message", out Object? m) ? (m?.ToString() ?? String.Empty) : String.Empty;
-                String colorName = evt.TryGetValue("color", out Object? c) ? (c?.ToString() ?? String.Empty) : String.Empty;
+                String msg = evt.TryGetValue("message", out Object? m) ? m?.ToString() ?? String.Empty : String.Empty;
+                String colorName = evt.TryGetValue("color", out Object? c) ? c?.ToString() ?? String.Empty : String.Empty;
                 Boolean newline = true;
-				try { if (evt.TryGetValue("newline", out Object? nl) && nl is not null) newline = Convert.ToBoolean(nl); } catch { newline = true; }
+				try { if (evt.TryGetValue("newline", out Object? nl) && nl is not null) {
+                        newline = Convert.ToBoolean(nl);
+                    }
+                } catch { newline = true; }
 				prev = Console.ForegroundColor;
 				try
 				{
 					Console.ForegroundColor = MapColor(colorName);
-					if (newline) Console.WriteLine(msg); else Console.Write(msg);
-				}
+					if (newline) {
+                        Console.WriteLine(msg);
+                    } else {
+                        Console.Write(msg);
+                    }
+                }
 				finally { Console.ForegroundColor = prev; }
 				break;
 			case "prompt":
-				_lastPrompt = evt.TryGetValue("message", out Object? mm) ? (mm?.ToString() ?? "Input required") : "Input required";
+				_lastPrompt = evt.TryGetValue("message", out Object? mm) ? mm?.ToString() ?? "Input required" : "Input required";
 				prev = Console.ForegroundColor;
 				Console.ForegroundColor = ConsoleColor.Cyan;
 				Console.WriteLine($"? {_lastPrompt}");

@@ -1,5 +1,7 @@
+using System.Threading.Tasks;
+using System.Threading;
 
-namespace RemakeEngine.Core.ScriptEngines.Helpers;
+namespace EngineNet.Core.ScriptEngines.Helpers;
 
 /// <summary>
 /// Represents a single executable step within a game module.

@@ -1,7 +1,9 @@
+using System;
+using System.IO;
 using System.Diagnostics;
 using System.Text;
 
-namespace RemakeEngine.Sys;
+namespace EngineNet.Core.Sys;
 
 /// <summary>
 /// Lightweight Git helper to clone game modules into the local registry.
@@ -35,8 +37,9 @@ public sealed class GitTools {
     }
 
     public Boolean CloneModule(String url) {
-        if (String.IsNullOrWhiteSpace(url))
+        if (String.IsNullOrWhiteSpace(url)) {
             return false;
+        }
 
         if (!IsGitInstalled()) {
             WriteColored("Git is not installed or not found in PATH.", ConsoleColor.Red, prefix: "ENGINE");
@@ -44,7 +47,7 @@ public sealed class GitTools {
         }
         try {
             String repoName = GuessRepoName(url);
-            String target = System.IO.Path.Combine(_gamesDir, repoName);
+            String target = Path.Combine(_gamesDir, repoName);
             if (Directory.Exists(target)) {
                 WriteColored($"Directory '{repoName}' already exists. Skipping download.", ConsoleColor.Yellow, prefix: "ENGINE");
                 return true;
@@ -68,11 +71,12 @@ public sealed class GitTools {
             psi.ArgumentList.Add(target);
 
             using Process? proc = Process.Start(psi);
-            if (proc is null)
+            if (proc is null) {
                 throw new InvalidOperationException("Failed to start git");
+            }
 
-            proc.OutputDataReceived += (_, e) => { if (e.Data != null) WriteColored(e.Data, ConsoleColor.Blue, prefix: "ENGINE"); };
-            proc.ErrorDataReceived += (_, e) => { if (e.Data != null) WriteColored(e.Data, ConsoleColor.Blue, prefix: "ENGINE"); };
+            proc.OutputDataReceived += (_, e) => { if (e.Data != null) { WriteColored(e.Data, ConsoleColor.Blue, prefix: "ENGINE"); } };
+            proc.ErrorDataReceived += (_, e) => { if (e.Data != null) { WriteColored(e.Data, ConsoleColor.Blue, prefix: "ENGINE"); } };
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
             proc.WaitForExit();
@@ -92,11 +96,14 @@ public sealed class GitTools {
     private static String GuessRepoName(String url) {
         try {
             Uri uri = new Uri(url);
-            String leaf = System.IO.Path.GetFileName(uri.AbsolutePath);
-            if (leaf.EndsWith(".git", StringComparison.OrdinalIgnoreCase))
+            String leaf = Path.GetFileName(uri.AbsolutePath);
+            if (leaf.EndsWith(".git", StringComparison.OrdinalIgnoreCase)) {
                 leaf = leaf.Substring(0, leaf.Length - 4);
-            if (!String.IsNullOrWhiteSpace(leaf))
+            }
+
+            if (!String.IsNullOrWhiteSpace(leaf)) {
                 return leaf;
+            }
         } catch { /* fall back to string parsing */ }
         String tail = url.Replace("\\", "/");
         Int32 idx = tail.LastIndexOf('/');
@@ -108,8 +115,10 @@ public sealed class GitTools {
         ConsoleColor prev = Console.ForegroundColor;
         try {
             Console.ForegroundColor = color;
-            if (!String.IsNullOrWhiteSpace(prefix))
+            if (!String.IsNullOrWhiteSpace(prefix)) {
                 Console.Write($"[{prefix}] ");
+            }
+
             Console.WriteLine(message);
         } finally {
             Console.ForegroundColor = prev;

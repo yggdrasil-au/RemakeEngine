@@ -1,9 +1,8 @@
 using System;
 using System.IO;
 using System.Net.Http;
-using System.Threading.Tasks;
 
-namespace RemakeEngine.Sys;
+namespace EngineNet.Tools;
 
 public static class RemoteFallbacks {
     private const String RepoOwner = "yggdrasil-au";
@@ -17,8 +16,9 @@ public static class RemoteFallbacks {
     /// </summary>
     public static Boolean EnsureRepoFile(String repoRelativePath, String localPath) {
         try {
-            if (File.Exists(localPath))
+            if (File.Exists(localPath)) {
                 return true;
+            }
 
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(localPath)) ?? ".");
 
@@ -28,8 +28,10 @@ public static class RemoteFallbacks {
                 String url = $"https://raw.githubusercontent.com/{RepoOwner}/{RepoName}/{branch}/{repoRelativePath.Replace('\\', '/')}";
                 try {
                     HttpResponseMessage resp = http.GetAsync(url).GetAwaiter().GetResult();
-                    if (!resp.IsSuccessStatusCode)
+                    if (!resp.IsSuccessStatusCode) {
                         continue;
+                    }
+
                     Byte[] bytes = resp.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
                     File.WriteAllBytes(localPath, bytes);
                     Console.ForegroundColor = ConsoleColor.DarkYellow;

@@ -1,8 +1,14 @@
-using System.IO.Compression;
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Threading.Tasks;
+using System.IO.Compression;
+using System.Net.Http;
 
-namespace RemakeEngine.Tools;
+
+namespace EngineNet.Tools;
 
 public sealed class ToolsDownloader {
     private readonly String _rootPath;
@@ -15,17 +21,21 @@ public sealed class ToolsDownloader {
 
     public async Task<Boolean> ProcessAsync(String moduleTomlPath, Boolean force) {
         WriteHeader($"Tools Downloader — manifest: {moduleTomlPath}");
-        if (!File.Exists(moduleTomlPath))
+        if (!File.Exists(moduleTomlPath)) {
             throw new FileNotFoundException("Tools manifest not found", moduleTomlPath);
+        }
+
         if (!File.Exists(_centralRepoJsonPath)) {
             // Attempt remote fallback to fetch Tools.json from the engine repo
             try {
                 Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_centralRepoJsonPath)) ?? _rootPath);
             } catch { }
-            Sys.RemoteFallbacks.EnsureRepoFile("RemakeRegistry/Tools.json", _centralRepoJsonPath);
+
+            RemoteFallbacks.EnsureRepoFile("RemakeRegistry/Tools.json", _centralRepoJsonPath);
         }
-        if (!File.Exists(_centralRepoJsonPath))
+        if (!File.Exists(_centralRepoJsonPath)) {
             throw new FileNotFoundException("Central tools registry not found", _centralRepoJsonPath);
+        }
 
         String platform = GetPlatformIdentifier();
         Info($"Platform: {platform}");
@@ -51,8 +61,9 @@ public sealed class ToolsDownloader {
         foreach (Dictionary<String, Object?> dep in toolsList) {
             String? toolName = (dep.TryGetValue("name", out Object? n1) ? n1 : dep.TryGetValue("Name", out Object? n2) ? n2 : null)?.ToString();
             String? version = dep.TryGetValue("version", out Object? v) ? v?.ToString() : null;
-            if (String.IsNullOrWhiteSpace(toolName) || String.IsNullOrWhiteSpace(version))
+            if (String.IsNullOrWhiteSpace(toolName) || String.IsNullOrWhiteSpace(version)) {
                 continue;
+            }
 
             Info("");
             Title($"Processing: {toolName} {version}");
@@ -109,10 +120,11 @@ public sealed class ToolsDownloader {
 
                 // Try to find an exe in dest (best-effort)
                 exePath = FindExe(dest, toolName!);
-                if (!String.IsNullOrWhiteSpace(exePath))
+                if (!String.IsNullOrWhiteSpace(exePath)) {
                     Info($"Detected executable: {exePath}");
-                else
+                } else {
                     Warn("Could not detect an executable automatically.");
+                }
             }
 
             // Update lockfile entry
@@ -176,8 +188,10 @@ public sealed class ToolsDownloader {
         Console.ResetColor();
     }
     private static void Info(String msg) {
-        if (String.IsNullOrEmpty(msg))
+        if (String.IsNullOrEmpty(msg)) {
             return;
+        }
+
         Console.ForegroundColor = ConsoleColor.Gray;
         Console.WriteLine(msg);
         Console.ResetColor();
@@ -218,10 +232,13 @@ public sealed class ToolsDownloader {
         out String sha256) {
         url = String.Empty;
         sha256 = String.Empty;
-        if (!central.TryGetValue(tool, out Object? toolObj) || toolObj is not JsonElement toolElem || toolElem.ValueKind != JsonValueKind.Object)
+        if (!central.TryGetValue(tool, out Object? toolObj) || toolObj is not JsonElement toolElem || toolElem.ValueKind != JsonValueKind.Object) {
             return false;
-        if (!toolElem.TryGetProperty(version, out JsonElement verElem) || verElem.ValueKind != JsonValueKind.Object)
+        }
+
+        if (!toolElem.TryGetProperty(version, out JsonElement verElem) || verElem.ValueKind != JsonValueKind.Object) {
             return false;
+        }
         // exact platform or prefix match
         if (verElem.TryGetProperty(platform, out JsonElement platElem) && platElem.ValueKind == JsonValueKind.Object) {
             if (platElem.TryGetProperty("url", out JsonElement u) && u.ValueKind == JsonValueKind.String) {
@@ -264,7 +281,7 @@ public sealed class ToolsDownloader {
         try {
             foreach (String file in Directory.EnumerateFiles(root, "*.exe", SearchOption.AllDirectories)) {
                 String name = Path.GetFileName(file).ToLowerInvariant();
-                if (name.Contains(toolName.ToLowerInvariant()) || toolName.Equals("QuickBMS", StringComparison.OrdinalIgnoreCase) && name.Contains("quickbms")) {
+                if (name.Contains(toolName.ToLowerInvariant()) || (toolName.Equals("QuickBMS", StringComparison.OrdinalIgnoreCase) && name.Contains("quickbms"))) {
                     return file;
                 }
             }

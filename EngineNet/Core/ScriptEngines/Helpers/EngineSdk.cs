@@ -1,6 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Text.Json;
 
-
-namespace RemakeEngine.Core.ScriptEngines.Helpers;
+namespace EngineNet.Core.ScriptEngines.Helpers;
 
 /// <summary>
 /// Lightweight SDK to communicate with the Remake Engine runner via stdout JSON events.
@@ -18,7 +20,7 @@ public static class EngineSdk {
     }
     public static Boolean MuteStdoutWhenLocalSink { get; set; } = true;
 
-    private static readonly System.Text.Json.JsonSerializerOptions JsonOpts = new() {
+    private static readonly JsonSerializerOptions JsonOpts = new() {
         WriteIndented = false,
         PropertyNamingPolicy = null,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never
@@ -33,8 +35,9 @@ public static class EngineSdk {
             ["event"] = @event
         };
         if (data != null) {
-            foreach (KeyValuePair<String, Object?> kv in data)
+            foreach (KeyValuePair<String, Object?> kv in data) {
                 payload[kv.Key] = kv.Value;
+            }
         }
 
         // Notify in-process sink first (if any)
@@ -43,19 +46,22 @@ public static class EngineSdk {
                 // Pass a shallow copy to avoid accidental modifications by receivers
                 LocalEventSink(new Dictionary<String, Object?>(payload, StringComparer.Ordinal));
             } catch { /* ignore sink errors */ }
-            if (MuteStdoutWhenLocalSink)
+            if (MuteStdoutWhenLocalSink) {
                 return;
+            }
         }
 
         String json;
         try {
-            json = System.Text.Json.JsonSerializer.Serialize(payload, JsonOpts);
+            json = JsonSerializer.Serialize(payload, JsonOpts);
         } catch {
             // As a last resort, stringify values to avoid serialization failures
             Dictionary<String, Object?> safe = new Dictionary<String, Object?>(StringComparer.Ordinal);
-            foreach (KeyValuePair<String, Object?> kv in payload)
+            foreach (KeyValuePair<String, Object?> kv in payload) {
                 safe[kv.Key] = kv.Value?.ToString();
-            json = System.Text.Json.JsonSerializer.Serialize(safe, JsonOpts);
+            }
+
+            json = JsonSerializer.Serialize(safe, JsonOpts);
         }
 
         try {
@@ -136,7 +142,7 @@ public static class EngineSdk {
             Current = 0;
             Id = id;
             Label = label;
-            EngineSdk.Emit("progress", new Dictionary<String, Object?> {
+            Emit("progress", new Dictionary<String, Object?> {
                 ["id"] = Id,
                 ["current"] = 0,
                 ["total"] = Total,
@@ -146,7 +152,7 @@ public static class EngineSdk {
 
         public void Update(Int32 inc = 1) {
             Current = Math.Min(Total, Current + Math.Max(1, inc));
-            EngineSdk.Emit("progress", new Dictionary<String, Object?> {
+            Emit("progress", new Dictionary<String, Object?> {
                 ["id"] = Id,
                 ["current"] = Current,
                 ["total"] = Total,

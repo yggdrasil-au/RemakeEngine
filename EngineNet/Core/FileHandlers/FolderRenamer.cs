@@ -1,7 +1,14 @@
+//
 using System.Text.Json;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+//
 using Microsoft.Data.Sqlite;
 
-namespace RemakeEngine.Core.FileHandlers;
+
+namespace EngineNet.Core.FileHandlers;
 
 /// <summary>
 /// Provides a built-in replacement for the legacy RenameFolders.py utility.
@@ -16,6 +23,11 @@ public static class FolderRenamer {
         public String? JsonFile;
     }
 
+    /// <summary>
+    /// Renames directories in a target tree according to a mapping from SQLite, JSON, or inline CLI definitions.
+    /// </summary>
+    /// <param name="args">CLI-style args: TARGET_DIR [--map-db-file PATH --db-table-name NAME] | [--map-cli OLD NEW ...] | [--map-json PATH]</param>
+    /// <returns>True if renames completed; false if a failure occurred.</returns>
     public static Boolean Run(IList<String> args) {
         Options options;
         try {
@@ -36,8 +48,9 @@ public static class FolderRenamer {
             }
 
             renameMap = LoadFromDatabase(dbPath, options.DbTableName, out mapDescription);
-            if (renameMap is null)
+            if (renameMap is null) {
                 return false;
+            }
         } else if (options.CliMappings.Count > 0) {
             renameMap = LoadFromCli(options.CliMappings, out mapDescription);
         } else if (!String.IsNullOrWhiteSpace(options.JsonFile)) {
@@ -48,24 +61,27 @@ public static class FolderRenamer {
             }
 
             renameMap = LoadFromJson(jsonPath, out mapDescription);
-            if (renameMap is null)
+            if (renameMap is null) {
                 return false;
+            }
         } else {
             WriteWarn("No rename map source specified. Nothing to do.");
             return true;
         }
 
         WriteInfo($"Using rename map from: {mapDescription}");
-        if (renameMap.Count == 0)
+        if (renameMap.Count == 0) {
             WriteWarn("Rename map is empty. No renames will occur.");
+        }
 
         return RenameDirectories(options.TargetDirectory, renameMap);
     }
 
     private static Options Parse(IList<String> args) {
         Options options = new Options();
-        if (args.Count == 0)
+        if (args.Count == 0) {
             throw new ArgumentException("Missing target directory argument.");
+        }
 
         for (Int32 i = 0; i < args.Count; i++) {
             String current = args[i];
@@ -86,8 +102,10 @@ public static class FolderRenamer {
                     options.JsonFile = ExpectValue(args, ref i, current);
                     break;
                 default:
-                    if (current.StartsWith("-", StringComparison.Ordinal))
+                    if (current.StartsWith("-", StringComparison.Ordinal)) {
                         throw new ArgumentException($"Unknown argument '{current}'.");
+                    }
+
                     options.TargetDirectory = String.IsNullOrWhiteSpace(options.TargetDirectory)
                         ? current
                         : throw new ArgumentException($"Unexpected extra argument '{current}'.");
@@ -95,22 +113,31 @@ public static class FolderRenamer {
             }
         }
 
-        if (String.IsNullOrWhiteSpace(options.TargetDirectory))
+        if (String.IsNullOrWhiteSpace(options.TargetDirectory)) {
             throw new ArgumentException("Target directory argument is required.");
+        }
 
         Int32 mapSourceCount = 0;
-        if (!String.IsNullOrWhiteSpace(options.MapDbFile))
+        if (!String.IsNullOrWhiteSpace(options.MapDbFile)) {
             mapSourceCount++;
-        if (options.CliMappings.Count > 0)
+        }
+
+        if (options.CliMappings.Count > 0) {
             mapSourceCount++;
-        if (!String.IsNullOrWhiteSpace(options.JsonFile))
+        }
+
+        if (!String.IsNullOrWhiteSpace(options.JsonFile)) {
             mapSourceCount++;
+        }
+
         return mapSourceCount > 1 ? throw new ArgumentException("Please specify only one rename map source (DB, CLI, or JSON).") : options;
     }
 
     private static String ExpectValue(IList<String> args, ref Int32 index, String option) {
-        if (index + 1 >= args.Count)
+        if (index + 1 >= args.Count) {
             throw new ArgumentException($"Option '{option}' expects a value.");
+        }
+
         index += 1;
         return args[index];
     }
@@ -144,8 +171,10 @@ public static class FolderRenamer {
                 while (reader.Read()) {
                     String? oldName = reader.IsDBNull(0) ? null : reader.GetString(0);
                     String? newName = reader.IsDBNull(1) ? null : reader.GetString(1);
-                    if (String.IsNullOrEmpty(oldName) || String.IsNullOrEmpty(newName))
+                    if (String.IsNullOrEmpty(oldName) || String.IsNullOrEmpty(newName)) {
                         continue;
+                    }
+
                     map[oldName] = newName;
                 }
             }
@@ -161,8 +190,10 @@ public static class FolderRenamer {
     private static Dictionary<String, String> LoadFromCli(IEnumerable<(String OldName, String NewName)> mappings, out String description) {
         Dictionary<String, String> map = new Dictionary<String, String>();
         foreach ((String oldName, String newName) in mappings) {
-            if (String.IsNullOrWhiteSpace(oldName) || String.IsNullOrWhiteSpace(newName))
+            if (String.IsNullOrWhiteSpace(oldName) || String.IsNullOrWhiteSpace(newName)) {
                 continue;
+            }
+
             map[oldName] = newName;
         }
         description = "direct CLI arguments";
@@ -183,8 +214,10 @@ public static class FolderRenamer {
             Dictionary<String, String> map = new Dictionary<String, String>();
             foreach (JsonProperty property in doc.RootElement.EnumerateObject()) {
                 String? newName = property.Value.ValueKind == JsonValueKind.String ? property.Value.GetString() : property.Value.ToString();
-                if (String.IsNullOrWhiteSpace(property.Name) || String.IsNullOrWhiteSpace(newName))
+                if (String.IsNullOrWhiteSpace(property.Name) || String.IsNullOrWhiteSpace(newName)) {
                     continue;
+                }
+
                 map[property.Name] = newName;
             }
 
@@ -224,8 +257,9 @@ public static class FolderRenamer {
         Int32 skipped = 0;
 
         foreach (String itemPath in items) {
-            if (!Directory.Exists(itemPath))
+            if (!Directory.Exists(itemPath)) {
                 continue;
+            }
 
             totalDirs += 1;
             String itemName = Path.GetFileName(itemPath);
@@ -291,10 +325,12 @@ public static class FolderRenamer {
     private static void Write(ConsoleColor color, String message, Boolean isError = false) {
         ConsoleColor previous = Console.ForegroundColor;
         Console.ForegroundColor = color;
-        if (isError)
+        if (isError) {
             Console.Error.WriteLine($"[Rename] {message}");
-        else
+        } else {
             Console.WriteLine($"[Rename] {message}");
+        }
+
         Console.ForegroundColor = previous;
     }
 }

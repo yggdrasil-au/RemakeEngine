@@ -1,6 +1,12 @@
+
+//
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Text.Json;
 
-namespace RemakeEngine;
+
+namespace EngineNet;
 
 public sealed class EngineConfig {
     public String Path {
@@ -8,7 +14,7 @@ public sealed class EngineConfig {
     }
     public IDictionary<String, Object?> Data => _data;
 
-    private Dictionary<String, Object?> _data = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<String, Object?> _data = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
 
     public EngineConfig(String path) {
         Path = path;
@@ -25,7 +31,7 @@ public sealed class EngineConfig {
                 using FileStream fs = File.OpenRead(filePath);
                 using JsonDocument doc = JsonDocument.Parse(fs);
                 if (doc.RootElement.ValueKind == JsonValueKind.Object) {
-                    return (ToDotNet(doc.RootElement) as Dictionary<String, Object?>) ?? new Dictionary<String, Object?>();
+                    return ToDotNet(doc.RootElement) as Dictionary<String, Object?> ?? new Dictionary<String, Object?>();
                 }
                 // Fallback to direct deserialize for simple maps
                 fs.Position = 0;
@@ -48,16 +54,22 @@ public sealed class EngineConfig {
                 return obj;
             case JsonValueKind.Array:
                 List<Object?> list = new List<Object?>();
-                foreach (JsonElement item in el.EnumerateArray())
+                foreach (JsonElement item in el.EnumerateArray()) {
                     list.Add(ToDotNet(item));
+                }
+
                 return list;
             case JsonValueKind.String:
                 return el.GetString();
             case JsonValueKind.Number:
-                if (el.TryGetInt64(out Int64 l))
+                if (el.TryGetInt64(out Int64 l)) {
                     return l;
-                if (el.TryGetDouble(out Double d))
+                }
+
+                if (el.TryGetDouble(out Double d)) {
                     return d;
+                }
+
                 return el.GetRawText();
             case JsonValueKind.True:
                 return true;
