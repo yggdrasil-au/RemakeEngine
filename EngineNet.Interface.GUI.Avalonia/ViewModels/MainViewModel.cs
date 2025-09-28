@@ -240,9 +240,16 @@ public sealed class MainViewModel : System.ComponentModel.INotifyPropertyChanged
     var eventHandlerType = prType?.GetNestedType("EventHandler");
     var stdinProviderType = prType?.GetNestedType("StdinProvider");
 
-    var outDel = outputHandlerType != null ? System.Delegate.CreateDelegate(outputHandlerType, outH.Target!, outH.Method, true) : null;
-    var evtDel = eventHandlerType != null ? System.Delegate.CreateDelegate(eventHandlerType, evtH.Target!, evtH.Method, true) : null;
-    var stdinDel = stdinProviderType != null ? System.Delegate.CreateDelegate(stdinProviderType, stdin.Target!, stdin.Method, true) : null;
+    // Prefer engine-specific delegate types if available; otherwise, fall back to standard delegates
+    System.Delegate? outDel = outputHandlerType != null
+        ? System.Delegate.CreateDelegate(outputHandlerType, outH.Target!, outH.Method, true)
+        : (System.Delegate)outH;
+    System.Delegate? evtDel = eventHandlerType != null
+        ? System.Delegate.CreateDelegate(eventHandlerType, evtH.Target!, evtH.Method, true)
+        : (System.Delegate)evtH;
+    System.Delegate? stdinDel = stdinProviderType != null
+        ? System.Delegate.CreateDelegate(stdinProviderType, stdin.Target!, stdin.Method, true)
+        : (System.Delegate)stdin;
 
     var task = (System.Threading.Tasks.Task<bool>)_engine.InstallModuleAsync(moduleName, outDel, evtDel, stdinDel);
         return task;

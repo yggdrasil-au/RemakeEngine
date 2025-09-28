@@ -34,6 +34,21 @@ dotnet test RemakeEngine.sln --nologo
 dotnet run --project EngineNet -- --cli
 ```
 
+## GitHub Actions Workflows
+Every pull request and push to `main` runs a trio of CI pipelines defined under `.github/workflows/`:
+
+- `SonarQube.yml` builds on Windows, executes the test suite with coverage, and pushes the results to SonarCloud.
+- `build.yml` repeats the Windows build with a runner-hosted Sonar scanner for redundancy and quicker iterations.
+- `SonarQubeBuild.yml` executes the SonarSource scan action on Ubuntu so that Linux analysis settings stay honest.
+
+Workflows must stay green before a change can merge. Match the CI locally by running `dotnet build RemakeEngine.sln` and `dotnet test RemakeEngine.sln --nologo`; add `--collect "XPlat Code Coverage"` when you need to debug coverage gaps.
+
+### Release Workflows
+- `on tagged release -- Win,Linux,Mac .NET Test, Build, Release.yml` triggers when you push a tag like `v2.5.0`. It runs Debug and Release builds/tests across Windows, macOS, and Linux, then publishes self-contained binaries for the main runtimes and uploads them to a GitHub Release.
+- `on win tagged release -- Win64 .NET Build & Test.yml` triggers on `win-v*` tags for Windows-only drops. It builds/tests in Debug and Release configurations and uploads a zipped `win-x64` artifact.
+
+If you are planning a release, coordinate the tag with maintainers so secrets (Sonar token, release token) are available.
+
 ## Contribution Workflow
 1. **Discuss first (recommended):** Open an issue describing the problem, the game/module context, and the change you propose. Include logs, spec references, or manifests where relevant.
 2. **Work on a feature branch:** Use `feature/<short-name>`, `fix/<short-name>`, or `chore/<short-name>` naming and follow Conventional Commits (`feat:`, `fix:`, `docs:`, etc.).

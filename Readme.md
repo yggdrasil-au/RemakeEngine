@@ -41,6 +41,19 @@ dotnet run --project EngineNet --framework net8.0 -- --cli
 dotnet run --project EngineNet --framework net8.0 -- --game_module "RemakeRegistry/Games/demo" --script_type engine --script rename-folders
 ```
 
+## Continuous Integration & Releases
+GitHub Actions workflows in `.github/workflows/` keep pull requests, SonarCloud analysis, and tagged releases healthy:
+
+| Workflow | Trigger | What it runs |
+| --- | --- | --- |
+| `SonarQube.yml` | Pushes to `main`, PRs | Windows build, `dotnet test` with coverage, and `dotnet-sonarscanner` to publish results to SonarCloud. |
+| `build.yml` | Pushes to `main`, PRs | Windows build with SonarCloud analysis using the runner-hosted scanner cache. |
+| `SonarQubeBuild.yml` | Pushes to `main`, PRs | Ubuntu-based `sonarqube-scan-action` to double-check analysis settings on Linux. |
+| `on tagged release -- Win,Linux,Mac .NET Test, Build, Release.yml` | Tags matching `v*`, manual dispatch | Matrix builds/tests on Windows, macOS, and Linux across Debug/Release, then publishes self-contained artifacts for six runtimes and attaches them to a GitHub Release. |
+| `on win tagged release -- Win64 .NET Build & Test.yml` | Tags matching `win-v*`, manual dispatch | Windows-only Debug/Release build + test followed by a packaged `win-x64` release artifact. |
+
+Run `dotnet build RemakeEngine.sln` and `dotnet test RemakeEngine.sln --nologo` locally before opening a PR so the CI checks stay green. To cut a multi-platform release, push a tag like `v2.5.0`; for a Windows-only drop use `win-v2.5.0`. The workflows create the release entry and upload the zipped outputs automatically.
+
 ## Interfaces
 - **Simple GUI (Avalonia):** One-click `run-all` and launch buttons for common flows. Designed for end users, not for watching streamed output.
 - **Interactive CLI:** Menu-driven experience that lists games, prompts for answers, and streams operation output.

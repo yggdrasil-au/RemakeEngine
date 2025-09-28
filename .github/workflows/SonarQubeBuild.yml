@@ -1,10 +1,16 @@
 name: sonarqube scan action - SonarQubeBuild.yml
+#on:
+#  push:
+#    branches:
+#      - main
+#  pull_request:
+#    types: [opened, synchronize, reopened]
+
+# disabled
+
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    types: [opened, synchronize, reopened]
+  workflow_dispatch: {} # allow manual runs
+
 jobs:
   sonarqube:
     name: SonarQube
