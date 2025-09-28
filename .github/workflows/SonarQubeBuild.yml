@@ -17,3 +17,14 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=yggdrasil-au_RemakeEngine2
+            -Dsonar.organization=yggdrasil-au
+            -Dsonar.projectName=RemakeEngine
+            -Dsonar.projectVersion=2.4.0-A
+            -Dsonar.host.url=https://sonarcloud.io
+            -Dsonar.sources=EngineNet/
+            -Dsonar.tests=EngineNet.Tests/
+            -Dsonar.exclusions=runtime/**,**/venv/**,**/.venv/**,**/site-packages/**,**/build/**,**/dist/**,**/.tox/**,**/bin/**,**/obj/**,**/LegacyEnginePy/**,**/EnginePy/**
+            -Dsonar.cs.opencover.reportsPaths=EngineNet.Tests/TestResults/**/coverage.opencover.xml
