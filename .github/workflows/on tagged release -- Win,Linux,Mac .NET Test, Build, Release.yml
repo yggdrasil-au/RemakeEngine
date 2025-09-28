@@ -36,12 +36,12 @@
 # For a complete CI/CD sample to get started with GitHub Action workflows for Desktop Applications,
 # refer to https://github.com/microsoft/github-actions-for-desktop-apps
 
-name: Win,Linux,Mac .NET Test, Build, Release.yml
+name: on tagged release -- Win,Linux,Mac .NET Test, Build, Release.yml
 
 on:
   push:
-    branches: [ "main" ]
-    tags: [ "v*" ]     # create a release when you push a tag like v1.2.3
+    #branches: [ "main" ] # only run when tag release is pushed
+    tags: [ "v*" ]        # create a release when you push a tag like v1.2.3
   workflow_dispatch: {}
 
 permissions:

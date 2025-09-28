@@ -1,4 +1,4 @@
-name: SonarQube
+name: SonarQube default - build.yml
 on:
   push:
     branches:

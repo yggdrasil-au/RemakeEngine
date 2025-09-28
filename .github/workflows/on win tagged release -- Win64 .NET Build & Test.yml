@@ -36,13 +36,13 @@
 # For a complete CI/CD sample to get started with GitHub Action workflows for Desktop Applications,
 # refer to https://github.com/microsoft/github-actions-for-desktop-apps
 
-name: Win64 .NET Build & Test.yml
+name: on win tagged release -- Win64 .NET Build & Test.yml
 
 on:
   push:
-    branches: [ "main" ]
+    #branches: [ "main" ]  # only run when tag release is pushed
     tags: [ "win-v*" ]     # create a release when you push a tag like win-v1.2.3
-  workflow_dispatch: {} # allow manual runs
+  workflow_dispatch: {}    # allow manual runs
 
 jobs:
   build:

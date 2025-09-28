@@ -1,4 +1,4 @@
-name: SonarQube.yml
+name: sonar cloud scanner, build, test (coverage) - SonarQube.yml
 on:
   push:
     branches:

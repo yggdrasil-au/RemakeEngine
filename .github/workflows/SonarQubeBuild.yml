@@ -1,4 +1,4 @@
-name: SonarQubeBuild
+name: sonarqube scan action - SonarQubeBuild.yml
 on:
   push:
     branches:
