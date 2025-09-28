@@ -31,14 +31,14 @@ dotnet test RemakeEngine.sln --nologo
 ### Run the Engine using one of the three UX options
 ```pwsh
 # Default entry point (auto-selects GUI when no CLI args are supplied)
-dotnet run --project EngineNet
+dotnet run -c Release --project EngineNet
 
 # Force GUI or interactive CLI explicitly
-dotnet run --project EngineNet --framework net8.0 -- --gui
-dotnet run --project EngineNet --framework net8.0 -- --cli
+dotnet run -c Release --project EngineNet --framework net8.0 -- --gui
+dotnet run -c Release --project EngineNet --framework net8.0 -- --cli
 
 # Developer CLI example
-dotnet run --project EngineNet --framework net8.0 -- --game_module "RemakeRegistry/Games/demo" --script_type engine --script rename-folders
+dotnet run -c Release --project EngineNet --framework net8.0 -- --game_module "RemakeRegistry/Games/demo" --script_type engine --script rename-folders
 ```
 
 ## Continuous Integration & Releases

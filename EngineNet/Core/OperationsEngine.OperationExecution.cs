@@ -61,15 +61,81 @@ public sealed partial class OperationsEngine {
         try {
             switch (scriptType) {
                 case "lua": {
-                    Core.ScriptEngines.LuaScriptAction action = new Core.ScriptEngines.LuaScriptAction(scriptPath, args);
-                    await action.ExecuteAsync(_tools, cancellationToken);
-                    result = true;
+                    try {
+                        Core.ScriptEngines.LuaScriptAction action = new Core.ScriptEngines.LuaScriptAction(scriptPath, args);
+                        await action.ExecuteAsync(_tools, cancellationToken);
+                        result = true;
+                    } catch (Exception ex) {
+                        Console.Error.WriteLine($"ERROR: {ex.Message}");
+                        result = false;
+                    }
                     break;
                 }
                 case "js": {
-                    Core.ScriptEngines.JsScriptAction action = new Core.ScriptEngines.JsScriptAction(scriptPath, args);
-                    await action.ExecuteAsync(_tools, cancellationToken);
-                    result = true;
+                    try {
+                        Core.ScriptEngines.JsScriptAction action = new Core.ScriptEngines.JsScriptAction(scriptPath, args);
+                        await action.ExecuteAsync(_tools, cancellationToken);
+                        result = true;
+                    } catch (Exception ex) {
+                        Console.Error.WriteLine($"ERROR: {ex.Message}");
+                        result = false;
+                    }
+                    break;
+                }
+                case "bms": {
+                    try {
+                        if (!games.TryGetValue(currentGame, out Object? gobjBms) || gobjBms is not IDictionary<String, Object?> gdictBms) {
+                            throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
+                        }
+                        String gameRootBms = gdictBms.TryGetValue("game_root", out Object? grBms) ? grBms?.ToString() ?? String.Empty : String.Empty;
+
+                        // Build placeholder context
+                        Dictionary<String, Object?> ctx = new Dictionary<String, Object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase) {
+                            ["Game_Root"] = gameRootBms,
+                            ["Project_Root"] = _rootPath,
+                            ["Registry_Root"] = Path.Combine(_rootPath, "RemakeRegistry"),
+                            ["Game"] = new Dictionary<String, Object?> { ["RootPath"] = gameRootBms, ["Name"] = currentGame },
+                        };
+                        if (!ctx.TryGetValue("RemakeEngine", out Object? reB) || reB is not IDictionary<String, Object?> reBdict) {
+                            ctx["RemakeEngine"] = reBdict = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+                        }
+                        if (!reBdict.TryGetValue("Config", out Object? cfgB) || cfgB is not IDictionary<String, Object?> cfgBdict) {
+                            reBdict["Config"] = cfgBdict = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+                        }
+                        ((IDictionary<String, Object?>)ctx["RemakeEngine"]!)["Config"] = cfgBdict;
+                        cfgBdict["module_path"] = gameRootBms;
+                        cfgBdict["project_path"] = _rootPath;
+                        try {
+                            String cfgPath = Path.Combine(gameRootBms, "config.toml");
+                            if (!String.IsNullOrWhiteSpace(gameRootBms) && File.Exists(cfgPath)) {
+                                Dictionary<String, Object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                                foreach (KeyValuePair<String, Object?> kv in fromToml) {
+                                    if (!ctx.ContainsKey(kv.Key)) ctx[kv.Key] = kv.Value;
+                                }
+                            }
+                        } catch { }
+
+                        String inputDir = op.TryGetValue("input", out Object? in0) ? in0?.ToString() ?? String.Empty : String.Empty;
+                        String outputDir = op.TryGetValue("output", out Object? out0) ? out0?.ToString() ?? String.Empty : String.Empty;
+                        String? extension = op.TryGetValue("extension", out Object? ext0) ? ext0?.ToString() : null;
+                        String resolvedInput = Sys.Placeholders.Resolve(inputDir, ctx)?.ToString() ?? inputDir;
+                        String resolvedOutput = Sys.Placeholders.Resolve(outputDir, ctx)?.ToString() ?? outputDir;
+                        String? resolvedExt = extension is null ? null : Sys.Placeholders.Resolve(extension, ctx)?.ToString() ?? extension;
+
+                        Core.ScriptEngines.QuickBmsScriptAction action = new Core.ScriptEngines.QuickBmsScriptAction(
+                            scriptPath,
+                            gameRootBms,
+                            _rootPath,
+                            resolvedInput,
+                            resolvedOutput,
+                            resolvedExt
+                        );
+                        await action.ExecuteAsync(_tools, cancellationToken);
+                        result = true;
+                    } catch (Exception ex) {
+                        Console.Error.WriteLine($"ERROR: {ex.Message}");
+                        result = false;
+                    }
                     break;
                 }
                 case "engine": {
@@ -237,77 +303,6 @@ public sealed partial class OperationsEngine {
                     Console.ResetColor();
                     Boolean okTxd = FileHandlers.TxdExtractor.Run(args);
                     return okTxd;
-                } else if (String.Equals(format, "str", StringComparison.OrdinalIgnoreCase)) {
-                    Console.ForegroundColor = ConsoleColor.DarkCyan;
-                    Console.WriteLine("\n>>> Built-in BMS extraction");
-                    Console.ResetColor();
-
-                    // If the caller didn't specify --quickbms/-e, resolve it from Tools.local.json via the tool resolver
-                    Boolean hasQuickbmsArg = args.Any(a => String.Equals(a, "--quickbms", StringComparison.OrdinalIgnoreCase) || String.Equals(a, "-e", StringComparison.OrdinalIgnoreCase));
-
-                    // Always validate the installed QuickBMS version against the module's Tools.toml requested version.
-                    // Determine the module Tools.toml path (same convention used by the download_tools step)
-                    String moduleToolsToml = Path.Combine(gameRoot2, "Tools.toml");
-                    String? requiredVersion = null;
-                    if (File.Exists(moduleToolsToml)) {
-                        try {
-                            List<Dictionary<String, Object?>> toolDefs = EngineNet.Tools.SimpleToml.ReadTools(moduleToolsToml);
-                            Dictionary<String, Object?>? qbmsDef = toolDefs.FirstOrDefault(t => t.TryGetValue("name", out Object? n) && String.Equals(n?.ToString(), "QuickBMS", StringComparison.OrdinalIgnoreCase));
-                            if (qbmsDef is not null && qbmsDef.TryGetValue("version", out Object? verObj)) {
-                                requiredVersion = verObj?.ToString();
-                            }
-                        } catch { /* best-effort parse; fall through */ }
-                    }
-
-                    // Load Tools.local.json to locate installed QuickBMS and its version
-                    String toolsLocalPath = new[] {
-                        Path.Combine(_rootPath, "Tools.local.json"),
-                        Path.Combine(_rootPath, "tools.local.json"),
-                    }.FirstOrDefault(File.Exists) ?? String.Empty;
-
-                    String? installedExe = null;
-                    String? installedVersion = null;
-                    if (!String.IsNullOrEmpty(toolsLocalPath)) {
-                        try {
-                            using FileStream fs = File.OpenRead(toolsLocalPath);
-                            using JsonDocument jdoc = JsonDocument.Parse(fs);
-                            if (jdoc.RootElement.ValueKind == JsonValueKind.Object && jdoc.RootElement.TryGetProperty("QuickBMS", out JsonElement qbms) && qbms.ValueKind == JsonValueKind.Object) {
-                                if (qbms.TryGetProperty("exe", out JsonElement exe) && exe.ValueKind == JsonValueKind.String) {
-                                    installedExe = exe.GetString();
-                                }
-                                if (qbms.TryGetProperty("version", out JsonElement ver) && ver.ValueKind == JsonValueKind.String) {
-                                    installedVersion = ver.GetString();
-                                }
-                            }
-                        } catch { /* ignore, will error below if needed */ }
-                    }
-
-                    // If we have a required version, enforce that it's installed
-                    if (!String.IsNullOrWhiteSpace(requiredVersion)) {
-                        if (String.IsNullOrWhiteSpace(installedVersion) || !String.Equals(installedVersion, requiredVersion, StringComparison.OrdinalIgnoreCase)) {
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.Error.WriteLine($"Missing QuickBMS {requiredVersion} — please run the 'Download Tools' operation to install required tools.\nExpected QuickBMS version from {moduleToolsToml}, but Tools.local.json shows '{installedVersion ?? "<not installed>"}'.");
-                            Console.ResetColor();
-                            return false;
-                        }
-                    }
-
-                    // Inject --quickbms if not provided
-                    if (!hasQuickbmsArg) {
-                        // Prefer exe path from Tools.local.json; fall back to the tool resolver
-                        String resolvedPath = installedExe ?? _tools.ResolveToolPath("QuickBMS");
-                        if (String.IsNullOrWhiteSpace(resolvedPath) || !File.Exists(resolvedPath)) {
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.Error.WriteLine("QuickBMS is not installed or could not be resolved. Please run the 'Download Tools' operation first.");
-                            Console.ResetColor();
-                            return false;
-                        }
-                        args.Insert(0, resolvedPath);
-                        args.Insert(0, "--quickbms");
-                    }
-
-                    Boolean okBms = FileHandlers.QuickBmsExtractor.Run(args);
-                    return okBms;
                 } else {
                     return false;
                 }
@@ -539,10 +534,6 @@ public sealed partial class OperationsEngine {
         }
     }
 
-    private String ResolvePythonExecutable() {
-        return "python";
-    }
-
     private void ReloadProjectConfig() {
         try {
             String projectJson = Path.Combine(_rootPath, "project.json");
@@ -566,8 +557,11 @@ public sealed partial class OperationsEngine {
             foreach (KeyValuePair<String, Object?> kv in map) {
                 data[kv.Key] = kv.Value;
             }
-        } catch {
-            // Non-fatal; keep previous config if reload fails.
+        } catch (Exception ex) {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("error reloading project.json:");
+            Console.Error.WriteLine(ex.Message);
+            Console.ResetColor();
         }
     }
 }

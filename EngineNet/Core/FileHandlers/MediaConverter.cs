@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Linq;
 
+using EngineNet.Core.Util;
+
 namespace EngineNet.Core.FileHandlers;
 
 /// <summary>
@@ -23,11 +25,7 @@ public static class MediaConverter {
     private const String TypeAudio = "audio";
     private const String TypeVideo = "video";
 
-    private sealed class ActiveJob {
-        public String Tool = String.Empty;      // ffmpeg | vgmstream
-        public String File = String.Empty;      // file name only
-        public DateTime StartedUtc = DateTime.UtcNow;
-    }
+    // Track active jobs using the shared model
 
     private sealed class Options {
         public String Mode = String.Empty;                // ffmpeg | vgmstream
@@ -50,7 +48,7 @@ public static class MediaConverter {
     }
 
     // Tracks currently running external conversions (for progress panel)
-    private static readonly ConcurrentDictionary<Int32, ActiveJob> s_active = new();
+    private static readonly ConcurrentDictionary<Int32, ConsoleProgress.ActiveProcess> s_active = new();
     private static readonly Object s_consoleLock = new();
 
     /// <summary>
@@ -104,10 +102,11 @@ public static class MediaConverter {
 
             ParallelOptions po = new ParallelOptions { MaxDegreeOfParallelism = opt.Workers ?? 1 };
             using CancellationTokenSource progressCts = new CancellationTokenSource();
-            Task progressTask = StartProgressTask(
+            Task progressTask = ConsoleProgress.StartPanel(
                 total: allFiles.Count,
                 snapshot: () => (Volatile.Read(ref processed), Volatile.Read(ref success), Volatile.Read(ref skipped), Volatile.Read(ref errors)),
                 activeSnapshot: () => s_active.Values.ToList(),
+                label: "Converting Files",
                 token: progressCts.Token);
             Parallel.ForEach(allFiles, po, src => {
                 try {
@@ -181,170 +180,7 @@ public static class MediaConverter {
         }
     }
 
-    // Multi-line progress panel: total bar + list of active subprocesses
-    private static Task StartProgressTask(
-        Int32 total,
-        Func<(Int32 processed, Int32 ok, Int32 skip, Int32 err)> snapshot,
-        Func<List<ActiveJob>> activeSnapshot,
-        CancellationToken token) {
-        return Task.Run(() => {
-            Int32 panelTop;
-            Int32 lastLines;
-            // Prepare console area for progress panel: clear when possible, otherwise reserve lines to avoid scroll
-            TryInitProgressPanel(out panelTop, out lastLines);
-
-            Int32 spinnerIndex = 0;
-            Char[] spinner = new[] { '|', '/', '-', '\\' };
-            while (!token.IsCancellationRequested) {
-                (Int32 processed, Int32 ok, Int32 skip, Int32 err) s = snapshot();
-                List<ActiveJob> actives = activeSnapshot();
-                List<String> lines = BuildPanelLines(total, s, actives, spinner[spinnerIndex % spinner.Length]);
-                spinnerIndex = (spinnerIndex + 1) & 0x7fffffff;
-                DrawPanel(lines, ref panelTop, ref lastLines);
-                Thread.Sleep(200);
-            }
-            // Final draw
-            (Int32 processed, Int32 ok, Int32 skip, Int32 err) finalS = snapshot();
-            List<ActiveJob> finalAct = activeSnapshot();
-            List<String> finalLines = BuildPanelLines(total, finalS, finalAct, ' ');
-            DrawPanel(finalLines, ref panelTop, ref lastLines);
-        });
-    }
-
-    // Clears the console at the start if supported, otherwise reserves vertical space so the panel can redraw without scrolling
-    private static void TryInitProgressPanel(out Int32 panelTop, out Int32 lastLines) {
-        panelTop = 0;
-        lastLines = 0;
-        try {
-            lock (s_consoleLock) {
-                try {
-                    Console.Clear();
-                    panelTop = 0;
-                    lastLines = 0;
-                    return;
-                } catch {
-                    // Fallback: cannot clear (e.g., redirected output). Reserve rows instead.
-                }
-
-                // Reserve enough lines below the current cursor so that redrawing doesn't cause the buffer to scroll.
-                panelTop = Console.CursorTop;
-                Int32 reserve = EstimateMaxPanelLines();
-                for (Int32 i = 0; i < reserve; i++) {
-                    Console.WriteLine();
-                }
-
-                try { Console.SetCursorPosition(0, panelTop); } catch { /* ignore */ }
-                // Tell DrawPanel that there are already 'reserve' blank lines to overwrite/clear
-                lastLines = reserve;
-            }
-        } catch {
-            // As a last resort, keep defaults (top=0, lastLines=0)
-        }
-    }
-
-    // Heuristic for maximum number of lines the panel may need (progress + header + up to N active jobs + optional overflow line)
-    private static Int32 EstimateMaxPanelLines() {
-        Int32 procs = 8;
-        try { procs = Math.Max(1, Math.Min(16, Environment.ProcessorCount)); } catch { /* ignore */ }
-        // 1 (progress) + 1 (header/none) + procs (active job lines) + 1 ("... and more")
-        return 1 + 1 + procs + 1;
-    }
-
-    private static List<String> BuildPanelLines(Int32 total, (Int32 processed, Int32 ok, Int32 skip, Int32 err) s, List<ActiveJob> actives, Char spinner) {
-        List<String> lines = new List<String>(2 + actives.Count);
-        if (total < 0) {
-            total = 0;
-        }
-
-        Double percent = Math.Clamp(total == 0 ? 1.0 : (Double)s.processed / Math.Max(1, total), 0.0, 1.0);
-        Int32 width = 30;
-        try { width = Math.Max(10, Math.Min(40, Console.WindowWidth - 60)); } catch { /* ignore */ }
-        Int32 filled = (Int32)Math.Round(percent * width);
-        StringBuilder bar = new StringBuilder(width + 32);
-        bar.Append("Converting Files ");
-        bar.Append('[');
-        for (Int32 i = 0; i < width; i++) {
-            bar.Append(i < filled ? '#' : '-');
-        }
-
-        bar.Append(']');
-        bar.Append(' ');
-        bar.Append((Int32)Math.Round(percent * 100));
-        bar.Append('%');
-        bar.Append(' ');
-        bar.Append(s.processed);
-        bar.Append('/');
-        bar.Append(total);
-        bar.Append(" (ok="); bar.Append(s.ok);
-        bar.Append(", skip="); bar.Append(s.skip);
-        bar.Append(", err="); bar.Append(s.err);
-        bar.Append(')');
-        lines.Add(bar.ToString());
-
-        // Active subprocesses
-        if (actives.Count == 0) {
-            lines.Add("Active: none");
-        } else {
-            lines.Add($"Active subprocesses: {actives.Count}");
-            // Show up to degree of parallelism (or 8) lines
-            Int32 max = 8;
-            try { max = Math.Max(1, Math.Min(16, Environment.ProcessorCount)); } catch { /* ignore */ }
-            DateTime now = DateTime.UtcNow;
-            foreach (ActiveJob? job in actives.OrderBy(j => j.StartedUtc).Take(max)) {
-                TimeSpan elapsed = now - job.StartedUtc;
-                String elStr = elapsed.TotalHours >= 1 ? $"{(Int32)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}" : $"{elapsed.Minutes:00}:{elapsed.Seconds:00}";
-                String file = job.File;
-                // Trim long names to fit
-                Int32 maxFile = 50;
-                try { maxFile = Math.Max(18, Console.WindowWidth - 20); } catch { /* ignore */ }
-                if (file.Length > maxFile) {
-                    file = file.Substring(0, maxFile - 3) + "...";
-                }
-
-                lines.Add($"  {spinner} {job.Tool} · {file} · {elStr}");
-            }
-            if (actives.Count > 8) {
-                lines.Add($"  … and {actives.Count - Math.Min(actives.Count, 8)} more");
-            }
-        }
-        return lines;
-    }
-
-    private static void DrawPanel(IReadOnlyList<String> lines, ref Int32 panelTop, ref Int32 lastLines) {
-        lock (s_consoleLock) {
-            try {
-                // Position to start of panel
-                Console.SetCursorPosition(0, panelTop);
-                // Write each line padded to width
-                Int32 width;
-                try { width = Math.Max(20, Console.WindowWidth - 1); } catch { width = 120; }
-                for (Int32 i = 0; i < lines.Count; i++) {
-                    String line = lines[i];
-                    if (line.Length > width) {
-                        line = line.Substring(0, width);
-                    }
-
-                    Console.Write(line.PadRight(width));
-                    if (i < lines.Count - 1) {
-                        Console.Write('\n');
-                    }
-                }
-                // Clear remaining previous lines if panel shrunk
-                for (Int32 i = lines.Count; i < lastLines; i++) {
-                    Console.Write('\n');
-                    Console.Write(new String(' ', Math.Max(20, Console.WindowWidth - 1)));
-                }
-                lastLines = lines.Count;
-                // Leave cursor at end of panel
-                Console.SetCursorPosition(0, panelTop + lastLines);
-            } catch {
-                // Fallback: write a simple single-line summary
-                try {
-                    Console.Write("\r" + (lines.Count > 0 ? lines[0] : String.Empty));
-                } catch { /* safe to ignore: best-effort rendering */ }
-            }
-        }
-    }
+    // Removed custom progress rendering; now using ConsoleProgress
 
     private static (Boolean ok, String? message) ConvertOne(String srcPath, String destPath, Options opt) {
         try {
@@ -494,7 +330,7 @@ public static class MediaConverter {
     private static void RegisterActive(String tool, String srcPath) {
         try {
             Int32 key = Thread.CurrentThread.ManagedThreadId;
-            s_active[key] = new ActiveJob {
+            s_active[key] = new ConsoleProgress.ActiveProcess {
                 Tool = tool,
                 File = Path.GetFileName(srcPath),
                 StartedUtc = DateTime.UtcNow

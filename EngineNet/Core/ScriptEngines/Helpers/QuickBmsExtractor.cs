@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 
 
-namespace EngineNet.Core.FileHandlers;
+namespace EngineNet.Core.ScriptEngines.Helpers;
 
 /// <summary>
 /// Provides a built-in replacement for EnginePy\FormatHandlers\bms_extract.py.

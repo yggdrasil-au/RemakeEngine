@@ -136,8 +136,8 @@ public partial class CliApp {
     private Boolean ExecuteOp(String game, IDictionary<String, Object?> games, Dictionary<String, Object?> op, Dictionary<String, Object?> answers) {
         String? type = (op.TryGetValue("script_type", out Object? st) ? st?.ToString() : null)?.ToLowerInvariant();
 
-        // Use embedded handlers for engine/lua/js to avoid external dependencies
-        if (type == "engine" || type == "lua" || type == "js") {
+        // Use embedded handlers for engine/lua/js/bms to avoid external dependencies
+        if (type == "engine" || type == "lua" || type == "js" || type == "bms") {
             // Route in-process SDK events to our terminal renderer and suppress raw @@REMAKE@@ lines
             Action<Dictionary<String, Object?>>? prevSink = Core.ScriptEngines.Helpers.EngineSdk.LocalEventSink;
             Boolean prevMute = Core.ScriptEngines.Helpers.EngineSdk.MuteStdoutWhenLocalSink;

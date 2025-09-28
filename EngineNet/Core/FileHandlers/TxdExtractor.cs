@@ -4,6 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using EngineNet.Core.Util;
 
 namespace EngineNet.Core.FileHandlers;
 
@@ -28,7 +31,46 @@ public static class TxdExtractor {
         try {
             Options options = Parse(args);
             TxdExporter exporter = new();
-            _ = exporter.ExportPath(options.InputPath, options.OutputDirectory);
+
+            // Assemble file list and set up progress tracking
+            List<String> files = EnumerateTxdFiles(options.InputPath);
+            Int32 processed = 0, ok = 0, skip = 0, err = 0;
+            ConsoleProgress.ActiveProcess? currentJob = null;
+            using CancellationTokenSource cts = new();
+            Task progress = ConsoleProgress.StartPanel(
+                total: files.Count,
+                snapshot: () => (Volatile.Read(ref processed), Volatile.Read(ref ok), Volatile.Read(ref skip), Volatile.Read(ref err)),
+                activeSnapshot: () => currentJob is null ? new List<ConsoleProgress.ActiveProcess>() : new List<ConsoleProgress.ActiveProcess> { currentJob },
+                label: "Extracting TXD",
+                token: cts.Token);
+
+            foreach (String txdFile in files) {
+                try {
+                    currentJob = new ConsoleProgress.ActiveProcess { Tool = "txd", File = Path.GetFileName(txdFile), StartedUtc = DateTime.UtcNow };
+
+                    String? outputBase = options.OutputDirectory;
+                    if (String.IsNullOrEmpty(outputBase)) {
+                        String baseDir = Path.GetDirectoryName(txdFile) ?? Directory.GetCurrentDirectory();
+                        String baseName = Path.GetFileNameWithoutExtension(txdFile);
+                        outputBase = Path.Combine(baseDir, baseName + "_txd");
+                    }
+
+                    Int32 textures = exporter.ExportTexturesFromTxd(txdFile, outputBase!);
+                    if (textures > 0) {
+                        Interlocked.Increment(ref ok);
+                    } else {
+                        Interlocked.Increment(ref skip);
+                    }
+                } catch {
+                    Interlocked.Increment(ref err);
+                } finally {
+                    Interlocked.Increment(ref processed);
+                    currentJob = null;
+                }
+            }
+
+            cts.Cancel();
+            try { progress.Wait(); } catch { /* ignore */ }
             return true;
         } catch (TxdExportException ex) {
             Log.Red(ex.Message);
@@ -41,6 +83,34 @@ public static class TxdExtractor {
 
             return false;
         }
+    }
+    private static void DebugLog(String message) {
+        #if DEBUG
+        Log.Cyan(message);
+        #endif
+    }
+
+    private static List<String> EnumerateTxdFiles(String inputPathAbs) {
+        if (!File.Exists(inputPathAbs) && !Directory.Exists(inputPathAbs)) {
+            throw new TxdExportException($"Error: Input path '{inputPathAbs}' does not exist.");
+        }
+
+        List<String> txdFilesToProcess = new List<String>();
+        if (File.Exists(inputPathAbs)) {
+            if (!inputPathAbs.EndsWith(".txd", StringComparison.OrdinalIgnoreCase)) {
+                throw new TxdExportException($"Error: Input file '{inputPathAbs}' is not a .txd file.");
+            }
+            txdFilesToProcess.Add(inputPathAbs);
+        } else {
+            foreach (String file in Directory.EnumerateFiles(inputPathAbs, "*.txd", SearchOption.AllDirectories)) {
+                txdFilesToProcess.Add(file);
+            }
+            if (txdFilesToProcess.Count == 0) {
+                throw new TxdExportException($"No .txd files found in directory '{inputPathAbs}'.");
+            }
+        }
+
+        return txdFilesToProcess;
     }
 
     private static Options Parse(IList<String> args) {
@@ -352,23 +422,23 @@ public static class TxdExtractor {
                 ddsHeader = CreateDdsHeaderDxt(width, height, mipMapCountFromFile, "DXT1");
                 outputPixels = swizzledBaseMipData.ToArray();
                 exportFormat = "DXT1";
-                Log.Cyan($"        (Debug) DXT1 format detected. Size: {actualMipDataSize} bytes.");
+                DebugLog($"        DXT1 format detected. Size: {actualMipDataSize} bytes.");
             } else if (fmtCode == 0x53) {
                 ddsHeader = CreateDdsHeaderDxt(width, height, mipMapCountFromFile, "DXT3");
                 outputPixels = swizzledBaseMipData.ToArray();
                 exportFormat = "DXT3";
-                Log.Cyan($"        (Debug) DXT3 format detected. Size: {actualMipDataSize} bytes.");
+                DebugLog($"        DXT3 format detected. Size: {actualMipDataSize} bytes.");
             } else if (fmtCode == 0x54) {
                 ddsHeader = CreateDdsHeaderDxt(width, height, mipMapCountFromFile, "DXT5");
                 outputPixels = swizzledBaseMipData.ToArray();
                 exportFormat = "DXT5";
-                Log.Cyan($"        (Debug) DXT5 format detected. Size: {actualMipDataSize} bytes.");
+                DebugLog($"        DXT5 format detected. Size: {actualMipDataSize} bytes.");
             } else if (fmtCode == 0x86) {
                 exportFormat = "RGBA8888 (from Swizzled BGRA)";
                 Int32 expectedSize = width * height * 4;
                 bytesPerPixelForUns = 4;
                 needsUnswizzle = true;
-                Log.Cyan($"        (Debug) Swizzled BGRA format detected. Size: {actualMipDataSize} bytes.");
+                DebugLog($"        Swizzled BGRA format detected. Size: {actualMipDataSize} bytes.");
                 if (actualMipDataSize != expectedSize) {
                     throw new TxdExportException($"          FATAL ERROR: Data size mismatch for BGRA '{nameInfo.Name}' (File 0x{nameInfo.OriginalFileOffset:X}): expected {expectedSize}, got {actualMipDataSize}.");
                 }
@@ -387,9 +457,9 @@ public static class TxdExtractor {
             } else if (fmtCode == 0x02) {
                 exportFormat = "RGBA8888 (from Swizzled A8 or P8A8)";
                 needsUnswizzle = true;
-                Log.Cyan($"        (Debug) Swizzled A8 or P8A8 format detected. Size: {actualMipDataSize} bytes.");
+                DebugLog($"        Swizzled A8 or P8A8 format detected. Size: {actualMipDataSize} bytes.");
                 if (actualMipDataSize == width * height) {
-                    Log.Cyan($"        (Debug) A8 format detected. Size: {actualMipDataSize} bytes.");
+                    DebugLog($"        A8 format detected. Size: {actualMipDataSize} bytes.");
                     bytesPerPixelForUns = 1;
                     Byte[]? linear = UnswizzleData(swizzledBaseMipData, width, height, bytesPerPixelForUns);
                     if (linear != null) {
@@ -409,7 +479,7 @@ public static class TxdExtractor {
                     Byte[]? linear = UnswizzleData(swizzledBaseMipData, width, height, bytesPerPixelForUns);
                     if (linear != null) {
                         outputPixels = new Byte[width * height * 4];
-                        Log.Cyan($"        (Debug) P8A8/L8A8 format detected. Size: {actualMipDataSize} bytes.");
+                        DebugLog($"        P8A8/L8A8 format detected. Size: {actualMipDataSize} bytes.");
                         for (Int32 pix = 0; pix < width * height; pix++) {
                             Int32 idx = pix * 2;
                             Byte p8 = linear[idx + 0];
@@ -906,7 +976,7 @@ public static class TxdExtractor {
             return (overallTexturesExported, filesProcessedCount, filesWithExports);
         }
 
-        private Int32 ExportTexturesFromTxd(String txdFilePath, String outputDirBase) {
+    public Int32 ExportTexturesFromTxd(String txdFilePath, String outputDirBase) {
             Log.Cyan($"Processing TXD file: {txdFilePath}");
             Byte[] data;
             try {
@@ -960,6 +1030,7 @@ public static class TxdExtractor {
             return totalTexturesExportedFromFile;
         }
     }
+
     private static class Log {
         private static readonly Object Sync = new();
 
@@ -988,6 +1059,7 @@ public static class TxdExtractor {
         }
 
         private static void Write(ConsoleColor colour, String message, Boolean isError = false) {
+            #if DEBUG
             lock (Sync) {
                 ConsoleColor previous = Console.ForegroundColor;
                 Console.ForegroundColor = colour;
@@ -999,8 +1071,12 @@ public static class TxdExtractor {
 
                 Console.ForegroundColor = previous;
             }
+            #else
+            return;
+            #endif
         }
     }
+
 
     private static Int32 CountOccurrences(ReadOnlySpan<Byte> data, ReadOnlySpan<Byte> pattern) {
         if (pattern.IsEmpty || data.IsEmpty || pattern.Length > data.Length) {
