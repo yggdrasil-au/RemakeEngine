@@ -239,8 +239,73 @@ public sealed partial class OperationsEngine {
                     return okTxd;
                 } else if (String.Equals(format, "str", StringComparison.OrdinalIgnoreCase)) {
                     Console.ForegroundColor = ConsoleColor.DarkCyan;
-                    Console.WriteLine("\\n>>> Built-in BMS extraction");
+                    Console.WriteLine("\n>>> Built-in BMS extraction");
                     Console.ResetColor();
+
+                    // If the caller didn't specify --quickbms/-e, resolve it from Tools.local.json via the tool resolver
+                    Boolean hasQuickbmsArg = args.Any(a => String.Equals(a, "--quickbms", StringComparison.OrdinalIgnoreCase) || String.Equals(a, "-e", StringComparison.OrdinalIgnoreCase));
+
+                    // Always validate the installed QuickBMS version against the module's Tools.toml requested version.
+                    // Determine the module Tools.toml path (same convention used by the download_tools step)
+                    String moduleToolsToml = Path.Combine(gameRoot2, "Tools.toml");
+                    String? requiredVersion = null;
+                    if (File.Exists(moduleToolsToml)) {
+                        try {
+                            List<Dictionary<String, Object?>> toolDefs = EngineNet.Tools.SimpleToml.ReadTools(moduleToolsToml);
+                            Dictionary<String, Object?>? qbmsDef = toolDefs.FirstOrDefault(t => t.TryGetValue("name", out Object? n) && String.Equals(n?.ToString(), "QuickBMS", StringComparison.OrdinalIgnoreCase));
+                            if (qbmsDef is not null && qbmsDef.TryGetValue("version", out Object? verObj)) {
+                                requiredVersion = verObj?.ToString();
+                            }
+                        } catch { /* best-effort parse; fall through */ }
+                    }
+
+                    // Load Tools.local.json to locate installed QuickBMS and its version
+                    String toolsLocalPath = new[] {
+                        Path.Combine(_rootPath, "Tools.local.json"),
+                        Path.Combine(_rootPath, "tools.local.json"),
+                    }.FirstOrDefault(File.Exists) ?? String.Empty;
+
+                    String? installedExe = null;
+                    String? installedVersion = null;
+                    if (!String.IsNullOrEmpty(toolsLocalPath)) {
+                        try {
+                            using FileStream fs = File.OpenRead(toolsLocalPath);
+                            using JsonDocument jdoc = JsonDocument.Parse(fs);
+                            if (jdoc.RootElement.ValueKind == JsonValueKind.Object && jdoc.RootElement.TryGetProperty("QuickBMS", out JsonElement qbms) && qbms.ValueKind == JsonValueKind.Object) {
+                                if (qbms.TryGetProperty("exe", out JsonElement exe) && exe.ValueKind == JsonValueKind.String) {
+                                    installedExe = exe.GetString();
+                                }
+                                if (qbms.TryGetProperty("version", out JsonElement ver) && ver.ValueKind == JsonValueKind.String) {
+                                    installedVersion = ver.GetString();
+                                }
+                            }
+                        } catch { /* ignore, will error below if needed */ }
+                    }
+
+                    // If we have a required version, enforce that it's installed
+                    if (!String.IsNullOrWhiteSpace(requiredVersion)) {
+                        if (String.IsNullOrWhiteSpace(installedVersion) || !String.Equals(installedVersion, requiredVersion, StringComparison.OrdinalIgnoreCase)) {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.Error.WriteLine($"Missing QuickBMS {requiredVersion} — please run the 'Download Tools' operation to install required tools.\nExpected QuickBMS version from {moduleToolsToml}, but Tools.local.json shows '{installedVersion ?? "<not installed>"}'.");
+                            Console.ResetColor();
+                            return false;
+                        }
+                    }
+
+                    // Inject --quickbms if not provided
+                    if (!hasQuickbmsArg) {
+                        // Prefer exe path from Tools.local.json; fall back to the tool resolver
+                        String resolvedPath = installedExe ?? _tools.ResolveToolPath("QuickBMS");
+                        if (String.IsNullOrWhiteSpace(resolvedPath) || !File.Exists(resolvedPath)) {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.Error.WriteLine("QuickBMS is not installed or could not be resolved. Please run the 'Download Tools' operation first.");
+                            Console.ResetColor();
+                            return false;
+                        }
+                        args.Insert(0, resolvedPath);
+                        args.Insert(0, "--quickbms");
+                    }
+
                     Boolean okBms = FileHandlers.QuickBmsExtractor.Run(args);
                     return okBms;
                 } else {
