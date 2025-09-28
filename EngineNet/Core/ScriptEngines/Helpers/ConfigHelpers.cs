@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using EngineNet.Core.Sys;
 
 namespace EngineNet.Core.ScriptEngines.Helpers;
 
@@ -9,6 +10,30 @@ namespace EngineNet.Core.ScriptEngines.Helpers;
 /// Utility helpers for common project setup and filesystem operations used by scripts.
 /// </summary>
 public static class ConfigHelpers {
+    private static void Emit(String message, Boolean newline = true, String? color = null) {
+        try {
+            EngineSdk.Print(message ?? String.Empty, color, newline);
+        } catch {
+            if (newline) {
+                Console.WriteLine(message);
+            } else {
+                Console.Write(message);
+            }
+        }
+    }
+
+    private static String BuildProgressBar(String label, Int32 current, Int32 total, Int32 width = 30) {
+        if (total <= 0) {
+            return $"{label}: [" + new String('.', width) + "] 100%";
+        }
+        Double ratio = current / (Double)total;
+        if (ratio < 0) ratio = 0; if (ratio > 1) ratio = 1;
+        Int32 filled = (Int32)Math.Round(ratio * width);
+        String bar = new String('=', Math.Max(0, filled - 1)) + (filled > 0 ? ">" : "") + new String('.', Math.Max(0, width - filled));
+        Int32 percent = (Int32)Math.Round(ratio * 100);
+        return $"{label}: [{bar}] {current}/{total} ({percent}%)";
+    }
+
     /// <summary>
     /// Ensure a minimal project.json exists under <paramref name="rootDir"/>.
     /// If missing, creates a skeleton file similar to EngineNet.Program. Returns the config path.
@@ -51,6 +76,7 @@ public static class ConfigHelpers {
     /// <summary>
     /// Recursively copy a directory to destination. Creates destination if needed.
     /// If <paramref name="overwrite"/> is false and destination exists, throws.
+    /// Emits progress updates to the engine console.
     /// </summary>
     public static void CopyDirectory(String sourceDir, String destDir, Boolean overwrite = false) {
         if (String.IsNullOrWhiteSpace(sourceDir)) {
@@ -76,23 +102,55 @@ public static class ConfigHelpers {
         String srcRoot = Path.GetFullPath(sourceDir);
         String dstRoot = Path.GetFullPath(destDir);
 
+        // Create all directories first
         foreach (String dir in Directory.EnumerateDirectories(srcRoot, "*", SearchOption.AllDirectories)) {
             String rel = Path.GetRelativePath(srcRoot, dir);
             String target = Path.Combine(dstRoot, rel);
             Directory.CreateDirectory(target);
         }
-        foreach (String file in Directory.EnumerateFiles(srcRoot, "*", SearchOption.AllDirectories)) {
+
+        // Prepare files list to compute progress
+        List<String> files = Directory.EnumerateFiles(srcRoot, "*", SearchOption.AllDirectories).ToList();
+        Int32 total = files.Count;
+        Int32 current = 0;
+        DateTime lastUpdate = DateTime.UtcNow;
+        Int32 lastPercent = -1;
+
+        // Emit initial line
+        if (total > 0) {
+            Emit($"Copying {total} files from '{srcRoot}' to '{dstRoot}'...");
+        }
+
+        // Copy files with progress
+        foreach (String file in files) {
             String rel = Path.GetRelativePath(srcRoot, file);
             String target = Path.Combine(dstRoot, rel);
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             File.Copy(file, target, overwrite: true);
+
+            current++;
+
+            // Throttle updates: on percent change or every 100ms
+            Int32 percent = total > 0 ? (Int32)Math.Floor((current * 100.0) / total) : 100;
+            DateTime now = DateTime.UtcNow;
+            if (percent != lastPercent || (now - lastUpdate).TotalMilliseconds >= 100 || current == total) {
+                String line = "\r" + BuildProgressBar("Copying", current, total);
+                Emit(line, newline: false);
+                lastPercent = percent;
+                lastUpdate = now;
+            }
+        }
+
+        // Finish line
+        if (total > 0) {
+            Emit(String.Empty, newline: true);
         }
     }
 
     /// <summary>
     /// Move a directory to a new location. If <paramref name="overwrite"/> is false and
     /// destination exists, throws. If moving across volumes or into an existing destination,
-    /// falls back to copy+delete.
+    /// falls back to copy+delete. Emits progress for copy operations.
     /// </summary>
     public static void MoveDirectory(String sourceDir, String destDir, Boolean overwrite = false) {
         if (String.IsNullOrWhiteSpace(sourceDir)) {
@@ -112,17 +170,25 @@ public static class ConfigHelpers {
                 throw new IOException($"Destination already exists: {destDir}");
             }
             // We'll merge by copy then delete source
+            Emit($"Merging '{sourceDir}' into existing '{destDir}'...");
             CopyDirectory(sourceDir, destDir, overwrite: true);
+            Emit("Deleting source after merge...");
             Directory.Delete(sourceDir, recursive: true);
+            Emit("Move complete.");
             return;
         }
 
         try {
+            Emit($"Moving directory '{sourceDir}' -> '{destDir}' (fast move) ...", newline: false);
             Directory.Move(sourceDir, destDir);
+            Emit(" done.", newline: true);
         } catch {
             // Fallback to copy+delete for cross-device moves
+            Emit("Fast move not available; falling back to copy...", newline: true);
             CopyDirectory(sourceDir, destDir, overwrite: true);
+            Emit("Deleting source after copy...", newline: true);
             Directory.Delete(sourceDir, recursive: true);
+            Emit("Move complete.");
         }
     }
 
