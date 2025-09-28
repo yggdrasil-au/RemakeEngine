@@ -12,6 +12,48 @@ namespace EngineNet.Core.ScriptEngines.LuaModules;
 /// Provides path validation and executable approval for RemakeEngine security.
 /// </summary>
 internal static class LuaSecurity {
+    private static readonly HashSet<String> UserApprovedRoots = new HashSet<String>(StringComparer.OrdinalIgnoreCase);
+
+    private static String NormalizeLowerFullPath(String path) {
+        String fullPath = Path.GetFullPath(path);
+        return fullPath.Replace('/', Path.DirectorySeparatorChar).ToLowerInvariant();
+    }
+
+    private static String DetermineApprovalRoot(String path) {
+        try {
+            String full = Path.GetFullPath(path);
+            if (Directory.Exists(full)) {
+                return new DirectoryInfo(full).FullName;
+            }
+            String? dir = Path.GetDirectoryName(full);
+            if (!String.IsNullOrWhiteSpace(dir)) {
+                return new DirectoryInfo(dir).FullName;
+            }
+            return full;
+        } catch {
+            return path;
+        }
+    }
+
+    public static Boolean EnsurePathAllowedWithPrompt(String path) {
+        if (IsAllowedPath(path)) {
+            return true;
+        }
+        // Ask the user for permission to grant temporary access to this external path
+        String root = DetermineApprovalRoot(path);
+        String msg = $"Permission requested: Allow this script to access external path '\"{root}\"'?\nType 'y' to allow for this session, anything else to deny.";
+        String answer = EngineSdk.Prompt(msg, "ext_path_access", false) ?? String.Empty;
+        if (answer.Trim().Equals("y", StringComparison.OrdinalIgnoreCase) ||
+            answer.Trim().Equals("yes", StringComparison.OrdinalIgnoreCase)) {
+            try {
+                String normalized = NormalizeLowerFullPath(root).TrimEnd(Path.DirectorySeparatorChar);
+                UserApprovedRoots.Add(normalized);
+            } catch { /* ignore */ }
+            return true;
+        }
+        EngineSdk.Error($"Access denied: File path '{path}' is outside allowed workspace areas");
+        return false;
+    }
     /// <summary>
     /// Security validation: Check if executable is approved for RemakeEngine use.
     /// Allows registered tools, common system utilities, and resolved tool paths.
@@ -111,6 +153,13 @@ internal static class LuaSecurity {
         try {
             String fullPath = Path.GetFullPath(path);
             String normalizedPath = fullPath.Replace('/', Path.DirectorySeparatorChar).ToLowerInvariant();
+
+            // First, allow any user-approved roots for this session
+            foreach (String approved in UserApprovedRoots) {
+                if (normalizedPath.StartsWith(approved, StringComparison.OrdinalIgnoreCase)) {
+                    return true;
+                }
+            }
             
             // Get current working directory and common workspace patterns
             String currentDir = Directory.GetCurrentDirectory().Replace('/', Path.DirectorySeparatorChar).ToLowerInvariant();

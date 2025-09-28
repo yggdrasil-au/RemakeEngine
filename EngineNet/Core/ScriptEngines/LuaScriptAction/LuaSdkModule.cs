@@ -163,9 +163,8 @@ internal static class LuaSdkModule {
 
         sdk["copy_file"] = (Func<String, String, DynValue, Boolean>)((src, dst, overwrite) => {
             try {
-                // Security: Validate paths are within allowed workspace areas
-                if (!LuaSecurity.IsAllowedPath(src) || !LuaSecurity.IsAllowedPath(dst)) {
-                    EngineSdk.Error($"Access denied: File operations restricted to workspace areas. Attempted: {src} -> {dst}");
+                // Security: Validate or prompt-approve paths
+                if (!LuaSecurity.EnsurePathAllowedWithPrompt(src) || !LuaSecurity.EnsurePathAllowedWithPrompt(dst)) {
                     return false;
                 }
                 
@@ -179,9 +178,8 @@ internal static class LuaSdkModule {
 
         sdk["rename_file"] = (Func<String, String, Boolean>)((oldPath, newPath) => {
             try {
-                // Security: Validate paths are within allowed workspace areas
-                if (!LuaSecurity.IsAllowedPath(oldPath) || !LuaSecurity.IsAllowedPath(newPath)) {
-                    EngineSdk.Error($"Access denied: File operations restricted to workspace areas. Attempted: {oldPath} -> {newPath}");
+                // Security: Validate or prompt-approve paths
+                if (!LuaSecurity.EnsurePathAllowedWithPrompt(oldPath) || !LuaSecurity.EnsurePathAllowedWithPrompt(newPath)) {
                     return false;
                 }
                 
@@ -207,7 +205,7 @@ internal static class LuaSdkModule {
         sdk["currentdir"] = (Func<String>)(() => Directory.GetCurrentDirectory());
         
         sdk["mkdir"] = (Func<String, Boolean>)(path => {
-            if (!LuaSecurity.IsAllowedPath(path)) {
+            if (!LuaSecurity.EnsurePathAllowedWithPrompt(path)) {
                 return false;
             }
             try {
@@ -219,7 +217,7 @@ internal static class LuaSdkModule {
         });
 
         sdk["attributes"] = (Func<String, DynValue>)(path => {
-            if (!LuaSecurity.IsAllowedPath(path)) {
+            if (!LuaSecurity.EnsurePathAllowedWithPrompt(path)) {
                 return DynValue.Nil;
             }
             try {

@@ -166,9 +166,8 @@ public sealed class LuaScriptAction : IAction {
     private void CreateSafeIoTable(Script lua) {
         Table safeIo = new Table(lua);
         safeIo["open"] = (Func<String, String?, DynValue>)((path, mode) => {
-            // Security: Validate file path is within allowed areas
-            if (!LuaSecurity.IsAllowedPath(path)) {
-                EngineSdk.Error($"Access denied: File path '{path}' is outside allowed workspace areas");
+            // Security: Validate file path with user approval if outside workspace
+            if (!LuaSecurity.EnsurePathAllowedWithPrompt(path)) {
                 return DynValue.Nil;
             }
             
