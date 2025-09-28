@@ -1,0 +1,15 @@
+{
+    "Lua.diagnostics.globals": [
+        "tool",
+        "argv",
+        "warn",
+        "error",
+        "emit",
+        "prompt",
+        "progress",
+        "sdk",
+        "sqlite",
+        "debug",
+        "package"
+    ]
+}

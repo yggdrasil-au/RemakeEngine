@@ -355,7 +355,13 @@ public partial class CliApp {
                     case "script_type":
                     case "type":
                         if (!String.IsNullOrWhiteSpace(value)) {
-                            options.ScriptType = value;
+                            // Handle common typos and aliases
+                            String normalizedType = value.ToLowerInvariant();
+                            options.ScriptType = normalizedType switch {
+                                "lau" => "lua",  // Common typo
+                                "js" => "javascript",
+                                _ => value
+                            };
                         }
                         break;
                     case "arg":

@@ -236,7 +236,6 @@ public partial class CliApp {
         return 0;
     }
 
-
     private static void CollectAnswersForOperation(Dictionary<String, Object?> op, Dictionary<String, Object?> answers, Boolean defaultsOnly) {
         if (!op.TryGetValue("prompts", out Object? promptsObj) || promptsObj is not IList<Object?> prompts) {
             return;

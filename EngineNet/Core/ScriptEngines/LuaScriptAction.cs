@@ -178,6 +178,8 @@ public sealed class LuaScriptAction:IAction {
                 return true;
             } catch { return false; }
         });
+
+        // TODO: only allow removal of files within the project directory
         sdk["remove_file"] = (Func<String, Boolean>)(path => {
             try {
                 if (FsUtils.IsSymlink(path) || File.Exists(path)) {
@@ -187,6 +189,10 @@ public sealed class LuaScriptAction:IAction {
                 return true;
             } catch { return false; }
         });
+
+        // this needs access outside the project dir, but should only copy into the project dir itself
+        // TODO: ensure destination is within project dir, being the location of files like project.json, Tools.local.json etc
+        // Possibly add restrictions on source path, preventing access to sensitive system files?
         sdk["copy_file"] = (Func<String, String, DynValue, Boolean>)((src, dst, overwrite) => {
             try {
                 Boolean ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
@@ -194,6 +200,7 @@ public sealed class LuaScriptAction:IAction {
                 return true;
             } catch { return false; }
         });
+
         sdk["create_symlink"] = (Func<String, String, Boolean, Boolean>)FsUtils.CreateSymlink;
         sdk["is_symlink"] = (Func<String, Boolean>)FsUtils.IsSymlink;
         sdk["realpath"] = (Func<String, String?>)FsUtils.RealPath;
@@ -242,6 +249,17 @@ public sealed class LuaScriptAction:IAction {
 
             Table commandArgs = args[0].Table;
             Table? options = args.Count > 1 && args[1].Type == DataType.Table ? args[1].Table : null;
+            
+            // Security: Validate command before execution
+            List<String> parts = TableToStringList(commandArgs);
+            if (parts.Count == 0) {
+                throw new ScriptRuntimeException("exec requires at least one argument (executable)");
+            }
+            
+            if (!IsApprovedExecutable(parts[0], tools)) {
+                throw new ScriptRuntimeException($"Executable '{parts[0]}' is not in the approved tools list. Use tool() function to resolve approved tools.");
+            }
+            
             return ExecProcess(lua, commandArgs, options);
         });
         sdk["run_process"] = DynValue.NewCallback((ctx, args) => {
@@ -251,6 +269,17 @@ public sealed class LuaScriptAction:IAction {
 
             Table commandArgs = args[0].Table;
             Table? options = args.Count > 1 && args[1].Type == DataType.Table ? args[1].Table : null;
+            
+            // Security: Validate command before execution  
+            List<String> parts = TableToStringList(commandArgs);
+            if (parts.Count == 0) {
+                throw new ScriptRuntimeException("run_process requires at least one argument (executable)");
+            }
+            
+            if (!IsApprovedExecutable(parts[0], tools)) {
+                throw new ScriptRuntimeException($"Executable '{parts[0]}' is not in the approved tools list. Use tool() function to resolve approved tools.");
+            }
+            
             return RunProcess(lua, commandArgs, options);
         });
         lua.Globals["sdk"] = sdk;
@@ -265,6 +294,7 @@ public sealed class LuaScriptAction:IAction {
 
     private static Table CreateSqliteModule(Script lua) {
         Table module = new Table(lua);
+        // TODO: restrict paths to within the project directory, never needs to access outside it
         module["open"] = DynValue.NewCallback((ctx, args) => {
             if (args.Count < 1 || args[0].Type != DataType.String) {
                 throw new ScriptRuntimeException("sqlite.open(path) requires a string path");
@@ -611,9 +641,12 @@ public sealed class LuaScriptAction:IAction {
             // Try common terminals
             String[] candidates = new[] { "/usr/bin/gnome-terminal", "/usr/bin/konsole", "/usr/bin/xterm", "/usr/bin/alacritty", "/usr/bin/xfce4-terminal" };
             foreach (String c in candidates) { if (File.Exists(c)) return c; }
-        } catch { }
+        } catch (Exception ex) {
+            throw new ScriptRuntimeException($"Failed to find terminal emulator: {ex.Message}");
+        }
         return String.Empty;
     }
+
     private sealed class SqliteHandle:IDisposable {
         private readonly Script _script;
         private readonly SqliteConnection _connection;

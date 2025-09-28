@@ -139,6 +139,9 @@ dev/
 .gitmodules
 RemakeRegistry/Games/**
 
+RemakeRegistry/ames/demo/TMP/
+RemakeRegistry/ames/demo/TMP/**
+
 # dont ignore demo 
 !RemakeRegistry/Games/demo/
 !RemakeRegistry/Games/demo/**
