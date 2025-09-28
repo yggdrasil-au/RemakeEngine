@@ -1,0 +1,109 @@
+
+//
+using System;
+using System.IO;
+using System.Buffers;
+using System.Linq;
+//
+using EngineNet.Core;
+using EngineNet.Interface.CLI;
+using EngineNet.Tools;
+
+namespace EngineNet;
+
+internal static class Program {
+    public static Int32 Main(String[] args) {
+        try {
+            String root = GetRootPath(args) ?? TryFindProjectRoot(Directory.GetCurrentDirectory())
+                                            ?? TryFindProjectRoot(AppContext.BaseDirectory)
+                                            ?? Directory.GetCurrentDirectory();
+            String configPath = Path.Combine(root, "project.json");
+
+            // Auto-create a minimal project.json if missing
+            if (!File.Exists(configPath)) {
+                try {
+                    Directory.CreateDirectory(root);
+                    String minimal = "{\n  \"RemakeEngine\": {\n    \"Config\": { \"project_path\": \"" + root.Replace("\\", "\\\\") + "\" },\n    \"Directories\": {},\n    \"Tools\": {}\n  }\n}";
+                    File.WriteAllText(configPath, minimal);
+                    Console.ForegroundColor = ConsoleColor.DarkYellow;
+                    Console.WriteLine($"Created default project.json at {configPath}");
+                    Console.ResetColor();
+                } catch (Exception ex) {
+                    Console.Error.WriteLine($"WARN: Could not create project.json — {ex.Message}");
+                }
+            }
+
+            // Tool resolver: prefer TOOLS_JSON env or Tools/tools.json
+            IToolResolver tools = CreateToolResolver(root);
+
+            EngineConfig engineConfig = new EngineConfig(configPath);
+            OperationsEngine engine = new OperationsEngine(root, tools, engineConfig);
+
+            // Interface selection:
+            // - GUI if no args or ONLY arg is --gui
+            // - Otherwise CLI (CLI handles additional args itself)
+            Boolean onlyGuiFlag = args.Length == 1 && String.Equals(args[0], "--gui", StringComparison.OrdinalIgnoreCase);
+            if (args.Length == 0 || onlyGuiFlag) {
+                return RemakeEngine.Interface.GUI.Avalonia.AvaloniaGui.Run(engine);
+            }
+
+            // Any other args -> CLI. Strip --gui if someone passed it along with others.
+            String[] cliArgs = args.Where(a => !String.Equals(a, "--gui", StringComparison.OrdinalIgnoreCase)).ToArray();
+            return new CliApp(engine).Run(cliArgs);
+        } catch (Exception ex) {
+            Console.Error.WriteLine($"ERROR: {ex.Message}");
+            return 1;
+        }
+    }
+
+    private static String? GetRootPath(String[] args) {
+        for (Int32 i = 0; i < args.Length; i++) {
+            if (args[i] == "--root" && i + 1 < args.Length) {
+                return args[i + 1];
+            }
+        }
+        return null;
+    }
+
+    // Walk upwards from a starting directory to find a folder containing RemakeRegistry/Games
+    private static String? TryFindProjectRoot(String? startDir) {
+        try {
+            String? dir = String.IsNullOrWhiteSpace(startDir) ? null : Path.GetFullPath(startDir!);
+            while (!String.IsNullOrEmpty(dir)) {
+                String reg = Path.Combine(dir!, "RemakeRegistry");
+                String games = Path.Combine(reg, "Games");
+                if (Directory.Exists(games)) {
+                    return dir!;
+                }
+
+                DirectoryInfo? parent = Directory.GetParent(dir!);
+                if (parent is null) {
+                    break;
+                }
+
+                dir = parent.FullName;
+            }
+        } catch {
+            /* ignore */
+        }
+        return null;
+    }
+
+    private static IToolResolver CreateToolResolver(String root) {
+        String? envPath = Environment.GetEnvironmentVariable("TOOLS_JSON");
+        if (!String.IsNullOrWhiteSpace(envPath) && File.Exists(envPath)) {
+            return new JsonToolResolver(envPath);
+        }
+
+        // Prefer Tools.local.json if present, then Tools.json
+        String RemakeRegistryDir = Path.Combine(root, "RemakeRegistry");
+        String[] candidates = new[] {
+            Path.Combine(root, "Tools.local.json"),
+            Path.Combine(root, "tools.local.json"),
+            Path.Combine(RemakeRegistryDir, "Tools.json"),
+            Path.Combine(RemakeRegistryDir, "tools.json"),
+        };
+        String? found = candidates.FirstOrDefault(File.Exists);
+        return !String.IsNullOrEmpty(found) ? new JsonToolResolver(found) : new PassthroughToolResolver();
+    }
+}

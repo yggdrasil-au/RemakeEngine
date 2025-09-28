@@ -1,0 +1,149 @@
+# RemakeEngine .gitignore (organized)
+
+############################
+# IDE / Editor
+############################
+.vscode/
+.VSCodeCounter/
+.history/
+.vs/
+
+############################
+# Python / Testing
+############################
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+remakeengine/Scripts/activate/
+
+coverage.opencover.xml
+
+
+############################
+# Godot
+############################
+/.godot/
+/godot/
+
+############################
+# Build Artifacts / Dependencies
+############################
+build/
+dist/
+bin/
+obj/
+EngineNet/Interface/GUI.Avalonia/bin/
+EngineNet/Interface/GUI.Avalonia/obj/
+*.csproj.user
+
+############################
+# Logs
+############################
+*.log
+main.log
+
+############################
+# Configuration / Project History
+############################
+config.ini
+project.json
+
+############################
+# Asset / Texture Mapping Cache
+############################
+texture_mapping.json
+asset_mapping.json
+asset_map.sqlite
+
+############################
+# Tools & Local Tooling
+############################
+/Tools/**
+Tools.local.json
+
+############################
+# Documentation (external repos)
+############################
+remake-engine-docs/
+RemakeEngineDocs/
+
+############################
+# Generated Game Files (RemakeEngine output)
+############################
+/Game/
+/GameFiles/
+/game/
+
+############################
+# Original Game Files (do not commit for licensing/copyright)
+############################
+/Source/
+/SourceData/
+LightTOC
+StreamSetConfig
+localereftableD4815ED6.txt
+*.alb
+*.amb
+*.aub
+*.bin
+*.bsp
+*.ctb
+*.dat
+*.graph
+*.imb
+*.inf
+*.lh2
+*.lua
+*.meta.xml
+*.mib
+*.msb
+*.mus
+*.preinstanced
+*.ps3
+*.rcm_b
+*.sbk
+*.smb
+*.snu
+*.str
+*.toc
+*.txd
+*.uix
+*.vfb
+*.vp6
+
+############################
+# Tests / Debug / Investigation
+############################
+.test/
+test/
+investigation_tools/blank.blend
+investigation_tools/blank.blend1
+
+
+
+############################
+# Temporary / Backup / Archived
+############################
+/TMP/
+dev/
+*.blend1
+# uv_map_extract/
+
+############################
+# Repo/Submodules
+############################
+# ignore submodules file, the games modules are managed by the app, this is here for VS code to detect them
+.gitmodules
+RemakeRegistry/Games/**
+
+# dont ignore demo 
+!RemakeRegistry/Games/demo/
+!RemakeRegistry/Games/demo/**
+
+
+############################
+# Misc Workspace
+############################
+sandbox/
+reverse_engineering_stuff/

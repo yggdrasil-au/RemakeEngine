@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<!-- Default TFMs for CI and most dev machines (no Apple workloads required) -->
+		<TargetFrameworks>
+			net8.0;
+			<!-- Windows UI target -->
+			net8.0-windows10.0.19041.0;
+		</TargetFrameworks>
+
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<OutputType>Exe</OutputType>
+		<LangVersion>latest</LangVersion>
+		<!-- Only enable WinForms when building for Windows -->
+		<UseWindowsForms Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">true</UseWindowsForms>
+
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</SupportedOSPlatformVersion>
+		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</TargetPlatformMinVersion>
+
+	</PropertyGroup>
+
+	<!-- Opt-in macOS TFM only when building on a machine with the required workloads installed. Enable via: dotnet build -p:IncludeMacOS=true -->
+	<PropertyGroup Condition="'$(IncludeMacOS)' == 'true'">
+		<TargetFrameworks>$(TargetFrameworks);net8.0-macos</TargetFrameworks>
+	</PropertyGroup>
+
+	<ItemGroup>
+			<PackageReference Include="MoonSharp" Version="2.0.0" />
+			<PackageReference Include="Jint" Version="4.4.1" />
+			<PackageReference Include="Tomlyn" Version="0.19.0" />
+			<PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.5" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\EngineNet.Interface.GUI.Avalonia\EngineNet.Interface.GUI.Avalonia.csproj" />
+	</ItemGroup>
+
+</Project>
