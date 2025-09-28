@@ -47,7 +47,7 @@ jobs:
         shell: powershell
         run: |
           .\.sonar\scanner\dotnet-sonarscanner begin `
-            /k:"yggdrasil-au_RemakeEngine" `
+            /k:"yggdrasil-au_RemakeEngine2" `
             /o:"yggdrasil-au" `
             /d:sonar.token="${{ secrets.SONAR_TOKEN }}" `
             /d:sonar.cs.opencover.reportsPaths="EngineNet.Tests/TestResults/**/coverage.opencover.xml" `
