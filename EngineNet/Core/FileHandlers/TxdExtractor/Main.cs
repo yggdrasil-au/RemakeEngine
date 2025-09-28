@@ -8,9 +8,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using EngineNet.Core.Util;
 
-namespace EngineNet.Core.FileHandlers;
+namespace EngineNet.Core.FileHandlers.TxdExtractor;
 
-public static class TxdExtractor {
+public static class Main {
     private sealed class Options {
         public String InputPath = String.Empty;
         public String? OutputDirectory;

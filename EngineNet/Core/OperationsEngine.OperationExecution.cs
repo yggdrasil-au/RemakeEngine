@@ -301,7 +301,7 @@ public sealed partial class OperationsEngine {
                     Console.ForegroundColor = ConsoleColor.DarkCyan;
                     Console.WriteLine("\n>>> Built-in TXD extraction");
                     Console.ResetColor();
-                    Boolean okTxd = FileHandlers.TxdExtractor.Run(args);
+                    Boolean okTxd = FileHandlers.TxdExtractor.Main.Run(args);
                     return okTxd;
                 } else {
                     return false;
