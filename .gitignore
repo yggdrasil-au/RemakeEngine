@@ -138,13 +138,12 @@ dev/
 # ignore submodules file, the games modules are managed by the app, this is here for VS code to detect them
 .gitmodules
 RemakeRegistry/Games/**
-
-RemakeRegistry/ames/demo/TMP/
-RemakeRegistry/ames/demo/TMP/**
+RemakeRegistry/Games/demo/TMP/
+RemakeRegistry/Games/demo/TMP/**
 
 # dont ignore demo 
 !RemakeRegistry/Games/demo/
-!RemakeRegistry/Games/demo/**
+
 
 
 ############################

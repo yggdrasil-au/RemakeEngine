@@ -39,7 +39,7 @@ public partial class CliApp {
             return 2;
         }
 
-        Boolean ok = ExecuteOp(gameName!, games, op, options.PromptAnswers);
+        Boolean ok = ExecuteOp(gameName!, games, op, options.PromptAnswers, options.AutoPromptResponses);
         return ok ? 0 : 1;
     }
 
@@ -290,9 +290,10 @@ public partial class CliApp {
         public String? GameName { get; private set; }
         public String? OpsFile { get; private set; }
         public String? Script { get; private set; }
-        public String ScriptType { get; private set; } = "python";
+        public String? ScriptType { get; private set; }
         public Dictionary<String, Object?> OperationFields { get; } = new(StringComparer.OrdinalIgnoreCase);
-        public Dictionary<String, Object?> PromptAnswers { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<String, Object?> PromptAnswers { get; } = new(StringComparer.OrdinalIgnoreCase); // respond to operations.toml prompts
+        public Dictionary<String, String> AutoPromptResponses { get; } = new(StringComparer.OrdinalIgnoreCase); // responde to lua prompt() calls
 
         private readonly List<String> _args = new();
         private Boolean _argsOverride;
@@ -384,6 +385,13 @@ public partial class CliApp {
                         }
                         (String answerKey, Object? answerValue) = ParseKeyValue(value);
                         options.PromptAnswers[answerKey] = answerValue;
+                        break;
+                    case "auto_prompt":
+                        if (value is null) {
+                            throw new ArgumentException("Option '--auto_prompt' requires PROMPT_ID=RESPONSE.");
+                        }
+                        (String promptId, Object? promptResponse) = ParseKeyValue(value);
+                        options.AutoPromptResponses[promptId] = promptResponse?.ToString() ?? String.Empty;
                         break;
                     case "set":
                         if (value is null) {

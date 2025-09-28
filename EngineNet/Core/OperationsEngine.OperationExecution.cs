@@ -471,6 +471,7 @@ public sealed partial class OperationsEngine {
 
                 Console.ForegroundColor = ConsoleColor.DarkCyan;
                 Console.WriteLine("\n>>> Built-in folder rename");
+                Console.WriteLine($"with args: {String.Join(' ', args)}");
                 Console.ResetColor();
                 Boolean okRename = FileHandlers.FolderRenamer.Run(args);
                 return okRename;

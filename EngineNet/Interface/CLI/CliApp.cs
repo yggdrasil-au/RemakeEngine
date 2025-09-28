@@ -133,7 +133,7 @@ public partial class CliApp {
         }
     }
 
-    private Boolean ExecuteOp(String game, IDictionary<String, Object?> games, Dictionary<String, Object?> op, Dictionary<String, Object?> answers) {
+    private Boolean ExecuteOp(String game, IDictionary<String, Object?> games, Dictionary<String, Object?> op, Dictionary<String, Object?> answers, Dictionary<String, String>? autoPromptResponses = null) {
         String? type = (op.TryGetValue("script_type", out Object? st) ? st?.ToString() : null)?.ToLowerInvariant();
 
         // Use embedded handlers for engine/lua/js/bms to avoid external dependencies
@@ -141,11 +141,26 @@ public partial class CliApp {
             // Route in-process SDK events to our terminal renderer and suppress raw @@REMAKE@@ lines
             Action<Dictionary<String, Object?>>? prevSink = Core.ScriptEngines.Helpers.EngineSdk.LocalEventSink;
             Boolean prevMute = Core.ScriptEngines.Helpers.EngineSdk.MuteStdoutWhenLocalSink;
+            Dictionary<String, String> prevAutoResponses = new(Core.ScriptEngines.Helpers.EngineSdk.AutoPromptResponses);
             try {
+                // Set auto-prompt responses if provided
+                if (autoPromptResponses != null && autoPromptResponses.Count > 0) {
+                    Core.ScriptEngines.Helpers.EngineSdk.AutoPromptResponses.Clear();
+                    foreach (KeyValuePair<String, String> kv in autoPromptResponses) {
+                        Core.ScriptEngines.Helpers.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
+                    }
+                }
+                
                 Core.ScriptEngines.Helpers.EngineSdk.LocalEventSink = TerminalUtils.OnEvent;
                 Core.ScriptEngines.Helpers.EngineSdk.MuteStdoutWhenLocalSink = true;
                 return _engine.RunSingleOperationAsync(game, games, op, answers).GetAwaiter().GetResult();
             } finally {
+                // Restore previous auto-prompt responses
+                Core.ScriptEngines.Helpers.EngineSdk.AutoPromptResponses.Clear();
+                foreach (KeyValuePair<String, String> kv in prevAutoResponses) {
+                    Core.ScriptEngines.Helpers.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
+                }
+                
                 Core.ScriptEngines.Helpers.EngineSdk.LocalEventSink = prevSink;
                 Core.ScriptEngines.Helpers.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
             }

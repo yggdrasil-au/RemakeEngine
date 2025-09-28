@@ -20,6 +20,12 @@ public static class EngineSdk {
     }
     public static Boolean MuteStdoutWhenLocalSink { get; set; } = true;
 
+    /// <summary>
+    /// Auto-responses for prompts by ID. When a prompt with matching ID is requested,
+    /// the corresponding response is returned automatically without user interaction.
+    /// </summary>
+    public static Dictionary<String, String> AutoPromptResponses { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
     private static readonly JsonSerializerOptions JsonOpts = new() {
         WriteIndented = false,
         PropertyNamingPolicy = null,
@@ -109,8 +115,22 @@ public static class EngineSdk {
     /// <summary>
     /// Prompt the user for input. Emits a prompt event, then blocks to read a single line from stdin.
     /// Returns the answer without the trailing newline. May return an empty string.
+    /// If an auto-response is available for the prompt ID, returns that instead of prompting.
     /// </summary>
     public static String Prompt(String message, String id = "q1", Boolean secret = false) {
+        // Check for auto-response first
+        if (AutoPromptResponses.TryGetValue(id, out String? autoResponse)) {
+            Emit("print", new Dictionary<String, Object?> { 
+                ["message"] = $"? {message}",
+                ["color"] = "cyan"
+            });
+            Emit("print", new Dictionary<String, Object?> { 
+                ["message"] = $"> {autoResponse} (auto-response)",
+                ["color"] = "yellow"
+            });
+            return autoResponse;
+        }
+
         Emit("prompt", new Dictionary<String, Object?> { ["id"] = id, ["message"] = message, ["secret"] = secret });
         try {
             String? line = Console.In.ReadLine();

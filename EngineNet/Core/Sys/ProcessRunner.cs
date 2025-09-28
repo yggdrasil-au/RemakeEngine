@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Collections.Concurrent;
 using System.Collections;
+using EngineNet.Tools;
 
 namespace EngineNet.Core.Sys;
 
@@ -36,7 +37,7 @@ public sealed class ProcessRunner {
     /// <summary>
     /// Execute a command line and stream output until completion or cancellation.
     /// </summary>
-    /// <param name="commandParts">Executable followed by its arguments. Must contain at least two items when running scripts.</param>
+    /// <param name="commandParts">Executable followed by its arguments. Must contain at least one item (the executable).</param>
     /// <param name="opTitle">Human-readable operation title used in diagnostics.</param>
     /// <param name="onOutput">Optional callback for stdout/stderr lines.</param>
     /// <param name="onEvent">Optional callback for structured events.</param>
@@ -52,8 +53,14 @@ public sealed class ProcessRunner {
         StdinProvider? stdinProvider = null,
         IDictionary<String, Object?>? envOverrides = null,
         CancellationToken cancellationToken = default) {
-        if (commandParts is null || commandParts.Count < 2) {
-            onOutput?.Invoke($"Operation '{opTitle}' has no script to execute. Skipping.", "stderr");
+        if (commandParts is null || commandParts.Count < 1) {
+            onOutput?.Invoke($"Operation '{opTitle}' has no executable specified. Skipping.", "stderr");
+            return false;
+        }
+
+        // Security: Validate executable is approved for RemakeEngine use
+        String executable = commandParts[0];
+        if (!IsApprovedExecutable(executable, onOutput)) {
             return false;
         }
 
@@ -255,5 +262,84 @@ public sealed class ProcessRunner {
         // Escape embedded quotes by backslash
         String escaped = arg.Replace("\"", "\\\"");
         return "\"" + escaped + "\"";
+    }
+
+    /// <summary>
+    /// Security validation: Check if executable is approved for RemakeEngine use.
+    /// Prevents execution of blocked system utilities and suggests SDK alternatives.
+    /// </summary>
+    private static Boolean IsApprovedExecutable(String executable, OutputHandler? onOutput) {
+        if (String.IsNullOrWhiteSpace(executable)) {
+            return false;
+        }
+        
+        // Normalize executable name (remove path and extension for comparison)
+        String exeName = Path.GetFileNameWithoutExtension(executable).ToLowerInvariant();
+        String fullName = Path.GetFileName(executable).ToLowerInvariant();
+        
+        // Check for blocked system utilities and provide SDK alternatives
+        Dictionary<String, String> blockedUtilities = new Dictionary<String, String>(StringComparer.OrdinalIgnoreCase) {
+            { "copy", "sdk.copy_file(src, dst, overwrite)" },
+            { "xcopy", "sdk.copy_dir(src, dst, overwrite)" },
+            { "robocopy", "sdk.copy_dir(src, dst, overwrite)" },
+            { "move", "sdk.move_dir(src, dst, overwrite) or sdk.rename_file(old, new)" },
+            { "ren", "sdk.rename_file(old_name, new_name)" },
+            { "rename", "sdk.rename_file(old_name, new_name)" },
+            { "cp", "sdk.copy_file(src, dst, overwrite) or sdk.copy_dir(src, dst, overwrite)" },
+            { "mv", "sdk.move_dir(src, dst, overwrite) or sdk.rename_file(old, new)" },
+            { "rm", "sdk.remove_file(path) or sdk.remove_dir(path)" },
+            { "mkdir", "sdk.ensure_dir(path) or sdk.mkdir(path)" },
+            { "rmdir", "sdk.remove_dir(path)" },
+            { "tar", "sdk.extract_archive(archive, dest) or sdk.create_archive(src, dest, type)" },
+            { "unzip", "sdk.extract_archive(archive, dest)" },
+            { "7z", "sdk.extract_archive(archive, dest) or sdk.create_archive(src, dest, 'zip')" },
+            { "7za", "sdk.extract_archive(archive, dest) or sdk.create_archive(src, dest, 'zip')" }
+        };
+        
+        if (blockedUtilities.TryGetValue(exeName, out String? suggestion) || 
+            blockedUtilities.TryGetValue(fullName, out suggestion)) {
+            onOutput?.Invoke($"SECURITY: System utility '{executable}' is blocked for security. Use SDK alternative: {suggestion}", "stderr");
+            return false;
+        }
+        
+        // Approved RemakeEngine tools (case-insensitive)
+        HashSet<String> approvedTools = new HashSet<String>(StringComparer.OrdinalIgnoreCase) {
+            // Core RemakeEngine tools from Tools.json
+            "blender", "blender.exe", "blender-launcher.exe",
+            "quickbms", "quickbms.exe", 
+            "godot", "godot.exe",
+            "vgmstream-cli", "vgmstream-cli.exe",
+            "ffmpeg", "ffmpeg.exe",
+            
+            // Git (for repository operations)
+            "git", "git.exe",
+            
+            // PowerShell/cmd (very limited - only for specific safe operations)
+            // Note: These require additional argument validation
+            "pwsh", "pwsh.exe", "powershell", "powershell.exe",
+            
+            // Python/Node (if needed for legacy scripts)
+            "python", "python.exe", "python3", "python3.exe",
+            "node", "node.exe", "npm", "npm.exe"
+        };
+        
+        // Check both with and without common extensions
+        if (approvedTools.Contains(exeName) || approvedTools.Contains(fullName)) {
+            return true;
+        }
+        
+        // Allow executables that are in the Tools directory structure
+        if (executable.Contains("Tools", StringComparison.OrdinalIgnoreCase) && 
+            (executable.Contains("Blender", StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("QuickBMS", StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("Godot", StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("vgmstream", StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("ffmpeg", StringComparison.OrdinalIgnoreCase))) {
+            return true;
+        }
+        
+        // For unrecognized executables, provide guidance
+        onOutput?.Invoke($"SECURITY: Executable '{executable}' is not approved for RemakeEngine. Use registered tools from Tools.json or SDK methods for file operations.", "stderr");
+        return false;
     }
 }

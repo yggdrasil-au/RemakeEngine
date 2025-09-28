@@ -112,11 +112,14 @@ local test_file1 = scratch_root .. '/test_file1.txt'
 local test_file2 = scratch_root .. '/test_file2.txt'
 local test_file_backup = scratch_root .. '/test_file_backup.txt'
 
--- Write test content to files (using standard Lua IO since we're demonstrating SDK operations)
-local file = io.open(test_file1, 'w')
-if file then
-    file:write('Hello from Lua demo!\nThis is test content for file operations.')
-    file:close()
+-- Write test content to files using SDK since io library is sandboxed
+-- Note: We'll create the file content using process execution since direct io is restricted
+local create_result = sdk.run_process({'powershell', '-Command', 
+    string.format('Set-Content -Path "%s" -Value "Hello from Lua demo!\\nThis is test content for file operations."', test_file1)
+}, {capture_stdout = true, capture_stderr = true})
+
+if not create_result or not create_result.success then
+    sdk.color_print('red', 'Warning: Could not create test file via process execution')
 end
 
 next_step('Testing file operations')
@@ -151,11 +154,13 @@ local test_dest_dir = scratch_root .. '/dest_dir'
 local test_move_dir = scratch_root .. '/move_dir'
 
 sdk.ensure_dir(test_source_dir)
--- Create a test file in source dir
-local source_file = io.open(test_source_dir .. '/source_test.txt', 'w')
-if source_file then
-    source_file:write('Source directory test content')
-    source_file:close()
+-- Create a test file in source dir using SDK
+local source_create_result = sdk.run_process({'powershell', '-Command', 
+    string.format('Set-Content -Path "%s" -Value "Source directory test content"', test_source_dir .. '/source_test.txt')
+}, {capture_stdout = true, capture_stderr = true})
+
+if not source_create_result or not source_create_result.success then
+    sdk.color_print('red', 'Warning: Could not create source test file')
 end
 
 local copy_dir_success = sdk.copy_dir(test_source_dir, test_dest_dir, false)
@@ -449,6 +454,7 @@ end
 next_step('Testing user prompt')
 
 -- Prompt demonstration
+-- prompt args (message, id, secret)
 local user_input = prompt('Enter a test message (or press Enter to skip)', 'demo_prompt', false)
 sdk.color_print('green', 'User input received: ' .. (user_input or 'No input'))
 
