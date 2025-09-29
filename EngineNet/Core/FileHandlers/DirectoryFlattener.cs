@@ -1,4 +1,5 @@
 //
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -28,6 +29,7 @@ public static class DirectoryFlattener {
         public Boolean Verbose;
         public Boolean Debug;
         public Int32? Workers;
+        public List<String> SkipFlatten = new();
     }
 
     private sealed class Rule {
@@ -41,7 +43,7 @@ public static class DirectoryFlattener {
     /// <summary>
     /// Flattens a directory tree by copying or moving files into a single-level structure.
     /// </summary>
-    /// <param name="args">CLI-style args: --source DIR --dest DIR [--action copy|move] [--separator S] [--rules FILE] [--verify] [--workers N] [--verbose] [--debug]</param>
+    /// <param name="args">CLI-style args: --source DIR --dest DIR [--action copy|move] [--separator S] [--rules FILE] [--verify] [--workers N] [--verbose] [--debug] [--skip-flatten FOLDER]</param>
     /// <returns>True if all operations succeed (or nothing to do); false otherwise.</returns>
     public static Boolean Run(IList<String> args) {
         Options options;
@@ -84,6 +86,9 @@ public static class DirectoryFlattener {
         WriteInfo($"Destination: '{options.DestinationDir}'");
         WriteInfo($"Action: '{options.Action.ToUpperInvariant()}'");
         WriteInfo($"Workers: {options.Workers}");
+        if (options.SkipFlatten.Count > 0) {
+            WriteInfo($"Skip Flatten: {String.Join(", ", options.SkipFlatten)}");
+        }
         if (options.Verify) {
             WriteWarn("SHA256 hash verification is ENABLED (slower).");
         }
@@ -141,8 +146,8 @@ public static class DirectoryFlattener {
                 case "--separator":
                     options.Separator = ExpectValue(args, ref i, current);
                     break;
-                case "--verify":
-                    options.Verify = true;
+                case "--skip-flatten":
+                    options.SkipFlatten.Add(ExpectValue(args, ref i, current));
                     break;
                 case "-v":
                 case "--verbose":
@@ -267,6 +272,13 @@ public static class DirectoryFlattener {
             return false;
         }
 
+        String dirName = Path.GetFileName(sourcePath);
+        if (options.SkipFlatten.Contains(dirName, StringComparer.OrdinalIgnoreCase)) {
+            WriteVerbose(options, $"Skipping flattening for directory: '{dirName}'");
+            String destDir = Path.Combine(destinationParentPath, dirName);
+            return CopyOrMoveDirectory(sourcePath, destDir, options);
+        }
+
         Boolean isLinear = childDirs.Count == 1 && childFiles.Count == 0;
         if (isLinear) {
             String childDir = childDirs[0];
@@ -372,6 +384,41 @@ public static class DirectoryFlattener {
         } catch (Exception ex) {
             WriteError($"Error during {options.Action} for '{sourceFile}' -> '{destinationFile}': {ex.Message}");
             return false;
+        }
+    }
+
+    private static Boolean CopyOrMoveDirectory(String source, String dest, Options options) {
+        try {
+            if (String.Equals(options.Action, "copy", StringComparison.OrdinalIgnoreCase)) {
+                DirectoryCopy(source, dest, options);
+            } else {
+                Directory.Move(source, dest);
+            }
+            return true;
+        } catch (Exception ex) {
+            WriteError($"Error {options.Action} directory '{source}' to '{dest}': {ex.Message}");
+            return false;
+        }
+    }
+
+    private static void DirectoryCopy(String source, String dest, Options options) {
+        Directory.CreateDirectory(dest);
+        foreach (String file in Directory.GetFiles(source)) {
+            String destFile = Path.Combine(dest, Path.GetFileName(file));
+            if (options.Verify) {
+                String sourceHash = CopyAndHash(file, destFile);
+                String destHash = ComputeHash(destFile);
+                if (!String.Equals(sourceHash, destHash, StringComparison.OrdinalIgnoreCase)) {
+                    throw new Exception($"Hash mismatch for copied file '{destFile}'.");
+                }
+            } else {
+                File.Copy(file, destFile, overwrite: true);
+                CopyMetadata(file, destFile);
+            }
+        }
+        foreach (String dir in Directory.GetDirectories(source)) {
+            String destDir = Path.Combine(dest, Path.GetFileName(dir));
+            DirectoryCopy(dir, destDir, options);
         }
     }
 
