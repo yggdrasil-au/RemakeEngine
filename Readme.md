@@ -82,5 +82,17 @@ RemakeEngine/
 ## Contributing
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, coding standards, and release workflows. When modifying the engine, update the matching specification in `EngineNet/specs/` so documentation stays in sync with the implementation.
 
+## Module Licensing Policy
+
+RemakeEngine is licensed under Apache 2.0 and may be used freely, including for commercial projects.
+
+However, modules that target copyrighted games or other proprietary media must respect our **Non-Commercial Module Policy**:
+
+- To be listed as an **official RemakeEngine module**, the module must use a custom Non-Commercial License.
+- Modules under OSI-approved commercial-use licenses will not be listed in the official registry if they target protected media.
+
+
+See LICENSE_MODULE_TEMPLATE.md for the recommended license text.
+
 ## License & Legal
 The engine is distributed for non-commercial, educational, and archival use. You may only process assets you legally own. See [LICENCE](LICENCE) for the full terms and restrictions.
