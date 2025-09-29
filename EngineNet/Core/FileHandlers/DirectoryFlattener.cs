@@ -30,6 +30,7 @@ public static class DirectoryFlattener {
         public Boolean Debug;
         public Int32? Workers;
         public List<String> SkipFlatten = new();
+        public List<String> IgnoreDirs = new();
     }
 
     private sealed class Rule {
@@ -43,7 +44,7 @@ public static class DirectoryFlattener {
     /// <summary>
     /// Flattens a directory tree by copying or moving files into a single-level structure.
     /// </summary>
-    /// <param name="args">CLI-style args: --source DIR --dest DIR [--action copy|move] [--separator S] [--rules FILE] [--verify] [--workers N] [--verbose] [--debug] [--skip-flatten FOLDER]</param>
+    /// <param name="args">CLI-style args: --source DIR --dest DIR [--action copy|move] [--separator S] [--rules FILE] [--verify] [--workers N] [--verbose] [--debug] [--skip-flatten FOLDER] [--ignore FOLDER]</param>
     /// <returns>True if all operations succeed (or nothing to do); false otherwise.</returns>
     public static Boolean Run(IList<String> args) {
         Options options;
@@ -88,6 +89,9 @@ public static class DirectoryFlattener {
         WriteInfo($"Workers: {options.Workers}");
         if (options.SkipFlatten.Count > 0) {
             WriteInfo($"Skip Flatten: {String.Join(", ", options.SkipFlatten)}");
+        }
+        if (options.IgnoreDirs.Count > 0) {
+            WriteInfo($"Ignore: {String.Join(", ", options.IgnoreDirs)}");
         }
         if (options.Verify) {
             WriteWarn("SHA256 hash verification is ENABLED (slower).");
@@ -148,6 +152,9 @@ public static class DirectoryFlattener {
                     break;
                 case "--skip-flatten":
                     options.SkipFlatten.Add(ExpectValue(args, ref i, current));
+                    break;
+                case "--ignore":
+                    options.IgnoreDirs.Add(ExpectValue(args, ref i, current));
                     break;
                 case "-v":
                 case "--verbose":
@@ -253,6 +260,12 @@ public static class DirectoryFlattener {
 
         WriteSuccess($"Processing Source Directory: '{sourcePath}'");
 
+        String dirName = Path.GetFileName(sourcePath);
+        if (options.IgnoreDirs.Contains(dirName, StringComparer.OrdinalIgnoreCase)) {
+            WriteVerbose(options, $"Ignoring directory: '{dirName}'");
+            return true;
+        }
+
         if (!String.IsNullOrEmpty(accumulatedName)) {
             accumulatedName = SanitizeName(accumulatedName, rules, options);
         }
@@ -272,7 +285,6 @@ public static class DirectoryFlattener {
             return false;
         }
 
-        String dirName = Path.GetFileName(sourcePath);
         if (options.SkipFlatten.Contains(dirName, StringComparer.OrdinalIgnoreCase)) {
             WriteVerbose(options, $"Skipping flattening for directory: '{dirName}'");
             String destDir = Path.Combine(destinationParentPath, dirName);
