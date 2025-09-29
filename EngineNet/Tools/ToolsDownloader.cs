@@ -203,7 +203,7 @@ public sealed class ToolsDownloader {
     }
     private static void Error(String msg) {
         Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine($"ERROR: {msg}");
+        Console.WriteLine($"1 ERROR: {msg}");
         Console.ResetColor();
     }
 

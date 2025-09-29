@@ -37,7 +37,15 @@ internal static class LuaSdkModule {
         
         // Process execution
         LuaProcessExecution.AddProcessExecution(sdk, lua, tools);
-        
+
+        // Expose CPU count as a numeric value for Lua scripts to choose sensible defaults
+        try {
+            // Environment.ProcessorCount is safe and fast
+            sdk.Set("cpu_count", DynValue.NewNumber(Environment.ProcessorCount));
+        } catch {
+            // Ignore if DynValue isn't available for any reason; scripts will fallback to 1
+        }
+
         return sdk;
     }
 

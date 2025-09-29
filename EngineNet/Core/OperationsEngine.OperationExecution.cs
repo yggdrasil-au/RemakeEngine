@@ -66,7 +66,7 @@ public sealed partial class OperationsEngine {
                         await action.ExecuteAsync(_tools, cancellationToken);
                         result = true;
                     } catch (Exception ex) {
-                        Console.Error.WriteLine($"ERROR: {ex.Message}");
+                        Console.Error.WriteLine($"lua engine ERROR: {ex.Message}");
                         result = false;
                     }
                     break;
@@ -77,7 +77,7 @@ public sealed partial class OperationsEngine {
                         await action.ExecuteAsync(_tools, cancellationToken);
                         result = true;
                     } catch (Exception ex) {
-                        Console.Error.WriteLine($"ERROR: {ex.Message}");
+                        Console.Error.WriteLine($"js engine ERROR: {ex.Message}");
                         result = false;
                     }
                     break;
@@ -133,7 +133,7 @@ public sealed partial class OperationsEngine {
                         await action.ExecuteAsync(_tools, cancellationToken);
                         result = true;
                     } catch (Exception ex) {
-                        Console.Error.WriteLine($"ERROR: {ex.Message}");
+                        Console.Error.WriteLine($"bms engine ERROR: {ex.Message}");
                         result = false;
                     }
                     break;
@@ -147,15 +147,16 @@ public sealed partial class OperationsEngine {
                         Console.ResetColor();
                         result = await ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, cancellationToken);
                     } catch (Exception ex) {
-                        Console.Error.WriteLine($"ERROR: {ex.Message}");
+                        Console.Error.WriteLine($"engine ERROR: {ex.Message}");
                         result = false;
                     }
                     break;
                 }
                 case "python":
                 default: {
-                    Sys.ProcessRunner runner = new Sys.ProcessRunner();
-                    result = runner.Execute(parts, Path.GetFileName(scriptPath), cancellationToken: cancellationToken);
+                    // not supported
+                    //Sys.ProcessRunner runner = new Sys.ProcessRunner();
+                    //result = runner.Execute(parts, Path.GetFileName(scriptPath), cancellationToken: cancellationToken);
                     break;
                 }
             }

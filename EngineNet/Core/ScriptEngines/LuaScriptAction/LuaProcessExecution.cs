@@ -8,6 +8,9 @@ using MoonSharp.Interpreter;
 using EngineNet.Core.Sys;
 using EngineNet.Tools;
 using EngineNet.Core.ScriptEngines.Helpers;
+using System.Collections.Concurrent;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace EngineNet.Core.ScriptEngines.LuaModules;
 
@@ -16,6 +19,29 @@ namespace EngineNet.Core.ScriptEngines.LuaModules;
 /// Provides secure process execution with validation.
 /// </summary>
 internal static class LuaProcessExecution {
+    // Lightweight managed process support for non-blocking process execution from Lua.
+    // Processes are stored in a concurrent dictionary and can be polled/waited from Lua.
+    private class ManagedProcess {
+        public Process Process { get; set; } = null!;
+        public StringBuilder Stdout { get; } = new StringBuilder();
+        public StringBuilder Stderr { get; } = new StringBuilder();
+
+        // NEW: locks to make StringBuilder access thread-safe
+        public object StdoutLock { get; } = new object();
+        public object StderrLock { get; } = new object();
+
+        // NEW: cursors so we can return deltas safely (without breaking existing API)
+        public int StdoutCursor { get; set; } = 0;
+        public int StderrCursor { get; set; } = 0;
+
+        public TaskCompletionSource<int> ExitTcs { get; } =
+            new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
+
+    // pid -> ManagedProcess
+    private static readonly ConcurrentDictionary<int, ManagedProcess> s_processes = new ConcurrentDictionary<int, ManagedProcess>();
+    private static int s_nextPid = 0;
+
     public static void AddProcessExecution(Table sdk, Script lua, IToolResolver tools) {
         // exec(args[, options]) -> { success=bool, exit_code=int }
         // options: { cwd=string, env=table, new_terminal=bool, keep_open=bool, title=string, wait=bool }
@@ -60,6 +86,204 @@ internal static class LuaProcessExecution {
             
             return RunProcess(lua, commandArgs, options);
         });
+
+        // Register non-blocking spawn/poll/wait/close helpers for Lua scripts
+        sdk["spawn_process"] = DynValue.NewCallback((ctx, args) => {
+            if (args.Count < 1 || args[0].Type != DataType.Table) {
+                throw new ScriptRuntimeException("spawn_process expects a table of command parts");
+            }
+            Table cmdTable = args[0].Table;
+            Table? options = null;
+            if (args.Count > 1 && args[1].Type == DataType.Table) {
+                options = args[1].Table;
+            }
+            return SpawnProcess(lua, cmdTable, options, tools);
+        });
+
+        sdk["poll_process"] = DynValue.NewCallback((ctx, args) => {
+            if (args.Count < 1 || args[0].Type != DataType.Number) {
+                throw new ScriptRuntimeException("poll_process requires a numeric process id");
+            }
+            int pid = (int)args[0].Number;
+            return PollProcess(lua, pid);
+        });
+
+        sdk["wait_process"] = DynValue.NewCallback((ctx, args) => {
+            if (args.Count < 1 || args[0].Type != DataType.Number) {
+                throw new ScriptRuntimeException("wait_process requires a numeric process id");
+            }
+            int pid = (int)args[0].Number;
+            int? timeoutMs = null;
+            if (args.Count > 1 && args[1].Type == DataType.Number) {
+                timeoutMs = (int)args[1].Number;
+            }
+            return WaitProcess(lua, pid, timeoutMs);
+        });
+
+        sdk["close_process"] = DynValue.NewCallback((ctx, args) => {
+            if (args.Count < 1 || args[0].Type != DataType.Number) {
+                throw new ScriptRuntimeException("close_process requires a numeric process id");
+            }
+            int pid = (int)args[0].Number;
+            return CloseProcess(lua, pid);
+        });
+    }
+
+    private static DynValue SpawnProcess(Script lua, Table commandArgs, Table? options, IToolResolver tools) {
+        List<String> parts = LuaUtilities.TableToStringList(commandArgs);
+        if (parts.Count == 0) throw new ScriptRuntimeException("spawn_process requires at least one argument (executable path)");
+        if (!LuaSecurity.IsApprovedExecutable(parts[0], tools)) throw new ScriptRuntimeException($"Executable '{parts[0]}' is not approved");
+
+        ProcessStartInfo psi = new ProcessStartInfo {
+            FileName = parts[0],
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+        for (int i = 1; i < parts.Count; i++) psi.ArgumentList.Add(parts[i]);
+
+        if (options != null) {
+            DynValue cwd = options.Get("cwd");
+            if (!cwd.IsNil() && cwd.Type == DataType.String) psi.WorkingDirectory = cwd.String;
+            DynValue captureStdout = options.Get("capture_stdout");
+            if (captureStdout.Type == DataType.Boolean && !captureStdout.Boolean) psi.RedirectStandardOutput = false;
+            DynValue captureStderr = options.Get("capture_stderr");
+            if (captureStderr.Type == DataType.Boolean && !captureStderr.Boolean) psi.RedirectStandardError = false;
+            DynValue envOpt = options.Get("env");
+            if (envOpt.Type == DataType.Table) {
+                foreach (TablePair pair in envOpt.Table.Pairs) {
+                    if (pair.Key.Type == DataType.String && pair.Value.Type == DataType.String) {
+                        psi.Environment[pair.Key.String] = pair.Value.String;
+                    }
+                }
+            }
+        }
+
+        ManagedProcess mp = new ManagedProcess();
+        Process p = new Process();
+        p.StartInfo = psi;
+        p.EnableRaisingEvents = true;
+
+        if (psi.RedirectStandardOutput) {
+            p.OutputDataReceived += (_, e) => {
+                if (e.Data != null) {
+                    lock (mp.StdoutLock) {
+                        mp.Stdout.AppendLine(e.Data);
+                    }
+                }
+            };
+        }
+        if (psi.RedirectStandardError) {
+            p.ErrorDataReceived += (_, e) => {
+                if (e.Data != null) {
+                    lock (mp.StderrLock) {
+                        mp.Stderr.AppendLine(e.Data);
+                    }
+                }
+            };
+        }
+        p.Exited += (_, __) => {
+            try { mp.ExitTcs.TrySetResult(p.ExitCode); } catch { }
+        };
+
+        try {
+            if (!p.Start()) throw new ScriptRuntimeException($"Failed to start process '{psi.FileName}'");
+            if (psi.RedirectStandardOutput) p.BeginOutputReadLine();
+            if (psi.RedirectStandardError) p.BeginErrorReadLine();
+        } catch (Exception ex) {
+            throw new ScriptRuntimeException($"Failed to spawn process: {ex.Message}");
+        }
+
+        mp.Process = p;
+        int id = Interlocked.Increment(ref s_nextPid);
+        s_processes[id] = mp;
+
+        Table t = new Table(lua);
+        t["pid"] = id;
+        return DynValue.NewTable(t);
+    }
+
+    private static DynValue PollProcess(Script lua, int pid) {
+        if (!s_processes.TryGetValue(pid, out var mp)) throw new ScriptRuntimeException($"Unknown process id {pid}");
+        Table t = new Table(lua);
+        bool running = !mp.Process.HasExited;
+        t["running"] = running;
+        if (!running) {
+            t["exit_code"] = mp.Process.ExitCode;
+        }
+
+        // FULL buffers (compat) + DELTAS (new)
+        string stdoutFull, stderrFull, stdoutDelta, stderrDelta;
+
+        lock (mp.StdoutLock) {
+            stdoutFull = mp.Stdout.ToString();
+            int len = mp.Stdout.Length - mp.StdoutCursor;
+            if (len < 0) len = 0;
+            stdoutDelta = len == 0 ? string.Empty : mp.Stdout.ToString(mp.StdoutCursor, len);
+            mp.StdoutCursor = mp.Stdout.Length;
+        }
+        lock (mp.StderrLock) {
+            stderrFull = mp.Stderr.ToString();
+            int len = mp.Stderr.Length - mp.StderrCursor;
+            if (len < 0) len = 0;
+            stderrDelta = len == 0 ? string.Empty : mp.Stderr.ToString(mp.StderrCursor, len);
+            mp.StderrCursor = mp.Stderr.Length;
+        }
+
+        t["stdout"] = stdoutFull;
+        t["stderr"] = stderrFull;
+        t["stdout_delta"] = stdoutDelta;   // optional: use for incremental consumption
+        t["stderr_delta"] = stderrDelta;
+        return DynValue.NewTable(t);
+    }
+
+    private static DynValue WaitProcess(Script lua, int pid, int? timeoutMs) {
+        if (!s_processes.TryGetValue(pid, out var mp)) throw new ScriptRuntimeException($"Unknown process id {pid}");
+        bool finished;
+        try {
+            if (timeoutMs.HasValue) {
+                finished = mp.ExitTcs.Task.Wait(timeoutMs.Value);
+            } else {
+                finished = mp.ExitTcs.Task.Wait(Timeout.Infinite);
+            }
+        } catch (Exception) {
+            finished = mp.Process.HasExited;
+        }
+        Table t = new Table(lua);
+        bool running = !mp.Process.HasExited;
+        t["running"] = running;
+        if (!running) t["exit_code"] = mp.Process.ExitCode;
+
+        // Return the remaining tail as delta, plus full buffers for compatibility
+        string stdoutFull, stderrFull, stdoutTail, stderrTail;
+        lock (mp.StdoutLock) {
+            stdoutFull = mp.Stdout.ToString();
+            int len = mp.Stdout.Length - mp.StdoutCursor;
+            if (len < 0) len = 0;
+            stdoutTail = len == 0 ? string.Empty : mp.Stdout.ToString(mp.StdoutCursor, len);
+            mp.StdoutCursor = mp.Stdout.Length;
+        }
+        lock (mp.StderrLock) {
+            stderrFull = mp.Stderr.ToString();
+            int len = mp.Stderr.Length - mp.StderrCursor;
+            if (len < 0) len = 0;
+            stderrTail = len == 0 ? string.Empty : mp.Stderr.ToString(mp.StderrCursor, len);
+            mp.StderrCursor = mp.Stderr.Length;
+        }
+
+        t["stdout"] = stdoutFull;
+        t["stderr"] = stderrFull;
+        t["stdout_delta"] = stdoutTail;
+        t["stderr_delta"] = stderrTail;
+        return DynValue.NewTable(t);
+    }
+
+    private static DynValue CloseProcess(Script lua, int pid) {
+        if (!s_processes.TryRemove(pid, out var mp)) return DynValue.NewBoolean(false);
+        try { if (!mp.Process.HasExited) mp.Process.Kill(true); } catch { }
+        try { mp.Process.Dispose(); } catch { }
+        return DynValue.NewBoolean(true);
     }
 
     public static DynValue RunProcess(Script lua, Table commandArgs, Table? options) {

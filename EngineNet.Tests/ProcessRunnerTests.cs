@@ -12,15 +12,16 @@ public class ProcessRunnerTests
         if (!OperatingSystem.IsWindows())
             return; // Skip on non-Windows in this test set
 
-        // Create a small batch script that emits a normal line and a REMAKE event line
-        String tmpBat = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "enginenet_evt_" + Guid.NewGuid().ToString("N") + ".cmd");
-        System.IO.File.WriteAllText(tmpBat, "@echo off\r\necho hello\r\necho " + EngineNet.Core.Sys.Types.RemakePrefix + "{\"event\":\"progress\",\"percent\":50}\r\n");
-
+        // Use an approved executable (PowerShell) to emit a normal line and a REMAKE event line
         EngineNet.Core.Sys.ProcessRunner runner = new EngineNet.Core.Sys.ProcessRunner();
         List<(String line, String stream)> outputs = new List<(String line, String stream)>();
         List<Dictionary<String, Object?>> events = new List<Dictionary<String, Object?>>();
 
-        List<String> parts = new List<String> { "cmd.exe", "/c", tmpBat };
+        String payload = EngineNet.Core.Sys.Types.RemakePrefix + "{\"event\":\"progress\",\"percent\":50}";
+        List<String> parts = new List<String> {
+            "powershell.exe", "-NoProfile", "-Command",
+            $"Write-Output hello; Write-Output '{payload}'"
+        };
 
         Boolean ok = runner.Execute(
             parts,
@@ -28,8 +29,6 @@ public class ProcessRunnerTests
             onOutput: (string l, string s) => outputs.Add((l, s)),
             onEvent: e => events.Add(e)
         );
-
-        try { System.IO.File.Delete(tmpBat); } catch { }
 
         Assert.True(ok);
         Assert.Contains(outputs, x => x.line.Contains("hello"));

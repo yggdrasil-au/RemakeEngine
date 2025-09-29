@@ -13,7 +13,7 @@ public partial class CliApp {
         try {
             options = InlineOperationOptions.Parse(args);
         } catch (ArgumentException ex) {
-            Console.Error.WriteLine($"ERROR: {ex.Message}");
+            Console.Error.WriteLine($"options ERROR: {ex.Message}");
             return 2;
         }
 

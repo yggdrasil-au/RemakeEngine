@@ -51,7 +51,8 @@ internal static class Program {
             String[] cliArgs = args.Where(a => !String.Equals(a, "--gui", StringComparison.OrdinalIgnoreCase)).ToArray();
             return new CliApp(engine).Run(cliArgs);
         } catch (Exception ex) {
-            Console.Error.WriteLine($"ERROR: {ex.Message}");
+            // Print full exception (message + stack trace) to help diagnose runtime errors
+            Console.Error.WriteLine($"Engine Error: {ex}");
             return 1;
         }
     }
