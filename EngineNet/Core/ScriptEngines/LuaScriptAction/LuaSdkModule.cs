@@ -9,6 +9,7 @@ using MoonSharp.Interpreter;
 using EngineNet.Core.ScriptEngines.Helpers;
 using EngineNet.Core.Sys;
 using EngineNet.Tools;
+using System.Runtime.InteropServices;
 
 namespace EngineNet.Core.ScriptEngines.LuaModules;
 
@@ -200,6 +201,52 @@ internal static class LuaSdkModule {
         sdk["is_symlink"] = (Func<String, Boolean>)LuaFileSystemUtils.IsSymlink;
         sdk["realpath"] = (Func<String, String?>)LuaFileSystemUtils.RealPath;
         sdk["readlink"] = (Func<String, String?>)LuaFileSystemUtils.ReadLink;
+
+        // Create hardlink (files only)
+        sdk["create_hardlink"] = (Func<String, String, Boolean>)((src, dst) => {
+            try {
+                if (!LuaSecurity.EnsurePathAllowedWithPrompt(src) || !LuaSecurity.EnsurePathAllowedWithPrompt(dst)) {
+                    return false;
+                }
+                String destFull = Path.GetFullPath(dst);
+                String srcFull = Path.GetFullPath(src);
+                String? parent = Path.GetDirectoryName(destFull);
+                if (!String.IsNullOrEmpty(parent)) {
+                    Directory.CreateDirectory(parent);
+                }
+                if (!File.Exists(srcFull)) {
+                    return false;
+                }
+                // Remove existing file or link
+                try {
+                    if (LuaFileSystemUtils.IsSymlink(destFull) || File.Exists(destFull)) {
+                        File.Delete(destFull);
+                    }
+                } catch { /* ignore */ }
+                try {
+                    HardLink.Create(srcFull, destFull);
+                    return true;
+                } catch {
+                    return false;
+                }
+            } catch {
+                return false;
+            }
+        });
+
+        // SHA1 hash of a file (lowercase hex)
+        sdk["sha1_file"] = (Func<String, String?>)(path => {
+            try {
+                if (!LuaSecurity.EnsurePathAllowedWithPrompt(path)) {
+                    return null;
+                }
+                using FileStream fs = File.OpenRead(path);
+                Byte[] hash = SHA1.HashData(fs);
+                return Convert.ToHexString(hash).ToLowerInvariant();
+            } catch {
+                return null;
+            }
+        });
 
         // Additional file system operations for compatibility with existing scripts
         sdk["currentdir"] = (Func<String>)(() => Directory.GetCurrentDirectory());

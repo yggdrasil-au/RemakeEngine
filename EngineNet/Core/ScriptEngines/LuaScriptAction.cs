@@ -126,38 +126,55 @@ public sealed class LuaScriptAction : IAction {
             if (String.IsNullOrWhiteSpace(command)) {
                 return DynValue.NewNumber(1); // Error
             }
-            
-            // Parse command to allow safe operations
-            if (command.Contains("mkdir", StringComparison.OrdinalIgnoreCase)) {
-                // Extract path from mkdir command
+
+            String lower = command.Trim().ToLowerInvariant();
+
+            // Detect mkdir
+            if (lower.StartsWith("cmd /c mkdir ") || lower.StartsWith("mkdir -p ") || lower.StartsWith("mkdir ")) {
+                // naive extraction of the last quoted or last token
                 String path = command;
-                if (command.StartsWith("cmd /C mkdir", StringComparison.OrdinalIgnoreCase)) {
-                    path = command.Substring(12).Trim().Trim('"');
-                } else if (command.StartsWith("mkdir -p", StringComparison.OrdinalIgnoreCase)) {
-                    path = command.Substring(8).Trim().Trim('"');
-                }
-                
-                if (LuaSecurity.IsAllowedPath(path)) {
-                    try {
-                        Directory.CreateDirectory(path);
-                        return DynValue.NewNumber(0); // Success
-                    } catch {
-                        return DynValue.NewNumber(1); // Error
+                Int32 lastQuote = command.LastIndexOf('"');
+                if (lastQuote >= 0) {
+                    Int32 firstQuote = command.LastIndexOf('"', lastQuote - 1);
+                    if (firstQuote >= 0) {
+                        path = command.Substring(firstQuote + 1, lastQuote - firstQuote - 1);
                     }
+                } else {
+                    String[] parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length > 1) path = parts[^1];
                 }
+                if (LuaSecurity.IsAllowedPath(path)) {
+                    try { Directory.CreateDirectory(path); return DynValue.NewNumber(0); } catch { return DynValue.NewNumber(1); }
+                }
+                return DynValue.NewNumber(1);
             }
-            
-            // For move operations within workspace
-            if (command.Contains("move", StringComparison.OrdinalIgnoreCase) || 
-                command.Contains("mv ", StringComparison.OrdinalIgnoreCase)) {
-                // Extract source and destination paths
-                // This is a simplified parser - for production, would need more robust parsing
-                EngineSdk.Warn("os.execute with move command detected - use sdk.move_dir or sdk.copy_dir instead");
-                return DynValue.NewNumber(1); // Block for security
+
+            // Detect hardlink creation (Windows mklink /H or ln)
+            if (lower.Contains("mklink /h") || lower.StartsWith("ln ")) {
+                EngineSdk.Error($"os.execute blocked for security: '{command}'. Detected file linking. Use sdk.create_hardlink(src, dst) or sdk.create_symlink(src, dst, is_dir).");
+                return DynValue.NewNumber(1);
+            }
+
+            // Detect copy operations
+            if (lower.StartsWith("copy ") || lower.StartsWith("xcopy ") || lower.StartsWith("cp ")) {
+                EngineSdk.Error($"os.execute blocked for security: '{command}'. Detected copy operation. Use sdk.copy_file(src, dst, overwrite) or sdk.copy_dir(src, dst, overwrite).");
+                return DynValue.NewNumber(1);
+            }
+
+            // Detect move/rename operations
+            if (lower.StartsWith("move ") || lower.StartsWith("ren ") || lower.StartsWith("rename ") || lower.StartsWith("mv ")) {
+                EngineSdk.Error($"os.execute blocked for security: '{command}'. Detected move/rename. Use sdk.rename_file(oldPath, newPath) or sdk.move_dir(src, dst, overwrite).");
+                return DynValue.NewNumber(1);
+            }
+
+            // Detect delete operations
+            if (lower.StartsWith("del ") || lower.StartsWith("rm ") || lower.StartsWith("rmdir ") || lower.StartsWith("rd ")) {
+                EngineSdk.Error($"os.execute blocked for security: '{command}'. Detected delete. Use sdk.remove_file(path) or sdk.remove_dir(path).");
+                return DynValue.NewNumber(1);
             }
             
             // Block all other commands
-            EngineSdk.Error($"os.execute blocked for security: '{command}'. Use sdk.exec or sdk.run_process for approved tools.");
+            EngineSdk.Error($"os.execute blocked for security: '{command}'. Use sdk.exec or sdk.run_process for approved external tools.");
             return DynValue.NewNumber(1); // Error
         });
         lua.Globals["os"] = safeOs;
