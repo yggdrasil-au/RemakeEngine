@@ -136,8 +136,43 @@ public static class TomlHelpers
     {
         if (value is null) return null;
 
-        // Preserve TOML-supported primitives
-        if (value is string || value is bool || value is int || value is long || value is double || value is float || value is DateTime || value is DateTimeOffset)
+        // Normalize numeric types to produce stable TOML:
+        // - If a double/float is mathematically an integer, write it as an integer (long) instead of 1.0
+        //   This is important because Lua numbers come through as doubles, but many config values are intended as ints.
+        if (value is double d)
+        {
+            if (!double.IsNaN(d) && !double.IsInfinity(d))
+            {
+                double rounded = Math.Round(d);
+                if (Math.Abs(d - rounded) < 1e-9 && rounded <= long.MaxValue && rounded >= long.MinValue)
+                {
+                    long asLong = (long)rounded;
+                    if (asLong <= int.MaxValue && asLong >= int.MinValue)
+                        return (int)asLong;
+                    return asLong;
+                }
+            }
+            return d;
+        }
+        if (value is float f)
+        {
+            if (!float.IsNaN(f) && !float.IsInfinity(f))
+            {
+                double fd = f;
+                double rounded = Math.Round(fd);
+                if (Math.Abs(fd - rounded) < 1e-6 && rounded <= long.MaxValue && rounded >= long.MinValue)
+                {
+                    long asLong = (long)rounded;
+                    if (asLong <= int.MaxValue && asLong >= int.MinValue)
+                        return (int)asLong;
+                    return asLong;
+                }
+            }
+            return f;
+        }
+
+        // Preserve other TOML-supported primitives as-is
+        if (value is string || value is bool || value is int || value is long || value is DateTime || value is DateTimeOffset)
             return value;
 
         if (value is TomlTable || value is TomlArray || value is TomlTableArray)

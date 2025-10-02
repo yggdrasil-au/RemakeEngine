@@ -1,99 +1,146 @@
 {
-    "Blender": {
-        "4.0.2": {
+        "Blender": {
+                "4.0.2": {
+                        "win-x64": {
+                                "url": "https://download.blender.org/release/Blender4.0/blender-4.0.2-windows-x64.zip",
+                                "sha256": "bddb7ab6880bbb80297b93731506a48bbebdce214ee5edd17dbef8380daecded"
+                        },
+                        "linux-x64": {
+                                "url": "https://download.blender.org/release/Blender4.0/blender-4.0.2-linux-x64.tar.xz",
+                                "sha256": "5583a5588736da8858c522ef17fff5d73be59c47a6fe91ad29c6f3263e22086a"
+                        },
+                        "macos-arm64": {
+                                "url": "https://download.blender.org/release/Blender4.0/blender-4.0.2-macos-arm64.dmg",
+                                "sha256": "3debdaeb04fbaa13480c66889bef0c009aa563bb5fca42cdf4484f91195671d2"
+                        },
+                        "macos-x64": {
+                                "url": "https://download.blender.org/release/Blender4.0/blender-4.0.2-macos-x64.dmg",
+                                "sha256": "759809d2d0b23bcfa42f2cfa92b707c9f97a8715e542dc330fcd1bfb15970610"
+                        }
+                }
+        },
+        "QuickBMS": {
+                "0.12.0": {
+                        "win-x64": {
+                                "url": "https://github.com/LittleBigBug/QuickBMS/releases/download/0.12.0/quickbms_win.zip",
+                                "sha256": ""
+                        },
+                        "linux-x64": {
+                                "url": "https://github.com/LittleBigBug/QuickBMS/releases/download/0.12.0/quickbms_linux.zip",
+                                "sha256": ""
+                        },
+                        "macOS": {
+                                "url": "https://github.com/LittleBigBug/QuickBMS/releases/download/0.12.0/quickbms_macosx.zip",
+                                "sha256": ""
+                        }
+                }
+        },
+        "Godot": {
+                "4.4.1-stable-mono": {
+                        "win-x64-mono": {
+                                "url": "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_mono_win64.zip",
+                                "sha256": ""
+                        },
+                        "linux-x64-mono": {
+                                "url": "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_mono_linux_x86_64.zip",
+                                "sha256": ""
+                        },
+                        "macOS": {
+                                "url": "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_mono_macos.universal.zip",
+                                "sha256": ""
+                        }
+                }
+        },
+    "Lucas_Radcore_Cement_Library_Builder": {
+        "1.0.0": {
             "win-x64": {
-                "url": "https://download.blender.org/release/Blender4.0/blender-4.0.2-windows-x64.zip",
-                "sha256": "bddb7ab6880bbb80297b93731506a48bbebdce214ee5edd17dbef8380daecded"
-            },
+                "url": "https://modbakery.donutteam.com/release-branch-version-files/download/11/51/88/84",
+                "sha256": ""
+            }
+        }
+    },
+    "vgmstream-cli": {
+        "r2023": {
+            "src": "https://github.com/vgmstream/vgmstream/releases/tag/r2023",
             "linux-x64": {
-                "url": "https://download.blender.org/release/Blender4.0/blender-4.0.2-linux-x64.tar.xz",
-                "sha256": "5583a5588736da8858c522ef17fff5d73be59c47a6fe91ad29c6f3263e22086a"
+                "url": "https://github.com/vgmstream/vgmstream/releases/download/r2023/vgmstream-linux-cli.zip",
+                "sha256": ""
+            },
+            "macOS": {
+                "url": "https://github.com/vgmstream/vgmstream/releases/download/r2023/vgmstream-mac-cli.zip",
+                "sha256": ""
+            },
+            "win": {
+                "url": "https://github.com/vgmstream/vgmstream/releases/download/r2023/vgmstream-win.zip",
+                "sha256": ""
+            },
+            "win-x64": {
+                "url": "https://github.com/vgmstream/vgmstream/releases/download/r2023/vgmstream-win64.zip",
+                "sha256": ""
+            }
+        }
+    },
+    "ffmpeg": {
+        "8.0": {
+            "win-x64": {
+                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-win64-gpl-8.0.zip",
+                "sha256": "6617ccaf734c6062c7acffa8600332c6e43f106372cad77ce415b8d8ced993ac"
+            },
+            "win-x64-gpl-shared": {
+                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-win64-gpl-shared-8.0.zip",
+                "sha256": "3cf957bb848130e4e034d70731bb9a8ccc1bb805860b12a87ba5a28c98b42ea7"
+            },
+            "win-x64-lgpl": {
+                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-win64-lgpl-8.0.zip",
+                "sha256": "5fa6b69fe2e99807aaabc5a24ed2bbd883f3f8dde1185a047d2eed71c8e1c80f"
+            },
+            "win-x64-lgpl-shared": {
+                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-win64-lgpl-shared-8.0.zip",
+                "sha256": "ddee23947cb26060b5a3d45fbefcefc14874a3f2d09be7e70154b17f86d66fa3"
+            },
+
+            "linux-x64": {
+                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-linux64-gpl-8.0.tar.xz",
+                "sha256": "f806680ab1134efac72eccb2a9b0ed2b3cdacdb30bf8a2da980bec47cff451b9"
+            },
+            "linux-x64-gpl-shared": {
+                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-linux64-gpl-shared-8.0.tar.xz",
+                "sha256": "ef0cdf8fbf4ee2bcc46e9f06de5ef43255b3281506e9ea4c7cd8b401f8ef4c27"
+            },
+            "linux-x64-lgpl": {
+                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-linux64-lgpl-8.0.tar.xz",
+                "sha256": "da35cfc2bea381bab255aa01dac6f5230f7b4176459f709b3604cdb76d86b656"
+            },
+            "linux-x64-lgpl-shared": {
+                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-linux64-lgpl-shared-8.0.tar.xz",
+                "sha256": "460a969e5a4f3c512177a4a051a316abc3f5c49053fbb8fcb8fdd84a2c26fb6b"
+            },
+
+            "linux-arm64": {
+                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-linuxarm64-gpl-8.0.tar.xz",
+                "sha256": "0ddab019e2bd4a69affb2b519fc00725da1b1e727fe0e636fa8319b24286bc17"
+            },
+            "linux-arm64-gpl-shared": {
+                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-linuxarm64-gpl-shared-8.0.tar.xz",
+                "sha256": "4d0630a3c9094d88fd1a64b481d3208f3c9ac7fa0d2512afbaaa49dbf7bfd459"
+            },
+            "linux-arm64-lgpl": {
+                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-linuxarm64-lgpl-8.0.tar.xz",
+                "sha256": "8e2a1b1cdb1a316f9186b2760d191d824efe04a5191f80e1cc6f7871d44fef32"
+            },
+            "linux-arm64-lgpl-shared": {
+                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-linuxarm64-lgpl-shared-8.0.tar.xz",
+                "sha256": "5651c3615689d74e88f8848cc988ab5c37fb77ba0b3d602637caf9c0d4c87369"
+            },
+
+            "macos-x64": {
+                "url": "https://evermeet.cx/ffmpeg/ffmpeg-8.0.zip",
+                "sha256": ""
             },
             "macos-arm64": {
-                "url": "https://download.blender.org/release/Blender4.0/blender-4.0.2-macos-arm64.dmg",
-                "sha256": "3debdaeb04fbaa13480c66889bef0c009aa563bb5fca42cdf4484f91195671d2"
-            },
-            "macos-x64": {
-                "url": "https://download.blender.org/release/Blender4.0/blender-4.0.2-macos-x64.dmg",
-                "sha256": "759809d2d0b23bcfa42f2cfa92b707c9f97a8715e542dc330fcd1bfb15970610"
-            }
-        }
-    },
-    "QuickBMS": {
-        "0.12.0": {
-            "win-x64": {
-                "url": "https://github.com/LittleBigBug/QuickBMS/releases/download/0.12.0/quickbms_win.zip",
-                "sha256": ""
-            },
-            "linux-x64": {
-                "url": "https://github.com/LittleBigBug/QuickBMS/releases/download/0.12.0/quickbms_linux.zip",
-                "sha256": ""
-            },
-            "macOS": {
-                "url": "https://github.com/LittleBigBug/QuickBMS/releases/download/0.12.0/quickbms_macosx.zip",
+                "url": "https://evermeet.cx/ffmpeg/ffmpeg-8.0.zip",
                 "sha256": ""
             }
         }
-    },
-    "Godot": {
-        "4.4.1-stable-mono": {
-            "win-x64-mono": {
-                "url": "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_mono_win64.zip",
-                "sha256": ""
-            },
-            "linux-x64-mono": {
-                "url": "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_mono_linux_x86_64.zip",
-                "sha256": ""
-            },
-            "macOS": {
-                "url": "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_mono_macos.universal.zip",
-                "sha256": ""
-            }
-        }
-    },
-	"Lucas_Radcore_Cement_Library_Builder": {
-		"1.0.0": {
-			"win-x64": {
-				"url": "https://modbakery.donutteam.com/release-branch-version-files/download/11/51/88/84",
-				"sha256": ""
-			}
-		}
-	},
-	"vgmstream-cli": {
-		"r2023": {
-			"src": "https://github.com/vgmstream/vgmstream/releases/tag/r2023",
-			"linux-x64": {
-				"url": "https://github.com/vgmstream/vgmstream/releases/download/r2023/vgmstream-linux-cli.zip",
-				"sha256": ""
-			},
-			"macOS": {
-				"url": "https://github.com/vgmstream/vgmstream/releases/download/r2023/vgmstream-mac-cli.zip",
-				"sha256": ""
-			},
-			"win": {
-				"url": "https://github.com/vgmstream/vgmstream/releases/download/r2023/vgmstream-win.zip",
-				"sha256": ""
-			},
-			"win-x64": {
-				"url": "https://github.com/vgmstream/vgmstream/releases/download/r2023/vgmstream-win64.zip",
-				"sha256": ""
-			}
-		}
-	},
-	"ffmpeg": {
-		"8.0": {
-			"win-x64": {
-				"url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip",
-				"sha256": "f388ee7ba70fb84e578b66a64eb7dbc57eb98c4e9dfbb4a6fb190221392e6421"
-			},
-			"linux-x64": {
-				"url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz",
-				"sha256": "77666666da4043d675aa2e07c205e2602a02356a3b7ca441f3b5a71eca516305"
-			},
-			"mac": {
-				"url": "https://evermeet.cx/ffmpeg/ffmpeg-8.0.zip",
-				"sha256": ""
-			}
-		}
-	}
+    }
 }

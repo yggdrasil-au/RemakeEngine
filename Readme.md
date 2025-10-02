@@ -2,6 +2,8 @@
 
 Remake Engine is an extensible cross-platform orchestration engine for repeatable game workflows. It ships with a .NET 8 core (**EngineNet**) that can run through either a command-line interface or an Avalonia-based GUI.
 
+<!-- It’s closer to a domain-specific ETL framework for games, with multi-language scripting support: -->
+
 ## Key Features
 - Configuration-driven operations defined in JSON or TOML (`operations.json` / `operations.toml`).
 - Embedded Lua and JavaScript engines with shared SDK helpers plus built-in extract/convert actions.

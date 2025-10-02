@@ -20,6 +20,20 @@ public static class FileValidator {
         public Boolean Debug;
     }
 
+    private sealed class RequiredDirGroup {
+        public RequiredDirGroup(IReadOnlyList<String> options) {
+            if (options is null || options.Count == 0) {
+                throw new ArgumentException("Required directory options cannot be empty.");
+            }
+
+            Options = options;
+        }
+
+        public IReadOnlyList<String> Options {
+            get;
+        }
+    }
+
     /// <summary>
     /// Validates presence of files listed in SQLite tables relative to a base folder.
     /// Also supports checking required subdirectories.
@@ -43,16 +57,17 @@ public static class FileValidator {
             }
 
             Dictionary<String, String> tables = ParseTableSpecs(options.TablesSpec);
-            List<String> requiredDirs = SplitRequiredDirs(options.RequiredDirsSpec);
+            List<RequiredDirGroup> requiredDirs = SplitRequiredDirs(options.RequiredDirsSpec);
+            Boolean requiredDirsOk = true;
 
             if (!options.SkipRequiredDirs) {
-                CheckRequiredDirectories(options.BaseFolder, requiredDirs);
+                requiredDirsOk = CheckRequiredDirectories(options.BaseFolder, requiredDirs);
             } else {
                 WriteYellow("Skipping required directory check (--no-required-dirs-check).");
             }
 
             (Boolean allFound, Int32 totalChecked, Int32 _) = ValidateTables(options.DbPath, options.BaseFolder, tables, options.Debug);
-            return totalChecked == 0 ? true : allFound;
+            return requiredDirsOk && (totalChecked == 0 ? true : allFound);
         } catch (Exception ex) {
             WriteRed(ex.Message);
             return false;
@@ -148,30 +163,59 @@ public static class FileValidator {
         return result;
     }
 
-    private static List<String> SplitRequiredDirs(String? spec) {
-        return String.IsNullOrWhiteSpace(spec)
-            ? new List<String>()
-            : spec.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+    private static List<RequiredDirGroup> SplitRequiredDirs(String? spec) {
+        List<RequiredDirGroup> groups = new List<RequiredDirGroup>();
+        if (String.IsNullOrWhiteSpace(spec)) {
+            return groups;
+        }
+
+        String[] entries = spec.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        foreach (String entry in entries) {
+            String[] options = entry.Split("||", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (options.Length == 0) {
+                throw new ArgumentException($"Invalid required directory spec '{entry}'.");
+            }
+
+            groups.Add(new RequiredDirGroup(options));
+        }
+
+        return groups;
     }
-    private static void CheckRequiredDirectories(String baseFolder, List<String> requiredDirs) {
+    private static Boolean CheckRequiredDirectories(String baseFolder, List<RequiredDirGroup> requiredDirs) {
         WriteBlue($"-- Checking Required Subdirectories in: {baseFolder} ---");
         if (requiredDirs.Count == 0) {
             WriteYellow("No required directories specified (skipping check).");
             WriteYellow(new String('-', 20));
-            return;
+            return true;
         }
 
         Boolean allFound = true;
         List<String> missing = new List<String>();
         Int32 foundCount = 0;
+    Dictionary<String, String> matchedVariants = new Dictionary<String, String>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (String dir in requiredDirs) {
-            String expected = Path.Combine(baseFolder, dir);
-            if (Directory.Exists(expected)) {
+        foreach (RequiredDirGroup dirGroup in requiredDirs) {
+            Boolean groupFound = false;
+            String? matchedOption = null;
+
+            foreach (String option in dirGroup.Options) {
+                String expected = Path.Combine(baseFolder, option);
+                if (Directory.Exists(expected)) {
+                    groupFound = true;
+                    matchedOption = option;
+                    break;
+                }
+            }
+
+            if (groupFound) {
                 foundCount += 1;
+                if (dirGroup.Options.Count > 1) {
+                    String key = String.Join("||", dirGroup.Options);
+                    matchedVariants[key] = matchedOption!;
+                }
             } else {
                 allFound = false;
-                missing.Add(dir);
+                missing.Add(String.Join("||", dirGroup.Options));
             }
         }
 
@@ -186,7 +230,15 @@ public static class FileValidator {
             WriteGreen($"   All {requiredDirs.Count} required subdirectories found.");
         }
 
+        if (matchedVariants.Count > 0) {
+            WriteGreen("Resolved required directory options:");
+            foreach (KeyValuePair<String, String> kvp in matchedVariants) {
+                WriteGreen($"  - {kvp.Key} => {kvp.Value}");
+            }
+        }
+
         WriteYellow(new String('-', 20));
+        return allFound;
     }
 
     private static (Boolean allFound, Int32 totalChecked, Int32 totalMissing) ValidateTables(

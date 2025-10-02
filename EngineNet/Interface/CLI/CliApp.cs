@@ -191,11 +191,27 @@ public partial class CliApp {
     }
 
     private static Int32 SelectFromMenu(IList<String> items, Boolean highlightSeparators = false) {
+        if (items.Count == 0) {
+            return -1;
+        }
+
+        if (!CanUseInteractiveMenu(items.Count)) {
+            return SelectFromMenuFallback(items, highlightSeparators);
+        }
+
         Int32 index = 0;
-        ConsoleKey key;
-        do {
-            // Render
+        Int32 renderTop = Console.CursorTop;
+
+        while (true) {
             Console.CursorVisible = false;
+
+            try {
+                Console.SetCursorPosition(0, renderTop);
+            } catch (ArgumentOutOfRangeException) {
+                Console.CursorVisible = true;
+                return SelectFromMenuFallback(items, highlightSeparators);
+            }
+
             for (Int32 i = 0; i < items.Count; i++) {
                 String line = items[i];
                 Boolean isSep = line == "---------------";
@@ -215,25 +231,94 @@ public partial class CliApp {
             }
 
             ConsoleKeyInfo keyInfo = Console.ReadKey(true);
-            key = keyInfo.Key;
-            if (key == ConsoleKey.DownArrow) {
-                do {
-                    index = (index + 1) % items.Count;
-                } while (items[index] == "---------------");
-            } else if (key == ConsoleKey.UpArrow) {
-                do {
-                    index = (index - 1 + items.Count) % items.Count;
-                } while (items[index] == "---------------");
-            } else if (key == ConsoleKey.Escape) {
+            switch (keyInfo.Key) {
+                case ConsoleKey.DownArrow:
+                    do {
+                        index = (index + 1) % items.Count;
+                    } while (items[index] == "---------------");
+                    break;
+                case ConsoleKey.UpArrow:
+                    do {
+                        index = (index - 1 + items.Count) % items.Count;
+                    } while (items[index] == "---------------");
+                    break;
+                case ConsoleKey.Escape:
+                    Console.CursorVisible = true;
+                    return -1;
+                case ConsoleKey.Enter:
+                    Console.CursorVisible = true;
+                    return index;
+            }
+        }
+    }
+
+    private static Boolean CanUseInteractiveMenu(Int32 itemCount) {
+        try {
+            if (Console.IsOutputRedirected || Console.IsInputRedirected) {
+                return false;
+            }
+
+            Int32 bufferHeight = Console.BufferHeight;
+            Int32 windowHeight = Console.WindowHeight;
+            Int32 cursorTop = Console.CursorTop;
+
+            if (itemCount >= bufferHeight) {
+                return false;
+            }
+
+            if (cursorTop + itemCount >= bufferHeight) {
+                return false;
+            }
+
+            if (itemCount + 1 >= windowHeight) {
+                return false;
+            }
+
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    private static Int32 SelectFromMenuFallback(IList<String> items, Boolean highlightSeparators) {
+        List<Int32> selectable = new();
+
+        Console.WriteLine();
+        Console.WriteLine("Terminal is too small for the interactive menu. Enter the option number instead:");
+
+        Int32 displayIndex = 1;
+        for (Int32 i = 0; i < items.Count; i++) {
+            String line = items[i];
+            Boolean isSep = line == "---------------";
+            if (isSep) {
+                if (highlightSeparators) {
+                    Console.ForegroundColor = ConsoleColor.DarkGray;
+                    Console.WriteLine(line);
+                    Console.ResetColor();
+                } else {
+                    Console.WriteLine(line);
+                }
+                continue;
+            }
+
+            Console.WriteLine($"{displayIndex}. {line}");
+            selectable.Add(i);
+            displayIndex++;
+        }
+
+        while (true) {
+            Console.Write("Selection (blank to cancel): ");
+            String? input = Console.ReadLine();
+            if (String.IsNullOrWhiteSpace(input)) {
                 return -1;
             }
 
-            // Move cursor up to re-render menu over the same lines
-            Console.SetCursorPosition(0, Console.CursorTop - items.Count);
-        } while (key != ConsoleKey.Enter);
+            if (Int32.TryParse(input.Trim(), out Int32 choice) && choice >= 1 && choice <= selectable.Count) {
+                return selectable[choice - 1];
+            }
 
-        Console.CursorVisible = true;
-        return index;
+            Console.WriteLine("Invalid selection. Please enter a valid number.");
+        }
     }
 
     private Int32 ListOps(String game) {

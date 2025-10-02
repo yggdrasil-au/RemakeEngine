@@ -250,7 +250,12 @@ public sealed class LuaScriptAction : IAction {
     private void SetupCoreFunctions(Script lua, IToolResolver tools) {
         // Expose a simple function to resolve tool paths from Lua:
         lua.Globals["tool"] = (Func<String, String>)tools.ResolveToolPath;
-        lua.Globals["argv"] = _args;
+        Table argvTable = new Table(lua);
+        for (Int32 index = 0; index < _args.Length; index++) {
+            argvTable[index + 1] = DynValue.NewString(_args[index]);
+        }
+        lua.Globals["argv"] = argvTable;
+        lua.Globals["argc"] = _args.Length;
 
         // EngineSdk wrappers
         lua.Globals["warn"] = (Action<String>)EngineSdk.Warn;

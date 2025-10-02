@@ -56,7 +56,7 @@ public static class MediaConverter {
     /// </summary>
     /// <param name="args">
     /// CLI-style arguments. Required: --mode ffmpeg|vgmstream, --type audio|video, --source DIR, --target DIR,
-    /// --input-ext .ext, --output-ext .ext. Optional: --overwrite, --ffmpeg PATH, --vgmstream PATH,
+    /// --input-ext .ext, --output-ext .ext. Optional: --overwrite,
     /// --workers N, --godot, --verbose, --debug, codec/quality options.</param>
     /// <returns>True if all files were processed successfully; false otherwise.</returns>
     public static Boolean Run(IList<String> args) {
@@ -479,10 +479,6 @@ public static class MediaConverter {
                 case "--godot-compatible":
                     o.GodotCompatible = true;
                     break;
-                case "-f":
-                case "--ffmpeg-path":
-                    o.FfmpegPath = NextVal();
-                    break;
                 case "--video-codec":
                     o.VideoCodec = NextVal();
                     break;
@@ -494,9 +490,6 @@ public static class MediaConverter {
                     break;
                 case "--audio-quality":
                     o.AudioQuality = NextVal();
-                    break;
-                case "--vgmstream-cli":
-                    o.VgmstreamCli = NextVal();
                     break;
                 case "-w":
                 case "--workers":

@@ -382,6 +382,32 @@ public class OperationsEngineFullCoverageTests
     }
 
     [Fact]
+    public async System.Threading.Tasks.Task ExecuteEngineOperationAsync_ValidateFiles_UsesDbProperty()
+    {
+        using TempRoot td = new TempRoot();
+        OperationsEngine eng = CreateEngine(td.Path);
+        String opsPath = System.IO.Path.Combine(td.Path, "ops.json");
+        File.WriteAllText(opsPath, "[]");
+        Dictionary<String, Object?> games = MakeGamesMap(td.Path, "G1", opsPath);
+
+        String dbPath = System.IO.Path.Combine(td.Path, "indexes.db");
+        File.WriteAllText(dbPath, "placeholder");
+        String baseFolder = System.IO.Path.Combine(td.Path, "base");
+        Directory.CreateDirectory(baseFolder);
+
+        Dictionary<String, Object?> op = new Dictionary<String, Object?>
+        {
+            ["script"] = "validate-files",
+            ["script_type"] = "engine",
+            ["db"] = dbPath,
+            ["args"] = new List<Object?> { baseFolder }
+        };
+
+        Boolean ok = await eng.ExecuteEngineOperationAsync("G1", games, op, new Dictionary<String, Object?>());
+        Assert.True(ok);
+    }
+
+    [Fact]
     public async System.Threading.Tasks.Task ExecuteEngineOperationAsync_DownloadTools_MissingManifest_ReturnsFalse()
     {
         using TempRoot td = new TempRoot();

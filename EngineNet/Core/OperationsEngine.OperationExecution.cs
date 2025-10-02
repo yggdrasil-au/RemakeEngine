@@ -164,6 +164,17 @@ public sealed partial class OperationsEngine {
             // Ensure we pick up any config changes (e.g., init.lua writes project.json)
             ReloadProjectConfig();
         }
+        // If the main operation succeeded, run any nested [[operation.onsuccess]] steps
+        if (result && TryGetOnSuccessOperations(op, out List<Dictionary<String, Object?>>? followUps) && followUps is not null) {
+            foreach (Dictionary<String, Object?> childOp in followUps) {
+                if (cancellationToken.IsCancellationRequested) break;
+                Boolean ok = await RunSingleOperationAsync(currentGame, games, childOp, promptAnswers, cancellationToken);
+                if (!ok) {
+                    result = false; // propagate failure from any onsuccess step
+                }
+            }
+        }
+
         return result;
     }
 
@@ -407,14 +418,40 @@ public sealed partial class OperationsEngine {
                 cfgDict3["module_path"] = gameRoot4;
                 cfgDict3["project_path"] = _rootPath;
 
+                String? resolvedDbPath = null;
+                if (op.TryGetValue("db", out Object? dbObj) && dbObj is not null) {
+                    Object? resolvedDb = Sys.Placeholders.Resolve(dbObj, ctx);
+                    if (resolvedDb is IList<Object?> dbList && dbList.Count > 0) {
+                        resolvedDbPath = dbList[0]?.ToString();
+                    } else {
+                        resolvedDbPath = resolvedDb?.ToString();
+                    }
+                }
+
                 List<String> argsValidate = new List<String>();
+                if (!String.IsNullOrWhiteSpace(resolvedDbPath)) {
+                    argsValidate.Add(resolvedDbPath);
+                }
                 if (op.TryGetValue("args", out Object? aobjValidate) && aobjValidate is IList<Object?> aListValidate) {
                     IList<Object?> resolved = (IList<Object?>)(Sys.Placeholders.Resolve(aListValidate, ctx) ?? new List<Object?>());
-                    foreach (Object? a in resolved) {
-                        if (a is not null) {
-                            argsValidate.Add(a.ToString()!);
+                    for (Int32 i = 0; i < resolved.Count; i++) {
+                        Object? a = resolved[i];
+                        if (a is null) {
+                            continue;
                         }
+
+                        String value = a.ToString()!;
+                        if (!String.IsNullOrWhiteSpace(resolvedDbPath) && argsValidate.Count == 1 && i == 0 && String.Equals(argsValidate[0], value, StringComparison.OrdinalIgnoreCase)) {
+                            continue;
+                        }
+
+                        argsValidate.Add(value);
                     }
+                }
+
+                if (argsValidate.Count < 2) {
+                    Console.Error.WriteLine("validate-files requires a database path and base directory.");
+                    return false;
                 }
 
                 Console.ForegroundColor = ConsoleColor.DarkCyan;
@@ -565,5 +602,38 @@ public sealed partial class OperationsEngine {
             Console.Error.WriteLine(ex.Message);
             Console.ResetColor();
         }
+    }
+
+    /// <summary>
+    /// Extracts any nested onsuccess operations from an operation map. Supports keys 'onsuccess' and 'on_success'.
+    /// </summary>
+    private static Boolean TryGetOnSuccessOperations(IDictionary<String, Object?> op, out List<Dictionary<String, Object?>>? ops) {
+        ops = null;
+        if (op is null) return false;
+
+        static List<Dictionary<String, Object?>>? Coerce(Object? value) {
+            if (value is null) return null;
+            List<Dictionary<String, Object?>> list = new List<Dictionary<String, Object?>>();
+            if (value is IList<Object?> arr) {
+                foreach (Object? item in arr) {
+                    if (item is IDictionary<String, Object?> map) {
+                        list.Add(new Dictionary<String, Object?>(map, StringComparer.OrdinalIgnoreCase));
+                    }
+                }
+            } else if (value is IDictionary<String, Object?> single) {
+                list.Add(new Dictionary<String, Object?>(single, StringComparer.OrdinalIgnoreCase));
+            }
+            return list.Count > 0 ? list : null;
+        }
+
+        if (op.TryGetValue("onsuccess", out Object? v1)) {
+            ops = Coerce(v1);
+            if (ops is not null) return true;
+        }
+        if (op.TryGetValue("on_success", out Object? v2)) {
+            ops = Coerce(v2);
+            if (ops is not null) return true;
+        }
+        return false;
     }
 }
