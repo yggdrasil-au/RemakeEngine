@@ -31,7 +31,7 @@ dotnet build RemakeEngine.sln
 dotnet test RemakeEngine.sln --nologo
 
 # Launch the interactive CLI during development
-dotnet run --project EngineNet -- --cli
+dotnet run --project EngineNet -- --tui
 ```
 
 ## GitHub Actions Workflows

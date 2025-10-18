@@ -1,16 +1,9 @@
-using EngineNet.Core.FileHandlers;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using Xunit;
 
 namespace EngineNet.Tests;
 
-public class FileValidatorTests
-{
+public class FileValidatorTests {
     [Fact]
-    public void Run_Succeeds_WhenAnyVariantDirectoryExists()
-    {
+    public void Run_Succeeds_WhenAnyVariantDirectoryExists() {
         using TempDir td = new TempDir();
         String dbPath = Path.Combine(td.Path, "indexes.db");
         File.WriteAllText(dbPath, "placeholder");
@@ -33,8 +26,7 @@ public class FileValidatorTests
     }
 
     [Fact]
-    public void Run_Fails_WhenAllVariantDirectoriesMissing()
-    {
+    public void Run_Fails_WhenAllVariantDirectoriesMissing() {
         using TempDir td = new TempDir();
         String dbPath = Path.Combine(td.Path, "indexes.db");
         File.WriteAllText(dbPath, "placeholder");
@@ -54,24 +46,20 @@ public class FileValidatorTests
         Assert.False(result);
     }
 
-    private sealed class TempDir : IDisposable
-    {
-        public String Path { get; }
+    private sealed class TempDir:IDisposable {
+        public String Path {
+            get;
+        }
 
-        public TempDir()
-        {
+        public TempDir() {
             Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "enginenet_filevalidator_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
         }
 
-        public void Dispose()
-        {
-            try
-            {
+        public void Dispose() {
+            try {
                 Directory.Delete(Path, recursive: true);
-            }
-            catch
-            {
+            } catch {
             }
         }
     }

@@ -25,7 +25,7 @@ public sealed partial class OperationsEngine {
     /// <param name="stdinProvider">Prompt input provider.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>True if all steps completed successfully.</returns>
-    public async Task<Boolean> InstallModuleAsync(String name, Sys.ProcessRunner.OutputHandler? onOutput = null, Sys.ProcessRunner.EventHandler? onEvent = null, Sys.ProcessRunner.StdinProvider? stdinProvider = null, CancellationToken cancellationToken = default) {
+    public Task<Boolean> InstallModuleAsync(String name, Sys.ProcessRunner.OutputHandler? onOutput = null, Sys.ProcessRunner.EventHandler? onEvent = null, Sys.ProcessRunner.StdinProvider? stdinProvider = null, CancellationToken cancellationToken = default) {
         String gameDir = Path.Combine(_rootPath, "RemakeRegistry", "Games", name);
         String opsToml = Path.Combine(gameDir, "operations.toml");
         String opsJson = Path.Combine(gameDir, "operations.json");
@@ -37,7 +37,7 @@ public sealed partial class OperationsEngine {
         }
 
         if (opsFile is null) {
-            return false;
+            return Task.FromResult(false);
         }
 
         // Build a minimal games map for the command builder
@@ -59,7 +59,7 @@ public sealed partial class OperationsEngine {
             opsList = LoadOperationsList(opsFile);
         }
         if (opsList.Count == 0) {
-            return false;
+            return Task.FromResult(false);
         }
 
         // Run each op streaming output and events
@@ -83,7 +83,7 @@ public sealed partial class OperationsEngine {
             }
         }
 
-        return okAll;
+        return Task.FromResult(okAll);
     }
 
 }

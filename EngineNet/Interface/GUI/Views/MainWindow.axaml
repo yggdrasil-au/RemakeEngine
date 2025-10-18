@@ -1,0 +1,81 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="EngineNet.Interface.GUI.Views.MainWindow"
+        Width="1024" Height="700"
+        Title="RemakeEngine - Play">
+  <TabControl SelectedIndex="{Binding CurrentTabIndex}">
+    <TabItem Header="Library">
+      <DockPanel>
+        <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="8">
+          <TextBlock Text="Installed Games" VerticalAlignment="Center"/>
+          <Button Content="Refresh" Command="{Binding RefreshLibraryCommand}" HorizontalAlignment="Right" Margin="8,0,0,0"/>
+        </StackPanel>
+        <ScrollViewer>
+          <ItemsControl ItemsSource="{Binding Library}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="4" ColumnDefinitions="*,Auto,Auto">
+                  <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                  <Button Grid.Column="1" Content="Play" Command="{Binding DataContext.RunGameCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                  <Button Grid.Column="2" Content="Open Folder" Command="{Binding DataContext.OpenFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Margin="6,0,0,0"/>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </DockPanel>
+    </TabItem>
+
+    <TabItem Header="Store">
+      <DockPanel>
+        <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="8">
+          <TextBlock Text="Store" VerticalAlignment="Center"/>
+          <Button Content="Refresh" Command="{Binding RefreshStoreCommand}" HorizontalAlignment="Right" Margin="8,0,0,0"/>
+        </StackPanel>
+        <ScrollViewer>
+          <ItemsControl ItemsSource="{Binding Store}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="4" ColumnDefinitions="*,Auto,Auto,Auto">
+                  <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                  <Button Grid.Column="1" Content="Download" Command="{Binding DataContext.DownloadModuleCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
+                          IsVisible="{Binding CanDownload}"/>
+                  <Button Grid.Column="2" Content="Install" Command="{Binding DataContext.InstallModuleCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
+                          IsVisible="{Binding CanInstall}"/>
+                  <Button Grid.Column="3" Content="Installed" IsEnabled="False" IsVisible="{Binding IsInstalled}"/>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </DockPanel>
+    </TabItem>
+
+    <TabItem Header="Installing">
+      <DockPanel>
+        <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="8">
+          <TextBlock Text="Installing (in progress only)" VerticalAlignment="Center"/>
+        </StackPanel>
+        <ScrollViewer DockPanel.Dock="Top">
+          <ItemsControl ItemsSource="{Binding Installing}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="4" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                  <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Name}" FontWeight="Bold"/>
+                  <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding Label}"/>
+                  <ProgressBar Grid.Row="1" Grid.Column="1" Width="220" Height="20" Minimum="0" Maximum="1" Value="{Binding Progress}"/>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+        <StackPanel DockPanel.Dock="Top" Margin="8" IsVisible="{Binding PromptIsVisible}">
+          <TextBlock Text="{Binding PromptQuestion}"/>
+          <TextBox Text="{Binding PromptAnswer, Mode=TwoWay}"/>
+          <Button Content="Submit" Command="{Binding SubmitPromptCommand}" HorizontalAlignment="Right" Width="100"/>
+        </StackPanel>
+        <TextBox DockPanel.Dock="Bottom" TextWrapping="Wrap" IsReadOnly="True" Height="200" Text="{Binding ConsoleText}"/>
+      </DockPanel>
+    </TabItem>
+  </TabControl>
+</Window>

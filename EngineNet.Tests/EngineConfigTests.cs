@@ -1,15 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using Xunit;
 
 namespace EngineNet.Tests;
 
-public class EngineConfigTests
-{
+public class EngineConfigTests {
     [Fact]
-    public void LoadJsonFile_ParsesNested()
-    {
+    public void LoadJsonFile_ParsesNested() {
         using TempFile tmp = new TempFile("{\n  \"Foo\": { \"Bar\": 123 },\n  \"Flag\": true\n}\n");
         EngineNet.EngineConfig cfg = new EngineNet.EngineConfig(tmp.Path);
         Assert.True(cfg.Data.ContainsKey("foo"));
@@ -19,8 +13,7 @@ public class EngineConfigTests
     }
 
     [Fact]
-    public void Reload_ReflectsLatestFileContents()
-    {
+    public void Reload_ReflectsLatestFileContents() {
         using TempFile tmp = new TempFile("{\n  \"Foo\": \"Alpha\",\n  \"Flag\": false\n}\n");
         EngineNet.EngineConfig cfg = new EngineNet.EngineConfig(tmp.Path);
         Assert.Equal("Alpha", cfg.Data["foo"]);
@@ -34,8 +27,7 @@ public class EngineConfigTests
     }
 
     [Fact]
-    public void LoadJsonFile_ReturnsEmpty_WhenMissingOrInvalid()
-    {
+    public void LoadJsonFile_ReturnsEmpty_WhenMissingOrInvalid() {
         String missingPath = Path.Combine(Path.GetTempPath(), "engcfg_missing_" + Guid.NewGuid().ToString("N") + ".json");
         Dictionary<String, Object?> missing = EngineNet.EngineConfig.LoadJsonFile(missingPath);
         Assert.Empty(missing);
@@ -45,14 +37,18 @@ public class EngineConfigTests
         Assert.Empty(invalid);
     }
 
-    private sealed class TempFile: IDisposable
-    {
-        public String Path { get; }
-        public TempFile(String content)
-        {
+    private sealed class TempFile:IDisposable {
+        public String Path {
+            get;
+        }
+        public TempFile(String content) {
             Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "enginenet_cfg_" + Guid.NewGuid().ToString("N") + ".json");
             File.WriteAllText(Path, content);
         }
-        public void Dispose(){ try{ File.Delete(Path);} catch { } }
+        public void Dispose() {
+            try {
+                File.Delete(Path);
+            } catch { }
+        }
     }
 }

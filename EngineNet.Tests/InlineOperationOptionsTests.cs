@@ -1,15 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using EngineNet.Interface.CLI;
-using Xunit;
 
 namespace EngineNet.Tests;
 
 public sealed class InlineOperationOptionsTests {
     [Fact]
     public void Parse_Minimal_GameAndScript() {
-        var opts = CliApp.InlineOperationOptions.Parse(new[] { "--game", "Foo", "--script", "doit.lua" });
+        var opts = App.InlineOperationOptions.Parse(new[] { "--game", "Foo", "--script", "doit.lua" });
         Assert.Equal("Foo", opts.GameIdentifier);
         Assert.Equal("doit.lua", opts.Script);
         var op = opts.BuildOperation();
@@ -18,7 +13,7 @@ public sealed class InlineOperationOptionsTests {
 
     [Fact]
     public void Parse_Sets_Aliases_And_TypoFix() {
-        var opts = CliApp.InlineOperationOptions.Parse(new[] {
+        var opts = App.InlineOperationOptions.Parse(new[] {
             "--module", "Foo",
             "--type", "lau", // typo handled => lua
             "--script", "a.lua"
@@ -30,7 +25,7 @@ public sealed class InlineOperationOptionsTests {
 
     [Fact]
     public void Parse_Args_List_And_Override() {
-        var opts = CliApp.InlineOperationOptions.Parse(new[] {
+        var opts = App.InlineOperationOptions.Parse(new[] {
             "--game", "Foo", "--script", "a.py",
             "--arg", "one",
             "--args", "[2, 3]",
@@ -44,7 +39,7 @@ public sealed class InlineOperationOptionsTests {
 
     [Fact]
     public void Parse_KeyValueForAnswers_And_AutoPrompt() {
-        var opts = CliApp.InlineOperationOptions.Parse(new[] {
+        var opts = App.InlineOperationOptions.Parse(new[] {
             "--game", "Foo", "--script", "a.py",
             "--answer", "confirm=true",
             "--auto_prompt", "xyz=hello"
@@ -61,7 +56,7 @@ public sealed class InlineOperationOptionsTests {
     [InlineData("'str'", "str")]
     [InlineData("\"str2\"", "str2")]
     public void ParseValueToken_Coercion_Works(string raw, object? expected) {
-        var opts = CliApp.InlineOperationOptions.Parse(new[] { "--game", "X", "--script", "b.py", "--set", $"k={raw}" });
+        var opts = App.InlineOperationOptions.Parse(new[] { "--game", "X", "--script", "b.py", "--set", $"k={raw}" });
         var op = opts.BuildOperation();
         Assert.True(op.TryGetValue("k", out var val));
         if (expected is double)
@@ -72,7 +67,7 @@ public sealed class InlineOperationOptionsTests {
 
     [Fact]
     public void ParseArgsList_Supports_CommaSeparated() {
-        var opts = CliApp.InlineOperationOptions.Parse(new[] { "--game", "X", "--script", "b.py", "--args", "a,b, c" });
+        var opts = App.InlineOperationOptions.Parse(new[] { "--game", "X", "--script", "b.py", "--args", "a,b, c" });
         var op = opts.BuildOperation();
         var args = (op["args"] as IEnumerable<object?>)!.Select(x => x?.ToString()).ToArray();
         Assert.Equal(new[] { "a", "b", "c" }, args);

@@ -1,14 +1,4 @@
 
-//
-using System;
-using System.IO;
-using System.Buffers;
-using System.Linq;
-//
-using EngineNet.Core;
-using EngineNet.Interface.CLI;
-using EngineNet.Tools;
-
 namespace EngineNet;
 
 internal static class Program {
@@ -33,7 +23,6 @@ internal static class Program {
                 }
             }
 
-            // Tool resolver: prefer TOOLS_JSON env or Tools/tools.json
             IToolResolver tools = CreateToolResolver(root);
 
             EngineConfig engineConfig = new EngineConfig(configPath);
@@ -44,12 +33,11 @@ internal static class Program {
             // - Otherwise CLI (CLI handles additional args itself)
             Boolean onlyGuiFlag = args.Length == 1 && String.Equals(args[0], "--gui", StringComparison.OrdinalIgnoreCase);
             if (args.Length == 0 || onlyGuiFlag) {
-                return RemakeEngine.Interface.GUI.Avalonia.AvaloniaGui.Run(engine);
+                return Interface.GUI.AvaloniaGui.Run(engine);
             }
 
-            // Any other args -> CLI. Strip --gui if someone passed it along with others.
-            String[] cliArgs = args.Where(a => !String.Equals(a, "--gui", StringComparison.OrdinalIgnoreCase)).ToArray();
-            return new CliApp(engine).Run(cliArgs);
+            // if not gui run CLIApp with all args, it then uses CLI or TUI as needed
+            return new Interface.CommandLine.App(engine).Run(args);
         } catch (Exception ex) {
             // Print full exception (message + stack trace) to help diagnose runtime errors
             Console.Error.WriteLine($"Engine Error: {ex}");
@@ -91,11 +79,6 @@ internal static class Program {
     }
 
     private static IToolResolver CreateToolResolver(String root) {
-        String? envPath = Environment.GetEnvironmentVariable("TOOLS_JSON");
-        if (!String.IsNullOrWhiteSpace(envPath) && File.Exists(envPath)) {
-            return new JsonToolResolver(envPath);
-        }
-
         // Prefer Tools.local.json if present, then Tools.json
         String RemakeRegistryDir = Path.Combine(root, "RemakeRegistry");
         String[] candidates = new[] {

@@ -1,28 +1,24 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using EngineNet.Core;
-using EngineNet.Tools;
-using Xunit;
 
 namespace EngineNet.Tests;
 
-public class OperationsEngineTests
-{
-    private sealed class TempDir: IDisposable
-    {
-        public String Path { get; }
-        public TempDir()
-        {
+public class OperationsEngineTests {
+    private sealed class TempDir:IDisposable {
+        public String Path {
+            get;
+        }
+        public TempDir() {
             Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "enginenet_ops_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
         }
-        public void Dispose() { try { Directory.Delete(Path, true); } catch { } }
+        public void Dispose() {
+            try {
+                Directory.Delete(Path, true);
+            } catch { }
+        }
     }
 
     [Fact]
-    public void LoadOperationsList_Parses_Toml_Array_Of_Tables()
-    {
+    public void LoadOperationsList_Parses_Toml_Array_Of_Tables() {
         using TempDir td = new TempDir();
         String ops = System.IO.Path.Combine(td.Path, "operations.toml");
         File.WriteAllText(ops, "[[copy]]\nName='Copy'\nscript='copy.py'\n\n[[run]]\nName='Run'\nscript='run.py'\n");
@@ -35,8 +31,7 @@ public class OperationsEngineTests
     }
 
     [Fact]
-    public void LoadOperationsList_Parses_Json_Array()
-    {
+    public void LoadOperationsList_Parses_Json_Array() {
         using TempDir td = new TempDir();
         String ops = System.IO.Path.Combine(td.Path, "operations.json");
         File.WriteAllText(ops, "[{\"Name\":\"A\",\"script\":\"a.py\"},{\"Name\":\"B\",\"script\":\"b.py\"}]");
@@ -48,8 +43,7 @@ public class OperationsEngineTests
     }
 
     [Fact]
-    public void LoadOperations_Parses_Json_Grouped()
-    {
+    public void LoadOperations_Parses_Json_Grouped() {
         using TempDir td = new TempDir();
         String ops = System.IO.Path.Combine(td.Path, "operations.json");
         File.WriteAllText(ops, "{\"group1\":[{\"Name\":\"A\"}],\"group2\":[{\"Name\":\"B\"}]}\n");
@@ -62,18 +56,16 @@ public class OperationsEngineTests
     }
 }
 
-public class OperationsEngineFullCoverageTests
-{
-    static OperationsEngineFullCoverageTests()
-    {
+public class OperationsEngineFullCoverageTests {
+    static OperationsEngineFullCoverageTests() {
         Environment.SetEnvironmentVariable("ENGINE_NET_TEST_LAUNCH_OVERRIDE", "failure");
     }
 
-    private sealed class TempRoot: IDisposable
-    {
-        public String Path { get; }
-        public TempRoot()
-        {
+    private sealed class TempRoot:IDisposable {
+        public String Path {
+            get;
+        }
+        public TempRoot() {
             Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "enginenet_ops_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
             // Seed registry file to avoid remote fallback
@@ -81,22 +73,22 @@ public class OperationsEngineFullCoverageTests
             Directory.CreateDirectory(regDir);
             File.WriteAllText(System.IO.Path.Combine(regDir, "register.json"), "{\n  \"modules\": {}\n}\n");
         }
-        public void Dispose() { try { Directory.Delete(Path, recursive: true); } catch { } }
+        public void Dispose() {
+            try {
+                Directory.Delete(Path, recursive: true);
+            } catch { }
+        }
     }
 
-    private static OperationsEngine CreateEngine(String root)
-    {
+    private static OperationsEngine CreateEngine(String root) {
         String projectJson = System.IO.Path.Combine(root, "project.json");
         File.WriteAllText(projectJson, "{}\n");
         return new OperationsEngine(root, new PassthroughToolResolver(), new EngineConfig(projectJson));
     }
 
-    private static Dictionary<String, Object?> MakeGamesMap(String root, String gameName, String opsPath)
-    {
-        return new Dictionary<String, Object?>
-        {
-            [gameName] = new Dictionary<String, Object?>
-            {
+    private static Dictionary<String, Object?> MakeGamesMap(String root, String gameName, String opsPath) {
+        return new Dictionary<String, Object?> {
+            [gameName] = new Dictionary<String, Object?> {
                 ["game_root"] = root,
                 ["ops_file"] = opsPath,
             }
@@ -104,8 +96,7 @@ public class OperationsEngineFullCoverageTests
     }
 
     [Fact]
-    public void ListGames_and_InstalledGames_and_States()
-    {
+    public void ListGames_and_InstalledGames_and_States() {
         using TempRoot td = new TempRoot();
         String gamesDir = System.IO.Path.Combine(td.Path, "RemakeRegistry", "Games");
         Directory.CreateDirectory(gamesDir);
@@ -167,8 +158,7 @@ public class OperationsEngineFullCoverageTests
     }
 
     [Fact]
-    public void LoadOperationsList_JsonObject_Flattens_Groups()
-    {
+    public void LoadOperationsList_JsonObject_Flattens_Groups() {
         using TempRoot td = new TempRoot();
         String ops = System.IO.Path.Combine(td.Path, "operations.json");
         // include numbers to exercise number parsing (int and float) and arrays
@@ -180,8 +170,7 @@ public class OperationsEngineFullCoverageTests
     }
 
     [Fact]
-    public void LoadOperationsList_Json_Array_Types_Coverage()
-    {
+    public void LoadOperationsList_Json_Array_Types_Coverage() {
         using TempRoot td = new TempRoot();
         String ops = System.IO.Path.Combine(td.Path, "operations.json");
         File.WriteAllText(ops, "[ { \"Name\": \"Types\", \"flagTrue\": true, \"flagFalse\": false, \"numI\": 7, \"numD\": 3.14, \"noval\": null, \"args\": [1, 2.0, \"x\"] } ]\n");
@@ -192,8 +181,7 @@ public class OperationsEngineFullCoverageTests
     }
 
     [Fact]
-    public void LoadOperations_Toml_Groups_With_Nested_Types()
-    {
+    public void LoadOperations_Toml_Groups_With_Nested_Types() {
         using TempRoot td = new TempRoot();
         String ops = System.IO.Path.Combine(td.Path, "operations.toml");
         File.WriteAllText(ops, "[[copy]]\nName='Copy'\nargs=[1, \"two\"]\nmeta={foo=\"bar\"}\narrtbl=[{a=1},{b=2}]\n[[copy.sub]]\nk='v'\n[[copy.sub]]\nk='w'\n\n[[run]]\nName='Run'\nscript='run.py'\n");
@@ -206,8 +194,7 @@ public class OperationsEngineFullCoverageTests
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task ReloadProjectConfig_All_Paths()
-    {
+    public async System.Threading.Tasks.Task ReloadProjectConfig_All_Paths() {
         using TempRoot td = new TempRoot();
         String proj = System.IO.Path.Combine(td.Path, "project.json");
         var cfg = new EngineConfig(proj);
@@ -235,8 +222,7 @@ public class OperationsEngineFullCoverageTests
     }
 
     [Fact]
-    public void GetRegisteredModules_Covers_Method()
-    {
+    public void GetRegisteredModules_Covers_Method() {
         using TempRoot td = new TempRoot();
         // registry already seeded in TempRoot
         OperationsEngine eng = CreateEngine(td.Path);
@@ -245,8 +231,7 @@ public class OperationsEngineFullCoverageTests
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task InstallModuleAsync_JsonArray_Flattens()
-    {
+    public async System.Threading.Tasks.Task InstallModuleAsync_JsonArray_Flattens() {
         using TempRoot td = new TempRoot();
         OperationsEngine eng = CreateEngine(td.Path);
         String gamesDir = System.IO.Path.Combine(td.Path, "RemakeRegistry", "Games");
@@ -259,8 +244,7 @@ public class OperationsEngineFullCoverageTests
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task RunSingleOperationAsync_Covers_All_Types()
-    {
+    public async System.Threading.Tasks.Task RunSingleOperationAsync_Covers_All_Types() {
         using TempRoot td = new TempRoot();
         OperationsEngine eng = CreateEngine(td.Path);
 
@@ -303,8 +287,7 @@ public class OperationsEngineFullCoverageTests
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task RunSingleOperationAsync_Engine_ExceptionHandled()
-    {
+    public async System.Threading.Tasks.Task RunSingleOperationAsync_Engine_ExceptionHandled() {
         using TempRoot td = new TempRoot();
         OperationsEngine eng = CreateEngine(td.Path);
         String opsPath = System.IO.Path.Combine(td.Path, "ops.json");
@@ -317,8 +300,7 @@ public class OperationsEngineFullCoverageTests
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task ExecuteEngineOperationAsync_All_Cases()
-    {
+    public async System.Threading.Tasks.Task ExecuteEngineOperationAsync_All_Cases() {
         using TempRoot td = new TempRoot();
         OperationsEngine eng = CreateEngine(td.Path);
         String opsPath = System.IO.Path.Combine(td.Path, "ops.json");
@@ -333,16 +315,14 @@ public class OperationsEngineFullCoverageTests
         String manifest = System.IO.Path.Combine(td.Path, "tools.toml");
         File.WriteAllText(manifest, "# empty manifest\n");
 
-        Dictionary<String, Object?> opTools = new Dictionary<String, Object?>
-        {
+        Dictionary<String, Object?> opTools = new Dictionary<String, Object?> {
             ["script"] = "download_tools",
             ["args"] = new List<Object?> { manifest }
         };
         Assert.True(await eng.ExecuteEngineOperationAsync("G1", games, opTools, answers));
 
         // format-extract txd (likely fails quickly but covers branch)
-        Dictionary<String, Object?> opFmtTxd = new Dictionary<String, Object?>
-        {
+        Dictionary<String, Object?> opFmtTxd = new Dictionary<String, Object?> {
             ["script"] = "format-extract",
             ["format"] = "txd",
             ["args"] = new List<Object?> { "-i", "input.txd" }
@@ -350,8 +330,7 @@ public class OperationsEngineFullCoverageTests
         Assert.False(await eng.ExecuteEngineOperationAsync("G1", games, opFmtTxd, answers));
 
         // format-extract str
-        Dictionary<String, Object?> opFmtStr = new Dictionary<String, Object?>
-        {
+        Dictionary<String, Object?> opFmtStr = new Dictionary<String, Object?> {
             ["script"] = "format-extract",
             ["format"] = "str",
             ["args"] = new List<Object?> { "-i", "input.str" }
@@ -359,8 +338,7 @@ public class OperationsEngineFullCoverageTests
         Assert.False(await eng.ExecuteEngineOperationAsync("G1", games, opFmtStr, answers));
 
         // format-convert ffmpeg
-        Dictionary<String, Object?> opConvFfmpeg = new Dictionary<String, Object?>
-        {
+        Dictionary<String, Object?> opConvFfmpeg = new Dictionary<String, Object?> {
             ["script"] = "format-convert",
             ["tool"] = "ffmpeg",
             ["args"] = new List<Object?> { "-m", "ffmpeg", "--type", "audio", "-s", System.IO.Path.Combine(td.Path, "src_missing"), "-t", System.IO.Path.Combine(td.Path, "out"), "-i", ".wav", "-o", ".ogg" }
@@ -372,8 +350,7 @@ public class OperationsEngineFullCoverageTests
         Assert.False(await eng.ExecuteEngineOperationAsync("G1", games, opConvUnknown, answers));
 
         // format-convert vgmstream branch
-        Dictionary<String, Object?> opConvVgm = new Dictionary<String, Object?>
-        {
+        Dictionary<String, Object?> opConvVgm = new Dictionary<String, Object?> {
             ["script"] = "format_convert",
             ["tool"] = "vgmstream",
             ["args"] = new List<Object?> { "-m", "vgmstream", "--type", "audio", "-s", System.IO.Path.Combine(td.Path, "src_missing2"), "-t", System.IO.Path.Combine(td.Path, "out2"), "-i", ".snu", "-o", ".wav" }
@@ -382,8 +359,7 @@ public class OperationsEngineFullCoverageTests
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task ExecuteEngineOperationAsync_ValidateFiles_UsesDbProperty()
-    {
+    public async System.Threading.Tasks.Task ExecuteEngineOperationAsync_ValidateFiles_UsesDbProperty() {
         using TempRoot td = new TempRoot();
         OperationsEngine eng = CreateEngine(td.Path);
         String opsPath = System.IO.Path.Combine(td.Path, "ops.json");
@@ -395,8 +371,7 @@ public class OperationsEngineFullCoverageTests
         String baseFolder = System.IO.Path.Combine(td.Path, "base");
         Directory.CreateDirectory(baseFolder);
 
-        Dictionary<String, Object?> op = new Dictionary<String, Object?>
-        {
+        Dictionary<String, Object?> op = new Dictionary<String, Object?> {
             ["script"] = "validate-files",
             ["script_type"] = "engine",
             ["db"] = dbPath,
@@ -408,8 +383,7 @@ public class OperationsEngineFullCoverageTests
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task ExecuteEngineOperationAsync_DownloadTools_MissingManifest_ReturnsFalse()
-    {
+    public async System.Threading.Tasks.Task ExecuteEngineOperationAsync_DownloadTools_MissingManifest_ReturnsFalse() {
         using TempRoot td = new TempRoot();
         OperationsEngine eng = CreateEngine(td.Path);
         String opsPath = System.IO.Path.Combine(td.Path, "ops.json");
@@ -420,8 +394,7 @@ public class OperationsEngineFullCoverageTests
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task ExecuteEngineOperationAsync_Throws_On_Unknown_Game()
-    {
+    public async System.Threading.Tasks.Task ExecuteEngineOperationAsync_Throws_On_Unknown_Game() {
         using TempRoot td = new TempRoot();
         OperationsEngine eng = CreateEngine(td.Path);
         String manifest = System.IO.Path.Combine(td.Path, "tools.toml");
@@ -433,8 +406,7 @@ public class OperationsEngineFullCoverageTests
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task RunOperationGroupAsync_Aggregates_Success()
-    {
+    public async System.Threading.Tasks.Task RunOperationGroupAsync_Aggregates_Success() {
         using TempRoot td = new TempRoot();
         OperationsEngine eng = CreateEngine(td.Path);
         String opsPath = System.IO.Path.Combine(td.Path, "ops.json");
@@ -458,8 +430,7 @@ public class OperationsEngineFullCoverageTests
     }
 
     [Fact]
-    public void BuildCommand_and_ExecuteCommand_Wrappers()
-    {
+    public void BuildCommand_and_ExecuteCommand_Wrappers() {
         using TempRoot td = new TempRoot();
         OperationsEngine eng = CreateEngine(td.Path);
         String opsPath = System.IO.Path.Combine(td.Path, "ops.json");
@@ -467,8 +438,7 @@ public class OperationsEngineFullCoverageTests
         Dictionary<String, Object?> games = MakeGamesMap(td.Path, "G1", opsPath);
         Dictionary<String, Object?> answers = new Dictionary<String, Object?> { ["flag"] = true, ["textval"] = "abc" };
 
-        Dictionary<String, Object?> op = new Dictionary<String, Object?>
-        {
+        Dictionary<String, Object?> op = new Dictionary<String, Object?> {
             ["script_type"] = "python",
             ["script"] = "script.py",
             ["prompts"] = new List<Object?>
@@ -486,8 +456,7 @@ public class OperationsEngineFullCoverageTests
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task InstallModuleAsync_Paths()
-    {
+    public async System.Threading.Tasks.Task InstallModuleAsync_Paths() {
         using TempRoot td = new TempRoot();
         OperationsEngine eng = CreateEngine(td.Path);
 
@@ -515,8 +484,7 @@ public class OperationsEngineFullCoverageTests
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task InstallModuleAsync_Groups_No_RunAll_Chooses_First()
-    {
+    public async System.Threading.Tasks.Task InstallModuleAsync_Groups_No_RunAll_Chooses_First() {
         using TempRoot td = new TempRoot();
         OperationsEngine eng = CreateEngine(td.Path);
         String gamesDir = System.IO.Path.Combine(td.Path, "RemakeRegistry", "Games");
@@ -529,8 +497,7 @@ public class OperationsEngineFullCoverageTests
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task RunSingleOperationAsync_Python_Case_Label()
-    {
+    public async System.Threading.Tasks.Task RunSingleOperationAsync_Python_Case_Label() {
         using TempRoot td = new TempRoot();
         OperationsEngine eng = CreateEngine(td.Path);
         String opsPath = System.IO.Path.Combine(td.Path, "ops.json");
@@ -544,8 +511,7 @@ public class OperationsEngineFullCoverageTests
     }
 
     [Fact]
-    public void DownloadModule_Invokes_Git()
-    {
+    public void DownloadModule_Invokes_Git() {
         using TempRoot td = new TempRoot();
         OperationsEngine eng = CreateEngine(td.Path);
         // We do not assert true/false (depends on git availability); calling it covers the line

@@ -1,43 +1,48 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using EngineNet.Core;
-using EngineNet.Interface.CLI;
-using EngineNet.Tools;
-using Xunit;
 
 namespace EngineNet.Tests;
 
-public sealed class CliAppPrivateTests : IDisposable {
+public sealed class CliAppPrivateTests:IDisposable {
     private readonly string _root;
     private readonly OperationsEngine _engine;
 
     public CliAppPrivateTests() {
-        _root = Path.Combine(Path.GetTempPath(), "EngineNet_CLI_Priv_Tests_" + Guid.NewGuid().ToString("N"));
+        _root = Path.Combine(Path.GetTempPath(), "EngineNet_CLI_Priv_Tests_" + Guid.NewGuid().ToString(format: "N"));
         Directory.CreateDirectory(_root);
         Directory.CreateDirectory(Path.Combine(_root, "RemakeRegistry"));
-        File.WriteAllText(Path.Combine(_root, "RemakeRegistry", "register.json"), "{\n  \"modules\": {}\n}");
-        File.WriteAllText(Path.Combine(_root, "project.json"), "{\n  \"RemakeEngine\": { \n    \"Config\": { \"project_path\": \"" + _root.Replace("\\", "\\\\") + "\" }\n  }\n}");
+        File.WriteAllText(Path.Combine(_root, "RemakeRegistry", "register.json"), contents: "{\n  \"modules\": {}\n}");
+        File.WriteAllText(Path.Combine(_root, "project.json"), "{\n  \"RemakeEngine\": { \n    \"Config\": { \"project_path\": \"" + _root.Replace(oldValue: "\\", newValue: "\\\\") + "\" }\n  }\n}");
         EngineConfig cfg = new EngineConfig(Path.Combine(_root, "project.json"));
-        _engine = new OperationsEngine(_root, new PassthroughToolResolver(), cfg);
+        _engine = new OperationsEngine(_root, tools: new PassthroughToolResolver(), cfg);
     }
 
     public void Dispose() {
-        try { if (Directory.Exists(_root)) Directory.Delete(_root, true); } catch { }
+        try {
+            if (Directory.Exists(_root))
+                Directory.Delete(_root, recursive: true);
+        } catch { }
     }
 
     private static MethodInfo GetPrivateStatic(string name, Type[]? parameters = null) {
-        var t = typeof(CliApp);
-        var mi = t.GetMethod(name, BindingFlags.Static | BindingFlags.NonPublic, Type.DefaultBinder, parameters ?? Type.EmptyTypes, null);
-        if (mi == null) throw new InvalidOperationException($"Method {name} not found");
-        return mi;
+        BindingFlags flags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+        Type[] sig = parameters ?? Type.EmptyTypes;
+
+        // Search where these helpers actually live
+        Type[] candidates = new[] {
+            typeof(EngineNet.Interface.CommandLine.App),
+            typeof(EngineNet.Interface.TUI.App),
+        };
+
+        foreach (Type t in candidates) {
+            MethodInfo? m = t.GetMethod(name, flags, binder: null, types: sig, modifiers: null);
+            if (m != null) return m;
+        }
+
+        throw new InvalidOperationException($"Method {name}({string.Join(", ", sig.Select(s => s.Name))}) not found");
     }
 
     [Fact]
     public void IsInlineOperationInvocation_DetectsProperly() {
-        var meth = GetPrivateStatic("IsInlineOperationInvocation", new[] { typeof(string[]) });
+        MethodInfo? meth = GetPrivateStatic("IsInlineOperationInvocation", new[] { typeof(string[]) });
         bool yes = (bool)meth.Invoke(null, new object?[] { new[] { "--game", "Foo", "--script", "a.lua" } })!;
         bool no = (bool)meth.Invoke(null, new object?[] { new[] { "--list-games" } })!;
         Assert.True(yes);
@@ -51,12 +56,12 @@ public sealed class CliAppPrivateTests : IDisposable {
         Directory.CreateDirectory(gamesDir);
         File.WriteAllText(Path.Combine(gamesDir, "operations.json"), "[]");
 
-        var optionsByName = CliApp.InlineOperationOptions.Parse(new[] { "--game", "MyGame", "--script", "a.py" });
-        var optionsByRoot = CliApp.InlineOperationOptions.Parse(new[] { "--game-root", gamesDir, "--script", "a.py" });
+        App.InlineOperationOptions? optionsByName = App.InlineOperationOptions.Parse(new[] { "--game", "MyGame", "--script", "a.py" });
+        App.InlineOperationOptions? optionsByRoot = App.InlineOperationOptions.Parse(new[] { "--game-root", gamesDir, "--script", "a.py" });
 
-        var games = _engine.ListGames();
+        Dictionary<string, object?>? games = _engine.ListGames();
         string? resolved;
-        var method = GetPrivateStatic("TryResolveInlineGame", new[] { typeof(CliApp.InlineOperationOptions), typeof(Dictionary<string, object?>), typeof(string).MakeByRefType() });
+        MethodInfo? method = GetPrivateStatic("TryResolveInlineGame", new[] { typeof(App.InlineOperationOptions), typeof(Dictionary<string, object?>), typeof(string).MakeByRefType() });
 
         object?[] pars1 = new object?[] { optionsByName, games, null };
         bool ok1 = (bool)method.Invoke(null, pars1)!;
@@ -75,9 +80,9 @@ public sealed class CliAppPrivateTests : IDisposable {
     [Fact]
     public void CollectAnswersForOperation_DefaultsOnly_With_Conditions() {
         // Access private static CollectAnswersForOperation
-        var method = GetPrivateStatic("CollectAnswersForOperation", new[] { typeof(Dictionary<string, object?>), typeof(Dictionary<string, object?>), typeof(bool) });
+        MethodInfo? method = GetPrivateStatic("CollectAnswersForOperation", new[] { typeof(Dictionary<string, object?>), typeof(Dictionary<string, object?>), typeof(bool) });
 
-        var op = new Dictionary<string, object?> {
+        Dictionary<string, object?>? op = new Dictionary<string, object?> {
             ["prompts"] = new List<object?> {
                 new Dictionary<string, object?> { ["Name"] = "enable", ["type"] = "confirm", ["default"] = true },
                 new Dictionary<string, object?> { ["Name"] = "choice", ["type"] = "checkbox", ["choices"] = new List<object?> { "a", "b" }, ["default"] = new List<object?> { "b" }, ["condition"] = "enable" },
@@ -86,7 +91,7 @@ public sealed class CliAppPrivateTests : IDisposable {
             }
         };
 
-        var answers = new Dictionary<string, object?>();
+        Dictionary<string, object?>? answers = new Dictionary<string, object?>();
         method.Invoke(null, new object?[] { op, answers, true });
 
         Assert.True(answers.TryGetValue("enable", out var en) && en is bool b && b);

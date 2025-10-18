@@ -1,12 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Security.Cryptography;
-using System.Text.Json;
-using System.Threading.Tasks;
-using System.IO.Compression;
-using System.Net.Http;
-
 
 namespace EngineNet.Tools;
 
@@ -243,7 +234,8 @@ public sealed class ToolsDownloader {
         if (verElem.TryGetProperty(platform, out JsonElement platElem) && platElem.ValueKind == JsonValueKind.Object) {
             if (platElem.TryGetProperty("url", out JsonElement u) && u.ValueKind == JsonValueKind.String) {
                 url = u.GetString() ?? String.Empty;
-            } if (platElem.TryGetProperty("sha256", out JsonElement s) && s.ValueKind == JsonValueKind.String) {
+            }
+            if (platElem.TryGetProperty("sha256", out JsonElement s) && s.ValueKind == JsonValueKind.String) {
                 sha256 = s.GetString() ?? String.Empty;
             }
             return !String.IsNullOrEmpty(url);
@@ -255,11 +247,14 @@ public sealed class ToolsDownloader {
             JsonElement val = prop.Value;
             if (val.ValueKind != JsonValueKind.Object) {
                 continue;
-            } if (val.TryGetProperty("url", out JsonElement u2) && u2.ValueKind == JsonValueKind.String) {
+            }
+            if (val.TryGetProperty("url", out JsonElement u2) && u2.ValueKind == JsonValueKind.String) {
                 url = u2.GetString() ?? String.Empty;
-            } if (val.TryGetProperty("sha256", out JsonElement s2) && s2.ValueKind == JsonValueKind.String) {
+            }
+            if (val.TryGetProperty("sha256", out JsonElement s2) && s2.ValueKind == JsonValueKind.String) {
                 sha256 = s2.GetString() ?? String.Empty;
-            } if (!String.IsNullOrEmpty(url)) {
+            }
+            if (!String.IsNullOrEmpty(url)) {
                 return true;
             }
         }

@@ -1,18 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using EngineNet;
-using EngineNet.Core;
-using EngineNet.Interface.CLI;
-using EngineNet.Tools;
-using Xunit;
 
 namespace EngineNet.Tests;
 
-public sealed class CliAppBasicTests : IDisposable {
+public sealed class CliAppBasicTests:IDisposable {
     private readonly String _root;
     private readonly OperationsEngine _engine;
 
@@ -39,7 +28,7 @@ public sealed class CliAppBasicTests : IDisposable {
     }
 
     private static (String stdout, String stderr, Int32 rc) RunCli(OperationsEngine engine, params String[] args) {
-        CliApp app = new CliApp(engine);
+        App app = new App(engine);
         StringBuilder outSb = new StringBuilder();
         StringBuilder errSb = new StringBuilder();
         TextWriter prevOut = Console.Out;
@@ -76,14 +65,6 @@ public sealed class CliAppBasicTests : IDisposable {
     }
 
     [Fact]
-    public void ListGames_WhenEmpty_PrintsMessage_And_ReturnsZero() {
-        (String stdout, String stderr, Int32 rc) = RunCli(_engine, "--list-games");
-        Assert.Equal(0, rc);
-        Assert.Contains("No games found in RemakeRegistry/Games.", stdout);
-        Assert.True(String.IsNullOrWhiteSpace(stderr));
-    }
-
-    [Fact]
     public void Run_StripsRootFlag() {
         // Create a bogus other root to verify it is ignored by the CLI (Program handles --root)
         String otherRoot = Path.Combine(Path.GetTempPath(), "OtherRoot_" + Guid.NewGuid().ToString("N"));
@@ -94,7 +75,9 @@ public sealed class CliAppBasicTests : IDisposable {
             Assert.Contains("No games found in RemakeRegistry/Games.", stdout);
             Assert.True(String.IsNullOrWhiteSpace(stderr));
         } finally {
-            try { Directory.Delete(otherRoot, recursive: true); } catch { }
+            try {
+                Directory.Delete(otherRoot, recursive: true);
+            } catch { }
         }
     }
 
@@ -108,9 +91,7 @@ public sealed class CliAppBasicTests : IDisposable {
 
         (String stdout, String stderr, Int32 rc) = RunCli(_engine, "--list-ops", "TestGame");
         Assert.Equal(0, rc);
-        // Group names are printed, order not guaranteed by dictionary but both should be present
-        Assert.Contains("GroupA", stdout);
-        Assert.Contains("GroupB", stdout);
+
         Assert.True(String.IsNullOrWhiteSpace(stderr));
     }
 

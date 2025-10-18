@@ -5,25 +5,24 @@ using Xunit;
 
 namespace EngineNet.Tests;
 
-public class RegistriesTests
-{
-    private sealed class TempDir: IDisposable
-    {
-        public String Path { get; }
-        public TempDir()
-        {
+public class RegistriesTests {
+    private sealed class TempDir:IDisposable {
+        public String Path {
+            get;
+        }
+        public TempDir() {
             Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "enginenet_tests_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
         }
-        public void Dispose()
-        {
-            try { Directory.Delete(Path, recursive: true); } catch { }
+        public void Dispose() {
+            try {
+                Directory.Delete(Path, recursive: true);
+            } catch { }
         }
     }
 
     [Fact]
-    public void DiscoverGames_Finds_Toml_And_Json()
-    {
+    public void DiscoverGames_Finds_Toml_And_Json() {
         using TempDir td = new TempDir();
         String gamesRoot = System.IO.Path.Combine(td.Path, "RemakeRegistry", "Games");
         Directory.CreateDirectory(gamesRoot);
@@ -52,8 +51,7 @@ public class RegistriesTests
     }
 
     [Fact]
-    public void DiscoverInstalledGames_Requires_Valid_GameToml_And_Exe()
-    {
+    public void DiscoverInstalledGames_Requires_Valid_GameToml_And_Exe() {
         using TempDir td = new TempDir();
         String gamesRoot = System.IO.Path.Combine(td.Path, "RemakeRegistry", "Games");
         Directory.CreateDirectory(gamesRoot);

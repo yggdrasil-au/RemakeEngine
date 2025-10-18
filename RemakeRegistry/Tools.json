@@ -1,56 +1,140 @@
 {
-        "Blender": {
-                "4.0.2": {
-                        "win-x64": {
-                                "url": "https://download.blender.org/release/Blender4.0/blender-4.0.2-windows-x64.zip",
-                                "sha256": "bddb7ab6880bbb80297b93731506a48bbebdce214ee5edd17dbef8380daecded"
-                        },
-                        "linux-x64": {
-                                "url": "https://download.blender.org/release/Blender4.0/blender-4.0.2-linux-x64.tar.xz",
-                                "sha256": "5583a5588736da8858c522ef17fff5d73be59c47a6fe91ad29c6f3263e22086a"
-                        },
-                        "macos-arm64": {
-                                "url": "https://download.blender.org/release/Blender4.0/blender-4.0.2-macos-arm64.dmg",
-                                "sha256": "3debdaeb04fbaa13480c66889bef0c009aa563bb5fca42cdf4484f91195671d2"
-                        },
-                        "macos-x64": {
-                                "url": "https://download.blender.org/release/Blender4.0/blender-4.0.2-macos-x64.dmg",
-                                "sha256": "759809d2d0b23bcfa42f2cfa92b707c9f97a8715e542dc330fcd1bfb15970610"
-                        }
-                }
+    "Blender": {
+        "4.0.2": {
+            "win-x64": {
+                "url": "https://download.blender.org/release/Blender4.0/blender-4.0.2-windows-x64.zip",
+                "sha256": "bddb7ab6880bbb80297b93731506a48bbebdce214ee5edd17dbef8380daecded"
+            },
+            "linux-x64": {
+                "url": "https://download.blender.org/release/Blender4.0/blender-4.0.2-linux-x64.tar.xz",
+                "sha256": "5583a5588736da8858c522ef17fff5d73be59c47a6fe91ad29c6f3263e22086a"
+            },
+            "macos-arm64": {
+                "url": "https://download.blender.org/release/Blender4.0/blender-4.0.2-macos-arm64.dmg",
+                "sha256": "3debdaeb04fbaa13480c66889bef0c009aa563bb5fca42cdf4484f91195671d2"
+            },
+            "macos-x64": {
+                "url": "https://download.blender.org/release/Blender4.0/blender-4.0.2-macos-x64.dmg",
+                "sha256": "759809d2d0b23bcfa42f2cfa92b707c9f97a8715e542dc330fcd1bfb15970610"
+            }
+        }
+    },
+    "QuickBMS": {
+        "0.12.0": {
+            "win-x64": {
+                "url": "https://github.com/LittleBigBug/QuickBMS/releases/download/0.12.0/quickbms_win.zip",
+                "sha256": ""
+            },
+            "linux-x64": {
+                "url": "https://github.com/LittleBigBug/QuickBMS/releases/download/0.12.0/quickbms_linux.zip",
+                "sha256": ""
+            },
+            "macOS": {
+                "url": "https://github.com/LittleBigBug/QuickBMS/releases/download/0.12.0/quickbms_macosx.zip",
+                "sha256": ""
+            }
+        }
+    },
+    "Godot": {
+        "4.4.1-stable-mono": {
+            "win-x64-mono": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_mono_win64.zip",
+                "sha256": ""
+            },
+            "linux-x64-mono": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_mono_linux_x86_64.zip",
+                "sha256": ""
+            },
+            "macOS": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_mono_macos.universal.zip",
+                "sha256": ""
+            }
         },
-        "QuickBMS": {
-                "0.12.0": {
-                        "win-x64": {
-                                "url": "https://github.com/LittleBigBug/QuickBMS/releases/download/0.12.0/quickbms_win.zip",
-                                "sha256": ""
-                        },
-                        "linux-x64": {
-                                "url": "https://github.com/LittleBigBug/QuickBMS/releases/download/0.12.0/quickbms_linux.zip",
-                                "sha256": ""
-                        },
-                        "macOS": {
-                                "url": "https://github.com/LittleBigBug/QuickBMS/releases/download/0.12.0/quickbms_macosx.zip",
-                                "sha256": ""
-                        }
-                }
+        "4.5-stable": {
+            "src": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/godot-4.5-stable.tar.xz",
+                "sha256": "2cdb383d68bfe646c832064b9063310745e8db03a2e4b59f5946ee934b95c67d"
+            },
+            "linux-arm32": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_linux.arm32.zip",
+                "sha256": "1b5be250b85913bc5b5b540d4785cef5099d452d5fc478817ffab6d63076af86"
+            },
+            "linux-arm64": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_linux.arm64.zip",
+                "sha256": "f9f167c0a19cc84385b508c12bd0e7a290dd21a639bce2ed6dcf4647af796589"
+            },
+            "linux-x86": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_linux.x86_32.zip",
+                "sha256": "4754b85f7cc8bd59f1dbdfca6f56ce1e2b8b9137a0bf7b86a836c29daeb0ae3e"
+            },
+            "linux-x64": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_linux.x86_64.zip",
+                "sha256": "c7316e1fd782ad276a4d985a7673b5976eaaa8d90561a2bea5289210dc53e9ba"
+            },
+            "macos-universal": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_macos.universal.zip",
+                "sha256": "abb7cabe99fead0bd63ce03bd8c611734b2941f9b90051e8e3b5c6691527954d"
+            },
+            "win32": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_win32.exe.zip",
+                "sha256": "720f65f222f1d9e9467e06bf88328e9526dd8a85c794f3348e9c11a7f9e15df9"
+            },
+            "win-x64": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_win64.exe.zip",
+                "sha256": "303206071cb8be502cfa5b1e2b37b848c280347c03f78dcc2eb8a630857f7d10"
+            },
+            "win-arm64": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_windows_arm64.exe.zip",
+                "sha256": "6723b99f5b8b7aff5be5ca21e641d3e685a3182a2954b6b9658e80bf55ca113e"
+            },
+            "web-editor": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_web_editor.zip",
+                "sha256": "06e97ff3ae31dd353ef2d11f269003ea8714015fe5207bc3c8d5a280a124c4b1"
+            },
+            "export-templates": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_export_templates.tpz",
+                "sha256": "375d83b661794f91746d2dec9b569a99d4d24f85a70c4ec0068aafb18b551d53"
+            }
         },
-        "Godot": {
-                "4.4.1-stable-mono": {
-                        "win-x64-mono": {
-                                "url": "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_mono_win64.zip",
-                                "sha256": ""
-                        },
-                        "linux-x64-mono": {
-                                "url": "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_mono_linux_x86_64.zip",
-                                "sha256": ""
-                        },
-                        "macOS": {
-                                "url": "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_mono_macos.universal.zip",
-                                "sha256": ""
-                        }
-                }
-        },
+        "4.5-stable-mono": {
+            "linux-arm32": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_mono_linux_arm32.zip",
+                "sha256": "c068122248ca496a2d8a3de65f99979fa8add9671bb059d843cf0946934768e5"
+            },
+            "linux-arm64": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_mono_linux_arm64.zip",
+                "sha256": "cb4c86d9e92130db51ae1b98ef9c0ffc212ba4f9e5d4141370fdf59279cec8d1"
+            },
+            "linux-x86": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_mono_linux_x86_32.zip",
+                "sha256": "3ee3912991fb56237ccf8230a4f14fd5ee297042344d6afb6e09ca6541c4a51c"
+            },
+            "linux-x64": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_mono_linux_x86_64.zip",
+                "sha256": "54563c82bf3b6c1329e74862df1ee23f653e8a41355140434649bb6479158100"
+            },
+            "macos-universal": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_mono_macos.universal.zip",
+                "sha256": "0a963afd43d26231c0fe0d575c1179dac7f000d76e4df9704679245fcc4f340e"
+            },
+            "win32": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_mono_win32.zip",
+                "sha256": "f8a6b3b182d13e32afe40cfb08a5d576427227d73cf4f52dbf380fef35418f78"
+            },
+            "win-x64": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_mono_win64.zip",
+                "sha256": "52aa126adbf1b9ddb7eeccdd1bd9889588d8e6b52ba492c2cf8dddab37186a1f"
+            },
+            "win-arm64": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_mono_windows_arm64.zip",
+                "sha256": "6db1a091fd116ccefdf72abdac727096b4f5bc0a2f3e74aec881e527e4870e59"
+            },
+            "export-templates": {
+                "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_mono_export_templates.tpz",
+                "sha256": "ad118205d8ae304bab84fa937590bd1b43a9567bb7f82be778678c891ce858bb"
+            }
+        }
+    },
     "Lucas_Radcore_Cement_Library_Builder": {
         "1.0.0": {
             "win-x64": {
@@ -98,7 +182,6 @@
                 "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-win64-lgpl-shared-8.0.zip",
                 "sha256": "ddee23947cb26060b5a3d45fbefcefc14874a3f2d09be7e70154b17f86d66fa3"
             },
-
             "linux-x64": {
                 "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-linux64-gpl-8.0.tar.xz",
                 "sha256": "f806680ab1134efac72eccb2a9b0ed2b3cdacdb30bf8a2da980bec47cff451b9"
@@ -115,7 +198,6 @@
                 "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-linux64-lgpl-shared-8.0.tar.xz",
                 "sha256": "460a969e5a4f3c512177a4a051a316abc3f5c49053fbb8fcb8fdd84a2c26fb6b"
             },
-
             "linux-arm64": {
                 "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-linuxarm64-gpl-8.0.tar.xz",
                 "sha256": "0ddab019e2bd4a69affb2b519fc00725da1b1e727fe0e636fa8319b24286bc17"
@@ -132,7 +214,6 @@
                 "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-linuxarm64-lgpl-shared-8.0.tar.xz",
                 "sha256": "5651c3615689d74e88f8848cc988ab5c37fb77ba0b3d602637caf9c0d4c87369"
             },
-
             "macos-x64": {
                 "url": "https://evermeet.cx/ffmpeg/ffmpeg-8.0.zip",
                 "sha256": ""

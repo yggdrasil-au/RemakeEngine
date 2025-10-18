@@ -1,23 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using Avalonia.Headless.XUnit;
-using Avalonia.Threading;
-using RemakeEngine.Interface.GUI.Avalonia.ViewModels;
-using Xunit;
 
 namespace EngineNet.Tests;
 
-public sealed class MainViewModelTests
-{
+public sealed class MainViewModelTests {
     [AvaloniaFact]
-    public async Task InitializesPlaceholdersWhenNoGamesOrModules()
-    {
+    public async Task InitializesPlaceholdersWhenNoGamesOrModules() {
         using var cwd = new TemporaryWorkingDirectory();
         var engine = new FakeAvaloniaEngine();
 
@@ -37,11 +23,9 @@ public sealed class MainViewModelTests
     }
 
     [AvaloniaFact]
-    public async Task InstallCommandAddsRowAndUpdatesProgress()
-    {
+    public async Task InstallCommandAddsRowAndUpdatesProgress() {
         using var cwd = new TemporaryWorkingDirectory();
-        var engine = new FakeAvaloniaEngine
-        {
+        var engine = new FakeAvaloniaEngine {
             InstallEvents =
             {
                 new Dictionary<string, object?>
@@ -59,10 +43,8 @@ public sealed class MainViewModelTests
 
         var rowAdded = new TaskCompletionSource<InstallRow>(TaskCreationOptions.RunContinuationsAsynchronously);
         NotifyCollectionChangedEventHandler? handler = null;
-        handler = (_, e) =>
-        {
-            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems?.Count > 0 && e.NewItems[0] is InstallRow added)
-            {
+        handler = (_, e) => {
+            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems?.Count > 0 && e.NewItems[0] is InstallRow added) {
                 rowAdded.TrySetResult(added);
                 vm.Installing.CollectionChanged -= handler!;
             }
@@ -75,14 +57,11 @@ public sealed class MainViewModelTests
         var row = await WaitWithPumpAsync(rowAdded.Task, TimeSpan.FromMilliseconds(200));
         Assert.Equal("Example", row.Name);
 
-        if (!IsDesiredProgress(row))
-        {
+        if (!IsDesiredProgress(row)) {
             var progressUpdated = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             PropertyChangedEventHandler? rowHandler = null;
-            rowHandler = (_, args) =>
-            {
-                if ((args.PropertyName == nameof(InstallRow.Label) || args.PropertyName == nameof(InstallRow.Progress)) && IsDesiredProgress(row))
-                {
+            rowHandler = (_, args) => {
+                if ((args.PropertyName == nameof(InstallRow.Label) || args.PropertyName == nameof(InstallRow.Progress)) && IsDesiredProgress(row)) {
                     progressUpdated.TrySetResult(true);
                     row.PropertyChanged -= rowHandler!;
                 }
@@ -97,11 +76,9 @@ public sealed class MainViewModelTests
     }
 
     [AvaloniaFact]
-    public async Task PromptEventShowsAndSubmitProvidesAnswer()
-    {
+    public async Task PromptEventShowsAndSubmitProvidesAnswer() {
         using var cwd = new TemporaryWorkingDirectory();
-        var engine = new FakeAvaloniaEngine
-        {
+        var engine = new FakeAvaloniaEngine {
             RequestPromptDuringInstall = true,
             PromptMessage = "Provide value"
         };
@@ -110,17 +87,14 @@ public sealed class MainViewModelTests
 
         var promptShown = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         PropertyChangedEventHandler? promptHandler = null;
-        promptHandler = (_, e) =>
-        {
-            if (e.PropertyName == nameof(MainViewModel.PromptIsVisible) && vm.PromptIsVisible)
-            {
+        promptHandler = (_, e) => {
+            if (e.PropertyName == nameof(MainViewModel.PromptIsVisible) && vm.PromptIsVisible) {
                 promptShown.TrySetResult(true);
                 vm.PropertyChanged -= promptHandler!;
             }
         };
         vm.PropertyChanged += promptHandler;
-        if (vm.PromptIsVisible)
-        {
+        if (vm.PromptIsVisible) {
             promptShown.TrySetResult(true);
         }
 
@@ -132,17 +106,14 @@ public sealed class MainViewModelTests
 
         var promptHidden = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         PropertyChangedEventHandler? hiddenHandler = null;
-        hiddenHandler = (_, e) =>
-        {
-            if (e.PropertyName == nameof(MainViewModel.PromptIsVisible) && !vm.PromptIsVisible)
-            {
+        hiddenHandler = (_, e) => {
+            if (e.PropertyName == nameof(MainViewModel.PromptIsVisible) && !vm.PromptIsVisible) {
                 promptHidden.TrySetResult(true);
                 vm.PropertyChanged -= hiddenHandler!;
             }
         };
         vm.PropertyChanged += hiddenHandler;
-        if (!vm.PromptIsVisible)
-        {
+        if (!vm.PromptIsVisible) {
             promptHidden.TrySetResult(true);
         }
 
@@ -159,19 +130,15 @@ public sealed class MainViewModelTests
     private static bool IsDesiredProgress(InstallRow row)
         => row.Label == "Downloading (3/6)" && Math.Abs(row.Progress - 0.5) < 0.01;
 
-    private static async Task FlushUiAsync()
-    {
+    private static async Task FlushUiAsync() {
         Dispatcher.UIThread.RunJobs(DispatcherPriority.Background);
         await Task.Yield();
     }
 
-    private static async Task<T> WaitWithPumpAsync<T>(Task<T> task, TimeSpan timeout)
-    {
+    private static async Task<T> WaitWithPumpAsync<T>(Task<T> task, TimeSpan timeout) {
         var sw = Stopwatch.StartNew();
-        while (!task.IsCompleted)
-        {
-            if (sw.Elapsed >= timeout)
-            {
+        while (!task.IsCompleted) {
+            if (sw.Elapsed >= timeout) {
                 throw new TimeoutException("The operation has timed out.");
             }
             Dispatcher.UIThread.RunJobs(DispatcherPriority.Background);
@@ -180,13 +147,10 @@ public sealed class MainViewModelTests
         return await task;
     }
 
-    private static async Task WaitWithPumpAsync(Task task, TimeSpan timeout)
-    {
+    private static async Task WaitWithPumpAsync(Task task, TimeSpan timeout) {
         var sw = Stopwatch.StartNew();
-        while (!task.IsCompleted)
-        {
-            if (sw.Elapsed >= timeout)
-            {
+        while (!task.IsCompleted) {
+            if (sw.Elapsed >= timeout) {
                 throw new TimeoutException("The operation has timed out.");
             }
             Dispatcher.UIThread.RunJobs(DispatcherPriority.Background);
@@ -195,33 +159,31 @@ public sealed class MainViewModelTests
         await task;
     }
 
-    private sealed class TemporaryWorkingDirectory : IDisposable
-    {
+    private sealed class TemporaryWorkingDirectory:IDisposable {
         private readonly string _previous;
 
-        public TemporaryWorkingDirectory()
-        {
+        public TemporaryWorkingDirectory() {
             _previous = Directory.GetCurrentDirectory();
             var temp = Path.Combine(Path.GetTempPath(), "RemakeEngineTests", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(temp);
             Directory.SetCurrentDirectory(temp);
         }
 
-        public void Dispose()
-        {
+        public void Dispose() {
             Directory.SetCurrentDirectory(_previous);
         }
     }
 }
 
-public sealed class FakeAvaloniaEngine
-{
+public sealed class FakeAvaloniaEngine {
     public Dictionary<string, Dictionary<string, object?>> InstalledGames { get; } = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<string, string> ModuleStates { get; } = new(StringComparer.OrdinalIgnoreCase);
     public List<string?> CapturedPromptAnswers { get; } = new();
     public List<Dictionary<string, object?>> InstallEvents { get; } = new();
     public bool EmitEndEvent { get; set; } = true;
-    public bool RequestPromptDuringInstall { get; set; }
+    public bool RequestPromptDuringInstall {
+        get; set;
+    }
     public string PromptMessage { get; set; } = "Input required";
     public bool InstallResult { get; set; } = true;
 
@@ -243,65 +205,51 @@ public sealed class FakeAvaloniaEngine
 
     public bool DownloadModule(string url) => true;
 
-    public string GetModuleState(string name)
-    {
+    public string GetModuleState(string name) {
         return ModuleStates.TryGetValue(name, out var state) ? state : "not_downloaded";
     }
 
-    public async Task<bool> InstallModuleAsync(string moduleName, Delegate? outputHandler, Delegate? eventHandler, Delegate? stdinProvider)
-    {
+    public async Task<bool> InstallModuleAsync(string moduleName, Delegate? outputHandler, Delegate? eventHandler, Delegate? stdinProvider) {
         _installStarted.TrySetResult(moduleName);
         await Task.Yield();
 
-        foreach (var evt in InstallEvents)
-        {
-            if (eventHandler is not null)
-            {
+        foreach (var evt in InstallEvents) {
+            if (eventHandler is not null) {
                 var payload = Clone(evt);
                 Dispatcher.UIThread.Post(() => eventHandler.DynamicInvoke(payload), DispatcherPriority.Background);
             }
             await Task.Yield();
         }
 
-        if (RequestPromptDuringInstall && eventHandler is not null)
-        {
-            var payload = new Dictionary<string, object?>
-            {
+        if (RequestPromptDuringInstall && eventHandler is not null) {
+            var payload = new Dictionary<string, object?> {
                 ["event"] = "prompt",
                 ["message"] = PromptMessage
             };
             Dispatcher.UIThread.Post(() => eventHandler.DynamicInvoke(payload), DispatcherPriority.Background);
             await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
 
-            if (stdinProvider is not null)
-            {
+            if (stdinProvider is not null) {
                 var answer = await Task.Run(() => (string?)stdinProvider.DynamicInvoke());
                 CapturedPromptAnswers.Add(answer);
                 _promptSatisfied.TrySetResult(true);
-            }
-            else
-            {
+            } else {
                 _promptSatisfied.TrySetResult(true);
             }
-        }
-        else
-        {
+        } else {
             _promptSatisfied.TrySetResult(true);
         }
 
-        if (EmitEndEvent && eventHandler is not null)
-        {
+        if (EmitEndEvent && eventHandler is not null) {
             eventHandler.DynamicInvoke(new Dictionary<string, object?> { ["event"] = "end" });
         }
 
         return InstallResult;
     }
 
-    private static Dictionary<string, object?> Clone(Dictionary<string, object?> source)
-    {
+    private static Dictionary<string, object?> Clone(Dictionary<string, object?> source) {
         var clone = new Dictionary<string, object?>(source.Count, StringComparer.OrdinalIgnoreCase);
-        foreach (var kvp in source)
-        {
+        foreach (var kvp in source) {
             clone[kvp.Key] = kvp.Value;
         }
         return clone;

@@ -37,7 +37,7 @@ dotnet run -c Release --project EngineNet
 
 # Force GUI or interactive CLI explicitly
 dotnet run -c Release --project EngineNet --framework net8.0 -- --gui
-dotnet run -c Release --project EngineNet --framework net8.0 -- --cli
+dotnet run -c Release --project EngineNet --framework net8.0 -- --tui
 
 # Developer CLI example
 dotnet run -c Release --project EngineNet --framework net8.0 -- --game_module "RemakeRegistry/Games/demo" --script_type engine --script rename-folders
