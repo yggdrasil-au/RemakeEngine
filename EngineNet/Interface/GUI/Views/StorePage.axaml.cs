@@ -7,7 +7,7 @@ internal partial class StorePage:UserControl {
     // //
     private readonly Core.OperationsEngine? _engine;
 
-    private ObservableCollection<StoreItem> Items {
+    internal ObservableCollection<StoreItem> Items {
         get;
     } = new ObservableCollection<StoreItem>();
 
@@ -49,7 +49,7 @@ internal partial class StorePage:UserControl {
     // used only for previewer
     public StorePage() {
 
-        DataContext = this;
+        DataContext = this; // make every instance var an available binding
         InitializeComponent();
 
         RefreshCommand = new Cmd(async _ => await LoadAsync());
@@ -196,7 +196,7 @@ internal partial class StorePage:UserControl {
     /// <summary>
     /// Represents a store item.
     /// </summary>
-    private sealed class StoreItem {
+    internal sealed class StoreItem {
         public string Id {
             get; set;
         } = "";
@@ -211,9 +211,9 @@ internal partial class StorePage:UserControl {
     private event PropertyChangedEventHandler? PropertyChanged;
     private void Raise(string name) => PropertyChanged?.Invoke(this, e: new PropertyChangedEventArgs(name));
 
-    private sealed class Cmd:ICommand {
-        private readonly Func<object?, Task> _run;
-        public Cmd(Func<object?, Task> run) => _run = run;
+    private sealed class Cmd(Func<object?, Task> run):ICommand {
+        private readonly Func<object?, Task> _run = run;
+
         public bool CanExecute(object? p) => true;
         public async void Execute(object? p) => await _run(p);
         public event EventHandler? CanExecuteChanged;

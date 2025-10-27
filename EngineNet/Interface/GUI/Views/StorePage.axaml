@@ -3,14 +3,20 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     x:Class="EngineNet.Interface.GUI.Views.Pages.StorePage">
     <DockPanel>
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+        <StackPanel
+            DockPanel.Dock="Top"
+            Orientation="Horizontal"
+            Spacing="8" Margin="0,0,0,8">
             <TextBox
                 Width="260"
-                Watermark="Search store…"
+                Watermark="Search store"
                 Text="{Binding Query}"/>
             <Button Content="Search" Command="{Binding SearchCommand}"/>
             <Button Content="Refresh" Command="{Binding RefreshCommand}"/>
-            <TextBlock Text="{Binding Status}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+            <TextBlock
+                Text="{Binding Status}"
+                Margin="12,0,0,0"
+                VerticalAlignment="Center"/>
         </StackPanel>
 
         <DataGrid
@@ -18,8 +24,14 @@
             AutoGenerateColumns="False"
             IsReadOnly="True">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*"/>
-                <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="3*"/>
+                <DataGridTextColumn
+                    Header="Name"
+                    Binding="{Binding Name}"
+                    Width="2*"/>
+                <DataGridTextColumn
+                    Header="Description"
+                    Binding="{Binding Description}"
+                    Width="3*"/>
                 <DataGridTemplateColumn Header="Actions" Width="*">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>

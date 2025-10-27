@@ -37,7 +37,7 @@ default = "Hello from the JavaScript demo"
 cli_arg_prefix = "--note"
 
 [[operation]]
-run-all = true
+run-all = false
 Name = "Python Placeholder (Not Supported)"
 Instructions = "Keeps the legacy Python entry to highlight that scripting is currently disabled."
 script_type = "python"

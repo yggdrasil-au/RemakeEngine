@@ -17,7 +17,7 @@
                         BorderThickness="1" Classes="card">
                         <StackPanel Spacing="8">
                             <Grid>
-                                <Image Source="{Binding ImageUri}" Height="120" Stretch="UniformToFill" />
+                                <Image Source="{Binding Image}" Height="120" Stretch="UniformToFill" />
                                 <!-- “Installed” pill -->
                                 <Border
                                     Background="{DynamicResource ThemeAccentBrush}" CornerRadius="10"
