@@ -24,10 +24,3 @@ global using Avalonia.Controls;
 global using Avalonia.Controls.ApplicationLifetimes;
 global using Avalonia.Headless;
 
-// Internal usings
-global using EngineNet.Core;
-global using EngineNet.Tools;
-global using EngineNet.Interface.GUI.ViewModels;
-global using EngineNet.Interface.CommandLine;
-global using EngineNet.Core.FileHandlers;
-

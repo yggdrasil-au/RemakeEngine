@@ -25,5 +25,7 @@
         </StackPanel>
 
         <TextBlock Text="{Binding Status}" />
+
     </StackPanel>
+
 </UserControl>

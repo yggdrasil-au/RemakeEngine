@@ -1,4 +1,6 @@
 
+using System.Threading.Tasks;
+
 namespace EngineNet.Interface.CommandLine;
 
 public partial class App {
@@ -6,7 +8,7 @@ public partial class App {
 
     public App(Core.OperationsEngine engine) => _engine = engine;
 
-    public Int32 Run(String[] args) {
+    public async Task<Int32> Run(String[] args) {
         // Strip global flags that Program.cs already handled, like --root PATH
         if (args.Length > 0) {
             List<String> list = new List<String>(args);
@@ -25,7 +27,7 @@ public partial class App {
         }
 
         if (args.Length == 0) {
-            return new TUI.App(_engine).RunInteractiveMenu();
+            return await new TUI.App(_engine).RunInteractiveMenuAsync();
         }
 
         if (IsInlineOperationInvocation(args)) {
@@ -41,7 +43,7 @@ public partial class App {
                 return 0;
             case "--tui":
             case "--menu":
-                return new TUI.App(_engine).RunInteractiveMenu();
+                return await new TUI.App(_engine).RunInteractiveMenuAsync();
             case "--list-games":
                 return ListGames();
             case "--list-ops":

@@ -8,11 +8,23 @@ public partial class BuildingPage:UserControl, INotifyPropertyChanged {
 
     public ObservableCollection<Job> Jobs { get; } = new ObservableCollection<Job>();
 
+    // Use the shared operation output service
+    public ObservableCollection<OutputLine> OutputLines => OperationOutputService.Lines;
+
     private string _status = "";
     public string Status {
         get => _status; private set {
             _status = value;
             Raise(nameof(Status));
+        }
+    }
+
+    private string _operationName = "No operation running";
+    public string OperationName {
+        get => _operationName;
+        private set {
+            _operationName = value;
+            Raise(nameof(OperationName));
         }
     }
 
@@ -25,6 +37,9 @@ public partial class BuildingPage:UserControl, INotifyPropertyChanged {
     public ICommand RetryCommand {
         get;
     }
+    public ICommand ClearOutputCommand {
+        get;
+    }
 
     public BuildingPage() {
         InitializeComponent();
@@ -34,12 +49,24 @@ public partial class BuildingPage:UserControl, INotifyPropertyChanged {
         RefreshCommand = new Cmd(async _ => await Task.CompletedTask);
         CancelCommand = new Cmd(async _ => await Task.CompletedTask);
         RetryCommand = new Cmd(async _ => await Task.CompletedTask);
+        ClearOutputCommand = new Cmd(async _ => await OperationOutputService.ClearAsync());
 
         // Add sample data for the previewer
         Jobs.Add(new Job { Name = "Example Download", State = "Running", ProgressPercent = 50 });
         Jobs.Add(new Job { Name = "Another Install", State = "Failed", ProgressPercent = 0 });
         Status = "Showing design-time data.";
-
+        
+        // Start timer to update operation name from service
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+        timer.Tick += (s, e) => {
+            var currentOp = OperationOutputService.CurrentOperation;
+            if (currentOp != null) {
+                OperationName = currentOp;
+            } else if (OutputLines.Count == 0) {
+                OperationName = "No operation running";
+            }
+        };
+        timer.Start();
     }
 
     public BuildingPage(Core.OperationsEngine engine) {

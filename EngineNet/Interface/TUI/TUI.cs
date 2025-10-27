@@ -9,13 +9,13 @@ public class App {
         _engine = engine;
     }
 
-    public Int32 RunInteractiveMenu() {
+    public async Task<Int32> RunInteractiveMenuAsync() {
         // 1) Pick a game, or offer to download a module if none exist
         Dictionary<String, Object?> games = _engine.ListGames();
         while (games.Count == 0) {
             Console.Clear();
             Console.WriteLine("No games found in RemakeRegistry/Games.");
-            List<String> actions = new List<String> { "Download module…", "Exit" };
+            List<String> actions = new List<String> { "Download module...", "Exit" };
             Console.WriteLine("? Choose an action:");
             Int32 aidx = SelectFromMenu(actions);
             if (aidx < 0 || actions[aidx] == "Exit") {
@@ -34,7 +34,7 @@ public class App {
             Console.WriteLine("Select a game:");
             List<String> gameMenu = new List<String>(games.Keys);
             gameMenu.Add("---------------");
-            gameMenu.Add("Download module…");
+            gameMenu.Add("Download module...");
             gameMenu.Add("Exit");
             Int32 gidx = SelectFromMenu(gameMenu, highlightSeparators: true);
             if (gidx < 0 || gameMenu[gidx] == "Exit") {
@@ -79,8 +79,8 @@ public class App {
             }
             didRunInit = true;
             Console.WriteLine(okAllInit
-                ? "Initialization completed successfully. Press any key to continue…"
-                : "One or more init operations failed. Press any key to continue…");
+                ? "Initialization completed successfully. Press any key to continue..."
+                : "One or more init operations failed. Press any key to continue...");
             Console.ReadKey(true);
         }
 
@@ -108,37 +108,90 @@ public class App {
             String selection = menu[idx];
             if (selection == "Change Game") {
                 // Restart the full menu loop by re-picking game
-                return RunInteractiveMenu();
+                return await RunInteractiveMenuAsync();
             }
             if (selection == "Exit") {
                 return 0;
             }
             if (selection == "Run All") {
-                // Collect prompts for all selected ops: init + run-all flagged
-                List<Dictionary<String, Object?>> runAll = new List<Dictionary<String, Object?>>();
-                if (!didRunInit) {
-                    runAll.AddRange(initOps);
-                }
+                try {
+                    Console.Clear();
+                    Console.WriteLine($"Running operations for {gameName}...\n");
 
-                foreach (Dictionary<String, Object?> op in regularOps) {
-                    if (op.TryGetValue("run-all", out Object? ra) && ra is Boolean rb && rb) {
-                        runAll.Add(op);
-                    }
-                }
+                    String lastPrompt = "Input required";
+                    Core.RunAllResult result = await _engine.RunAllAsync(
+                        gameName,
+                        onOutput: (line, streamName) => {
+                            ConsoleColor prev = Console.ForegroundColor;
+                            try {
+                                Console.ForegroundColor = streamName == "stderr" ? ConsoleColor.Red : ConsoleColor.Gray;
+                                Console.WriteLine(line);
+                            } finally {
+                                Console.ForegroundColor = prev;
+                            }
+                        },
+                        onEvent: (evt) => {
+                            if (!evt.TryGetValue("event", out Object? evtType)) {
+                                return;
+                            }
 
-                Console.Clear();
-                Console.WriteLine($"Running {runAll.Count} operations for {gameName}…\n");
-                Boolean okAll = true;
-                foreach (Dictionary<String, Object?> op in runAll) {
-                    Dictionary<String, Object?> answers = new Dictionary<String, Object?>();
-                    // In run-all mode, do not prompt; prefer defaults when available
-                    CollectAnswersForOperation(op, answers, defaultsOnly: true);
-                    Boolean ok = new Utils().ExecuteOp(_engine, gameName, games, op, answers);
-                    okAll &= ok;
+                            String? typ = evtType?.ToString();
+                            ConsoleColor prev = Console.ForegroundColor;
+
+                            switch (typ) {
+                                case "print":
+                                    String msg = evt.TryGetValue("message", out Object? m) ? m?.ToString() ?? String.Empty : String.Empty;
+                                    String colorName = evt.TryGetValue("color", out Object? c) ? c?.ToString() ?? String.Empty : String.Empty;
+                                    Boolean newline = true;
+                                    try {
+                                        if (evt.TryGetValue("newline", out Object? nl) && nl is not null) {
+                                            newline = Convert.ToBoolean(nl);
+                                        }
+                                    } catch {
+                                        // ignored
+                                    }
+                                    try {
+                                        Console.ForegroundColor = MapEventColor(colorName);
+                                        if (newline) {
+                                            Console.WriteLine(msg);
+                                        } else {
+                                            Console.Write(msg);
+                                        }
+                                    } finally {
+                                        Console.ForegroundColor = prev;
+                                    }
+                                    break;
+                                case "prompt":
+                                    lastPrompt = evt.TryGetValue("message", out Object? pm) ? pm?.ToString() ?? "Input required" : "Input required";
+                                    Console.ForegroundColor = ConsoleColor.Cyan;
+                                    Console.WriteLine($"? {lastPrompt}");
+                                    Console.ForegroundColor = prev;
+                                    break;
+                                case "warning":
+                                    Console.ForegroundColor = ConsoleColor.Yellow;
+                                    Console.WriteLine($"⚠ {evt.GetValueOrDefault("message", "")}");
+                                    Console.ForegroundColor = prev;
+                                    break;
+                                case "error":
+                                    Console.ForegroundColor = ConsoleColor.Red;
+                                    Console.WriteLine($"✖ {evt.GetValueOrDefault("message", "")}");
+                                    Console.ForegroundColor = prev;
+                                    break;
+                            }
+                        },
+                        stdinProvider: null  // Let Console.ReadLine() work normally for TUI
+                    );
+
+                    didRunInit = true; // Mark init as done after run-all completes
+
+                    Console.WriteLine(result.Success
+                        ? $"Completed successfully. ({result.SucceededOperations}/{result.TotalOperations} operations succeeded). Press any key to continue..."
+                        : $"One or more operations failed. ({result.SucceededOperations}/{result.TotalOperations} operations succeeded). Press any key to continue...");
+                    Console.ReadKey(true);
+                    continue;
+                } catch (Exception ex) {
+                    Console.WriteLine($"Error during Run All: {ex.Message}");
                 }
-                Console.WriteLine(okAll ? "Completed successfully. Press any key to continue…" : "One or more operations failed. Press any key to continue…");
-                Console.ReadKey(true);
-                continue;
             }
 
             // Otherwise, run a single operation (by index within regular ops)
@@ -151,7 +204,7 @@ public class App {
                 Console.Clear();
                 Console.WriteLine($"Running: {selection}\n");
                 Boolean ok = new Utils().ExecuteOp(_engine, gameName, games, op, answers);
-                Console.WriteLine(ok ? "Completed successfully. Press any key to continue…" : "Operation failed. Press any key to continue…");
+                Console.WriteLine(ok ? "Completed successfully. Press any key to continue..." : "Operation failed. Press any key to continue...");
                 Console.ReadKey(true);
             }
         }
@@ -293,8 +346,8 @@ public class App {
             Console.Clear();
             Console.WriteLine("Download module:");
             List<String> items = new List<String> {
-                "From registry (RemakeRegistry/register.json)…",
-                "From Git URL…",
+                "From registry (RemakeRegistry/register.json)...",
+                "From Git URL...",
                 "Back"
             };
             Console.WriteLine("? Choose a source:");
@@ -308,7 +361,7 @@ public class App {
                 // Load registry entries and list modules
                 IReadOnlyDictionary<String, Object?> regs = _engine.GetRegisteredModules();
                 if (regs.Count == 0) {
-                    Console.WriteLine("No modules in registry. Press any key to go back…");
+                    Console.WriteLine("No modules in registry. Press any key to go back...");
                     Console.ReadKey(true);
                     continue;
                 }
@@ -324,13 +377,13 @@ public class App {
 
                 String name = names[mIdx];
                 if (!regs.TryGetValue(name, out Object? obj) || obj is not Dictionary<String, Object?> mod) {
-                    Console.WriteLine("Invalid module entry. Press any key…");
+                    Console.WriteLine("Invalid module entry. Press any key...");
                     Console.ReadKey(true);
                     continue;
                 }
                 String? url = mod.TryGetValue("url", out Object? u) ? u?.ToString() : null;
                 if (String.IsNullOrWhiteSpace(url)) {
-                    Console.WriteLine("Selected module has no URL. Press any key…");
+                    Console.WriteLine("Selected module has no URL. Press any key...");
                     Console.ReadKey(true);
                     continue;
                 }
@@ -471,9 +524,34 @@ public class App {
         }
     }
 
+    /* :: :: Helper Methods :: START :: */
 
+    private static ConsoleColor MapEventColor(String? name) {
+        if (String.IsNullOrWhiteSpace(name)) {
+            return ConsoleColor.Gray;
+        }
 
+        return name.Trim().ToLowerInvariant() switch {
+            "default" => ConsoleColor.Gray,
+            "black" => ConsoleColor.Black,
+            "darkblue" => ConsoleColor.DarkBlue,
+            "blue" => ConsoleColor.Blue,
+            "darkgreen" => ConsoleColor.DarkGreen,
+            "green" => ConsoleColor.Green,
+            "darkcyan" => ConsoleColor.DarkCyan,
+            "cyan" => ConsoleColor.Cyan,
+            "darkred" => ConsoleColor.DarkRed,
+            "red" => ConsoleColor.Red,
+            "darkmagenta" => ConsoleColor.DarkMagenta,
+            "magenta" => ConsoleColor.Magenta,
+            "darkyellow" => ConsoleColor.DarkYellow,
+            "yellow" => ConsoleColor.Yellow,
+            "gray" or "grey" => ConsoleColor.Gray,
+            "darkgray" or "darkgrey" => ConsoleColor.DarkGray,
+            "white" => ConsoleColor.White,
+            _ => ConsoleColor.Gray
+        };
+    }
 
-
-
+    /* :: :: Helper Methods :: END :: */
 }

@@ -11,13 +11,10 @@ internal static class PromptHelpers {
         return null;
     }
 
-    public static async Task<string?> TextAsync(string title) {
-        Window? window = TryGetMainWindow();
-        if (window is null) {
-            return null;
-        }
-
-        Views.PromptWindows.TextPromptWindow? dlg = new Views.PromptWindows.TextPromptWindow(title);
+    public static async Task<string?> TextAsync(string title, string message, string? defaultValue = null, bool secret = false) {
+        var window = TryGetMainWindow();
+        if (window is null) return null;
+        var dlg = new Views.PromptWindows.TextPromptWindow(title, message, defaultValue, secret);
         return await dlg.ShowAsync(window);
     }
 

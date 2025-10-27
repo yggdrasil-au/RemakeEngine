@@ -1,5 +1,5 @@
 [[operation]]
-init = true
+#init = true
 run-all = true
 Name = "Lua Feature Showcase"
 Instructions = "Demonstrates the embedded Lua engine helpers."
@@ -11,11 +11,10 @@ args = ["--module", "RemakeRegistry/Games/demo", "--scratch", "RemakeRegistry/Ga
 type = "text"
 Name = "lua_note"
 message = "Optional note to record in the Lua demo log"
-default = "Lua demo note"
 cli_arg_prefix = "--note"
 
 [[operation]]
-run-all = true
+run-all = false
 Name = "JavaScript Feature Showcase"
 Instructions = "Runs the JavaScript engine demo covering progress, sqlite, and helpers."
 script_type = "js"
@@ -45,7 +44,7 @@ script = "{{RemakeEngine.Config.module_path}}/scripts/python_demo.py"
 args = []
 
 [[operation]]
-run-all = true
+run-all = false
 Name = "Download Tools"
 Instructions = "Uses the engine downloader to retrieve optional demo tooling."
 script_type = "engine"

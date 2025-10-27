@@ -3,33 +3,36 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     x:Class="EngineNet.Interface.GUI.Views.Pages.BuildingPage">
     <DockPanel>
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
-            <Button Content="Refresh" Command="{Binding RefreshCommand}"/>
-            <TextBlock Text="{Binding Status}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+        <!-- Header with operation name and clear button -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+            <TextBlock Text="Operation Output:" FontWeight="Bold" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding OperationName}" VerticalAlignment="Center" Foreground="Gray"/>
+            <Button Content="Clear Output" Command="{Binding ClearOutputCommand}" Margin="20,0,0,0"/>
         </StackPanel>
 
-        <DataGrid ItemsSource="{Binding Jobs}" AutoGenerateColumns="False" IsReadOnly="True">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*"/>
-                <DataGridTextColumn Header="Status" Binding="{Binding State}" Width="*"/>
-                <DataGridTextColumn Header="Progress" Binding="{Binding ProgressPercent}" Width="*"/>
-                <DataGridTemplateColumn Header="Actions" Width="*">
-                    <DataGridTemplateColumn.CellTemplate>
+        <!-- Output log display -->
+        <Border BorderBrush="Gray" BorderThickness="1" Padding="8" Background="#1E1E1E">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding OutputLines}">
+                    <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <Button
-                                    Content="Cancel"
-                                    Command="{Binding $parent[UserControl].DataContext.CancelCommand}"
-                                    CommandParameter="{Binding}"/>
-                                <Button
-                                    Content="Retry"
-                                    Command="{Binding $parent[UserControl].DataContext.RetryCommand}"
-                                    CommandParameter="{Binding}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                <TextBlock 
+                                    Text="{Binding FormattedTime}" 
+                                    Foreground="DarkGray" 
+                                    FontFamily="Consolas,Courier New,monospace"
+                                    Margin="0,0,8,0"
+                                    Width="60"/>
+                                <TextBlock 
+                                    Text="{Binding Text}" 
+                                    Foreground="{Binding Color}"
+                                    FontFamily="Consolas,Courier New,monospace"
+                                    TextWrapping="Wrap"/>
                             </StackPanel>
                         </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-            </DataGrid.Columns>
-        </DataGrid>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
     </DockPanel>
 </UserControl>

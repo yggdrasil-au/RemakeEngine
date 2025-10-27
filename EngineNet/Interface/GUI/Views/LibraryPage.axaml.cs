@@ -1,7 +1,5 @@
 
-using Avalonia.Media;
 using Avalonia.Media.Imaging;
-using EngineNet.Interface.GUI.ViewModels;
 using System.Diagnostics;
 
 namespace EngineNet.Interface.GUI.Views.Pages;
@@ -32,7 +30,7 @@ public partial class LibraryPage:UserControl {
     }
 
     /* :: :: Vars :: END :: */
-    // // 
+    // //
     /* :: :: Constructors :: START :: */
 
     // used only for previewer
@@ -80,10 +78,69 @@ public partial class LibraryPage:UserControl {
                 }
             });
 
-            RunOpsCommand = new SimpleCommand(p => {
-                if (p is Row r && string.IsNullOrWhiteSpace(r.ExePath)) {
-                    DebugWriteLine(message: $"[LibraryPage] No ExePath for '{r.ModuleName}'. Triggering headless install/run.");
-                    _ = _engine.InstallModuleAsync(r.ModuleName); // fire-and-forget headless install/run
+            // run operations marked Run-All
+            RunOpsCommand = new SimpleCommand(async p => {
+                if (p is Row r && !string.IsNullOrWhiteSpace(r.ModuleName)) {
+                    try {
+                        DebugWriteLine($"[LibraryPage] Running all operations for '{r.ModuleName}'...");
+                        
+                        // Clear previous output and start new operation
+                        OperationOutputService.StartOperation("Run All Build Operations", r.ModuleName);
+
+                        string? lastPromptMessage = null;
+                        string? lastPromptId = null;
+                        bool lastPromptSecret = false;
+
+                        Core.RunAllResult result = await _engine.RunAllAsync(
+                            r.ModuleName,
+                            onOutput: (line, streamName) => {
+                                DebugWriteLine($"[{streamName}] {line}");
+                                
+                                // Route all raw output to the service
+                                OperationOutputService.AddOutput(line, streamName);
+                            },
+                            onEvent: (evt) => {
+                                if (evt.TryGetValue("event", out object? evtType)) {
+                                    DebugWriteLine($"[Event] {evtType}: {string.Join(", ", evt.Select(kv => $"{kv.Key}={kv.Value}"))}");
+
+                                    // Capture prompt details for stdinProvider
+                                    if (evtType?.ToString() == "prompt") {
+                                        lastPromptMessage = evt.TryGetValue("message", out object? msg) ? msg?.ToString() : "Input required";
+                                        lastPromptId = evt.TryGetValue("id", out object? id) ? id?.ToString() : null;
+                                        if (evt.TryGetValue("secret", out object? sec)) {
+                                            lastPromptSecret = sec is bool b && b;
+                                        }
+                                    }
+                                }
+                                
+                                // Route all events to the shared output service
+                                OperationOutputService.HandleEvent(evt);
+                            },
+                            stdinProvider: () => {
+                                // This runs on a background thread, but Avalonia dialogs must run on UI thread
+                                string? result = null;
+                                global::Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () => {
+                                    try {
+                                        string title = !string.IsNullOrWhiteSpace(lastPromptId) ? lastPromptId : "Input Required";
+                                        string message = lastPromptMessage ?? "Enter value";
+                                        result = await Avalonia.PromptHelpers.TextAsync(title, message, null, lastPromptSecret);
+                                    } catch (Exception ex) {
+                                        DebugWriteLine($"[LibraryPage] Error showing prompt dialog: {ex.Message}");
+                                        result = string.Empty;
+                                    }
+                                }).Wait();
+
+                                return result ?? string.Empty;
+                            }
+                        );
+
+                        DebugWriteLine($"[LibraryPage] RunAll completed for '{r.ModuleName}': Success={result.Success}, {result.SucceededOperations}/{result.TotalOperations} operations succeeded.");
+
+                        // Refresh the library to update the IsBuilt status
+                        Load();
+                    } catch (Exception ex) {
+                        DebugWriteLine($"[LibraryPage] Exception while running operations for '{r.ModuleName}': {ex}");
+                    }
                 }
             });
 
@@ -115,7 +172,7 @@ public partial class LibraryPage:UserControl {
 
             Load();
         } catch (Exception ex) {
-            Console.WriteLine($"[LibraryPage] Error during initialization: {ex}");
+            DebugWriteLine($"[LibraryPage] Error during initialization: {ex}");
         }
     }
 
@@ -143,7 +200,7 @@ public partial class LibraryPage:UserControl {
                 if (info != null && info.TryGetValue(key: "exe", out var e)) {
                     exe = e?.ToString();
                 } else {
-                    Debug.WriteLine($"[LibraryPage] 'exe' missing for '{name}'.");
+                    DebugWriteLine($"[LibraryPage] 'exe' missing for '{name}'.");
                 }
 
                 string? title;
@@ -153,7 +210,7 @@ public partial class LibraryPage:UserControl {
                     title = t!.ToString()!;
                 } else {
                     title = name;
-                    Debug.WriteLine($"[LibraryPage] Title missing/blank for '{name}'. Falling back to module name.");
+                    DebugWriteLine($"[LibraryPage] Title missing/blank for '{name}'. Falling back to module name.");
                 }
 
                 string? gameRoot = null;
@@ -189,7 +246,7 @@ public partial class LibraryPage:UserControl {
                 Items.Add(new Row {
                     Title = "No games found.",
                     ModuleName = "",
-                    PrimaryActionText = "—"
+                    PrimaryActionText = ""
                 });
             }
         } catch (Exception ex) {
@@ -197,7 +254,7 @@ public partial class LibraryPage:UserControl {
             Items.Add(new Row {
                 Title = "Error loading games.",
                 ModuleName = "",
-                PrimaryActionText = "—"
+                PrimaryActionText = ""
             });
         }
     }
@@ -294,7 +351,7 @@ public partial class LibraryPage:UserControl {
 
     private static void DebugWriteLine(string message) {
 #if DEBUG
-        Debug.WriteLine(message);
+        Console.WriteLine(message);
 #endif
     }
 }

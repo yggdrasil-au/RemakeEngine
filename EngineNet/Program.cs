@@ -1,4 +1,6 @@
 
+using System.Threading.Tasks;
+
 namespace EngineNet;
 
 internal static class Program {
@@ -7,7 +9,7 @@ internal static class Program {
     public static AppBuilder BuildAvaloniaApp() => Interface.GUI.AvaloniaGui.BuildAvaloniaApp();
 
 
-    public static Int32 Main(String[] args) {
+    public static async Task<Int32> Main(String[] args) {
         try {
             String root = GetRootPath(args) ?? TryFindProjectRoot(Directory.GetCurrentDirectory())
                                             ?? TryFindProjectRoot(AppContext.BaseDirectory)
@@ -42,7 +44,7 @@ internal static class Program {
             }
 
             // if not gui run CLIApp with all args, it then uses CLI or TUI as needed
-            return new Interface.CommandLine.App(engine).Run(args);
+            return await new Interface.CommandLine.App(engine).Run(args);
         } catch (Exception ex) {
             // Print full exception (message + stack trace) to help diagnose runtime errors
             Console.Error.WriteLine($"Engine Error: {ex}");

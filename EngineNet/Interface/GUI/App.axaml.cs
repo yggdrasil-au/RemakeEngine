@@ -11,7 +11,7 @@ public partial class App:Application {
     public override void OnFrameworkInitializationCompleted() {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
             desktop.MainWindow = new Views.MainWindow(AvaloniaGui.Engine!) {
-                DataContext = new ViewModels.MainViewModel(AvaloniaGui.Engine)
+                DataContext = new Avalonia.ViewModels.MainViewModel(AvaloniaGui.Engine!)
             };
         }
 
