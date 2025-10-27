@@ -21,7 +21,6 @@ public static class MediaConverter {
     private const String ToolFfmpeg = "ffmpeg";
     private const String ToolVgmstream = "vgmstream";
     private const String VgmstreamCliName = "vgmstream-cli";
-    private const String VgmstreamCliExe = "vgmstream-cli.exe";
     private const String TypeAudio = "audio";
     private const String TypeVideo = "video";
 
@@ -49,25 +48,40 @@ public static class MediaConverter {
 
     // Tracks currently running external conversions (for progress panel)
     private static readonly ConcurrentDictionary<Int32, ConsoleProgress.ActiveProcess> s_active = new();
-    private static readonly Object s_consoleLock = new();
 
     /// <summary>
     /// Converts media files using ffmpeg or vgmstream while preserving directory layout.
     /// </summary>
+    /// <param name="toolResolver">Tool resolver to locate ffmpeg and vgmstream-cli executables.</param>
     /// <param name="args">
     /// CLI-style arguments. Required: --mode ffmpeg|vgmstream, --type audio|video, --source DIR, --target DIR,
     /// --input-ext .ext, --output-ext .ext. Optional: --overwrite,
     /// --workers N, --godot, --verbose, --debug, codec/quality options.</param>
     /// <returns>True if all files were processed successfully; false otherwise.</returns>
-    public static Boolean Run(IList<String> args) {
+    public static Boolean Run(Tools.IToolResolver toolResolver, IList<String> args) {
         try {
             Options opt = Parse(args);
 
-            // Resolve executables if not provided
+            // Resolve executables using the tool resolver
             if (String.Equals(opt.Mode, ToolFfmpeg, StringComparison.OrdinalIgnoreCase)) {
-                opt.FfmpegPath = opt.FfmpegPath ?? Which(ToolFfmpeg) ?? Which("ffmpeg.exe") ?? ToolFfmpeg;
+                opt.FfmpegPath = opt.FfmpegPath ?? toolResolver.ResolveToolPath(ToolFfmpeg);
             } else if (String.Equals(opt.Mode, ToolVgmstream, StringComparison.OrdinalIgnoreCase)) {
-                opt.VgmstreamCli = opt.VgmstreamCli ?? Which(VgmstreamCliName) ?? Which(VgmstreamCliExe) ?? VgmstreamCliName;
+                opt.VgmstreamCli = opt.VgmstreamCli ?? toolResolver.ResolveToolPath(VgmstreamCliName);
+            }
+
+            // check if current required tool exist
+            if (String.Equals(opt.Mode, ToolFfmpeg, StringComparison.OrdinalIgnoreCase)) {
+                if (!File.Exists(opt.FfmpegPath!)) {
+                    WriteError($"ffmpeg executable not found: {opt.FfmpegPath}");
+                    WriteError($"Please ensure ffmpeg is installed. You can download it using the 'Download Required Tools' operation.");
+                    return false;
+                }
+            } else if (String.Equals(opt.Mode, ToolVgmstream, StringComparison.OrdinalIgnoreCase)) {
+                if (!File.Exists(opt.VgmstreamCli!)) {
+                    WriteError($"vgmstream-cli executable not found: {opt.VgmstreamCli}");
+                    WriteError($"Please ensure vgmstream-cli is installed. You can download it using the 'Download Required Tools' operation.");
+                    return false;
+                }
             }
 
             if (!Directory.Exists(opt.Source)) {
@@ -139,18 +153,27 @@ public static class MediaConverter {
                     } else {
                         Interlocked.Increment(ref errors);
                         errorList.Add((Path.GetFileName(src), msg ?? "unknown error"));
+#if DEBUG
+                        Console.WriteLine($"Conversion failed for file {src}: {msg}");
+                        Environment.Exit(1);
+#endif
                     }
                     Interlocked.Increment(ref processed);
                 } catch (Exception ex) {
                     Interlocked.Increment(ref errors);
                     errorList.Add((Path.GetFileName(src), ex.Message));
                     Interlocked.Increment(ref processed);
+#if DEBUG
+                    Console.WriteLine($"Conversion error for file {src}: {ex.Message}");
+#endif
                 }
             });
             progressCts.Cancel();
             try {
                 progressTask.Wait();
-            } catch { /* safe to ignore: console may not support cursor positioning in this host */ }
+            } catch {
+                // ignore
+            }
 
             WriteInfo("\n--- Conversion Completed ---");
             Console.ForegroundColor = ConsoleColor.Green;
@@ -163,16 +186,15 @@ public static class MediaConverter {
             Console.WriteLine($"Errors: {errors}");
             Console.ResetColor();
 
-            if (!errorList.IsEmpty) {
+            /*if (!errorList.IsEmpty) {
                 WriteError("\nEncountered the following errors:");
                 foreach ((String file, String msg) in errorList) {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"  - File: {file}\n    Reason: {msg}");
+                    Console.WriteLine($" Fail - File: {file}\n    Reason: {msg}");
                     Console.ResetColor();
                 }
-            }
+            }*/
 
-            // Mirror Python behavior: do not fail the whole op if some files failed
             return true;
         } catch (Exception ex) {
             WriteError($"Media conversion failed: {ex.Message}");
@@ -180,7 +202,6 @@ public static class MediaConverter {
         }
     }
 
-    // Removed custom progress rendering; now using ConsoleProgress
 
     private static (Boolean ok, String? message) ConvertOne(String srcPath, String destPath, Options opt) {
         try {

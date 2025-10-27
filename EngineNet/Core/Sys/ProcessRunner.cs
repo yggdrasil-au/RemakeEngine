@@ -325,6 +325,7 @@ public sealed class ProcessRunner {
         // Allow executables that are in the Tools directory structure
         if (executable.Contains("Tools", StringComparison.OrdinalIgnoreCase) && 
             (executable.Contains("Blender", StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("bms", StringComparison.OrdinalIgnoreCase) ||
              executable.Contains("QuickBMS", StringComparison.OrdinalIgnoreCase) ||
              executable.Contains("Godot", StringComparison.OrdinalIgnoreCase) ||
              executable.Contains("vgmstream", StringComparison.OrdinalIgnoreCase) ||

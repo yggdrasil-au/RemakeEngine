@@ -167,60 +167,8 @@
     "ffmpeg": {
         "8.0": {
             "win-x64": {
-                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-win64-gpl-8.0.zip",
-                "sha256": "6617ccaf734c6062c7acffa8600332c6e43f106372cad77ce415b8d8ced993ac"
-            },
-            "win-x64-gpl-shared": {
-                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-win64-gpl-shared-8.0.zip",
-                "sha256": "3cf957bb848130e4e034d70731bb9a8ccc1bb805860b12a87ba5a28c98b42ea7"
-            },
-            "win-x64-lgpl": {
-                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-win64-lgpl-8.0.zip",
-                "sha256": "5fa6b69fe2e99807aaabc5a24ed2bbd883f3f8dde1185a047d2eed71c8e1c80f"
-            },
-            "win-x64-lgpl-shared": {
-                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-win64-lgpl-shared-8.0.zip",
-                "sha256": "ddee23947cb26060b5a3d45fbefcefc14874a3f2d09be7e70154b17f86d66fa3"
-            },
-            "linux-x64": {
-                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-linux64-gpl-8.0.tar.xz",
-                "sha256": "f806680ab1134efac72eccb2a9b0ed2b3cdacdb30bf8a2da980bec47cff451b9"
-            },
-            "linux-x64-gpl-shared": {
-                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-linux64-gpl-shared-8.0.tar.xz",
-                "sha256": "ef0cdf8fbf4ee2bcc46e9f06de5ef43255b3281506e9ea4c7cd8b401f8ef4c27"
-            },
-            "linux-x64-lgpl": {
-                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-linux64-lgpl-8.0.tar.xz",
-                "sha256": "da35cfc2bea381bab255aa01dac6f5230f7b4176459f709b3604cdb76d86b656"
-            },
-            "linux-x64-lgpl-shared": {
-                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-linux64-lgpl-shared-8.0.tar.xz",
-                "sha256": "460a969e5a4f3c512177a4a051a316abc3f5c49053fbb8fcb8fdd84a2c26fb6b"
-            },
-            "linux-arm64": {
-                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-linuxarm64-gpl-8.0.tar.xz",
-                "sha256": "0ddab019e2bd4a69affb2b519fc00725da1b1e727fe0e636fa8319b24286bc17"
-            },
-            "linux-arm64-gpl-shared": {
-                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-linuxarm64-gpl-shared-8.0.tar.xz",
-                "sha256": "4d0630a3c9094d88fd1a64b481d3208f3c9ac7fa0d2512afbaaa49dbf7bfd459"
-            },
-            "linux-arm64-lgpl": {
-                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-linuxarm64-lgpl-8.0.tar.xz",
-                "sha256": "8e2a1b1cdb1a316f9186b2760d191d824efe04a5191f80e1cc6f7871d44fef32"
-            },
-            "linux-arm64-lgpl-shared": {
-                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-01-13-33/ffmpeg-n8.0-16-gd8605a6b55-linuxarm64-lgpl-shared-8.0.tar.xz",
-                "sha256": "5651c3615689d74e88f8848cc988ab5c37fb77ba0b3d602637caf9c0d4c87369"
-            },
-            "macos-x64": {
-                "url": "https://evermeet.cx/ffmpeg/ffmpeg-8.0.zip",
-                "sha256": ""
-            },
-            "macos-arm64": {
-                "url": "https://evermeet.cx/ffmpeg/ffmpeg-8.0.zip",
-                "sha256": ""
+                "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-27-13-26/ffmpeg-n8.0-28-g7cbc26267b-win64-gpl-8.0.zip",
+                "sha256": "5ebbf65c49ce4766ae34e6771068c3de0bff5b03a3e5a84e61bb57deae60e099"
             }
         }
     }

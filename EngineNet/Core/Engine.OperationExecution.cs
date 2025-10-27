@@ -138,11 +138,14 @@ public sealed partial class OperationsEngine {
                         String? action = op.TryGetValue("script", out Object? s) ? s?.ToString() : null;
                         String? title = op.TryGetValue("Name", out Object? n) ? n?.ToString() ?? action : action;
                         Console.ForegroundColor = ConsoleColor.DarkCyan;
+#if DEBUG
+                        Console.WriteLine($"Executing engine operation {title} ({action})");
+#endif
                         Console.WriteLine($"\n>>> Engine operation: {title}");
                         Console.ResetColor();
                         result = await ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, cancellationToken);
                     } catch (Exception ex) {
-                        Console.Error.WriteLine($"engine ERROR: {ex.Message}");
+                        await Console.Error.WriteLineAsync($"engine ERROR: {ex.Message}");
                         result = false;
                     }
                     break;
@@ -316,6 +319,9 @@ public sealed partial class OperationsEngine {
             }
             case "format-convert":
             case "format_convert": {
+#if DEBUG
+                    Console.WriteLine("[Engine.OperationExecution] format-convert");
+#endif
                 // Determine tool
                 String? tool = op.TryGetValue("tool", out Object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
 
@@ -351,7 +357,12 @@ public sealed partial class OperationsEngine {
                             }
                         }
                     }
-                } catch { }
+                } catch (Exception ex) {
+#if DEBUG
+                    Console.WriteLine($"[Engine.OperationExecution] format-convert: failed to read config.toml: {ex.Message}");
+#endif
+                // ignore
+                }
                 cfgDict2["module_path"] = gameRoot3;
                 cfgDict2["project_path"] = _rootPath;
 
@@ -370,7 +381,10 @@ public sealed partial class OperationsEngine {
                     Console.ForegroundColor = ConsoleColor.DarkCyan;
                     Console.WriteLine("\n>>> Built-in media conversion");
                     Console.ResetColor();
-                    Boolean okMedia = FileHandlers.MediaConverter.Run(args);
+#if DEBUG
+                    Console.WriteLine($"[Engine.OperationExecution] format-convert: running media conversion with args: {String.Join(' ', args)}");
+#endif
+                    Boolean okMedia = FileHandlers.MediaConverter.Run(_tools, args);
                     return okMedia;
                 } else {
                     return false;
