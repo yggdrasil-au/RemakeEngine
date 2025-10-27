@@ -2,6 +2,11 @@
 namespace EngineNet;
 
 internal static class Program {
+
+    // ensure Avalonia VS preview can find GUI
+    public static AppBuilder BuildAvaloniaApp() => Interface.GUI.AvaloniaGui.BuildAvaloniaApp();
+
+
     public static Int32 Main(String[] args) {
         try {
             String root = GetRootPath(args) ?? TryFindProjectRoot(Directory.GetCurrentDirectory())
@@ -23,10 +28,10 @@ internal static class Program {
                 }
             }
 
-            IToolResolver tools = CreateToolResolver(root);
+            Tools.IToolResolver tools = CreateToolResolver(root);
 
             EngineConfig engineConfig = new EngineConfig(configPath);
-            OperationsEngine engine = new OperationsEngine(root, tools, engineConfig);
+            Core.OperationsEngine engine = new Core.OperationsEngine(root, tools, engineConfig);
 
             // Interface selection:
             // - GUI if no args or ONLY arg is --gui
@@ -45,7 +50,7 @@ internal static class Program {
         }
     }
 
-    private static String? GetRootPath(String[] args) {
+    internal static String? GetRootPath(String[] args) {
         for (Int32 i = 0; i < args.Length; i++) {
             if (args[i] == "--root" && i + 1 < args.Length) {
                 return args[i + 1];
@@ -55,9 +60,14 @@ internal static class Program {
     }
 
     // Walk upwards from a starting directory to find a folder containing RemakeRegistry/Games
-    private static String? TryFindProjectRoot(String? startDir) {
+    internal static String? TryFindProjectRoot(String? startDir) {
         try {
-            String? dir = String.IsNullOrWhiteSpace(startDir) ? null : Path.GetFullPath(startDir!);
+            String? dir;
+            if (String.IsNullOrWhiteSpace(startDir)) {
+                dir = null;
+            } else {
+                dir = Path.GetFullPath(startDir!);
+            }
             while (!String.IsNullOrEmpty(dir)) {
                 String reg = Path.Combine(dir!, "RemakeRegistry");
                 String games = Path.Combine(reg, "Games");
@@ -72,13 +82,13 @@ internal static class Program {
 
                 dir = parent.FullName;
             }
-        } catch {
-            /* ignore */
+        } catch (Exception e) {
+            Console.Error.WriteLine($"Error finding project root: {e.Message}");
         }
         return null;
     }
 
-    private static IToolResolver CreateToolResolver(String root) {
+    internal static Tools.IToolResolver CreateToolResolver(String root) {
         // Prefer Tools.local.json if present, then Tools.json
         String RemakeRegistryDir = Path.Combine(root, "RemakeRegistry");
         String[] candidates = new[] {
@@ -88,6 +98,6 @@ internal static class Program {
             Path.Combine(RemakeRegistryDir, "tools.json"),
         };
         String? found = candidates.FirstOrDefault(File.Exists);
-        return !String.IsNullOrEmpty(found) ? new JsonToolResolver(found) : new PassthroughToolResolver();
+        return !String.IsNullOrEmpty(found) ? new Tools.JsonToolResolver(found) : new Tools.PassthroughToolResolver();
     }
 }

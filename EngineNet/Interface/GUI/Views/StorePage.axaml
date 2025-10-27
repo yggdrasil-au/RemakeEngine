@@ -1,0 +1,42 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Class="EngineNet.Interface.GUI.Views.Pages.StorePage">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+            <TextBox
+                Width="260"
+                Watermark="Search store…"
+                Text="{Binding Query}"/>
+            <Button Content="Search" Command="{Binding SearchCommand}"/>
+            <Button Content="Refresh" Command="{Binding RefreshCommand}"/>
+            <TextBlock Text="{Binding Status}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <DataGrid
+            ItemsSource="{Binding Items}"
+            AutoGenerateColumns="False"
+            IsReadOnly="True">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*"/>
+                <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="3*"/>
+                <DataGridTemplateColumn Header="Actions" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Button
+                                    Content="Build"
+                                    Command="{Binding $parent[UserControl].DataContext.BuildCommand}"
+                                    CommandParameter="{Binding}"/>
+                                <Button
+                                    Content="Details"
+                                    Command="{Binding $parent[UserControl].DataContext.DetailsCommand}"
+                                    CommandParameter="{Binding}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</UserControl>

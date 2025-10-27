@@ -1,4 +1,6 @@
 
+using System.Runtime.InteropServices;
+
 namespace EngineNet.Tools;
 
 public sealed class ToolsDownloader {
@@ -104,7 +106,7 @@ public sealed class ToolsDownloader {
                 Directory.CreateDirectory(dest);
                 Info($"Unpacking to: {dest}");
                 if (archivePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) {
-                    ZipFile.ExtractToDirectory(archivePath, dest, overwriteFiles: true);
+                    System.IO.Compression.ZipFile.ExtractToDirectory(archivePath, dest, overwriteFiles: true);
                 } else {
                     Warn("Archive format not supported for auto-unpack (only .zip). Leaving archive as-is.");
                 }
@@ -200,16 +202,16 @@ public sealed class ToolsDownloader {
 
     private static String GetPlatformIdentifier() {
         if (OperatingSystem.IsWindows()) {
-            System.Runtime.InteropServices.Architecture arch = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture;
-            return arch == System.Runtime.InteropServices.Architecture.X64 ? "win-x64" : "win-x86";
+            Architecture arch = RuntimeInformation.OSArchitecture;
+            return arch == Architecture.X64 ? "win-x64" : "win-x86";
         }
         if (OperatingSystem.IsLinux()) {
-            System.Runtime.InteropServices.Architecture arch = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture;
-            return arch == System.Runtime.InteropServices.Architecture.X64 ? "linux-x64" : "linux-arm64";
+            Architecture arch = RuntimeInformation.OSArchitecture;
+            return arch == Architecture.X64 ? "linux-x64" : "linux-arm64";
         }
         if (OperatingSystem.IsMacOS()) {
-            System.Runtime.InteropServices.Architecture arch = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture;
-            return arch == System.Runtime.InteropServices.Architecture.Arm64 ? "macos-arm64" : "macos-x64";
+            Architecture arch = RuntimeInformation.OSArchitecture;
+            return arch == Architecture.Arm64 ? "macos-arm64" : "macos-x64";
         }
         return "unknown";
     }

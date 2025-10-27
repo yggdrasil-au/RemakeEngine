@@ -14,11 +14,13 @@ global using System.Collections.Specialized;
 global using System.ComponentModel;
 global using System.Diagnostics;
 
+// xUnit usings
+global using Xunit;
+
 // Avalonia usings
 global using Avalonia.Threading;
 global using Avalonia;
 global using Avalonia.Controls;
-global using Avalonia.Headless.XUnit;
 global using Avalonia.Controls.ApplicationLifetimes;
 global using Avalonia.Headless;
 
@@ -29,5 +31,3 @@ global using EngineNet.Interface.GUI.ViewModels;
 global using EngineNet.Interface.CommandLine;
 global using EngineNet.Core.FileHandlers;
 
-// Testing usings
-global using Xunit;

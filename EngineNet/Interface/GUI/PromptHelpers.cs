@@ -1,3 +1,4 @@
+using Avalonia.Interactivity;
 
 namespace EngineNet.Interface.GUI.Avalonia;
 
@@ -50,7 +51,7 @@ internal static class PromptHelpers {
             Width = 80,
             Margin = new global::Avalonia.Thickness(left: 0, top: 8, right: 0, bottom: 0)
         };
-        ok.Click += (_, __) => dlg.Close();
+        ok.Click += (object? _, RoutedEventArgs __) => dlg.Close();
         DockPanel? panel = new DockPanel {
             Margin = new global::Avalonia.Thickness(uniformLength: 8)
         };
@@ -84,7 +85,7 @@ internal static class PromptHelpers {
             Width = 80,
             Margin = new global::Avalonia.Thickness(left: 0, top: 8, right: 0, bottom: 0)
         };
-        ok.Click += (_, __) => dlg.Close(list.SelectedItem as string);
+        ok.Click += (object? _, RoutedEventArgs __) => dlg.Close(list.SelectedItem as string);
         DockPanel? panel = new DockPanel {
             Margin = new global::Avalonia.Thickness(uniformLength: 8)
         };

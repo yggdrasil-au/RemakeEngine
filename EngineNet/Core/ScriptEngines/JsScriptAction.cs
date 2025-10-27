@@ -738,11 +738,11 @@ public sealed class JsScriptAction:IAction {
         public static Boolean ToBoolean(Engine engine, Object? value, Boolean defaultValue = false) => ToBoolean(AsJsValue(engine, value), defaultValue);
 
         public static Boolean ToBoolean(JsValue value, Boolean defaultValue = false) {
-            return value.IsNull() || value.IsUndefined() ? defaultValue : TypeConverter.ToBoolean(value);
+            return value.IsNull() || value.IsUndefined() ? defaultValue : Jint.Runtime.TypeConverter.ToBoolean(value);
         }
 
         public static Double ToNumber(JsValue value, Double defaultValue = 0) {
-            return value.IsNull() || value.IsUndefined() ? defaultValue : TypeConverter.ToNumber(value);
+            return value.IsNull() || value.IsUndefined() ? defaultValue : Jint.Runtime.TypeConverter.ToNumber(value);
         }
 
         public static ArrayInstance EnsureArray(Engine engine, Object? value, String paramName) {
@@ -853,7 +853,7 @@ public sealed class JsScriptAction:IAction {
         public static Boolean ToBoolean(JsValue value) => ToBoolean(value, false);
 
         public static Int32? ToNullableInt(JsValue value) {
-            return value.IsNull() || value.IsUndefined() ? null : (Int32)Math.Max(0, Math.Round(TypeConverter.ToNumber(value)));
+            return value.IsNull() || value.IsUndefined() ? null : (Int32)Math.Max(0, Math.Round(Jint.Runtime.TypeConverter.ToNumber(value)));
         }
 
         private static Dictionary<String, Object?> ToDictionary(JsonElement element) {

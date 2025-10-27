@@ -2,7 +2,7 @@
 namespace EngineNet.Interface.GUI.ViewModels;
 
 public sealed class MainViewModel:System.ComponentModel.INotifyPropertyChanged {
-    private readonly dynamic _engine; // OperationsEngine (dynamic to avoid hard ref)
+    private readonly Core.OperationsEngine _engine; // OperationsEngine (dynamic to avoid hard ref)
 
     public ObservableCollection<GameItem> Library {
         get;
@@ -72,7 +72,7 @@ public sealed class MainViewModel:System.ComponentModel.INotifyPropertyChanged {
         get;
     }
 
-    public MainViewModel(object? engine) {
+    public MainViewModel(Core.OperationsEngine? engine) {
         _engine = engine ?? throw new ArgumentNullException(nameof(engine));
 
         RefreshLibraryCommand = new RelayCommand(_ => RefreshLibrary());
@@ -81,18 +81,18 @@ public sealed class MainViewModel:System.ComponentModel.INotifyPropertyChanged {
             if (p is GameItem gi) {
                 // Prefer launching executable; fallback to opening folder
                 try {
-                    if ((bool)_engine.LaunchGame(gi.Name))
+                    if (_engine.LaunchGame(gi.Name))
                         return;
                 } catch { /* ignore */ }
-                await PromptHelpers.InfoAsync("No executable found. Opening folder instead.", "Play");
+                await EngineNet.Interface.GUI.Avalonia.PromptHelpers.InfoAsync(message: "No executable found. Opening folder instead.", title: "Play");
                 await OpenFolder(gi);
             }
         });
         OpenFolderCommand = new RelayCommand(async p => { if (p is GameItem gi) await OpenFolder(gi); });
         DownloadModuleCommand = new AsyncRelayCommand(async p => {
             if (p is StoreItem si && !string.IsNullOrWhiteSpace(si.Url)) {
-                bool ok = await Task.Run(() => (bool)_engine.DownloadModule(si.Url));
-                await PromptHelpers.InfoAsync(ok ? $"Downloaded '{si.Name}'." : $"Failed to download '{si.Name}'.", "Download");
+                bool ok = await Task.Run(() => _engine.DownloadModule(si.Url));
+                await EngineNet.Interface.GUI.Avalonia.PromptHelpers.InfoAsync(ok ? $"Downloaded '{si.Name}'." : $"Failed to download '{si.Name}'.", title: "Download");
                 RefreshStore();
             }
         });
@@ -119,18 +119,18 @@ public sealed class MainViewModel:System.ComponentModel.INotifyPropertyChanged {
         try {
             IDictionary<string, object?> games;
             try {
-                games = _engine.GetInstalledGames();
+                games = _engine.GetBuiltGames();
             } catch { games = _engine.ListGames(); }
             foreach (KeyValuePair<string, object?> kv in games) {
                 IDictionary<string, object?>? info = kv.Value as IDictionary<string, object?>;
-                string? exe = info != null && info.TryGetValue("exe", out object? e) ? e?.ToString() : null;
-                Library.Add(new GameItem { Name = kv.Key, Info = info, ExePath = exe });
+                string? exe = info != null && info.TryGetValue(key: "exe", out object? e) ? e?.ToString() : null;
+                Library.Add(item: new GameItem { Name = kv.Key, Info = info, ExePath = exe });
             }
             if (Library.Count == 0) {
-                Library.Add(new GameItem { Name = "No games found.", Info = null, IsPlaceholder = true });
+                Library.Add(item: new GameItem { Name = "No games found.", Info = null, IsPlaceholder = true });
             }
         } catch {
-            Library.Add(new GameItem { Name = "Error loading games.", Info = null, IsPlaceholder = true });
+            Library.Add(item: new GameItem { Name = "Error loading games.", Info = null, IsPlaceholder = true });
         }
     }
 
@@ -138,33 +138,33 @@ public sealed class MainViewModel:System.ComponentModel.INotifyPropertyChanged {
         Store.Clear();
         try {
             // Registry JSON entries
-            var asm = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => string.Equals(a.GetName().Name, "EngineNet", StringComparison.OrdinalIgnoreCase));
-            var t = asm?.GetType("RemakeEngine.Core.Registries");
-            var byName = new Dictionary<string, StoreItem>(StringComparer.OrdinalIgnoreCase);
+            System.Reflection.Assembly? asm = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => string.Equals(a.GetName().Name, b: "EngineNet", StringComparison.OrdinalIgnoreCase));
+            Type? t = asm?.GetType(name: "RemakeEngine.Core.Registries");
+            Dictionary<string, StoreItem>? byName = new Dictionary<string, StoreItem>(StringComparer.OrdinalIgnoreCase);
             if (t is not null) {
                 dynamic regs = Activator.CreateInstance(t, System.IO.Directory.GetCurrentDirectory())!;
                 IDictionary<string, object?> reg = regs.GetRegisteredModules();
-                foreach (var kv in reg) {
-                    var meta = kv.Value as IDictionary<string, object?>;
-                    var url = meta != null && meta.TryGetValue("url", out var u) ? u?.ToString() : null;
-                    var it = new StoreItem { Name = kv.Key, Meta = kv.Value, Url = url };
+                foreach (KeyValuePair<string, object?> kv in reg) {
+                    IDictionary<string, object?>? meta = kv.Value as IDictionary<string, object?>;
+                    string? url = meta != null && meta.TryGetValue(key: "url", out object? u) ? u?.ToString() : null;
+                    StoreItem? it = new StoreItem { Name = kv.Key, Meta = kv.Value, Url = url };
                     byName[kv.Key] = it;
                 }
             }
 
             // Local modules in RemakeRegistry/Games
-            var gamesRoot = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "RemakeRegistry", "Games");
+            string? gamesRoot = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "RemakeRegistry", "Games");
             if (System.IO.Directory.Exists(gamesRoot)) {
-                foreach (var dir in System.IO.Directory.EnumerateDirectories(gamesRoot)) {
-                    var name = new System.IO.DirectoryInfo(dir).Name;
-                    if (!byName.TryGetValue(name, out var it)) {
+                foreach (string dir in System.IO.Directory.EnumerateDirectories(gamesRoot)) {
+                    string? name = new System.IO.DirectoryInfo(dir).Name;
+                    if (!byName.TryGetValue(name, out StoreItem? it)) {
                         it = new StoreItem { Name = name, Meta = null, Url = null };
                         byName[name] = it;
                     }
                 }
             }
 
-            foreach (var it in byName.Values.OrderBy(v => v.Name, StringComparer.OrdinalIgnoreCase)) {
+            foreach (StoreItem it in byName.Values.OrderBy(v => v.Name, StringComparer.OrdinalIgnoreCase)) {
                 string state = _engine.GetModuleState(it.Name);
                 it.State = state;
                 it.CanDownload = state == "not_downloaded" && !string.IsNullOrWhiteSpace(it.Url);
@@ -181,12 +181,12 @@ public sealed class MainViewModel:System.ComponentModel.INotifyPropertyChanged {
 
     private async Task OpenFolder(GameItem item) {
         try {
-            var path = (string?)_engine.GetGamePath(item.Name);
+            string? path = (string?)_engine.GetGamePath(item.Name);
             if (string.IsNullOrWhiteSpace(path) || !System.IO.Directory.Exists(path)) {
-                await PromptHelpers.InfoAsync($"Couldn't locate a folder for '{item.Name}'.", "Open Folder");
+                await EngineNet.Interface.GUI.Avalonia.PromptHelpers.InfoAsync($"Couldn't locate a folder for '{item.Name}'.", "Open Folder");
                 return;
             }
-            var psi = new System.Diagnostics.ProcessStartInfo { UseShellExecute = true };
+            System.Diagnostics.ProcessStartInfo? psi = new System.Diagnostics.ProcessStartInfo { UseShellExecute = true };
             if (OperatingSystem.IsWindows()) {
                 psi.FileName = "explorer";
                 psi.Arguments = $"\"{path}\"";
@@ -198,7 +198,9 @@ public sealed class MainViewModel:System.ComponentModel.INotifyPropertyChanged {
                 psi.Arguments = $"\"{path}\"";
             }
             System.Diagnostics.Process.Start(psi);
-        } catch { /* ignore */ }
+        } catch {
+            /* ignore */
+        }
     }
 
     private System.Threading.Tasks.Task<bool> StartInstallAsync(string moduleName) {
@@ -250,25 +252,64 @@ public sealed class MainViewModel:System.ComponentModel.INotifyPropertyChanged {
         };
         System.Func<string?> stdin = () => _activePromptTcs?.Task.GetAwaiter().GetResult();
         // Convert to engine-specific delegate types via reflection to avoid compile-time reference
-        var engineType = _engine.GetType();
-        var asm = engineType.Assembly;
-        var prType = asm.GetType("RemakeEngine.Core.ProcessRunner");
-        var outputHandlerType = prType?.GetNestedType("OutputHandler");
-        var eventHandlerType = prType?.GetNestedType("EventHandler");
-        var stdinProviderType = prType?.GetNestedType("StdinProvider");
+        Type? engineType = _engine.GetType();
+        System.Reflection.Assembly? asm = engineType.Assembly;
+        Type? prType = asm.GetType("RemakeEngine.Core.ProcessRunner");
 
-        // Prefer engine-specific delegate types if available; otherwise, fall back to standard delegates
-        System.Delegate? outDel = outputHandlerType != null
-            ? System.Delegate.CreateDelegate(outputHandlerType, outH.Target!, outH.Method, true)
-            : (System.Delegate)outH;
-        System.Delegate? evtDel = eventHandlerType != null
-            ? System.Delegate.CreateDelegate(eventHandlerType, evtH.Target!, evtH.Method, true)
-            : (System.Delegate)evtH;
-        System.Delegate? stdinDel = stdinProviderType != null
-            ? System.Delegate.CreateDelegate(stdinProviderType, stdin.Target!, stdin.Method, true)
-            : (System.Delegate)stdin;
 
-        var task = (System.Threading.Tasks.Task<bool>)_engine.InstallModuleAsync(moduleName, outDel, evtDel, stdinDel);
+        Core.Sys.ProcessRunner.OutputHandler outDel = (line, stream) => {
+            Dispatcher.UIThread.Post(() => {
+                ConsoleText += (string.IsNullOrEmpty(ConsoleText) ? "" : "\r\n") + line;
+            });
+        };
+
+        Core.Sys.ProcessRunner.EventHandler evtDel = (evt) => {
+            var kind = evt.TryGetValue("event", out var e) ? e?.ToString() ?? string.Empty : string.Empty;
+            if (string.Equals(kind, "prompt", StringComparison.OrdinalIgnoreCase)) {
+                var msg = evt.TryGetValue("message", out var m) ? m?.ToString() ?? "Input required" : "Input required";
+                Dispatcher.UIThread.Post(() => {
+                    PromptQuestion = msg;
+                    PromptIsVisible = true;
+                    OnPropertyChanged(nameof(PromptQuestion));
+                });
+                _activePromptTcs = new System.Threading.Tasks.TaskCompletionSource<string?>();
+            } else if (string.Equals(kind, "print", StringComparison.OrdinalIgnoreCase)) {
+                var msg = evt.TryGetValue("message", out var m) ? m?.ToString() ?? string.Empty : string.Empty;
+                Dispatcher.UIThread.Post(() => { ConsoleText += (string.IsNullOrEmpty(ConsoleText) ? "" : "\r\n") + msg; });
+            } else if (string.Equals(kind, "warning", StringComparison.OrdinalIgnoreCase)) {
+                var msg = evt.TryGetValue("message", out var m) ? m?.ToString() ?? string.Empty : string.Empty;
+                Dispatcher.UIThread.Post(() => { ConsoleText += (string.IsNullOrEmpty(ConsoleText) ? "" : "\r\n") + "⚠ " + msg; });
+            } else if (string.Equals(kind, "error", StringComparison.OrdinalIgnoreCase)) {
+                var msg = evt.TryGetValue("message", out var m) ? m?.ToString() ?? string.Empty : string.Empty;
+                Dispatcher.UIThread.Post(() => { ConsoleText += (string.IsNullOrEmpty(ConsoleText) ? "" : "\r\n") + "✖ " + msg; });
+            } else if (string.Equals(kind, "progress", StringComparison.OrdinalIgnoreCase)) {
+                var label = evt.TryGetValue("label", out var l) ? l?.ToString() ?? "Working" : "Working";
+                int current = 0, total = 0;
+                try {
+                    if (evt.TryGetValue("current", out var c))
+                        current = Convert.ToInt32(c);
+                } catch { }
+                try {
+                    if (evt.TryGetValue("total", out var t))
+                        total = Convert.ToInt32(t);
+                } catch { }
+                UpdateInstallProgress(moduleName, label, current, total);
+            } else if (string.Equals(kind, "end", StringComparison.OrdinalIgnoreCase)) {
+                Dispatcher.UIThread.Post(() => {
+                    RemoveInstallRow(moduleName);
+                    RefreshStore();
+                    RefreshLibrary();
+                    PromptIsVisible = false;
+                    OnPropertyChanged(nameof(PromptQuestion));
+                });
+            }
+        };
+
+        EngineNet.Core.Sys.ProcessRunner.StdinProvider stdinDel = () =>
+            _activePromptTcs?.Task.GetAwaiter().GetResult();
+
+        // call:
+        Task<bool>? task = _engine.InstallModuleAsync(moduleName, outDel, evtDel, stdinDel);
         return task;
     }
 

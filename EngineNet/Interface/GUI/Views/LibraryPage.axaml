@@ -1,0 +1,61 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Class="EngineNet.Interface.GUI.Views.Pages.LibraryPage">
+    <ScrollViewer>
+        <ItemsControl ItemsSource="{Binding Items}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel Margin="15" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border
+                        Width="300" Margin="8" Padding="8" CornerRadius="12"
+                        BorderThickness="1" Classes="card">
+                        <StackPanel Spacing="8">
+                            <Grid>
+                                <Image Source="{Binding ImageUri}" Height="120" Stretch="UniformToFill" />
+                                <!-- “Installed” pill -->
+                                <Border
+                                    Background="{DynamicResource ThemeAccentBrush}" CornerRadius="10"
+                                    HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6"
+                                    IsVisible="{Binding IsBuilt}">
+                                    <TextBlock Text="Installed" Margin="8,2" Foreground="White" FontSize="11"/>
+                                </Border>
+                            </Grid>
+
+                            <TextBlock
+                                Text="{Binding Title}"
+                                FontSize="16" FontWeight="SemiBold"
+                                TextTrimming="CharacterEllipsis"/>
+
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <!-- Play: only enabled when installed -->
+                                <Button
+                                    Content="Play"
+                                    IsEnabled="{Binding IsBuilt}"
+                                    Command="{Binding $parent[UserControl].PlayCommand}"
+                                    CommandParameter="{Binding}">
+                                </Button>
+
+                                <!-- Always available: run default group of operations (e.g., build/install) -->
+                                <Button
+                                    Content="Run build operations"
+                                    Command="{Binding $parent[UserControl].RunOpsCommand}"
+                                    CommandParameter="{Binding}"/>
+
+                                <Button
+                                    Content="Open Folder"
+                                    Command="{Binding $parent[UserControl].OpenFolderCommand}"
+                                    CommandParameter="{Binding}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </ScrollViewer>
+</UserControl>

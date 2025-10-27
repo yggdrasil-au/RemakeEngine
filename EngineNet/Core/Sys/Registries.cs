@@ -67,19 +67,17 @@ public sealed class Registries {
     }
 
 
-    public Dictionary<String, GameInfo> DiscoverInstalledGames()
-	{
+    public Dictionary<String, GameInfo> DiscoverBuiltGames() {
         Dictionary<String, GameInfo> games = new Dictionary<String, GameInfo>(StringComparer.OrdinalIgnoreCase);
-		if (!Directory.Exists(_gamesRegistryPath)) {
+        if (!Directory.Exists(_gamesRegistryPath)) {
             return games;
         }
 
-        foreach (String dir in Directory.EnumerateDirectories(_gamesRegistryPath))
-                {
+        foreach (String dir in Directory.EnumerateDirectories(_gamesRegistryPath)) {
             String opsToml = Path.Combine(dir, "operations.toml");
             String opsJson = Path.Combine(dir, "operations.json");
             String? ops = null;
-                        if (File.Exists(opsToml)) {
+            if (File.Exists(opsToml)) {
                 ops = opsToml;
             } else if (File.Exists(opsJson)) {
                 ops = opsJson;
@@ -90,19 +88,17 @@ public sealed class Registries {
             }
 
             String gameToml = Path.Combine(dir, "game.toml");
-			if (!File.Exists(gameToml)) {
-                continue; // not installed – requires a valid game.toml
+            if (!File.Exists(gameToml)) {
+                continue; // not installed - requires a valid game.toml
             }
 
             // Parse a minimal subset of TOML: top-level key = "value" pairs
             String? exePath = null;
             String? title = null;
-			try
-			{
-				foreach (String raw in File.ReadAllLines(gameToml))
-				{
+            try {
+                foreach (String raw in File.ReadAllLines(gameToml)) {
                     String line = raw.Trim();
-					if (line.Length == 0 || line.StartsWith("#")) {
+                    if (line.Length == 0 || line.StartsWith("#")) {
                         continue;
                     }
                     // ignore tables/arrays
@@ -111,7 +107,7 @@ public sealed class Registries {
                     }
 
                     Int32 eq = line.IndexOf('=');
-					if (eq <= 0) {
+                    if (eq <= 0) {
                         continue;
                     }
 
@@ -125,32 +121,30 @@ public sealed class Registries {
                         title = val;
                     }
                 }
-			}
-			catch
-			{
-				// malformed game.toml – reject
-				continue;
-			}
+            } catch {
+                // malformed game.toml - reject
+                continue;
+            }
 
-			if (String.IsNullOrWhiteSpace(exePath)) {
+            if (String.IsNullOrWhiteSpace(exePath)) {
                 continue;
             }
 
             // Resolve and validate executable
             String exeFull = Path.IsPathRooted(exePath!) ? exePath! : Path.Combine(dir, exePath!);
-			if (!File.Exists(exeFull)) {
-                continue; // exe missing – not installed
+            if (!File.Exists(exeFull)) {
+                continue; // exe missing - not installed
             }
 
             String name = new DirectoryInfo(dir).Name;
-			games[name] = new GameInfo(
-				opsFile: Path.GetFullPath(ops),
-				gameRoot: Path.GetFullPath(dir),
-				exePath: Path.GetFullPath(exeFull),
-				title: title
-			);
-		}
+            games[name] = new GameInfo(
+                opsFile: Path.GetFullPath(ops),
+                gameRoot: Path.GetFullPath(dir),
+                exePath: Path.GetFullPath(exeFull),
+                title: title
+            );
+        }
 
-		return games;
-	}
+        return games;
+    }
 }
