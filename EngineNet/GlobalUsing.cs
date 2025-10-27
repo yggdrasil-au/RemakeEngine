@@ -18,3 +18,12 @@ global using System.Net.Http;
 global using Avalonia;
 global using Avalonia.Controls;
 global using Avalonia.Threading;
+
+// This class is used to contain global using directives and rules
+/*public class Console {
+    public static void WriteLine(string message) {
+        // not to be used, show notice to use internal SDK Console that uses events, the TUI will use System.Console.WriteLine directly the GUI will use gui-specific output handling
+        throw new NotImplementedException();
+    }
+}*/
+

@@ -22,23 +22,23 @@ internal partial class StorePage:UserControl {
     }
 
     private string _query = "";
-    private string Query {
+    internal string Query {
         get => _query; set {
             _query = value;
             Raise(nameof(Query));
         }
     }
 
-    private ICommand RefreshCommand {
+    internal ICommand RefreshCommand {
         get;
     }
-    private ICommand SearchCommand {
+    internal ICommand SearchCommand {
         get;
     }
-    private ICommand BuildCommand {
+    internal ICommand DownloadCommand {
         get;
     }
-    private ICommand DetailsCommand {
+    internal ICommand InstallCommand {
         get;
     }
 
@@ -54,8 +54,8 @@ internal partial class StorePage:UserControl {
 
         RefreshCommand = new Cmd(async _ => await LoadAsync());
         SearchCommand = new Cmd(async _ => await LoadAsync(Query));
-        BuildCommand = new Cmd(async item => await BuildAsync(item as StoreItem));
-        DetailsCommand = new Cmd(async item => await ShowDetailsAsync(item as StoreItem));
+        DownloadCommand = new Cmd(async item => await DownloadAsync(item as StoreItem));
+        InstallCommand = new Cmd(async item => await InstallAsync(item as StoreItem));
 
         _ = LoadAsync();
     }
@@ -71,8 +71,8 @@ internal partial class StorePage:UserControl {
 
         RefreshCommand = new Cmd(async _ => await LoadAsync());
         SearchCommand = new Cmd(async _ => await LoadAsync(Query));
-        BuildCommand = new Cmd(async item => await BuildAsync(item as StoreItem));
-        DetailsCommand = new Cmd(async item => await ShowDetailsAsync(item as StoreItem));
+        DownloadCommand = new Cmd(async item => await DownloadAsync(item as StoreItem));
+        InstallCommand = new Cmd(async item => await InstallAsync(item as StoreItem));
 
         _ = LoadAsync();
     }
@@ -82,111 +82,161 @@ internal partial class StorePage:UserControl {
     /* :: :: Methods :: START :: */
 
     /// <summary>
-    /// loads the list of available store items into the Items collection.
+    /// Loads the list of available modules from the registry into the Items collection.
     /// </summary>
-    /// <param name="query"></param>
+    /// <param name="query">Optional search query to filter by module name</param>
     /// <returns></returns>
     private async Task LoadAsync(string? query = null) {
         try {
-            Status = "Loading�";
+            Status = "Loading…";
             Items.Clear();
 
             if (_engine == null) {
                 throw new InvalidOperationException(message: "Engine is not initialized.");
             }
 
-            // Try a few likely engine shapes; fall back to demo list.
-            IEnumerable<StoreItem>? list = TryGetStoreList(query) ?? DemoList(query);
-            foreach (StoreItem s in list)
-                Items.Add(s);
+            // Get registered modules from RemakeRegistry/register.json
+            _engine.GetRegistries().RefreshModules();
+            IReadOnlyDictionary<string, object?> modules = _engine.GetRegistries().GetRegisteredModules();
+            
+            // Get already downloaded games
+            Dictionary<string, object?> downloadedGames = _engine.ListGames();
 
-            Status = Items.Count == 0 ? "No results." : $"{Items.Count} item(s)";
+            foreach (KeyValuePair<string, object?> kv in modules) {
+                string moduleName = kv.Key;
+                
+                // Apply search filter if provided
+                if (!string.IsNullOrWhiteSpace(query) && 
+                    !moduleName.Contains(query, StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+
+                IDictionary<string, object?>? moduleInfo = kv.Value as IDictionary<string, object?>;
+                
+                string? url = null;
+                string? title = null;
+                string? description = null;
+
+                if (moduleInfo != null) {
+                    url = moduleInfo.TryGetValue("url", out object? u) ? u?.ToString() : null;
+                    title = moduleInfo.TryGetValue("title", out object? t) ? t?.ToString() : null;
+                    description = moduleInfo.TryGetValue("description", out object? d) ? d?.ToString() : null;
+                }
+
+                // Check if already downloaded
+                bool isDownloaded = downloadedGames.ContainsKey(moduleName);
+                
+                // Check if installed (has game.toml with exe)
+                bool isInstalled = false;
+                if (isDownloaded && downloadedGames.TryGetValue(moduleName, out object? gameObj) &&
+                    gameObj is IDictionary<string, object?> gameInfo) {
+                    isInstalled = gameInfo.TryGetValue("exe", out object? exe) && 
+                                  !string.IsNullOrWhiteSpace(exe?.ToString());
+                }
+
+                Items.Add(new StoreItem {
+                    Id = moduleName,
+                    Name = moduleName,
+                    Title = title ?? moduleName,
+                    Description = description ?? "No description available",
+                    Url = url,
+                    IsDownloaded = isDownloaded,
+                    IsInstalled = isInstalled,
+                    CanDownload = !isDownloaded && !string.IsNullOrWhiteSpace(url),
+                    CanInstall = isDownloaded && !isInstalled
+                });
+            }
+
+            Status = Items.Count == 0 ? "No modules found." : $"{Items.Count} module(s)";
+            
+            await Task.CompletedTask;
         } catch (Exception ex) {
             Status = "Failed to load store.";
             Items.Clear();
-            Items.Add(new StoreItem { Name = "Error", Description = ex.Message });
+            Items.Add(new StoreItem { 
+                Name = "Error", 
+                Title = "Error",
+                Description = ex.Message,
+                IsDownloaded = false,
+                CanDownload = false,
+                CanInstall = false
+            });
         }
     }
 
     /// <summary>
-    /// Tries to get the store list from the engine using common method shapes.
-    /// </summary>
-    /// <param name="query"></param>
-    /// <returns></returns>
-    private System.Collections.Generic.IEnumerable<StoreItem>? TryGetStoreList(string? query) {
-        try {
-            if (_engine == null) {
-                throw new InvalidOperationException(message: "Engine is not initialized.");
-            }
-            dynamic? games = _engine.ListGames();
-            dynamic? all = Project(games);
-            // Option 3: _engine.GetAvailableGames()
-            if (all is null)
-                return null;
-
-            return string.IsNullOrWhiteSpace(query)
-                ? all
-                : all.Where((Func<StoreItem, bool>)(i => i.Name != null && i.Name.Contains(query, StringComparison.OrdinalIgnoreCase)));
-        } catch { /* ignore */ }
-
-        return null;
-    }
-
-    private static System.Collections.Generic.IEnumerable<StoreItem> Project(dynamic raw) {
-        List<StoreItem>? items = new System.Collections.Generic.List<StoreItem>();
-        foreach (dynamic it in raw) {
-            try {
-                string name = it.Name ?? it.name ?? it.id ?? "Item";
-                string desc = it.Description ?? it.description ?? "";
-                string id = it.Id ?? it.id ?? name;
-                items.Add(new StoreItem { Id = id, Name = name, Description = desc });
-            } catch {
-                items.Add(new StoreItem { Name = "Unknown", Description = "Unrecognized store item shape" });
-            }
-        }
-        return items;
-    }
-
-    private static System.Collections.Generic.IEnumerable<StoreItem> DemoList(string? query) {
-        StoreItem[]? demo = new[] {
-            new StoreItem{ Id="demo-1", Name="Example Game", Description="Sample item from demo source."},
-            new StoreItem{ Id="demo-2", Name="Another Game", Description="Replace with engine.Store.List()."},
-        };
-        return string.IsNullOrWhiteSpace(query)
-            ? demo
-            : demo.Where(i => i.Name.Contains(query, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private async Task BuildAsync(StoreItem? item) {
-        if (item is null)
-            return;
-
-        try {
-            if (_engine == null) {
-                throw new InvalidOperationException(message: "Engine is not initialized.");
-            }
-            Status = $"Building {item.Name}�";
-
-            // TODO implemnt
-
-            Status = $"Queued Build for {item.Name}.";
-        } catch (Exception ex) {
-            Status = $"Build failed: {ex.Message}";
-        }
-
-        await Task.Yield();
-    }
-
-    /// <summary>
-    /// Shows details for the given store item.
+    /// Downloads a module from its Git URL.
     /// </summary>
     /// <param name="item"></param>
     /// <returns></returns>
-    private async Task ShowDetailsAsync(StoreItem? item) {
-        if (item is null)
+    private async Task DownloadAsync(StoreItem? item) {
+        if (item is null || string.IsNullOrWhiteSpace(item.Url)) {
             return;
-        Status = $"Details: {item.Name}";
-        await Task.Yield();
+        }
+
+        try {
+            if (_engine == null) {
+                throw new InvalidOperationException(message: "Engine is not initialized.");
+            }
+            
+            Status = $"Downloading {item.Name}…";
+
+            // Use the engine's DownloadModule method (wraps git clone)
+            bool success = await Task.Run(() => _engine.DownloadModule(item.Url!));
+
+            if (success) {
+                Status = $"Downloaded {item.Name} successfully.";
+                // Reload to update download status
+                await LoadAsync(Query);
+            } else {
+                Status = $"Failed to download {item.Name}.";
+            }
+        } catch (Exception ex) {
+            Status = $"Download failed: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Installs a downloaded module by running its initialization operations.
+    /// </summary>
+    /// <param name="item"></param>
+    /// <returns></returns>
+    private async Task InstallAsync(StoreItem? item) {
+        if (item is null || !item.IsDownloaded) {
+            return;
+        }
+
+        try {
+            if (_engine == null) {
+                throw new InvalidOperationException(message: "Engine is not initialized.");
+            }
+            
+            Status = $"Installing {item.Name}…";
+            
+            // Start operation in output service
+            OperationOutputService.StartOperation("Install Module", item.Name);
+
+            // Use InstallModuleAsync with event routing to BuildingPage
+            bool success = await _engine.InstallModuleAsync(
+                item.Name,
+                onOutput: (line, streamName) => {
+                    OperationOutputService.AddOutput(line, streamName);
+                },
+                onEvent: (evt) => {
+                    OperationOutputService.HandleEvent(evt);
+                }
+            );
+
+            if (success) {
+                Status = $"Installed {item.Name} successfully.";
+                // Reload to update install status
+                await LoadAsync(Query);
+            } else {
+                Status = $"Failed to install {item.Name}.";
+            }
+        } catch (Exception ex) {
+            Status = $"Install failed: {ex.Message}";
+        }
     }
 
     /* :: :: Methods :: END :: */
@@ -194,7 +244,7 @@ internal partial class StorePage:UserControl {
     /* :: :: Nested Types :: START :: */
 
     /// <summary>
-    /// Represents a store item.
+    /// Represents a store item (module from registry).
     /// </summary>
     internal sealed class StoreItem {
         public string Id {
@@ -203,9 +253,27 @@ internal partial class StorePage:UserControl {
         public string Name {
             get; set;
         } = "";
+        public string Title {
+            get; set;
+        } = "";
         public string Description {
             get; set;
         } = "";
+        public string? Url {
+            get; set;
+        }
+        public bool IsDownloaded {
+            get; set;
+        }
+        public bool IsInstalled {
+            get; set;
+        }
+        public bool CanDownload {
+            get; set;
+        }
+        public bool CanInstall {
+            get; set;
+        }
     }
 
     private event PropertyChangedEventHandler? PropertyChanged;

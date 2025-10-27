@@ -3,13 +3,14 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     x:Class="EngineNet.Interface.GUI.Views.Pages.StorePage">
     <DockPanel>
+        <!-- Header with search and status -->
         <StackPanel
             DockPanel.Dock="Top"
             Orientation="Horizontal"
-            Spacing="8" Margin="0,0,0,8">
+            Spacing="8" Margin="0,0,0,12">
             <TextBox
                 Width="260"
-                Watermark="Search store"
+                Watermark="Search modules"
                 Text="{Binding Query}"/>
             <Button Content="Search" Command="{Binding SearchCommand}"/>
             <Button Content="Refresh" Command="{Binding RefreshCommand}"/>
@@ -19,36 +20,103 @@
                 VerticalAlignment="Center"/>
         </StackPanel>
 
-        <DataGrid
-            ItemsSource="{Binding Items}"
-            AutoGenerateColumns="False"
-            IsReadOnly="True">
-            <DataGrid.Columns>
-                <DataGridTextColumn
-                    Header="Name"
-                    Binding="{Binding Name}"
-                    Width="2*"/>
-                <DataGridTextColumn
-                    Header="Description"
-                    Binding="{Binding Description}"
-                    Width="3*"/>
-                <DataGridTemplateColumn Header="Actions" Width="*">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <Button
-                                    Content="Build"
-                                    Command="{Binding $parent[UserControl].DataContext.BuildCommand}"
-                                    CommandParameter="{Binding}"/>
-                                <Button
-                                    Content="Details"
-                                    Command="{Binding $parent[UserControl].DataContext.DetailsCommand}"
-                                    CommandParameter="{Binding}"/>
+        <!-- Card grid similar to LibraryPage -->
+        <ScrollViewer>
+            <ItemsControl ItemsSource="{Binding Items}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Margin="15" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border
+                            Width="300" Margin="8" Padding="12" CornerRadius="12"
+                            BorderThickness="1" Classes="card">
+                            <StackPanel Spacing="8">
+                                <!-- Module icon/placeholder -->
+                                <Border
+                                    Height="120"
+                                    Background="{DynamicResource SystemAccentColorLight1}"
+                                    CornerRadius="8">
+                                    <TextBlock
+                                        Text="{Binding Name}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="24"
+                                        FontWeight="Bold"
+                                        Foreground="White"
+                                        TextWrapping="Wrap"
+                                        TextAlignment="Center"
+                                        Margin="8"/>
+                                </Border>
+
+                                <!-- Status pills -->
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <!-- Downloaded pill -->
+                                    <Border
+                                        Background="{DynamicResource ThemeAccentBrush2}"
+                                        CornerRadius="10"
+                                        IsVisible="{Binding IsDownloaded}">
+                                        <TextBlock Text="Downloaded" Margin="8,2" Foreground="White" FontSize="11"/>
+                                    </Border>
+                                    
+                                    <!-- Installed pill -->
+                                    <Border
+                                        Background="{DynamicResource ThemeAccentBrush}"
+                                        CornerRadius="10"
+                                        IsVisible="{Binding IsInstalled}">
+                                        <TextBlock Text="Installed" Margin="8,2" Foreground="White" FontSize="11"/>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Title -->
+                                <TextBlock
+                                    Text="{Binding Title}"
+                                    FontSize="16" FontWeight="SemiBold"
+                                    TextTrimming="CharacterEllipsis"/>
+
+                                <!-- Description -->
+                                <TextBlock
+                                    Text="{Binding Description}"
+                                    FontSize="12"
+                                    Foreground="Gray"
+                                    TextWrapping="Wrap"
+                                    MaxHeight="60"
+                                    TextTrimming="CharacterEllipsis"/>
+
+                                <!-- Action buttons -->
+                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                                    <!-- Download button (only when not downloaded) -->
+                                    <Button
+                                        Content="Download"
+                                        IsEnabled="{Binding CanDownload}"
+                                        IsVisible="{Binding CanDownload}"
+                                        Command="{Binding $parent[UserControl].DataContext.DownloadCommand}"
+                                        CommandParameter="{Binding}"/>
+
+                                    <!-- Install button (only when downloaded but not installed) -->
+                                    <Button
+                                        Content="Install"
+                                        IsEnabled="{Binding CanInstall}"
+                                        IsVisible="{Binding CanInstall}"
+                                        Command="{Binding $parent[UserControl].DataContext.InstallCommand}"
+                                        CommandParameter="{Binding}"/>
+                                        
+                                    <!-- Already installed message -->
+                                    <TextBlock
+                                        Text="✓ Ready to use"
+                                        VerticalAlignment="Center"
+                                        Foreground="Green"
+                                        FontWeight="SemiBold"
+                                        IsVisible="{Binding IsInstalled}"/>
+                                </StackPanel>
                             </StackPanel>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-            </DataGrid.Columns>
-        </DataGrid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
     </DockPanel>
 </UserControl>
