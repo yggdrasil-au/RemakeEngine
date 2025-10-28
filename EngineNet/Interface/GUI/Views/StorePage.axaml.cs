@@ -38,9 +38,6 @@ internal partial class StorePage:UserControl {
     internal ICommand DownloadCommand {
         get;
     }
-    internal ICommand InstallCommand {
-        get;
-    }
 
     /* :: :: Vars :: END :: */
     // // 
@@ -55,7 +52,6 @@ internal partial class StorePage:UserControl {
         RefreshCommand = new Cmd(async _ => await LoadAsync());
         SearchCommand = new Cmd(async _ => await LoadAsync(Query));
         DownloadCommand = new Cmd(async item => await DownloadAsync(item as StoreItem));
-        InstallCommand = new Cmd(async item => await InstallAsync(item as StoreItem));
 
         _ = LoadAsync();
     }
@@ -72,7 +68,6 @@ internal partial class StorePage:UserControl {
         RefreshCommand = new Cmd(async _ => await LoadAsync());
         SearchCommand = new Cmd(async _ => await LoadAsync(Query));
         DownloadCommand = new Cmd(async item => await DownloadAsync(item as StoreItem));
-        InstallCommand = new Cmd(async item => await InstallAsync(item as StoreItem));
 
         _ = LoadAsync();
     }
@@ -196,48 +191,6 @@ internal partial class StorePage:UserControl {
         }
     }
 
-    /// <summary>
-    /// Installs a downloaded module by running its initialization operations.
-    /// </summary>
-    /// <param name="item"></param>
-    /// <returns></returns>
-    private async Task InstallAsync(StoreItem? item) {
-        if (item is null || !item.IsDownloaded) {
-            return;
-        }
-
-        try {
-            if (_engine == null) {
-                throw new InvalidOperationException(message: "Engine is not initialized.");
-            }
-            
-            Status = $"Installing {item.Name}…";
-            
-            // Start operation in output service
-            OperationOutputService.StartOperation("Install Module", item.Name);
-
-            // Use InstallModuleAsync with event routing to BuildingPage
-            bool success = await _engine.InstallModuleAsync(
-                item.Name,
-                onOutput: (line, streamName) => {
-                    OperationOutputService.AddOutput(line, streamName);
-                },
-                onEvent: (evt) => {
-                    OperationOutputService.HandleEvent(evt);
-                }
-            );
-
-            if (success) {
-                Status = $"Installed {item.Name} successfully.";
-                // Reload to update install status
-                await LoadAsync(Query);
-            } else {
-                Status = $"Failed to install {item.Name}.";
-            }
-        } catch (Exception ex) {
-            Status = $"Install failed: {ex.Message}";
-        }
-    }
 
     /* :: :: Methods :: END :: */
     // //

@@ -1,3 +1,6 @@
+title = "Demo Game Operations"
+description = "Operations for the Remake Engine demo game module."
+
 [[operation]]
 #init = true
 run-all = true

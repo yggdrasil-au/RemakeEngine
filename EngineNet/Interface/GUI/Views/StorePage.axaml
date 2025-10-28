@@ -96,14 +96,6 @@
                                         Command="{Binding $parent[UserControl].DataContext.DownloadCommand}"
                                         CommandParameter="{Binding}"/>
 
-                                    <!-- Install button (only when downloaded but not installed) -->
-                                    <Button
-                                        Content="Install"
-                                        IsEnabled="{Binding CanInstall}"
-                                        IsVisible="{Binding CanInstall}"
-                                        Command="{Binding $parent[UserControl].DataContext.InstallCommand}"
-                                        CommandParameter="{Binding}"/>
-                                        
                                     <!-- Already installed message -->
                                     <TextBlock
                                         Text="✓ Ready to use"

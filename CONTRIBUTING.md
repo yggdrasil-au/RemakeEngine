@@ -9,6 +9,10 @@ Thank you for helping build Remake Engine. This guide explains our development p
 - **UI exception:** Improvements to the Avalonia GUI that improve usability or coherence are welcome even without a specific module driver.
 - **Specs stay in sync:** Every engine component is documented in `EngineNet/specs/`. When behaviour changes, update the matching `.spec.md` file (format described in `EngineNet/specs/spec.spec.md`).
 
+## C# code style
+see [Style.md](Style.md)
+
+
 ## Ways to Use the Engine
 - **Simple GUI:** One-click "run all" and launch flows; not intended for watching streamed output or deep debugging.
 - **Interactive CLI:** Menu-driven experience with prompt collection and live output.

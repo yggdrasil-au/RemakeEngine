@@ -40,6 +40,11 @@ public sealed partial class OperationsEngine {
         Sys.ProcessRunner.EventHandler? onEvent = null,
         Sys.ProcessRunner.StdinProvider? stdinProvider = null,
         CancellationToken cancellationToken = default) {
+
+        #if DEBUG
+        Console.WriteLine($"[ENGINE.cs] Starting RunAllAsync for game '{gameName}', onOutput: {(onOutput is null ? "null" : "set")}, onEvent: {(onEvent is null ? "null" : "set")}, stdinProvider: {(stdinProvider is null ? "null" : "set")}");
+        #endif
+
         if (String.IsNullOrWhiteSpace(gameName)) {
             throw new ArgumentException("Game name is required.", nameof(gameName));
         }

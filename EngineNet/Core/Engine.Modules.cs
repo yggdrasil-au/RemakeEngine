@@ -15,6 +15,9 @@ public sealed partial class OperationsEngine {
     /// <returns>True if cloning succeeded.</returns>
     public Boolean DownloadModule(String url) => _git.CloneModule(url);
 
+
+
+    // old method of executing a modules init operation
     /// <summary>
     /// Installs a module by loading its operations file and executing the default group (or flat list).
     /// Streams output/events to provided callbacks.
@@ -25,7 +28,7 @@ public sealed partial class OperationsEngine {
     /// <param name="stdinProvider">Prompt input provider.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>True if all steps completed successfully.</returns>
-    public Task<Boolean> InstallModuleAsync(String name, Sys.ProcessRunner.OutputHandler? onOutput = null, Sys.ProcessRunner.EventHandler? onEvent = null, Sys.ProcessRunner.StdinProvider? stdinProvider = null, CancellationToken cancellationToken = default) {
+    /*public Task<Boolean> InstallModuleAsync(String name, Sys.ProcessRunner.OutputHandler? onOutput = null, Sys.ProcessRunner.EventHandler? onEvent = null, Sys.ProcessRunner.StdinProvider? stdinProvider = null, CancellationToken cancellationToken = default) {
         String gameDir = Path.Combine(_rootPath, "RemakeRegistry", "Games", name);
         String opsToml = Path.Combine(gameDir, "operations.toml");
         String opsJson = Path.Combine(gameDir, "operations.json");
@@ -84,6 +87,6 @@ public sealed partial class OperationsEngine {
         }
 
         return Task.FromResult(okAll);
-    }
+    }*/
 
 }
