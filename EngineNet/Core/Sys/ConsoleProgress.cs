@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
+using static EngineNet.Program.Direct;
 
 namespace EngineNet.Core.Util;
 
@@ -11,11 +7,11 @@ namespace EngineNet.Core.Util;
 /// Simple, reusable console progress panel with an optional list of active jobs.
 /// Rendering is resilient to hosts that don't support cursor positioning.
 /// </summary>
-public static class ConsoleProgress {
-    public sealed class ActiveProcess {
-        public string Tool = string.Empty;   // e.g., ffmpeg, vgmstream, txd
-        public string File = string.Empty;   // file name only
-        public DateTime StartedUtc = DateTime.UtcNow;
+internal static class ConsoleProgress {
+    internal sealed class ActiveProcess {
+        internal string Tool = string.Empty;   // e.g., ffmpeg, vgmstream, txd
+        internal string File = string.Empty;   // file name only
+        internal System.DateTime StartedUtc = System.DateTime.UtcNow;
     }
 
     private static readonly object s_consoleLock = new();
@@ -23,12 +19,12 @@ public static class ConsoleProgress {
     /// <summary>
     /// Starts a background task that periodically draws a progress panel until the token is cancelled.
     /// </summary>
-    public static Task StartPanel(
+    internal static Task StartPanel(
         int total,
-        Func<(int processed, int ok, int skip, int err)> snapshot,
-        Func<List<ActiveProcess>> activeSnapshot,
+        System.Func<(int processed, int ok, int skip, int err)> snapshot,
+        System.Func<List<ActiveProcess>> activeSnapshot,
         string label,
-        CancellationToken token) {
+        System.Threading.CancellationToken token) {
         return Task.Run(() => {
             int panelTop;
             int lastLines;
@@ -59,7 +55,7 @@ public static class ConsoleProgress {
         try {
             lock (s_consoleLock) {
                 try {
-                    Console.Clear();
+                    Program.Direct.Console.Clear();
                     panelTop = 0;
                     lastLines = 0;
                     return;
@@ -67,13 +63,13 @@ public static class ConsoleProgress {
                     // Fallback: cannot clear (e.g., redirected output). Reserve rows instead.
                 }
 
-                panelTop = Console.CursorTop;
+                panelTop = Program.Direct.Console.CursorTop;
                 int reserve = EstimateMaxPanelLines();
                 for (int i = 0; i < reserve; i++) {
-                    Console.WriteLine();
+                    Program.Direct.Console.WriteLine();
                 }
 
-                try { Console.SetCursorPosition(0, panelTop); } catch { /* ignore */ }
+                try { Program.Direct.Console.SetCursorPosition(0, panelTop); } catch { /* ignore */ }
                 lastLines = reserve;
             }
         } catch {
@@ -83,7 +79,7 @@ public static class ConsoleProgress {
 
     private static int EstimateMaxPanelLines() {
         int procs = 8;
-        try { procs = Math.Max(1, Math.Min(16, Environment.ProcessorCount)); } catch { /* ignore */ }
+        try { procs = System.Math.Max(1, System.Math.Min(16, System.Environment.ProcessorCount)); } catch { /* ignore */ }
         // 1 (progress) + 1 (header/none) + procs (active job lines) + 1 (overflow)
         return 1 + 1 + procs + 1;
     }
@@ -92,11 +88,11 @@ public static class ConsoleProgress {
         List<string> lines = new List<string>(2 + actives.Count);
         if (total < 0) total = 0;
 
-        double percent = Math.Clamp(total == 0 ? 1.0 : (double)s.processed / Math.Max(1, total), 0.0, 1.0);
+        double percent = System.Math.Clamp(total == 0 ? 1.0 : (double)s.processed / System.Math.Max(1, total), 0.0, 1.0);
         int width = 30;
-        try { width = Math.Max(10, Math.Min(40, Console.WindowWidth - 60)); } catch { /* ignore */ }
-        int filled = (int)Math.Round(percent * width);
-        StringBuilder bar = new StringBuilder(width + 48);
+        try { width = System.Math.Max(10, System.Math.Min(40, Program.Direct.Console.WindowWidth - 60)); } catch { /* ignore */ }
+        int filled = (int)System.Math.Round(percent * width);
+        System.Text.StringBuilder bar = new System.Text.StringBuilder(width + 48);
         bar.Append(label);
         bar.Append(' ');
         bar.Append('[');
@@ -105,7 +101,7 @@ public static class ConsoleProgress {
         }
         bar.Append(']');
         bar.Append(' ');
-        bar.Append((int)Math.Round(percent * 100));
+        bar.Append((int)System.Math.Round(percent * 100));
         bar.Append('%');
         bar.Append(' ');
         bar.Append(s.processed);
@@ -122,23 +118,23 @@ public static class ConsoleProgress {
         } else {
             lines.Add($"Active: {actives.Count}");
             int max = 8;
-            try { max = Math.Max(1, Math.Min(16, Environment.ProcessorCount)); } catch { /* ignore */ }
-            DateTime now = DateTime.UtcNow;
+            try { max = System.Math.Max(1, System.Math.Min(16, System.Environment.ProcessorCount)); } catch { /* ignore */ }
+            System.DateTime now = System.DateTime.UtcNow;
             foreach (ActiveProcess job in actives.OrderBy(j => j.StartedUtc).Take(max)) {
-                TimeSpan elapsed = now - job.StartedUtc;
+                System.TimeSpan elapsed = now - job.StartedUtc;
                 string elStr = elapsed.TotalHours >= 1
                     ? $"{(int)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}"
                     : $"{elapsed.Minutes:00}:{elapsed.Seconds:00}";
                 string file = job.File;
                 int maxFile = 50;
-                try { maxFile = Math.Max(18, Console.WindowWidth - 20); } catch { /* ignore */ }
+                try { maxFile = System.Math.Max(18, Program.Direct.Console.WindowWidth - 20); } catch { /* ignore */ }
                 if (file.Length > maxFile) {
                     file = file.Substring(0, maxFile - 3) + "...";
                 }
                 lines.Add($"  {spinner} {job.Tool} · {file} · {elStr}");
             }
             if (actives.Count > 8) {
-                lines.Add($"  … and {actives.Count - Math.Min(actives.Count, 8)} more");
+                lines.Add($"  … and {actives.Count - System.Math.Min(actives.Count, 8)} more");
             }
         }
         return lines;
@@ -147,29 +143,34 @@ public static class ConsoleProgress {
     private static void DrawPanel(IReadOnlyList<string> lines, ref int panelTop, ref int lastLines) {
         lock (s_consoleLock) {
             try {
-                Console.SetCursorPosition(0, panelTop);
+                Program.Direct.Console.SetCursorPosition(0, panelTop);
                 int width;
-                try { width = Math.Max(20, Console.WindowWidth - 1); } catch { width = 120; }
+                try { width = System.Math.Max(20, Program.Direct.Console.WindowWidth - 1); } catch { width = 120; }
                 for (int i = 0; i < lines.Count; i++) {
                     string line = lines[i];
                     if (line.Length > width) {
                         line = line.Substring(0, width);
                     }
-                    Console.Write(line.PadRight(width));
+                    Program.Direct.Console.Write(line.PadRight(width));
                     if (i < lines.Count - 1) {
-                        Console.Write('\n');
+                        Program.Direct.Console.Write('\n');
                     }
                 }
                 for (int i = lines.Count; i < lastLines; i++) {
-                    Console.Write('\n');
-                    Console.Write(new string(' ', Math.Max(20, Console.WindowWidth - 1)));
+                    Program.Direct.Console.Write('\n');
+                    Program.Direct.Console.Write(new string(' ', System.Math.Max(20, Program.Direct.Console.WindowWidth - 1)));
                 }
                 lastLines = lines.Count;
-                Console.SetCursorPosition(0, panelTop + lastLines);
+                Program.Direct.Console.SetCursorPosition(0, panelTop + lastLines);
             } catch {
                 try {
-                    Console.Write("\r" + (lines.Count > 0 ? lines[0] : string.Empty));
-                } catch { /* ignore */ }
+                    Program.Direct.Console.Write("\r" + (lines.Count > 0 ? lines[0] : string.Empty));
+                } catch {
+                    #if DEBUG
+                    Program.Direct.Console.WriteLine("<<console redraw failed>>");
+                    #endif
+                    // ignore
+                }
             }
         }
     }

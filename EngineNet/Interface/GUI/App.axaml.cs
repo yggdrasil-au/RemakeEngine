@@ -1,17 +1,15 @@
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Markup.Xaml;
 
 namespace EngineNet.Interface.GUI;
 
 public partial class App:Application {
     public override void Initialize() {
-        AvaloniaXamlLoader.Load(this);
+        Avalonia.Markup.Xaml.AvaloniaXamlLoader.Load(this);
     }
 
     public override void OnFrameworkInitializationCompleted() {
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
+        if (ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop) {
             desktop.MainWindow = new Views.MainWindow(AvaloniaGui.Engine!) {
-                DataContext = new Avalonia.ViewModels.MainViewModel(AvaloniaGui.Engine!)
+                DataContext = new ViewModels.MainViewModel(AvaloniaGui.Engine!)
             };
         }
 

@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using Microsoft.Data.Sqlite;
 using MoonSharp.Interpreter;
 
 namespace EngineNet.Core.ScriptEngines.LuaModules;
@@ -18,13 +14,13 @@ internal static class LuaSqliteModule {
                 throw new ScriptRuntimeException("sqlite.open(path) requires a string path");
             }
 
-            String path = args[0].String;
-            
+            string path = args[0].String;
+
             // Security: Restrict SQLite database paths to within the project directory
             if (!LuaSecurity.IsAllowedPath(path)) {
                 throw new ScriptRuntimeException($"Access denied: SQLite database path '{path}' is outside allowed workspace areas");
             }
-            
+
             SqliteHandle handle = new SqliteHandle(lua, path);
             return DynValue.NewTable(CreateSqliteHandleTable(lua, handle));
         });
@@ -34,23 +30,23 @@ internal static class LuaSqliteModule {
     private static Table CreateSqliteHandleTable(Script lua, SqliteHandle handle) {
         Table table = new Table(lua);
         table["exec"] = DynValue.NewCallback((ctx, args) => {
-            Int32 offset = args.Count > 0 && args[0].Type == DataType.Table ? 1 : 0;
+            int offset = args.Count > 0 && args[0].Type == DataType.Table ? 1 : 0;
             if (args.Count <= offset || args[offset].Type != DataType.String) {
                 throw new ScriptRuntimeException("sqlite handle exec(sql [, params])");
             }
 
-            String sql = args[offset].String;
+            string sql = args[offset].String;
             Table? paramTable = args.Count > offset + 1 && args[offset + 1].Type == DataType.Table ? args[offset + 1].Table : null;
-            Int32 affected = handle.Execute(sql, paramTable);
+            int affected = handle.Execute(sql, paramTable);
             return DynValue.NewNumber(affected);
         });
         table["query"] = DynValue.NewCallback((ctx, args) => {
-            Int32 offset = args.Count > 0 && args[0].Type == DataType.Table ? 1 : 0;
+            int offset = args.Count > 0 && args[0].Type == DataType.Table ? 1 : 0;
             if (args.Count <= offset || args[offset].Type != DataType.String) {
                 throw new ScriptRuntimeException("sqlite handle query(sql [, params])");
             }
 
-            String sql = args[offset].String;
+            string sql = args[offset].String;
             Table? paramTable = args.Count > offset + 1 && args[offset + 1].Type == DataType.Table ? args[offset + 1].Table : null;
             return handle.Query(sql, paramTable);
         });
@@ -79,25 +75,25 @@ internal static class LuaSqliteModule {
 /// <summary>
 /// SQLite connection handle for Lua scripts.
 /// </summary>
-internal sealed class SqliteHandle : IDisposable {
+internal sealed class SqliteHandle:System.IDisposable {
     private readonly Script _script;
-    private readonly SqliteConnection _connection;
-    private SqliteTransaction? _transaction;
-    private Boolean _disposed;
+    private readonly Microsoft.Data.Sqlite.SqliteConnection _connection;
+    private Microsoft.Data.Sqlite.SqliteTransaction? _transaction;
+    private bool _disposed;
 
-    public SqliteHandle(Script script, String path) {
+    public SqliteHandle(Script script, string path) {
         _script = script;
-        String fullPath = Path.GetFullPath(path);
-        SqliteConnectionStringBuilder builder = new SqliteConnectionStringBuilder {
+        string fullPath = System.IO.Path.GetFullPath(path);
+        Microsoft.Data.Sqlite.SqliteConnectionStringBuilder builder = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder {
             DataSource = fullPath
         };
-        _connection = new SqliteConnection(builder.ConnectionString);
+        _connection = new Microsoft.Data.Sqlite.SqliteConnection(builder.ConnectionString);
         _connection.Open();
     }
 
-    public Int32 Execute(String sql, Table? parameters) {
+    public int Execute(string sql, Table? parameters) {
         EnsureNotDisposed();
-        using SqliteCommand command = _connection.CreateCommand();
+        using Microsoft.Data.Sqlite.SqliteCommand command = _connection.CreateCommand();
         command.CommandText = sql;
         if (_transaction != null) {
             command.Transaction = _transaction;
@@ -107,23 +103,23 @@ internal sealed class SqliteHandle : IDisposable {
         return command.ExecuteNonQuery();
     }
 
-    public DynValue Query(String sql, Table? parameters) {
+    public DynValue Query(string sql, Table? parameters) {
         EnsureNotDisposed();
-        using SqliteCommand command = _connection.CreateCommand();
+        using Microsoft.Data.Sqlite.SqliteCommand command = _connection.CreateCommand();
         command.CommandText = sql;
         if (_transaction != null) {
             command.Transaction = _transaction;
         }
 
         BindParameters(command, parameters);
-        using SqliteDataReader reader = command.ExecuteReader();
+        using Microsoft.Data.Sqlite.SqliteDataReader reader = command.ExecuteReader();
         Table result = new Table(_script);
-        Int32 index = 1;
+        int index = 1;
         while (reader.Read()) {
             Table row = new Table(_script);
-            for (Int32 i = 0; i < reader.FieldCount; i++) {
-                String columnName = reader.GetName(i);
-                Object? value = reader.GetValue(i);
+            for (int i = 0; i < reader.FieldCount; i++) {
+                string columnName = reader.GetName(i);
+                object? value = reader.GetValue(i);
                 row[columnName] = LuaUtilities.ToDynValue(_script, value);
             }
             result[index++] = DynValue.NewTable(row);
@@ -176,25 +172,25 @@ internal sealed class SqliteHandle : IDisposable {
 
     private void EnsureNotDisposed() {
         if (_disposed) {
-            throw new ObjectDisposedException(nameof(SqliteHandle));
+            throw new System.ObjectDisposedException(nameof(SqliteHandle));
         }
     }
 
-    private static void BindParameters(SqliteCommand command, Table? parameters) {
+    private static void BindParameters(Microsoft.Data.Sqlite.SqliteCommand command, Table? parameters) {
         if (parameters == null) {
             return;
         }
 
-        IDictionary<String, Object?> dict = LuaUtilities.TableToDictionary(parameters);
-        foreach (KeyValuePair<String, Object?> kv in dict) {
-            SqliteParameter parameter = command.CreateParameter();
-            String name = kv.Key;
-            if (!name.StartsWith(":", StringComparison.Ordinal) && !name.StartsWith("@", StringComparison.Ordinal) && !name.StartsWith("$", StringComparison.Ordinal)) {
+        IDictionary<string, object?> dict = LuaUtilities.TableToDictionary(parameters);
+        foreach (KeyValuePair<string, object?> kv in dict) {
+            Microsoft.Data.Sqlite.SqliteParameter parameter = command.CreateParameter();
+            string name = kv.Key;
+            if (!name.StartsWith(":", System.StringComparison.Ordinal) && !name.StartsWith("@", System.StringComparison.Ordinal) && !name.StartsWith("$", System.StringComparison.Ordinal)) {
                 name = ":" + name;
             }
 
             parameter.ParameterName = name;
-            parameter.Value = kv.Value ?? DBNull.Value;
+            parameter.Value = kv.Value ?? System.DBNull.Value;
             command.Parameters.Add(parameter);
         }
     }

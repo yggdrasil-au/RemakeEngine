@@ -20,7 +20,7 @@ public partial class MainWindow:Window {
     /// <summary>
     /// Main constructor
     /// </summary>
-    public MainWindow(Core.OperationsEngine? engine) {
+    internal MainWindow(Core.OperationsEngine? engine) {
         _engine = engine;
         InitializeComponent();
         ShowHome(); // default page

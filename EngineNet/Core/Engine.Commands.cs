@@ -1,10 +1,8 @@
-using System;
-using System.Collections.Generic;
 using System.Threading;
 
 namespace EngineNet.Core;
 
-public sealed partial class OperationsEngine {
+internal sealed partial class OperationsEngine {
     /// <summary>
     /// Build a process command line from an operation and context using the underlying <see cref="Sys.CommandBuilder"/>.
     /// </summary>
@@ -13,7 +11,7 @@ public sealed partial class OperationsEngine {
     /// <param name="op">Operation object (script, args, prompts, etc.).</param>
     /// <param name="promptAnswers">Prompt answers affecting CLI mapping.</param>
     /// <returns>A list of parts: [exe, scriptPath, args...] or empty if no script.</returns>
-    public List<String> BuildCommand(String currentGame, IDictionary<String, Object?> games, IDictionary<String, Object?> op, IDictionary<String, Object?> promptAnswers) {
+    public List<string> BuildCommand(string currentGame, IDictionary<string, object?> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers) {
         return _builder.Build(currentGame, games, _engineConfig.Data, op, promptAnswers);
     }
 
@@ -28,13 +26,13 @@ public sealed partial class OperationsEngine {
     /// <param name="envOverrides">Optional environment overrides for the child process.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>True on success (exit code 0), false otherwise.</returns>
-    public Boolean ExecuteCommand(
-        IList<String> commandParts,
-        String title,
+    public bool ExecuteCommand(
+        IList<string> commandParts,
+        string title,
         EngineNet.Core.Sys.ProcessRunner.OutputHandler? onOutput = null,
         Sys.ProcessRunner.EventHandler? onEvent = null,
         Sys.ProcessRunner.StdinProvider? stdinProvider = null,
-        IDictionary<String, Object?>? envOverrides = null,
+        IDictionary<string, object?>? envOverrides = null,
         CancellationToken cancellationToken = default) {
         Sys.ProcessRunner runner = new Sys.ProcessRunner();
         return runner.Execute(commandParts, title, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, envOverrides: envOverrides, cancellationToken: cancellationToken);

@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace EngineNet.Core.ScriptEngines.LuaModules;
 
 /// <summary>
@@ -8,43 +5,43 @@ namespace EngineNet.Core.ScriptEngines.LuaModules;
 /// Provides safe file system operations with proper security checks.
 /// </summary>
 internal static class LuaFileSystemUtils {
-    public static Boolean PathExists(String path) => Directory.Exists(path) || File.Exists(path);
+    public static bool PathExists(string path) => System.IO.Directory.Exists(path) || System.IO.File.Exists(path);
 
-    public static Boolean PathExistsIncludingLinks(String path) {
+    public static bool PathExistsIncludingLinks(string path) {
         if (PathExists(path)) {
             return true;
         }
 
         try {
-            FileSystemInfo info = GetInfo(path);
+            System.IO.FileSystemInfo info = GetInfo(path);
             return info.Exists ? true : info.LinkTarget != null;
         } catch {
             return false;
         }
     }
 
-    public static Boolean IsSymlink(String path) {
+    public static bool IsSymlink(string path) {
         try {
-            FileSystemInfo info = GetInfo(path);
-            return info.LinkTarget != null || info.Attributes.HasFlag(FileAttributes.ReparsePoint);
+            System.IO.FileSystemInfo info = GetInfo(path);
+            return info.LinkTarget != null || info.Attributes.HasFlag(System.IO.FileAttributes.ReparsePoint);
         } catch {
             return false;
         }
     }
 
-    public static Boolean CreateSymlink(String source, String destination, Boolean isDirectory) {
+    public static bool CreateSymlink(string source, string destination, bool isDirectory) {
         try {
-            String destFull = Path.GetFullPath(destination);
-            String srcFull = Path.GetFullPath(source);
-            String? parent = Path.GetDirectoryName(destFull);
-            if (!String.IsNullOrEmpty(parent)) {
-                Directory.CreateDirectory(parent);
+            string destFull = System.IO.Path.GetFullPath(destination);
+            string srcFull = System.IO.Path.GetFullPath(source);
+            string? parent = System.IO.Path.GetDirectoryName(destFull);
+            if (!string.IsNullOrEmpty(parent)) {
+                System.IO.Directory.CreateDirectory(parent);
             }
 
             if (isDirectory) {
-                Directory.CreateSymbolicLink(destFull, srcFull);
+                System.IO.Directory.CreateSymbolicLink(destFull, srcFull);
             } else {
-                File.CreateSymbolicLink(destFull, srcFull);
+                System.IO.File.CreateSymbolicLink(destFull, srcFull);
             }
 
             return true;
@@ -53,37 +50,37 @@ internal static class LuaFileSystemUtils {
         }
     }
 
-    public static String? RealPath(String path) {
+    public static string? RealPath(string path) {
         try {
-            return Path.GetFullPath(path);
+            return System.IO.Path.GetFullPath(path);
         } catch {
             return null;
         }
     }
 
-    public static String? ReadLink(String path) {
+    public static string? ReadLink(string path) {
         try {
-            FileSystemInfo info = GetInfo(path);
+            System.IO.FileSystemInfo info = GetInfo(path);
             return info.LinkTarget;
         } catch {
             return null;
         }
     }
 
-    private static FileSystemInfo GetInfo(String path) {
-        String full = Path.GetFullPath(path);
-        DirectoryInfo dirInfo = new DirectoryInfo(full);
+    private static System.IO.FileSystemInfo GetInfo(string path) {
+        string full = System.IO.Path.GetFullPath(path);
+        System.IO.DirectoryInfo dirInfo = new System.IO.DirectoryInfo(full);
         if (dirInfo.Exists) {
             return dirInfo;
         }
 
-        FileInfo fileInfo = new FileInfo(full);
+        System.IO.FileInfo fileInfo = new System.IO.FileInfo(full);
         if (fileInfo.Exists) {
             return fileInfo;
         }
         // Determine based on trailing separator
-        return full.EndsWith(Path.DirectorySeparatorChar) || full.EndsWith(Path.AltDirectorySeparatorChar)
-            ? new DirectoryInfo(full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
+        return full.EndsWith(System.IO.Path.DirectorySeparatorChar) || full.EndsWith(System.IO.Path.AltDirectorySeparatorChar)
+            ? new System.IO.DirectoryInfo(full.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar))
             : fileInfo;
     }
 }

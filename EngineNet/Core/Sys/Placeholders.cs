@@ -1,16 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-
-using System.Collections;
-
 namespace EngineNet.Core.Sys;
 
 /// <summary>
 /// Utilities to resolve string placeholders within arbitrarily nested objects.
 /// Placeholders use double braces, e.g. {{key}} or {{nested.path}}.
 /// </summary>
-public static class Placeholders {
+internal static class Placeholders {
     /// <summary>
     /// Compiled regex that finds placeholders in the form {{name}} or {{path.to.value}}.
     /// </summary>
@@ -20,7 +14,7 @@ public static class Placeholders {
     /// - Captures one or more word/dot characters inside (letters, digits, underscore, dot)
     /// Examples: {{user}}, {{user.name}}, {{config.db.port}}
     /// </remarks>
-    private static readonly Regex PlaceholderRe = new(@"\{\{([\w\.]+)\}\}", RegexOptions.Compiled);
+    private static readonly System.Text.RegularExpressions.Regex PlaceholderRe = new(@"\{\{([\w\.]+)\}\}", System.Text.RegularExpressions.RegexOptions.Compiled);
 
     /// <summary>
     /// Recursively resolves placeholders in the given value using the provided context.
@@ -33,17 +27,17 @@ public static class Placeholders {
     /// - Strings have {{path}} segments replaced when found in the context.
     /// - Non-collection, non-string values are returned as-is.
     /// </returns>
-    public static Object? Resolve(Object? value, IDictionary<String, Object?> context) {
+    public static object? Resolve(object? value, IDictionary<string, object?> context) {
         // Nulls are returned unchanged.
         if (value is null) {
             return null;
         }
 
         // If it's a dictionary, resolve each value and return a new dictionary.
-        if (value is IDictionary<String, Object?> dict) {
+        if (value is IDictionary<string, object?> dict) {
             // Note: output dictionary uses case-insensitive keys for convenience.
-            Dictionary<String, Object?> outDict = new Dictionary<String, Object?>(dict.Count, StringComparer.OrdinalIgnoreCase);
-            foreach (KeyValuePair<String, Object?> kv in dict) {
+            Dictionary<string, object?> outDict = new Dictionary<string, object?>(dict.Count, System.StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, object?> kv in dict) {
                 outDict[kv.Key] = Resolve(kv.Value, context); // Recurse into values
             }
 
@@ -52,8 +46,8 @@ public static class Placeholders {
 
         // If it's a list, resolve each element and return a new list.
         if (value is IList list) {
-            List<Object?> outList = new List<Object?>(list.Count);
-            foreach (Object? item in list) {
+            List<object?> outList = new List<object?>(list.Count);
+            foreach (object? item in list) {
                 outList.Add(Resolve(item, context)); // Recurse into items
             }
 
@@ -61,7 +55,7 @@ public static class Placeholders {
         }
 
         // If it's a string, replace all placeholder occurrences using the context.
-        if (value is String s) {
+        if (value is string s) {
             // For each match: try to look up the dotted path; if missing, keep the original token unchanged.
             return PlaceholderRe.Replace(s, m => Lookup(context, m.Groups[1].Value) ?? m.Value);
         }
@@ -79,11 +73,11 @@ public static class Placeholders {
     /// The string representation of the resolved value, or null if a segment is missing
     /// or a non-dictionary node is encountered.
     /// </returns>
-    private static String? Lookup(IDictionary<String, Object?> ctx, String dotted) {
-        Object? current = ctx;
-        foreach (String part in dotted.Split('.')) {
+    private static string? Lookup(IDictionary<string, object?> ctx, string dotted) {
+        object? current = ctx;
+        foreach (string part in dotted.Split('.')) {
             // Traverse only dictionaries with string keys; bail out if structure doesn't match.
-            if (current is IDictionary<String, Object?> d) {
+            if (current is IDictionary<string, object?> d) {
                 if (!d.TryGetValue(part, out current)) {
                     return null; // Missing key
                 }

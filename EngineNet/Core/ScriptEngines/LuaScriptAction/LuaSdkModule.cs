@@ -1,15 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.IO.Compression;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading;
 using MoonSharp.Interpreter;
-using EngineNet.Core.ScriptEngines.Helpers;
-using EngineNet.Core.Sys;
-using EngineNet.Tools;
-using System.Runtime.InteropServices;
 
 namespace EngineNet.Core.ScriptEngines.LuaModules;
 
@@ -17,31 +6,31 @@ namespace EngineNet.Core.ScriptEngines.LuaModules;
 /// SDK module providing file operations, archive handling, and system utilities for Lua scripts.
 /// </summary>
 internal static class LuaSdkModule {
-    public static Table CreateSdkModule(Script lua, IToolResolver tools) {
+    public static Table CreateSdkModule(Script lua, Tools.IToolResolver tools) {
         Table sdk = new Table(lua);
-        
+
         // Color/colour print functionality
         AddColorPrintFunctions(sdk, lua);
-        
+
         // Configuration helpers
         AddConfigurationHelpers(sdk);
-        
+
         // File system operations
         AddFileSystemOperations(sdk, lua);
-        
+
         // Archive operations
         LuaSdkModuleExtensions.AddArchiveOperations(sdk);
-        
+
         // TOML helpers
         LuaSdkModuleExtensions.AddTomlHelpers(sdk);
-        
+
         // Process execution
         LuaProcessExecution.AddProcessExecution(sdk, lua, tools);
 
         // Expose CPU count as a numeric value for Lua scripts to choose sensible defaults
         try {
-            // Environment.ProcessorCount is safe and fast
-            sdk.Set("cpu_count", DynValue.NewNumber(Environment.ProcessorCount));
+            // System.Environment.ProcessorCount is safe and fast
+            sdk.Set("cpu_count", DynValue.NewNumber(System.Environment.ProcessorCount));
         } catch {
             // Ignore if DynValue isn't available for any reason; scripts will fallback to 1
         }
@@ -52,9 +41,9 @@ internal static class LuaSdkModule {
     private static void AddColorPrintFunctions(Table sdk, Script lua) {
         // color/colour print: accepts either (color, message[, newline]) or a table { colour=?, color=?, message=?, newline=? }
         CallbackFunction colorPrintFunc = new CallbackFunction((ctx, args) => {
-            String? color = null;
-            String message = String.Empty;
-            Boolean newline = true;
+            string? color = null;
+            string message = string.Empty;
+            bool newline = true;
             if (args.Count >= 2 && (args[0].Type == DataType.String || args[0].Type == DataType.UserData)) {
                 // color, message, [newline]
                 color = args[0].ToPrintString();
@@ -83,7 +72,7 @@ internal static class LuaSdkModule {
                     newline = nl.Boolean;
                 }
             }
-            EngineSdk.Print(message, color, newline);
+            Helpers.EngineSdk.Print(message, color, newline);
             return DynValue.Nil;
         });
         sdk["color_print"] = DynValue.NewCallback(colorPrintFunc);
@@ -91,148 +80,148 @@ internal static class LuaSdkModule {
     }
 
     private static void AddConfigurationHelpers(Table sdk) {
-        sdk["ensure_project_config"] = (Func<String, String>)((root) => ConfigHelpers.EnsureProjectConfig(root));
-        sdk["validate_source_dir"] = (Func<String, Boolean>)((dir) => {
+        sdk["ensure_project_config"] = (System.Func<string, string>)((root) => Helpers.ConfigHelpers.EnsureProjectConfig(root));
+        sdk["validate_source_dir"] = (System.Func<string, bool>)((dir) => {
             try {
-                ConfigHelpers.ValidateSourceDir(dir);
+                Helpers.ConfigHelpers.ValidateSourceDir(dir);
                 return true;
-            } catch { 
-                return false; 
+            } catch {
+                return false;
             }
         });
     }
 
     private static void AddFileSystemOperations(Table sdk, Script lua) {
-        sdk["copy_dir"] = (Func<String, String, DynValue, Boolean>)((src, dst, overwrite) => {
+        sdk["copy_dir"] = (System.Func<string, string, DynValue, bool>)((src, dst, overwrite) => {
             try {
-                Boolean ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
-                ConfigHelpers.CopyDirectory(src, dst, ow);
+                bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
+                Helpers.ConfigHelpers.CopyDirectory(src, dst, ow);
                 return true;
-            } catch { 
-                return false; 
+            } catch {
+                return false;
             }
         });
 
-        sdk["move_dir"] = (Func<String, String, DynValue, Boolean>)((src, dst, overwrite) => {
+        sdk["move_dir"] = (System.Func<string, string, DynValue, bool>)((src, dst, overwrite) => {
             try {
-                Boolean ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
-                ConfigHelpers.MoveDirectory(src, dst, ow);
+                bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
+                Helpers.ConfigHelpers.MoveDirectory(src, dst, ow);
                 return true;
-            } catch { 
-                return false; 
+            } catch {
+                return false;
             }
         });
 
-        sdk["find_subdir"] = (Func<String, String, String?>)((baseDir, name) => ConfigHelpers.FindSubdir(baseDir, name));
-        
-        sdk["has_all_subdirs"] = (Func<String, Table, Boolean>)((baseDir, names) => {
+        sdk["find_subdir"] = (System.Func<string, string, string?>)((baseDir, name) => Helpers.ConfigHelpers.FindSubdir(baseDir, name));
+
+        sdk["has_all_subdirs"] = (System.Func<string, Table, bool>)((baseDir, names) => {
             try {
-                List<String> list = LuaUtilities.TableToStringList(names);
-                return ConfigHelpers.HasAllSubdirs(baseDir, list);
-            } catch { 
-                return false; 
+                List<string> list = LuaUtilities.TableToStringList(names);
+                return Helpers.ConfigHelpers.HasAllSubdirs(baseDir, list);
+            } catch {
+                return false;
             }
         });
 
-        sdk["ensure_dir"] = (Func<String, Boolean>)(path => {
+        sdk["ensure_dir"] = (System.Func<string, bool>)(path => {
             try {
-                Directory.CreateDirectory(path);
+                System.IO.Directory.CreateDirectory(path);
                 return true;
-            } catch { 
-                return false; 
+            } catch {
+                return false;
             }
         });
 
-        sdk["path_exists"] = (Func<String, Boolean>)LuaFileSystemUtils.PathExists;
-        sdk["lexists"] = (Func<String, Boolean>)LuaFileSystemUtils.PathExistsIncludingLinks;
-        sdk["is_dir"] = (Func<String, Boolean>)Directory.Exists;
-        sdk["is_file"] = (Func<String, Boolean>)File.Exists;
+        sdk["path_exists"] = (System.Func<string, bool>)LuaFileSystemUtils.PathExists;
+        sdk["lexists"] = (System.Func<string, bool>)LuaFileSystemUtils.PathExistsIncludingLinks;
+        sdk["is_dir"] = (System.Func<string, bool>)System.IO.Directory.Exists;
+        sdk["is_file"] = (System.Func<string, bool>)System.IO.File.Exists;
 
-        sdk["remove_dir"] = (Func<String, Boolean>)(path => {
+        sdk["remove_dir"] = (System.Func<string, bool>)(path => {
             try {
-                if (Directory.Exists(path)) {
-                    Directory.Delete(path, true);
+                if (System.IO.Directory.Exists(path)) {
+                    System.IO.Directory.Delete(path, true);
                 }
                 return true;
-            } catch { 
-                return false; 
+            } catch {
+                return false;
             }
         });
 
-        sdk["remove_file"] = (Func<String, Boolean>)(path => {
+        sdk["remove_file"] = (System.Func<string, bool>)(path => {
             try {
-                if (LuaFileSystemUtils.IsSymlink(path) || File.Exists(path)) {
-                    File.Delete(path);
+                if (LuaFileSystemUtils.IsSymlink(path) || System.IO.File.Exists(path)) {
+                    System.IO.File.Delete(path);
                 }
                 return true;
-            } catch { 
-                return false; 
+            } catch {
+                return false;
             }
         });
 
-        sdk["copy_file"] = (Func<String, String, DynValue, Boolean>)((src, dst, overwrite) => {
+        sdk["copy_file"] = (System.Func<string, string, DynValue, bool>)((src, dst, overwrite) => {
             try {
                 // Security: Validate or prompt-approve paths
                 if (!LuaSecurity.EnsurePathAllowedWithPrompt(src) || !LuaSecurity.EnsurePathAllowedWithPrompt(dst)) {
                     return false;
                 }
-                
-                Boolean ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
-                File.Copy(src, dst, ow);
+
+                bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
+                System.IO.File.Copy(src, dst, ow);
                 return true;
-            } catch { 
-                return false; 
+            } catch {
+                return false;
             }
         });
 
-        sdk["rename_file"] = (Func<String, String, Boolean>)((oldPath, newPath) => {
+        sdk["rename_file"] = (System.Func<string, string, bool>)((oldPath, newPath) => {
             try {
                 // Security: Validate or prompt-approve paths
                 if (!LuaSecurity.EnsurePathAllowedWithPrompt(oldPath) || !LuaSecurity.EnsurePathAllowedWithPrompt(newPath)) {
                     return false;
                 }
-                
-                if (File.Exists(oldPath)) {
-                    File.Move(oldPath, newPath);
+
+                if (System.IO.File.Exists(oldPath)) {
+                    System.IO.File.Move(oldPath, newPath);
                     return true;
-                } else if (Directory.Exists(oldPath)) {
-                    Directory.Move(oldPath, newPath);
+                } else if (System.IO.Directory.Exists(oldPath)) {
+                    System.IO.Directory.Move(oldPath, newPath);
                     return true;
                 }
                 return false;
-            } catch { 
-                return false; 
+            } catch {
+                return false;
             }
         });
 
-        sdk["create_symlink"] = (Func<String, String, Boolean, Boolean>)LuaFileSystemUtils.CreateSymlink;
-        sdk["is_symlink"] = (Func<String, Boolean>)LuaFileSystemUtils.IsSymlink;
-        sdk["realpath"] = (Func<String, String?>)LuaFileSystemUtils.RealPath;
-        sdk["readlink"] = (Func<String, String?>)LuaFileSystemUtils.ReadLink;
+        sdk["create_symlink"] = (System.Func<string, string, bool, bool>)LuaFileSystemUtils.CreateSymlink;
+        sdk["is_symlink"] = (System.Func<string, bool>)LuaFileSystemUtils.IsSymlink;
+        sdk["realpath"] = (System.Func<string, string?>)LuaFileSystemUtils.RealPath;
+        sdk["readlink"] = (System.Func<string, string?>)LuaFileSystemUtils.ReadLink;
 
         // Create hardlink (files only)
-        sdk["create_hardlink"] = (Func<String, String, Boolean>)((src, dst) => {
+        sdk["create_hardlink"] = (System.Func<string, string, bool>)((src, dst) => {
             try {
                 if (!LuaSecurity.EnsurePathAllowedWithPrompt(src) || !LuaSecurity.EnsurePathAllowedWithPrompt(dst)) {
                     return false;
                 }
-                String destFull = Path.GetFullPath(dst);
-                String srcFull = Path.GetFullPath(src);
-                String? parent = Path.GetDirectoryName(destFull);
-                if (!String.IsNullOrEmpty(parent)) {
-                    Directory.CreateDirectory(parent);
+                string destFull = System.IO.Path.GetFullPath(dst);
+                string srcFull = System.IO.Path.GetFullPath(src);
+                string? parent = System.IO.Path.GetDirectoryName(destFull);
+                if (!string.IsNullOrEmpty(parent)) {
+                    System.IO.Directory.CreateDirectory(parent);
                 }
-                if (!File.Exists(srcFull)) {
+                if (!System.IO.File.Exists(srcFull)) {
                     return false;
                 }
                 // Remove existing file or link
                 try {
-                    if (LuaFileSystemUtils.IsSymlink(destFull) || File.Exists(destFull)) {
-                        File.Delete(destFull);
+                    if (LuaFileSystemUtils.IsSymlink(destFull) || System.IO.File.Exists(destFull)) {
+                        System.IO.File.Delete(destFull);
                     }
                 } catch { /* ignore */ }
                 try {
-                    HardLink.Create(srcFull, destFull);
+                    Helpers.HardLink.Create(srcFull, destFull);
                     return true;
                 } catch {
                     return false;
@@ -243,52 +232,52 @@ internal static class LuaSdkModule {
         });
 
         // SHA1 hash of a file (lowercase hex)
-        sdk["sha1_file"] = (Func<String, String?>)(path => {
+        sdk["sha1_file"] = (System.Func<string, string?>)(path => {
             try {
                 if (!LuaSecurity.EnsurePathAllowedWithPrompt(path)) {
                     return null;
                 }
-                using FileStream fs = File.OpenRead(path);
-                Byte[] hash = SHA1.HashData(fs);
-                return Convert.ToHexString(hash).ToLowerInvariant();
+                using System.IO.FileStream fs = System.IO.File.OpenRead(path);
+                byte[] hash = System.Security.Cryptography.SHA1.HashData(fs);
+                return System.Convert.ToHexString(hash).ToLowerInvariant();
             } catch {
                 return null;
             }
         });
 
         // Additional file system operations for compatibility with existing scripts
-        sdk["currentdir"] = (Func<String>)(() => Directory.GetCurrentDirectory());
-        
-        sdk["mkdir"] = (Func<String, Boolean>)(path => {
+        sdk["currentdir"] = (System.Func<string>)(() => System.IO.Directory.GetCurrentDirectory());
+
+        sdk["mkdir"] = (System.Func<string, bool>)(path => {
             if (!LuaSecurity.EnsurePathAllowedWithPrompt(path)) {
                 return false;
             }
             try {
-                Directory.CreateDirectory(path);
+                System.IO.Directory.CreateDirectory(path);
                 return true;
-            } catch { 
-                return false; 
+            } catch {
+                return false;
             }
         });
 
-        sdk["attributes"] = (Func<String, DynValue>)(path => {
+        sdk["attributes"] = (System.Func<string, DynValue>)(path => {
             if (!LuaSecurity.EnsurePathAllowedWithPrompt(path)) {
                 return DynValue.Nil;
             }
             try {
-                if (Directory.Exists(path)) {
+                if (System.IO.Directory.Exists(path)) {
                     Table attrs = new Table(lua);
                     attrs["mode"] = "directory";
-                    DirectoryInfo dirInfo = new DirectoryInfo(path);
-                    attrs["modification"] = (Double)new DateTimeOffset(dirInfo.LastWriteTime).ToUnixTimeSeconds();
+                    System.IO.DirectoryInfo dirInfo = new System.IO.DirectoryInfo(path);
+                    attrs["modification"] = (double)new System.DateTimeOffset(dirInfo.LastWriteTime).ToUnixTimeSeconds();
                     return DynValue.NewTable(attrs);
                 }
-                if (File.Exists(path)) {
+                if (System.IO.File.Exists(path)) {
                     Table attrs = new Table(lua);
                     attrs["mode"] = "file";
-                    FileInfo fileInfo = new FileInfo(path);
+                    System.IO.FileInfo fileInfo = new System.IO.FileInfo(path);
                     attrs["size"] = fileInfo.Length;
-                    attrs["modification"] = (Double)new DateTimeOffset(fileInfo.LastWriteTime).ToUnixTimeSeconds();
+                    attrs["modification"] = (double) new System.DateTimeOffset(fileInfo.LastWriteTime).ToUnixTimeSeconds();
                     return DynValue.NewTable(attrs);
                 }
                 return DynValue.Nil;
@@ -297,23 +286,27 @@ internal static class LuaSdkModule {
             }
         });
 
-        sdk["md5"] = (Func<String, String>)(text => {
+        sdk["md5"] = (System.Func<string, string>)(text => {
             try {
-                Byte[] data = MD5.HashData(Encoding.UTF8.GetBytes(text ?? String.Empty));
-                return Convert.ToHexString(data).ToLowerInvariant();
+                byte[] data = System.Security.Cryptography.MD5.HashData(System.Text.Encoding.UTF8.GetBytes(text ?? string.Empty));
+                return System.Convert.ToHexString(data).ToLowerInvariant();
             } catch {
-                return String.Empty;
+                return string.Empty;
             }
         });
 
-        sdk["sleep"] = (Action<Double>)(seconds => {
-            if (Double.IsNaN(seconds) || Double.IsInfinity(seconds) || seconds <= 0) {
+        sdk["sleep"] = (System.Action<double>)(seconds => {
+            if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds <= 0) {
                 return;
             }
 
             try {
-                Thread.Sleep(TimeSpan.FromSeconds(seconds));
-            } catch { }
+                System.Threading.Thread.Sleep(System.TimeSpan.FromSeconds(seconds));
+            }  catch {
+#if DEBUG
+            Program.Direct.Console.WriteLine($"Error .....'");
+#endif
+        }
         });
     }
 }

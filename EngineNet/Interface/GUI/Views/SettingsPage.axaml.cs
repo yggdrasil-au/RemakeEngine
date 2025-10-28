@@ -1,5 +1,4 @@
 using Avalonia.Platform.Storage;
-using System.ComponentModel;
 
 namespace EngineNet.Interface.GUI.Views.Pages;
 
@@ -31,13 +30,13 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
         }
     }
 
-    public ICommand BrowseRootCommand {
+    public System.Windows.Input.ICommand BrowseRootCommand {
         get;
     }
-    public ICommand SaveCommand {
+    public System.Windows.Input.ICommand SaveCommand {
         get;
     }
-    public ICommand ApplyThemeCommand {
+    public System.Windows.Input.ICommand ApplyThemeCommand {
         get;
     }
 
@@ -54,7 +53,7 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
         ApplyThemeCommand = new Cmd(async _ => await Task.CompletedTask);
 
     }
-    public SettingsPage(Core.OperationsEngine engine) {
+    internal SettingsPage(Core.OperationsEngine engine) {
         _engine = engine;
         InitializeComponent();
         DataContext = this;
@@ -67,7 +66,7 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
 
     }
 
-    private async Task BrowseRootAsync() {
+    private async System.Threading.Tasks.Task BrowseRootAsync() {
         try {
             Window? top = TopLevel.GetTopLevel(this) as Window;
             if (top?.StorageProvider is not null) {
@@ -81,12 +80,12 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
             } else {
                 Status = "Browse failed: StorageProvider not available.";
             }
-        } catch (Exception ex) {
+        } catch (System.Exception ex) {
             Status = $"Browse failed: {ex.Message}";
         }
     }
 
-    private async Task SaveAsync() {
+    private async System.Threading.Tasks.Task SaveAsync() {
         try {
             try {
                 //_engine.Config.ProjectRoot = ProjectRoot;
@@ -101,13 +100,13 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
             }
 
             Status = "Settings saved.";
-        } catch (Exception ex) {
+        } catch (System.Exception ex) {
             Status = $"Save failed: {ex.Message}";
         }
         await Task.Yield();
     }
 
-    private async Task ApplyThemeAsync() {
+    private async System.Threading.Tasks.Task ApplyThemeAsync() {
         try {
             // Minimal theme toggle demo; wire into your theme manager if present
             Application? app = Application.Current;
@@ -115,7 +114,7 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
                 // Replace with your resource dictionaries, Fluent theme, etc.
                 Status = $"Theme applied: {SelectedTheme}";
             }
-        } catch (Exception ex) {
+        } catch (System.Exception ex) {
             Status = $"Apply theme failed: {ex.Message}";
         }
         await Task.Yield();
@@ -124,9 +123,9 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
     public event PropertyChangedEventHandler? PropertyChanged;
     private void Raise(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
-    private sealed class Cmd:ICommand {
+    private sealed class Cmd:System.Windows.Input.ICommand {
         private readonly Func<object?, Task> _run;
-        public Cmd(Func<object?, Task> run) => _run = run;
+        public Cmd(System.Func<object?, Task> run) => _run = run;
         public bool CanExecute(object? parameter) => true;
         public async void Execute(object? parameter) => await _run(parameter);
         public event EventHandler? CanExecuteChanged;

@@ -1,6 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Text.Json;
+using static EngineNet.Program.Direct;
 
 namespace EngineNet.Core.ScriptEngines.Helpers;
 
@@ -8,25 +6,25 @@ namespace EngineNet.Core.ScriptEngines.Helpers;
 /// Lightweight SDK to communicate with the Remake Engine runner via stdout JSON events.
 /// Mirrors the behavior of Engine/Utils/Engine_sdk.py for C# tools and scripts.
 /// </summary>
-public static class EngineSdk {
-    public const String Prefix = "@@REMAKE@@ ";
+internal static class EngineSdk {
+    public const string Prefix = "@@REMAKE@@ ";
     /// <summary>
     /// Optional in-process event sink. When set, Emit will invoke this
     /// delegate with the event payload. If <see cref="MuteStdoutWhenLocalSink"/>
     /// is true, stdout emission is suppressed to avoid double-printing.
     /// </summary>
-    public static Action<Dictionary<String, Object?>>? LocalEventSink {
+    public static System.Action<Dictionary<string, object?>>? LocalEventSink {
         get; set;
     }
-    public static Boolean MuteStdoutWhenLocalSink { get; set; } = true;
+    public static bool MuteStdoutWhenLocalSink { get; set; } = true;
 
     /// <summary>
     /// Auto-responses for prompts by ID. When a prompt with matching ID is requested,
     /// the corresponding response is returned automatically without user interaction.
     /// </summary>
-    public static Dictionary<String, String> AutoPromptResponses { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public static Dictionary<string, string> AutoPromptResponses { get; set; } = new(System.StringComparer.OrdinalIgnoreCase);
 
-    private static readonly JsonSerializerOptions JsonOpts = new() {
+    private static readonly System.Text.Json.JsonSerializerOptions JsonOpts = new() {
         WriteIndented = false,
         PropertyNamingPolicy = null,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never
@@ -36,12 +34,12 @@ public static class EngineSdk {
     /// Emit a structured event line to stdout and flush immediately.
     /// Event payloads are single-line JSON preceded by the <see cref="Prefix"/>.
     /// </summary>
-    public static void Emit(String @event, IDictionary<String, Object?>? data = null) {
-        Dictionary<String, Object?> payload = new Dictionary<String, Object?>(StringComparer.Ordinal) {
+    public static void Emit(string @event, IDictionary<string, object?>? data = null) {
+        Dictionary<string, object?> payload = new Dictionary<string, object?>(System.StringComparer.Ordinal) {
             ["event"] = @event
         };
         if (data != null) {
-            foreach (KeyValuePair<String, Object?> kv in data) {
+            foreach (KeyValuePair<string, object?> kv in data) {
                 payload[kv.Key] = kv.Value;
             }
         }
@@ -50,30 +48,30 @@ public static class EngineSdk {
         if (LocalEventSink != null) {
             try {
                 // Pass a shallow copy to avoid accidental modifications by receivers
-                LocalEventSink(new Dictionary<String, Object?>(payload, StringComparer.Ordinal));
+                LocalEventSink(new Dictionary<string, object?>(payload, System.StringComparer.Ordinal));
             } catch { /* ignore sink errors */ }
             if (MuteStdoutWhenLocalSink) {
                 return;
             }
         }
 
-        String json;
+        string json;
         try {
-            json = JsonSerializer.Serialize(payload, JsonOpts);
+            json = System.Text.Json.JsonSerializer.Serialize(payload, JsonOpts);
         } catch {
             // As a last resort, stringify values to avoid serialization failures
-            Dictionary<String, Object?> safe = new Dictionary<String, Object?>(StringComparer.Ordinal);
-            foreach (KeyValuePair<String, Object?> kv in payload) {
+            Dictionary<string, object?> safe = new Dictionary<string, object?>(System.StringComparer.Ordinal);
+            foreach (KeyValuePair<string, object?> kv in payload) {
                 safe[kv.Key] = kv.Value?.ToString();
             }
 
-            json = JsonSerializer.Serialize(safe, JsonOpts);
+            json = System.Text.Json.JsonSerializer.Serialize(safe, JsonOpts);
         }
 
         try {
-            Console.Out.Write(Prefix);
-            Console.Out.WriteLine(json.Replace('\n', ' '));
-            Console.Out.Flush();
+            Program.Direct.Console.Out.Write(Prefix);
+            Program.Direct.Console.Out.WriteLine(json.Replace('\n', ' '));
+            Program.Direct.Console.Out.Flush();
         } catch {
             // Swallow IO errors; there is no recovery if stdout is closed
         }
@@ -82,34 +80,34 @@ public static class EngineSdk {
     /// <summary>
     /// Report a non-fatal warning to the engine UI/log.
     /// </summary>
-    public static void Warn(String message) => Emit("warning", new Dictionary<String, Object?> { ["message"] = message });
+    public static void Warn(string message) => Emit("warning", new Dictionary<string, object?> { ["message"] = message });
 
     /// <summary>
     /// Report an error to the engine UI/log (does not exit the process).
     /// </summary>
-    public static void Error(String message) => Emit("error", new Dictionary<String, Object?> { ["message"] = message });
+    public static void Error(string message) => Emit("error", new Dictionary<string, object?> { ["message"] = message });
 
     /// <summary>
     /// Informational message (non-warning).
     /// </summary>
-    public static void Info(String message) => Print(message, color: "cyan");
+    public static void Info(string message) => Print(message, color: "cyan");
 
     /// <summary>
     /// Success message (green).
     /// </summary>
-    public static void Success(String message) => Print(message, color: "green");
+    public static void Success(string message) => Print(message, color: "green");
 
     /// <summary>
     /// Mark the start of an operation or phase.
     /// </summary>
-    public static void Start(String? op = null) => Emit("start", op is null ? null : new Dictionary<String, Object?> { ["op"] = op });
+    public static void Start(string? op = null) => Emit("start", op is null ? null : new Dictionary<string, object?> { ["op"] = op });
 
     /// <summary>
     /// Mark the end of an operation or phase.
     /// </summary>
-    public static void End(Boolean success = true, Int32 exitCode = 0) => Emit(
+    public static void End(bool success = true, int exitCode = 0) => Emit(
         "end",
-        new Dictionary<String, Object?> { ["success"] = success, ["exit_code"] = exitCode }
+        new Dictionary<string, object?> { ["success"] = success, ["exit_code"] = exitCode }
     );
 
     /// <summary>
@@ -117,52 +115,52 @@ public static class EngineSdk {
     /// Returns the answer without the trailing newline. May return an empty string.
     /// If an auto-response is available for the prompt ID, returns that instead of prompting.
     /// </summary>
-    public static String Prompt(String message, String id = "q1", Boolean secret = false) {
+    public static string Prompt(string message, string id = "q1", bool secret = false) {
         // Check for auto-response first
-        if (AutoPromptResponses.TryGetValue(id, out String? autoResponse)) {
-            Emit("print", new Dictionary<String, Object?> { 
+        if (AutoPromptResponses.TryGetValue(id, out string? autoResponse)) {
+            Emit("print", new Dictionary<string, object?> { 
                 ["message"] = $"? {message}",
                 ["color"] = "cyan"
             });
-            Emit("print", new Dictionary<String, Object?> { 
+            Emit("print", new Dictionary<string, object?> { 
                 ["message"] = $"> {autoResponse} (auto-response)",
                 ["color"] = "yellow"
             });
             return autoResponse;
         }
 
-        Emit("prompt", new Dictionary<String, Object?> { ["id"] = id, ["message"] = message, ["secret"] = secret });
+        Emit("prompt", new Dictionary<string, object?> { ["id"] = id, ["message"] = message, ["secret"] = secret });
         try {
-            String? line = Console.In.ReadLine();
-            return (line ?? String.Empty).TrimEnd('\n');
+            string? line = Program.Direct.Console.In.ReadLine();
+            return (line ?? string.Empty).TrimEnd('\n');
         } catch {
-            return String.Empty;
+            return string.Empty;
         }
     }
 
     /// <summary>
     /// Helper class to report determinate progress to the engine UI.
     /// </summary>
-    public sealed class Progress {
-        public Int32 Total {
+    internal sealed class Progress {
+        public int Total {
             get;
         }
-        public Int32 Current {
+        public int Current {
             get; private set;
         }
-        public String Id {
+        public string Id {
             get;
         }
-        public String? Label {
+        public string? Label {
             get;
         }
 
-        public Progress(Int32 total, String id = "p1", String? label = null) {
-            Total = Math.Max(1, total);
+        public Progress(int total, string id = "p1", string? label = null) {
+            Total = System.Math.Max(1, total);
             Current = 0;
             Id = id;
             Label = label;
-            Emit("progress", new Dictionary<String, Object?> {
+            Emit("progress", new Dictionary<string, object?> {
                 ["id"] = Id,
                 ["current"] = 0,
                 ["total"] = Total,
@@ -170,9 +168,9 @@ public static class EngineSdk {
             });
         }
 
-        public void Update(Int32 inc = 1) {
-            Current = Math.Min(Total, Current + Math.Max(1, inc));
-            Emit("progress", new Dictionary<String, Object?> {
+        public void Update(int inc = 1) {
+            Current = System.Math.Min(Total, Current + System.Math.Max(1, inc));
+            Emit("progress", new Dictionary<string, object?> {
                 ["id"] = Id,
                 ["current"] = Current,
                 ["total"] = Total,
@@ -186,10 +184,10 @@ public static class EngineSdk {
     /// Emit a colored print event. Color names are case-insensitive and map to typical console colors:
     /// default, gray, darkgray, red, darkred, green, darkgreen, yellow, darkyellow, blue, darkblue, magenta, darkmagenta, cyan, darkcyan, white.
     /// </summary>
-    public static void Print(String message, String? color = null, Boolean newline = true) {
-        Dictionary<String, Object?> data = new Dictionary<String, Object?> {
+    public static void Print(string message, string? color = null, bool newline = true) {
+        Dictionary<string, object?> data = new Dictionary<string, object?> {
             ["message"] = message,
-            ["color"] = String.IsNullOrWhiteSpace(color) ? null : color,
+            ["color"] = string.IsNullOrWhiteSpace(color) ? null : color,
             ["newline"] = newline
         };
         Emit("print", data);
@@ -198,7 +196,7 @@ public static class EngineSdk {
     /// <summary>
     /// Emit a colored print event using a ConsoleColor.
     /// </summary>
-    public static void Print(String message, ConsoleColor color, Boolean newline = true) {
+    public static void Print(string message, System.ConsoleColor color, bool newline = true) {
         Print(message, color.ToString(), newline);
     }
 }

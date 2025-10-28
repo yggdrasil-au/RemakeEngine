@@ -1,70 +1,62 @@
-//
-using System.Buffers.Binary;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using EngineNet.Core.Util;
 
 namespace EngineNet.Core.FileHandlers.TxdExtractor;
 
-public static class Main {
+internal static class Main {
     private sealed class Options {
-        public String InputPath = String.Empty;
-        public String? OutputDirectory;
+        public string InputPath = string.Empty;
+        public string? OutputDirectory;
     }
 
-    private sealed class TxdExportException:Exception {
-        public TxdExportException(String message) : base(message) { }
+    private sealed class TxdExportException:System.Exception {
+        public TxdExportException(string message) : base(message) { }
     }
 
-    private static readonly Encoding Utf8NoBom = new UTF8Encoding(false, false);
+    private static readonly System.Text.Encoding Utf8NoBom = new System.Text.UTF8Encoding(false, false);
 
     /// <summary>
     /// Extracts textures and metadata from TXD inputs. Supports a single positional input path and optional --output_dir.
     /// </summary>
     /// <param name="args">CLI-style args: [input_path] [--output_dir DIR]</param>
     /// <returns>True if extraction completed successfully.</returns>
-    public static Boolean Run(IList<String> args) {
+    public static bool Run(IList<string> args) {
         try {
             Options options = Parse(args);
             TxdExporter exporter = new();
 
             // Assemble file list and set up progress tracking
-            List<String> files = EnumerateTxdFiles(options.InputPath);
-            Int32 processed = 0, ok = 0, skip = 0, err = 0;
-            ConsoleProgress.ActiveProcess? currentJob = null;
-            using CancellationTokenSource cts = new();
-            Task progress = ConsoleProgress.StartPanel(
+            List<string> files = EnumerateTxdFiles(options.InputPath);
+            int processed = 0, ok = 0, skip = 0, err = 0;
+            EngineNet.Core.Util.ConsoleProgress.ActiveProcess? currentJob = null;
+            using System.Threading.CancellationTokenSource cts = new();
+            System.Threading.Tasks.Task progress = EngineNet.Core.Util.ConsoleProgress.StartPanel(
                 total: files.Count,
-                snapshot: () => (Volatile.Read(ref processed), Volatile.Read(ref ok), Volatile.Read(ref skip), Volatile.Read(ref err)),
-                activeSnapshot: () => currentJob is null ? new List<ConsoleProgress.ActiveProcess>() : new List<ConsoleProgress.ActiveProcess> { currentJob },
+                snapshot: () => (System.Threading.Volatile.Read(ref processed), System.Threading.Volatile.Read(ref ok), System.Threading.Volatile.Read(ref skip), System.Threading.Volatile.Read(ref err)),
+                activeSnapshot: () => currentJob is null ? new List<EngineNet.Core.Util.ConsoleProgress.ActiveProcess>() : new List<EngineNet.Core.Util.ConsoleProgress.ActiveProcess> { currentJob },
                 label: "Extracting TXD",
                 token: cts.Token);
 
-            foreach (String txdFile in files) {
+            foreach (string txdFile in files) {
                 try {
-                    currentJob = new ConsoleProgress.ActiveProcess { Tool = "txd", File = Path.GetFileName(txdFile), StartedUtc = DateTime.UtcNow };
+                    currentJob = new EngineNet.Core.Util.ConsoleProgress.ActiveProcess { Tool = "txd", File = System.IO.Path.GetFileName(txdFile), StartedUtc = System.DateTime.UtcNow };
 
-                    String? outputBase = options.OutputDirectory;
-                    if (String.IsNullOrEmpty(outputBase)) {
-                        String baseDir = Path.GetDirectoryName(txdFile) ?? Directory.GetCurrentDirectory();
-                        String baseName = Path.GetFileNameWithoutExtension(txdFile);
-                        outputBase = Path.Combine(baseDir, baseName + "_txd");
+                    string? outputBase = options.OutputDirectory;
+                    if (string.IsNullOrEmpty(outputBase)) {
+                        string baseDir = System.IO.Path.GetDirectoryName(txdFile) ?? System.IO.Directory.GetCurrentDirectory();
+                        string baseName = System.IO.Path.GetFileNameWithoutExtension(txdFile);
+                        outputBase = System.IO.Path.Combine(baseDir, baseName + "_txd");
                     }
 
-                    Int32 textures = exporter.ExportTexturesFromTxd(txdFile, outputBase!);
+                    int textures = exporter.ExportTexturesFromTxd(txdFile, outputBase!);
                     if (textures > 0) {
-                        Interlocked.Increment(ref ok);
+                        System.Threading.Interlocked.Increment(ref ok);
                     } else {
-                        Interlocked.Increment(ref skip);
+                        System.Threading.Interlocked.Increment(ref skip);
                     }
                 } catch {
-                    Interlocked.Increment(ref err);
+                    System.Threading.Interlocked.Increment(ref err);
                 } finally {
-                    Interlocked.Increment(ref processed);
+                    System.Threading.Interlocked.Increment(ref processed);
                     currentJob = null;
                 }
             }
@@ -75,34 +67,34 @@ public static class Main {
         } catch (TxdExportException ex) {
             Log.Red(ex.Message);
             return false;
-        } catch (Exception ex) {
+        } catch (System.Exception ex) {
             Log.Red($"Unhandled TXD extraction error: {ex.Message}");
-            if (!String.IsNullOrWhiteSpace(ex.StackTrace)) {
+            if (!string.IsNullOrWhiteSpace(ex.StackTrace)) {
                 Log.Gray(ex.StackTrace!);
             }
 
             return false;
         }
     }
-    private static void DebugLog(String message) {
+    private static void DebugLog(string message) {
         #if DEBUG
-        Log.Cyan(message);
+        Program.Direct.Console.WriteLine(message);
         #endif
     }
 
-    private static List<String> EnumerateTxdFiles(String inputPathAbs) {
-        if (!File.Exists(inputPathAbs) && !Directory.Exists(inputPathAbs)) {
+    private static List<string> EnumerateTxdFiles(string inputPathAbs) {
+        if (!System.IO.File.Exists(inputPathAbs) && !System.IO.Directory.Exists(inputPathAbs)) {
             throw new TxdExportException($"Error: Input path '{inputPathAbs}' does not exist.");
         }
 
-        List<String> txdFilesToProcess = new List<String>();
-        if (File.Exists(inputPathAbs)) {
-            if (!inputPathAbs.EndsWith(".txd", StringComparison.OrdinalIgnoreCase)) {
+        List<string> txdFilesToProcess = new List<string>();
+        if (System.IO.File.Exists(inputPathAbs)) {
+            if (!inputPathAbs.EndsWith(".txd", System.StringComparison.OrdinalIgnoreCase)) {
                 throw new TxdExportException($"Error: Input file '{inputPathAbs}' is not a .txd file.");
             }
             txdFilesToProcess.Add(inputPathAbs);
         } else {
-            foreach (String file in Directory.EnumerateFiles(inputPathAbs, "*.txd", SearchOption.AllDirectories)) {
+            foreach (string file in System.IO.Directory.EnumerateFiles(inputPathAbs, "*.txd", System.IO.SearchOption.AllDirectories)) {
                 txdFilesToProcess.Add(file);
             }
             if (txdFilesToProcess.Count == 0) {
@@ -113,15 +105,15 @@ public static class Main {
         return txdFilesToProcess;
     }
 
-    private static Options Parse(IList<String> args) {
+    private static Options Parse(IList<string> args) {
         if (args is null || args.Count == 0) {
             throw new TxdExportException("Missing input path argument for TXD extraction.");
         }
 
         Options options = new();
-        for (Int32 i = 0; i < args.Count; i++) {
-            String current = args[i];
-            if (String.IsNullOrWhiteSpace(current)) {
+        for (int i = 0; i < args.Count; i++) {
+            string current = args[i];
+            if (string.IsNullOrWhiteSpace(current)) {
                 continue;
             }
 
@@ -140,7 +132,7 @@ public static class Main {
                         throw new TxdExportException($"Unknown argument '{current}'.");
                     }
 
-                    options.InputPath = String.IsNullOrEmpty(options.InputPath)
+                    options.InputPath = string.IsNullOrEmpty(options.InputPath)
                         ? current
                         : throw new TxdExportException($"Unexpected extra positional argument '{current}'.");
                     break;
@@ -148,18 +140,18 @@ public static class Main {
             }
         }
 
-        if (String.IsNullOrWhiteSpace(options.InputPath)) {
+        if (string.IsNullOrWhiteSpace(options.InputPath)) {
             throw new TxdExportException("Missing input path argument for TXD extraction.");
         }
 
-        options.InputPath = Path.GetFullPath(options.InputPath);
-        if (!String.IsNullOrWhiteSpace(options.OutputDirectory)) {
-            options.OutputDirectory = Path.GetFullPath(options.OutputDirectory!);
+        options.InputPath = System.IO.Path.GetFullPath(options.InputPath);
+        if (!string.IsNullOrWhiteSpace(options.OutputDirectory)) {
+            options.OutputDirectory = System.IO.Path.GetFullPath(options.OutputDirectory!);
         }
 
         return options;
     }
-    private static Int32 MortonEncode2D(Int32 x, Int32 y) {
+    private static int MortonEncode2D(int x, int y) {
         x = (x | (x << 8)) & 0x00FF00FF;
         x = (x | (x << 4)) & 0x0F0F0F0F;
         x = (x | (x << 2)) & 0x33333333;
@@ -173,54 +165,55 @@ public static class Main {
         return x | (y << 1);
     }
 
-    private static Byte[]? UnswizzleData(ReadOnlySpan<Byte> swizzledData, Int32 width, Int32 height, Int32 bytesPerPixel) {
-        Int32 linearSize = width * height * bytesPerPixel;
+    private static byte[]? UnswizzleData(System.ReadOnlySpan<byte> swizzledData, int width, int height, int bytesPerPixel) {
+        int linearSize = width * height * bytesPerPixel;
         if (swizzledData.IsEmpty || swizzledData.Length < linearSize) {
             Log.Yellow($"      Warning: Swizzled data length ({swizzledData.Length}) is less than expected ({linearSize}) for {width}x{height}@{bytesPerPixel}bpp. Skipping unswizzle.");
             return null;
         }
 
-        Byte[] linear = new Byte[linearSize];
-        for (Int32 y = 0; y < height; y++) {
-            for (Int32 x = 0; x < width; x++) {
-                Int32 mortonIdx = MortonEncode2D(x, y);
-                Int32 pixelStart = mortonIdx * bytesPerPixel;
+        byte[] linear = new byte[linearSize];
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int mortonIdx = MortonEncode2D(x, y);
+                int pixelStart = mortonIdx * bytesPerPixel;
                 if (pixelStart + bytesPerPixel > swizzledData.Length) {
                     continue;
                 }
 
-                Int32 linearStart = ((y * width) + x) * bytesPerPixel;
-                swizzledData.Slice(pixelStart, bytesPerPixel).CopyTo(linear.AsSpan(linearStart, bytesPerPixel));
+                int linearStart = ((y * width) + x) * bytesPerPixel;
+                swizzledData.Slice(pixelStart, bytesPerPixel).CopyTo(System.MemoryExtensions.AsSpan(linear, linearStart, bytesPerPixel));
+
             }
         }
 
         return linear;
     }
 
-    private static String? SanitizeFilename(String name) {
-        if (String.IsNullOrWhiteSpace(name)) {
+    private static string? SanitizeFilename(string name) {
+        if (string.IsNullOrWhiteSpace(name)) {
             return null;
         }
 
-        StringBuilder builder = new(name.Length);
-        foreach (Char ch in name) {
-            _ = ch is < (Char)32 or (Char)127
+        System.Text.StringBuilder builder = new(name.Length);
+        foreach (char ch in name) {
+            _ = ch is < (char)32 or (char)127
                 ? builder.Append('_')
                 : ch is '<' or '>' or ':' or '"' or '/' or '\\' or '|' or '?' or '*' ? builder.Append('_') : builder.Append(ch);
         }
 
-        String cleaned = builder.ToString().Trim();
-        return String.IsNullOrWhiteSpace(cleaned) ? null : cleaned;
+        string cleaned = builder.ToString().Trim();
+        return string.IsNullOrWhiteSpace(cleaned) ? null : cleaned;
     }
 
-    private static Int32 CalculateDxtLevelSize(Int32 width, Int32 height, String fourcc) {
+    private static int CalculateDxtLevelSize(int width, int height, string fourcc) {
         if (width <= 0 || height <= 0) {
             return 0;
         }
 
-        Int32 blocksWide = Math.Max(1, (width + 3) / 4);
-        Int32 blocksHigh = Math.Max(1, (height + 3) / 4);
-        Int32 bytesPerBlock = fourcc switch {
+        int blocksWide = System.Math.Max(1, (width + 3) / 4);
+        int blocksHigh = System.Math.Max(1, (height + 3) / 4);
+        int bytesPerBlock = fourcc switch {
             "DXT1" => 8,
             "DXT3" => 16,
             "DXT5" => 16,
@@ -229,27 +222,27 @@ public static class Main {
         return blocksWide * blocksHigh * bytesPerBlock;
     }
 
-    private static Byte[] CreateDdsHeaderDxt(Int32 width, Int32 height, Int32 mipMapCountFromFile, String fourcc) {
-        Byte[] buffer = new Byte[128];
-        using MemoryStream ms = new(buffer);
-        using BinaryWriter writer = new(ms, Encoding.ASCII, leaveOpen: true);
+    private static byte[] CreateDdsHeaderDxt(int width, int height, int mipMapCountFromFile, string fourcc) {
+        byte[] buffer = new byte[128];
+        using System.IO.MemoryStream ms = new(buffer);
+        using System.IO.BinaryWriter writer = new(ms, System.Text.Encoding.ASCII, leaveOpen: true);
 
-        const Int32 DDSD_CAPS = 0x1;
-        const Int32 DDSD_HEIGHT = 0x2;
-        const Int32 DDSD_WIDTH = 0x4;
-        const Int32 DDSD_PIXELFORMAT = 0x1000;
-        const Int32 DDSD_MIPMAPCOUNT = 0x20000;
-        const Int32 DDSD_LINEARSIZE = 0x80000;
+        const int DDSD_CAPS = 0x1;
+        const int DDSD_HEIGHT = 0x2;
+        const int DDSD_WIDTH = 0x4;
+        const int DDSD_PIXELFORMAT = 0x1000;
+        const int DDSD_MIPMAPCOUNT = 0x20000;
+        const int DDSD_LINEARSIZE = 0x80000;
 
-        Int32 flags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT | DDSD_LINEARSIZE;
+        int flags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT | DDSD_LINEARSIZE;
         if (mipMapCountFromFile > 0) {
             flags |= DDSD_MIPMAPCOUNT;
         }
 
-        Int32 dwMipMapCount = mipMapCountFromFile > 0 ? mipMapCountFromFile : 1;
-        Int32 linearSize = CalculateDxtLevelSize(width, height, fourcc);
+        int dwMipMapCount = mipMapCountFromFile > 0 ? mipMapCountFromFile : 1;
+        int linearSize = CalculateDxtLevelSize(width, height, fourcc);
 
-        writer.Write(Encoding.ASCII.GetBytes("DDS "));
+        writer.Write(System.Text.Encoding.ASCII.GetBytes("DDS "));
         writer.Write(124);
         writer.Write(flags);
         writer.Write(height);
@@ -258,17 +251,17 @@ public static class Main {
         writer.Write(0);
         writer.Write(dwMipMapCount);
 
-        for (Int32 i = 0; i < 11; i++) {
+        for (int i = 0; i < 11; i++) {
             writer.Write(0);
         }
 
-        const Int32 pfSize = 32;
-        const Int32 DDPF_FOURCC = 0x4;
+        const int pfSize = 32;
+        const int DDPF_FOURCC = 0x4;
         writer.Write(pfSize);
         writer.Write(DDPF_FOURCC);
-        Byte[] fourccBytes = new Byte[4];
-        Byte[] srcFourcc = Encoding.ASCII.GetBytes(fourcc);
-        Array.Copy(srcFourcc, fourccBytes, Math.Min(srcFourcc.Length, 4));
+        byte[] fourccBytes = new byte[4];
+        byte[] srcFourcc = System.Text.Encoding.ASCII.GetBytes(fourcc);
+        System.Array.Copy(srcFourcc, fourccBytes, System.Math.Min(srcFourcc.Length, 4));
         writer.Write(fourccBytes);
         writer.Write(0);
         writer.Write(0);
@@ -276,10 +269,10 @@ public static class Main {
         writer.Write(0);
         writer.Write(0);
 
-        const Int32 DDSCAPS_TEXTURE = 0x1000;
-        const Int32 DDSCAPS_MIPMAP = 0x400000;
-        const Int32 DDSCAPS_COMPLEX = 0x8;
-        Int32 caps = DDSCAPS_TEXTURE;
+        const int DDSCAPS_TEXTURE = 0x1000;
+        const int DDSCAPS_MIPMAP = 0x400000;
+        const int DDSCAPS_COMPLEX = 0x8;
+        int caps = DDSCAPS_TEXTURE;
         if (dwMipMapCount > 1) {
             caps |= DDSCAPS_MIPMAP | DDSCAPS_COMPLEX;
         }
@@ -293,18 +286,18 @@ public static class Main {
         return buffer;
     }
 
-    private static Byte[] CreateDdsHeaderRgba(Int32 width, Int32 height, Int32 mipMapCount) {
-        Byte[] buffer = new Byte[128];
-        using MemoryStream ms = new(buffer);
-        using BinaryWriter writer = new(ms, Encoding.ASCII, leaveOpen: true);
+    private static byte[] CreateDdsHeaderRgba(int width, int height, int mipMapCount) {
+        byte[] buffer = new byte[128];
+        using System.IO.MemoryStream ms = new(buffer);
+        using System.IO.BinaryWriter writer = new(ms, System.Text.Encoding.ASCII, leaveOpen: true);
 
-        const Int32 DDSD_CAPS = 0x1;
-        const Int32 DDSD_HEIGHT = 0x2;
-        const Int32 DDSD_WIDTH = 0x4;
-        const Int32 DDSD_PIXELFORMAT = 0x1000;
-        const Int32 DDSD_PITCH = 0x8;
+        const int DDSD_CAPS = 0x1;
+        const int DDSD_HEIGHT = 0x2;
+        const int DDSD_WIDTH = 0x4;
+        const int DDSD_PIXELFORMAT = 0x1000;
+        const int DDSD_PITCH = 0x8;
 
-        writer.Write(Encoding.ASCII.GetBytes("DDS "));
+        writer.Write(System.Text.Encoding.ASCII.GetBytes("DDS "));
         writer.Write(124);
         writer.Write(DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT | DDSD_PITCH);
         writer.Write(height);
@@ -313,13 +306,13 @@ public static class Main {
         writer.Write(0);
         writer.Write(mipMapCount > 0 ? mipMapCount : 1);
 
-        for (Int32 i = 0; i < 11; i++) {
+        for (int i = 0; i < 11; i++) {
             writer.Write(0);
         }
 
-        const Int32 pfSize = 32;
-        const Int32 DDPF_RGB = 0x40;
-        const Int32 DDPF_ALPHAPIXELS = 0x1;
+        const int pfSize = 32;
+        const int DDPF_RGB = 0x40;
+        const int DDPF_ALPHAPIXELS = 0x1;
         writer.Write(pfSize);
         writer.Write(DDPF_RGB | DDPF_ALPHAPIXELS);
         writer.Write(0);
@@ -327,9 +320,9 @@ public static class Main {
         writer.Write(unchecked(0x000000FF));
         writer.Write(unchecked(0x0000FF00));
         writer.Write(unchecked(0x00FF0000));
-        writer.Write(unchecked((Int32)0xFF000000));
+        writer.Write(unchecked((int)0xFF000000));
 
-        const Int32 DDSCAPS_TEXTURE = 0x1000;
+        const int DDSCAPS_TEXTURE = 0x1000;
         writer.Write(DDSCAPS_TEXTURE);
         writer.Write(0);
         writer.Write(0);
@@ -339,22 +332,22 @@ public static class Main {
         return buffer;
     }
     private sealed class NameInfo {
-        public NameInfo(String name, Int32 nameSigOffsetInSegment, Int32 originalFileOffset) {
+        public NameInfo(string name, int nameSigOffsetInSegment, int originalFileOffset) {
             Name = name;
             NameSigOffsetInSegment = nameSigOffsetInSegment;
             OriginalFileOffset = originalFileOffset;
         }
 
-        public String Name {
+        public string Name {
             get;
         }
-        public Int32 NameSigOffsetInSegment {
+        public int NameSigOffsetInSegment {
             get;
         }
-        public Int32 OriginalFileOffset {
+        public int OriginalFileOffset {
             get;
         }
-        public Boolean ProcessedMeta {
+        public bool ProcessedMeta {
             get; private set;
         }
 
@@ -364,21 +357,21 @@ public static class Main {
     }
 
     private sealed class Segment {
-        public Segment(Int32 startOffset, Byte[] data) {
+        public Segment(int startOffset, byte[] data) {
             StartOffset = startOffset;
             Data = data;
         }
 
-        public Int32 StartOffset {
+        public int StartOffset {
             get;
         }
-        public Byte[] Data {
+        public byte[] Data {
             get;
         }
     }
 
     private readonly struct ConversionResult {
-        public ConversionResult(Byte[]? header, Byte[]? pixels, String? format, Boolean needsUnswizzle, Int32 bytesPerPixel) {
+        public ConversionResult(byte[]? header, byte[]? pixels, string? format, bool needsUnswizzle, int bytesPerPixel) {
             Header = header;
             Pixels = pixels;
             Format = format;
@@ -386,38 +379,38 @@ public static class Main {
             BytesPerPixel = bytesPerPixel;
         }
 
-        public Byte[]? Header {
+        public byte[]? Header {
             get;
         }
-        public Byte[]? Pixels {
+        public byte[]? Pixels {
             get;
         }
-        public String? Format {
+        public string? Format {
             get;
         }
-        public Boolean NeedsUnswizzle {
+        public bool NeedsUnswizzle {
             get;
         }
-        public Int32 BytesPerPixel {
+        public int BytesPerPixel {
             get;
         }
     }
     private sealed class TextureFormatConverter {
         public ConversionResult Convert(
-            Int32 fmtCode,
-            Int32 width,
-            Int32 height,
-            Int32 mipMapCountFromFile,
-            ReadOnlySpan<Byte> swizzledBaseMipData,
-            Int32 actualMipDataSize,
-            Int32 segmentOriginalStartOffset,
+            int fmtCode,
+            int width,
+            int height,
+            int mipMapCountFromFile,
+            System.ReadOnlySpan<byte> swizzledBaseMipData,
+            int actualMipDataSize,
+            int segmentOriginalStartOffset,
             NameInfo nameInfo) {
 
-            Boolean needsUnswizzle = false;
-            Int32 bytesPerPixelForUns = 0;
-            Byte[]? ddsHeader = null;
-            Byte[]? outputPixels = null;
-            String? exportFormat;
+            bool needsUnswizzle = false;
+            int bytesPerPixelForUns = 0;
+            byte[]? ddsHeader = null;
+            byte[]? outputPixels = null;
+            string? exportFormat;
             if (fmtCode == 0x52) {
                 ddsHeader = CreateDdsHeaderDxt(width, height, mipMapCountFromFile, "DXT1");
                 outputPixels = swizzledBaseMipData.ToArray();
@@ -435,7 +428,7 @@ public static class Main {
                 DebugLog($"        DXT5 format detected. Size: {actualMipDataSize} bytes.");
             } else if (fmtCode == 0x86) {
                 exportFormat = "RGBA8888 (from Swizzled BGRA)";
-                Int32 expectedSize = width * height * 4;
+                int expectedSize = width * height * 4;
                 bytesPerPixelForUns = 4;
                 needsUnswizzle = true;
                 DebugLog($"        Swizzled BGRA format detected. Size: {actualMipDataSize} bytes.");
@@ -443,10 +436,10 @@ public static class Main {
                     throw new TxdExportException($"          FATAL ERROR: Data size mismatch for BGRA '{nameInfo.Name}' (File 0x{nameInfo.OriginalFileOffset:X}): expected {expectedSize}, got {actualMipDataSize}.");
                 }
 
-                Byte[]? linear = UnswizzleData(swizzledBaseMipData, width, height, bytesPerPixelForUns);
+                byte[]? linear = UnswizzleData(swizzledBaseMipData, width, height, bytesPerPixelForUns);
                 if (linear != null) {
-                    outputPixels = new Byte[linear.Length];
-                    for (Int32 pix = 0; pix < linear.Length; pix += 4) {
+                    outputPixels = new byte[linear.Length];
+                    for (int pix = 0; pix < linear.Length; pix += 4) {
                         outputPixels[pix + 0] = linear[pix + 2];
                         outputPixels[pix + 1] = linear[pix + 1];
                         outputPixels[pix + 2] = linear[pix + 0];
@@ -461,12 +454,12 @@ public static class Main {
                 if (actualMipDataSize == width * height) {
                     DebugLog($"        A8 format detected. Size: {actualMipDataSize} bytes.");
                     bytesPerPixelForUns = 1;
-                    Byte[]? linear = UnswizzleData(swizzledBaseMipData, width, height, bytesPerPixelForUns);
+                    byte[]? linear = UnswizzleData(swizzledBaseMipData, width, height, bytesPerPixelForUns);
                     if (linear != null) {
-                        outputPixels = new Byte[width * height * 4];
-                        for (Int32 pix = 0; pix < width * height; pix++) {
-                            Byte alpha = linear[pix];
-                            Int32 idx = pix * 4;
+                        outputPixels = new byte[width * height * 4];
+                        for (int pix = 0; pix < width * height; pix++) {
+                            byte alpha = linear[pix];
+                            int idx = pix * 4;
                             outputPixels[idx + 0] = 0;
                             outputPixels[idx + 1] = 0;
                             outputPixels[idx + 2] = 0;
@@ -476,15 +469,15 @@ public static class Main {
                     }
                 } else if (actualMipDataSize == width * height * 2) {
                     bytesPerPixelForUns = 2;
-                    Byte[]? linear = UnswizzleData(swizzledBaseMipData, width, height, bytesPerPixelForUns);
+                    byte[]? linear = UnswizzleData(swizzledBaseMipData, width, height, bytesPerPixelForUns);
                     if (linear != null) {
-                        outputPixels = new Byte[width * height * 4];
+                        outputPixels = new byte[width * height * 4];
                         DebugLog($"        P8A8/L8A8 format detected. Size: {actualMipDataSize} bytes.");
-                        for (Int32 pix = 0; pix < width * height; pix++) {
-                            Int32 idx = pix * 2;
-                            Byte p8 = linear[idx + 0];
-                            Byte a8 = linear[idx + 1];
-                            Int32 outIdx = pix * 4;
+                        for (int pix = 0; pix < width * height; pix++) {
+                            int idx = pix * 2;
+                            byte p8 = linear[idx + 0];
+                            byte a8 = linear[idx + 1];
+                            int outIdx = pix * 4;
                             outputPixels[outIdx + 0] = p8;
                             outputPixels[outIdx + 1] = p8;
                             outputPixels[outIdx + 2] = p8;
@@ -503,31 +496,31 @@ public static class Main {
         }
     }
     private sealed class SegmentScanner {
-        private static readonly Byte[] SigFileStart = { 0x16, 0x00, 0x00, 0x00 };
-        private static readonly Byte[] SigBlockStart = { 0x03, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00 };
-        private static readonly Byte[] TextureNameSignature = { 0x2D, 0x00, 0x02, 0x1C, 0x00, 0x00, 0x00, 0x0A };
-        private static readonly Byte[] EofPrefix = { 0x03, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x2D, 0x00, 0x02, 0x1C, 0x2F, 0xEA, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x2D, 0x00, 0x02, 0x1C };
-        private static readonly Byte[] EofSuffix = { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2D, 0x00, 0x02, 0x1C };
-        private const Int32 LenEofVariablePart = 8;
+        private static readonly byte[] SigFileStart = { 0x16, 0x00, 0x00, 0x00 };
+        private static readonly byte[] SigBlockStart = { 0x03, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00 };
+        private static readonly byte[] TextureNameSignature = { 0x2D, 0x00, 0x02, 0x1C, 0x00, 0x00, 0x00, 0x0A };
+        private static readonly byte[] EofPrefix = { 0x03, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x2D, 0x00, 0x02, 0x1C, 0x2F, 0xEA, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x2D, 0x00, 0x02, 0x1C };
+        private static readonly byte[] EofSuffix = { 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2D, 0x00, 0x02, 0x1C };
+        private const int LenEofVariablePart = 8;
 
-        private readonly Byte[] _data;
-        private readonly String _txdFilePath;
-        private readonly Int32 _lenEofSignature;
+        private readonly byte[] _data;
+        private readonly string _txdFilePath;
+        private readonly int _lenEofSignature;
 
-        public SegmentScanner(Byte[] data, String txdFilePath) {
+        public SegmentScanner(byte[] data, string txdFilePath) {
             _data = data;
             _txdFilePath = txdFilePath;
             _lenEofSignature = EofPrefix.Length + LenEofVariablePart + EofSuffix.Length;
         }
 
-        public (List<Segment> segments, Int32 totalTextures) CollectSegments() {
-            Byte[] data = _data;
+        public (List<Segment> segments, int totalTextures) CollectSegments() {
+            byte[] data = _data;
             List<Segment> segments = [];
 
-            List<Int32> eofOccurrences = [];
-            Int32 searchIdx = 0;
+            List<int> eofOccurrences = [];
+            int searchIdx = 0;
             while (true) {
-                Int32 pos = FindEofPattern(searchIdx);
+                int pos = FindEofPattern(searchIdx);
                 if (pos != -1) {
                     eofOccurrences.Add(pos);
                     searchIdx = pos + 1;
@@ -536,7 +529,7 @@ public static class Main {
                 }
             }
 
-            Int32 totalEofPatterns = eofOccurrences.Count;
+            int totalEofPatterns = eofOccurrences.Count;
             Log.Blue($"  Found {totalEofPatterns} occurrences of EOF_SIGNATURE pattern in the entire file.");
             if (totalEofPatterns != 1) {
                 if (totalEofPatterns == 0) {
@@ -546,32 +539,32 @@ public static class Main {
                 throw new TxdExportException($"  ERROR: Expected 1 EOF pattern, found {totalEofPatterns}. This may indicate a corrupted or incomplete TXD file.");
             }
 
-            Int32 totalSigFileStart = CountOccurrences(data, SigFileStart);
+            int totalSigFileStart = CountOccurrences(data, SigFileStart);
             Log.Blue($"  Found {totalSigFileStart} occurrences of sig_file_start in the entire file.");
 
-            Int32 totalSigBlockStart = CountOccurrences(data, SigBlockStart);
+            int totalSigBlockStart = CountOccurrences(data, SigBlockStart);
             Log.Blue($"  Found {totalSigBlockStart} occurrences of sig_block_start in the entire file.");
 
-            Int32 totalSigCompoundEndMarker = totalSigBlockStart;
+            int totalSigCompoundEndMarker = totalSigBlockStart;
             Log.Blue($"  Found {totalSigCompoundEndMarker} occurrences of sig_compound_end_marker in the entire file.");
 
-            Int32 totalTextureNameSignature = CountOccurrences(data, TextureNameSignature);
+            int totalTextureNameSignature = CountOccurrences(data, TextureNameSignature);
             Log.Blue($"  Found {totalTextureNameSignature} occurrences of texture_name_signature in the entire file.");
 
-            Int32 totalTextures = 0;
+            int totalTextures = 0;
             if (totalSigBlockStart == totalSigCompoundEndMarker && totalSigBlockStart == totalTextureNameSignature) {
                 totalTextures = totalTextureNameSignature;
             }
 
-            Int32 searchPtr;
+            int searchPtr;
             if (StartsWith(data, 0, SigFileStart)) {
                 Log.Cyan("  File starts with sig_file_start (0x16). Processing initial segment.");
-                Int32 startAfter16 = SigFileStart.Length;
-                Int32 posMarker = IndexOf(data, SigBlockStart, startAfter16);
+                int startAfter16 = SigFileStart.Length;
+                int posMarker = IndexOf(data, SigBlockStart, startAfter16);
                 if (posMarker != -1) {
                     if (IsEofPatternAt(posMarker)) {
                         Log.Cyan($"      0x16 segment data (offset 0x{startAfter16:X}) ends before EOF_SIGNATURE pattern found at 0x{posMarker:X}.");
-                        Byte[] segmentData = data.AsSpan(startAfter16, posMarker - startAfter16).ToArray();
+                        byte[] segmentData = data.AsSpan(startAfter16, posMarker - startAfter16).ToArray();
                         if (segmentData.Length > 0) {
                             segments.Add(new Segment(startAfter16, segmentData));
                         }
@@ -579,7 +572,7 @@ public static class Main {
                         searchPtr = data.Length;
                     } else {
                         Log.Cyan($"      0x16 segment data (offset 0x{startAfter16:X}) ends before sig_compound_end_marker at 0x{posMarker:X}.");
-                        Byte[] segmentData = data.AsSpan(startAfter16, posMarker - startAfter16).ToArray();
+                        byte[] segmentData = data.AsSpan(startAfter16, posMarker - startAfter16).ToArray();
                         if (segmentData.Length > 0) {
                             segments.Add(new Segment(startAfter16, segmentData));
                         }
@@ -587,10 +580,10 @@ public static class Main {
                         searchPtr = posMarker;
                     }
                 } else {
-                    Int32 posEof = FindEofPattern(startAfter16);
+                    int posEof = FindEofPattern(startAfter16);
                     if (posEof != -1) {
                         Log.Cyan($"      0x16 segment data (offset 0x{startAfter16:X}) ends before EOF_SIGNATURE pattern (direct find) at 0x{posEof:X}.");
-                        Byte[] segmentData = data.AsSpan(startAfter16, posEof - startAfter16).ToArray();
+                        byte[] segmentData = data.AsSpan(startAfter16, posEof - startAfter16).ToArray();
                         if (segmentData.Length > 0) {
                             segments.Add(new Segment(startAfter16, segmentData));
                         }
@@ -598,7 +591,7 @@ public static class Main {
                         searchPtr = data.Length;
                     } else {
                         Log.Yellow("      Warning: No sig_compound_end_marker or EOF_SIGNATURE pattern found after 0x16 segment start. Assuming 0x16 data to end of file.");
-                        Byte[] segmentData = data.AsSpan(startAfter16).ToArray();
+                        byte[] segmentData = data.AsSpan(startAfter16).ToArray();
                         if (segmentData.Length > 0) {
                             segments.Add(new Segment(startAfter16, segmentData));
                         }
@@ -611,9 +604,9 @@ public static class Main {
                 searchPtr = 0;
             }
 
-            Int32 currentScanPos = searchPtr;
+            int currentScanPos = searchPtr;
             while (currentScanPos < data.Length) {
-                Int32 foundBlockStart = IndexOf(data, SigBlockStart, currentScanPos);
+                int foundBlockStart = IndexOf(data, SigBlockStart, currentScanPos);
                 if (foundBlockStart == -1) {
                     Log.Blue($"  No more sig_block_start (or EOF pattern prefix) found after offset 0x{currentScanPos:X}. Ending 0x14 block scan.");
                     break;
@@ -625,12 +618,12 @@ public static class Main {
                 }
 
                 Log.Cyan($"  Found 0x14 block start signature at file offset 0x{foundBlockStart:X}.");
-                Int32 startAfter14 = foundBlockStart + SigBlockStart.Length;
-                Int32 posNextMarker = IndexOf(data, SigBlockStart, startAfter14);
+                int startAfter14 = foundBlockStart + SigBlockStart.Length;
+                int posNextMarker = IndexOf(data, SigBlockStart, startAfter14);
                 if (posNextMarker != -1) {
                     if (IsEofPatternAt(posNextMarker)) {
                         Log.Cyan($"      0x14 block (data from 0x{startAfter14:X}) ends before EOF_SIGNATURE pattern (found as next marker) at 0x{posNextMarker:X}.");
-                        Byte[] segmentData = data.AsSpan(startAfter14, posNextMarker - startAfter14).ToArray();
+                        byte[] segmentData = data.AsSpan(startAfter14, posNextMarker - startAfter14).ToArray();
                         if (segmentData.Length > 0) {
                             segments.Add(new Segment(startAfter14, segmentData));
                         }
@@ -638,7 +631,7 @@ public static class Main {
                         currentScanPos = data.Length;
                     } else {
                         Log.Cyan($"      0x14 block (data from 0x{startAfter14:X}) ends before next sig_compound_end_marker at 0x{posNextMarker:X}.");
-                        Byte[] segmentData = data.AsSpan(startAfter14, posNextMarker - startAfter14).ToArray();
+                        byte[] segmentData = data.AsSpan(startAfter14, posNextMarker - startAfter14).ToArray();
                         if (segmentData.Length > 0) {
                             segments.Add(new Segment(startAfter14, segmentData));
                         }
@@ -646,10 +639,10 @@ public static class Main {
                         currentScanPos = posNextMarker;
                     }
                 } else {
-                    Int32 posEof = FindEofPattern(startAfter14);
+                    int posEof = FindEofPattern(startAfter14);
                     if (posEof != -1) {
                         Log.Cyan($"      0x14 block (data from 0x{startAfter14:X}) ends before EOF_SIGNATURE pattern (direct find) at 0x{posEof:X}.");
-                        Byte[] segmentData = data.AsSpan(startAfter14, posEof - startAfter14).ToArray();
+                        byte[] segmentData = data.AsSpan(startAfter14, posEof - startAfter14).ToArray();
                         if (segmentData.Length > 0) {
                             segments.Add(new Segment(startAfter14, segmentData));
                         }
@@ -657,7 +650,7 @@ public static class Main {
                         currentScanPos = data.Length;
                     } else {
                         Log.Yellow($"      Warning: For 0x14 block (data from 0x{startAfter14:X}), no subsequent marker or EOF pattern found. Assuming data to end of file.");
-                        Byte[] segmentData = data.AsSpan(startAfter14).ToArray();
+                        byte[] segmentData = data.AsSpan(startAfter14).ToArray();
                         if (segmentData.Length > 0) {
                             segments.Add(new Segment(startAfter14, segmentData));
                         }
@@ -669,7 +662,7 @@ public static class Main {
 
             if (segments.Count == 0 && StartsWith(data, 0, SigFileStart) && data.Length > 0x28) {
                 Log.Yellow("  No segments found by primary rules, but file starts with 0x16. Defaulting to process from offset 0x28 (Noesis-style).");
-                Int32 eofFallback = FindEofPattern(0x28);
+                int eofFallback = FindEofPattern(0x28);
                 if (eofFallback != -1) {
                     segments.Add(new Segment(0x28, data.AsSpan(0x28, eofFallback - 0x28).ToArray()));
                 } else {
@@ -682,10 +675,10 @@ public static class Main {
             Log.Blue($"\n  Found {segments.Count} segment(s) to process in '{_txdFilePath}'.");
             return (segments, totalTextures);
         }
-        private Int32 FindEofPattern(Int32 searchStartOffset) {
-            Byte[] data = _data;
+        private int FindEofPattern(int searchStartOffset) {
+            byte[] data = _data;
             while (searchStartOffset <= data.Length - _lenEofSignature) {
-                Int32 prefixPos = IndexOf(data, EofPrefix, searchStartOffset);
+                int prefixPos = IndexOf(data, EofPrefix, searchStartOffset);
                 if (prefixPos == -1) {
                     return -1;
                 }
@@ -694,7 +687,7 @@ public static class Main {
                     return -1;
                 }
 
-                Int32 expectedSuffixPos = prefixPos + EofPrefix.Length + LenEofVariablePart;
+                int expectedSuffixPos = prefixPos + EofPrefix.Length + LenEofVariablePart;
                 if (StartsWith(data, expectedSuffixPos, EofSuffix)) {
                     return prefixPos;
                 }
@@ -704,7 +697,7 @@ public static class Main {
             return -1;
         }
 
-        private Boolean IsEofPatternAt(Int32 position) {
+        private bool IsEofPatternAt(int position) {
             if (position < 0 || position + _lenEofSignature > _data.Length) {
                 return false;
             }
@@ -713,24 +706,24 @@ public static class Main {
                 return false;
             }
 
-            Int32 expectedSuffixStart = position + EofPrefix.Length + LenEofVariablePart;
+            int expectedSuffixStart = position + EofPrefix.Length + LenEofVariablePart;
             return StartsWith(_data, expectedSuffixStart, EofSuffix);
         }
     }
     private sealed class TextureSegmentProcessor {
         private readonly TextureFormatConverter _converter = new();
-        private static readonly Byte[] NameSignature = { 0x2D, 0x00, 0x02, 0x1C, 0x00, 0x00, 0x00, 0x0A };
-        private static readonly HashSet<Byte> KnownFormatCodes = [0x52, 0x53, 0x54, 0x86, 0x02];
-        private static readonly Int32 NameSignatureLength = NameSignature.Length;
+        private static readonly byte[] NameSignature = { 0x2D, 0x00, 0x02, 0x1C, 0x00, 0x00, 0x00, 0x0A };
+        private static readonly HashSet<byte> KnownFormatCodes = [0x52, 0x53, 0x54, 0x86, 0x02];
+        private static readonly int NameSignatureLength = NameSignature.Length;
 
-        public Int32 ProcessSegment(Segment segment, String outputDir) {
-            Byte[] segmentData = segment.Data;
-            Int32 segmentOriginalStartOffset = segment.StartOffset;
-            Int32 texturesFound = 0;
-            Int32 i = 0;
+        public int ProcessSegment(Segment segment, string outputDir) {
+            byte[] segmentData = segment.Data;
+            int segmentOriginalStartOffset = segment.StartOffset;
+            int texturesFound = 0;
+            int i = 0;
             NameInfo? currentName = null;
 
-            Log.Cyan($"  Scanning data segment (len {segmentData.Length}) for textures using signature {BitConverter.ToString(NameSignature).Replace("-", String.Empty).ToLowerInvariant()}...");
+            Log.Cyan($"  Scanning data segment (len {segmentData.Length}) for textures using signature {System.BitConverter.ToString(NameSignature).Replace("-", string.Empty).ToLowerInvariant()}...");
 
             while (i < segmentData.Length) {
                 if (currentName?.ProcessedMeta == true) {
@@ -738,16 +731,16 @@ public static class Main {
                 }
 
                 if (i + NameSignatureLength <= segmentData.Length && StartsWith(segmentData, i, NameSignature)) {
-                    Int32 nameSigOffset = i;
-                    Int32 nameStringStart = nameSigOffset + 12;
-                    Int32 nameEndScan = nameStringStart;
+                    int nameSigOffset = i;
+                    int nameStringStart = nameSigOffset + 12;
+                    int nameEndScan = nameStringStart;
                     Log.Green($"    name_sig_offset_in_segment = 0x{nameSigOffset:X} (file offset 0x{segmentOriginalStartOffset + nameSigOffset:X})");
                     Log.Green($"    name_string_start_offset_in_segment = 0x{nameStringStart:X} (file offset 0x{segmentOriginalStartOffset + nameStringStart:X})");
                     Log.Green($"    name_end_scan_in_segment = 0x{nameEndScan:X} (file offset 0x{segmentOriginalStartOffset + nameEndScan:X})");
-                    Log.Green($"    Found name signature {BitConverter.ToString(NameSignature).Replace("-", String.Empty).ToLowerInvariant()} at seg_offset 0x{nameSigOffset:X} (file offset 0x{segmentOriginalStartOffset + nameSigOffset:X})");
+                    Log.Green($"    Found name signature {System.BitConverter.ToString(NameSignature).Replace("-", string.Empty).ToLowerInvariant()} at seg_offset 0x{nameSigOffset:X} (file offset 0x{segmentOriginalStartOffset + nameSigOffset:X})");
 
                     if (nameStringStart + 2 > segmentData.Length) {
-                        Log.Yellow($"    WARNING: Found name signature {BitConverter.ToString(NameSignature).Replace("-", String.Empty).ToLowerInvariant()} at seg_offset 0x{nameSigOffset:X}, but not enough data for name string (expected at 0x{nameStringStart:X}).");
+                        Log.Yellow($"    WARNING: Found name signature {System.BitConverter.ToString(NameSignature).Replace("-", string.Empty).ToLowerInvariant()} at seg_offset 0x{nameSigOffset:X}, but not enough data for name string (expected at 0x{nameStringStart:X}).");
                         i = nameSigOffset + 1;
                         continue;
                     }
@@ -757,17 +750,17 @@ public static class Main {
                     }
 
                     if (nameEndScan < segmentData.Length - 1 && segmentData[nameEndScan] == 0x00 && segmentData[nameEndScan + 1] == 0x00) {
-                        Span<Byte> nameBytes = segmentData.AsSpan(nameStringStart, nameEndScan - nameStringStart);
-                        String? nameValue;
+                        System.Span<byte> nameBytes = segmentData.AsSpan(nameStringStart, nameEndScan - nameStringStart);
+                        string? nameValue;
                         try {
                             nameValue = Utf8NoBom.GetString(nameBytes).Trim();
                         } catch {
-                            nameValue = BitConverter.ToString(nameBytes.ToArray()).Replace("-", String.Empty);
+                            nameValue = System.BitConverter.ToString(nameBytes.ToArray()).Replace("-", string.Empty);
                         }
 
-                        if (String.IsNullOrWhiteSpace(nameValue)) {
+                        if (string.IsNullOrWhiteSpace(nameValue)) {
                             nameValue = $"unnamed_texture_at_0x{segmentOriginalStartOffset + nameSigOffset:08X}";
-                            Log.Red($"    WARNING: Name string parsing failed for signature {BitConverter.ToString(NameSignature).Replace("-", String.Empty).ToLowerInvariant()} at seg_offset 0x{nameSigOffset:X}. Using fallback name '{nameValue}' (sig at file 0x{segmentOriginalStartOffset + nameSigOffset:X}).");
+                            Log.Red($"    WARNING: Name string parsing failed for signature {System.BitConverter.ToString(NameSignature).Replace("-", string.Empty).ToLowerInvariant()} at seg_offset 0x{nameSigOffset:X}. Using fallback name '{nameValue}' (sig at file 0x{segmentOriginalStartOffset + nameSigOffset:X}).");
                         }
 
                         if (currentName is not null && !currentName.ProcessedMeta) {
@@ -775,11 +768,11 @@ public static class Main {
                         }
 
                         currentName = new NameInfo(nameValue, nameSigOffset, segmentOriginalStartOffset + nameSigOffset);
-                        Log.Cyan($"    Parsed name: '{currentName.Name}' (signature {BitConverter.ToString(NameSignature).Replace("-", String.Empty).ToLowerInvariant()} at seg_offset 0x{nameSigOffset:X}, file 0x{currentName.OriginalFileOffset:X})");
+                        Log.Cyan($"    Parsed name: '{currentName.Name}' (signature {System.BitConverter.ToString(NameSignature).Replace("-", string.Empty).ToLowerInvariant()} at seg_offset 0x{nameSigOffset:X}, file 0x{currentName.OriginalFileOffset:X})");
                         i = nameEndScan + 2;
 
-                        Int32 firstNonZeroAfterName = -1;
-                        Int32 scanPtrForNonZero = i;
+                        int firstNonZeroAfterName = -1;
+                        int scanPtrForNonZero = i;
                         while (scanPtrForNonZero < segmentData.Length) {
                             if (segmentData[scanPtrForNonZero] != 0x00) {
                                 firstNonZeroAfterName = scanPtrForNonZero;
@@ -792,11 +785,11 @@ public static class Main {
                             throw new TxdExportException($"      FATAL ERROR: No non-00 byte found after name '{currentName.Name}' (File Offset: 0x{currentName.OriginalFileOffset:X}) to start metadata search.");
                         }
 
-                        Int32 offsetOf01Marker = -1;
-                        Int32 scannedFmtCode = -1;
-                        for (Int32 scan = firstNonZeroAfterName; scan < segmentData.Length - 1; scan++) {
+                        int offsetOf01Marker = -1;
+                        int scannedFmtCode = -1;
+                        for (int scan = firstNonZeroAfterName; scan < segmentData.Length - 1; scan++) {
                             if (segmentData[scan] == 0x01) {
-                                Byte potential = segmentData[scan + 1];
+                                byte potential = segmentData[scan + 1];
                                 if (KnownFormatCodes.Contains(potential)) {
                                     offsetOf01Marker = scan;
                                     scannedFmtCode = potential;
@@ -809,7 +802,7 @@ public static class Main {
                             throw new TxdExportException($"      FATAL ERROR: Metadata signature (01 <known_fmt_code>) not found for '{currentName.Name}' (File Offset: 0x{currentName.OriginalFileOffset:X}) after first non-00 byte at seg_offset 0x{firstNonZeroAfterName:X}.");
                         }
 
-                        Int32 metaOffset = offsetOf01Marker - 2;
+                        int metaOffset = offsetOf01Marker - 2;
                         if (metaOffset < 0) {
                             throw new TxdExportException($"      FATAL ERROR: Calculated metadata block start (seg_offset 0x{metaOffset:X}) is negative for '{currentName.Name}' (01_marker at 0x{offsetOf01Marker:X}). Structural issue.");
                         }
@@ -818,25 +811,25 @@ public static class Main {
                             throw new TxdExportException($"      FATAL ERROR: Not enough data for 16-byte metadata block for '{currentName.Name}' (File Offset: 0x{currentName.OriginalFileOffset:X}). Needed 16 bytes from calculated seg_offset 0x{metaOffset:X}, segment length {segmentData.Length}.");
                         }
 
-                        Span<Byte> metadata = segmentData.AsSpan(metaOffset, 16);
-                        Byte fmtCodeFromBlock = metadata[3];
+                        System.Span<byte> metadata = segmentData.AsSpan(metaOffset, 16);
+                        byte fmtCodeFromBlock = metadata[3];
                         if (fmtCodeFromBlock != scannedFmtCode) {
                             throw new TxdExportException($"      FATAL ERROR: Format code mismatch for '{currentName.Name}'. Scanned 01 {scannedFmtCode:02X} (fmt_code at seg_offset 0x{offsetOf01Marker + 1:X}), but metadata_bytes[3] (at seg_offset 0x{metaOffset + 3:X}) is {fmtCodeFromBlock:02X}. Alignment error.");
                         }
 
-                        Byte fmtCode = fmtCodeFromBlock;
+                        byte fmtCode = fmtCodeFromBlock;
                         Log.Cyan($"      Processing metadata for '{currentName.Name}' (Format Code 0x{fmtCode:02X} from metadata at seg_offset 0x{metaOffset:X})");
-                        UInt16 width = BinaryPrimitives.ReadUInt16BigEndian(metadata.Slice(4, 2));
-                        UInt16 height = BinaryPrimitives.ReadUInt16BigEndian(metadata.Slice(6, 2));
-                        Byte mipMapCountFromFile = metadata[9];
-                        UInt32 totalPixelDataSize = BinaryPrimitives.ReadUInt32LittleEndian(metadata.Slice(12, 4));
+                        ushort width = System.Buffers.Binary.BinaryPrimitives.ReadUInt16BigEndian(metadata.Slice(4, 2));
+                        ushort height = System.Buffers.Binary.BinaryPrimitives.ReadUInt16BigEndian(metadata.Slice(6, 2));
+                        byte mipMapCountFromFile = metadata[9];
+                        System.UInt32 totalPixelDataSize = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(metadata.Slice(12, 4));
                         Log.Cyan($"        Meta Details - W: {width}, H: {height}, MipsFromFile: {mipMapCountFromFile}, DataSize: {totalPixelDataSize}");
 
                         if (width == 0 || height == 0) {
                             if (width == 0 && height == 0) {
                                 Log.Yellow($"          Skipping '{currentName.Name}' (File Offset: 0x{currentName.OriginalFileOffset:X}) due to zero dimensions (placeholder).");
                                 currentName.MarkProcessed();
-                                i = Math.Min(metaOffset + 16, segmentData.Length);
+                                i = System.Math.Min(metaOffset + 16, segmentData.Length);
                                 continue;
                             }
                             throw new TxdExportException($"          FATAL ERROR: Invalid metadata (W:{width}, H:{height}, one is zero) for '{currentName.Name}' (File Offset: 0x{currentName.OriginalFileOffset:X}).");
@@ -846,40 +839,40 @@ public static class Main {
                             throw new TxdExportException($"          FATAL ERROR: Invalid metadata (Size:{totalPixelDataSize} with W:{width}, H:{height}) for '{currentName.Name}' (File Offset: 0x{currentName.OriginalFileOffset:X}).");
                         }
 
-                        Int32 pixelDataStart = metaOffset + 16;
-                        Int32 actualMipDataSize = (Int32)totalPixelDataSize;
+                        int pixelDataStart = metaOffset + 16;
+                        int actualMipDataSize = (int)totalPixelDataSize;
                         if (pixelDataStart + actualMipDataSize > segmentData.Length) {
                             throw new TxdExportException($"          FATAL ERROR: Not enough pixel data for '{currentName.Name}' (File Offset: 0x{currentName.OriginalFileOffset:X}). Expected {actualMipDataSize} from seg_offset 0x{pixelDataStart:X}, available: {segmentData.Length - pixelDataStart}.");
                         }
 
-                        Span<Byte> swizzledBaseMipData = segmentData.AsSpan(pixelDataStart, actualMipDataSize);
+                        System.Span<byte> swizzledBaseMipData = segmentData.AsSpan(pixelDataStart, actualMipDataSize);
                         ConversionResult conversion = _converter.Convert(fmtCode, width, height, mipMapCountFromFile, swizzledBaseMipData, actualMipDataSize, segmentOriginalStartOffset, currentName);
 
                         if (conversion.Header == null || conversion.Pixels == null) {
-                            String reason = conversion.NeedsUnswizzle && conversion.Pixels == null
+                            string reason = conversion.NeedsUnswizzle && conversion.Pixels == null
                                 ? $"failed to unswizzle data (format 0x{fmtCode:02X}, {conversion.BytesPerPixel}bpp)"
                                 : "pixel data processing failed";
                             throw new TxdExportException($"          FATAL ERROR: Failed to generate exportable DDS data for known format 0x{fmtCode:02X} for texture '{currentName.Name}' (File 0x{currentName.OriginalFileOffset:X}). Reason: {reason}.");
                         }
 
-                        String cleanName = SanitizeFilename(currentName.Name) ?? $"texture_at_0x{currentName.OriginalFileOffset:08X}";
-                        String ddsFile = Path.Combine(outputDir, cleanName + ".dds");
+                        string cleanName = SanitizeFilename(currentName.Name) ?? $"texture_at_0x{currentName.OriginalFileOffset:08X}";
+                        string ddsFile = System.IO.Path.Combine(outputDir, cleanName + ".dds");
                         try {
-                            using FileStream fs = File.Create(ddsFile);
+                            using System.IO.FileStream fs = System.IO.File.Create(ddsFile);
                             fs.Write(conversion.Header, 0, conversion.Header.Length);
                             fs.Write(conversion.Pixels, 0, conversion.Pixels.Length);
-                        } catch (IOException ex) {
+                        } catch (System.IO.IOException ex) {
                             throw new TxdExportException($"          FATAL ERROR: IOError writing DDS file {ddsFile} for '{currentName.Name}': {ex.Message}");
                         }
 
                         Log.Cyan($"          Successfully exported: {ddsFile} (Format: {conversion.Format}, {width}x{height})");
                         texturesFound += 1;
                         currentName.MarkProcessed();
-                        i = Math.Min(pixelDataStart + actualMipDataSize, segmentData.Length);
+                        i = System.Math.Min(pixelDataStart + actualMipDataSize, segmentData.Length);
                         continue;
                     }
 
-                    Log.Yellow($"    WARNING: Name signature {BitConverter.ToString(NameSignature).Replace("-", String.Empty).ToLowerInvariant()} at seg_offset 0x{nameSigOffset:X} (file 0x{segmentOriginalStartOffset + nameSigOffset:X}) failed full name parsing (no double null found).");
+                    Log.Yellow($"    WARNING: Name signature {System.BitConverter.ToString(NameSignature).Replace("-", string.Empty).ToLowerInvariant()} at seg_offset 0x{nameSigOffset:X} (file 0x{segmentOriginalStartOffset + nameSigOffset:X}) failed full name parsing (no double null found).");
                     if (currentName is not null && !currentName.ProcessedMeta) {
                         Log.Yellow($"      WARNING: Discarding pending name '{currentName.Name}' (sig at file 0x{currentName.OriginalFileOffset:X}) due to malformed subsequent name signature.");
                     }
@@ -900,25 +893,25 @@ public static class Main {
         }
     }
     private sealed class TxdExporter {
-        public (Int32 totalTexturesExported, Int32 filesProcessed, Int32 filesWithExports) ExportPath(String inputPathAbs, String? outputDirBaseArg) {
-            Int32 overallTexturesExported = 0;
-            Int32 filesProcessedCount = 0;
-            Int32 filesWithExports = 0;
+        public (int totalTexturesExported, int filesProcessed, int filesWithExports) ExportPath(string inputPathAbs, string? outputDirBaseArg) {
+            int overallTexturesExported = 0;
+            int filesProcessedCount = 0;
+            int filesWithExports = 0;
 
-            if (!File.Exists(inputPathAbs) && !Directory.Exists(inputPathAbs)) {
+            if (!System.IO.File.Exists(inputPathAbs) && !System.IO.Directory.Exists(inputPathAbs)) {
                 throw new TxdExportException($"Error: Input path '{inputPathAbs}' does not exist.");
             }
 
-            List<String> txdFilesToProcess = [];
-            if (File.Exists(inputPathAbs)) {
-                if (!inputPathAbs.EndsWith(".txd", StringComparison.OrdinalIgnoreCase)) {
+            List<string> txdFilesToProcess = [];
+            if (System.IO.File.Exists(inputPathAbs)) {
+                if (!inputPathAbs.EndsWith(".txd", System.StringComparison.OrdinalIgnoreCase)) {
                     throw new TxdExportException($"Error: Input file '{inputPathAbs}' is not a .txd file.");
                 }
 
                 txdFilesToProcess.Add(inputPathAbs);
             } else {
                 Log.Cyan($"Scanning directory: {inputPathAbs}");
-                foreach (String file in Directory.EnumerateFiles(inputPathAbs, "*.txd", SearchOption.AllDirectories)) {
+                foreach (string file in System.IO.Directory.EnumerateFiles(inputPathAbs, "*.txd", System.IO.SearchOption.AllDirectories)) {
                     txdFilesToProcess.Add(file);
                 }
 
@@ -934,18 +927,18 @@ public static class Main {
 
             Log.Cyan($"Found {txdFilesToProcess.Count} .txd file(s) to process.");
 
-            String lastUsedOutputBaseForSummary = String.Empty;
-            foreach (String txdFile in txdFilesToProcess) {
-                String? currentOutputDirBase = outputDirBaseArg;
-                if (String.IsNullOrEmpty(currentOutputDirBase)) {
-                    String baseDir = Path.GetDirectoryName(txdFile) ?? Directory.GetCurrentDirectory();
-                    String baseName = Path.GetFileNameWithoutExtension(txdFile);
-                    currentOutputDirBase = Path.Combine(baseDir, baseName + "_txd");
+            string lastUsedOutputBaseForSummary = string.Empty;
+            foreach (string txdFile in txdFilesToProcess) {
+                string? currentOutputDirBase = outputDirBaseArg;
+                if (string.IsNullOrEmpty(currentOutputDirBase)) {
+                    string baseDir = System.IO.Path.GetDirectoryName(txdFile) ?? System.IO.Directory.GetCurrentDirectory();
+                    string baseName = System.IO.Path.GetFileNameWithoutExtension(txdFile);
+                    currentOutputDirBase = System.IO.Path.Combine(baseDir, baseName + "_txd");
                 }
 
                 lastUsedOutputBaseForSummary = currentOutputDirBase!;
                 Log.Cyan($"\n--- Processing file: {txdFile} ---");
-                Int32 texturesInFile = ExportTexturesFromTxd(txdFile, currentOutputDirBase!);
+                int texturesInFile = ExportTexturesFromTxd(txdFile, currentOutputDirBase!);
                 overallTexturesExported += texturesInFile;
                 filesProcessedCount += 1;
                 if (texturesInFile > 0) {
@@ -960,10 +953,10 @@ public static class Main {
                 Log.Cyan($"Files with at least one texture exported: {filesWithExports}.");
                 Log.Cyan($"Total textures exported across all files: {overallTexturesExported}.");
                 if (overallTexturesExported > 0) {
-                    if (!String.IsNullOrEmpty(outputDirBaseArg)) {
+                    if (!string.IsNullOrEmpty(outputDirBaseArg)) {
                         Log.Cyan($"Base output directory specified: '{outputDirBaseArg}' (TXD-specific subfolders created within).");
                     } else {
-                        Log.Cyan($"Output subdirectories created relative to each input TXD file's location (e.g., '{Path.Combine(lastUsedOutputBaseForSummary, "examplename_txd")}').");
+                        Log.Cyan($"Output subdirectories created relative to each input TXD file's location (e.g., '{System.IO.Path.Combine(lastUsedOutputBaseForSummary, "examplename_txd")}').");
                     }
                 }
                 if (filesProcessedCount == 858 && overallTexturesExported != 7318) {
@@ -976,36 +969,36 @@ public static class Main {
             return (overallTexturesExported, filesProcessedCount, filesWithExports);
         }
 
-    public Int32 ExportTexturesFromTxd(String txdFilePath, String outputDirBase) {
+    public int ExportTexturesFromTxd(string txdFilePath, string outputDirBase) {
             Log.Cyan($"Processing TXD file: {txdFilePath}");
-            Byte[] data;
+            byte[] data;
             try {
-                data = File.ReadAllBytes(txdFilePath);
-            } catch (FileNotFoundException) {
+                data = System.IO.File.ReadAllBytes(txdFilePath);
+            } catch (System.IO.FileNotFoundException) {
                 Log.Red($"Error: File not found: {txdFilePath}");
                 return 0;
-            } catch (Exception ex) {
+            } catch (System.Exception ex) {
                 Log.Red($"Error reading file {txdFilePath}: {ex.Message}");
                 return 0;
             }
 
-            if (!Directory.Exists(outputDirBase)) {
+            if (!System.IO.Directory.Exists(outputDirBase)) {
                 try {
-                    _ = Directory.CreateDirectory(outputDirBase);
+                    _ = System.IO.Directory.CreateDirectory(outputDirBase);
                     Log.Cyan($"  Created output directory: {outputDirBase}");
-                } catch (Exception ex) {
+                } catch (System.Exception ex) {
                     throw new TxdExportException($"  Error: Could not create output directory {outputDirBase}: {ex.Message}. Textures from this TXD cannot be saved.");
                 }
             }
 
             SegmentScanner scanner = new(data, txdFilePath);
-            (List<Segment> segments, Int32 totalTextures) = scanner.CollectSegments();
+            (List<Segment> segments, int totalTextures) = scanner.CollectSegments();
             if (segments.Count == 0) {
                 return 0;
             }
 
-            Int32 totalTexturesExportedFromFile = 0;
-            for (Int32 index = 0; index < segments.Count; index++) {
+            int totalTexturesExportedFromFile = 0;
+            for (int index = 0; index < segments.Count; index++) {
                 Segment segment = segments[index];
                 if (segment.Data.Length == 0) {
                     Log.Yellow($"\n  Skipping zero-length segment #{index + 1} (intended to start at file offset 0x{segment.StartOffset:X}).");
@@ -1013,7 +1006,7 @@ public static class Main {
                 }
 
                 Log.Cyan($"\n  Processing segment #{index + 1}: data starts at file offset 0x{segment.StartOffset:X}, segment length {segment.Data.Length} bytes.");
-                Int32 texturesInSegment = new TextureSegmentProcessor().ProcessSegment(segment, outputDirBase);
+                int texturesInSegment = new TextureSegmentProcessor().ProcessSegment(segment, outputDirBase);
                 totalTexturesExportedFromFile += texturesInSegment;
             }
 
@@ -1030,46 +1023,46 @@ public static class Main {
             return totalTexturesExportedFromFile;
         }
     }
-
     private static class Log {
-        private static readonly Object Sync = new();
+        private static readonly object Sync = new();
 
-        public static void Cyan(String message) {
-            Write(ConsoleColor.Cyan, message);
+        public static void Cyan(string message) {
+            Write(System.ConsoleColor.Cyan, message);
         }
 
-        public static void Blue(String message) {
-            Write(ConsoleColor.Blue, message);
+        public static void Blue(string message) {
+            Write(System.ConsoleColor.Blue, message);
         }
 
-        public static void Green(String message) {
-            Write(ConsoleColor.Green, message);
+        public static void Green(string message) {
+            Write(System.ConsoleColor.Green, message);
         }
 
-        public static void Yellow(String message) {
-            Write(ConsoleColor.Yellow, message);
+        public static void Yellow(string message) {
+            Write(System.ConsoleColor.Yellow, message);
         }
 
-        public static void Red(String message) {
-            Write(ConsoleColor.Red, message, true);
+        public static void Red(string message) {
+            Write(System.ConsoleColor.Red, message, true);
         }
 
-        public static void Gray(String message) {
-            Write(ConsoleColor.DarkGray, message);
+        public static void Gray(string message) {
+            Write(System.ConsoleColor.DarkGray, message);
         }
 
-        private static void Write(ConsoleColor colour, String message, Boolean isError = false) {
+        private static void Write(System.ConsoleColor colour, string message, bool isError = false) {
             #if DEBUG
             lock (Sync) {
-                ConsoleColor previous = Console.ForegroundColor;
-                Console.ForegroundColor = colour;
-                if (isError) {
-                    Console.Error.WriteLine(message);
-                } else {
-                    Console.WriteLine(message);
-                }
+                // Todo Use SDK events
+                //ConsoleColor previous = Console.ForegroundColor;
+                //Console.ForegroundColor = colour;
+                //if (isError) {
+                //    Console.Error.WriteLine(message);
+                //} else {
+                //    Console.WriteLine(message);
+                //}
 
-                Console.ForegroundColor = previous;
+                //Console.ForegroundColor = previous;
             }
             #else
             return;
@@ -1077,40 +1070,37 @@ public static class Main {
         }
     }
 
-
-    private static Int32 CountOccurrences(ReadOnlySpan<Byte> data, ReadOnlySpan<Byte> pattern) {
+    private static int CountOccurrences(System.ReadOnlySpan<byte> data, System.ReadOnlySpan<byte> pattern) {
         if (pattern.IsEmpty || data.IsEmpty || pattern.Length > data.Length) {
             return 0;
         }
+        int count = 0;
+        int index = 0;
 
-        Int32 count = 0;
-        Int32 index = 0;
         while (index <= data.Length - pattern.Length) {
-            Int32 found = data[index..].IndexOf(pattern);
-            if (found == -1) {
+            int found = System.MemoryExtensions.IndexOf(data.Slice(index), pattern);
+            if (found == -1)
                 break;
-            }
 
             count += 1;
-            index += found + 1;
+            index += found + 1; // advance at least 1 to allow overlapping matches
         }
+
         return count;
     }
 
-    private static Int32 IndexOf(ReadOnlySpan<Byte> data, ReadOnlySpan<Byte> pattern, Int32 start) {
-        if (pattern.IsEmpty) {
+    private static int IndexOf(System.ReadOnlySpan<byte> data, System.ReadOnlySpan<byte> pattern, int start) {
+        if (pattern.IsEmpty)
             return start <= data.Length ? start : -1;
-        }
 
-        if (start < 0 || start > data.Length - pattern.Length) {
+        if (start < 0 || start > data.Length - pattern.Length)
             return -1;
-        }
 
-        Int32 pos = data[start..].IndexOf(pattern);
+        int pos = System.MemoryExtensions.IndexOf(data.Slice(start), pattern); // fully qualified
         return pos == -1 ? -1 : start + pos;
     }
 
-    private static Boolean StartsWith(ReadOnlySpan<Byte> data, Int32 offset, ReadOnlySpan<Byte> pattern) {
-        return pattern.IsEmpty || (offset >= 0 && offset + pattern.Length <= data.Length && data.Slice(offset, pattern.Length).SequenceEqual(pattern));
+    private static bool StartsWith(System.ReadOnlySpan<byte> data, int offset, System.ReadOnlySpan<byte> pattern) {
+        return pattern.IsEmpty || (offset >= 0 && offset + pattern.Length <= data.Length && System.MemoryExtensions.SequenceEqual(data.Slice(offset, pattern.Length), pattern));
     }
 }

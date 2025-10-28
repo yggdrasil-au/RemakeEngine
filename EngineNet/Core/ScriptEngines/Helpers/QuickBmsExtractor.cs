@@ -1,24 +1,20 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-
-
 namespace EngineNet.Core.ScriptEngines.Helpers;
 
 /// <summary>
 /// Provides a built-in replacement for EnginePy\FormatHandlers\bms_extract.py.
 /// Wraps QuickBMS execution for matching files while mirroring the original CLI options.
 /// </summary>
-public static class QuickBmsExtractor {
+internal static class QuickBmsExtractor {
     private sealed class Options {
-        public String QuickBmsExe = String.Empty;
-        public String BmsScript = String.Empty;
-        public String InputPath = String.Empty;
-        public String OutputPath = String.Empty;
-        public String Extension = "*";
-        public Boolean Overwrite;
-        public List<String> Targets { get; } = new List<String>();
+        public string QuickBmsExe = string.Empty;
+        public string BmsScript = string.Empty;
+        public string InputPath = string.Empty;
+        public string OutputPath = string.Empty;
+        public string Extension = "*";
+        public bool Overwrite;
+        public List<string> Targets { get; } = new List<string>();
     }
 
     /// <summary>
@@ -26,11 +22,11 @@ public static class QuickBmsExtractor {
     /// </summary>
     /// <param name="args">CLI-style args: --quickbms PATH, --script PATH, --input DIR, --output DIR, [--extension EXT], [--overwrite], [targets...]</param>
     /// <returns>True when all processed files succeeded; false otherwise.</returns>
-    public static Boolean Run(IList<String> args) {
+    public static bool Run(IList<string> args) {
         Options options;
         try {
             options = Parse(args);
-        } catch (ArgumentException ex) {
+        } catch (System.ArgumentException ex) {
             WriteError(ex.Message);
             return false;
         }
@@ -39,25 +35,25 @@ public static class QuickBmsExtractor {
         options.BmsScript = NormalizePath(options.BmsScript);
         options.InputPath = NormalizePath(options.InputPath);
         options.OutputPath = NormalizePath(options.OutputPath);
-        for (Int32 i = 0; i < options.Targets.Count; i++) {
+        for (int i = 0; i < options.Targets.Count; i++) {
             options.Targets[i] = NormalizePath(options.Targets[i]);
         }
 
-        if (!File.Exists(options.QuickBmsExe)) {
+        if (!System.IO.File.Exists(options.QuickBmsExe)) {
             WriteError($"QuickBMS executable not found: {options.QuickBmsExe}");
             return false;
         }
-        if (!File.Exists(options.BmsScript)) {
+        if (!System.IO.File.Exists(options.BmsScript)) {
             WriteError($"BMS script not found: {options.BmsScript}");
             return false;
         }
-        if (!Directory.Exists(options.OutputPath)) {
-            Directory.CreateDirectory(options.OutputPath);
+        if (!System.IO.Directory.Exists(options.OutputPath)) {
+            System.IO.Directory.CreateDirectory(options.OutputPath);
         }
 
-        String ext = NormalizeExtension(options.Extension);
-        String extensionLabel = ext == "*" ? "extracted" : ext.TrimStart('.');
-        List<String> files = ResolveFiles(options, ext).ToList();
+        string ext = NormalizeExtension(options.Extension);
+        string extensionLabel = ext == "*" ? "extracted" : ext.TrimStart('.');
+        List<string> files = ResolveFiles(options, ext).ToList();
         if (files.Count == 0) {
             WriteWarn($"No files found matching extension '{options.Extension}' under provided targets.");
             return false;
@@ -67,18 +63,18 @@ public static class QuickBmsExtractor {
         WriteInfo($"Found {files.Count} file(s) to process.");
 
         Sys.ProcessRunner runner = new Sys.ProcessRunner();
-        Boolean okAll = true;
-        Int32 done = 0;
-        Int32 succeeded = 0;
-        foreach (String? file in files) {
+        bool okAll = true;
+        int done = 0;
+        int succeeded = 0;
+        foreach (string? file in files) {
             done++;
-            String relative = GetSafeRelative(options.InputPath, file);
-            String outputDir = BuildOutputDirectory(options.OutputPath, relative, file, extensionLabel);
-            Directory.CreateDirectory(outputDir);
+            string relative = GetSafeRelative(options.InputPath, file);
+            string outputDir = BuildOutputDirectory(options.OutputPath, relative, file, extensionLabel);
+            System.IO.Directory.CreateDirectory(outputDir);
 
             WriteInfo($"[{done}/{files.Count}] Extracting '{file}' -> '{outputDir}'.");
 
-            List<String> command = new List<String> {
+            List<string> command = new List<string> {
                 options.QuickBmsExe,
                 options.Overwrite ? "-o" : "-k",
                 options.BmsScript,
@@ -86,10 +82,10 @@ public static class QuickBmsExtractor {
                 outputDir
             };
 
-            Dictionary<String, Object?> env = new Dictionary<String, Object?> { ["TERM"] = "dumb" };
-            Boolean ok = runner.Execute(
+            Dictionary<string, object?> env = new Dictionary<string, object?> { ["TERM"] = "dumb" };
+            bool ok = runner.Execute(
                 command,
-                Path.GetFileName(file),
+                System.IO.Path.GetFileName(file),
                 onOutput: ForwardProcessOutput,
                 envOverrides: env);
 
@@ -105,14 +101,14 @@ public static class QuickBmsExtractor {
         return okAll;
     }
 
-    private static Options Parse(IList<String> args) {
+    private static Options Parse(IList<string> args) {
         if (args is null || args.Count == 0) {
-            throw new ArgumentException("No arguments provided for QuickBMS extractor.");
+            throw new System.ArgumentException("No arguments provided for QuickBMS extractor.");
         }
 
         Options options = new Options();
-        for (Int32 i = 0; i < args.Count; i++) {
-            String current = args[i];
+        for (int i = 0; i < args.Count; i++) {
+            string current = args[i];
             switch (current) {
                 case "-e":
                 case "--quickbms":
@@ -139,7 +135,7 @@ public static class QuickBmsExtractor {
                     break;
                 default:
                     if (current.StartsWith('-')) {
-                        throw new ArgumentException($"Unknown argument '{current}'.");
+                        throw new System.ArgumentException($"Unknown argument '{current}'.");
                     }
 
                     options.Targets.Add(current);
@@ -147,23 +143,23 @@ public static class QuickBmsExtractor {
             }
         }
 
-        if (String.IsNullOrWhiteSpace(options.QuickBmsExe)) {
-            throw new ArgumentException("--quickbms is required.");
+        if (string.IsNullOrWhiteSpace(options.QuickBmsExe)) {
+            throw new System.ArgumentException("--quickbms is required.");
         }
 
-        if (String.IsNullOrWhiteSpace(options.BmsScript)) {
-            throw new ArgumentException("--script is required.");
+        if (string.IsNullOrWhiteSpace(options.BmsScript)) {
+            throw new System.ArgumentException("--script is required.");
         }
 
-        if (String.IsNullOrWhiteSpace(options.InputPath)) {
-            throw new ArgumentException("--input is required.");
+        if (string.IsNullOrWhiteSpace(options.InputPath)) {
+            throw new System.ArgumentException("--input is required.");
         }
 
-        if (String.IsNullOrWhiteSpace(options.OutputPath)) {
-            throw new ArgumentException("--output is required.");
+        if (string.IsNullOrWhiteSpace(options.OutputPath)) {
+            throw new System.ArgumentException("--output is required.");
         }
 
-        if (String.IsNullOrWhiteSpace(options.Extension)) {
+        if (string.IsNullOrWhiteSpace(options.Extension)) {
             options.Extension = "*";
         }
 
@@ -174,30 +170,30 @@ public static class QuickBmsExtractor {
         return options;
     }
 
-    private static String ExpectValue(IList<String> args, ref Int32 index, String option) {
+    private static string ExpectValue(IList<string> args, ref int index, string option) {
         if (index + 1 >= args.Count) {
-            throw new ArgumentException($"Option '{option}' expects a value.");
+            throw new System.ArgumentException($"Option '{option}' expects a value.");
         }
 
         index += 1;
         return args[index];
     }
 
-    private static IEnumerable<String> ResolveFiles(Options options, String normalizedExtension) {
-        Boolean matchesAll = normalizedExtension == "*";
-        HashSet<String> seen = new HashSet<String>(StringComparer.OrdinalIgnoreCase);
+    private static IEnumerable<string> ResolveFiles(Options options, string normalizedExtension) {
+        bool matchesAll = normalizedExtension == "*";
+        HashSet<string> seen = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
 
-        foreach (String target in options.Targets) {
-            if (Directory.Exists(target)) {
-                foreach (String file in Directory.EnumerateFiles(target, "*", SearchOption.AllDirectories)) {
-                    if (matchesAll || file.EndsWith(normalizedExtension, StringComparison.OrdinalIgnoreCase)) {
+        foreach (string target in options.Targets) {
+            if (System.IO.Directory.Exists(target)) {
+                foreach (string file in System.IO.Directory.EnumerateFiles(target, "*", SearchOption.AllDirectories)) {
+                    if (matchesAll || file.EndsWith(normalizedExtension, System.StringComparison.OrdinalIgnoreCase)) {
                         if (seen.Add(file)) {
                             yield return file;
                         }
                     }
                 }
-            } else if (File.Exists(target)) {
-                if (matchesAll || target.EndsWith(normalizedExtension, StringComparison.OrdinalIgnoreCase)) {
+            } else if (System.IO.File.Exists(target)) {
+                if (matchesAll || target.EndsWith(normalizedExtension, System.StringComparison.OrdinalIgnoreCase)) {
                     if (seen.Add(target)) {
                         yield return target;
                     }
@@ -208,46 +204,46 @@ public static class QuickBmsExtractor {
         }
     }
 
-    private static String BuildOutputDirectory(String baseOutput, String relativePath, String sourceFile, String extensionLabel) {
-        String folder = baseOutput;
-        if (!String.IsNullOrWhiteSpace(relativePath) && !relativePath.StartsWith("..")) {
-            String? relDir = Path.GetDirectoryName(relativePath);
-            if (!String.IsNullOrEmpty(relDir) && relDir != ".") {
-                folder = Path.Combine(folder, relDir);
+    private static string BuildOutputDirectory(string baseOutput, string relativePath, string sourceFile, string extensionLabel) {
+        string folder = baseOutput;
+        if (!string.IsNullOrWhiteSpace(relativePath) && !relativePath.StartsWith("..")) {
+            string? relDir = System.IO.Path.GetDirectoryName(relativePath);
+            if (!string.IsNullOrEmpty(relDir) && relDir != ".") {
+                folder = System.IO.Path.Combine(folder, relDir);
             }
         }
-        String fileStem = Path.GetFileNameWithoutExtension(sourceFile);
-        String finalName = String.IsNullOrEmpty(fileStem) ? "extracted" : fileStem + "_" + extensionLabel;
-        return Path.Combine(folder, finalName);
+        string fileStem = System.IO.Path.GetFileNameWithoutExtension(sourceFile);
+        string finalName = string.IsNullOrEmpty(fileStem) ? "extracted" : fileStem + "_" + extensionLabel;
+        return System.IO.Path.Combine(folder, finalName);
     }
 
-    private static String GetSafeRelative(String basePath, String filePath) {
-        if (String.IsNullOrWhiteSpace(basePath)) {
-            return Path.GetFileName(filePath);
+    private static string GetSafeRelative(string basePath, string filePath) {
+        if (string.IsNullOrWhiteSpace(basePath)) {
+            return System.IO.Path.GetFileName(filePath);
         }
 
         try {
-            String relative = Path.GetRelativePath(basePath, filePath);
-            return String.IsNullOrWhiteSpace(relative) || relative.StartsWith("..") ? Path.GetFileName(filePath) : relative;
+            string relative = System.IO.Path.GetRelativePath(basePath, filePath);
+            return string.IsNullOrWhiteSpace(relative) || relative.StartsWith("..") ? System.IO.Path.GetFileName(filePath) : relative;
         } catch {
-            return Path.GetFileName(filePath);
+            return System.IO.Path.GetFileName(filePath);
         }
     }
 
-    private static String NormalizePath(String path) {
-        if (String.IsNullOrWhiteSpace(path)) {
-            return path ?? String.Empty;
+    private static string NormalizePath(string path) {
+        if (string.IsNullOrWhiteSpace(path)) {
+            return path ?? string.Empty;
         }
 
         try {
-            return Path.GetFullPath(path);
+            return System.IO.Path.GetFullPath(path);
         } catch {
             return path;
         }
     }
 
-    private static String NormalizeExtension(String ext) {
-        if (String.IsNullOrWhiteSpace(ext)) {
+    private static string NormalizeExtension(string ext) {
+        if (string.IsNullOrWhiteSpace(ext)) {
             return "*";
         }
 
@@ -255,8 +251,8 @@ public static class QuickBmsExtractor {
         return ext == "*" ? "*" : ext.StartsWith('.') ? ext : "." + ext;
     }
 
-    private static void ForwardProcessOutput(String line, String stream) {
-        if (String.IsNullOrEmpty(line)) {
+    private static void ForwardProcessOutput(string line, string stream) {
+        if (string.IsNullOrEmpty(line)) {
             return;
         }
 
@@ -265,20 +261,20 @@ public static class QuickBmsExtractor {
         Write(colour, "[quickbms] " + line, stream == "stderr");
     }
 
-    private static void WriteInfo(String message) => Write(ConsoleColor.Cyan, message);
-    private static void WriteWarn(String message) => Write(ConsoleColor.Yellow, message);
-    private static void WriteError(String message) => Write(ConsoleColor.Red, message, isError: true);
+    private static void WriteInfo(string message) => Write(System.ConsoleColor.Cyan, message);
+    private static void WriteWarn(string message) => Write(System.ConsoleColor.Yellow, message);
+    private static void WriteError(string message) => Write(System.ConsoleColor.Red, message, isError: true);
 
-    private static readonly Object s_consoleLock = new();
+    private static readonly object s_consoleLock = new();
 
-    private static readonly String s_prefix = "[QBMS-Extract] ";
+    private static readonly string s_prefix = "[QBMS-Extract] ";
 
-    private static void Write(ConsoleColor colour, String message, Boolean isError = false) {
+    private static void Write(System.ConsoleColor colour, string message, bool isError = false) {
         // Ensure all messages emitted from this extractor have a consistent prefix unless
         // they are already tagged as coming from the wrapped quickbms process.
-        if (!String.IsNullOrEmpty(message) &&
-            !message.StartsWith("[quickbms]", StringComparison.OrdinalIgnoreCase) &&
-            !message.StartsWith(s_prefix, StringComparison.Ordinal)) {
+        if (!string.IsNullOrEmpty(message) &&
+            !message.StartsWith("[quickbms]", System.StringComparison.OrdinalIgnoreCase) &&
+            !message.StartsWith(s_prefix, System.StringComparison.Ordinal)) {
             message = s_prefix + message;
         }
         lock (s_consoleLock) {

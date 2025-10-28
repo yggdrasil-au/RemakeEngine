@@ -26,7 +26,7 @@ public static class AvaloniaGui {
     /// <returns>
     /// 0 on normal shutdown; 1 if an exception is caught during startup/run.
     /// </returns>
-    public static int Run(Core.OperationsEngine engine) {
+    internal static int Run(Core.OperationsEngine engine) {
         try {
             // 1) Stash the engine so App.OnFrameworkInitializationCompleted (or similar)
             //    can pull it to compose view models.
@@ -34,14 +34,14 @@ public static class AvaloniaGui {
 
             // 2) Build the app and start the desktop lifetime.
             //    This call blocks until the window closes / lifetime ends.
-            BuildAvaloniaApp().StartWithClassicDesktopLifetime(Array.Empty<string>());
+            BuildAvaloniaApp().StartWithClassicDesktopLifetime(System.Array.Empty<string>());
 
             // 3) If we reached here without exceptions, return success.
             return 0;
-        } catch (Exception ex) {
+        } catch (System.Exception ex) {
             // If anything goes wrong during startup or run, print a concise error
             // and return a non-zero exit code to signal failure to the host.
-            Console.Error.WriteLine(value: $"GUI error: {ex.Message}");
+            System.Console.Error.WriteLine(value: $"GUI error: {ex.Message}");
             return 1;
         }
     }

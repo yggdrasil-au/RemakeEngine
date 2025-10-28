@@ -1,46 +1,45 @@
-
 namespace EngineNet.Tools;
 
-public static class RemoteFallbacks {
-    private const String RepoOwner = "yggdrasil-au";
-    private const String RepoName = "RemakeEngine";
-    private static readonly String[] BranchCandidates = new[] { "main", "master" };
+internal static class RemoteFallbacks {
+    private const string RepoOwner = "yggdrasil-au";
+    private const string RepoName = "RemakeEngine";
+    private static readonly string[] BranchCandidates = new[] { "main", "master" };
 
     /// <summary>
     /// If <paramref name="localPath"/> is missing, attempts to download the file from the
     /// RemakeEngine GitHub repository at <paramref name="repoRelativePath"/> using raw URLs.
     /// Returns true if the file exists locally after the call.
     /// </summary>
-    public static Boolean EnsureRepoFile(String repoRelativePath, String localPath) {
+    public static bool EnsureRepoFile(string repoRelativePath, string localPath) {
         try {
-            if (File.Exists(localPath)) {
+            if (System.IO.File.Exists(localPath)) {
                 return true;
             }
 
-            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(localPath)) ?? ".");
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(localPath)) ?? ".");
 
-            using HttpClient http = new HttpClient();
-            http.Timeout = TimeSpan.FromSeconds(20);
-            foreach (String branch in BranchCandidates) {
-                String url = $"https://raw.githubusercontent.com/{RepoOwner}/{RepoName}/{branch}/{repoRelativePath.Replace('\\', '/')}";
+            using System.Net.Http.HttpClient http = new System.Net.Http.HttpClient();
+            http.Timeout = System.TimeSpan.FromSeconds(20);
+            foreach (string branch in BranchCandidates) {
+                string url = $"https://raw.githubusercontent.com/{RepoOwner}/{RepoName}/{branch}/{repoRelativePath.Replace('\\', '/')}";
                 try {
-                    HttpResponseMessage resp = http.GetAsync(url).GetAwaiter().GetResult();
+                    System.Net.Http.HttpResponseMessage resp = http.GetAsync(url).GetAwaiter().GetResult();
                     if (!resp.IsSuccessStatusCode) {
                         continue;
                     }
 
-                    Byte[] bytes = resp.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
-                    File.WriteAllBytes(localPath, bytes);
-                    Console.ForegroundColor = ConsoleColor.DarkYellow;
-                    Console.WriteLine($"Fetched missing file from GitHub: {repoRelativePath} -> {localPath}");
-                    Console.ResetColor();
+                    byte[] bytes = resp.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
+                    System.IO.File.WriteAllBytes(localPath, bytes);
+                    Program.Direct.Console.ForegroundColor = System.ConsoleColor.DarkYellow;
+                    Program.Direct.Console.WriteLine($"Fetched missing file from GitHub: {repoRelativePath} -> {localPath}");
+                    Program.Direct.Console.ResetColor();
                     return true;
                 } catch { /* try next branch */ }
             }
         } catch {
             // ignore failures, caller will handle missing file case
         }
-        return File.Exists(localPath);
+        return System.IO.File.Exists(localPath);
     }
 }
 

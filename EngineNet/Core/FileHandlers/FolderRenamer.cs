@@ -1,26 +1,16 @@
-//
-using System.Text.Json;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-//
-using Microsoft.Data.Sqlite;
-
-
 namespace EngineNet.Core.FileHandlers;
 
 /// <summary>
 /// Provides a built-in replacement for the legacy RenameFolders.py utility.
 /// Supports rename maps sourced from SQLite, JSON, or inline CLI mappings.
 /// </summary>
-public static class FolderRenamer {
+internal static class FolderRenamer {
     private sealed class Options {
-        public String TargetDirectory = String.Empty;
-        public String? MapDbFile;
-        public String DbTableName = "rename_mappings";
-        public List<(String OldName, String NewName)> CliMappings { get; } = new();
-        public String? JsonFile;
+        public string TargetDirectory = string.Empty;
+        public string? MapDbFile;
+        public string DbTableName = "rename_mappings";
+        public List<(string OldName, string NewName)> CliMappings { get; } = new();
+        public string? JsonFile;
     }
 
     /// <summary>
@@ -28,21 +18,21 @@ public static class FolderRenamer {
     /// </summary>
     /// <param name="args">CLI-style args: TARGET_DIR [--map-db-file PATH --db-table-name NAME] | [--map-cli OLD NEW ...] | [--map-json PATH]</param>
     /// <returns>True if renames completed; false if a failure occurred.</returns>
-    public static Boolean Run(IList<String> args) {
+    public static bool Run(IList<string> args) {
         Options options;
         try {
             options = Parse(args);
-        } catch (ArgumentException ex) {
+        } catch (System.ArgumentException ex) {
             WriteError(ex.Message);
             return false;
         }
 
-        Dictionary<String, String>? renameMap = null;
-        String mapDescription = "default";
+        Dictionary<string, string>? renameMap = null;
+        string mapDescription = "default";
 
-        if (!String.IsNullOrWhiteSpace(options.MapDbFile)) {
-            String dbPath = NormalizePath(options.MapDbFile!);
-            if (!File.Exists(dbPath)) {
+        if (!string.IsNullOrWhiteSpace(options.MapDbFile)) {
+            string dbPath = NormalizePath(options.MapDbFile!);
+            if (!System.IO.File.Exists(dbPath)) {
                 WriteError($"Database file not found: {dbPath}");
                 return false;
             }
@@ -53,9 +43,9 @@ public static class FolderRenamer {
             }
         } else if (options.CliMappings.Count > 0) {
             renameMap = LoadFromCli(options.CliMappings, out mapDescription);
-        } else if (!String.IsNullOrWhiteSpace(options.JsonFile)) {
-            String jsonPath = NormalizePath(options.JsonFile!);
-            if (!File.Exists(jsonPath)) {
+        } else if (!string.IsNullOrWhiteSpace(options.JsonFile)) {
+            string jsonPath = NormalizePath(options.JsonFile!);
+            if (!System.IO.File.Exists(jsonPath)) {
                 WriteError($"JSON map file not found: {jsonPath}");
                 return false;
             }
@@ -77,14 +67,14 @@ public static class FolderRenamer {
         return RenameDirectories(options.TargetDirectory, renameMap);
     }
 
-    private static Options Parse(IList<String> args) {
+    private static Options Parse(IList<string> args) {
         Options options = new Options();
         if (args.Count == 0) {
-            throw new ArgumentException("Missing target directory argument.");
+            throw new System.ArgumentException("Missing target directory argument.");
         }
 
-        for (Int32 i = 0; i < args.Count; i++) {
-            String current = args[i];
+        for (int i = 0; i < args.Count; i++) {
+            string current = args[i];
             switch (current) {
                 case "--map-db-file":
                     options.MapDbFile = ExpectValue(args, ref i, current);
@@ -93,8 +83,8 @@ public static class FolderRenamer {
                     options.DbTableName = ExpectValue(args, ref i, current);
                     break;
                 case "--map-cli": {
-                    String oldName = ExpectValue(args, ref i, current);
-                    String newName = ExpectValue(args, ref i, current);
+                    string oldName = ExpectValue(args, ref i, current);
+                    string newName = ExpectValue(args, ref i, current);
                     options.CliMappings.Add((oldName, newName));
                     break;
                 }
@@ -102,23 +92,23 @@ public static class FolderRenamer {
                     options.JsonFile = ExpectValue(args, ref i, current);
                     break;
                 default:
-                    if (current.StartsWith("-", StringComparison.Ordinal)) {
-                        throw new ArgumentException($"Unknown argument '{current}'.");
+                    if (current.StartsWith("-", System.StringComparison.Ordinal)) {
+                        throw new System.ArgumentException($"Unknown argument '{current}'.");
                     }
 
-                    options.TargetDirectory = String.IsNullOrWhiteSpace(options.TargetDirectory)
+                    options.TargetDirectory = string.IsNullOrWhiteSpace(options.TargetDirectory)
                         ? current
-                        : throw new ArgumentException($"Unexpected extra argument '{current}'.");
+                        : throw new System.ArgumentException($"Unexpected extra argument '{current}'.");
                     break;
             }
         }
 
-        if (String.IsNullOrWhiteSpace(options.TargetDirectory)) {
-            throw new ArgumentException("Target directory argument is required.");
+        if (string.IsNullOrWhiteSpace(options.TargetDirectory)) {
+            throw new System.ArgumentException("Target directory argument is required.");
         }
 
-        Int32 mapSourceCount = 0;
-        if (!String.IsNullOrWhiteSpace(options.MapDbFile)) {
+        int mapSourceCount = 0;
+        if (!string.IsNullOrWhiteSpace(options.MapDbFile)) {
             mapSourceCount++;
         }
 
@@ -126,23 +116,23 @@ public static class FolderRenamer {
             mapSourceCount++;
         }
 
-        if (!String.IsNullOrWhiteSpace(options.JsonFile)) {
+        if (!string.IsNullOrWhiteSpace(options.JsonFile)) {
             mapSourceCount++;
         }
 
-        return mapSourceCount > 1 ? throw new ArgumentException("Please specify only one rename map source (DB, CLI, or JSON).") : options;
+        return mapSourceCount > 1 ? throw new System.ArgumentException("Please specify only one rename map source (DB, CLI, or JSON).") : options;
     }
 
-    private static String ExpectValue(IList<String> args, ref Int32 index, String option) {
+    private static string ExpectValue(IList<string> args, ref int index, string option) {
         if (index + 1 >= args.Count) {
-            throw new ArgumentException($"Option '{option}' expects a value.");
+            throw new System.ArgumentException($"Option '{option}' expects a value.");
         }
 
         index += 1;
         return args[index];
     }
 
-    private static Dictionary<String, String>? LoadFromDatabase(String dbPath, String tableName, out String description) {
+    private static Dictionary<string, string>? LoadFromDatabase(string dbPath, string tableName, out string description) {
         description = $"SQLite DB '{dbPath}' (table: {tableName})";
         if (!IsSafeIdentifier(tableName)) {
             WriteError($"Invalid table name: {tableName}");
@@ -150,28 +140,28 @@ public static class FolderRenamer {
         }
 
         try {
-            using SqliteConnection connection = new SqliteConnection($"Data Source={dbPath}");
+            using Microsoft.Data.Sqlite.SqliteConnection connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath}");
             connection.Open();
 
-            using (SqliteCommand checkTable = connection.CreateCommand()) {
+            using (Microsoft.Data.Sqlite.SqliteCommand checkTable = connection.CreateCommand()) {
                 checkTable.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name=$table;";
                 checkTable.Parameters.AddWithValue("$table", tableName);
-                String? exists = checkTable.ExecuteScalar() as String;
-                if (String.IsNullOrEmpty(exists)) {
+                string? exists = checkTable.ExecuteScalar() as string;
+                if (string.IsNullOrEmpty(exists)) {
                     WriteError($"Table '{tableName}' not found in database: {dbPath}");
                     return null;
                 }
             }
 
-            Dictionary<String, String> map = new Dictionary<String, String>();
-            using (SqliteCommand cmd = connection.CreateCommand()) {
-                String quoted = QuoteIdentifier(tableName);
+            Dictionary<string, string> map = new Dictionary<string, string>();
+            using (Microsoft.Data.Sqlite.SqliteCommand cmd = connection.CreateCommand()) {
+                string quoted = QuoteIdentifier(tableName);
                 cmd.CommandText = $"SELECT old_name, new_name FROM {quoted}";
-                using SqliteDataReader reader = cmd.ExecuteReader();
+                using Microsoft.Data.Sqlite.SqliteDataReader reader = cmd.ExecuteReader();
                 while (reader.Read()) {
-                    String? oldName = reader.IsDBNull(0) ? null : reader.GetString(0);
-                    String? newName = reader.IsDBNull(1) ? null : reader.GetString(1);
-                    if (String.IsNullOrEmpty(oldName) || String.IsNullOrEmpty(newName)) {
+                    string? oldName = reader.IsDBNull(0) ? null : reader.GetString(0);
+                    string? newName = reader.IsDBNull(1) ? null : reader.GetString(1);
+                    if (string.IsNullOrEmpty(oldName) || string.IsNullOrEmpty(newName)) {
                         continue;
                     }
 
@@ -181,16 +171,16 @@ public static class FolderRenamer {
 
             WriteSuccess($"Loaded {map.Count} rename entries from database.");
             return map;
-        } catch (SqliteException ex) {
+        } catch (Microsoft.Data.Sqlite.SqliteException ex) {
             WriteError($"SQLite error while reading {dbPath}: {ex.Message}");
             return null;
         }
     }
 
-    private static Dictionary<String, String> LoadFromCli(IEnumerable<(String OldName, String NewName)> mappings, out String description) {
-        Dictionary<String, String> map = new Dictionary<String, String>();
-        foreach ((String oldName, String newName) in mappings) {
-            if (String.IsNullOrWhiteSpace(oldName) || String.IsNullOrWhiteSpace(newName)) {
+    private static Dictionary<string, string> LoadFromCli(IEnumerable<(string OldName, string NewName)> mappings, out string description) {
+        Dictionary<string, string> map = new Dictionary<string, string>();
+        foreach ((string oldName, string newName) in mappings) {
+            if (string.IsNullOrWhiteSpace(oldName) || string.IsNullOrWhiteSpace(newName)) {
                 continue;
             }
 
@@ -201,20 +191,20 @@ public static class FolderRenamer {
         return map;
     }
 
-    private static Dictionary<String, String>? LoadFromJson(String jsonPath, out String description) {
+    private static Dictionary<string, string>? LoadFromJson(string jsonPath, out string description) {
         description = $"JSON file '{jsonPath}'";
         try {
-            String text = File.ReadAllText(jsonPath);
-            JsonDocument doc = JsonDocument.Parse(text);
-            if (doc.RootElement.ValueKind != JsonValueKind.Object) {
+            string text = System.IO.File.ReadAllText(jsonPath);
+            System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(text);
+            if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object) {
                 WriteError($"JSON root must be an object with name mappings: {jsonPath}");
                 return null;
             }
 
-            Dictionary<String, String> map = new Dictionary<String, String>();
-            foreach (JsonProperty property in doc.RootElement.EnumerateObject()) {
-                String? newName = property.Value.ValueKind == JsonValueKind.String ? property.Value.GetString() : property.Value.ToString();
-                if (String.IsNullOrWhiteSpace(property.Name) || String.IsNullOrWhiteSpace(newName)) {
+            Dictionary<string, string> map = new Dictionary<string, string>();
+            foreach (System.Text.Json.JsonProperty property in doc.RootElement.EnumerateObject()) {
+                string? newName = property.Value.ValueKind == System.Text.Json.JsonValueKind.String ? property.Value.GetString() : property.Value.ToString();
+                if (string.IsNullOrWhiteSpace(property.Name) || string.IsNullOrWhiteSpace(newName)) {
                     continue;
                 }
 
@@ -223,70 +213,70 @@ public static class FolderRenamer {
 
             WriteSuccess($"Loaded {map.Count} rename entries from JSON.");
             return map;
-        } catch (JsonException ex) {
+        } catch (System.Text.Json.JsonException ex) {
             WriteError($"Error decoding JSON from {jsonPath}: {ex.Message}");
             return null;
-        } catch (IOException ex) {
+        } catch (System.IO.IOException ex) {
             WriteError($"Error reading JSON file {jsonPath}: {ex.Message}");
             return null;
         }
     }
 
-    private static Boolean RenameDirectories(String targetDirectory, IDictionary<String, String> renameMap) {
-        String directoryPath = NormalizePath(targetDirectory);
+    private static bool RenameDirectories(string targetDirectory, IDictionary<string, string> renameMap) {
+        string directoryPath = NormalizePath(targetDirectory);
         WriteInfo($"Processing directory: {directoryPath}");
 
-        if (!Directory.Exists(directoryPath)) {
+        if (!System.IO.Directory.Exists(directoryPath)) {
             WriteError($"The specified directory does not exist: {directoryPath}");
             return false;
         }
 
-        String[] items;
+        string[] items;
         try {
-            items = Directory.GetFileSystemEntries(directoryPath);
-        } catch (UnauthorizedAccessException) {
+            items = System.IO.Directory.GetFileSystemEntries(directoryPath);
+        } catch (System.UnauthorizedAccessException) {
             WriteError($"Permission denied when reading directory: {directoryPath}");
             return false;
-        } catch (IOException ex) {
+        } catch (System.IO.IOException ex) {
             WriteError($"Error listing directory '{directoryPath}': {ex.Message}");
             return false;
         }
 
-        Int32 totalDirs = 0;
-        Int32 renamed = 0;
-        Int32 skipped = 0;
+        int totalDirs = 0;
+        int renamed = 0;
+        int skipped = 0;
 
-        foreach (String itemPath in items) {
-            if (!Directory.Exists(itemPath)) {
+        foreach (string itemPath in items) {
+            if (!System.IO.Directory.Exists(itemPath)) {
                 continue;
             }
 
             totalDirs += 1;
-            String itemName = Path.GetFileName(itemPath);
-            if (!renameMap.TryGetValue(itemName, out String? newName)) {
+            string itemName = System.IO.Path.GetFileName(itemPath);
+            if (!renameMap.TryGetValue(itemName, out string? newName)) {
                 WriteCyan($"Skipped '{itemName}' - no matching key in rename map.");
                 skipped += 1;
                 continue;
             }
 
-            String newPath = Path.Combine(directoryPath, newName);
+            string newPath = System.IO.Path.Combine(directoryPath, newName);
             //WriteGray($"Old name: {itemName} (Path: {itemPath})");
             //WriteGray($"New name: {newName} (Path: {newPath})");
 
-            if (Directory.Exists(newPath) || File.Exists(newPath)) {
+            if (System.IO.Directory.Exists(newPath) || System.IO.File.Exists(newPath)) {
                 WriteError($"Skipping rename, target already exists: {newPath}");
                 skipped += 1;
                 continue;
             }
 
             try {
-                Directory.Move(itemPath, newPath);
+                System.IO.Directory.Move(itemPath, newPath);
                 WriteSuccess($"Successfully renamed '{itemName}' to '{newName}'.");
                 renamed += 1;
-            } catch (IOException ex) {
+            } catch (System.IO.IOException ex) {
                 WriteError($"Error renaming '{itemName}' to '{newName}': {ex.Message}");
                 skipped += 1;
-            } catch (UnauthorizedAccessException ex) {
+            } catch (System.UnauthorizedAccessException ex) {
                 WriteError($"Permission denied renaming '{itemName}': {ex.Message}");
                 skipped += 1;
             }
@@ -299,31 +289,32 @@ public static class FolderRenamer {
         return true;
     }
 
-    private static String NormalizePath(String path) {
+    private static string NormalizePath(string path) {
         try {
-            return Path.GetFullPath(path);
+            return System.IO.Path.GetFullPath(path);
         } catch {
             return path;
         }
     }
 
-    private static String QuoteIdentifier(String identifier) {
+    private static string QuoteIdentifier(string identifier) {
         return "\"" + identifier.Replace("\"", "\"\"") + "\"";
     }
 
-    private static Boolean IsSafeIdentifier(String name) {
-        return !String.IsNullOrWhiteSpace(name) && name.All(ch => Char.IsLetterOrDigit(ch) || ch == '_');
+    private static bool IsSafeIdentifier(string name) {
+        return !string.IsNullOrWhiteSpace(name) && name.All(ch => char.IsLetterOrDigit(ch) || ch == '_');
     }
 
-    private static void WriteInfo(String message) => Write(ConsoleColor.Yellow, message);
-    private static void WriteWarn(String message) => Write(ConsoleColor.DarkYellow, message);
-    private static void WriteSuccess(String message) => Write(ConsoleColor.Green, message);
-    private static void WriteGray(String message) => Write(ConsoleColor.Gray, message);
-    private static void WriteCyan(String message) => Write(ConsoleColor.Cyan, message);
-    private static void WriteError(String message) => Write(ConsoleColor.Red, message, true);
+    private static void WriteInfo(string message) => Write(System.ConsoleColor.Yellow, message);
+    private static void WriteWarn(string message) => Write(System.ConsoleColor.DarkYellow, message);
+    private static void WriteSuccess(string message) => Write(System.ConsoleColor.Green, message);
+    private static void WriteGray(string message) => Write(System.ConsoleColor.Gray, message);
+    private static void WriteCyan(string message) => Write(System.ConsoleColor.Cyan, message);
+    private static void WriteError(string message) => Write(System.ConsoleColor.Red, message, true);
 
-    private static void Write(ConsoleColor color, String message, Boolean isError = false) {
-        ConsoleColor previous = Console.ForegroundColor;
+    private static void Write(System.ConsoleColor color, string message, bool isError = false) {
+        // TODO use sdk
+        /*ConsoleColor previous = Console.ForegroundColor;
         Console.ForegroundColor = color;
         if (isError) {
             Console.Error.WriteLine($"[Rename] {message}");
@@ -331,7 +322,7 @@ public static class FolderRenamer {
             Console.WriteLine($"[Rename] {message}");
         }
 
-        Console.ForegroundColor = previous;
+        Console.ForegroundColor = previous;*/
     }
 }
 

@@ -1,9 +1,6 @@
-using System.Buffers;
-using System.Threading;
-
 namespace EngineNet.Core;
 
-public sealed partial class OperationsEngine {
+internal sealed partial class OperationsEngine {
     /// <summary>
     /// Executes a group of operations sequentially, aggregating success across steps.
     /// </summary>
@@ -14,16 +11,15 @@ public sealed partial class OperationsEngine {
     /// <param name="promptAnswers">Answers to prompt definitions.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>True if all operations reported success.</returns>
-    public async Task<Boolean> RunOperationGroupAsync(
-        String gameName,
-		IDictionary<String, Object?> games,
-        String groupName,
-		IList<Dictionary<String, Object?>> operations,
-		IDictionary<String, Object?> promptAnswers,
-		CancellationToken cancellationToken = default)
-	{
-        Boolean success = true;
-		foreach (Dictionary<String, Object?> op in operations)
+    public async System.Threading.Tasks.Task<bool> RunOperationGroupAsync(
+        string gameName,
+		IDictionary<string, object?> games,
+        string groupName,
+		IList<Dictionary<string, object?>> operations,
+		IDictionary<string, object?> promptAnswers,
+		System.Threading.CancellationToken cancellationToken = default) {
+        bool success = true;
+		foreach (Dictionary<string, object?> op in operations)
 		{
 			if (!await RunSingleOperationAsync(gameName, games, op, promptAnswers, cancellationToken)) {
                 success = false;
@@ -37,22 +33,22 @@ public sealed partial class OperationsEngine {
     /// or external processes depending on <c>script_type</c>.
     /// </summary>
     /// <returns>True on successful completion.</returns>
-    public async Task<Boolean> RunSingleOperationAsync(
-        String currentGame,
-        IDictionary<String, Object?> games,
-        IDictionary<String, Object?> op,
-        IDictionary<String, Object?> promptAnswers,
-        CancellationToken cancellationToken = default) {
-        String scriptType = (op.TryGetValue("script_type", out Object? st) ? st?.ToString() : null)?.ToLowerInvariant() ?? "python";
-        List<String> parts = _builder.Build(currentGame, games, _engineConfig.Data, op, promptAnswers);
+    public async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
+        string currentGame,
+        IDictionary<string, object?> games,
+        IDictionary<string, object?> op,
+        IDictionary<string, object?> promptAnswers,
+        System.Threading.CancellationToken cancellationToken = default) {
+        string scriptType = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant() ?? "python";
+        List<string> parts = _builder.Build(currentGame, games, _engineConfig.Data, op, promptAnswers);
         if (parts.Count < 2) {
             return false;
         }
 
-        String scriptPath = parts[1];
-        String[] args = parts.Skip(2).ToArray();
+        string scriptPath = parts[1];
+        string[] args = parts.Skip(2).ToArray();
 
-        Boolean result = false;
+        bool result = false;
         try {
             switch (scriptType) {
                 case "lua": {
@@ -60,62 +56,66 @@ public sealed partial class OperationsEngine {
                         Core.ScriptEngines.LuaScriptAction action = new Core.ScriptEngines.LuaScriptAction(scriptPath, args);
                         await action.ExecuteAsync(_tools, cancellationToken);
                         result = true;
-                    } catch (Exception ex) {
-                        Console.Error.WriteLine($"lua engine ERROR: {ex.Message}");
+                    } catch (System.Exception ex) {
+                        Program.Direct.Console.WriteLine($"lua engine ERROR: {ex.Message}");
                         result = false;
                     }
                     break;
                 }
                 case "js": {
                     try {
-                        Core.ScriptEngines.JsScriptAction action = new Core.ScriptEngines.JsScriptAction(scriptPath, args);
+                        EngineNet.Core.ScriptEngines.JsScriptAction action = new EngineNet.Core.ScriptEngines.JsScriptAction(scriptPath, args);
                         await action.ExecuteAsync(_tools, cancellationToken);
                         result = true;
-                    } catch (Exception ex) {
-                        Console.Error.WriteLine($"js engine ERROR: {ex.Message}");
+                    } catch (System.Exception ex) {
+                        Program.Direct.Console.WriteLine($"js engine ERROR: {ex.Message}");
                         result = false;
                     }
                     break;
                 }
                 case "bms": {
                     try {
-                        if (!games.TryGetValue(currentGame, out Object? gobjBms) || gobjBms is not IDictionary<String, Object?> gdictBms) {
+                        if (!games.TryGetValue(currentGame, out object? gobjBms) || gobjBms is not IDictionary<string, object?> gdictBms) {
                             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                         }
-                        String gameRootBms = gdictBms.TryGetValue("game_root", out Object? grBms) ? grBms?.ToString() ?? String.Empty : String.Empty;
+                        string gameRootBms = gdictBms.TryGetValue("game_root", out object? grBms) ? grBms?.ToString() ?? string.Empty : string.Empty;
 
                         // Build placeholder context
-                        Dictionary<String, Object?> ctx = new Dictionary<String, Object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase) {
+                        Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase) {
                             ["Game_Root"] = gameRootBms,
                             ["Project_Root"] = _rootPath,
-                            ["Registry_Root"] = Path.Combine(_rootPath, "RemakeRegistry"),
-                            ["Game"] = new Dictionary<String, Object?> { ["RootPath"] = gameRootBms, ["Name"] = currentGame },
+                            ["Registry_Root"] = System.IO.Path.Combine(_rootPath, "RemakeRegistry"),
+                            ["Game"] = new Dictionary<string, object?> { ["RootPath"] = gameRootBms, ["Name"] = currentGame },
                         };
-                        if (!ctx.TryGetValue("RemakeEngine", out Object? reB) || reB is not IDictionary<String, Object?> reBdict) {
-                            ctx["RemakeEngine"] = reBdict = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+                        if (!ctx.TryGetValue("RemakeEngine", out object? reB) || reB is not IDictionary<string, object?> reBdict) {
+                            ctx["RemakeEngine"] = reBdict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
                         }
-                        if (!reBdict.TryGetValue("Config", out Object? cfgB) || cfgB is not IDictionary<String, Object?> cfgBdict) {
-                            reBdict["Config"] = cfgBdict = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+                        if (!reBdict.TryGetValue("Config", out object? cfgB) || cfgB is not IDictionary<string, object?> cfgBdict) {
+                            reBdict["Config"] = cfgBdict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
                         }
-                        ((IDictionary<String, Object?>)ctx["RemakeEngine"]!)["Config"] = cfgBdict;
+                        ((IDictionary<string, object?>)ctx["RemakeEngine"]!)["Config"] = cfgBdict;
                         cfgBdict["module_path"] = gameRootBms;
                         cfgBdict["project_path"] = _rootPath;
                         try {
-                            String cfgPath = Path.Combine(gameRootBms, "config.toml");
-                            if (!String.IsNullOrWhiteSpace(gameRootBms) && File.Exists(cfgPath)) {
-                                Dictionary<String, Object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
-                                foreach (KeyValuePair<String, Object?> kv in fromToml) {
+                            string cfgPath = System.IO.Path.Combine(gameRootBms, "config.toml");
+                            if (!string.IsNullOrWhiteSpace(gameRootBms) && System.IO.File.Exists(cfgPath)) {
+                                Dictionary<string, object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                                foreach (KeyValuePair<string, object?> kv in fromToml) {
                                     if (!ctx.ContainsKey(kv.Key)) ctx[kv.Key] = kv.Value;
                                 }
                             }
-                        } catch { }
+                        }  catch {
+#if DEBUG
+            Program.Direct.Console.WriteLine($"[Engine.OperationExecution] bms: error reading config.toml");
+#endif
+        }
 
-                        String inputDir = op.TryGetValue("input", out Object? in0) ? in0?.ToString() ?? String.Empty : String.Empty;
-                        String outputDir = op.TryGetValue("output", out Object? out0) ? out0?.ToString() ?? String.Empty : String.Empty;
-                        String? extension = op.TryGetValue("extension", out Object? ext0) ? ext0?.ToString() : null;
-                        String resolvedInput = Sys.Placeholders.Resolve(inputDir, ctx)?.ToString() ?? inputDir;
-                        String resolvedOutput = Sys.Placeholders.Resolve(outputDir, ctx)?.ToString() ?? outputDir;
-                        String? resolvedExt = extension is null ? null : Sys.Placeholders.Resolve(extension, ctx)?.ToString() ?? extension;
+                        string inputDir = op.TryGetValue("input", out object? in0) ? in0?.ToString() ?? string.Empty : string.Empty;
+                        string outputDir = op.TryGetValue("output", out object? out0) ? out0?.ToString() ?? string.Empty : string.Empty;
+                        string? extension = op.TryGetValue("extension", out object? ext0) ? ext0?.ToString() : null;
+                        string resolvedInput = Sys.Placeholders.Resolve(inputDir, ctx)?.ToString() ?? inputDir;
+                        string resolvedOutput = Sys.Placeholders.Resolve(outputDir, ctx)?.ToString() ?? outputDir;
+                        string? resolvedExt = extension is null ? null : Sys.Placeholders.Resolve(extension, ctx)?.ToString() ?? extension;
 
                         Core.ScriptEngines.QuickBmsScriptAction action = new Core.ScriptEngines.QuickBmsScriptAction(
                             scriptPath,
@@ -127,25 +127,25 @@ public sealed partial class OperationsEngine {
                         );
                         await action.ExecuteAsync(_tools, cancellationToken);
                         result = true;
-                    } catch (Exception ex) {
-                        Console.Error.WriteLine($"bms engine ERROR: {ex.Message}");
+                    } catch (System.Exception ex) {
+                        Program.Direct.Console.WriteLine($"bms engine ERROR: {ex.Message}");
                         result = false;
                     }
                     break;
                 }
                 case "engine": {
                     try {
-                        String? action = op.TryGetValue("script", out Object? s) ? s?.ToString() : null;
-                        String? title = op.TryGetValue("Name", out Object? n) ? n?.ToString() ?? action : action;
-                        Console.ForegroundColor = ConsoleColor.DarkCyan;
+                        string? action = op.TryGetValue("script", out object? s) ? s?.ToString() : null;
+                        string? title = op.TryGetValue("Name", out object? n) ? n?.ToString() ?? action : action;
+                        Program.Direct.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
 #if DEBUG
-                        Console.WriteLine($"Executing engine operation {title} ({action})");
+                        Program.Direct.Console.WriteLine($"Executing engine operation {title} ({action})");
 #endif
-                        Console.WriteLine($"\n>>> Engine operation: {title}");
-                        Console.ResetColor();
+                        Program.Direct.Console.WriteLine($"\n>>> Engine operation: {title}");
+                        Program.Direct.Console.ResetColor();
                         result = await ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, cancellationToken);
-                    } catch (Exception ex) {
-                        await Console.Error.WriteLineAsync($"engine ERROR: {ex.Message}");
+                    } catch (System.Exception ex) {
+                        Program.Direct.Console.WriteLine($"engine ERROR: {ex.Message}");
                         result = false;
                     }
                     break;
@@ -154,7 +154,7 @@ public sealed partial class OperationsEngine {
                 default: {
                     // not supported
                     //Sys.ProcessRunner runner = new Sys.ProcessRunner();
-                    //result = runner.Execute(parts, Path.GetFileName(scriptPath), cancellationToken: cancellationToken);
+                    //result = runner.Execute(parts, System.IO.Path.GetFileName(scriptPath), cancellationToken: cancellationToken);
                     break;
                 }
             }
@@ -163,10 +163,10 @@ public sealed partial class OperationsEngine {
             ReloadProjectConfig();
         }
         // If the main operation succeeded, run any nested [[operation.onsuccess]] steps
-        if (result && TryGetOnSuccessOperations(op, out List<Dictionary<String, Object?>>? followUps) && followUps is not null) {
-            foreach (Dictionary<String, Object?> childOp in followUps) {
+        if (result && TryGetOnSuccessOperations(op, out List<Dictionary<string, object?>>? followUps) && followUps is not null) {
+            foreach (Dictionary<string, object?> childOp in followUps) {
                 if (cancellationToken.IsCancellationRequested) break;
-                Boolean ok = await RunSingleOperationAsync(currentGame, games, childOp, promptAnswers, cancellationToken);
+                bool ok = await RunSingleOperationAsync(currentGame, games, childOp, promptAnswers, cancellationToken);
                 if (!ok) {
                     result = false; // propagate failure from any onsuccess step
                 }
@@ -180,73 +180,77 @@ public sealed partial class OperationsEngine {
     /// Executes built-in engine actions such as tool downloads, format extraction/conversion,
     /// file validation, and folder rename helpers.
     /// </summary>
-    public async Task<Boolean> ExecuteEngineOperationAsync(
-        String currentGame,
-        IDictionary<String, Object?> games,
-        IDictionary<String, Object?> op,
-        IDictionary<String, Object?> promptAnswers,
-        CancellationToken cancellationToken = default) {
-        if (!op.TryGetValue("script", out Object? s) || s is null) {
+    public async System.Threading.Tasks.Task<bool> ExecuteEngineOperationAsync(
+        string currentGame,
+        IDictionary<string, object?> games,
+        IDictionary<string, object?> op,
+        IDictionary<string, object?> promptAnswers,
+        System.Threading.CancellationToken cancellationToken = default) {
+        if (!op.TryGetValue("script", out object? s) || s is null) {
             return false;
         }
 
-        String? action = s.ToString()?.ToLowerInvariant();
+        string? action = s.ToString()?.ToLowerInvariant();
         switch (action) {
             case "download_tools": {
                 // Expect a 'tools_manifest' value (path), or fallback to first arg
-                String? manifest = null;
-                if (op.TryGetValue("tools_manifest", out Object? tm) && tm is not null) {
+                string? manifest = null;
+                if (op.TryGetValue("tools_manifest", out object? tm) && tm is not null) {
                     manifest = tm.ToString();
-                } else if (op.TryGetValue("args", out Object? argsObj) && argsObj is IList<Object?> list && list.Count > 0) {
+                } else if (op.TryGetValue("args", out object? argsObj) && argsObj is IList<object?> list && list.Count > 0) {
                     manifest = list[0]?.ToString();
                 }
 
-                if (String.IsNullOrWhiteSpace(manifest)) {
+                if (string.IsNullOrWhiteSpace(manifest)) {
                     return false;
                 }
 
-                Dictionary<String, Object?> ctx = new Dictionary<String, Object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase);
-                if (!games.TryGetValue(currentGame, out Object? gobj) || gobj is not IDictionary<String, Object?> gdict) {
+                Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
+                if (!games.TryGetValue(currentGame, out object? gobj) || gobj is not IDictionary<string, object?> gdict) {
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                 }
                 // Built-in placeholders
-                String gameRoot = gdict.TryGetValue("game_root", out Object? gr0) ? gr0?.ToString() ?? String.Empty : String.Empty;
+                string gameRoot = gdict.TryGetValue("game_root", out object? gr0) ? gr0?.ToString() ?? string.Empty : string.Empty;
                 ctx["Game_Root"] = gameRoot;
                 ctx["Project_Root"] = _rootPath;
                 ctx["Registry_Root"] = System.IO.Path.Combine(_rootPath, "RemakeRegistry");
-                ctx["Game"] = new Dictionary<String, Object?> {
+                ctx["Game"] = new Dictionary<string, object?> {
                     ["RootPath"] = gameRoot,
                     ["Name"] = currentGame,
                 };
-                if (!ctx.TryGetValue("RemakeEngine", out Object? re0) || re0 is not IDictionary<String, Object?> reDict0) {
-                    ctx["RemakeEngine"] = reDict0 = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+                if (!ctx.TryGetValue("RemakeEngine", out object? re0) || re0 is not IDictionary<string, object?> reDict0) {
+                    ctx["RemakeEngine"] = reDict0 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
                 }
 
-                if (!reDict0.TryGetValue("Config", out Object? cfg0) || cfg0 is not IDictionary<String, Object?> cfgDict0) {
-                    reDict0["Config"] = cfgDict0 = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+                if (!reDict0.TryGetValue("Config", out object? cfg0) || cfg0 is not IDictionary<string, object?> cfgDict0) {
+                    reDict0["Config"] = cfgDict0 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
                 }
                 // Merge module placeholders from config.toml
                 try {
-                    String cfgPath = System.IO.Path.Combine(gameRoot, "config.toml");
-                    if (!String.IsNullOrWhiteSpace(gameRoot) && System.IO.File.Exists(cfgPath)) {
-                        Dictionary<String, Object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
-                        foreach (KeyValuePair<String, Object?> kv in fromToml) {
+                    string cfgPath = System.IO.Path.Combine(gameRoot, "config.toml");
+                    if (!string.IsNullOrWhiteSpace(gameRoot) && System.IO.File.Exists(cfgPath)) {
+                        Dictionary<string, object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                        foreach (KeyValuePair<string, object?> kv in fromToml) {
                             if (!ctx.ContainsKey(kv.Key)) {
                                 ctx[kv.Key] = kv.Value;
                             }
                         }
                     }
-                } catch { }
+                }  catch {
+#if DEBUG
+            Program.Direct.Console.WriteLine($"Error .....'");
+#endif
+        }
                 cfgDict0["module_path"] = gameRoot;
                 cfgDict0["project_path"] = _rootPath;
-                String resolvedManifest = Sys.Placeholders.Resolve(manifest!, ctx)?.ToString() ?? manifest!;
-                String central = Path.Combine(_rootPath, "RemakeRegistry/Tools.json");
-                Boolean force = false;
-                if (promptAnswers.TryGetValue("force download", out Object? fd) && fd is Boolean b1) {
+                string resolvedManifest = Sys.Placeholders.Resolve(manifest!, ctx)?.ToString() ?? manifest!;
+                string central = System.IO.Path.Combine(_rootPath, "RemakeRegistry/Tools.json");
+                bool force = false;
+                if (promptAnswers.TryGetValue("force download", out object? fd) && fd is bool b1) {
                     force = b1;
                 }
 
-                if (promptAnswers.TryGetValue("force_download", out Object? fd2) && fd2 is Boolean b2) {
+                if (promptAnswers.TryGetValue("force_download", out object? fd2) && fd2 is bool b2) {
                     force = b2;
                 }
 
@@ -257,48 +261,52 @@ public sealed partial class OperationsEngine {
             case "format-extract":
             case "format_extract": {
                 // Determine input file format
-                String? format = op.TryGetValue("format", out Object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
+                string? format = op.TryGetValue("format", out object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
 
                 // Resolve args (used for both TXD and media conversions)
-                Dictionary<String, Object?> ctx = new Dictionary<String, Object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase);
-                if (!games.TryGetValue(currentGame, out Object? gobj) || gobj is not IDictionary<String, Object?> gdict2) {
+                Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
+                if (!games.TryGetValue(currentGame, out object? gobj) || gobj is not IDictionary<string, object?> gdict2) {
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                 }
                 // Built-in placeholders
-                String gameRoot2 = gdict2.TryGetValue("game_root", out Object? gr2a) ? gr2a?.ToString() ?? String.Empty : String.Empty;
+                string gameRoot2 = gdict2.TryGetValue("game_root", out object? gr2a) ? gr2a?.ToString() ?? string.Empty : string.Empty;
                 ctx["Game_Root"] = gameRoot2;
                 ctx["Project_Root"] = _rootPath;
                 ctx["Registry_Root"] = System.IO.Path.Combine(_rootPath, "RemakeRegistry");
-                ctx["Game"] = new Dictionary<String, Object?> {
+                ctx["Game"] = new Dictionary<string, object?> {
                     ["RootPath"] = gameRoot2,
                     ["Name"] = currentGame,
                 };
-                if (!ctx.TryGetValue("RemakeEngine", out Object? re1) || re1 is not IDictionary<String, Object?> reDict1) {
-                    ctx["RemakeEngine"] = reDict1 = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+                if (!ctx.TryGetValue("RemakeEngine", out object? re1) || re1 is not IDictionary<string, object?> reDict1) {
+                    ctx["RemakeEngine"] = reDict1 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
                 }
 
-                if (!reDict1.TryGetValue("Config", out Object? cfg1) || cfg1 is not IDictionary<String, Object?> cfgDict1) {
-                    reDict1["Config"] = cfgDict1 = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+                if (!reDict1.TryGetValue("Config", out object? cfg1) || cfg1 is not IDictionary<string, object?> cfgDict1) {
+                    reDict1["Config"] = cfgDict1 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
                 }
                 // Merge module placeholders from config.toml
                 try {
-                    String cfgPath = System.IO.Path.Combine(gameRoot2, "config.toml");
-                    if (!String.IsNullOrWhiteSpace(gameRoot2) && System.IO.File.Exists(cfgPath)) {
-                        Dictionary<String, Object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
-                        foreach (KeyValuePair<String, Object?> kv in fromToml) {
+                    string cfgPath = System.IO.Path.Combine(gameRoot2, "config.toml");
+                    if (!string.IsNullOrWhiteSpace(gameRoot2) && System.IO.File.Exists(cfgPath)) {
+                        Dictionary<string, object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                        foreach (KeyValuePair<string, object?> kv in fromToml) {
                             if (!ctx.ContainsKey(kv.Key)) {
                                 ctx[kv.Key] = kv.Value;
                             }
                         }
                     }
-                } catch { }
+                }  catch {
+#if DEBUG
+            Program.Direct.Console.WriteLine($"Error .....'");
+#endif
+        }
                 cfgDict1["module_path"] = gameRoot2;
                 cfgDict1["project_path"] = _rootPath;
 
-                List<String> args = new List<String>();
-                if (op.TryGetValue("args", out Object? aobj) && aobj is IList<Object?> aList) {
-                    IList<Object?> resolved = (IList<Object?>)(Sys.Placeholders.Resolve(aList, ctx) ?? new List<Object?>());
-                    foreach (Object? a in resolved) {
+                List<string> args = new List<string>();
+                if (op.TryGetValue("args", out object? aobj) && aobj is IList<object?> aList) {
+                    IList<object?> resolved = (IList<object?>)(Sys.Placeholders.Resolve(aList, ctx) ?? new List<object?>());
+                    foreach (object? a in resolved) {
                         if (a is not null) {
                             args.Add(a.ToString()!);
                         }
@@ -307,11 +315,11 @@ public sealed partial class OperationsEngine {
 
                 // If format is TXD, use built-in extractor
 
-                if (String.Equals(format, "txd", StringComparison.OrdinalIgnoreCase)) {
-                    Console.ForegroundColor = ConsoleColor.DarkCyan;
-                    Console.WriteLine("\n>>> Built-in TXD extraction");
-                    Console.ResetColor();
-                    Boolean okTxd = FileHandlers.TxdExtractor.Main.Run(args);
+                if (string.Equals(format, "txd", System.StringComparison.OrdinalIgnoreCase)) {
+                    Program.Direct.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
+                    Program.Direct.Console.WriteLine("\n>>> Built-in TXD extraction");
+                    Program.Direct.Console.ResetColor();
+                    bool okTxd = FileHandlers.TxdExtractor.Main.Run(args);
                     return okTxd;
                 } else {
                     return false;
@@ -320,71 +328,71 @@ public sealed partial class OperationsEngine {
             case "format-convert":
             case "format_convert": {
 #if DEBUG
-                    Console.WriteLine("[Engine.OperationExecution] format-convert");
+                    Program.Direct.Console.WriteLine("[Engine.OperationExecution] format-convert");
 #endif
                 // Determine tool
-                String? tool = op.TryGetValue("tool", out Object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
+                string? tool = op.TryGetValue("tool", out object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
 
                 // Resolve args (used for both TXD and media conversions)
-                Dictionary<String, Object?> ctx = new Dictionary<String, Object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase);
-                if (!games.TryGetValue(currentGame, out Object? gobj) || gobj is not IDictionary<String, Object?> gdict2) {
+                Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
+                if (!games.TryGetValue(currentGame, out object? gobj) || gobj is not IDictionary<string, object?> gdict2) {
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                 }
                 // Built-in placeholders
-                String gameRoot3 = gdict2.TryGetValue("game_root", out Object? gr3a) ? gr3a?.ToString() ?? String.Empty : String.Empty;
+                string gameRoot3 = gdict2.TryGetValue("game_root", out object? gr3a) ? gr3a?.ToString() ?? string.Empty : string.Empty;
                 ctx["Game_Root"] = gameRoot3;
                 ctx["Project_Root"] = _rootPath;
                 ctx["Registry_Root"] = System.IO.Path.Combine(_rootPath, "RemakeRegistry");
-                ctx["Game"] = new Dictionary<String, Object?> {
+                ctx["Game"] = new Dictionary<string, object?> {
                     ["RootPath"] = gameRoot3,
                     ["Name"] = currentGame,
                 };
-                if (!ctx.TryGetValue("RemakeEngine", out Object? re2) || re2 is not IDictionary<String, Object?> reDict2) {
-                    ctx["RemakeEngine"] = reDict2 = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+                if (!ctx.TryGetValue("RemakeEngine", out object? re2) || re2 is not IDictionary<string, object?> reDict2) {
+                    ctx["RemakeEngine"] = reDict2 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
                 }
 
-                if (!reDict2.TryGetValue("Config", out Object? cfg2) || cfg2 is not IDictionary<String, Object?> cfgDict2) {
-                    reDict2["Config"] = cfgDict2 = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+                if (!reDict2.TryGetValue("Config", out object? cfg2) || cfg2 is not IDictionary<string, object?> cfgDict2) {
+                    reDict2["Config"] = cfgDict2 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
                 }
                 // Merge module placeholders from config.toml
                 try {
-                    String cfgPath = System.IO.Path.Combine(gameRoot3, "config.toml");
-                    if (!String.IsNullOrWhiteSpace(gameRoot3) && System.IO.File.Exists(cfgPath)) {
-                        Dictionary<String, Object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
-                        foreach (KeyValuePair<String, Object?> kv in fromToml) {
+                    string cfgPath = System.IO.Path.Combine(gameRoot3, "config.toml");
+                    if (!string.IsNullOrWhiteSpace(gameRoot3) && System.IO.File.Exists(cfgPath)) {
+                        Dictionary<string, object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                        foreach (KeyValuePair<string, object?> kv in fromToml) {
                             if (!ctx.ContainsKey(kv.Key)) {
                                 ctx[kv.Key] = kv.Value;
                             }
                         }
                     }
-                } catch (Exception ex) {
+                } catch (System.Exception ex) {
 #if DEBUG
-                    Console.WriteLine($"[Engine.OperationExecution] format-convert: failed to read config.toml: {ex.Message}");
+                    Program.Direct.Console.WriteLine($"[Engine.OperationExecution] format-convert: failed to read config.toml: {ex.Message}");
 #endif
                 // ignore
                 }
                 cfgDict2["module_path"] = gameRoot3;
                 cfgDict2["project_path"] = _rootPath;
 
-                List<String> args = new List<String>();
-                if (op.TryGetValue("args", out Object? aobj) && aobj is IList<Object?> aList) {
-                    IList<Object?> resolved = (IList<Object?>)(Sys.Placeholders.Resolve(aList, ctx) ?? new List<Object?>());
-                    foreach (Object? a in resolved) {
+                List<string> args = new List<string>();
+                if (op.TryGetValue("args", out object? aobj) && aobj is IList<object?> aList) {
+                    IList<object?> resolved = (IList<object?>)(Sys.Placeholders.Resolve(aList, ctx) ?? new List<object?>());
+                    foreach (object? a in resolved) {
                         if (a is not null) {
                             args.Add(a.ToString()!);
                         }
                     }
                 }
 
-                if (String.Equals(tool, "ffmpeg", StringComparison.OrdinalIgnoreCase) || String.Equals(tool, "vgmstream", StringComparison.OrdinalIgnoreCase)) {
+                if (string.Equals(tool, "ffmpeg", System.StringComparison.OrdinalIgnoreCase) || string.Equals(tool, "vgmstream", System.StringComparison.OrdinalIgnoreCase)) {
                     // attempt built-in media conversion (ffmpeg/vgmstream) using the same CLI args
-                    Console.ForegroundColor = ConsoleColor.DarkCyan;
-                    Console.WriteLine("\n>>> Built-in media conversion");
-                    Console.ResetColor();
+                    Program.Direct.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
+                    Program.Direct.Console.WriteLine("\n>>> Built-in media conversion");
+                    Program.Direct.Console.ResetColor();
 #if DEBUG
-                    Console.WriteLine($"[Engine.OperationExecution] format-convert: running media conversion with args: {String.Join(' ', args)}");
+                    Program.Direct.Console.WriteLine($"[Engine.OperationExecution] format-convert: running media conversion with args: {string.Join(' ', args)}");
 #endif
-                    Boolean okMedia = FileHandlers.MediaConverter.Run(_tools, args);
+                    bool okMedia = FileHandlers.MediaConverter.Run(_tools, args);
                     return okMedia;
                 } else {
                     return false;
@@ -392,65 +400,69 @@ public sealed partial class OperationsEngine {
             }
             case "validate-files":
             case "validate_files": {
-                Dictionary<String, Object?> ctx = new Dictionary<String, Object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase);
-                if (!games.TryGetValue(currentGame, out Object? gobjValidate) || gobjValidate is not IDictionary<String, Object?> gdictValidate) {
+                Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
+                if (!games.TryGetValue(currentGame, out object? gobjValidate) || gobjValidate is not IDictionary<string, object?> gdictValidate) {
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                 }
                 // Built-in placeholders
-                String gameRoot4 = gdictValidate.TryGetValue("game_root", out Object? grValidate0) ? grValidate0?.ToString() ?? String.Empty : String.Empty;
+                string gameRoot4 = gdictValidate.TryGetValue("game_root", out object? grValidate0) ? grValidate0?.ToString() ?? string.Empty : string.Empty;
                 ctx["Game_Root"] = gameRoot4;
                 ctx["Project_Root"] = _rootPath;
                 ctx["Registry_Root"] = System.IO.Path.Combine(_rootPath, "RemakeRegistry");
-                ctx["Game"] = new Dictionary<String, Object?> {
+                ctx["Game"] = new Dictionary<string, object?> {
                     ["RootPath"] = gameRoot4,
                     ["Name"] = currentGame,
                 };
-                if (!ctx.TryGetValue("RemakeEngine", out Object? re3) || re3 is not IDictionary<String, Object?> reDict3) {
-                    ctx["RemakeEngine"] = reDict3 = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+                if (!ctx.TryGetValue("RemakeEngine", out object? re3) || re3 is not IDictionary<string, object?> reDict3) {
+                    ctx["RemakeEngine"] = reDict3 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
                 }
 
-                if (!reDict3.TryGetValue("Config", out Object? cfg3) || cfg3 is not IDictionary<String, Object?> cfgDict3) {
-                    reDict3["Config"] = cfgDict3 = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+                if (!reDict3.TryGetValue("Config", out object? cfg3) || cfg3 is not IDictionary<string, object?> cfgDict3) {
+                    reDict3["Config"] = cfgDict3 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
                 }
                 // Merge module placeholders from config.toml
                 try {
-                    String cfgPath = System.IO.Path.Combine(gameRoot4, "config.toml");
-                    if (!String.IsNullOrWhiteSpace(gameRoot4) && System.IO.File.Exists(cfgPath)) {
-                        Dictionary<String, Object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
-                        foreach (KeyValuePair<String, Object?> kv in fromToml) {
+                    string cfgPath = System.IO.Path.Combine(gameRoot4, "config.toml");
+                    if (!string.IsNullOrWhiteSpace(gameRoot4) && System.IO.File.Exists(cfgPath)) {
+                        Dictionary<string, object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                        foreach (KeyValuePair<string, object?> kv in fromToml) {
                             if (!ctx.ContainsKey(kv.Key)) {
                                 ctx[kv.Key] = kv.Value;
                             }
                         }
                     }
-                } catch { }
+                }  catch {
+#if DEBUG
+            Program.Direct.Console.WriteLine($"Error .....'");
+#endif
+        }
                 cfgDict3["module_path"] = gameRoot4;
                 cfgDict3["project_path"] = _rootPath;
 
-                String? resolvedDbPath = null;
-                if (op.TryGetValue("db", out Object? dbObj) && dbObj is not null) {
-                    Object? resolvedDb = Sys.Placeholders.Resolve(dbObj, ctx);
-                    if (resolvedDb is IList<Object?> dbList && dbList.Count > 0) {
+                string? resolvedDbPath = null;
+                if (op.TryGetValue("db", out object? dbObj) && dbObj is not null) {
+                    object? resolvedDb = Sys.Placeholders.Resolve(dbObj, ctx);
+                    if (resolvedDb is IList<object?> dbList && dbList.Count > 0) {
                         resolvedDbPath = dbList[0]?.ToString();
                     } else {
                         resolvedDbPath = resolvedDb?.ToString();
                     }
                 }
 
-                List<String> argsValidate = new List<String>();
-                if (!String.IsNullOrWhiteSpace(resolvedDbPath)) {
+                List<string> argsValidate = new List<string>();
+                if (!string.IsNullOrWhiteSpace(resolvedDbPath)) {
                     argsValidate.Add(resolvedDbPath);
                 }
-                if (op.TryGetValue("args", out Object? aobjValidate) && aobjValidate is IList<Object?> aListValidate) {
-                    IList<Object?> resolved = (IList<Object?>)(Sys.Placeholders.Resolve(aListValidate, ctx) ?? new List<Object?>());
-                    for (Int32 i = 0; i < resolved.Count; i++) {
-                        Object? a = resolved[i];
+                if (op.TryGetValue("args", out object? aobjValidate) && aobjValidate is IList<object?> aListValidate) {
+                    IList<object?> resolved = (IList<object?>)(Sys.Placeholders.Resolve(aListValidate, ctx) ?? new List<object?>());
+                    for (int i = 0; i < resolved.Count; i++) {
+                        object? a = resolved[i];
                         if (a is null) {
                             continue;
                         }
 
-                        String value = a.ToString()!;
-                        if (!String.IsNullOrWhiteSpace(resolvedDbPath) && argsValidate.Count == 1 && i == 0 && String.Equals(argsValidate[0], value, StringComparison.OrdinalIgnoreCase)) {
+                        string value = a.ToString()!;
+                        if (!string.IsNullOrWhiteSpace(resolvedDbPath) && argsValidate.Count == 1 && i == 0 && string.Equals(argsValidate[0], value, System.StringComparison.OrdinalIgnoreCase)) {
                             continue;
                         }
 
@@ -459,121 +471,129 @@ public sealed partial class OperationsEngine {
                 }
 
                 if (argsValidate.Count < 2) {
-                    Console.Error.WriteLine("validate-files requires a database path and base directory.");
+                    Program.Direct.Console.WriteLine("validate-files requires a database path and base directory.");
                     return false;
                 }
 
-                Console.ForegroundColor = ConsoleColor.DarkCyan;
-                Console.WriteLine("\n>>> Built-in file validation");
-                Console.ResetColor();
-                Boolean okValidate = FileHandlers.FileValidator.Run(argsValidate);
+                Program.Direct.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
+                Program.Direct.Console.WriteLine("\n>>> Built-in file validation");
+                Program.Direct.Console.ResetColor();
+                bool okValidate = FileHandlers.FileValidator.Run(argsValidate);
                 return okValidate;
             }
             case "rename-folders":
             case "rename_folders": {
-                Dictionary<String, Object?> ctx = new Dictionary<String, Object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase);
-                if (!games.TryGetValue(currentGame, out Object? gobj3) || gobj3 is not IDictionary<String, Object?> gdict3) {
+                Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
+                if (!games.TryGetValue(currentGame, out object? gobj3) || gobj3 is not IDictionary<string, object?> gdict3) {
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                 }
                 // Built-in placeholders
-                String gameRoot5 = gdict3.TryGetValue("game_root", out Object? gr3) ? gr3?.ToString() ?? String.Empty : String.Empty;
+                string gameRoot5 = gdict3.TryGetValue("game_root", out object? gr3) ? gr3?.ToString() ?? string.Empty : string.Empty;
                 ctx["Game_Root"] = gameRoot5;
                 ctx["Project_Root"] = _rootPath;
                 ctx["Registry_Root"] = System.IO.Path.Combine(_rootPath, "RemakeRegistry");
-                ctx["Game"] = new Dictionary<String, Object?> {
+                ctx["Game"] = new Dictionary<string, object?> {
                     ["RootPath"] = gameRoot5,
                     ["Name"] = currentGame,
                 };
-                if (!ctx.TryGetValue("RemakeEngine", out Object? re4) || re4 is not IDictionary<String, Object?> reDict4) {
-                    ctx["RemakeEngine"] = reDict4 = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+                if (!ctx.TryGetValue("RemakeEngine", out object? re4) || re4 is not IDictionary<string, object?> reDict4) {
+                    ctx["RemakeEngine"] = reDict4 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
                 }
 
-                if (!reDict4.TryGetValue("Config", out Object? cfg4) || cfg4 is not IDictionary<String, Object?> cfgDict4) {
-                    reDict4["Config"] = cfgDict4 = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+                if (!reDict4.TryGetValue("Config", out object? cfg4) || cfg4 is not IDictionary<string, object?> cfgDict4) {
+                    reDict4["Config"] = cfgDict4 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
                 }
                 // Merge module placeholders from config.toml
                 try {
-                    String cfgPath = System.IO.Path.Combine(gameRoot5, "config.toml");
-                    if (!String.IsNullOrWhiteSpace(gameRoot5) && System.IO.File.Exists(cfgPath)) {
-                        Dictionary<String, Object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
-                        foreach (KeyValuePair<String, Object?> kv in fromToml) {
+                    string cfgPath = System.IO.Path.Combine(gameRoot5, "config.toml");
+                    if (!string.IsNullOrWhiteSpace(gameRoot5) && System.IO.File.Exists(cfgPath)) {
+                        Dictionary<string, object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                        foreach (KeyValuePair<string, object?> kv in fromToml) {
                             if (!ctx.ContainsKey(kv.Key)) {
                                 ctx[kv.Key] = kv.Value;
                             }
                         }
                     }
-                } catch { }
+                }  catch {
+#if DEBUG
+            Program.Direct.Console.WriteLine($"Error .....'");
+#endif
+        }
                 cfgDict4["module_path"] = gameRoot5;
                 cfgDict4["project_path"] = _rootPath;
 
-                List<String> args = new List<String>();
-                if (op.TryGetValue("args", out Object? aobjRename) && aobjRename is IList<Object?> aListRename) {
-                    IList<Object?> resolved = (IList<Object?>)(Sys.Placeholders.Resolve(aListRename, ctx) ?? new List<Object?>());
-                    foreach (Object? a in resolved) {
+                List<string> args = new List<string>();
+                if (op.TryGetValue("args", out object? aobjRename) && aobjRename is IList<object?> aListRename) {
+                    IList<object?> resolved = (IList<object?>)(Sys.Placeholders.Resolve(aListRename, ctx) ?? new List<object?>());
+                    foreach (object? a in resolved) {
                         if (a is not null) {
                             args.Add(a.ToString()!);
                         }
                     }
                 }
 
-                Console.ForegroundColor = ConsoleColor.DarkCyan;
-                Console.WriteLine("\n>>> Built-in folder rename");
-                Console.WriteLine($"with args: {String.Join(' ', args)}");
-                Console.ResetColor();
-                Boolean okRename = FileHandlers.FolderRenamer.Run(args);
+                Program.Direct.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
+                Program.Direct.Console.WriteLine("\n>>> Built-in folder rename");
+                Program.Direct.Console.WriteLine($"with args: {string.Join(' ', args)}");
+                Program.Direct.Console.ResetColor();
+                bool okRename = FileHandlers.FolderRenamer.Run(args);
                 return okRename;
             }
             case "flatten":
             case "flatten-folder-structure": {
-                Dictionary<String, Object?> ctx = new Dictionary<String, Object?>(_engineConfig.Data, StringComparer.OrdinalIgnoreCase);
-                if (!games.TryGetValue(currentGame, out Object? gobjFlatten) || gobjFlatten is not IDictionary<String, Object?> gdictFlatten) {
+                Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
+                if (!games.TryGetValue(currentGame, out object? gobjFlatten) || gobjFlatten is not IDictionary<string, object?> gdictFlatten) {
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                 }
                 // Built-in placeholders
-                String gameRoot6 = gdictFlatten.TryGetValue("game_root", out Object? grFlatten0) ? grFlatten0?.ToString() ?? String.Empty : String.Empty;
+                string gameRoot6 = gdictFlatten.TryGetValue("game_root", out object? grFlatten0) ? grFlatten0?.ToString() ?? string.Empty : string.Empty;
                 ctx["Game_Root"] = gameRoot6;
                 ctx["Project_Root"] = _rootPath;
                 ctx["Registry_Root"] = System.IO.Path.Combine(_rootPath, "RemakeRegistry");
-                ctx["Game"] = new Dictionary<String, Object?> {
+                ctx["Game"] = new Dictionary<string, object?> {
                     ["RootPath"] = gameRoot6,
                     ["Name"] = currentGame,
                 };
-                if (!ctx.TryGetValue("RemakeEngine", out Object? re5) || re5 is not IDictionary<String, Object?> reDict5) {
-                    ctx["RemakeEngine"] = reDict5 = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+                if (!ctx.TryGetValue("RemakeEngine", out object? re5) || re5 is not IDictionary<string, object?> reDict5) {
+                    ctx["RemakeEngine"] = reDict5 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
                 }
 
-                if (!reDict5.TryGetValue("Config", out Object? cfg5) || cfg5 is not IDictionary<String, Object?> cfgDict5) {
-                    reDict5["Config"] = cfgDict5 = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+                if (!reDict5.TryGetValue("Config", out object? cfg5) || cfg5 is not IDictionary<string, object?> cfgDict5) {
+                    reDict5["Config"] = cfgDict5 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
                 }
                 // Merge module placeholders from config.toml
                 try {
-                    String cfgPath = System.IO.Path.Combine(gameRoot6, "config.toml");
-                    if (!String.IsNullOrWhiteSpace(gameRoot6) && System.IO.File.Exists(cfgPath)) {
-                        Dictionary<String, Object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
-                        foreach (KeyValuePair<String, Object?> kv in fromToml) {
+                    string cfgPath = System.IO.Path.Combine(gameRoot6, "config.toml");
+                    if (!string.IsNullOrWhiteSpace(gameRoot6) && System.IO.File.Exists(cfgPath)) {
+                        Dictionary<string, object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                        foreach (KeyValuePair<string, object?> kv in fromToml) {
                             if (!ctx.ContainsKey(kv.Key)) {
                                 ctx[kv.Key] = kv.Value;
                             }
                         }
                     }
-                } catch { }
+                }  catch {
+#if DEBUG
+            Program.Direct.Console.WriteLine($"Error .....'");
+#endif
+        }
                 cfgDict5["module_path"] = gameRoot6;
                 cfgDict5["project_path"] = _rootPath;
 
-                List<String> argsFlatten = new List<String>();
-                if (op.TryGetValue("args", out Object? aobjFlatten) && aobjFlatten is IList<Object?> aListFlatten) {
-                    IList<Object?> resolved = (IList<Object?>)(Sys.Placeholders.Resolve(aListFlatten, ctx) ?? new List<Object?>());
-                    foreach (Object? a in resolved) {
+                List<string> argsFlatten = new List<string>();
+                if (op.TryGetValue("args", out object? aobjFlatten) && aobjFlatten is IList<object?> aListFlatten) {
+                    IList<object?> resolved = (IList<object?>)(Sys.Placeholders.Resolve(aListFlatten, ctx) ?? new List<object?>());
+                    foreach (object? a in resolved) {
                         if (a is not null) {
                             argsFlatten.Add(a.ToString()!);
                         }
                     }
                 }
 
-                Console.ForegroundColor = ConsoleColor.DarkCyan;
-                Console.WriteLine("\n>>> Built-in directory flatten");
-                Console.ResetColor();
-                Boolean okFlatten = FileHandlers.DirectoryFlattener.Run(argsFlatten);
+                Program.Direct.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
+                Program.Direct.Console.WriteLine("\n>>> Built-in directory flatten");
+                Program.Direct.Console.ResetColor();
+                bool okFlatten = FileHandlers.DirectoryFlattener.Run(argsFlatten);
                 return okFlatten;
             }
 
@@ -584,62 +604,62 @@ public sealed partial class OperationsEngine {
 
     private void ReloadProjectConfig() {
         try {
-            String projectJson = Path.Combine(_rootPath, "project.json");
-            if (!File.Exists(projectJson)) {
+            string projectJson = System.IO.Path.Combine(_rootPath, "project.json");
+            if (!System.IO.File.Exists(projectJson)) {
                 return;
             }
 
-            using FileStream fs = File.OpenRead(projectJson);
-            using JsonDocument doc = JsonDocument.Parse(fs);
-            if (doc.RootElement.ValueKind != JsonValueKind.Object) {
+            using System.IO.FileStream fs = System.IO.File.OpenRead(projectJson);
+            using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(fs);
+            if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object) {
                 return;
             }
 
-            Dictionary<String, Object?> map = ToMap(doc.RootElement);
-            IDictionary<String, Object?>? data = _engineConfig.Data;
+            Dictionary<string, object?> map = ToMap(doc.RootElement);
+            IDictionary<string, object?>? data = _engineConfig.Data;
             if (data is null) {
                 return;
             }
 
             data.Clear();
-            foreach (KeyValuePair<String, Object?> kv in map) {
+            foreach (KeyValuePair<string, object?> kv in map) {
                 data[kv.Key] = kv.Value;
             }
-        } catch (Exception ex) {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("error reloading project.json:");
-            Console.Error.WriteLine(ex.Message);
-            Console.ResetColor();
+        } catch (System.Exception ex) {
+            Program.Direct.Console.ForegroundColor = System.ConsoleColor.Red;
+            Program.Direct.Console.WriteLine("error reloading project.json:");
+            Program.Direct.Console.WriteLine(ex.Message);
+            Program.Direct.Console.ResetColor();
         }
     }
 
     /// <summary>
     /// Extracts any nested onsuccess operations from an operation map. Supports keys 'onsuccess' and 'on_success'.
     /// </summary>
-    private static Boolean TryGetOnSuccessOperations(IDictionary<String, Object?> op, out List<Dictionary<String, Object?>>? ops) {
+    private static bool TryGetOnSuccessOperations(IDictionary<string, object?> op, out List<Dictionary<string, object?>>? ops) {
         ops = null;
         if (op is null) return false;
 
-        static List<Dictionary<String, Object?>>? Coerce(Object? value) {
+        static List<Dictionary<string, object?>>? Coerce(object? value) {
             if (value is null) return null;
-            List<Dictionary<String, Object?>> list = new List<Dictionary<String, Object?>>();
-            if (value is IList<Object?> arr) {
-                foreach (Object? item in arr) {
-                    if (item is IDictionary<String, Object?> map) {
-                        list.Add(new Dictionary<String, Object?>(map, StringComparer.OrdinalIgnoreCase));
+            List<Dictionary<string, object?>> list = new List<Dictionary<string, object?>>();
+            if (value is IList<object?> arr) {
+                foreach (object? item in arr) {
+                    if (item is IDictionary<string, object?> map) {
+                        list.Add(new Dictionary<string, object?>(map, System.StringComparer.OrdinalIgnoreCase));
                     }
                 }
-            } else if (value is IDictionary<String, Object?> single) {
-                list.Add(new Dictionary<String, Object?>(single, StringComparer.OrdinalIgnoreCase));
+            } else if (value is IDictionary<string, object?> single) {
+                list.Add(new Dictionary<string, object?>(single, System.StringComparer.OrdinalIgnoreCase));
             }
             return list.Count > 0 ? list : null;
         }
 
-        if (op.TryGetValue("onsuccess", out Object? v1)) {
+        if (op.TryGetValue("onsuccess", out object? v1)) {
             ops = Coerce(v1);
             if (ops is not null) return true;
         }
-        if (op.TryGetValue("on_success", out Object? v2)) {
+        if (op.TryGetValue("on_success", out object? v2)) {
             ops = Coerce(v2);
             if (ops is not null) return true;
         }

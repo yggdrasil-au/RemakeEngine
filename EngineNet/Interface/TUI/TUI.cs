@@ -1,7 +1,6 @@
-
 namespace EngineNet.Interface.TUI;
 
-public class App {
+internal class App {
 
     private readonly Core.OperationsEngine _engine;
 
@@ -9,15 +8,15 @@ public class App {
         _engine = engine;
     }
 
-    public async Task<Int32> RunInteractiveMenuAsync() {
+    public async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync() {
         // 1) Pick a game, or offer to download a module if none exist
-        Dictionary<String, Object?> games = _engine.ListGames();
+        Dictionary<string, object?> games = _engine.ListGames();
         while (games.Count == 0) {
-            Console.Clear();
-            Console.WriteLine("No games found in RemakeRegistry/Games.");
-            List<String> actions = new List<String> { "Download module...", "Exit" };
-            Console.WriteLine("? Choose an action:");
-            Int32 aidx = SelectFromMenu(actions);
+            System.Console.Clear();
+            System.Console.WriteLine("No games found in RemakeRegistry/Games.");
+            List<string> actions = new List<string> { "Download module...", "Exit" };
+            System.Console.WriteLine("? Choose an action:");
+            int aidx = SelectFromMenu(actions);
             if (aidx < 0 || actions[aidx] == "Exit") {
                 return 0;
             }
@@ -28,20 +27,20 @@ public class App {
             }
         }
         // Allow managing modules from the game selection menu
-        String gameName;
+        string gameName;
         while (true) {
-            Console.Clear();
-            Console.WriteLine("Select a game:");
-            List<String> gameMenu = new List<String>(games.Keys);
+            System.Console.Clear();
+            System.Console.WriteLine("Select a game:");
+            List<string> gameMenu = new List<string>(games.Keys);
             gameMenu.Add("---------------");
             gameMenu.Add("Download module...");
             gameMenu.Add("Exit");
-            Int32 gidx = SelectFromMenu(gameMenu, highlightSeparators: true);
+            int gidx = SelectFromMenu(gameMenu, highlightSeparators: true);
             if (gidx < 0 || gameMenu[gidx] == "Exit") {
                 return 0;
             }
 
-            String gsel = gameMenu[gidx];
+            string gsel = gameMenu[gidx];
             if (gsel.StartsWith("Download module")) {
                 ShowDownloadMenu();
                 games = _engine.ListGames();
@@ -52,60 +51,60 @@ public class App {
         }
 
         // 2) Load operations list and render menu
-        if (!games.TryGetValue(gameName, out Object? infoObj) || infoObj is not Dictionary<String, Object?> info) {
-            Console.Error.WriteLine("Selected game not found.");
+        if (!games.TryGetValue(gameName, out object? infoObj) || infoObj is not Dictionary<string, object?> info) {
+            System.Console.Error.WriteLine("Selected game not found.");
             return 1;
         }
-        if (!info.TryGetValue("ops_file", out Object? of) || of is not String opsFile) {
-            Console.Error.WriteLine("Selected game is missing ops_file.");
+        if (!info.TryGetValue("ops_file", out object? of) || of is not string opsFile) {
+            System.Console.Error.WriteLine("Selected game is missing ops_file.");
             return 1;
         }
-        List<Dictionary<String, Object?>> allOps = _engine.LoadOperationsList(opsFile);
-        List<Dictionary<String, Object?>> initOps = allOps.FindAll(op => op.TryGetValue("init", out Object? i) && i is Boolean b && b);
-        List<Dictionary<String, Object?>> regularOps = allOps.FindAll(op => !op.ContainsKey("init") || !(op["init"] is Boolean bb && bb));
-        Boolean didRunInit = false;
+        List<Dictionary<string, object?>> allOps = _engine.LoadOperationsList(opsFile);
+        List<Dictionary<string, object?>> initOps = allOps.FindAll(op => op.TryGetValue("init", out object? i) && i is bool b && b);
+        List<Dictionary<string, object?>> regularOps = allOps.FindAll(op => !op.ContainsKey("init") || !(op["init"] is bool bb && bb));
+        bool didRunInit = false;
 
         // Auto-run init operations once when a game is selected
         if (initOps.Count > 0) {
-            Console.Clear();
-            Console.WriteLine($"Running {initOps.Count} initialization operation(s) for {gameName}\n");
-            Boolean okAllInit = true;
-            foreach (Dictionary<String, Object?> op in initOps) {
-                Dictionary<String, Object?> answers = new Dictionary<String, Object?>();
+            System.Console.Clear();
+            System.Console.WriteLine($"Running {initOps.Count} initialization operation(s) for {gameName}\n");
+            bool okAllInit = true;
+            foreach (Dictionary<string, object?> op in initOps) {
+                Dictionary<string, object?> answers = new Dictionary<string, object?>();
                 // Initialization runs non-interactively; use defaults when provided
                 CollectAnswersForOperation(op, answers, defaultsOnly: true);
-                Boolean ok = new Utils().ExecuteOp(_engine, gameName, games, op, answers);
+                bool ok = new Utils().ExecuteOp(_engine, gameName, games, op, answers);
                 okAllInit &= ok;
             }
             didRunInit = true;
-            Console.WriteLine(okAllInit
+            System.Console.WriteLine(okAllInit
                 ? "Initialization completed successfully. Press any key to continue..."
                 : "One or more init operations failed. Press any key to continue...");
-            Console.ReadKey(true);
+            System.Console.ReadKey(true);
         }
 
         while (true) {
-            Console.Clear();
-            Console.WriteLine($"--- Operations for: {gameName}");
-            List<String> menu = new List<String>();
+            System.Console.Clear();
+            System.Console.WriteLine($"--- Operations for: {gameName}");
+            List<string> menu = new List<string>();
             menu.Add("Run All");
             menu.Add("---------------");
-            foreach (Dictionary<String, Object?> op in regularOps) {
-                String name = op.TryGetValue("Name", out Object? n) && n is String s && !String.IsNullOrWhiteSpace(s)
-                    ? s : Path.GetFileName(op.TryGetValue("script", out Object? sc) ? sc?.ToString() ?? "(unnamed)" : "(unnamed)");
+            foreach (Dictionary<string, object?> op in regularOps) {
+                string name = op.TryGetValue("Name", out object? n) && n is string s && !string.IsNullOrWhiteSpace(s)
+                    ? s : System.IO.Path.GetFileName(op.TryGetValue("script", out object? sc) ? sc?.ToString() ?? "(unnamed)" : "(unnamed)");
                 menu.Add(name);
             }
             menu.Add("---------------");
             menu.Add("Change Game");
             menu.Add("Exit");
 
-            Console.WriteLine("? Select an operation: (Use arrow keys)");
-            Int32 idx = SelectFromMenu(menu, highlightSeparators: true);
+            System.Console.WriteLine("? Select an operation: (Use arrow keys)");
+            int idx = SelectFromMenu(menu, highlightSeparators: true);
             if (idx < 0) {
                 return 0; // canceled
             }
 
-            String selection = menu[idx];
+            string selection = menu[idx];
             if (selection == "Change Game") {
                 // Restart the full menu loop by re-picking game
                 return await RunInteractiveMenuAsync();
@@ -115,110 +114,110 @@ public class App {
             }
             if (selection == "Run All") {
                 try {
-                    Console.Clear();
-                    Console.WriteLine($"Running operations for {gameName}...\n");
+                    System.Console.Clear();
+                    System.Console.WriteLine($"Running operations for {gameName}...\n");
 
-                    String lastPrompt = "Input required";
+                    string lastPrompt = "Input required";
                     Core.RunAllResult result = await _engine.RunAllAsync(
                         gameName,
                         onOutput: (line, streamName) => {
-                            ConsoleColor prev = Console.ForegroundColor;
+                            System.ConsoleColor prev = System.Console.ForegroundColor;
                             try {
-                                Console.ForegroundColor = streamName == "stderr" ? ConsoleColor.Red : ConsoleColor.Gray;
-                                Console.WriteLine(line);
+                                System.Console.ForegroundColor = streamName == "stderr" ? System.ConsoleColor.Red : System.ConsoleColor.Gray;
+                                System.Console.WriteLine(line);
                             } finally {
-                                Console.ForegroundColor = prev;
+                                System.Console.ForegroundColor = prev;
                             }
                         },
                         onEvent: (evt) => {
-                            if (!evt.TryGetValue("event", out Object? evtType)) {
+                            if (!evt.TryGetValue("event", out object? evtType)) {
                                 return;
                             }
 
-                            String? typ = evtType?.ToString();
-                            ConsoleColor prev = Console.ForegroundColor;
+                            string? typ = evtType?.ToString();
+                            System.ConsoleColor prev = System.Console.ForegroundColor;
 
                             switch (typ) {
                                 case "print":
-                                    String msg = evt.TryGetValue("message", out Object? m) ? m?.ToString() ?? String.Empty : String.Empty;
-                                    String colorName = evt.TryGetValue("color", out Object? c) ? c?.ToString() ?? String.Empty : String.Empty;
-                                    Boolean newline = true;
+                                    string msg = evt.TryGetValue("message", out object? m) ? m?.ToString() ?? string.Empty : string.Empty;
+                                    string colorName = evt.TryGetValue("color", out object? c) ? c?.ToString() ?? string.Empty : string.Empty;
+                                    bool newline = true;
                                     try {
-                                        if (evt.TryGetValue("newline", out Object? nl) && nl is not null) {
-                                            newline = Convert.ToBoolean(nl);
+                                        if (evt.TryGetValue("newline", out object? nl) && nl is not null) {
+                                            newline = System.Convert.ToBoolean(nl);
                                         }
                                     } catch {
                                         // ignored
                                     }
                                     try {
-                                        Console.ForegroundColor = MapEventColor(colorName);
+                                        System.Console.ForegroundColor = MapEventColor(colorName);
                                         if (newline) {
-                                            Console.WriteLine(msg);
+                                            System.Console.WriteLine(msg);
                                         } else {
-                                            Console.Write(msg);
+                                            System.Console.Write(msg);
                                         }
                                     } finally {
-                                        Console.ForegroundColor = prev;
+                                        System.Console.ForegroundColor = prev;
                                     }
                                     break;
                                 case "prompt":
-                                    lastPrompt = evt.TryGetValue("message", out Object? pm) ? pm?.ToString() ?? "Input required" : "Input required";
-                                    Console.ForegroundColor = ConsoleColor.Cyan;
-                                    Console.WriteLine($"? {lastPrompt}");
-                                    Console.ForegroundColor = prev;
+                                    lastPrompt = evt.TryGetValue("message", out object? pm) ? pm?.ToString() ?? "Input required" : "Input required";
+                                    System.Console.ForegroundColor = System.ConsoleColor.Cyan;
+                                    System.Console.WriteLine($"? {lastPrompt}");
+                                    System.Console.ForegroundColor = prev;
                                     break;
                                 case "warning":
-                                    Console.ForegroundColor = ConsoleColor.Yellow;
-                                    Console.WriteLine($"⚠ {evt.GetValueOrDefault("message", "")}");
-                                    Console.ForegroundColor = prev;
+                                    System.Console.ForegroundColor = System.ConsoleColor.Yellow;
+                                    System.Console.WriteLine($"⚠ {evt.GetValueOrDefault("message", "")}");
+                                    System.Console.ForegroundColor = prev;
                                     break;
                                 case "error":
-                                    Console.ForegroundColor = ConsoleColor.Red;
-                                    Console.WriteLine($"✖ {evt.GetValueOrDefault("message", "")}");
-                                    Console.ForegroundColor = prev;
+                                    System.Console.ForegroundColor = System.ConsoleColor.Red;
+                                    System.Console.WriteLine($"✖ {evt.GetValueOrDefault("message", "")}");
+                                    System.Console.ForegroundColor = prev;
                                     break;
                             }
                         },
-                        stdinProvider: null  // Let Console.ReadLine() work normally for TUI
+                        stdinProvider: null  // Let System.Console.ReadLine() work normally for TUI
                     );
 
                     didRunInit = true; // Mark init as done after run-all completes
 
-                    Console.WriteLine(result.Success
+                    System.Console.WriteLine(result.Success
                         ? $"Completed successfully. ({result.SucceededOperations}/{result.TotalOperations} operations succeeded). Press any key to continue..."
                         : $"One or more operations failed. ({result.SucceededOperations}/{result.TotalOperations} operations succeeded). Press any key to continue...");
-                    Console.ReadKey(true);
+                    System.Console.ReadKey(true);
                     continue;
-                } catch (Exception ex) {
-                    Console.WriteLine($"Error during Run All: {ex.Message}");
+                } catch (System.Exception ex) {
+                    System.Console.WriteLine($"Error during Run All: {ex.Message}");
                 }
             }
 
             // Otherwise, run a single operation (by index within regular ops)
-            Int32 opIndex = idx - 2; // skip first two menu items
+            int opIndex = idx - 2; // skip first two menu items
             if (opIndex >= 0 && opIndex < regularOps.Count) {
-                Dictionary<String, Object?> op = regularOps[opIndex];
-                Dictionary<String, Object?> answers = new Dictionary<String, Object?>();
+                Dictionary<string, object?> op = regularOps[opIndex];
+                Dictionary<string, object?> answers = new Dictionary<string, object?>();
                 // For manual single-op run, prompt interactively
                 CollectAnswersForOperation(op, answers, defaultsOnly: false);
-                Console.Clear();
-                Console.WriteLine($"Running: {selection}\n");
-                Boolean ok = new Utils().ExecuteOp(_engine, gameName, games, op, answers);
-                Console.WriteLine(ok ? "Completed successfully. Press any key to continue..." : "Operation failed. Press any key to continue...");
-                Console.ReadKey(true);
+                System.Console.Clear();
+                System.Console.WriteLine($"Running: {selection}\n");
+                bool ok = new Utils().ExecuteOp(_engine, gameName, games, op, answers);
+                System.Console.WriteLine(ok ? "Completed successfully. Press any key to continue..." : "Operation failed. Press any key to continue...");
+                System.Console.ReadKey(true);
             }
         }
     }
 
-    private static Boolean CanUseInteractiveMenu(Int32 itemCount) {
+    private static bool CanUseInteractiveMenu(int itemCount) {
         try {
-            if (Console.IsOutputRedirected || Console.IsInputRedirected) {
+            if (System.Console.IsOutputRedirected || System.Console.IsInputRedirected) {
                 return false;
             }
 
-            Int32 bufferHeight = Console.BufferHeight;
-            Int32 windowHeight = Console.WindowHeight;
-            Int32 cursorTop = Console.CursorTop;
+            int bufferHeight = System.Console.BufferHeight;
+            int windowHeight = System.Console.WindowHeight;
+            int cursorTop = System.Console.CursorTop;
 
             if (itemCount >= bufferHeight) {
                 return false;
@@ -239,7 +238,7 @@ public class App {
     }
 
 
-    private static Int32 SelectFromMenu(IList<String> items, Boolean highlightSeparators = false) {
+    private static int SelectFromMenu(IList<string> items, bool highlightSeparators = false) {
         if (items.Count == 0) {
             return -1;
         }
@@ -248,144 +247,144 @@ public class App {
             return SelectFromMenuFallback(items, highlightSeparators);
         }
 
-        Int32 index = 0;
-        Int32 renderTop = Console.CursorTop;
+        int index = 0;
+        int renderTop = System.Console.CursorTop;
 
         while (true) {
-            Console.CursorVisible = false;
+            System.Console.CursorVisible = false;
 
             try {
-                Console.SetCursorPosition(0, renderTop);
-            } catch (ArgumentOutOfRangeException) {
-                Console.CursorVisible = true;
+                System.Console.SetCursorPosition(0, renderTop);
+            } catch (System.ArgumentOutOfRangeException) {
+                System.Console.CursorVisible = true;
                 return SelectFromMenuFallback(items, highlightSeparators);
             }
 
-            for (Int32 i = 0; i < items.Count; i++) {
-                String line = items[i];
-                Boolean isSep = line == "---------------";
+            for (int i = 0; i < items.Count; i++) {
+                string line = items[i];
+                bool isSep = line == "---------------";
                 if (i == index) {
-                    Console.ForegroundColor = ConsoleColor.Cyan;
-                    Console.WriteLine($"> {line}");
-                    Console.ResetColor();
+                    System.Console.ForegroundColor = System.ConsoleColor.Cyan;
+                    System.Console.WriteLine($"> {line}");
+                    System.Console.ResetColor();
                 } else {
                     if (isSep && highlightSeparators) {
-                        Console.ForegroundColor = ConsoleColor.DarkGray;
-                        Console.WriteLine($"  {line}");
-                        Console.ResetColor();
+                        System.Console.ForegroundColor = System.ConsoleColor.DarkGray;
+                        System.Console.WriteLine($"  {line}");
+                        System.Console.ResetColor();
                     } else {
-                        Console.WriteLine($"  {line}");
+                        System.Console.WriteLine($"  {line}");
                     }
                 }
             }
 
-            ConsoleKeyInfo keyInfo = Console.ReadKey(true);
+            System.ConsoleKeyInfo keyInfo = System.Console.ReadKey(true);
             switch (keyInfo.Key) {
-                case ConsoleKey.DownArrow:
+                case System.ConsoleKey.DownArrow:
                     do {
                         index = (index + 1) % items.Count;
                     } while (items[index] == "---------------");
                     break;
-                case ConsoleKey.UpArrow:
+                case System.ConsoleKey.UpArrow:
                     do {
                         index = (index - 1 + items.Count) % items.Count;
                     } while (items[index] == "---------------");
                     break;
-                case ConsoleKey.Escape:
-                    Console.CursorVisible = true;
+                case System.ConsoleKey.Escape:
+                    System.Console.CursorVisible = true;
                     return -1;
-                case ConsoleKey.Enter:
-                    Console.CursorVisible = true;
+                case System.ConsoleKey.Enter:
+                    System.Console.CursorVisible = true;
                     return index;
             }
         }
     }
-    private static Int32 SelectFromMenuFallback(IList<String> items, Boolean highlightSeparators) {
-        List<Int32> selectable = new();
+    private static int SelectFromMenuFallback(IList<string> items, bool highlightSeparators) {
+        List<int> selectable = new();
 
-        Console.WriteLine();
-        Console.WriteLine("Terminal is too small for the interactive menu. Enter the option number instead:");
+        System.Console.WriteLine();
+        System.Console.WriteLine("Terminal is too small for the interactive menu. Enter the option number instead:");
 
-        Int32 displayIndex = 1;
-        for (Int32 i = 0; i < items.Count; i++) {
-            String line = items[i];
-            Boolean isSep = line == "---------------";
+        int displayIndex = 1;
+        for (int i = 0; i < items.Count; i++) {
+            string line = items[i];
+            bool isSep = line == "---------------";
             if (isSep) {
                 if (highlightSeparators) {
-                    Console.ForegroundColor = ConsoleColor.DarkGray;
-                    Console.WriteLine(line);
-                    Console.ResetColor();
+                    System.Console.ForegroundColor = System.ConsoleColor.DarkGray;
+                    System.Console.WriteLine(line);
+                    System.Console.ResetColor();
                 } else {
-                    Console.WriteLine(line);
+                    System.Console.WriteLine(line);
                 }
                 continue;
             }
 
-            Console.WriteLine($"{displayIndex}. {line}");
+            System.Console.WriteLine($"{displayIndex}. {line}");
             selectable.Add(i);
             displayIndex++;
         }
 
         while (true) {
-            Console.Write("Selection (blank to cancel): ");
-            String? input = Console.ReadLine();
-            if (String.IsNullOrWhiteSpace(input)) {
+            System.Console.Write("Selection (blank to cancel): ");
+            string? input = System.Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(input)) {
                 return -1;
             }
 
-            if (Int32.TryParse(input.Trim(), out Int32 choice) && choice >= 1 && choice <= selectable.Count) {
+            if (int.TryParse(input.Trim(), out int choice) && choice >= 1 && choice <= selectable.Count) {
                 return selectable[choice - 1];
             }
 
-            Console.WriteLine("Invalid selection. Please enter a valid number.");
+            System.Console.WriteLine("Invalid selection. Please enter a valid number.");
         }
     }
 
     // git Download Menu
     private void ShowDownloadMenu() {
         while (true) {
-            Console.Clear();
-            Console.WriteLine("Download module:");
-            List<String> items = new List<String> {
+            System.Console.Clear();
+            System.Console.WriteLine("Download module:");
+            List<string> items = new List<string> {
                 "From registry (RemakeRegistry/register.json)...",
                 "From Git URL...",
                 "Back"
             };
-            Console.WriteLine("? Choose a source:");
-            Int32 idx = SelectFromMenu(items);
+            System.Console.WriteLine("? Choose a source:");
+            int idx = SelectFromMenu(items);
             if (idx < 0 || items[idx] == "Back") {
                 return;
             }
 
-            String choice = items[idx];
+            string choice = items[idx];
             if (choice.StartsWith("From registry")) {
                 // Load registry entries and list modules
-                IReadOnlyDictionary<String, Object?> regs = _engine.GetRegisteredModules();
+                IReadOnlyDictionary<string, object?> regs = _engine.GetRegisteredModules();
                 if (regs.Count == 0) {
-                    Console.WriteLine("No modules in registry. Press any key to go back...");
-                    Console.ReadKey(true);
+                    System.Console.WriteLine("No modules in registry. Press any key to go back...");
+                    System.Console.ReadKey(true);
                     continue;
                 }
 
-                List<String> names = regs.Keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase).ToList();
+                List<string> names = regs.Keys.OrderBy(k => k, System.StringComparer.OrdinalIgnoreCase).ToList();
                 names.Add("Back");
-                Console.Clear();
-                Console.WriteLine("Select a module to download:");
-                Int32 mIdx = SelectFromMenu(names);
+                System.Console.Clear();
+                System.Console.WriteLine("Select a module to download:");
+                int mIdx = SelectFromMenu(names);
                 if (mIdx < 0 || names[mIdx] == "Back") {
                     continue;
                 }
 
-                String name = names[mIdx];
-                if (!regs.TryGetValue(name, out Object? obj) || obj is not Dictionary<String, Object?> mod) {
-                    Console.WriteLine("Invalid module entry. Press any key...");
-                    Console.ReadKey(true);
+                string name = names[mIdx];
+                if (!regs.TryGetValue(name, out object? obj) || obj is not Dictionary<string, object?> mod) {
+                    System.Console.WriteLine("Invalid module entry. Press any key...");
+                    System.Console.ReadKey(true);
                     continue;
                 }
-                String? url = mod.TryGetValue("url", out Object? u) ? u?.ToString() : null;
-                if (String.IsNullOrWhiteSpace(url)) {
-                    Console.WriteLine("Selected module has no URL. Press any key...");
-                    Console.ReadKey(true);
+                string? url = mod.TryGetValue("url", out object? u) ? u?.ToString() : null;
+                if (string.IsNullOrWhiteSpace(url)) {
+                    System.Console.WriteLine("Selected module has no URL. Press any key...");
+                    System.Console.ReadKey(true);
                     continue;
                 }
                 _engine.DownloadModule(url!);
@@ -394,8 +393,8 @@ public class App {
             }
 
             if (choice.StartsWith("From Git URL")) {
-                String url = PromptText("Enter Git URL of the module");
-                if (!String.IsNullOrWhiteSpace(url)) {
+                string url = PromptText("Enter Git URL of the module");
+                if (!string.IsNullOrWhiteSpace(url)) {
                     _engine.DownloadModule(url);
                 }
 
@@ -404,46 +403,46 @@ public class App {
         }
     }
 
-    private static String PromptText(String title) {
-        Console.Write($"{title}: ");
+    private static string PromptText(string title) {
+        System.Console.Write($"{title}: ");
         try {
-            return Console.ReadLine() ?? String.Empty;
-        } catch { return String.Empty; }
+            return System.Console.ReadLine() ?? string.Empty;
+        } catch { return string.Empty; }
     }
 
-    private static void CollectAnswersForOperation(Dictionary<String, Object?> op, Dictionary<String, Object?> answers, Boolean defaultsOnly) {
-        if (!op.TryGetValue("prompts", out Object? promptsObj) || promptsObj is not IList<Object?> prompts) {
+    private static void CollectAnswersForOperation(Dictionary<string, object?> op, Dictionary<string, object?> answers, bool defaultsOnly) {
+        if (!op.TryGetValue("prompts", out object? promptsObj) || promptsObj is not IList<object?> prompts) {
             return;
         }
 
         // Helper to set an empty value based on prompt type
-        static Object? EmptyForType(String t) => t switch {
+        static object? EmptyForType(string t) => t switch {
             "confirm" => false,
-            "checkbox" => new List<Object?>(),
+            "checkbox" => new List<object?>(),
             _ => null
         };
 
         if (defaultsOnly) {
             // In defaultsOnly mode, we don't prompt. Apply defaults while respecting conditions.
-            foreach (Object? p in prompts) {
-                if (p is not Dictionary<String, Object?> prompt) {
+            foreach (object? p in prompts) {
+                if (p is not Dictionary<string, object?> prompt) {
                     continue;
                 }
 
-                String name = prompt.TryGetValue("Name", out Object? n) ? n?.ToString() ?? "" : "";
-                String type = prompt.TryGetValue("type", out Object? t) ? t?.ToString() ?? "" : "";
-                if (String.IsNullOrEmpty(name) || String.IsNullOrEmpty(type)) {
+                string name = prompt.TryGetValue("Name", out object? n) ? n?.ToString() ?? "" : "";
+                string type = prompt.TryGetValue("type", out object? t) ? t?.ToString() ?? "" : "";
+                if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(type)) {
                     continue;
                 }
 
                 // Evaluate condition if present using current 'answers' state
-                if (prompt.TryGetValue("condition", out Object? condObj) && condObj is String condName) {
-                    if (!answers.TryGetValue(condName, out Object? condVal)) {
+                if (prompt.TryGetValue("condition", out object? condObj) && condObj is string condName) {
+                    if (!answers.TryGetValue(condName, out object? condVal)) {
                         // If condition value not yet present, attempt to seed from its default (if a matching prompt exists earlier or later)
                         // Find the prompt with Name == condName and use its default if any
-                        foreach (Object? q in prompts) {
-                            if (q is Dictionary<String, Object?> qp && (qp.TryGetValue("Name", out Object? qn) ? qn?.ToString() : null) == condName) {
-                                if (!answers.ContainsKey(condName) && qp.TryGetValue("default", out Object? cd)) {
+                        foreach (object? q in prompts) {
+                            if (q is Dictionary<string, object?> qp && (qp.TryGetValue("Name", out object? qn) ? qn?.ToString() : null) == condName) {
+                                if (!answers.ContainsKey(condName) && qp.TryGetValue("default", out object? cd)) {
                                     answers[condName] = cd;
                                 }
 
@@ -451,33 +450,33 @@ public class App {
                             }
                         }
                     }
-                    if (!answers.TryGetValue(condName, out Object? cv) || cv is not Boolean cb || !cb) {
+                    if (!answers.TryGetValue(condName, out object? cv) || cv is not bool cb || !cb) {
                         // Condition is false -> set empty value and skip
                         answers[name] = EmptyForType(type);
                         continue;
                     }
                 }
 
-                answers[name] = prompt.TryGetValue("default", out Object? defVal) ? defVal : EmptyForType(type);
+                answers[name] = prompt.TryGetValue("default", out object? defVal) ? defVal : EmptyForType(type);
             }
             return;
         }
 
         // Interactive mode: walk prompts in order, honoring conditions
-        foreach (Object? p in prompts) {
-            if (p is not Dictionary<String, Object?> prompt) {
+        foreach (object? p in prompts) {
+            if (p is not Dictionary<string, object?> prompt) {
                 continue;
             }
 
-            String name = prompt.TryGetValue("Name", out Object? n) ? n?.ToString() ?? "" : "";
-            String type = prompt.TryGetValue("type", out Object? tt) ? tt?.ToString() ?? "" : "";
-            if (String.IsNullOrEmpty(name) || String.IsNullOrEmpty(type)) {
+            string name = prompt.TryGetValue("Name", out object? n) ? n?.ToString() ?? "" : "";
+            string type = prompt.TryGetValue("type", out object? tt) ? tt?.ToString() ?? "" : "";
+            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(type)) {
                 continue;
             }
 
             // If there's a condition and it's false, skip asking and assign an empty value
-            if (prompt.TryGetValue("condition", out Object? cond) && cond is String condName) {
-                if (!answers.TryGetValue(condName, out Object? condVal) || condVal is not Boolean b || !b) {
+            if (prompt.TryGetValue("condition", out object? cond) && cond is string condName) {
+                if (!answers.TryGetValue(condName, out object? condVal) || condVal is not bool b || !b) {
                     answers[name] = EmptyForType(type);
                     continue;
                 }
@@ -486,28 +485,28 @@ public class App {
             switch (type) {
                 case "confirm": {
                     // Show default hint when available
-                    String defHint = prompt.TryGetValue("default", out Object? dv) && dv is Boolean db ? (db ? "Y" : "N") : "N";
-                    Console.Write($"{name} [y/N] (default {defHint}): ");
-                    String? c = Console.ReadLine();
-                    Boolean val = c != null && c.Trim().Length > 0
-                        ? c.Trim().StartsWith("y", StringComparison.OrdinalIgnoreCase)
-                        : (prompt.TryGetValue("default", out Object? d) && d is Boolean bd && bd);
+                    string defHint = prompt.TryGetValue("default", out object? dv) && dv is bool db ? (db ? "Y" : "N") : "N";
+                    System.Console.Write($"{name} [y/N] (default {defHint}): ");
+                    string? c = System.Console.ReadLine();
+                    bool val = c != null && c.Trim().Length > 0
+                        ? c.Trim().StartsWith("y", System.StringComparison.OrdinalIgnoreCase)
+                        : (prompt.TryGetValue("default", out object? d) && d is bool bd && bd);
                     answers[name] = val;
                     break;
                 }
 
                 case "checkbox": {
                     // Present choices if available
-                    if (prompt.TryGetValue("choices", out Object? ch) && ch is IList<Object?> choices && choices.Count > 0) {
-                        Console.WriteLine($"{name} - choose one or more (comma-separated). Choices: {String.Join(", ", choices.Select(x => x?.ToString()))}");
+                    if (prompt.TryGetValue("choices", out object? ch) && ch is IList<object?> choices && choices.Count > 0) {
+                        System.Console.WriteLine($"{name} - choose one or more (comma-separated). Choices: {string.Join(", ", choices.Select(x => x?.ToString()))}");
                     } else {
-                        Console.WriteLine($"{name} (comma-separated values): ");
+                        System.Console.WriteLine($"{name} (comma-separated values): ");
                     }
-                    String line = Console.ReadLine() ?? String.Empty;
-                    List<Object?> selected = line.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Cast<Object?>().ToList();
+                    string line = System.Console.ReadLine() ?? string.Empty;
+                    List<object?> selected = line.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries).Cast<object?>().ToList();
                     // If user entered nothing, fall back to default if provided
-                    if (selected.Count == 0 && prompt.TryGetValue("default", out Object? def) && def is IList<Object?> defList) {
-                        selected = defList.Select(x => (Object?)x).ToList();
+                    if (selected.Count == 0 && prompt.TryGetValue("default", out object? def) && def is IList<object?> defList) {
+                        selected = defList.Select(x => x).ToList();
                     }
 
                     answers[name] = selected;
@@ -516,9 +515,9 @@ public class App {
 
                 case "text":
                 default: {
-                    Console.Write($"{name}: ");
-                    String? v = Console.ReadLine();
-                    answers[name] = String.IsNullOrEmpty(v) && prompt.TryGetValue("default", out Object? defVal) ? defVal : v;
+                    System.Console.Write($"{name}: ");
+                    string? v = System.Console.ReadLine();
+                    answers[name] = string.IsNullOrEmpty(v) && prompt.TryGetValue("default", out object? defVal) ? defVal : v;
                     break;
                 }
             }
@@ -527,30 +526,30 @@ public class App {
 
     /* :: :: Helper Methods :: START :: */
 
-    private static ConsoleColor MapEventColor(String? name) {
-        if (String.IsNullOrWhiteSpace(name)) {
-            return ConsoleColor.Gray;
+    private static System.ConsoleColor MapEventColor(string? name) {
+        if (string.IsNullOrWhiteSpace(name)) {
+            return System.ConsoleColor.Gray;
         }
 
         return name.Trim().ToLowerInvariant() switch {
-            "default" => ConsoleColor.Gray,
-            "black" => ConsoleColor.Black,
-            "darkblue" => ConsoleColor.DarkBlue,
-            "blue" => ConsoleColor.Blue,
-            "darkgreen" => ConsoleColor.DarkGreen,
-            "green" => ConsoleColor.Green,
-            "darkcyan" => ConsoleColor.DarkCyan,
-            "cyan" => ConsoleColor.Cyan,
-            "darkred" => ConsoleColor.DarkRed,
-            "red" => ConsoleColor.Red,
-            "darkmagenta" => ConsoleColor.DarkMagenta,
-            "magenta" => ConsoleColor.Magenta,
-            "darkyellow" => ConsoleColor.DarkYellow,
-            "yellow" => ConsoleColor.Yellow,
-            "gray" or "grey" => ConsoleColor.Gray,
-            "darkgray" or "darkgrey" => ConsoleColor.DarkGray,
-            "white" => ConsoleColor.White,
-            _ => ConsoleColor.Gray
+            "default" => System.ConsoleColor.Gray,
+            "black" => System.ConsoleColor.Black,
+            "darkblue" => System.ConsoleColor.DarkBlue,
+            "blue" => System.ConsoleColor.Blue,
+            "darkgreen" => System.ConsoleColor.DarkGreen,
+            "green" => System.ConsoleColor.Green,
+            "darkcyan" => System.ConsoleColor.DarkCyan,
+            "cyan" => System.ConsoleColor.Cyan,
+            "darkred" => System.ConsoleColor.DarkRed,
+            "red" => System.ConsoleColor.Red,
+            "darkmagenta" => System.ConsoleColor.DarkMagenta,
+            "magenta" => System.ConsoleColor.Magenta,
+            "darkyellow" => System.ConsoleColor.DarkYellow,
+            "yellow" => System.ConsoleColor.Yellow,
+            "gray" or "grey" => System.ConsoleColor.Gray,
+            "darkgray" or "darkgrey" => System.ConsoleColor.DarkGray,
+            "white" => System.ConsoleColor.White,
+            _ => System.ConsoleColor.Gray
         };
     }
 

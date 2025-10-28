@@ -1,28 +1,23 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
 using Tomlyn;
-using Tomlyn.Model;
 namespace EngineNet.Core;
 
-public sealed partial class OperationsEngine {
+internal sealed partial class OperationsEngine {
     /// <summary>
     /// Loads a flat list of operations from a TOML or JSON file.
     /// </summary>
     /// <param name="opsFile">Path to operations.toml or operations.json.</param>
     /// <returns>List of operation maps (dictionary of string to object).</returns>
-    public List<Dictionary<String, Object?>> LoadOperationsList(String opsFile) {
-        String ext = Path.GetExtension(opsFile);
-        if (ext.Equals(".toml", StringComparison.OrdinalIgnoreCase)) {
-            Tomlyn.Syntax.DocumentSyntax tdoc = Toml.Parse(File.ReadAllText(opsFile));
-            TomlTable model = tdoc.ToModel();
-            List<Dictionary<String, Object?>> list = new List<Dictionary<String, Object?>>();
-            if (model is TomlTable table) {
-                foreach (KeyValuePair<String, Object> kv in table) {
-                    if (kv.Value is TomlTableArray arr) {
-                        foreach (TomlTable item in arr) {
-                            if (item is TomlTable tt) {
+    public List<Dictionary<string, object?>> LoadOperationsList(string opsFile) {
+        string ext = System.IO.Path.GetExtension(opsFile);
+        if (ext.Equals(".toml", System.StringComparison.OrdinalIgnoreCase)) {
+            Tomlyn.Syntax.DocumentSyntax tdoc = Tomlyn.Toml.Parse(System.IO.File.ReadAllText(opsFile));
+            Tomlyn.Model.TomlTable model = tdoc.ToModel();
+            List<Dictionary<string, object?>> list = new List<Dictionary<string, object?>>();
+            if (model is Tomlyn.Model.TomlTable table) {
+                foreach (KeyValuePair<string, object> kv in table) {
+                    if (kv.Value is Tomlyn.Model.TomlTableArray arr) {
+                        foreach (Tomlyn.Model.TomlTable item in arr) {
+                            if (item is Tomlyn.Model.TomlTable tt) {
                                 list.Add(ToMap(tt));
                             }
                         }
@@ -31,24 +26,24 @@ public sealed partial class OperationsEngine {
             }
             return list;
         }
-		using FileStream fs = File.OpenRead(opsFile);
-        using JsonDocument jdoc = JsonDocument.Parse(fs);
-        if (jdoc.RootElement.ValueKind == JsonValueKind.Array) {
-            List<Dictionary<String, Object?>> list = new List<Dictionary<String, Object?>>();
-            foreach (JsonElement item in jdoc.RootElement.EnumerateArray()) {
-                if (item.ValueKind == JsonValueKind.Object) {
+		using System.IO.FileStream fs = System.IO.File.OpenRead(opsFile);
+        using System.Text.Json.JsonDocument jdoc = System.Text.Json.JsonDocument.Parse(fs);
+        if (jdoc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array) {
+            List<Dictionary<string, object?>> list = new List<Dictionary<string, object?>>();
+            foreach (System.Text.Json.JsonElement item in jdoc.RootElement.EnumerateArray()) {
+                if (item.ValueKind == System.Text.Json.JsonValueKind.Object) {
                     list.Add(ToMap(item));
                 }
             }
             return list;
         }
-        if (jdoc.RootElement.ValueKind == JsonValueKind.Object) {
+        if (jdoc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object) {
             // Fallback: flatten grouped format into a single list (preserving group order)
-            List<Dictionary<String, Object?>> flat = new List<Dictionary<String, Object?>>();
-            foreach (JsonProperty prop in jdoc.RootElement.EnumerateObject()) {
-                if (prop.Value.ValueKind == JsonValueKind.Array) {
-                    foreach (JsonElement item in prop.Value.EnumerateArray()) {
-                        if (item.ValueKind == JsonValueKind.Object) {
+            List<Dictionary<string, object?>> flat = new List<Dictionary<string, object?>>();
+            foreach (System.Text.Json.JsonProperty prop in jdoc.RootElement.EnumerateObject()) {
+                if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Array) {
+                    foreach (System.Text.Json.JsonElement item in prop.Value.EnumerateArray()) {
+                        if (item.ValueKind == System.Text.Json.JsonValueKind.Object) {
                             flat.Add(ToMap(item));
                         }
                     }
@@ -64,18 +59,18 @@ public sealed partial class OperationsEngine {
     /// </summary>
     /// <param name="opsFile">Path to operations.toml or operations.json.</param>
     /// <returns>Dictionary mapping group name to a list of operations.</returns>
-    public Dictionary<String, List<Dictionary<String, Object?>>> LoadOperations(String opsFile) {
-        String ext = Path.GetExtension(opsFile);
-        if (ext.Equals(".toml", StringComparison.OrdinalIgnoreCase)) {
-            Tomlyn.Syntax.DocumentSyntax tdoc = Toml.Parse(File.ReadAllText(opsFile));
-            TomlTable model = tdoc.ToModel();
-            Dictionary<String, List<Dictionary<String, Object?>>> result = new Dictionary<String, List<Dictionary<String, Object?>>>(StringComparer.OrdinalIgnoreCase);
-            if (model is TomlTable table) {
-                foreach (KeyValuePair<String, Object> kv in table) {
-                    if (kv.Value is TomlTableArray arr) {
-                        List<Dictionary<String, Object?>> list = new List<Dictionary<String, Object?>>();
-                        foreach (TomlTable item in arr) {
-                            if (item is TomlTable tt) {
+    public Dictionary<string, List<Dictionary<string, object?>>> LoadOperations(string opsFile) {
+        string ext = System.IO.Path.GetExtension(opsFile);
+        if (ext.Equals(".toml", System.StringComparison.OrdinalIgnoreCase)) {
+            Tomlyn.Syntax.DocumentSyntax tdoc = Tomlyn.Toml.Parse(System.IO.File.ReadAllText(opsFile));
+            Tomlyn.Model.TomlTable model = tdoc.ToModel();
+            Dictionary<string, List<Dictionary<string, object?>>> result = new Dictionary<string, List<Dictionary<string, object?>>>(System.StringComparer.OrdinalIgnoreCase);
+            if (model is Tomlyn.Model.TomlTable table) {
+                foreach (KeyValuePair<string, object> kv in table) {
+                    if (kv.Value is Tomlyn.Model.TomlTableArray arr) {
+                        List<Dictionary<string, object?>> list = new List<Dictionary<string, object?>>();
+                        foreach (Tomlyn.Model.TomlTable item in arr) {
+                            if (item is Tomlyn.Model.TomlTable tt) {
                                 list.Add(ToMap(tt));
                             }
                         }
@@ -86,15 +81,15 @@ public sealed partial class OperationsEngine {
             return result;
         }
 
-        using FileStream fs = File.OpenRead(opsFile);
-        using JsonDocument doc = JsonDocument.Parse(fs);
-        Dictionary<String, List<Dictionary<String, Object?>>> resultJson = new Dictionary<String, List<Dictionary<String, Object?>>>(StringComparer.OrdinalIgnoreCase);
-        if (doc.RootElement.ValueKind == JsonValueKind.Object) {
-            foreach (JsonProperty prop in doc.RootElement.EnumerateObject()) {
-                List<Dictionary<String, Object?>> list = new List<Dictionary<String, Object?>>();
-                if (prop.Value.ValueKind == JsonValueKind.Array) {
-                    foreach (JsonElement item in prop.Value.EnumerateArray()) {
-                        if (item.ValueKind == JsonValueKind.Object) {
+        using System.IO.FileStream fs = System.IO.File.OpenRead(opsFile);
+        using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(fs);
+        Dictionary<string, List<Dictionary<string, object?>>> resultJson = new Dictionary<string, List<Dictionary<string, object?>>>(System.StringComparer.OrdinalIgnoreCase);
+        if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object) {
+            foreach (System.Text.Json.JsonProperty prop in doc.RootElement.EnumerateObject()) {
+                List<Dictionary<string, object?>> list = new List<Dictionary<string, object?>>();
+                if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Array) {
+                    foreach (System.Text.Json.JsonElement item in prop.Value.EnumerateArray()) {
+                        if (item.ValueKind == System.Text.Json.JsonValueKind.Object) {
                             list.Add(ToMap(item));
                         }
                     }
@@ -105,58 +100,58 @@ public sealed partial class OperationsEngine {
         return resultJson;
     }
 
-    private static Dictionary<String, Object?> ToMap(JsonElement obj) {
-        Dictionary<String, Object?> dict = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
-        foreach (JsonProperty p in obj.EnumerateObject()) {
+    private static Dictionary<string, object?> ToMap(System.Text.Json.JsonElement obj) {
+        Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+        foreach (System.Text.Json.JsonProperty p in obj.EnumerateObject()) {
             dict[p.Name] = FromJson(p.Value);
         }
         return dict;
     }
 
-    private static Object? FromJson(JsonElement el) {
+    private static object? FromJson(System.Text.Json.JsonElement el) {
         return el.ValueKind switch {
-            JsonValueKind.Object => ToMap(el),
-            JsonValueKind.Array => ToList(el),
-            JsonValueKind.String => el.GetString(),
-            JsonValueKind.Number => el.TryGetInt64(out Int64 l) ? l : el.TryGetDouble(out global::System.Double d) ? d : el.GetRawText(),
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
+            System.Text.Json.JsonValueKind.Object => ToMap(el),
+            System.Text.Json.JsonValueKind.Array => ToList(el),
+            System.Text.Json.JsonValueKind.String => el.GetString(),
+            System.Text.Json.JsonValueKind.Number => el.TryGetInt64(out long l) ? l : el.TryGetDouble(out double d) ? d : el.GetRawText(),
+            System.Text.Json.JsonValueKind.True => true,
+            System.Text.Json.JsonValueKind.False => false,
             _ => null
         };
     }
 
-    private static List<Object?> ToList(JsonElement arr) {
-        List<Object?> list = new List<Object?>();
-        foreach (JsonElement item in arr.EnumerateArray()) {
+    private static List<object?> ToList(System.Text.Json.JsonElement arr) {
+        List<object?> list = new List<object?>();
+        foreach (System.Text.Json.JsonElement item in arr.EnumerateArray()) {
             list.Add(FromJson(item));
         }
 
         return list;
     }
 
-    private static Dictionary<String, Object?> ToMap(TomlTable table) {
-        Dictionary<String, Object?> dict = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
-        foreach (KeyValuePair<String, Object> kv in table) {
+    private static Dictionary<string, object?> ToMap(Tomlyn.Model.TomlTable table) {
+        Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+        foreach (KeyValuePair<string, object> kv in table) {
             dict[kv.Key] = FromToml(kv.Value);
         }
 
         return dict;
     }
 
-    private static Object? FromToml(Object? value) {
+    private static object? FromToml(object? value) {
         switch (value) {
-            case TomlTable tt:
+            case Tomlyn.Model.TomlTable tt:
                 return ToMap(tt);
-            case TomlTableArray ta:
-                List<Object?> listTa = new List<Object?>();
-                foreach (TomlTable item in ta) {
+            case Tomlyn.Model.TomlTableArray ta:
+                List<object?> listTa = new List<object?>();
+                foreach (Tomlyn.Model.TomlTable item in ta) {
                     listTa.Add(FromToml(item));
                 }
 
                 return listTa;
-            case TomlArray arr:
-                List<Object?> listArr = new List<Object?>();
-                foreach (Object? item in arr) {
+            case Tomlyn.Model.TomlArray arr:
+                List<object?> listArr = new List<object?>();
+                foreach (object? item in arr) {
                     listArr.Add(FromToml(item));
                 }
 

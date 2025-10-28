@@ -1,8 +1,8 @@
 using Avalonia.Interactivity;
 
-namespace EngineNet.Interface.GUI.Avalonia;
+namespace EngineNet.Interface.GUI;
 
-internal static class PromptHelpers {
+public static class PromptHelpers {
     private static Window? TryGetMainWindow() {
         if (global::Avalonia.Application.Current?.ApplicationLifetime is global::Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime l) {
             return l.MainWindow;
@@ -11,14 +11,14 @@ internal static class PromptHelpers {
         return null;
     }
 
-    public static async Task<string?> TextAsync(string title, string message, string? defaultValue = null, bool secret = false) {
+    public static async System.Threading.Tasks.Task<string?> TextAsync(string title, string message, string? defaultValue = null, bool secret = false) {
         var window = TryGetMainWindow();
         if (window is null) return null;
         var dlg = new Views.PromptWindows.TextPromptWindow(title, message, defaultValue, secret);
         return await dlg.ShowAsync(window);
     }
 
-    public static async Task<bool> ConfirmAsync(string question, string title) {
+    public static async System.Threading.Tasks.Task<bool> ConfirmAsync(string question, string title) {
         Window? window = TryGetMainWindow();
         if (window is null) {
             return false;
@@ -28,7 +28,7 @@ internal static class PromptHelpers {
         return await dlg.ShowAsync(window);
     }
 
-    public static async Task InfoAsync(string message, string title) {
+    public static async System.Threading.Tasks.Task InfoAsync(string message, string title) {
         Window? window = TryGetMainWindow();
         if (window is null) {
             return;
@@ -59,7 +59,7 @@ internal static class PromptHelpers {
         await dlg.ShowDialog(window);
     }
 
-    public static async Task<string?> PickAsync(string title, System.Collections.Generic.IList<string> options) {
+    public static async System.Threading.Tasks.Task<string?> PickAsync(string title, System.Collections.Generic.IList<string> options) {
         Window? window = TryGetMainWindow();
         if (window is null) {
             return null;

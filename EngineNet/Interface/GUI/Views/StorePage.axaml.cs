@@ -29,13 +29,13 @@ internal partial class StorePage:UserControl {
         }
     }
 
-    internal ICommand RefreshCommand {
+    internal System.Windows.Input.ICommand RefreshCommand {
         get;
     }
-    internal ICommand SearchCommand {
+    internal System.Windows.Input.ICommand SearchCommand {
         get;
     }
-    internal ICommand DownloadCommand {
+    internal System.Windows.Input.ICommand DownloadCommand {
         get;
     }
 
@@ -81,7 +81,7 @@ internal partial class StorePage:UserControl {
     /// </summary>
     /// <param name="query">Optional search query to filter by module name</param>
     /// <returns></returns>
-    private async Task LoadAsync(string? query = null) {
+    private async System.Threading.Tasks.Task LoadAsync(string? query = null) {
         try {
             Status = "Loading…";
             Items.Clear();
@@ -102,7 +102,7 @@ internal partial class StorePage:UserControl {
                 
                 // Apply search filter if provided
                 if (!string.IsNullOrWhiteSpace(query) && 
-                    !moduleName.Contains(query, StringComparison.OrdinalIgnoreCase)) {
+                    !moduleName.Contains(query, System.StringComparison.OrdinalIgnoreCase)) {
                     continue;
                 }
 
@@ -145,7 +145,7 @@ internal partial class StorePage:UserControl {
             Status = Items.Count == 0 ? "No modules found." : $"{Items.Count} module(s)";
             
             await Task.CompletedTask;
-        } catch (Exception ex) {
+        } catch (System.Exception ex) {
             Status = "Failed to load store.";
             Items.Clear();
             Items.Add(new StoreItem { 
@@ -164,7 +164,7 @@ internal partial class StorePage:UserControl {
     /// </summary>
     /// <param name="item"></param>
     /// <returns></returns>
-    private async Task DownloadAsync(StoreItem? item) {
+    private async System.Threading.Tasks.Task DownloadAsync(StoreItem? item) {
         if (item is null || string.IsNullOrWhiteSpace(item.Url)) {
             return;
         }
@@ -186,7 +186,7 @@ internal partial class StorePage:UserControl {
             } else {
                 Status = $"Failed to download {item.Name}.";
             }
-        } catch (Exception ex) {
+        } catch (System.Exception ex) {
             Status = $"Download failed: {ex.Message}";
         }
     }
@@ -232,7 +232,7 @@ internal partial class StorePage:UserControl {
     private event PropertyChangedEventHandler? PropertyChanged;
     private void Raise(string name) => PropertyChanged?.Invoke(this, e: new PropertyChangedEventArgs(name));
 
-    private sealed class Cmd(Func<object?, Task> run):ICommand {
+    private sealed class Cmd(System.Func<object?, Task> run):System.Windows.Input.ICommand {
         private readonly Func<object?, Task> _run = run;
 
         public bool CanExecute(object? p) => true;

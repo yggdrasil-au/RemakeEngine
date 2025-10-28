@@ -1,6 +1,6 @@
 
 
-namespace EngineNet.Interface.GUI.Avalonia.ViewModels;
+namespace EngineNet.Interface.GUI.ViewModels;
 
 public sealed class MainViewModel:System.ComponentModel.INotifyPropertyChanged {
     private readonly dynamic _engine;
@@ -50,28 +50,28 @@ public sealed class MainViewModel:System.ComponentModel.INotifyPropertyChanged {
         get; set;
     }
 
-    public ICommand RefreshLibraryCommand {
+    public System.Windows.Input.ICommand RefreshLibraryCommand {
         get;
     }
-    public ICommand RefreshStoreCommand {
+    public System.Windows.Input.ICommand RefreshStoreCommand {
         get;
     }
-    public ICommand RunBuildCommand {
+    public System.Windows.Input.ICommand RunBuildCommand {
         get;
     }
-    public ICommand RunGameCommand {
+    public System.Windows.Input.ICommand RunGameCommand {
         get;
     }
-    public ICommand OpenFolderCommand {
+    public System.Windows.Input.ICommand OpenFolderCommand {
         get;
     }
-    public ICommand DownloadModuleCommand {
+    public System.Windows.Input.ICommand DownloadModuleCommand {
         get;
     }
-    public ICommand InstallModuleCommand {
+    public System.Windows.Input.ICommand InstallModuleCommand {
         get;
     }
-    public ICommand SubmitPromptCommand {
+    public System.Windows.Input.ICommand SubmitPromptCommand {
         get;
     }
 
@@ -706,7 +706,7 @@ public sealed class InstallRow:System.ComponentModel.INotifyPropertyChanged {
     public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
 }
 
-internal sealed class RelayCommand:ICommand {
+internal sealed class RelayCommand:System.Windows.Input.ICommand {
     private readonly Action<object?> _action;
     private readonly Func<object?, bool>? _canExecute;
 
@@ -729,7 +729,7 @@ internal sealed class RelayCommand:ICommand {
     public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 }
 
-internal sealed class AsyncRelayCommand:ICommand {
+internal sealed class AsyncRelayCommand:System.Windows.Input.ICommand {
     private readonly Func<object?, Task> _action;
     private readonly Func<object?, bool>? _canExecute;
     private bool _busy;

@@ -1,9 +1,8 @@
-
-using Avalonia.Media.Imaging;
-using System.Diagnostics;
-
 namespace EngineNet.Interface.GUI.Views.Pages;
 
+/// <summary>
+/// library page in the Graphical Interface.
+/// </summary>
 public partial class LibraryPage:UserControl {
 
     /* :: :: Vars :: START :: */
@@ -16,16 +15,16 @@ public partial class LibraryPage:UserControl {
 
     // //
 
-    private ICommand RefreshCommand {
+    private System.Windows.Input.ICommand RefreshCommand {
         get;
     }
-    private ICommand PlayCommand {
+    private System.Windows.Input.ICommand PlayCommand {
         get;
     }
-    private ICommand RunOpsCommand {
+    private System.Windows.Input.ICommand RunOpsCommand {
         get;
     }
-    private ICommand OpenFolderCommand {
+    private System.Windows.Input.ICommand OpenFolderCommand {
         get;
     }
 
@@ -64,7 +63,7 @@ public partial class LibraryPage:UserControl {
     /// Constructs the LibraryPage with the given OperationsEngine.
     /// </summary>
     /// <param name="engine"></param>
-    public LibraryPage(Core.OperationsEngine engine) {
+    internal LibraryPage(Core.OperationsEngine engine) {
         try {
             _engine = engine;
             InitializeComponent();
@@ -83,7 +82,7 @@ public partial class LibraryPage:UserControl {
                 if (p is Row r && !string.IsNullOrWhiteSpace(r.ModuleName)) {
                     try {
                         DebugWriteLine($"[LibraryPage] Running all operations for '{r.ModuleName}'...");
-                        
+
                         // Clear previous output and start new operation
                         OperationOutputService.StartOperation("Run All Build Operations", r.ModuleName);
 
@@ -95,7 +94,7 @@ public partial class LibraryPage:UserControl {
                             r.ModuleName,
                             onOutput: (line, streamName) => {
                                 DebugWriteLine($"[{streamName}] {line}");
-                                
+
                                 // Route all raw output to the service
                                 OperationOutputService.AddOutput(line, streamName);
                             },
@@ -112,7 +111,7 @@ public partial class LibraryPage:UserControl {
                                         }
                                     }
                                 }
-                                
+
                                 // Route all events to the shared output service
                                 OperationOutputService.HandleEvent(evt);
                             },
@@ -123,8 +122,8 @@ public partial class LibraryPage:UserControl {
                                     try {
                                         string title = !string.IsNullOrWhiteSpace(lastPromptId) ? lastPromptId : "Input Required";
                                         string message = lastPromptMessage ?? "Enter value";
-                                        result = await Avalonia.PromptHelpers.TextAsync(title, message, null, lastPromptSecret);
-                                    } catch (Exception ex) {
+                                        result = await GUI.PromptHelpers.TextAsync(title, message, null, lastPromptSecret);
+                                    } catch (System.Exception ex) {
                                         DebugWriteLine($"[LibraryPage] Error showing prompt dialog: {ex.Message}");
                                         result = string.Empty;
                                     }
@@ -138,7 +137,7 @@ public partial class LibraryPage:UserControl {
 
                         // Refresh the library to update the IsBuilt status
                         Load();
-                    } catch (Exception ex) {
+                    } catch (System.Exception ex) {
                         DebugWriteLine($"[LibraryPage] Exception while running operations for '{r.ModuleName}': {ex}");
                     }
                 }
@@ -148,11 +147,11 @@ public partial class LibraryPage:UserControl {
                 if (p is Row r) {
                     try {
                         string? path = _engine.GetGamePath(r.ModuleName);
-                        if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path)) {
+                        if (string.IsNullOrWhiteSpace(path) || !System.IO.Directory.Exists(path)) {
                             DebugWriteLine(message: $"[LibraryPage] OpenFolder skipped for '{r.ModuleName}'. Path missing or doesn't exist: '{path ?? "<null>"}'");
                             return;
                         }
-                        ProcessStartInfo? psi = new System.Diagnostics.ProcessStartInfo { UseShellExecute = true };
+                        System.Diagnostics.ProcessStartInfo? psi = new System.Diagnostics.ProcessStartInfo { UseShellExecute = true };
                         if (OperatingSystem.IsWindows()) {
                             psi.FileName = "explorer";
                             psi.Arguments = $"\"{path}\"";
@@ -164,14 +163,14 @@ public partial class LibraryPage:UserControl {
                             psi.Arguments = $"\"{path}\"";
                         }
                         System.Diagnostics.Process.Start(psi);
-                    } catch (Exception ex) {
+                    } catch (System.Exception ex) {
                         DebugWriteLine($"[LibraryPage] Exception while opening folder for '{r.ModuleName}': {ex}");
                     }
                 }
             });
 
             Load();
-        } catch (Exception ex) {
+        } catch (System.Exception ex) {
             DebugWriteLine($"[LibraryPage] Error during initialization: {ex}");
         }
     }
@@ -249,7 +248,7 @@ public partial class LibraryPage:UserControl {
                     PrimaryActionText = ""
                 });
             }
-        } catch (Exception ex) {
+        } catch (System.Exception ex) {
             DebugWriteLine($"[LibraryPage] Exception during Load(): {ex}");
             Items.Add(new Row {
                 Title = "Error loading games.",
@@ -267,24 +266,24 @@ public partial class LibraryPage:UserControl {
     private Bitmap? ResolveCoverUri(string? gameRoot) {
         if (_engine == null) {
             DebugWriteLine("[LibraryPage] Load() aborted: _engine is null.");
-            throw new InvalidOperationException(message: "Engine is not initialized.");
+            throw new System.InvalidOperationException(message: "Engine is not initialized.");
         }
         // 1) try <game_root>/icon.png
         string? icon = null;
         if (string.IsNullOrWhiteSpace(gameRoot)) {
             DebugWriteLine("[LibraryPage] ResolveCoverUri: gameRoot is null/whitespace; skipping icon.png.");
         } else {
-            icon = Path.Combine(gameRoot, "icon.png");
+            icon = System.IO.Path.Combine(gameRoot, "icon.png");
         }
 
         // 2) fallback to <project_root>/placeholder.png
-        string placeholder = Path.Combine(_engine.GetRootPath(), "placeholder.png");
+        string placeholder = System.IO.Path.Combine(_engine.GetRootPath(), "placeholder.png");
 
         string pick;
-        if (!string.IsNullOrWhiteSpace(icon) && File.Exists(icon)) {
+        if (!string.IsNullOrWhiteSpace(icon) && System.IO.File.Exists(icon)) {
             pick = icon;
         } else {
-            if (File.Exists(placeholder)) {
+            if (System.IO.File.Exists(placeholder)) {
                 DebugWriteLine($"[LibraryPage] ResolveCoverUri: Using placeholder image at '{placeholder}'.");
                 pick = placeholder;
             } else {
@@ -294,10 +293,10 @@ public partial class LibraryPage:UserControl {
             }
         }
 
-        if (File.Exists(pick)) {
+        if (System.IO.File.Exists(pick)) {
             try {
                 return new Bitmap(pick); // Load the image
-            } catch (Exception ex) {
+            } catch (System.Exception ex) {
                 DebugWriteLine($"[LibraryPage] Failed to load bitmap at '{pick}': {ex.Message}");
                 return null; // Return null if loading fails
             }
@@ -336,9 +335,9 @@ public partial class LibraryPage:UserControl {
     }
 
     /// <summary>
-    /// A simple implementation of ICommand that executes a given action.
+    /// A simple implementation of System.Windows.Input.ICommand that executes a given action.
     /// </summary>
-    private sealed class SimpleCommand:ICommand {
+    private sealed class SimpleCommand:System.Windows.Input.ICommand {
 
         private readonly Action<object?> _a;
         public SimpleCommand(Action<object?> a) => _a = a;
@@ -351,7 +350,7 @@ public partial class LibraryPage:UserControl {
 
     private static void DebugWriteLine(string message) {
 #if DEBUG
-        Console.WriteLine(message);
+        Program.Direct.Console.WriteLine(message);
 #endif
     }
 }

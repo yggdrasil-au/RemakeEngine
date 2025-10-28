@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Text.Json;
 using MoonSharp.Interpreter;
 
 namespace EngineNet.Core.ScriptEngines.LuaModules;
@@ -10,61 +6,61 @@ namespace EngineNet.Core.ScriptEngines.LuaModules;
 /// Utility methods for converting between Lua and .NET data types.
 /// </summary>
 internal static class LuaUtilities {
-    public static DynValue ToDynValue(Script lua, Object? value) {
-        if (value is null || value is DBNull)
+    public static DynValue ToDynValue(Script lua, object? value) {
+        if (value is null || value is System.DBNull)
             return DynValue.Nil;
 
         // Map common primitives directly first
         switch (value) {
-            case Boolean b: return DynValue.NewBoolean(b);
-            case Byte bt: return DynValue.NewNumber(bt);
-            case SByte sb: return DynValue.NewNumber(sb);
-            case Int16 i16: return DynValue.NewNumber(i16);
-            case UInt16 ui16: return DynValue.NewNumber(ui16);
-            case Int32 i32: return DynValue.NewNumber(i32);
-            case UInt32 ui32: return DynValue.NewNumber(ui32);
-            case Int64 i64: return DynValue.NewNumber(i64);
-            case UInt64 ui64: return DynValue.NewNumber(ui64);
-            case Single f: return DynValue.NewNumber(f);
-            case Double d: return DynValue.NewNumber(d);
-            case Decimal dec: return DynValue.NewNumber((Double)dec);
-            case DateTime dt: return DynValue.NewString(dt.ToString("o", CultureInfo.InvariantCulture));
-            case DateTimeOffset dto: return DynValue.NewString(dto.ToString("o", CultureInfo.InvariantCulture));
-            case Byte[] bytes: return DynValue.NewString(Convert.ToHexString(bytes));
-            case String s: return DynValue.NewString(s);
+            case bool b: return DynValue.NewBoolean(b);
+            case byte bt: return DynValue.NewNumber(bt);
+            case sbyte sb: return DynValue.NewNumber(sb);
+            case short i16: return DynValue.NewNumber(i16);
+            case ushort ui16: return DynValue.NewNumber(ui16);
+            case int i32: return DynValue.NewNumber(i32);
+            case uint ui32: return DynValue.NewNumber(ui32);
+            case long i64: return DynValue.NewNumber(i64);
+            case ulong ui64: return DynValue.NewNumber(ui64);
+            case float f: return DynValue.NewNumber(f);
+            case double d: return DynValue.NewNumber(d);
+            case decimal dec: return DynValue.NewNumber((double)dec);
+            case System.DateTime dt: return DynValue.NewString(dt.ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+            case System.DateTimeOffset dto: return DynValue.NewString(dto.ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+            case byte[] bytes: return DynValue.NewString(System.Convert.ToHexString(bytes));
+            case string s: return DynValue.NewString(s);
         }
 
         // IDictionary -> Lua table with string keys
         if (value is System.Collections.IDictionary idict) {
             Table t = new Table(lua);
             foreach (System.Collections.DictionaryEntry entry in idict) {
-                String key = entry.Key?.ToString() ?? String.Empty;
+                string key = entry.Key?.ToString() ?? string.Empty;
                 t[key] = ToDynValue(lua, entry.Value);
             }
             return DynValue.NewTable(t);
         }
 
         // IEnumerable -> Lua array-like table (1-based)
-        if (value is System.Collections.IEnumerable ienum && value is not String) {
+        if (value is System.Collections.IEnumerable ienum && value is not string) {
             Table t = new Table(lua);
-            Int32 i = 1;
-            foreach (Object? item in ienum) {
+            int i = 1;
+            foreach (object? item in ienum) {
                 t[i++] = ToDynValue(lua, item);
             }
             return DynValue.NewTable(t);
         }
 
         // Fallback to string representation
-        return DynValue.NewString(value.ToString() ?? String.Empty);
+        return DynValue.NewString(value.ToString() ?? string.Empty);
     }
 
-    public static IDictionary<String, Object?> TableToDictionary(Table table) {
-        Dictionary<String, Object?> dict = new Dictionary<String, Object?>(StringComparer.Ordinal);
+    public static IDictionary<string, object?> TableToDictionary(Table table) {
+        Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.Ordinal);
         foreach (TablePair pair in table.Pairs) {
             // Convert key to string
-            String key = pair.Key.Type switch {
+            string key = pair.Key.Type switch {
                 DataType.String => pair.Key.String,
-                DataType.Number => pair.Key.Number.ToString(CultureInfo.InvariantCulture),
+                DataType.Number => pair.Key.Number.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 _ => pair.Key.ToPrintString()
             };
             dict[key] = FromDynValue(pair.Value);
@@ -72,7 +68,7 @@ internal static class LuaUtilities {
         return dict;
     }
 
-    public static Object? FromDynValue(DynValue v) => v.Type switch {
+    public static object? FromDynValue(DynValue v) => v.Type switch {
         DataType.Nil or DataType.Void => null,
         DataType.Boolean => v.Boolean,
         DataType.Number => v.Number,
@@ -81,10 +77,10 @@ internal static class LuaUtilities {
         _ => v.ToPrintString()
     };
 
-    public static Object TableToPlainObject(Table t) {
+    public static object TableToPlainObject(Table t) {
         // Heuristic: if all keys are consecutive 1..n numbers, treat as array
-        Int32 count = 0;
-        Boolean arrayLike = true;
+        int count = 0;
+        bool arrayLike = true;
         foreach (TablePair pair in t.Pairs) {
             count++;
             if (pair.Key.Type != DataType.Number) {
@@ -92,8 +88,8 @@ internal static class LuaUtilities {
             }
         }
         if (arrayLike) {
-            List<Object?> list = new List<Object?>(count);
-            for (Int32 i = 1; i <= count; i++) {
+            List<object?> list = new List<object?>(count);
+            for (int i = 1; i <= count; i++) {
                 DynValue dv = t.Get(i);
                 list.Add(FromDynValue(dv));
             }
@@ -102,50 +98,50 @@ internal static class LuaUtilities {
         return TableToDictionary(t);
     }
 
-    public static List<String> TableToStringList(Table t) {
-        List<String> list = new List<String>();
+    public static List<string> TableToStringList(Table t) {
+        List<string> list = new List<string>();
         // Iterate up to the numeric length; stop when we hit a Nil entry
-        for (Int32 i = 1; i <= t.Length; i++) {
+        for (int i = 1; i <= t.Length; i++) {
             DynValue dv = t.Get(i);
             if (dv.Type == DataType.Nil || dv.Type == DataType.Void) {
                 break;
             }
 
-            String s = dv.Type == DataType.String ? dv.String : dv.ToPrintString();
+            string s = dv.Type == DataType.String ? dv.String : dv.ToPrintString();
             list.Add(s);
         }
         return list;
     }
 
-    public static DynValue JsonElementToDynValue(Script lua, JsonElement el) {
+    public static DynValue JsonElementToDynValue(Script lua, System.Text.Json.JsonElement el) {
         switch (el.ValueKind) {
-            case JsonValueKind.Object:
+            case System.Text.Json.JsonValueKind.Object:
                 Table t = new Table(lua);
-                foreach (JsonProperty p in el.EnumerateObject()) {
+                foreach (System.Text.Json.JsonProperty p in el.EnumerateObject()) {
                     t[p.Name] = JsonElementToDynValue(lua, p.Value);
                 }
                 return DynValue.NewTable(t);
-            case JsonValueKind.Array:
+            case System.Text.Json.JsonValueKind.Array:
                 Table arr = new Table(lua);
-                Int32 i = 1;
-                foreach (JsonElement item in el.EnumerateArray()) {
+                int i = 1;
+                foreach (System.Text.Json.JsonElement item in el.EnumerateArray()) {
                     arr[i++] = JsonElementToDynValue(lua, item);
                 }
                 return DynValue.NewTable(arr);
-            case JsonValueKind.String:
-                return DynValue.NewString(el.GetString() ?? String.Empty);
-            case JsonValueKind.Number:
-                if (el.TryGetDouble(out Double d)) {
+            case System.Text.Json.JsonValueKind.String:
+                return DynValue.NewString(el.GetString() ?? string.Empty);
+            case System.Text.Json.JsonValueKind.Number:
+                if (el.TryGetDouble(out double d)) {
                     return DynValue.NewNumber(d);
                 }
 
                 return DynValue.NewNumber(0);
-            case JsonValueKind.True:
+            case System.Text.Json.JsonValueKind.True:
                 return DynValue.True;
-            case JsonValueKind.False:
+            case System.Text.Json.JsonValueKind.False:
                 return DynValue.False;
-            case JsonValueKind.Null:
-            case JsonValueKind.Undefined:
+            case System.Text.Json.JsonValueKind.Null:
+            case System.Text.Json.JsonValueKind.Undefined:
             default:
                 return DynValue.Nil;
         }

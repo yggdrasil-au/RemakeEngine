@@ -1,6 +1,5 @@
-using Avalonia.Interactivity;
 
-namespace EngineNet.Interface.GUI.Avalonia.Views.PromptWindows;
+namespace EngineNet.Interface.GUI.Views.PromptWindows;
 
 public partial class ConfirmWindow:Window {
     public bool Result {
@@ -18,16 +17,16 @@ public partial class ConfirmWindow:Window {
         this.FindControl<TextBlock>(name: "Question")!.Text = question;
     }
 
-    private void OnYes(object? sender, RoutedEventArgs e) {
+    private void OnYes(object? sender, Avalonia.Interactivity.RoutedEventArgs e) {
         Result = true;
         Close(Result);
     }
-    private void OnNo(object? sender, RoutedEventArgs e) {
+    private void OnNo(object? sender, Avalonia.Interactivity.RoutedEventArgs e) {
         Result = false;
         Close(Result);
     }
 
-    public Task<bool> ShowAsync(Window owner) {
+    public System.Threading.Tasks.Task<bool> ShowAsync(Window owner) {
         return ShowDialog<bool>(owner);
     }
 }

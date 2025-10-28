@@ -1,16 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Runtime.InteropServices;
-using System.Text;
 using MoonSharp.Interpreter;
-using EngineNet.Core.Sys;
-using EngineNet.Tools;
-using EngineNet.Core.ScriptEngines.Helpers;
-using System.Collections.Concurrent;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace EngineNet.Core.ScriptEngines.LuaModules;
 
@@ -22,11 +10,11 @@ internal static class LuaProcessExecution {
     // Lightweight managed process support for non-blocking process execution from Lua.
     // Processes are stored in a concurrent dictionary and can be polled/waited from Lua.
     private class ManagedProcess {
-        public Process Process { get; set; } = null!;
-        public StringBuilder Stdout { get; } = new StringBuilder();
-        public StringBuilder Stderr { get; } = new StringBuilder();
+        public System.Diagnostics.Process Process { get; set; } = null!;
+        public System.Text.StringBuilder Stdout { get; } = new System.Text.StringBuilder();
+        public System.Text.StringBuilder Stderr { get; } = new System.Text.StringBuilder();
 
-        // NEW: locks to make StringBuilder access thread-safe
+        // NEW: locks to make System.Text.StringBuilder access thread-safe
         public object StdoutLock { get; } = new object();
         public object StderrLock { get; } = new object();
 
@@ -34,15 +22,15 @@ internal static class LuaProcessExecution {
         public int StdoutCursor { get; set; } = 0;
         public int StderrCursor { get; set; } = 0;
 
-        public TaskCompletionSource<int> ExitTcs { get; } =
-            new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+        public System.Threading.Tasks.TaskCompletionSource<int> ExitTcs { get; } =
+            new System.Threading.Tasks.TaskCompletionSource<int>(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
     }
 
     // pid -> ManagedProcess
-    private static readonly ConcurrentDictionary<int, ManagedProcess> s_processes = new ConcurrentDictionary<int, ManagedProcess>();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, ManagedProcess> s_processes = new System.Collections.Concurrent.ConcurrentDictionary<int, ManagedProcess>();
     private static int s_nextPid = 0;
 
-    public static void AddProcessExecution(Table sdk, Script lua, IToolResolver tools) {
+    public static void AddProcessExecution(Table sdk, Script lua, Tools.IToolResolver tools) {
         // exec(args[, options]) -> { success=bool, exit_code=int }
         // options: { cwd=string, env=table, new_terminal=bool, keep_open=bool, title=string, wait=bool }
         sdk["exec"] = DynValue.NewCallback((ctx, args) => {
@@ -52,20 +40,20 @@ internal static class LuaProcessExecution {
 
             Table commandArgs = args[0].Table;
             Table? options = args.Count > 1 && args[1].Type == DataType.Table ? args[1].Table : null;
-            
+
             // Security: Validate command before execution
-            List<String> parts = LuaUtilities.TableToStringList(commandArgs);
+            List<string> parts = LuaUtilities.TableToStringList(commandArgs);
             if (parts.Count == 0) {
                 throw new ScriptRuntimeException("exec requires at least one argument (executable)");
             }
-            
+
             if (!LuaSecurity.IsApprovedExecutable(parts[0], tools)) {
                 throw new ScriptRuntimeException($"Executable '{parts[0]}' is not in the approved tools list. Use tool() function to resolve approved tools.");
             }
-            
+
             return ExecProcess(lua, commandArgs, options);
         });
-        
+
         sdk["run_process"] = DynValue.NewCallback((ctx, args) => {
             if (args.Count < 1 || args[0].Type != DataType.Table) {
                 throw new ScriptRuntimeException("run_process expects argument table");
@@ -73,17 +61,17 @@ internal static class LuaProcessExecution {
 
             Table commandArgs = args[0].Table;
             Table? options = args.Count > 1 && args[1].Type == DataType.Table ? args[1].Table : null;
-            
-            // Security: Validate command before execution  
-            List<String> parts = LuaUtilities.TableToStringList(commandArgs);
+
+            // Security: Validate command before execution
+            List<string> parts = LuaUtilities.TableToStringList(commandArgs);
             if (parts.Count == 0) {
                 throw new ScriptRuntimeException("run_process requires at least one argument (executable)");
             }
-            
+
             if (!LuaSecurity.IsApprovedExecutable(parts[0], tools)) {
                 throw new ScriptRuntimeException($"Executable '{parts[0]}' is not in the approved tools list. Use tool() function to resolve approved tools.");
             }
-            
+
             return RunProcess(lua, commandArgs, options);
         });
 
@@ -129,12 +117,12 @@ internal static class LuaProcessExecution {
         });
     }
 
-    private static DynValue SpawnProcess(Script lua, Table commandArgs, Table? options, IToolResolver tools) {
-        List<String> parts = LuaUtilities.TableToStringList(commandArgs);
+    private static DynValue SpawnProcess(Script lua, Table commandArgs, Table? options, Tools.IToolResolver tools) {
+        List<string> parts = LuaUtilities.TableToStringList(commandArgs);
         if (parts.Count == 0) throw new ScriptRuntimeException("spawn_process requires at least one argument (executable path)");
         if (!LuaSecurity.IsApprovedExecutable(parts[0], tools)) throw new ScriptRuntimeException($"Executable '{parts[0]}' is not approved");
 
-        ProcessStartInfo psi = new ProcessStartInfo {
+        System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
             FileName = parts[0],
             UseShellExecute = false,
             RedirectStandardOutput = true,
@@ -161,7 +149,7 @@ internal static class LuaProcessExecution {
         }
 
         ManagedProcess mp = new ManagedProcess();
-        Process p = new Process();
+        System.Diagnostics.Process p = new System.Diagnostics.Process();
         p.StartInfo = psi;
         p.EnableRaisingEvents = true;
 
@@ -184,19 +172,23 @@ internal static class LuaProcessExecution {
             };
         }
         p.Exited += (_, __) => {
-            try { mp.ExitTcs.TrySetResult(p.ExitCode); } catch { }
+            try { mp.ExitTcs.TrySetResult(p.ExitCode); }  catch {
+#if DEBUG
+            Program.Direct.Console.WriteLine($"[LuaProcessExecution] Error setting exit code for process '{psi.FileName}'");
+#endif
+        }
         };
 
         try {
             if (!p.Start()) throw new ScriptRuntimeException($"Failed to start process '{psi.FileName}'");
             if (psi.RedirectStandardOutput) p.BeginOutputReadLine();
             if (psi.RedirectStandardError) p.BeginErrorReadLine();
-        } catch (Exception ex) {
+        } catch (System.Exception ex) {
             throw new ScriptRuntimeException($"Failed to spawn process: {ex.Message}");
         }
 
         mp.Process = p;
-        int id = Interlocked.Increment(ref s_nextPid);
+        int id = System.Threading.Interlocked.Increment(ref s_nextPid);
         s_processes[id] = mp;
 
         Table t = new Table(lua);
@@ -245,9 +237,9 @@ internal static class LuaProcessExecution {
             if (timeoutMs.HasValue) {
                 finished = mp.ExitTcs.Task.Wait(timeoutMs.Value);
             } else {
-                finished = mp.ExitTcs.Task.Wait(Timeout.Infinite);
+                finished = mp.ExitTcs.Task.Wait(System.Threading.Timeout.Infinite);
             }
-        } catch (Exception) {
+        } catch (System.Exception) {
             finished = mp.Process.HasExited;
         }
         Table t = new Table(lua);
@@ -281,8 +273,16 @@ internal static class LuaProcessExecution {
 
     private static DynValue CloseProcess(Script lua, int pid) {
         if (!s_processes.TryRemove(pid, out var mp)) return DynValue.NewBoolean(false);
-        try { if (!mp.Process.HasExited) mp.Process.Kill(true); } catch { }
-        try { mp.Process.Dispose(); } catch { }
+        try { if (!mp.Process.HasExited) mp.Process.Kill(true); }  catch {
+#if DEBUG
+            Program.Direct.Console.WriteLine($"Error .....'");
+#endif
+        }
+        try { mp.Process.Dispose(); }  catch {
+#if DEBUG
+            Program.Direct.Console.WriteLine($"Error .....'");
+#endif
+        }
         return DynValue.NewBoolean(true);
     }
 
@@ -291,26 +291,26 @@ internal static class LuaProcessExecution {
             throw new ScriptRuntimeException("run_process expects argument table");
         }
 
-        List<String> arguments = LuaUtilities.TableToStringList(commandArgs);
+        List<string> arguments = LuaUtilities.TableToStringList(commandArgs);
         if (arguments.Count == 0) {
             throw new ScriptRuntimeException("run_process requires at least one argument (executable path)");
         }
 
-        String fileName = arguments[0];
-        ProcessStartInfo psi = new ProcessStartInfo {
+        string fileName = arguments[0];
+        System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
             FileName = fileName,
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true
         };
-        for (Int32 i = 1; i < arguments.Count; i++) {
+        for (int i = 1; i < arguments.Count; i++) {
             psi.ArgumentList.Add(arguments[i]);
         }
 
-        Boolean captureStdout = true;
-        Boolean captureStderr = true;
-        Int32? timeoutMs = null;
+        bool captureStdout = true;
+        bool captureStderr = true;
+        int? timeoutMs = null;
         if (options != null) {
             DynValue cwd = options.Get("cwd");
             if (!cwd.IsNil() && cwd.Type == DataType.String) {
@@ -329,7 +329,7 @@ internal static class LuaProcessExecution {
 
             DynValue timeoutOpt = options.Get("timeout_ms");
             if (timeoutOpt.Type == DataType.Number) {
-                timeoutMs = (Int32)Math.Max(0, timeoutOpt.Number);
+                timeoutMs = (int)System.Math.Max(0, timeoutOpt.Number);
             }
 
             DynValue envOpt = options.Get("env");
@@ -350,10 +350,10 @@ internal static class LuaProcessExecution {
             psi.RedirectStandardError = false;
         }
 
-        StringBuilder stdoutBuilder = new StringBuilder();
-        StringBuilder stderrBuilder = new StringBuilder();
+        System.Text.StringBuilder stdoutBuilder = new System.Text.StringBuilder();
+        System.Text.StringBuilder stderrBuilder = new System.Text.StringBuilder();
 
-        using Process process = new Process();
+        using System.Diagnostics.Process process = new System.Diagnostics.Process();
         process.StartInfo = psi;
         if (captureStdout) {
             process.OutputDataReceived += (_, e) => { if (e.Data != null) { stdoutBuilder.AppendLine(e.Data); } };
@@ -377,13 +377,17 @@ internal static class LuaProcessExecution {
                 if (!process.WaitForExit(timeoutMs.Value)) {
                     try {
                         process.Kill(entireProcessTree: true);
-                    } catch { }
+                    }  catch {
+#if DEBUG
+            Program.Direct.Console.WriteLine($"[LuaProcessExecution] Error killing timed-out process '{fileName}'");
+#endif
+        }
                     throw new ScriptRuntimeException($"Process '{fileName}' timed out after {timeoutMs.Value} ms");
                 }
             } else {
                 process.WaitForExit();
             }
-        } catch (Exception ex) {
+        } catch (System.Exception ex) {
             throw new ScriptRuntimeException($"Failed to run process '{fileName}': {ex.Message}");
         }
 
@@ -406,17 +410,17 @@ internal static class LuaProcessExecution {
             throw new ScriptRuntimeException("exec expects argument table");
         }
 
-        List<String> parts = LuaUtilities.TableToStringList(commandArgs);
+        List<string> parts = LuaUtilities.TableToStringList(commandArgs);
         if (parts.Count == 0) {
             throw new ScriptRuntimeException("exec requires at least one argument (executable path)");
         }
 
-        String cwd = String.Empty;
-        Boolean newTerminal = false;
-        Boolean keepOpen = false;
-        Boolean wait = true;
-        String? title = null;
-        Dictionary<String, Object?> env = new Dictionary<String, Object?>(StringComparer.Ordinal);
+        string cwd = string.Empty;
+        bool newTerminal = false;
+        bool keepOpen = false;
+        bool wait = true;
+        string? title = null;
+        Dictionary<string, object?> env = new Dictionary<string, object?>(System.StringComparer.Ordinal);
 
         if (options != null) {
             DynValue v;
@@ -439,8 +443,8 @@ internal static class LuaProcessExecution {
             if (v.Type == DataType.Table) {
                 foreach (TablePair p in v.Table.Pairs) {
                     if (p.Key.Type == DataType.String) {
-                        String k = p.Key.String;
-                        Object? val = LuaUtilities.FromDynValue(p.Value);
+                        string k = p.Key.String;
+                        object? val = LuaUtilities.FromDynValue(p.Value);
                         env[k] = val?.ToString();
                     }
                 }
@@ -456,22 +460,22 @@ internal static class LuaProcessExecution {
         return ExecInCurrentTerminal(lua, parts, cwd, env);
     }
 
-    private static DynValue HandleNewTerminalExecution(Script lua, List<String> parts, String cwd, Dictionary<String, Object?> env, Boolean keepOpen, Boolean wait) {
-        Int32 exitCode = 0;
+    private static DynValue HandleNewTerminalExecution(Script lua, List<string> parts, string cwd, Dictionary<string, object?> env, bool keepOpen, bool wait) {
+        int exitCode = 0;
         try {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)) {
                 // Run the target directly with a visible window; do not redirect streams
-                ProcessStartInfo psi = new ProcessStartInfo {
+                System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
                     UseShellExecute = true,
                     FileName = parts[0],
                     Arguments = BuildArguments(parts, 1),
                     CreateNoWindow = false,
-                    WindowStyle = ProcessWindowStyle.Normal,
+                    WindowStyle = System.Diagnostics.ProcessWindowStyle.Normal,
                 };
-                if (!String.IsNullOrEmpty(cwd)) { psi.WorkingDirectory = cwd; }
-                foreach (KeyValuePair<String, Object?> kv in env) { psi.Environment[kv.Key] = kv.Value?.ToString() ?? String.Empty; }
+                if (!string.IsNullOrEmpty(cwd)) { psi.WorkingDirectory = cwd; }
+                foreach (KeyValuePair<string, object?> kv in env) { psi.Environment[kv.Key] = kv.Value?.ToString() ?? string.Empty; }
 
-                using Process p = new Process { StartInfo = psi };
+                using System.Diagnostics.Process p = new System.Diagnostics.Process { StartInfo = psi };
                 p.Start();
                 if (wait) {
                     p.WaitForExit();
@@ -479,19 +483,19 @@ internal static class LuaProcessExecution {
                 } else {
                     exitCode = 0; // not waited; assume success for now
                 }
-            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+            } else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX) || System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Linux)) {
                 // Try to launch a terminal emulator; fall back to current window streaming
-                String cmdline = BuildCommandLine(parts);
-                String term = FindTerminalEmulator();
-                if (term != String.Empty) {
-                    ProcessStartInfo psi = new ProcessStartInfo {
+                string cmdline = BuildCommandLine(parts);
+                string term = FindTerminalEmulator();
+                if (term != string.Empty) {
+                    System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
                         UseShellExecute = false,
                         RedirectStandardOutput = false,
                         RedirectStandardError = false,
                         RedirectStandardInput = false,
                         CreateNoWindow = false,
                     };
-                    if (term.Contains("gnome-terminal", StringComparison.OrdinalIgnoreCase)) {
+                    if (term.Contains("gnome-terminal", System.StringComparison.OrdinalIgnoreCase)) {
                         psi.FileName = term;
                         psi.ArgumentList.Add("--");
                         psi.ArgumentList.Add("bash");
@@ -503,8 +507,8 @@ internal static class LuaProcessExecution {
                         psi.ArgumentList.Add("-e");
                         psi.ArgumentList.Add(keepOpen ? $"bash -lc \"{cmdline}; exec bash\"" : $"bash -lc \"{cmdline}\"");
                     }
-                    if (!String.IsNullOrEmpty(cwd)) { psi.WorkingDirectory = cwd; }
-                    using Process p = new Process { StartInfo = psi };
+                    if (!string.IsNullOrEmpty(cwd)) { psi.WorkingDirectory = cwd; }
+                    using System.Diagnostics.Process p = new System.Diagnostics.Process { StartInfo = psi };
                     p.Start();
                     if (wait) { p.WaitForExit(); exitCode = p.ExitCode; } else { exitCode = 0; }
                 } else {
@@ -512,7 +516,7 @@ internal static class LuaProcessExecution {
                     return ExecInCurrentTerminal(lua, parts, cwd, env);
                 }
             }
-        } catch (Exception ex) {
+        } catch (System.Exception ex) {
             throw new ScriptRuntimeException($"Failed to start new terminal: {ex.Message}");
         }
 
@@ -522,27 +526,27 @@ internal static class LuaProcessExecution {
         return DynValue.NewTable(result);
     }
 
-    public static DynValue ExecInCurrentTerminal(Script lua, List<String> parts, String cwd, IDictionary<String, Object?> env) {
-        ProcessRunner runner = new ProcessRunner();
-        Int32 exit = -1;
+    public static DynValue ExecInCurrentTerminal(Script lua, List<string> parts, string cwd, IDictionary<string, object?> env) {
+        Sys.ProcessRunner runner = new Sys.ProcessRunner();
+        int exit = -1;
         // Merge env overrides
-        Dictionary<String, Object?> envOverrides = new Dictionary<String, Object?>(env, StringComparer.Ordinal);
-        if (!String.IsNullOrEmpty(cwd)) {
+        Dictionary<string, object?> envOverrides = new Dictionary<string, object?>(env, System.StringComparer.Ordinal);
+        if (!string.IsNullOrEmpty(cwd)) {
             envOverrides["PWD"] = cwd;
         }
 
         // Print each line through EngineSdk
-        Boolean ok = runner.Execute(
+        bool ok = runner.Execute(
             commandParts: parts,
-            opTitle: Path.GetFileName(parts[0]),
+            opTitle: System.IO.Path.GetFileName(parts[0]),
             onOutput: (line, stream) => {
                 // Map stderr to red for visibility
-                String? color = stream == "stderr" ? "red" : null;
-                EngineSdk.Print(line, color, true);
+                string? color = stream == "stderr" ? "red" : null;
+                Helpers.EngineSdk.Print(line, color, true);
             },
             onEvent: (evt) => {
-                if (evt.TryGetValue("event", out Object? ev) && (ev?.ToString() ?? String.Empty) == "end") {
-                    if (evt.TryGetValue("exit_code", out Object? code) && Int32.TryParse(code?.ToString(), out Int32 c)) {
+                if (evt.TryGetValue("event", out object? ev) && (ev?.ToString() ?? string.Empty) == "end") {
+                    if (evt.TryGetValue("exit_code", out object? code) && int.TryParse(code?.ToString(), out int c)) {
                         exit = c;
                     }
                 }
@@ -551,7 +555,7 @@ internal static class LuaProcessExecution {
             envOverrides: envOverrides,
             cancellationToken: default
         );
-        
+
         // If ProcessRunner returned false, it means execution was blocked or failed
         if (!ok && exit == -1) {
             exit = 1; // Set non-zero exit code for blocked execution
@@ -563,33 +567,33 @@ internal static class LuaProcessExecution {
         return DynValue.NewTable(result);
     }
 
-    private static String BuildArguments(List<String> args, Int32 startIdx) {
-        StringBuilder sb = new StringBuilder();
-        for (Int32 i = startIdx; i < args.Count; i++) {
+    private static string BuildArguments(List<string> args, int startIdx) {
+        System.Text.StringBuilder sb = new System.Text.StringBuilder();
+        for (int i = startIdx; i < args.Count; i++) {
             if (i > startIdx) sb.Append(' ');
-            sb.Append(QuoteArg(args[i] ?? String.Empty));
+            sb.Append(QuoteArg(args[i] ?? string.Empty));
         }
         return sb.ToString();
     }
 
-    private static String QuoteArg(String arg) {
-        if (String.IsNullOrEmpty(arg)) return "\"\"";
+    private static string QuoteArg(string arg) {
+        if (string.IsNullOrEmpty(arg)) return "\"\"";
         if (arg.IndexOfAny(new[] { ' ', '\t', '"' }) < 0) return arg;
         return "\"" + arg.Replace("\"", "\\\"") + "\"";
     }
 
-    private static String BuildCommandLine(List<String> parts) {
+    private static string BuildCommandLine(List<string> parts) {
         return BuildArguments(parts, 0);
     }
 
-    private static String FindTerminalEmulator() {
+    private static string FindTerminalEmulator() {
         try {
             // Try common terminals
-            String[] candidates = new[] { "/usr/bin/gnome-terminal", "/usr/bin/konsole", "/usr/bin/xterm", "/usr/bin/alacritty", "/usr/bin/xfce4-terminal" };
-            foreach (String c in candidates) { if (File.Exists(c)) return c; }
-        } catch (Exception ex) {
+            string[] candidates = new[] { "/usr/bin/gnome-terminal", "/usr/bin/konsole", "/usr/bin/xterm", "/usr/bin/alacritty", "/usr/bin/xfce4-terminal" };
+            foreach (string c in candidates) { if (System.IO.File.Exists(c)) return c; }
+        } catch (System.Exception ex) {
             throw new ScriptRuntimeException($"Failed to find terminal emulator: {ex.Message}");
         }
-        return String.Empty;
+        return string.Empty;
     }
 }

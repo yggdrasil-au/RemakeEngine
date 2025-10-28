@@ -1,4 +1,3 @@
-using System.ComponentModel;
 
 namespace EngineNet.Interface.GUI.Views.Pages;
 
@@ -9,7 +8,7 @@ public partial class BuildingPage:UserControl, INotifyPropertyChanged {
     public ObservableCollection<Job> Jobs { get; } = new ObservableCollection<Job>();
 
     // Use the shared operation output service
-    public ObservableCollection<OutputLine> OutputLines => OperationOutputService.Lines;
+    internal ObservableCollection<OutputLine> OutputLines => OperationOutputService.Lines;
 
     private string _status = "";
     public string Status {
@@ -28,16 +27,16 @@ public partial class BuildingPage:UserControl, INotifyPropertyChanged {
         }
     }
 
-    public ICommand RefreshCommand {
+    public Cmd RefreshCommand {
         get;
     }
-    public ICommand CancelCommand {
+    public Cmd CancelCommand {
         get;
     }
-    public ICommand RetryCommand {
+    public Cmd RetryCommand {
         get;
     }
-    public ICommand ClearOutputCommand {
+    public Cmd ClearOutputCommand {
         get;
     }
 
@@ -46,9 +45,9 @@ public partial class BuildingPage:UserControl, INotifyPropertyChanged {
         DataContext = this;
 
         // Initialize commands
-        RefreshCommand = new Cmd(async _ => await Task.CompletedTask);
-        CancelCommand = new Cmd(async _ => await Task.CompletedTask);
-        RetryCommand = new Cmd(async _ => await Task.CompletedTask);
+        RefreshCommand = new Cmd(async _ => await System.Threading.Tasks.Task.CompletedTask);
+        CancelCommand = new Cmd(async _ => await System.Threading.Tasks.Task.CompletedTask);
+        RetryCommand = new Cmd(async _ => await System.Threading.Tasks.Task.CompletedTask);
         ClearOutputCommand = new Cmd(async _ => await OperationOutputService.ClearAsync());
 
         // Add sample data for the previewer
@@ -57,7 +56,7 @@ public partial class BuildingPage:UserControl, INotifyPropertyChanged {
         Status = "Showing design-time data.";
         
         // Start timer to update operation name from service
-        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+        var timer = new DispatcherTimer { Interval = System.TimeSpan.FromMilliseconds(500) };
         timer.Tick += (s, e) => {
             var currentOp = OperationOutputService.CurrentOperation;
             if (currentOp != null) {
@@ -69,7 +68,7 @@ public partial class BuildingPage:UserControl, INotifyPropertyChanged {
         timer.Start();
     }
 
-    public BuildingPage(Core.OperationsEngine engine) {
+    internal BuildingPage(Core.OperationsEngine engine) {
         _engine = engine;
         DataContext = this;
         InitializeComponent();
@@ -78,21 +77,21 @@ public partial class BuildingPage:UserControl, INotifyPropertyChanged {
         CancelCommand = new Cmd(async j => await CancelAsync(j as Job));
         RetryCommand = new Cmd(async j => await RetryAsync(j as Job));
 
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-        _timer.Tick += async (object? _, EventArgs __) => await LoadAsync();
+        _timer = new DispatcherTimer { Interval = System.TimeSpan.FromSeconds(2) };
+        _timer.Tick += async (object? _, System.EventArgs __) => await LoadAsync();
         _timer.Start();
 
         _ = LoadAsync();
     }
 
-    private async Task LoadAsync() {
+    private async System.Threading.Tasks.Task LoadAsync() {
         try {
-            IEnumerable<Job>? jobs = TryListJobs() ?? Array.Empty<Job>();
+            IEnumerable<Job>? jobs = TryListJobs() ?? System.Array.Empty<Job>();
             await Dispatcher.UIThread.InvokeAsync(() => {
                 Sync(Jobs, jobs, j => j.Id);
                 Status = Jobs.Count == 0 ? "No active installs." : $"{Jobs.Count} job(s)";
             });
-        } catch (Exception ex) {
+        } catch (System.Exception ex) {
             Status = $"Failed to load jobs: {ex.Message}";
         }
     }
@@ -124,7 +123,7 @@ public partial class BuildingPage:UserControl, INotifyPropertyChanged {
         return list;
     }
 
-    private async Task CancelAsync(Job? job) {
+    private async System.Threading.Tasks.Task CancelAsync(Job? job) {
         if (job is null)
             return;
         try {
@@ -134,13 +133,13 @@ public partial class BuildingPage:UserControl, INotifyPropertyChanged {
                 //_engine.Cancel(job.Id);
             }
             Status = $"Cancelled {job.Name}.";
-        } catch (Exception ex) {
+        } catch (System.Exception ex) {
             Status = $"Cancel failed: {ex.Message}";
         }
         await LoadAsync();
     }
 
-    private async Task RetryAsync(Job? job) {
+    private async System.Threading.Tasks.Task RetryAsync(Job? job) {
         if (job is null)
             return;
         try {
@@ -150,7 +149,7 @@ public partial class BuildingPage:UserControl, INotifyPropertyChanged {
                 //_engine.Retry(job.Id);
             }
             Status = $"Retrying {job.Name}�";
-        } catch (Exception ex) {
+        } catch (System.Exception ex) {
             Status = $"Retry failed: {ex.Message}";
         }
         await LoadAsync();
@@ -158,7 +157,7 @@ public partial class BuildingPage:UserControl, INotifyPropertyChanged {
 
     private static void Sync<T, TKey>(ObservableCollection<T> target,
         System.Collections.Generic.IEnumerable<T> source,
-        Func<T, TKey> key) {
+        System.Func<T, TKey> key) {
         List<T>? srcList = source.ToList();
         // remove missing
         for (int i = target.Count - 1; i >= 0; i--)
@@ -187,11 +186,13 @@ public partial class BuildingPage:UserControl, INotifyPropertyChanged {
     public event PropertyChangedEventHandler? PropertyChanged;
     private void Raise(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
-    private sealed class Cmd:ICommand {
-        private readonly Func<object?, Task> _run;
-        public Cmd(Func<object?, Task> run) => _run = run;
+    public sealed class Cmd:System.Windows.Input.ICommand {
+        private readonly System.Func<object?, Task> _run;
+        public Cmd(System.Func<object?, System.Threading.Tasks.Task> run) => _run = run;
+
+        public event EventHandler? CanExecuteChanged;
+
         public bool CanExecute(object? parameter) => true;
         public async void Execute(object? parameter) => await _run(parameter);
-        public event EventHandler? CanExecuteChanged;
     }
 }

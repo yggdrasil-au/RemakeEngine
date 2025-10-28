@@ -1,48 +1,30 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Diagnostics;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-using System.Threading;
-using System.Globalization;
 // js interpreter
 using Jint;
 using Jint.Native;
-using Jint.Native.Array;
-using Jint.Native.Object;
-using Jint.Runtime;
-//
-using Microsoft.Data.Sqlite;
-// internal usings
-using EngineNet.Core.ScriptEngines.Helpers;
-using EngineNet.Tools;
 
 namespace EngineNet.Core.ScriptEngines;
 /// <summary>
 /// Executes a JavaScript file using the embedded Jint interpreter.
 /// Exposes a host API that mirrors the Lua engine capabilities.
 /// </summary>
-public sealed class JsScriptAction:IAction {
-    private readonly String _scriptPath;
-    private readonly String[] _args;
+internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IAction {
+    private readonly string _scriptPath;
+    private readonly string[] _args;
 
     /// <summary>
     /// Creates a new action that runs the specified JavaScript file with no arguments.
     /// </summary>
     /// <param name="scriptPath">Absolute or relative path to the JavaScript file to execute.</param>
-    public JsScriptAction(String scriptPath) : this(scriptPath, Array.Empty<String>()) { }
+    public JsScriptAction(string scriptPath) : this(scriptPath, System.Array.Empty<string>()) { }
 
     /// <summary>
     /// Creates a new action that runs the specified JavaScript file with arguments.
     /// </summary>
     /// <param name="scriptPath">Absolute or relative path to the JavaScript file to execute.</param>
     /// <param name="args">Optional list of arguments to expose to the script via the global <c>argv</c> array.</param>
-    public JsScriptAction(String scriptPath, IEnumerable<String>? args) {
+    public JsScriptAction(string scriptPath, IEnumerable<string>? args) {
         _scriptPath = scriptPath;
-        _args = args is null ? Array.Empty<String>() : args as String[] ?? new List<String>(args).ToArray();
+        _args = args is null ? System.Array.Empty<string>() : args as string[] ?? new List<string>(args).ToArray();
     }
 
     /// <summary>
@@ -51,18 +33,20 @@ public sealed class JsScriptAction:IAction {
     /// <param name="tools">Resolver used by the <c>tool(name)</c> global to locate external executables.</param>
     /// <param name="cancellationToken">Token used to cancel script execution.</param>
     /// <exception cref="FileNotFoundException">Thrown when the script file cannot be found.</exception>
-    public async Task ExecuteAsync(IToolResolver tools, CancellationToken cancellationToken = default) {
-        if (!File.Exists(_scriptPath)) {
-            throw new FileNotFoundException("JavaScript file not found", _scriptPath);
+    public async System.Threading.Tasks.Task ExecuteAsync(Tools.IToolResolver tools, System.Threading.CancellationToken cancellationToken = default) {
+        if (!System.IO.File.Exists(_scriptPath)) {
+            throw new System.IO.FileNotFoundException("JavaScript file not found", _scriptPath);
         }
 
-        String code = await File.ReadAllTextAsync(_scriptPath, cancellationToken);
+        string code = await System.IO.File.ReadAllTextAsync(_scriptPath, cancellationToken);
         Engine engine = new Engine(options => options.CancellationToken(cancellationToken));
         RegisterGlobals(engine, tools);
         PreloadShimModules(engine, _scriptPath);
-        Console.WriteLine($"Running js script '{_scriptPath}' with {_args.Length} args...");
-        Console.WriteLine($"input args: {String.Join(", ", _args)}");
-        await Task.Run(() => engine.Execute(code), cancellationToken);
+#if DEBUG
+        Program.Direct.Console.WriteLine($"Running js script '{_scriptPath}' with {_args.Length} args...");
+        Program.Direct.Console.WriteLine($"input args: {string.Join(", ", _args)}");
+#endif
+        await System.Threading.Tasks.Task.Run(() => engine.Execute(code), cancellationToken);
     }
 
     /// <summary>
@@ -71,32 +55,32 @@ public sealed class JsScriptAction:IAction {
     /// </summary>
     /// <param name="engine">The Jint engine instance.</param>
     /// <param name="tools">Tool resolver exposed via the <c>tool</c> global.</param>
-    private void RegisterGlobals(Engine engine, IToolResolver tools) {
-        engine.SetValue("tool", new Func<String, String>(tools.ResolveToolPath));
+    private void RegisterGlobals(Engine engine, Tools.IToolResolver tools) {
+        engine.SetValue("tool", new System.Func<string, string>(tools.ResolveToolPath));
         engine.SetValue("argv", _args);
-        engine.SetValue("emit", new Action<JsValue, JsValue>((ev, data) => {
-            String eventName = ev.IsString() ? ev.AsString() : ev.ToString();
-            IDictionary<String, Object?>? payload = null;
+        engine.SetValue("emit", new System.Action<JsValue, JsValue>((ev, data) => {
+            string eventName = ev.IsString() ? ev.AsString() : ev.ToString();
+            IDictionary<string, object?>? payload = null;
             if (!data.IsUndefined() && !data.IsNull()) {
                 payload = JsInterop.ToDictionary(engine, data);
             }
 
-            EngineSdk.Emit(eventName, payload);
+            Helpers.EngineSdk.Emit(eventName, payload);
         }));
-        engine.SetValue("warn", new Action<String>(EngineSdk.Warn));
-        engine.SetValue("error", new Action<String>(EngineSdk.Error));
-        engine.SetValue("prompt", new Func<JsValue, JsValue, JsValue, String>((message, id, secret) => {
-            String msg = message.IsString() ? message.AsString() : message.ToString();
-            String promptId = id.IsNull() || id.IsUndefined() ? "q1" : id.IsString() ? id.AsString() : id.ToString();
-            Boolean hide = secret.IsBoolean() && secret.AsBoolean();
-            return EngineSdk.Prompt(msg, promptId, hide);
+        engine.SetValue("warn", new System.Action<string>(Helpers.EngineSdk.Warn));
+        engine.SetValue("error", new System.Action<string>(Helpers.EngineSdk.Error));
+        engine.SetValue("prompt", new System.Func<JsValue, JsValue, JsValue, string>((message, id, secret) => {
+            string msg = message.IsString() ? message.AsString() : message.ToString();
+            string promptId = id.IsNull() || id.IsUndefined() ? "q1" : id.IsString() ? id.AsString() : id.ToString();
+            bool hide = secret.IsBoolean() && secret.AsBoolean();
+            return Helpers.EngineSdk.Prompt(msg, promptId, hide);
         }));
-        engine.SetValue("progress", new Func<JsValue, JsValue, JsValue, EngineSdk.Progress>((total, id, label) => {
-            Double totalNumber = JsInterop.ToNumber(total, 1);
-            Int32 totalSteps = (Int32)Math.Max(1, Math.Round(totalNumber));
-            String progressId = id.IsNull() || id.IsUndefined() ? "p1" : id.IsString() ? id.AsString() : id.ToString();
-            String? labelText = label.IsNull() || label.IsUndefined() ? null : label.IsString() ? label.AsString() : label.ToString();
-            return new EngineSdk.Progress(totalSteps, progressId, labelText);
+        engine.SetValue("progress", new System.Func<JsValue, JsValue, JsValue, Helpers.EngineSdk.Progress>((total, id, label) => {
+            double totalNumber = JsInterop.ToNumber(total, 1);
+            int totalSteps = (int)System.Math.Max(1, System.Math.Round(totalNumber));
+            string progressId = id.IsNull() || id.IsUndefined() ? "p1" : id.IsString() ? id.AsString() : id.ToString();
+            string? labelText = label.IsNull() || label.IsUndefined() ? null : label.IsString() ? label.AsString() : label.ToString();
+            return new Helpers.EngineSdk.Progress(totalSteps, progressId, labelText);
         }));
         engine.SetValue("sdk", new SdkModule(engine));
         engine.SetValue("sqlite", new SqliteModule(engine));
@@ -108,8 +92,8 @@ public sealed class JsScriptAction:IAction {
     /// </summary>
     /// <param name="engine">The engine to extend.</param>
     /// <param name="scriptPath">Path of the currently executing script (used for debug info).</param>
-    private static void PreloadShimModules(Engine engine, String scriptPath) {
-        Dictionary<String, Object?> modules = new Dictionary<String, Object?>(StringComparer.Ordinal);
+    private static void PreloadShimModules(Engine engine, string scriptPath) {
+        Dictionary<string, object?> modules = new Dictionary<string, object?>(System.StringComparer.Ordinal);
         LfsModule lfs = new LfsModule();
         DkJsonModule dkjson = new DkJsonModule(engine);
         DebugModule debug = new DebugModule(scriptPath);
@@ -118,8 +102,8 @@ public sealed class JsScriptAction:IAction {
         modules["debug"] = debug;
         engine.SetValue("debug", debug);
         engine.SetValue("package", new PackageModule(modules));
-        engine.SetValue("require", new Func<String, Object>(name => {
-            return modules.TryGetValue(name, out Object? module) && module != null
+        engine.SetValue("require", new System.Func<string, object>(name => {
+            return modules.TryGetValue(name, out object? module) && module != null
                 ? module
                 : throw JsInterop.CreateJsException(engine, "Error", $"module '{name}' not found (only preloaded modules available)");
         }));
@@ -131,14 +115,14 @@ public sealed class JsScriptAction:IAction {
             _engine = engine;
         }
 
-        public JsValue color_print(Object? arg1, Object? arg2 = null, Object? arg3 = null) {
-            String? color = null;
-            String message = String.Empty;
-            Boolean newline = true;
+        public JsValue color_print(object? arg1, object? arg2 = null, object? arg3 = null) {
+            string? color = null;
+            string message = string.Empty;
+            bool newline = true;
             JsValue first = JsInterop.AsJsValue(_engine, arg1);
             if (first.IsObject() && !first.IsNull() && !first.IsUndefined() && !first.IsArray() && !first.IsString()) {
-                IDictionary<String, Object?> dict = JsInterop.ToDictionary(_engine, first.AsObject());
-                if (!dict.TryGetValue("color", out Object? colorObj) && !dict.TryGetValue("colour", out colorObj)) {
+                IDictionary<string, object?> dict = JsInterop.ToDictionary(_engine, first.AsObject());
+                if (!dict.TryGetValue("color", out object? colorObj) && !dict.TryGetValue("colour", out colorObj)) {
                     colorObj = null;
                 }
 
@@ -146,11 +130,11 @@ public sealed class JsScriptAction:IAction {
                     color = colorObj.ToString();
                 }
 
-                if (dict.TryGetValue("message", out Object? msgObj) && msgObj != null) {
-                    message = msgObj.ToString() ?? String.Empty;
+                if (dict.TryGetValue("message", out object? msgObj) && msgObj != null) {
+                    message = msgObj.ToString() ?? string.Empty;
                 }
 
-                if (dict.TryGetValue("newline", out Object? newlineObj) && newlineObj is Boolean b) {
+                if (dict.TryGetValue("newline", out object? newlineObj) && newlineObj is bool b) {
                     newline = b;
                 }
             } else {
@@ -168,75 +152,75 @@ public sealed class JsScriptAction:IAction {
                     newline = newlineValue.AsBoolean();
                 }
             }
-            EngineSdk.Print(message, color, newline);
+            Helpers.EngineSdk.Print(message, color, newline);
             return JsValue.Undefined;
         }
 
-        public JsValue colour_print(Object? arg1, Object? arg2 = null, Object? arg3 = null) => color_print(arg1, arg2, arg3);
+        public JsValue colour_print(object? arg1, object? arg2 = null, object? arg3 = null) => color_print(arg1, arg2, arg3);
 
-        public String ensure_project_config(String root) => ConfigHelpers.EnsureProjectConfig(root);
+        public string ensure_project_config(string root) => Helpers.ConfigHelpers.EnsureProjectConfig(root);
 
-        public Boolean validate_source_dir(String dir) {
+        public bool validate_source_dir(string dir) {
             try {
-                ConfigHelpers.ValidateSourceDir(dir);
+                Helpers.ConfigHelpers.ValidateSourceDir(dir);
                 return true;
             } catch {
                 return false;
             }
         }
 
-        public Boolean copy_dir(String src, String dst, Object? overwrite = null) {
+        public bool copy_dir(string src, string dst, object? overwrite = null) {
             try {
-                Boolean ow = JsInterop.ToBoolean(_engine, overwrite);
-                ConfigHelpers.CopyDirectory(src, dst, ow);
+                bool ow = JsInterop.ToBoolean(_engine, overwrite);
+                Helpers.ConfigHelpers.CopyDirectory(src, dst, ow);
                 return true;
             } catch {
                 return false;
             }
         }
 
-        public Boolean move_dir(String src, String dst, Object? overwrite = null) {
+        public bool move_dir(string src, string dst, object? overwrite = null) {
             try {
-                Boolean ow = JsInterop.ToBoolean(_engine, overwrite);
-                ConfigHelpers.MoveDirectory(src, dst, ow);
+                bool ow = JsInterop.ToBoolean(_engine, overwrite);
+                Helpers.ConfigHelpers.MoveDirectory(src, dst, ow);
                 return true;
             } catch {
                 return false;
             }
         }
 
-        public String? find_subdir(String baseDir, String name) => ConfigHelpers.FindSubdir(baseDir, name);
+        public string? find_subdir(string baseDir, string name) => Helpers.ConfigHelpers.FindSubdir(baseDir, name);
 
-        public Boolean has_all_subdirs(String baseDir, Object? names) {
+        public bool has_all_subdirs(string baseDir, object? names) {
             try {
-                List<String> list = JsInterop.ToStringList(_engine, names);
-                return ConfigHelpers.HasAllSubdirs(baseDir, list);
+                List<string> list = JsInterop.ToStringList(_engine, names);
+                return Helpers.ConfigHelpers.HasAllSubdirs(baseDir, list);
             } catch {
                 return false;
             }
         }
 
-        public Boolean ensure_dir(String path) {
+        public bool ensure_dir(string path) {
             try {
-                Directory.CreateDirectory(path);
+                System.IO.Directory.CreateDirectory(path);
                 return true;
             } catch {
                 return false;
             }
         }
 
-        public Boolean path_exists(String path) => FsUtils.PathExists(path);
+        public bool path_exists(string path) => FsUtils.PathExists(path);
 
-        public Boolean lexists(String path) => FsUtils.PathExistsIncludingLinks(path);
+        public bool lexists(string path) => FsUtils.PathExistsIncludingLinks(path);
 
-        public Boolean is_dir(String path) => Directory.Exists(path);
+        public bool is_dir(string path) => System.IO.Directory.Exists(path);
 
-        public Boolean is_file(String path) => File.Exists(path);
+        public bool is_file(string path) => System.IO.File.Exists(path);
 
-        public Boolean remove_dir(String path) {
+        public bool remove_dir(string path) {
             try {
-                if (Directory.Exists(path)) {
-                    Directory.Delete(path, true);
+                if (System.IO.Directory.Exists(path)) {
+                    System.IO.Directory.Delete(path, true);
                 }
 
                 return true;
@@ -245,10 +229,10 @@ public sealed class JsScriptAction:IAction {
             }
         }
 
-        public Boolean remove_file(String path) {
+        public bool remove_file(string path) {
             try {
-                if (FsUtils.IsSymlink(path) || File.Exists(path)) {
-                    File.Delete(path);
+                if (FsUtils.IsSymlink(path) || System.IO.File.Exists(path)) {
+                    System.IO.File.Delete(path);
                 }
 
                 return true;
@@ -257,66 +241,71 @@ public sealed class JsScriptAction:IAction {
             }
         }
 
-        public Boolean copy_file(String src, String dst, Object? overwrite = null) {
+        public bool copy_file(string src, string dst, object? overwrite = null) {
             try {
-                Boolean ow = JsInterop.ToBoolean(_engine, overwrite);
-                File.Copy(src, dst, ow);
+                bool ow = JsInterop.ToBoolean(_engine, overwrite);
+                System.IO.File.Copy(src, dst, ow);
                 return true;
             } catch {
                 return false;
             }
         }
 
-        public Boolean create_symlink(String source, String destination, Boolean isDirectory) => FsUtils.CreateSymlink(source, destination, isDirectory);
+        public bool create_symlink(string source, string destination, bool isDirectory) => FsUtils.CreateSymlink(source, destination, isDirectory);
 
-        public Boolean is_symlink(String path) => FsUtils.IsSymlink(path);
+        public bool is_symlink(string path) => FsUtils.IsSymlink(path);
 
-        public String? realpath(String path) => FsUtils.RealPath(path);
+        public string? realpath(string path) => FsUtils.RealPath(path);
 
-        public String? readlink(String path) => FsUtils.ReadLink(path);
+        public string? readlink(string path) => FsUtils.ReadLink(path);
 
-        public void sleep(Double seconds) {
-            if (Double.IsNaN(seconds) || Double.IsInfinity(seconds) || seconds <= 0) {
+        public void sleep(double seconds) {
+            if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds <= 0) {
                 return;
             }
 
             try {
-                Thread.Sleep(TimeSpan.FromSeconds(seconds));
-            } catch { }
-        }
-
-        public String md5(String text) {
-            try {
-                Byte[] data = MD5.HashData(Encoding.UTF8.GetBytes(text ?? String.Empty));
-                return Convert.ToHexString(data).ToLowerInvariant();
+                System.Threading.Thread.Sleep(System.TimeSpan.FromSeconds(seconds));
             } catch {
-                return String.Empty;
+#if DEBUG
+                Program.Direct.Console.WriteLine($"[JsScriptAction.cs] sleep interrupted");
+#endif
+                // ignore
             }
         }
 
-        public JsValue run_process(Object commandArgs, Object? options = null) {
-            ArrayInstance array = JsInterop.EnsureArray(_engine, commandArgs, "run_process arguments");
-            List<String> arguments = JsInterop.ToStringList(_engine, array);
+        public string md5(string text) {
+            try {
+                byte[] data = System.Security.Cryptography.MD5.HashData(System.Text.Encoding.UTF8.GetBytes(text ?? string.Empty));
+                return System.Convert.ToHexString(data).ToLowerInvariant();
+            } catch {
+                return string.Empty;
+            }
+        }
+
+        public JsValue run_process(object commandArgs, object? options = null) {
+            Jint.Native.Array.ArrayInstance array = JsInterop.EnsureArray(_engine, commandArgs, "run_process arguments");
+            List<string> arguments = JsInterop.ToStringList(_engine, array);
             if (arguments.Count == 0) {
                 throw JsInterop.CreateJsException(_engine, "TypeError", "run_process requires at least one argument (executable path)");
             }
 
-            String fileName = arguments[0];
-            ProcessStartInfo psi = new ProcessStartInfo {
+            string fileName = arguments[0];
+            System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
                 FileName = fileName,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 CreateNoWindow = true
             };
-            for (Int32 i = 1; i < arguments.Count; i++) {
+            for (int i = 1; i < arguments.Count; i++) {
                 psi.ArgumentList.Add(arguments[i]);
             }
 
-            Boolean captureStdout = true;
-            Boolean captureStderr = true;
-            Int32? timeoutMs = null;
-            ObjectInstance? opts = JsInterop.TryGetPlainObject(_engine, options);
+            bool captureStdout = true;
+            bool captureStderr = true;
+            int? timeoutMs = null;
+            Jint.Native.Object.ObjectInstance? opts = JsInterop.TryGetPlainObject(_engine, options);
             if (opts != null) {
                 JsValue cwdValue = JsInterop.Get(opts, _engine, "cwd");
                 if (cwdValue.IsString()) {
@@ -340,9 +329,9 @@ public sealed class JsScriptAction:IAction {
 
                 JsValue envValue = JsInterop.Get(opts, _engine, "env");
                 if (!envValue.IsUndefined() && envValue.IsObject()) {
-                    IDictionary<String, Object?> dict = JsInterop.ToDictionary(_engine, envValue.AsObject());
-                    foreach (KeyValuePair<String, Object?> kv in dict) {
-                        if (kv.Value is String s) {
+                    IDictionary<string, object?> dict = JsInterop.ToDictionary(_engine, envValue.AsObject());
+                    foreach (KeyValuePair<string, object?> kv in dict) {
+                        if (kv.Value is string s) {
                             psi.Environment[kv.Key] = s;
                         }
                     }
@@ -356,9 +345,9 @@ public sealed class JsScriptAction:IAction {
                 psi.RedirectStandardError = false;
             }
 
-            StringBuilder stdoutBuilder = new StringBuilder();
-            StringBuilder stderrBuilder = new StringBuilder();
-            using Process process = new Process();
+            System.Text.StringBuilder stdoutBuilder = new System.Text.StringBuilder();
+            System.Text.StringBuilder stderrBuilder = new System.Text.StringBuilder();
+            using System.Diagnostics.Process process = new System.Diagnostics.Process();
             process.StartInfo = psi;
             if (captureStdout) {
                 process.OutputDataReceived += (_, e) => { if (e.Data != null) { stdoutBuilder.AppendLine(e.Data); } };
@@ -382,16 +371,21 @@ public sealed class JsScriptAction:IAction {
                     if (!process.WaitForExit(timeoutMs.Value)) {
                         try {
                             process.Kill(entireProcessTree: true);
-                        } catch { }
+                        } catch {
+#if DEBUG
+                            Program.Direct.Console.WriteLine($"[JsScriptAction.cs] Failed to kill timed-out process '{fileName}'");
+#endif
+                            // ignore
+                        }
                         throw JsInterop.CreateJsException(_engine, "Error", $"Process '{fileName}' timed out after {timeoutMs.Value} ms");
                     }
                 } else {
                     process.WaitForExit();
                 }
-            } catch (Exception ex) {
+            } catch (System.Exception ex) {
                 throw JsInterop.CreateJsException(_engine, "Error", $"Failed to run process '{fileName}': {ex.Message}");
             }
-            Dictionary<String, Object?> result = new Dictionary<String, Object?>(StringComparer.Ordinal) {
+            Dictionary<string, object?> result = new Dictionary<string, object?>(System.StringComparer.Ordinal) {
                 ["exit_code"] = process.ExitCode,
                 ["success"] = process.ExitCode == 0
             };
@@ -413,27 +407,27 @@ public sealed class JsScriptAction:IAction {
             _engine = engine;
         }
 
-        public SqliteHandle open(String path) => new SqliteHandle(_engine, path);
+        public SqliteHandle open(string path) => new SqliteHandle(_engine, path);
     }
-    private sealed class SqliteHandle:IDisposable {
+    private sealed class SqliteHandle:System.IDisposable {
         private readonly Engine _engine;
-        private readonly SqliteConnection _connection;
-        private SqliteTransaction? _transaction;
-        private Boolean _disposed;
+        private readonly Microsoft.Data.Sqlite.SqliteConnection _connection;
+        private Microsoft.Data.Sqlite.SqliteTransaction? _transaction;
+        private bool _disposed;
 
-        internal SqliteHandle(Engine engine, String path) {
+        internal SqliteHandle(Engine engine, string path) {
             _engine = engine;
-            String fullPath = Path.GetFullPath(path);
-            SqliteConnectionStringBuilder builder = new SqliteConnectionStringBuilder {
+            string fullPath = System.IO.Path.GetFullPath(path);
+            Microsoft.Data.Sqlite.SqliteConnectionStringBuilder builder = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder {
                 DataSource = fullPath
             };
-            _connection = new SqliteConnection(builder.ConnectionString);
+            _connection = new Microsoft.Data.Sqlite.SqliteConnection(builder.ConnectionString);
             _connection.Open();
         }
 
-        public Int32 exec(String sql, Object? parameters = null) {
+        public int exec(string sql, object? parameters = null) {
             EnsureNotDisposed();
-            using SqliteCommand command = _connection.CreateCommand();
+            using Microsoft.Data.Sqlite.SqliteCommand command = _connection.CreateCommand();
             command.CommandText = sql;
             if (_transaction != null) {
                 command.Transaction = _transaction;
@@ -443,21 +437,21 @@ public sealed class JsScriptAction:IAction {
             return command.ExecuteNonQuery();
         }
 
-        public JsValue query(String sql, Object? parameters = null) {
+        public JsValue query(string sql, object? parameters = null) {
             EnsureNotDisposed();
-            using SqliteCommand command = _connection.CreateCommand();
+            using Microsoft.Data.Sqlite.SqliteCommand command = _connection.CreateCommand();
             command.CommandText = sql;
             if (_transaction != null) {
                 command.Transaction = _transaction;
             }
 
             BindParameters(command, parameters);
-            using SqliteDataReader reader = command.ExecuteReader();
-            List<Dictionary<String, Object?>> rows = new List<Dictionary<String, Object?>>();
+            using Microsoft.Data.Sqlite.SqliteDataReader reader = command.ExecuteReader();
+            List<Dictionary<string, object?>> rows = new List<Dictionary<string, object?>>();
             while (reader.Read()) {
-                Dictionary<String, Object?> row = new Dictionary<String, Object?>(StringComparer.Ordinal);
-                for (Int32 i = 0; i < reader.FieldCount; i++) {
-                    String column = reader.GetName(i);
+                Dictionary<string, object?> row = new Dictionary<string, object?>(System.StringComparer.Ordinal);
+                for (int i = 0; i < reader.FieldCount; i++) {
+                    string column = reader.GetName(i);
                     row[column] = ConvertValue(reader.GetValue(i));
                 }
                 rows.Add(row);
@@ -520,80 +514,80 @@ public sealed class JsScriptAction:IAction {
 
         private void EnsureNotDisposed() {
             if (_disposed) {
-                throw new ObjectDisposedException(nameof(SqliteHandle));
+                throw new System.ObjectDisposedException(nameof(SqliteHandle));
             }
         }
 
-        private void BindParameters(SqliteCommand command, Object? parameters) {
+        private void BindParameters(Microsoft.Data.Sqlite.SqliteCommand command, object? parameters) {
             if (parameters is null) {
                 return;
             }
 
-            IDictionary<String, Object?> dict = JsInterop.ToDictionary(_engine, parameters);
-            foreach (KeyValuePair<String, Object?> kv in dict) {
-                SqliteParameter parameter = command.CreateParameter();
-                String name = kv.Key;
-                if (!name.StartsWith(":", StringComparison.Ordinal) && !name.StartsWith("@", StringComparison.Ordinal) && !name.StartsWith("$", StringComparison.Ordinal)) {
+            IDictionary<string, object?> dict = JsInterop.ToDictionary(_engine, parameters);
+            foreach (KeyValuePair<string, object?> kv in dict) {
+                Microsoft.Data.Sqlite.SqliteParameter parameter = command.CreateParameter();
+                string name = kv.Key;
+                if (!name.StartsWith(":", System.StringComparison.Ordinal) && !name.StartsWith("@", System.StringComparison.Ordinal) && !name.StartsWith("$", System.StringComparison.Ordinal)) {
                     name = ":" + name;
                 }
 
                 parameter.ParameterName = name;
-                parameter.Value = kv.Value ?? DBNull.Value;
+                parameter.Value = kv.Value ?? System.DBNull.Value;
                 command.Parameters.Add(parameter);
             }
         }
 
-        private static Object? ConvertValue(Object? value) {
-            return value is null || value is DBNull
+        private static object? ConvertValue(object? value) {
+            return value is null || value is System.DBNull
                 ? null
                 : value switch {
-                    DateTime dt => dt.ToString("o", CultureInfo.InvariantCulture),
-                    Byte[] bytes => Convert.ToHexString(bytes),
+                    System.DateTime dt => dt.ToString("o", System.Globalization.CultureInfo.InvariantCulture),
+                    byte[] bytes => System.Convert.ToHexString(bytes),
                     _ => value
                 };
         }
     }
     private sealed class LfsModule {
 
-        public String currentdir() => Environment.CurrentDirectory;
+        public string currentdir() => System.Environment.CurrentDirectory;
 
-        public Object? mkdir(String path) {
+        public object? mkdir(string path) {
             try {
-                Directory.CreateDirectory(path);
+                System.IO.Directory.CreateDirectory(path);
                 return true;
             } catch {
                 return null;
             }
         }
 
-        public Object? attributes(String path) {
-            if (Directory.Exists(path)) {
-                return new Dictionary<String, Object?>(StringComparer.Ordinal) {
+        public object? attributes(string path) {
+            if (System.IO.Directory.Exists(path)) {
+                return new Dictionary<string, object?>(System.StringComparer.Ordinal) {
                     ["mode"] = "directory"
                 };
             }
-            if (File.Exists(path)) {
-                FileInfo info = new FileInfo(path);
-                return new Dictionary<String, Object?>(StringComparer.Ordinal) {
+            if (System.IO.File.Exists(path)) {
+                System.IO.FileInfo info = new System.IO.FileInfo(path);
+                return new Dictionary<string, object?>(System.StringComparer.Ordinal) {
                     ["mode"] = "file",
                     ["size"] = info.Length,
-                    ["modtime"] = info.LastWriteTimeUtc.ToString("o", CultureInfo.InvariantCulture)
+                    ["modtime"] = info.LastWriteTimeUtc.ToString("o", System.Globalization.CultureInfo.InvariantCulture)
                 };
             }
             return null;
         }
 
-        public Func<Object?> dir(String path) {
-            IEnumerable<String> Enumerate() {
+        public System.Func<object?> dir(string path) {
+            IEnumerable<string> Enumerate() {
                 yield return ".";
                 yield return "..";
-                if (Directory.Exists(path)) {
-                    foreach (String entry in Directory.EnumerateFileSystemEntries(path)) {
-                        yield return Path.GetFileName(entry);
+                if (System.IO.Directory.Exists(path)) {
+                    foreach (string entry in System.IO.Directory.EnumerateFileSystemEntries(path)) {
+                        yield return System.IO.Path.GetFileName(entry);
                     }
                 }
             }
-            IEnumerator<String> enumerator = Enumerate().GetEnumerator();
+            IEnumerator<string> enumerator = Enumerate().GetEnumerator();
             return () => enumerator.MoveNext() ? enumerator.Current : null;
         }
     }
@@ -604,24 +598,24 @@ public sealed class JsScriptAction:IAction {
             _engine = engine;
         }
 
-        public String encode(JsValue value, JsValue options) {
-            Boolean indent = false;
+        public string encode(JsValue value, JsValue options) {
+            bool indent = false;
             if (!options.IsUndefined() && !options.IsNull() && options.IsObject()) {
                 JsValue indentVal = JsInterop.Get(options.AsObject(), _engine, "indent");
                 if (!indentVal.IsUndefined()) {
                     indent = JsInterop.ToBoolean(indentVal);
                 }
             }
-            Object? plain = JsInterop.ToPlainObject(_engine, value);
-            JsonSerializerOptions jsonOptions = new JsonSerializerOptions { WriteIndented = indent };
-            return JsonSerializer.Serialize(plain, jsonOptions);
+            object? plain = JsInterop.ToPlainObject(_engine, value);
+            System.Text.Json.JsonSerializerOptions jsonOptions = new System.Text.Json.JsonSerializerOptions { WriteIndented = indent };
+            return System.Text.Json.JsonSerializer.Serialize(plain, jsonOptions);
         }
 
         public JsValue encode(JsValue value) => encode(value, JsValue.Undefined);
 
-        public JsValue decode(String json) {
+        public JsValue decode(string json) {
             try {
-                using JsonDocument doc = JsonDocument.Parse(json);
+                using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(json);
                 return JsInterop.FromJsonElement(_engine, doc.RootElement);
             } catch {
                 return JsValue.Null;
@@ -629,66 +623,66 @@ public sealed class JsScriptAction:IAction {
         }
     }
     private sealed class DebugModule {
-        private readonly String _scriptPath;
+        private readonly string _scriptPath;
 
-        internal DebugModule(String scriptPath) {
+        internal DebugModule(string scriptPath) {
             _scriptPath = scriptPath;
         }
 
-        public Object getinfo(Object? level = null, Object? what = null) {
-            return new Dictionary<String, Object?>(StringComparer.Ordinal) {
+        public object getinfo(object? level = null, object? what = null) {
+            return new Dictionary<string, object?>(System.StringComparer.Ordinal) {
                 ["source"] = "@" + _scriptPath
             };
         }
     }
     private sealed class PackageModule {
-        public IDictionary<String, Object?> loaded {
+        public IDictionary<string, object?> loaded {
             get;
         }
 
-        internal PackageModule(IDictionary<String, Object?> modules) {
+        internal PackageModule(IDictionary<string, object?> modules) {
             loaded = modules;
         }
     }
     private static class FsUtils {
 
-        public static Boolean PathExists(String path) => Directory.Exists(path) || File.Exists(path);
+        public static bool PathExists(string path) => System.IO.Directory.Exists(path) || System.IO.File.Exists(path);
 
-        public static Boolean PathExistsIncludingLinks(String path) {
+        public static bool PathExistsIncludingLinks(string path) {
             if (PathExists(path)) {
                 return true;
             }
 
             try {
-                FileSystemInfo info = GetInfo(path);
+                System.IO.FileSystemInfo info = GetInfo(path);
                 return info.Exists ? true : info.LinkTarget != null;
             } catch {
                 return false;
             }
         }
 
-        public static Boolean IsSymlink(String path) {
+        public static bool IsSymlink(string path) {
             try {
-                FileSystemInfo info = GetInfo(path);
-                return info.LinkTarget != null || info.Attributes.HasFlag(FileAttributes.ReparsePoint);
+                System.IO.FileSystemInfo info = GetInfo(path);
+                return info.LinkTarget != null || info.Attributes.HasFlag(System.IO.FileAttributes.ReparsePoint);
             } catch {
                 return false;
             }
         }
 
-        public static Boolean CreateSymlink(String source, String destination, Boolean isDirectory) {
+        public static bool CreateSymlink(string source, string destination, bool isDirectory) {
             try {
-                String destFull = Path.GetFullPath(destination);
-                String srcFull = Path.GetFullPath(source);
-                String? parent = Path.GetDirectoryName(destFull);
-                if (!String.IsNullOrEmpty(parent)) {
-                    Directory.CreateDirectory(parent);
+                string destFull = System.IO.Path.GetFullPath(destination);
+                string srcFull = System.IO.Path.GetFullPath(source);
+                string? parent = System.IO.Path.GetDirectoryName(destFull);
+                if (!string.IsNullOrEmpty(parent)) {
+                    System.IO.Directory.CreateDirectory(parent);
                 }
 
                 if (isDirectory) {
-                    Directory.CreateSymbolicLink(destFull, srcFull);
+                    System.IO.Directory.CreateSymbolicLink(destFull, srcFull);
                 } else {
-                    File.CreateSymbolicLink(destFull, srcFull);
+                    System.IO.File.CreateSymbolicLink(destFull, srcFull);
                 }
 
                 return true;
@@ -697,63 +691,63 @@ public sealed class JsScriptAction:IAction {
             }
         }
 
-        public static String? RealPath(String path) {
+        public static string? RealPath(string path) {
             try {
-                return Path.GetFullPath(path);
+                return System.IO.Path.GetFullPath(path);
             } catch {
                 return null;
             }
         }
 
-        public static String? ReadLink(String path) {
+        public static string? ReadLink(string path) {
             try {
-                FileSystemInfo info = GetInfo(path);
+                System.IO.FileSystemInfo info = GetInfo(path);
                 return info.LinkTarget;
             } catch {
                 return null;
             }
         }
 
-        private static FileSystemInfo GetInfo(String path) {
-            String full = Path.GetFullPath(path);
-            DirectoryInfo dirInfo = new DirectoryInfo(full);
+        private static System.IO.FileSystemInfo GetInfo(string path) {
+            string full = System.IO.Path.GetFullPath(path);
+            System.IO.DirectoryInfo dirInfo = new System.IO.DirectoryInfo(full);
             if (dirInfo.Exists) {
                 return dirInfo;
             }
 
-            FileInfo fileInfo = new FileInfo(full);
+            System.IO.FileInfo fileInfo = new System.IO.FileInfo(full);
             return fileInfo.Exists
                 ? fileInfo
-                : full.EndsWith(Path.DirectorySeparatorChar) || full.EndsWith(Path.AltDirectorySeparatorChar)
-                ? new DirectoryInfo(full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
+                : full.EndsWith(System.IO.Path.DirectorySeparatorChar) || full.EndsWith(System.IO.Path.AltDirectorySeparatorChar)
+                ? new System.IO.DirectoryInfo(full.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar))
                 : fileInfo;
         }
     }
     private static class JsInterop {
 
-        public static JsValue AsJsValue(Engine engine, Object? value) {
+        public static JsValue AsJsValue(Engine engine, object? value) {
             return value is null ? JsValue.Null : value is JsValue js ? js : JsValue.FromObject(engine, value);
         }
 
-        public static Boolean ToBoolean(Engine engine, Object? value, Boolean defaultValue = false) => ToBoolean(AsJsValue(engine, value), defaultValue);
+        public static bool ToBoolean(Engine engine, object? value, bool defaultValue = false) => ToBoolean(AsJsValue(engine, value), defaultValue);
 
-        public static Boolean ToBoolean(JsValue value, Boolean defaultValue = false) {
+        public static bool ToBoolean(JsValue value, bool defaultValue = false) {
             return value.IsNull() || value.IsUndefined() ? defaultValue : Jint.Runtime.TypeConverter.ToBoolean(value);
         }
 
-        public static Double ToNumber(JsValue value, Double defaultValue = 0) {
+        public static double ToNumber(JsValue value, double defaultValue = 0) {
             return value.IsNull() || value.IsUndefined() ? defaultValue : Jint.Runtime.TypeConverter.ToNumber(value);
         }
 
-        public static ArrayInstance EnsureArray(Engine engine, Object? value, String paramName) {
+        public static Jint.Native.Array.ArrayInstance EnsureArray(Engine engine, object? value, string paramName) {
             JsValue js = AsJsValue(engine, value);
-            return !js.IsArray() ? throw CreateJsException(engine, "TypeError", $"{paramName} must be an array") : (ArrayInstance)js.AsArray();
+            return !js.IsArray() ? throw CreateJsException(engine, "TypeError", $"{paramName} must be an array") : (Jint.Native.Array.ArrayInstance)js.AsArray();
         }
 
-        public static List<String> ToStringList(Engine engine, Object? value) => ToStringList(engine, EnsureArray(engine, value, "value"));
+        public static List<string> ToStringList(Engine engine, object? value) => ToStringList(EnsureArray(engine, value, "value"));
 
-        public static List<String> ToStringList(Engine engine, ArrayInstance array) {
-            List<String> list = new List<String>();
+        public static List<string> ToStringList(Jint.Native.Array.ArrayInstance array) {
+            List<string> list = new List<string>();
             foreach (JsValue item in array) {
                 if (item.IsNull() || item.IsUndefined()) {
                     break;
@@ -764,15 +758,15 @@ public sealed class JsScriptAction:IAction {
             return list;
         }
 
-        public static IDictionary<String, Object?> ToDictionary(Engine engine, Object? value) {
+        public static IDictionary<string, object?> ToDictionary(Engine engine, object? value) {
             JsValue js = AsJsValue(engine, value);
             return js.IsNull() || js.IsUndefined()
-                ? new Dictionary<String, Object?>(StringComparer.Ordinal)
+                ? new Dictionary<string, object?>(System.StringComparer.Ordinal)
                 : !js.IsObject() ? throw CreateJsException(engine, "TypeError", "Expected object value") : ToDictionary(engine, js.AsObject());
         }
 
-        public static IDictionary<String, Object?> ToDictionary(Engine engine, ObjectInstance obj) {
-            Dictionary<String, Object?> dict = new Dictionary<String, Object?>(StringComparer.Ordinal);
+        public static IDictionary<string, object?> ToDictionary(Engine engine, Jint.Native.Object.ObjectInstance obj) {
+            Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.Ordinal);
             foreach (JsValue key in obj.GetOwnPropertyKeys()) {
                 JsValue value = obj.Get(key, obj);
                 dict[key.IsString() ? key.AsString() : key.ToString()] = ToPlainObject(engine, value);
@@ -780,7 +774,7 @@ public sealed class JsScriptAction:IAction {
             return dict;
         }
 
-        public static Object? ToPlainObject(Engine engine, JsValue value) {
+        public static object? ToPlainObject(Engine engine, JsValue value) {
             if (value.IsNull() || value.IsUndefined()) {
                 return null;
             }
@@ -798,7 +792,7 @@ public sealed class JsScriptAction:IAction {
             }
 
             if (value.IsArray()) {
-                List<Object?> list = new List<Object?>();
+                List<object?> list = new List<object?>();
                 foreach (JsValue item in value.AsArray()) {
                     list.Add(ToPlainObject(engine, item));
                 }
@@ -806,8 +800,8 @@ public sealed class JsScriptAction:IAction {
                 return list;
             }
             if (value.IsObject()) {
-                Dictionary<String, Object?> dict = new Dictionary<String, Object?>(StringComparer.Ordinal);
-                ObjectInstance obj = value.AsObject();
+                Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.Ordinal);
+                Jint.Native.Object.ObjectInstance obj = value.AsObject();
                 foreach (JsValue key in obj.GetOwnPropertyKeys()) {
                     dict[key.IsString() ? key.AsString() : key.ToString()] = ToPlainObject(engine, obj.Get(key, obj));
                 }
@@ -817,57 +811,61 @@ public sealed class JsScriptAction:IAction {
             return value.ToString();
         }
 
-        public static JavaScriptException CreateJsException(Engine engine, String constructorName, String message) {
+        public static Jint.Runtime.JavaScriptException CreateJsException(Engine engine, string constructorName, string message) {
             try {
                 JsValue ctorValue = engine.GetValue(constructorName);
                 JsValue errorInstance = engine.Invoke(ctorValue, message);
-                return new JavaScriptException(errorInstance);
+                return new Jint.Runtime.JavaScriptException(errorInstance);
             } catch {
+#if DEBUG
+                Program.Direct.Console.WriteLine($"[JsScriptAction.cs] Failed to create JS exception of type '{constructorName}', falling back to generic Error");
+#endif
+                // ignore
             }
-            return new JavaScriptException(JsValue.FromObject(engine, message));
+            return new Jint.Runtime.JavaScriptException(JsValue.FromObject(engine, message));
         }
 
-        public static JsValue FromObject(Engine engine, Object? value) => JsValue.FromObject(engine, value);
+        public static JsValue FromObject(Engine engine, object? value) => JsValue.FromObject(engine, value);
 
-        public static JsValue FromJsonElement(Engine engine, JsonElement element) => FromObject(engine, FromJsonElement(element));
+        public static JsValue FromJsonElement(Engine engine, System.Text.Json.JsonElement element) => FromObject(engine, FromJsonElement(element));
 
-        public static Object? FromJsonElement(JsonElement element) => element.ValueKind switch {
-            JsonValueKind.Object => ToDictionary(element),
-            JsonValueKind.Array => ToList(element),
-            JsonValueKind.String => element.GetString(),
-            JsonValueKind.Number => element.TryGetInt64(out Int64 l) ? l : element.GetDouble(),
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
+        public static object? FromJsonElement(System.Text.Json.JsonElement element) => element.ValueKind switch {
+            System.Text.Json.JsonValueKind.Object => ToDictionary(element),
+            System.Text.Json.JsonValueKind.Array => ToList(element),
+            System.Text.Json.JsonValueKind.String => element.GetString(),
+            System.Text.Json.JsonValueKind.Number => element.TryGetInt64(out long l) ? l : element.GetDouble(),
+            System.Text.Json.JsonValueKind.True => true,
+            System.Text.Json.JsonValueKind.False => false,
             _ => null
         };
 
-        public static ObjectInstance? TryGetPlainObject(Engine engine, Object? value) {
+        public static Jint.Native.Object.ObjectInstance? TryGetPlainObject(Engine engine, object? value) {
             JsValue js = AsJsValue(engine, value);
             return js.IsObject() && !js.IsArray() ? js.AsObject() : null;
         }
 
-        public static JsValue Get(ObjectInstance obj, Engine engine, String name) => obj.Get(JsValue.FromObject(engine, name), obj);
+        public static JsValue Get(Jint.Native.Object.ObjectInstance obj, Engine engine, string name) => obj.Get(JsValue.FromObject(engine, name), obj);
 
-        public static String ToString(JsValue value) => value.IsString() ? value.AsString() : value.ToString();
+        public static string ToString(JsValue value) => value.IsString() ? value.AsString() : value.ToString();
 
-        public static Boolean ToBoolean(JsValue value) => ToBoolean(value, false);
+        public static bool ToBoolean(JsValue value) => ToBoolean(value, false);
 
-        public static Int32? ToNullableInt(JsValue value) {
-            return value.IsNull() || value.IsUndefined() ? null : (Int32)Math.Max(0, Math.Round(Jint.Runtime.TypeConverter.ToNumber(value)));
+        public static int? ToNullableInt(JsValue value) {
+            return value.IsNull() || value.IsUndefined() ? null : (int)System.Math.Max(0, System.Math.Round(Jint.Runtime.TypeConverter.ToNumber(value)));
         }
 
-        private static Dictionary<String, Object?> ToDictionary(JsonElement element) {
-            Dictionary<String, Object?> dict = new Dictionary<String, Object?>(StringComparer.Ordinal);
-            foreach (JsonProperty property in element.EnumerateObject()) {
+        private static Dictionary<string, object?> ToDictionary(System.Text.Json.JsonElement element) {
+            Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.Ordinal);
+            foreach (System.Text.Json.JsonProperty property in element.EnumerateObject()) {
                 dict[property.Name] = FromJsonElement(property.Value);
             }
 
             return dict;
         }
 
-        private static List<Object?> ToList(JsonElement element) {
-            List<Object?> list = new List<Object?>();
-            foreach (JsonElement item in element.EnumerateArray()) {
+        private static List<object?> ToList(System.Text.Json.JsonElement element) {
+            List<object?> list = new List<object?>();
+            foreach (System.Text.Json.JsonElement item in element.EnumerateArray()) {
                 list.Add(FromJsonElement(item));
             }
 

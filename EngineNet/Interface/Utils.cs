@@ -1,27 +1,27 @@
 
 namespace EngineNet.Interface;
 
-public class Utils {
+internal class Utils {
 
     public Utils() {
         //
     }
 
 
-    public Boolean ExecuteOp(Core.OperationsEngine _engine, String game, IDictionary<String, Object?> games, Dictionary<String, Object?> op, Dictionary<String, Object?> answers, Dictionary<String, String>? autoPromptResponses = null) {
-        String? type = (op.TryGetValue("script_type", out Object? st) ? st?.ToString() : null)?.ToLowerInvariant();
+    public bool ExecuteOp(Core.OperationsEngine _engine, string game, IDictionary<string, object?> games, Dictionary<string, object?> op, Dictionary<string, object?> answers, Dictionary<string, string>? autoPromptResponses = null) {
+        string? type = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant();
 
         // Use embedded handlers for engine/lua/js/bms to avoid external dependencies
         if (type == "engine" || type == "lua" || type == "js" || type == "bms") {
             // Route in-process SDK events to our terminal renderer and suppress raw @@REMAKE@@ lines
-            Action<Dictionary<String, Object?>>? prevSink = Core.ScriptEngines.Helpers.EngineSdk.LocalEventSink;
-            Boolean prevMute = Core.ScriptEngines.Helpers.EngineSdk.MuteStdoutWhenLocalSink;
-            Dictionary<String, String> prevAutoResponses = new(Core.ScriptEngines.Helpers.EngineSdk.AutoPromptResponses);
+            System.Action<Dictionary<string, object?>>? prevSink = Core.ScriptEngines.Helpers.EngineSdk.LocalEventSink;
+            bool prevMute = Core.ScriptEngines.Helpers.EngineSdk.MuteStdoutWhenLocalSink;
+            Dictionary<string, string> prevAutoResponses = new(Core.ScriptEngines.Helpers.EngineSdk.AutoPromptResponses);
             try {
                 // Set auto-prompt responses if provided
                 if (autoPromptResponses != null && autoPromptResponses.Count > 0) {
                     Core.ScriptEngines.Helpers.EngineSdk.AutoPromptResponses.Clear();
-                    foreach (KeyValuePair<String, String> kv in autoPromptResponses) {
+                    foreach (KeyValuePair<string, string> kv in autoPromptResponses) {
                         Core.ScriptEngines.Helpers.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
                     }
                 }
@@ -32,7 +32,7 @@ public class Utils {
             } finally {
                 // Restore previous auto-prompt responses
                 Core.ScriptEngines.Helpers.EngineSdk.AutoPromptResponses.Clear();
-                foreach (KeyValuePair<String, String> kv in prevAutoResponses) {
+                foreach (KeyValuePair<string, string> kv in prevAutoResponses) {
                     Core.ScriptEngines.Helpers.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
                 }
 
@@ -42,136 +42,136 @@ public class Utils {
         }
 
         // Default: build and execute as external command (e.g., python)
-        List<String> parts = _engine.BuildCommand(game, games, op, answers);
+        List<string> parts = _engine.BuildCommand(game, games, op, answers);
         if (parts.Count < 2) {
             return false;
         }
 
-        String title = op.TryGetValue("Name", out Object? n) ? n?.ToString() ?? Path.GetFileName(parts[1]) : Path.GetFileName(parts[1]);
+        string title = op.TryGetValue("Name", out object? n) ? n?.ToString() ?? System.IO.Path.GetFileName(parts[1]) : System.IO.Path.GetFileName(parts[1]);
         return _engine.ExecuteCommand(
             parts,
             title,
             onOutput: OnOutput,
             onEvent: OnEvent,
             stdinProvider: StdinProvider,
-            envOverrides: new Dictionary<String, Object?> { ["TERM"] = "dumb" }
+            envOverrides: new Dictionary<string, object?> { ["TERM"] = "dumb" }
         );
     }
 
-    private static void WriteColored(String message, ConsoleColor color) {
-        ConsoleColor prev = Console.ForegroundColor;
-        Console.ForegroundColor = color;
-        Console.WriteLine(message);
-        Console.ForegroundColor = prev;
+    private static void WriteColored(string message, System.ConsoleColor color) {
+        System.ConsoleColor prev = Program.Direct.Console.ForegroundColor;
+        Program.Direct.Console.ForegroundColor = color;
+        Program.Direct.Console.WriteLine(message);
+        Program.Direct.Console.ForegroundColor = prev;
     }
 
-    private static ConsoleColor MapColor(String? name) {
-        if (String.IsNullOrWhiteSpace(name)) {
-            return ConsoleColor.Gray;
+    private static System.ConsoleColor MapColor(string? name) {
+        if (string.IsNullOrWhiteSpace(name)) {
+            return System.ConsoleColor.Gray;
         }
 
         switch (name.Trim().ToLowerInvariant()) {
             case "default":
-                return ConsoleColor.Gray;
+                return System.ConsoleColor.Gray;
             case "black":
-                return ConsoleColor.Black;
+                return System.ConsoleColor.Black;
             case "darkblue":
-                return ConsoleColor.DarkBlue;
+                return System.ConsoleColor.DarkBlue;
             case "blue":
-                return ConsoleColor.Blue;
+                return System.ConsoleColor.Blue;
             case "darkgreen":
-                return ConsoleColor.DarkGreen;
+                return System.ConsoleColor.DarkGreen;
             case "green":
-                return ConsoleColor.Green;
+                return System.ConsoleColor.Green;
             case "darkcyan":
-                return ConsoleColor.DarkCyan;
+                return System.ConsoleColor.DarkCyan;
             case "cyan":
-                return ConsoleColor.Cyan;
+                return System.ConsoleColor.Cyan;
             case "darkred":
-                return ConsoleColor.DarkRed;
+                return System.ConsoleColor.DarkRed;
             case "red":
-                return ConsoleColor.Red;
+                return System.ConsoleColor.Red;
             case "darkmagenta":
-                return ConsoleColor.DarkMagenta;
+                return System.ConsoleColor.DarkMagenta;
             case "magenta":
-                return ConsoleColor.Magenta;
+                return System.ConsoleColor.Magenta;
             case "darkyellow":
-                return ConsoleColor.DarkYellow;
+                return System.ConsoleColor.DarkYellow;
             case "yellow":
-                return ConsoleColor.Yellow;
+                return System.ConsoleColor.Yellow;
             case "gray":
             case "grey":
-                return ConsoleColor.Gray;
+                return System.ConsoleColor.Gray;
             case "darkgray":
             case "darkgrey":
-                return ConsoleColor.DarkGray;
+                return System.ConsoleColor.DarkGray;
             case "white":
-                return ConsoleColor.White;
+                return System.ConsoleColor.White;
             default:
-                return ConsoleColor.Gray;
+                return System.ConsoleColor.Gray;
         }
     }
 
-    private static String? StdinProvider() {
+    private static string? StdinProvider() {
         try {
-            Console.Write("> ");
-            return Console.ReadLine();
+            Program.Direct.Console.Write("> ");
+            return Program.Direct.Console.ReadLine();
         } catch {
-            return String.Empty;
+            return string.Empty;
         }
     }
 
-    private static void OnOutput(String line, String stream) {
-        ConsoleColor prev = Console.ForegroundColor;
+    private static void OnOutput(string line, string stream) {
+        System.ConsoleColor prev = Program.Direct.Console.ForegroundColor;
         try {
-            Console.ForegroundColor = stream == "stderr" ? ConsoleColor.Red : ConsoleColor.Gray;
-            Console.WriteLine(line);
-        } finally { Console.ForegroundColor = prev; }
+            Program.Direct.Console.ForegroundColor = stream == "stderr" ? System.ConsoleColor.Red : System.ConsoleColor.Gray;
+            Program.Direct.Console.WriteLine(line);
+        } finally { Program.Direct.Console.ForegroundColor = prev; }
     }
 
     // --- Handlers to bridge SDK events <-> CLI ---
-    private static String _lastPrompt = "Input required";
+    private static string _lastPrompt = "Input required";
 
-    private static void OnEvent(Dictionary<String, Object?> evt) {
-        if (!evt.TryGetValue("event", out Object? typObj)) {
+    private static void OnEvent(Dictionary<string, object?> evt) {
+        if (!evt.TryGetValue("event", out object? typObj)) {
             return;
         }
 
-        String? typ = typObj?.ToString();
-        ConsoleColor prev = Console.ForegroundColor;
+        string? typ = typObj?.ToString();
+        System.ConsoleColor prev = Program.Direct.Console.ForegroundColor;
 
         switch (typ) {
             case "print":
-                String msg = evt.TryGetValue("message", out Object? m) ? m?.ToString() ?? String.Empty : String.Empty;
-                String colorName = evt.TryGetValue("color", out Object? c) ? c?.ToString() ?? String.Empty : String.Empty;
-                Boolean newline = true;
+                string msg = evt.TryGetValue("message", out object? m) ? m?.ToString() ?? string.Empty : string.Empty;
+                string colorName = evt.TryGetValue("color", out object? c) ? c?.ToString() ?? string.Empty : string.Empty;
+                bool newline = true;
                 try {
-                    if (evt.TryGetValue("newline", out Object? nl) && nl is not null) {
-                        newline = Convert.ToBoolean(nl);
+                    if (evt.TryGetValue("newline", out object? nl) && nl is not null) {
+                        newline = System.Convert.ToBoolean(nl);
                     }
                 } catch { newline = true; }
-                prev = Console.ForegroundColor;
+                prev = Program.Direct.Console.ForegroundColor;
                 try {
-                    Console.ForegroundColor = MapColor(colorName);
+                    Program.Direct.Console.ForegroundColor = MapColor(colorName);
                     if (newline) {
-                        Console.WriteLine(msg);
+                        Program.Direct.Console.WriteLine(msg);
                     } else {
-                        Console.Write(msg);
+                        Program.Direct.Console.Write(msg);
                     }
-                } finally { Console.ForegroundColor = prev; }
+                } finally { Program.Direct.Console.ForegroundColor = prev; }
                 break;
             case "prompt":
-                _lastPrompt = evt.TryGetValue("message", out Object? mm) ? mm?.ToString() ?? "Input required" : "Input required";
-                prev = Console.ForegroundColor;
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine($"? {_lastPrompt}");
-                Console.ForegroundColor = prev;
+                _lastPrompt = evt.TryGetValue("message", out object? mm) ? mm?.ToString() ?? "Input required" : "Input required";
+                prev = Program.Direct.Console.ForegroundColor;
+                Program.Direct.Console.ForegroundColor = System.ConsoleColor.Cyan;
+                Program.Direct.Console.WriteLine($"? {_lastPrompt}");
+                Program.Direct.Console.ForegroundColor = prev;
                 break;
             case "warning":
-                WriteColored($"⚠ {evt.GetValueOrDefault("message", "")}", ConsoleColor.Yellow);
+                WriteColored($"⚠ {evt.GetValueOrDefault("message", "")}", System.ConsoleColor.Yellow);
                 break;
             case "error":
-                WriteColored($"✖ {evt.GetValueOrDefault("message", "")}", ConsoleColor.Red);
+                WriteColored($"✖ {evt.GetValueOrDefault("message", "")}", System.ConsoleColor.Red);
                 break;
         }
     }

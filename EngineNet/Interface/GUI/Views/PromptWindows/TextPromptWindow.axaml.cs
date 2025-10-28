@@ -1,6 +1,6 @@
 using Avalonia.Interactivity;
 
-namespace EngineNet.Interface.GUI.Avalonia.Views.PromptWindows;
+namespace EngineNet.Interface.GUI.Views.PromptWindows;
 
 public partial class TextPromptWindow:Window {
     public string? Result {
@@ -27,7 +27,7 @@ public partial class TextPromptWindow:Window {
         if (_textInput is not null) {
             // When secret, mask the characters
             if (secret) {
-                _textInput.PasswordChar = '•';   // or '*'
+                _textInput.PasswordChar = 'ï¿½';   // or '*'
                 _textInput.RevealPassword = false; // optional
             }
 
@@ -47,7 +47,7 @@ public partial class TextPromptWindow:Window {
         Close(Result);
     }
 
-    public Task<string?> ShowAsync(Window owner) {
+    public System.Threading.Tasks.Task<string?> ShowAsync(Window owner) {
         return ShowDialog<string?>(owner);
     }
 }
