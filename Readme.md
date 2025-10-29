@@ -1,23 +1,23 @@
 # Remake Engine
 
-Remake Engine is an extensible cross-platform orchestration engine for repeatable game workflows. It ships with a .NET 8 core (**EngineNet**) that can run through either a command-line interface or an Avalonia-based GUI.
+Remake Engine is an extensible cross-platform orchestration engine for repeatable game workflows. It ships with a .NET 9 core (**EngineNet**) that can run through either a command-line interface or TUI or an Avalonia-based GUI.
 
-<!-- It’s closer to a domain-specific ETL framework for games, with multi-language scripting support: -->
+<!-- It's closer to a domain-specific ETL framework for games, with multi-language scripting support: -->
 
 ## Key Features
 - Configuration-driven operations defined in JSON or TOML (`operations.json` / `operations.toml`).
 - Embedded Lua and JavaScript engines with shared SDK helpers plus built-in extract/convert actions.
-- Cross-platform GUI for "run all" and launch scenarios, alongside full CLI experiences for power users.
+- Cross-platform GUI for "run all" and launch scenarios, alongside full TUI experiences for power users.
 - Declarative placeholders that pull values from `project.json` to keep per-user paths out of manifests.
 - Tool orchestration for common pipelines (QuickBMS, FFmpeg, vgmstream, etc.).
 
 ## Documentation
-Project docs live at <https://yggdrasil-au.github.io/RemakeEngineDocs/index.html>. Engine internals are summarised in `EngineNet/specs/`; see `spec.spec.md` for the specification format.
+Project docs live at <https://yggdrasil-au.github.io/RemakeEngineDocs/index.html>. Engine internals are to be documented alongside each file (or mirrored under `/spec/` for each directory); see `spec.spec.md` for the specification format.
 
 ## Getting Started
 
 ### Prerequisites
-- [.NET SDK 8.0](https://dotnet.microsoft.com/)
+- [.NET SDK 9.0.306](https://dotnet.microsoft.com/)
 - git
 
 ### Clone and Build
@@ -35,11 +35,11 @@ dotnet test RemakeEngine.sln --nologo
 # Default entry point (auto-selects GUI when no CLI args are supplied)
 dotnet run -c Release --framework net9.0 --project EngineNet
 
-# Force GUI or interactive CLI explicitly
+# Use GUI or interactive CLI (TUI)
 dotnet run -c Release --project EngineNet --framework net9.0 -- --gui
 dotnet run -c Release --project EngineNet --framework net9.0 -- --tui
 
-# Developer CLI example
+# CLI example, great for direct operation invocations
 dotnet run -c Release --project EngineNet --framework net9.0 -- --game_module "RemakeRegistry/Games/demo" --script_type engine --script rename-folders
 ```
 
@@ -57,8 +57,8 @@ GitHub Actions workflows in `.github/workflows/` keep pull requests, SonarCloud 
 Run `dotnet build RemakeEngine.sln` and `dotnet test RemakeEngine.sln --nologo` locally before opening a PR so the CI checks stay green. To cut a multi-platform release, push a tag like `v2.5.0`; for a Windows-only drop use `win-v2.5.0`. The workflows create the release entry and upload the zipped outputs automatically.
 
 ## Interfaces
-- **Simple GUI (Avalonia):** One-click `run-all` and launch buttons for common flows. Designed for end users, not for watching streamed output.
-- **Interactive CLI:** Menu-driven experience that lists games, prompts for answers, and streams operation output.
+- **Simple GUI (Avalonia):** intended for end-users wanting a straightforward way to run predefined operations for their games/modules, to just run all primary operations, then to launch the game after.
+- **Interactive TUI:** Menu-driven experience that lists games, prompts for answers, and streams operation output.
 - **Developer CLI:** Direct command invocation for bespoke automation or module authoring. Arguments map to the same structures used by `operations.(json|toml)`.
 
 ## Configuration and Modules
@@ -73,10 +73,9 @@ Manifest placeholders follow `{{PlaceholderName}}` syntax and are resolved with 
 ```text
 RemakeEngine/
     EngineNet/                        # C# core engine and CLI entry point
-    EngineNet.Interface.GUI.Avalonia/ # Avalonia desktop UI
-    EngineNet/specs/                  # Architecture and behaviour specifications
+    EngineNet.Tests/                  # Tests
     RemakeRegistry/                   # Game/module definitions and assets
-    Tools/                            # Shared tool binaries and manifests
+    Tools/                            # any tool downloaded by the engine
     project.json                      # Created on demand; local machine configuration
     RemakeEngine.sln                  # Solution file for builds and tests
 ```
@@ -90,8 +89,8 @@ RemakeEngine is licensed under Apache 2.0 and may be used freely, including for 
 
 However, modules that target copyrighted games or other proprietary media must respect our **Non-Commercial Module Policy**:
 
-- To be listed as an **official RemakeEngine module**, the module must use a custom Non-Commercial License.
-- Modules under OSI-approved commercial-use licenses will not be listed in the official registry if they target protected media.
+- To be listed as an officially supported module, the module must use a custom Non-Commercial License.
+- Modules under OSI-approved commercial-use licenses will not be listed in the official registry **if they target protected media** unless they prove they are legally permitted to do so.
 
 
 See LICENSE_MODULE_TEMPLATE.md for the recommended license text.
