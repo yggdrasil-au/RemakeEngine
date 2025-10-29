@@ -12,7 +12,7 @@ internal static class LuaSdkModuleExtensions {
             try {
                 // Security: Validate paths are within allowed workspace areas
                 if (!LuaSecurity.IsAllowedPath(archivePath) || !LuaSecurity.IsAllowedPath(destDir)) {
-                    Helpers.EngineSdk.Error($"Access denied: Archive operations restricted to workspace areas. Attempted: {archivePath} -> {destDir}");
+                    Core.Utils.EngineSdk.Error($"Access denied: Archive operations restricted to workspace areas. Attempted: {archivePath} -> {destDir}");
                     return false;
                 }
 
@@ -22,10 +22,10 @@ internal static class LuaSdkModuleExtensions {
                     return true;
                 }
                 // For other formats, suggest using approved tools
-                Helpers.EngineSdk.Error($"Unsupported archive format '{ext}'. Use 7z tool from Tools.json for other formats.");
+                Core.Utils.EngineSdk.Error($"Unsupported archive format '{ext}'. Use 7z tool from Tools.json for other formats.");
                 return false;
             } catch (System.Exception ex) {
-                Helpers.EngineSdk.Error($"Archive extraction failed: {ex.Message}");
+                Core.Utils.EngineSdk.Error($"Archive extraction failed: {ex.Message}");
                 return false;
             }
         });
@@ -34,7 +34,7 @@ internal static class LuaSdkModuleExtensions {
             try {
                 // Security: Validate paths are within allowed workspace areas
                 if (!LuaSecurity.IsAllowedPath(srcPath) || !LuaSecurity.IsAllowedPath(archivePath)) {
-                    Helpers.EngineSdk.Error($"Access denied: Archive operations restricted to workspace areas. Attempted: {srcPath} -> {archivePath}");
+                    Core.Utils.EngineSdk.Error($"Access denied: Archive operations restricted to workspace areas. Attempted: {srcPath} -> {archivePath}");
                     return false;
                 }
 
@@ -54,10 +54,10 @@ internal static class LuaSdkModuleExtensions {
                     return true;
                 }
                 // For other formats, suggest using approved tools
-                Helpers.EngineSdk.Error($"Unsupported archive type '{type}'. Use 7z tool from Tools.json for other formats.");
+                Core.Utils.EngineSdk.Error($"Unsupported archive type '{type}'. Use 7z tool from Tools.json for other formats.");
                 return false;
             } catch (System.Exception ex) {
-                Helpers.EngineSdk.Error($"Archive creation failed: {ex.Message}");
+                Core.Utils.EngineSdk.Error($"Archive creation failed: {ex.Message}");
                 return false;
             }
         });
@@ -70,7 +70,7 @@ internal static class LuaSdkModuleExtensions {
                 object obj = Helpers.TomlHelpers.ParseFileToPlainObject(path);
                 return LuaUtilities.ToDynValue(GetScriptFromTable(sdk), obj);
             } catch (System.Exception ex) {
-                Helpers.EngineSdk.Error($"TOML read failed: {ex.Message}");
+                Core.Utils.EngineSdk.Error($"TOML read failed: {ex.Message}");
                 return DynValue.Nil;
             }
         });
@@ -80,7 +80,7 @@ internal static class LuaSdkModuleExtensions {
                 object? obj = LuaUtilities.FromDynValue(value);
                 Helpers.TomlHelpers.WriteTomlFile(path, obj);
             } catch (System.Exception ex) {
-                Helpers.EngineSdk.Error($"TOML write failed: {ex.Message}");
+                Core.Utils.EngineSdk.Error($"TOML write failed: {ex.Message}");
             }
         });
     }

@@ -1,5 +1,8 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Collections.Generic;
+
 namespace EngineNet.Core.ScriptEngines.Helpers;
 
 /// <summary>
@@ -62,7 +65,7 @@ internal static class QuickBmsExtractor {
         WriteInfo($"Starting QuickBMS extraction using script '{options.BmsScript}'.");
         WriteInfo($"Found {files.Count} file(s) to process.");
 
-        Sys.ProcessRunner runner = new Sys.ProcessRunner();
+        Utils.ProcessRunner runner = new Utils.ProcessRunner();
         bool okAll = true;
         int done = 0;
         int succeeded = 0;

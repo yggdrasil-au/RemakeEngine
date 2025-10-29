@@ -1,8 +1,0 @@
-title = "demo Tools"
-
-[[tool]]
-name = "Godot"
-version = "4.4.1-stable-mono"
-destination = "./TMP/Downloads"
-unpack = true
-unpack_destination = "./Tools/Godot"

@@ -24,7 +24,7 @@ public sealed partial class ProgramTests:IDisposable {
 
     /// <summary>
     /// TryFindProjectRoot walks upward to the first directory that contains
-    /// RemakeRegistry/Games and returns that directory path.
+    /// EngineApps/Games and returns that directory path.
     /// </summary>
     [Fact]
     public void TryFindProjectRoot_FindsNearestAncestor() {
@@ -32,12 +32,12 @@ public sealed partial class ProgramTests:IDisposable {
         // Build a tree:
         //   _testRoot/
         //     ProjectA/
-        //       RemakeRegistry/
+        //       EngineApps/
         //         Games/
         //       Sub/
         //         Deeper/
         string projectRoot = Path.Combine(_testRoot, "ProjectA");
-        string reg = Path.Combine(projectRoot, "RemakeRegistry");
+        string reg = Path.Combine(projectRoot, "EngineApps");
         string games = Path.Combine(reg, "Games");
         Directory.CreateDirectory(games);
 
@@ -55,11 +55,11 @@ public sealed partial class ProgramTests:IDisposable {
     }
 
     /// <summary>
-    /// TryFindProjectRoot returns null when no ancestor contains RemakeRegistry/Games.
+    /// TryFindProjectRoot returns null when no ancestor contains EngineApps/Games.
     /// </summary>
     [Fact]
     public void TryFindProjectRoot_ReturnsNull_WhenNotFound() {
-        // ARRANGE: a folder structure without RemakeRegistry/Games
+        // ARRANGE: a folder structure without EngineApps/Games
         string lonely = Path.Combine(_testRoot, "Lonely");
         Directory.CreateDirectory(lonely);
 

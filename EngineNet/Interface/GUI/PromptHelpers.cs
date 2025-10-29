@@ -1,4 +1,7 @@
+
+using Avalonia.Controls;
 using Avalonia.Interactivity;
+
 
 namespace EngineNet.Interface.GUI;
 
@@ -12,84 +15,10 @@ public static class PromptHelpers {
     }
 
     public static async System.Threading.Tasks.Task<string?> TextAsync(string title, string message, string? defaultValue = null, bool secret = false) {
-        var window = TryGetMainWindow();
+        Window? window = TryGetMainWindow();
         if (window is null) return null;
-        var dlg = new Views.PromptWindows.TextPromptWindow(title, message, defaultValue, secret);
+        Pages.PromptWindows.TextPromptWindow? dlg = new Pages.PromptWindows.TextPromptWindow(title, message, defaultValue, secret);
         return await dlg.ShowAsync(window);
     }
 
-    public static async System.Threading.Tasks.Task<bool> ConfirmAsync(string question, string title) {
-        Window? window = TryGetMainWindow();
-        if (window is null) {
-            return false;
-        }
-
-        Views.PromptWindows.ConfirmWindow? dlg = new Views.PromptWindows.ConfirmWindow(title, question);
-        return await dlg.ShowAsync(window);
-    }
-
-    public static async System.Threading.Tasks.Task InfoAsync(string message, string title) {
-        Window? window = TryGetMainWindow();
-        if (window is null) {
-            return;
-        }
-
-        Window? dlg = new Window {
-            Width = 400,
-            Height = 160,
-            Title = title,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            CanResize = false
-        };
-        TextBlock? text = new TextBlock { Text = message, TextWrapping = global::Avalonia.Media.TextWrapping.Wrap };
-        Button? ok = new Button {
-            Content = "OK",
-            HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Right,
-            Width = 80,
-            Margin = new global::Avalonia.Thickness(left: 0, top: 8, right: 0, bottom: 0)
-        };
-        ok.Click += (object? _, RoutedEventArgs __) => dlg.Close();
-        DockPanel? panel = new DockPanel {
-            Margin = new global::Avalonia.Thickness(uniformLength: 8)
-        };
-        DockPanel.SetDock(ok, Dock.Bottom);
-        panel.Children.Add(ok);
-        panel.Children.Add(text);
-        dlg.Content = panel;
-        await dlg.ShowDialog(window);
-    }
-
-    public static async System.Threading.Tasks.Task<string?> PickAsync(string title, System.Collections.Generic.IList<string> options) {
-        Window? window = TryGetMainWindow();
-        if (window is null) {
-            return null;
-        }
-
-        Window? dlg = new Window {
-            Width = 480,
-            Height = 340,
-            Title = title,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            CanResize = false
-        };
-        ListBox? list = new ListBox {
-            ItemsSource = options
-        };
-        list.SelectionMode = SelectionMode.Single;
-        Button? ok = new Button {
-            Content = "OK",
-            HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Right,
-            Width = 80,
-            Margin = new global::Avalonia.Thickness(left: 0, top: 8, right: 0, bottom: 0)
-        };
-        ok.Click += (object? _, RoutedEventArgs __) => dlg.Close(list.SelectedItem as string);
-        DockPanel? panel = new DockPanel {
-            Margin = new global::Avalonia.Thickness(uniformLength: 8)
-        };
-        DockPanel.SetDock(ok, Dock.Bottom);
-        panel.Children.Add(ok);
-        panel.Children.Add(list);
-        dlg.Content = panel;
-        return await dlg.ShowDialog<string?>(window);
-    }
 }

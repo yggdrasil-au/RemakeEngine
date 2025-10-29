@@ -144,7 +144,7 @@ Entry point for RemakeEngine. Handles project root discovery, config initializat
 
 ### Behavior
 - Accepts `--root <path>` flag to override project root detection.
-- Auto-detects project root by walking up directories to find `RemakeRegistry/Games`.
+- Auto-detects project root by walking up directories to find `EngineApps/Games`.
 - Creates minimal `project.json` if missing (with warning to user).
 - Routes to GUI if no args or only `--gui` flag present; otherwise uses CLI/TUI via `App.Run()`.
 - Exits with code 0 on success, 1 on unhandled exceptions.
@@ -162,7 +162,7 @@ Entry point for RemakeEngine. Handles project root discovery, config initializat
 
 ### Invariants
 - Must always establish a valid root path before engine initialization.
-- Tool resolver precedence: Tools.local.json > tools.local.json > RemakeRegistry/Tools.json > RemakeRegistry/tools.json > passthrough.
+- Tool resolver precedence: Tools.local.json > tools.local.json > EngineApps/Tools.json > EngineApps/tools.json > passthrough.
 
 ### Risks & Edge Cases
 - If unable to write project.json (permissions, readonly FS), warns but continues.

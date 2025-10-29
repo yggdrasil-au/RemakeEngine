@@ -1,5 +1,16 @@
 using MoonSharp.Interpreter;
 
+
+using System;
+using System.IO;
+using System.Text.Json;
+using System.Threading.Tasks;
+using System.Linq;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Collections.Generic;
+using System.Collections;
+
 namespace EngineNet.Core.ScriptEngines;
 
 /// <summary>
@@ -23,7 +34,7 @@ internal sealed class LuaScriptAction : Helpers.IAction {
     private readonly string _scriptPath;
     private readonly string[] _args;
 
-    public LuaScriptAction(string scriptPath) : this(scriptPath, System.Array.Empty<string>()) { }
+    //public LuaScriptAction(string scriptPath) : this(scriptPath, System.Array.Empty<string>()) { }
 
     public LuaScriptAction(string scriptPath, IEnumerable<string>? args) {
         _scriptPath = scriptPath;
@@ -47,7 +58,7 @@ internal sealed class LuaScriptAction : Helpers.IAction {
         SetupCoreFunctions(lua, tools);
 
         // Register UserData types
-        UserData.RegisterType<Helpers.EngineSdk.Progress>();
+        UserData.RegisterType<Core.Utils.EngineSdk.Progress>();
         UserData.RegisterType<LuaModules.SqliteHandle>();
 
         // Setup SDK and modules
@@ -144,30 +155,30 @@ internal sealed class LuaScriptAction : Helpers.IAction {
 
             // Detect hardlink creation (Windows mklink /H or ln)
             if (lower.Contains("mklink /h") || lower.StartsWith("ln ")) {
-                Helpers.EngineSdk.Error($"os.execute blocked for security: '{command}'. Detected file linking. Use sdk.create_hardlink(src, dst) or sdk.create_symlink(src, dst, is_dir).");
+                Core.Utils.EngineSdk.Error($"os.execute blocked for security: '{command}'. Detected file linking. Use sdk.create_hardlink(src, dst) or sdk.create_symlink(src, dst, is_dir).");
                 return DynValue.NewNumber(1);
             }
 
             // Detect copy operations
             if (lower.StartsWith("copy ") || lower.StartsWith("xcopy ") || lower.StartsWith("cp ")) {
-                Helpers.EngineSdk.Error($"os.execute blocked for security: '{command}'. Detected copy operation. Use sdk.copy_file(src, dst, overwrite) or sdk.copy_dir(src, dst, overwrite).");
+                Core.Utils.EngineSdk.Error($"os.execute blocked for security: '{command}'. Detected copy operation. Use sdk.copy_file(src, dst, overwrite) or sdk.copy_dir(src, dst, overwrite).");
                 return DynValue.NewNumber(1);
             }
 
             // Detect move/rename operations
             if (lower.StartsWith("move ") || lower.StartsWith("ren ") || lower.StartsWith("rename ") || lower.StartsWith("mv ")) {
-                Helpers.EngineSdk.Error($"os.execute blocked for security: '{command}'. Detected move/rename. Use sdk.rename_file(oldPath, newPath) or sdk.move_dir(src, dst, overwrite).");
+                Core.Utils.EngineSdk.Error($"os.execute blocked for security: '{command}'. Detected move/rename. Use sdk.rename_file(oldPath, newPath) or sdk.move_dir(src, dst, overwrite).");
                 return DynValue.NewNumber(1);
             }
 
             // Detect delete operations
             if (lower.StartsWith("del ") || lower.StartsWith("rm ") || lower.StartsWith("rmdir ") || lower.StartsWith("rd ")) {
-                Helpers.EngineSdk.Error($"os.execute blocked for security: '{command}'. Detected delete. Use sdk.remove_file(path) or sdk.remove_dir(path).");
+                Core.Utils.EngineSdk.Error($"os.execute blocked for security: '{command}'. Detected delete. Use sdk.remove_file(path) or sdk.remove_dir(path).");
                 return DynValue.NewNumber(1);
             }
 
             // Block all other commands
-            Helpers.EngineSdk.Error($"os.execute blocked for security: '{command}'. Use sdk.exec or sdk.run_process for approved external tools.");
+            Core.Utils.EngineSdk.Error($"os.execute blocked for security: '{command}'. Use sdk.exec or sdk.run_process for approved external tools.");
             return DynValue.NewNumber(1); // Error
         });
         lua.Globals["os"] = safeOs;
@@ -226,14 +237,14 @@ internal sealed class LuaScriptAction : Helpers.IAction {
             }
             return DynValue.Nil;
         });
-        safeIo["write"] = (System.Action<string>)((content) => Program.Direct.Console.Write(content));
-        safeIo["flush"] = () => Program.Direct.Console.Out.Flush();
+        safeIo["write"] = (System.Action<string>)((content) => System.Console.Write(content));
+        safeIo["flush"] = () => System.Console.Out.Flush();
         safeIo["read"] = (System.Func<string?, string?>)((mode) => {
             try {
                 if (mode == "*l" || mode == "*line") {
-                    return Program.Direct.Console.ReadLine();
+                    return System.Console.ReadLine();
                 }
-                return Program.Direct.Console.In.ReadToEnd();
+                return System.Console.In.ReadToEnd();
             } catch { return null; }
         });
         // SECURITY: io.popen removed - use sdk.exec/run_process instead
@@ -251,14 +262,14 @@ internal sealed class LuaScriptAction : Helpers.IAction {
         lua.Globals["argc"] = _args.Length;
 
         // EngineSdk wrappers
-        lua.Globals["warn"] = (System.Action<string>)Helpers.EngineSdk.Warn;
-        lua.Globals["error"] = (System.Action<string>)Helpers.EngineSdk.Error;
+        lua.Globals["warn"] = (System.Action<string>)Core.Utils.EngineSdk.Warn;
+        lua.Globals["error"] = (System.Action<string>)Core.Utils.EngineSdk.Error;
 
         // emit(event, data?) where data is an optional Lua table
         lua.Globals["emit"] = (System.Action<DynValue, DynValue>)((ev, data) => {
             string evName = ev.Type == DataType.String ? ev.String : ev.ToPrintString();
             IDictionary<string, object?>? dict = data.Type == DataType.Nil || data.Type == DataType.Void ? null : LuaModules.LuaUtilities.TableToDictionary(data.Table);
-            Helpers.EngineSdk.Emit(evName, dict);
+            Core.Utils.EngineSdk.Emit(evName, dict);
         });
 
         // prompt(message, id?, secret?) -> string
@@ -266,13 +277,13 @@ internal sealed class LuaScriptAction : Helpers.IAction {
             string msg = message.Type == DataType.String ? message.String : message.ToPrintString();
             string pid = id.Type == DataType.Nil || id.Type == DataType.Void ? "q1" : id.Type == DataType.String ? id.String : id.ToPrintString();
             bool sec = secret.Type == DataType.Boolean && secret.Boolean;
-            return Helpers.EngineSdk.Prompt(msg, pid, sec);
+            return Core.Utils.EngineSdk.Prompt(msg, pid, sec);
         });
 
-        // progress(total, id?, label?) -> Helpers.EngineSdk.Progress userdata
-        lua.Globals["progress"] = (System.Func<int, string?, string?, Helpers.EngineSdk.Progress>)((total, id, label) => {
+        // progress(total, id?, label?) -> Core.Utils.EngineSdk.Progress userdata
+        lua.Globals["progress"] = (System.Func<int, string?, string?, Core.Utils.EngineSdk.Progress>)((total, id, label) => {
             string pid = string.IsNullOrEmpty(id) ? "p1" : id!;
-            return new Helpers.EngineSdk.Progress(total, pid, label);
+            return new Core.Utils.EngineSdk.Progress(total, pid, label);
         });
     }
 }

@@ -1,3 +1,6 @@
+using System.Linq;
+using System.Collections.Generic;
+
 namespace EngineNet.Core.ScriptEngines;
 
 internal sealed class QuickBmsScriptAction : Helpers.IAction {
@@ -71,7 +74,7 @@ internal sealed class QuickBmsScriptAction : Helpers.IAction {
                 }
             } catch {
 #if DEBUG
-                Program.Direct.Console.WriteLine("Warning: Failed to parse Tools.local.json for QuickBMS info.");
+                System.Console.WriteLine("Warning: Failed to parse Tools.local.json for QuickBMS info.");
 #endif
 
             }

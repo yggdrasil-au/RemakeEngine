@@ -30,9 +30,9 @@ internal static class RemoteFallbacks {
 
                     byte[] bytes = resp.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
                     System.IO.File.WriteAllBytes(localPath, bytes);
-                    Program.Direct.Console.ForegroundColor = System.ConsoleColor.DarkYellow;
-                    Program.Direct.Console.WriteLine($"Fetched missing file from GitHub: {repoRelativePath} -> {localPath}");
-                    Program.Direct.Console.ResetColor();
+                    System.Console.ForegroundColor = System.ConsoleColor.DarkYellow;
+                    System.Console.WriteLine($"Fetched missing file from GitHub: {repoRelativePath} -> {localPath}");
+                    System.Console.ResetColor();
                     return true;
                 } catch { /* try next branch */ }
             }

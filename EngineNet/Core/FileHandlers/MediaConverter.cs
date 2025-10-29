@@ -1,4 +1,7 @@
-using EngineNet.Core.Util;
+
+using System.Linq;
+using System.Collections.Generic;
+
 
 namespace EngineNet.Core.FileHandlers;
 
@@ -36,7 +39,7 @@ internal static class MediaConverter {
     }
 
     // Tracks currently running external conversions (for progress panel)
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, ConsoleProgress.ActiveProcess> s_active = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, Core.Utils.EngineSdk.SdkConsoleProgress.ActiveProcess> s_active = new();
 
     /// <summary>
     /// Converts media files using ffmpeg or vgmstream while preserving directory layout.
@@ -105,10 +108,10 @@ internal static class MediaConverter {
 
             System.Threading.Tasks.ParallelOptions po = new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = opt.Workers ?? 1 };
             using System.Threading.CancellationTokenSource progressCts = new System.Threading.CancellationTokenSource();
-            System.Threading.Tasks.Task progressTask = ConsoleProgress.StartPanel(
+            System.Threading.Tasks.Task progressTask = Core.Utils.EngineSdk.SdkConsoleProgress.StartPanel(
                 total: allFiles.Count,
                 snapshot: () => (System.Threading.Volatile.Read(ref processed), System.Threading.Volatile.Read(ref success), System.Threading.Volatile.Read(ref skipped), System.Threading.Volatile.Read(ref errors)),
-                activeSnapshot: () => s_active.Values.ToList(),
+                activeSnapshot: () => s_active.Values.ToList(), // This now returns List<SdkConsoleProgress.ActiveProcess>
                 label: "Converting Files",
                 token: progressCts.Token);
             System.Threading.Tasks.Parallel.ForEach(allFiles, po, src => {
@@ -143,7 +146,7 @@ internal static class MediaConverter {
                         System.Threading.Interlocked.Increment(ref errors);
                         errorList.Add((System.IO.Path.GetFileName(src), msg ?? "unknown error"));
 #if DEBUG
-                        Program.Direct.Console.WriteLine($"Conversion failed for file {src}: {msg}");
+                        System.Console.WriteLine($"Conversion failed for file {src}: {msg}");
                         System.Environment.Exit(1);
 #endif
                     }
@@ -153,7 +156,7 @@ internal static class MediaConverter {
                     errorList.Add((System.IO.Path.GetFileName(src), ex.Message));
                     System.Threading.Interlocked.Increment(ref processed);
 #if DEBUG
-                    Program.Direct.Console.WriteLine($"Conversion error for file {src}: {ex.Message}");
+                    System.Console.WriteLine($"Conversion error for file {src}: {ex.Message}");
 #endif
                 }
             });
@@ -334,7 +337,9 @@ internal static class MediaConverter {
                 if (System.IO.File.Exists(destPath)) {
                     System.IO.File.Delete(destPath);
                 }
-            } catch { /* safe to ignore: best-effort temp file cleanup */ }
+            } catch {
+                /* safe to ignore: best-effort temp file cleanup */
+            }
             return (false, ex.Message);
         }
     }
@@ -342,12 +347,14 @@ internal static class MediaConverter {
     private static void RegisterActive(string tool, string srcPath) {
         try {
             int key = System.Threading.Thread.CurrentThread.ManagedThreadId;
-            s_active[key] = new ConsoleProgress.ActiveProcess {
+            s_active[key] = new Core.Utils.EngineSdk.SdkConsoleProgress.ActiveProcess {
                 Tool = tool,
                 File = System.IO.Path.GetFileName(srcPath),
                 StartedUtc = System.DateTime.UtcNow
             };
-        } catch { /* ignore */ }
+        } catch {
+            /* ignore */
+        }
     }
 
     private static void UnregisterActive() {
@@ -562,30 +569,21 @@ internal static class MediaConverter {
     // Todo use sdk events/logging
 
     private static void WriteInfo(string msg) {
-        /*Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine(msg);
-        Console.ResetColor();*/
+        EngineNet.Core.Utils.EngineSdk.Info(msg);
     }
 
     private static void WriteWarn(string msg) {
-        /*Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine(msg);
-        Console.ResetColor();*/
+        EngineNet.Core.Utils.EngineSdk.Warn(msg);
     }
 
     private static void WriteError(string msg) {
-        /*Console.ForegroundColor = ConsoleColor.Red;
-        Console.Error.WriteLine(msg);
-        Console.ResetColor();*/
+        EngineNet.Core.Utils.EngineSdk.Error(msg);
     }
 
     private static void WriteVerbose(bool enabled, string msg) {
         if (!enabled) {
             return;
         }
-
-        /*Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.WriteLine(msg);
-        Console.ResetColor();*/
+        EngineNet.Core.Utils.EngineSdk.Info(msg);
     }
 }

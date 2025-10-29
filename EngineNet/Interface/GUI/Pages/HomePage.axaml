@@ -1,0 +1,10 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Class="EngineNet.Interface.GUI.Pages.HomePage">
+    <StackPanel Spacing="8">
+        <TextBlock Text="Home" FontSize="20" FontWeight="Bold"/>
+        <TextBlock Text="{Binding Greeting}" />
+        <Button Content="Refresh Greeting" Command="{Binding RefreshCommand}"/>
+    </StackPanel>
+</UserControl>

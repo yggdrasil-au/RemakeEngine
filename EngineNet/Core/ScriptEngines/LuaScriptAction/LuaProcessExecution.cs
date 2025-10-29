@@ -1,5 +1,7 @@
 using MoonSharp.Interpreter;
 
+using System.Collections.Generic;
+
 namespace EngineNet.Core.ScriptEngines.LuaModules;
 
 /// <summary>
@@ -174,7 +176,7 @@ internal static class LuaProcessExecution {
         p.Exited += (_, __) => {
             try { mp.ExitTcs.TrySetResult(p.ExitCode); }  catch {
 #if DEBUG
-            Program.Direct.Console.WriteLine($"[LuaProcessExecution] Error setting exit code for process '{psi.FileName}'");
+            System.Console.WriteLine($"[LuaProcessExecution] Error setting exit code for process '{psi.FileName}'");
 #endif
         }
         };
@@ -275,12 +277,12 @@ internal static class LuaProcessExecution {
         if (!s_processes.TryRemove(pid, out var mp)) return DynValue.NewBoolean(false);
         try { if (!mp.Process.HasExited) mp.Process.Kill(true); }  catch {
 #if DEBUG
-            Program.Direct.Console.WriteLine($"Error .....'");
+            System.Console.WriteLine($"Error .....'");
 #endif
         }
         try { mp.Process.Dispose(); }  catch {
 #if DEBUG
-            Program.Direct.Console.WriteLine($"Error .....'");
+            System.Console.WriteLine($"Error .....'");
 #endif
         }
         return DynValue.NewBoolean(true);
@@ -379,7 +381,7 @@ internal static class LuaProcessExecution {
                         process.Kill(entireProcessTree: true);
                     }  catch {
 #if DEBUG
-            Program.Direct.Console.WriteLine($"[LuaProcessExecution] Error killing timed-out process '{fileName}'");
+            System.Console.WriteLine($"[LuaProcessExecution] Error killing timed-out process '{fileName}'");
 #endif
         }
                     throw new ScriptRuntimeException($"Process '{fileName}' timed out after {timeoutMs.Value} ms");
@@ -527,7 +529,7 @@ internal static class LuaProcessExecution {
     }
 
     public static DynValue ExecInCurrentTerminal(Script lua, List<string> parts, string cwd, IDictionary<string, object?> env) {
-        Sys.ProcessRunner runner = new Sys.ProcessRunner();
+        Utils.ProcessRunner runner = new Utils.ProcessRunner();
         int exit = -1;
         // Merge env overrides
         Dictionary<string, object?> envOverrides = new Dictionary<string, object?>(env, System.StringComparer.Ordinal);
@@ -542,7 +544,7 @@ internal static class LuaProcessExecution {
             onOutput: (line, stream) => {
                 // Map stderr to red for visibility
                 string? color = stream == "stderr" ? "red" : null;
-                Helpers.EngineSdk.Print(line, color, true);
+                Core.Utils.EngineSdk.Print(line, color, true);
             },
             onEvent: (evt) => {
                 if (evt.TryGetValue("event", out object? ev) && (ev?.ToString() ?? string.Empty) == "end") {

@@ -1,5 +1,16 @@
 using MoonSharp.Interpreter;
 
+
+using System;
+using System.IO;
+using System.Text.Json;
+using System.Threading.Tasks;
+using System.Linq;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Collections.Generic;
+using System.Collections;
+
 namespace EngineNet.Core.ScriptEngines.LuaModules;
 
 /// <summary>
@@ -72,7 +83,7 @@ internal static class LuaSdkModule {
                     newline = nl.Boolean;
                 }
             }
-            Helpers.EngineSdk.Print(message, color, newline);
+            Core.Utils.EngineSdk.Print(message, color, newline);
             return DynValue.Nil;
         });
         sdk["color_print"] = DynValue.NewCallback(colorPrintFunc);
@@ -304,7 +315,7 @@ internal static class LuaSdkModule {
                 System.Threading.Thread.Sleep(System.TimeSpan.FromSeconds(seconds));
             }  catch {
 #if DEBUG
-            Program.Direct.Console.WriteLine($"Error .....'");
+            System.Console.WriteLine($"Error .....'");
 #endif
         }
         });

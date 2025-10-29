@@ -1,3 +1,14 @@
+
+using System;
+using System.IO;
+using System.Text.Json;
+using System.Threading.Tasks;
+using System.Linq;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Collections.Generic;
+using System.Collections;
+
 namespace EngineNet.Core.ScriptEngines.LuaModules;
 
 /// <summary>
@@ -35,7 +46,7 @@ internal static class LuaSecurity {
         // Ask the user for permission to grant temporary access to this external path
         string root = DetermineApprovalRoot(path);
         string msg = $"Permission requested: Allow this script to access external path '\"{root}\"'?\nType 'y' to allow for this session, anything else to deny.";
-        string answer = Helpers.EngineSdk.Prompt(msg, "ext_path_access", false) ?? string.Empty;
+        string answer = Core.Utils.EngineSdk.Prompt(msg, "ext_path_access", false) ?? string.Empty;
         if (answer.Trim().Equals("y", System.StringComparison.OrdinalIgnoreCase) ||
             answer.Trim().Equals("yes", System.StringComparison.OrdinalIgnoreCase)) {
             try {
@@ -44,7 +55,7 @@ internal static class LuaSecurity {
             } catch { /* ignore */ }
             return true;
         }
-        Helpers.EngineSdk.Error($"Access denied: File path '{path}' is outside allowed workspace areas");
+        Core.Utils.EngineSdk.Error($"Access denied: File path '{path}' is outside allowed workspace areas");
         return false;
     }
     /// <summary>
@@ -117,7 +128,7 @@ internal static class LuaSecurity {
 
         if (blockedUtilities.TryGetValue(exeName, out string? suggestion) ||
             blockedUtilities.TryGetValue(fullName, out suggestion)) {
-            Helpers.EngineSdk.Error($"System utility '{executable}' is blocked for security. Use SDK alternative: {suggestion}");
+            Core.Utils.EngineSdk.Error($"System utility '{executable}' is blocked for security. Use SDK alternative: {suggestion}");
             return false;
         }
 
@@ -163,7 +174,7 @@ internal static class LuaSecurity {
                 currentDir,
 
                 // Common game/project directories
-                System.IO.Path.Combine(currentDir, "remakeregistry"),
+                System.IO.Path.Combine(currentDir, "EngineApps"),
                 System.IO.Path.Combine(currentDir, "gamefiles"),
                 System.IO.Path.Combine(currentDir, "tools"),
                 System.IO.Path.Combine(currentDir, "tmp"),

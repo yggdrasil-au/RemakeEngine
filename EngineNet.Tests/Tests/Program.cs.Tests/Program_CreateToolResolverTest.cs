@@ -31,8 +31,8 @@ public sealed partial class ProgramTests {
         string root = Path.Combine(_testRoot, "R1");
         Directory.CreateDirectory(root);
 
-        // Put both RemakeRegistry/tools.json and Tools.local.json
-        string rr = Path.Combine(root, "RemakeRegistry");
+        // Put both EngineApps/tools.json and Tools.local.json
+        string rr = Path.Combine(root, "EngineApps");
         Directory.CreateDirectory(rr);
 
         File.WriteAllText(Path.Combine(rr, "tools.json"), "{ }");
@@ -69,15 +69,15 @@ public sealed partial class ProgramTests {
     }
 
     /// <summary>
-    /// CreateToolResolver uses RemakeRegistry/Tools.json if no root-level local files exist.
+    /// CreateToolResolver uses EngineApps/Tools.json if no root-level local files exist.
     /// </summary>
     [Fact]
-    public void CreateToolResolver_Uses_RemakeRegistry_ToolsJson_When_NoLocal() {
+    public void CreateToolResolver_Uses_EngineApps_ToolsJson_When_NoLocal() {
         // ARRANGE
         string root = Path.Combine(_testRoot, "R3");
         Directory.CreateDirectory(root);
 
-        string rr = Path.Combine(root, "RemakeRegistry");
+        string rr = Path.Combine(root, "EngineApps");
         Directory.CreateDirectory(rr);
         File.WriteAllText(Path.Combine(rr, "Tools.json"), "{ }");
 
@@ -91,15 +91,15 @@ public sealed partial class ProgramTests {
     }
 
     /// <summary>
-    /// CreateToolResolver uses RemakeRegistry/tools.json if Tools.json is absent.
+    /// CreateToolResolver uses EngineApps/tools.json if Tools.json is absent.
     /// </summary>
     [Fact]
-    public void CreateToolResolver_FallsBack_To_RemakeRegistry_lowercase_tools() {
+    public void CreateToolResolver_FallsBack_To_EngineApps_lowercase_tools() {
         // ARRANGE
         string root = Path.Combine(_testRoot, "R4");
         Directory.CreateDirectory(root);
 
-        string rr = Path.Combine(root, "RemakeRegistry");
+        string rr = Path.Combine(root, "EngineApps");
         Directory.CreateDirectory(rr);
         File.WriteAllText(Path.Combine(rr, "tools.json"), "{ }");
 

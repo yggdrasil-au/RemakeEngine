@@ -1,4 +1,6 @@
-using static EngineNet.Program.Direct;
+
+using System.Linq;
+using System.Collections.Generic;
 
 namespace EngineNet.Core.ScriptEngines.Helpers;
 
@@ -8,12 +10,12 @@ namespace EngineNet.Core.ScriptEngines.Helpers;
 internal static class ConfigHelpers {
     private static void Emit(string message, bool newline = true, string? color = null) {
         try {
-            Helpers.EngineSdk.Print(message ?? string.Empty, color, newline);
+            Core.Utils.EngineSdk.Print(message ?? string.Empty, color, newline);
         } catch {
             if (newline) {
-                Program.Direct.Console.WriteLine(message);
+                System.Console.WriteLine(message);
             } else {
-                Program.Direct.Console.Write(message);
+                System.Console.Write(message);
             }
         }
     }
@@ -72,7 +74,7 @@ internal static class ConfigHelpers {
     /// <summary>
     /// Recursively copy a directory to destination. Creates destination if needed.
     /// If <paramref name="overwrite"/> is false and destination exists, throws.
-    /// Emits progress updates to the engine Program.Direct.Console.
+    /// Emits progress updates to the engine System.Console.
     /// </summary>
     public static void CopyDirectory(string sourceDir, string destDir, bool overwrite = false) {
         if (string.IsNullOrWhiteSpace(sourceDir)) {
@@ -208,7 +210,7 @@ internal static class ConfigHelpers {
             }
         } catch {
 #if DEBUG
-            Program.Direct.Console.WriteLine($"Error .....'");
+            System.Console.WriteLine($"Error .....'");
 #endif
         }
         return null;

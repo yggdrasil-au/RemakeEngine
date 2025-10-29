@@ -40,7 +40,7 @@ dotnet run -c Release --project EngineNet --framework net9.0 -- --gui
 dotnet run -c Release --project EngineNet --framework net9.0 -- --tui
 
 # CLI example, great for direct operation invocations
-dotnet run -c Release --project EngineNet --framework net9.0 -- --game_module "RemakeRegistry/Games/demo" --script_type engine --script rename-folders
+dotnet run -c Release --project EngineNet --framework net9.0 -- --game_module "EngineApps/Games/demo" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua"
 ```
 
 ## Continuous Integration & Releases
@@ -62,8 +62,8 @@ Run `dotnet build RemakeEngine.sln` and `dotnet test RemakeEngine.sln --nologo` 
 - **Developer CLI:** Direct command invocation for bespoke automation or module authoring. Arguments map to the same structures used by `operations.(json|toml)`.
 
 ## Configuration and Modules
-- `RemakeRegistry/Games/<GameName>/operations.(json|toml)` define operations for a game/module. Groups inside these files control execution ordering.
-- `RemakeRegistry/Games/<GameName>/config.toml` can supply placeholder values consumed by scripts and built-in actions.
+- `EngineApps/Games/<GameName>/operations.(json|toml)` define operations for a game/module. Groups inside these files control execution ordering.
+- `EngineApps/Games/<GameName>/config.toml` can supply placeholder values consumed by scripts and built-in actions.
 - `project.json` (auto-created on first run if missing) stores per-user settings such as project paths and tool overrides.
 - `Tools/` contains shared binaries or helper scripts. Module manifests declare dependencies that the engine can download via `ToolsDownloader`.
 
@@ -74,7 +74,7 @@ Manifest placeholders follow `{{PlaceholderName}}` syntax and are resolved with 
 RemakeEngine/
     EngineNet/                        # C# core engine and CLI entry point
     EngineNet.Tests/                  # Tests
-    RemakeRegistry/                   # Game/module definitions and assets
+    EngineApps/                   # Game/module definitions and assets
     Tools/                            # any tool downloaded by the engine
     project.json                      # Created on demand; local machine configuration
     RemakeEngine.sln                  # Solution file for builds and tests

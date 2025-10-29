@@ -1,0 +1,28 @@
+{
+	"modules": {
+		"demo": {
+			"id": "480",
+			"path": "EngineApps/Games/demo"
+		},
+		"TheSimpsonsGame-PS3": {
+			"id": "1",
+			"path": "EngineApps/Games/TheSimpsonsGame-PS3",
+			"url": "https://github.com/Superposition28/TheSimpsonsGame-PS3.git"
+		},
+		"TheSimpsonsGame-PS2": {
+			"id": "2",
+			"path": "EngineApps/Games/TheSimpsonsGame-PS2",
+			"url": "https://github.com/Superposition28/TheSimpsonsGame-PS2.git"
+		},
+		"SimpsonsHitandRun": {
+			"id": "3",
+			"path": "EngineApps/Games/SimpsonsHitAndRun",
+			"url": "https://github.com/Superposition28/SimpsonsHitAndRun.git"
+		},
+		"TheSimpsonsRoadRage-PS2": {
+			"id": "4",
+			"path": "EngineApps/Games/TheSimpsonsRoadRage-PS2",
+			"url": "https://github.com/Superposition28/TheSimpsonsRoadRage-PS2.git"
+		}
+	}
+}

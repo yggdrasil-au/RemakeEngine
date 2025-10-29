@@ -2,6 +2,9 @@
 using Jint;
 using Jint.Native;
 
+using System.IO;
+using System.Collections.Generic;
+
 namespace EngineNet.Core.ScriptEngines;
 /// <summary>
 /// Executes a JavaScript file using the embedded Jint interpreter.
@@ -15,7 +18,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
     /// Creates a new action that runs the specified JavaScript file with no arguments.
     /// </summary>
     /// <param name="scriptPath">Absolute or relative path to the JavaScript file to execute.</param>
-    public JsScriptAction(string scriptPath) : this(scriptPath, System.Array.Empty<string>()) { }
+    //public JsScriptAction(string scriptPath) : this(scriptPath, System.Array.Empty<string>()) { }
 
     /// <summary>
     /// Creates a new action that runs the specified JavaScript file with arguments.
@@ -43,8 +46,8 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
         RegisterGlobals(engine, tools);
         PreloadShimModules(engine, _scriptPath);
 #if DEBUG
-        Program.Direct.Console.WriteLine($"Running js script '{_scriptPath}' with {_args.Length} args...");
-        Program.Direct.Console.WriteLine($"input args: {string.Join(", ", _args)}");
+        System.Console.WriteLine($"Running js script '{_scriptPath}' with {_args.Length} args...");
+        System.Console.WriteLine($"input args: {string.Join(", ", _args)}");
 #endif
         await System.Threading.Tasks.Task.Run(() => engine.Execute(code), cancellationToken);
     }
@@ -65,22 +68,22 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
                 payload = JsInterop.ToDictionary(engine, data);
             }
 
-            Helpers.EngineSdk.Emit(eventName, payload);
+            Core.Utils.EngineSdk.Emit(eventName, payload);
         }));
-        engine.SetValue("warn", new System.Action<string>(Helpers.EngineSdk.Warn));
-        engine.SetValue("error", new System.Action<string>(Helpers.EngineSdk.Error));
+        engine.SetValue("warn", new System.Action<string>(Core.Utils.EngineSdk.Warn));
+        engine.SetValue("error", new System.Action<string>(Core.Utils.EngineSdk.Error));
         engine.SetValue("prompt", new System.Func<JsValue, JsValue, JsValue, string>((message, id, secret) => {
             string msg = message.IsString() ? message.AsString() : message.ToString();
             string promptId = id.IsNull() || id.IsUndefined() ? "q1" : id.IsString() ? id.AsString() : id.ToString();
             bool hide = secret.IsBoolean() && secret.AsBoolean();
-            return Helpers.EngineSdk.Prompt(msg, promptId, hide);
+            return Core.Utils.EngineSdk.Prompt(msg, promptId, hide);
         }));
-        engine.SetValue("progress", new System.Func<JsValue, JsValue, JsValue, Helpers.EngineSdk.Progress>((total, id, label) => {
+        engine.SetValue("progress", new System.Func<JsValue, JsValue, JsValue, Core.Utils.EngineSdk.Progress>((total, id, label) => {
             double totalNumber = JsInterop.ToNumber(total, 1);
             int totalSteps = (int)System.Math.Max(1, System.Math.Round(totalNumber));
             string progressId = id.IsNull() || id.IsUndefined() ? "p1" : id.IsString() ? id.AsString() : id.ToString();
             string? labelText = label.IsNull() || label.IsUndefined() ? null : label.IsString() ? label.AsString() : label.ToString();
-            return new Helpers.EngineSdk.Progress(totalSteps, progressId, labelText);
+            return new Core.Utils.EngineSdk.Progress(totalSteps, progressId, labelText);
         }));
         engine.SetValue("sdk", new SdkModule(engine));
         engine.SetValue("sqlite", new SqliteModule(engine));
@@ -152,7 +155,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
                     newline = newlineValue.AsBoolean();
                 }
             }
-            Helpers.EngineSdk.Print(message, color, newline);
+            Core.Utils.EngineSdk.Print(message, color, newline);
             return JsValue.Undefined;
         }
 
@@ -268,7 +271,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
                 System.Threading.Thread.Sleep(System.TimeSpan.FromSeconds(seconds));
             } catch {
 #if DEBUG
-                Program.Direct.Console.WriteLine($"[JsScriptAction.cs] sleep interrupted");
+                System.Console.WriteLine($"[JsScriptAction.cs] sleep interrupted");
 #endif
                 // ignore
             }
@@ -373,7 +376,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
                             process.Kill(entireProcessTree: true);
                         } catch {
 #if DEBUG
-                            Program.Direct.Console.WriteLine($"[JsScriptAction.cs] Failed to kill timed-out process '{fileName}'");
+                            System.Console.WriteLine($"[JsScriptAction.cs] Failed to kill timed-out process '{fileName}'");
 #endif
                             // ignore
                         }
@@ -818,7 +821,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
                 return new Jint.Runtime.JavaScriptException(errorInstance);
             } catch {
 #if DEBUG
-                Program.Direct.Console.WriteLine($"[JsScriptAction.cs] Failed to create JS exception of type '{constructorName}', falling back to generic Error");
+                System.Console.WriteLine($"[JsScriptAction.cs] Failed to create JS exception of type '{constructorName}', falling back to generic Error");
 #endif
                 // ignore
             }

@@ -18,7 +18,7 @@ see [Style.md](Style.md)
 - **Interactive CLI:** Menu-driven experience with prompt collection and live output.
 - **Developer CLI:** Direct command invocation for fine-grained control, e.g.
   ```pwsh
-  dotnet run --project EngineNet -- --game_module "RemakeRegistry/Games/demo" --script_type engine --script rename-folders
+  dotnet run --project EngineNet -- --game_module "EngineApps/Games/demo" --script_type engine --script rename-folders
   ```
   The developer CLI is evolving; expect argument shapes to change as new capabilities land.
 
@@ -58,7 +58,7 @@ If you are planning a release, coordinate the tag with maintainers so secrets (S
 2. **Work on a feature branch:** Use `feature/<short-name>`, `fix/<short-name>`, or `chore/<short-name>` naming and follow Conventional Commits (`feat:`, `fix:`, `docs:`, etc.).
 3. **Update tests and docs:**
    - Add or adjust tests under `EngineNet.Tests/` when behaviour changes.
-   - Update affected module data under `RemakeRegistry/` and public docs in `RemakeEngineDocs/`.
+   - Update affected module data under `EngineApps/` and public docs in `RemakeEngineDocs/`.
    - Keep the relevant spec in `EngineNet/specs/` accurate.
 4. **Submit a pull request:** Explain the intent, link to the driving module or issue, and include reproduction steps if fixing a bug. Ensure CI (build + tests + SonarCloud) is green.
 

@@ -1,3 +1,9 @@
+
+using System;
+using System.Linq;
+using System.Collections.Generic;
+using EngineNet.Core.ScriptEngines.Helpers;
+
 namespace EngineNet.Core.FileHandlers;
 
 /// <summary>
@@ -459,7 +465,7 @@ internal static class DirectoryFlattener {
             dst.Attributes = src.Attributes;
         } catch {
             #if DEBUG
-            Program.Direct.Console.WriteLine($"Failed to copy metadata from '{sourceFile}' to '{destinationFile}'.");
+            System.Console.WriteLine($"Failed to copy metadata from '{sourceFile}' to '{destinationFile}'.");
             #endif
             // Non-fatal: ignore metadata copy failures.
         }
@@ -533,12 +539,41 @@ internal static class DirectoryFlattener {
         return sb.ToString();
     }
 
-    private static void WriteBanner(string message) => Write(System.ConsoleColor.Yellow, message);
-    private static void WriteInfo(string message) => Write(System.ConsoleColor.Cyan, message);
-    private static void WriteWarn(string message) => Write(System.ConsoleColor.Yellow, message);
-    private static void WriteSuccess(string message) => Write(System.ConsoleColor.Green, message);
-    private static void WriteError(string message) => Write(System.ConsoleColor.Red, message, isError: true);
-    private static void WriteSeparator() => Write(System.ConsoleColor.Gray, new string('-', 50));
+    private static void WriteBanner(string message) {
+        lock (ConsoleLock) {
+            Utils.EngineSdk.PrintLine(message, System.ConsoleColor.Yellow);
+        }
+    }
+
+    private static void WriteInfo(string message) {
+        lock (ConsoleLock) {
+            Utils.EngineSdk.Info(message);
+        }
+    }
+
+    private static void WriteWarn(string message) {
+        lock (ConsoleLock) {
+            Utils.EngineSdk.Warn(message);
+        }
+    }
+
+    private static void WriteSuccess(string message) {
+        lock (ConsoleLock) {
+            Utils.EngineSdk.Success(message);
+        }
+    }
+
+    private static void WriteError(string message) {
+        lock (ConsoleLock) {
+            Utils.EngineSdk.Error(message);
+        }
+    }
+
+    private static void WriteSeparator() {
+        lock (ConsoleLock) {
+            Utils.EngineSdk.PrintLine(new string('-', 50), System.ConsoleColor.Gray);
+        }
+    }
 
     private static void WriteVerbose(Options options, string message) {
         if (options.Verbose) {
@@ -546,23 +581,10 @@ internal static class DirectoryFlattener {
         }
     }
 
-    private static void WriteDetail(System.ConsoleColor colour, string message) => Write(colour, message);
-
-    private static void Write(System.ConsoleColor colour, string message, bool isError = false) {
+    private static void WriteDetail(System.ConsoleColor colour, string message) {
         lock (ConsoleLock) {
-            // todo implement SDK events
-            /*ConsoleColor previous = Console.ForegroundColor;
-            Console.ForegroundColor = colour;
-            if (isError) {
-                Console.Error.WriteLine(Format(message));
-            } else {
-                Console.WriteLine(Format(message));
-            }
-
-            Console.ForegroundColor = previous;*/
+            Utils.EngineSdk.PrintLine(message, colour);
         }
     }
-
-    private static string Format(string message) => $"[Flatten] {message}";
 }
 

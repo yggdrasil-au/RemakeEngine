@@ -1,4 +1,17 @@
+
 using System;
+using System.IO;
+using System.IO.Compression;
+using System.Text.Json;
+using System.Threading.Tasks;
+using System.Linq;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Collections.Generic;
+using System.Collections;
+using SharpCompress.Archives;
+using SharpCompress.Archives.SevenZip;
+using SharpCompress.Common;
 
 namespace EngineNet.Tools;
 
@@ -23,11 +36,11 @@ internal sealed class ToolsDownloader {
                 System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(_centralRepoJsonPath)) ?? _rootPath);
             }  catch {
 #if DEBUG
-            Program.Direct.Console.WriteLine($"[ToolsDownloader] Could not create directory for central tools registry: {_centralRepoJsonPath}");
+            System.Console.WriteLine($"[ToolsDownloader] Could not create directory for central tools registry: {_centralRepoJsonPath}");
 #endif
         }
 
-            RemoteFallbacks.EnsureRepoFile("RemakeRegistry/Tools.json", _centralRepoJsonPath);
+            RemoteFallbacks.EnsureRepoFile("EngineApps/Tools.json", _centralRepoJsonPath);
         }
         if (!System.IO.File.Exists(_centralRepoJsonPath)) {
             throw new System.IO.FileNotFoundException("Central tools registry not found", _centralRepoJsonPath);
@@ -63,7 +76,7 @@ internal sealed class ToolsDownloader {
 
             Info("");
             Title($"Processing: {toolName} {version}");
-            if (!TryLookupPlatform(central, toolName!, version!, platform, out string? url, out string? sha256)) {
+            if (!TryLookupPlatform(central, toolName!, version!, platform, out string? url, out string? sha256, out System.Text.Json.JsonElement platformData)) {
                 Error($"Not in registry for platform '{platform}'.");
                 continue;
             }
@@ -108,14 +121,16 @@ internal sealed class ToolsDownloader {
                 string dest = System.IO.Path.GetFullPath(System.IO.Path.Combine(_rootPath, unpackDest!));
                 System.IO.Directory.CreateDirectory(dest);
                 Info($"Unpacking to: {dest}");
-                if (archivePath.EndsWith(".zip", System.StringComparison.OrdinalIgnoreCase)) {
-                    System.IO.Compression.ZipFile.ExtractToDirectory(archivePath, dest, overwriteFiles: true);
-                } else {
-                    Warn("Archive format not supported for auto-unpack (only .zip). Leaving archive as-is.");
+                try {
+                    ExtractArchive(archivePath, dest);
+                } catch (NotSupportedException nse) {
+                    Warn($"{nse.Message} Leaving archive as-is.");
+                } catch (Exception ex) {
+                    Error($"Failed to unpack '{archivePath}': {ex.Message}");
                 }
 
                 // Try to find an exe in dest (best-effort)
-                exePath = FindExe(dest, toolName!);
+                exePath = FindExe(dest, toolName!, platformData);
                 if (!string.IsNullOrWhiteSpace(exePath)) {
                     Info($"Detected executable: {exePath}");
                 } else {
@@ -155,7 +170,7 @@ internal sealed class ToolsDownloader {
             }
         }
         DrawProgress(totalRead, contentLength);
-        Program.Direct.Console.WriteLine();
+        System.Console.WriteLine();
     }
 
     private static void DrawProgress(long read, long total) {
@@ -164,9 +179,9 @@ internal sealed class ToolsDownloader {
             int barLen = 30;
             int filled = (int)(barLen * pct / 100.0);
             string bar = new string('█', filled) + new string('-', barLen - filled);
-            Program.Direct.Console.Write($"\r[{bar}] {pct,3}%  {Bytes(read)}/{Bytes(total)}   ");
+            System.Console.Write($"\r[{bar}] {pct,3}%  {Bytes(read)}/{Bytes(total)}   ");
         } else {
-            Program.Direct.Console.Write($"\r{Bytes(read)} downloaded   ");
+            System.Console.Write($"\r{Bytes(read)} downloaded   ");
         }
     }
 
@@ -176,33 +191,33 @@ internal sealed class ToolsDownloader {
 
     // TODO use sdk Print
     private static void WriteHeader(string msg) {
-        Program.Direct.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
-        Program.Direct.Console.WriteLine($"\n=== {msg} ===");
-        Program.Direct.Console.ResetColor();
+        System.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
+        System.Console.WriteLine($"\n=== {msg} ===");
+        System.Console.ResetColor();
     }
     private static void Title(string msg) {
-        Program.Direct.Console.ForegroundColor = System.ConsoleColor.Cyan;
-        Program.Direct.Console.WriteLine(msg);
-        Program.Direct.Console.ResetColor();
+        System.Console.ForegroundColor = System.ConsoleColor.Cyan;
+        System.Console.WriteLine(msg);
+        System.Console.ResetColor();
     }
     private static void Info(string msg) {
         if (string.IsNullOrEmpty(msg)) {
             return;
         }
 
-        Program.Direct.Console.ForegroundColor = System.ConsoleColor.Gray;
-        Program.Direct.Console.WriteLine(msg);
-        Program.Direct.Console.ResetColor();
+        System.Console.ForegroundColor = System.ConsoleColor.Gray;
+        System.Console.WriteLine(msg);
+        System.Console.ResetColor();
     }
     private static void Warn(string msg) {
-        Program.Direct.Console.ForegroundColor = System.ConsoleColor.Yellow;
-        Program.Direct.Console.WriteLine($"WARN: {msg}");
-        Program.Direct.Console.ResetColor();
+        System.Console.ForegroundColor = System.ConsoleColor.Yellow;
+        System.Console.WriteLine($"WARN: {msg}");
+        System.Console.ResetColor();
     }
     private static void Error(string msg) {
-        Program.Direct.Console.ForegroundColor = System.ConsoleColor.Red;
-        Program.Direct.Console.WriteLine($"1 ERROR: {msg}");
-        Program.Direct.Console.ResetColor();
+        System.Console.ForegroundColor = System.ConsoleColor.Red;
+        System.Console.WriteLine($"1 ERROR: {msg}");
+        System.Console.ResetColor();
     }
 
     private static string GetPlatformIdentifier() {
@@ -227,9 +242,11 @@ internal sealed class ToolsDownloader {
         string version,
         string platform,
         out string url,
-        out string sha256) {
+        out string sha256,
+        out System.Text.Json.JsonElement platformData) {
         url = string.Empty;
         sha256 = string.Empty;
+        platformData = default;
         if (!central.TryGetValue(tool, out object? toolObj) || toolObj is not System.Text.Json.JsonElement toolElem || toolElem.ValueKind != System.Text.Json.JsonValueKind.Object) {
             return false;
         }
@@ -245,7 +262,11 @@ internal sealed class ToolsDownloader {
             if (platElem.TryGetProperty("sha256", out System.Text.Json.JsonElement s) && s.ValueKind == System.Text.Json.JsonValueKind.String) {
                 sha256 = s.GetString() ?? string.Empty;
             }
-            return !string.IsNullOrEmpty(url);
+            if (!string.IsNullOrEmpty(url)) {
+                platformData = platElem;
+                return true;
+            }
+            return false;
         }
         foreach (System.Text.Json.JsonProperty prop in verElem.EnumerateObject()) {
             if (!prop.Name.StartsWith(platform, System.StringComparison.OrdinalIgnoreCase)) {
@@ -262,6 +283,7 @@ internal sealed class ToolsDownloader {
                 sha256 = s2.GetString() ?? string.Empty;
             }
             if (!string.IsNullOrEmpty(url)) {
+                platformData = val;
                 return true;
             }
         }
@@ -279,7 +301,57 @@ internal sealed class ToolsDownloader {
         return string.Equals(got, expected, System.StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string? FindExe(string root, string toolName) {
+    private static void ExtractArchive(string archivePath, string destination) {
+        string ext = System.IO.Path.GetExtension(archivePath).ToLowerInvariant();
+
+        if (ext == ".zip") {
+            ZipFile.ExtractToDirectory(archivePath, destination, overwriteFiles: true);
+            return;
+        }
+
+        if (ext == ".7z") {
+            using var archive = SevenZipArchive.Open(archivePath);
+            // Extract with full paths and overwrite if present
+            var opts = new ExtractionOptions
+            {
+                ExtractFullPath = true,
+                Overwrite = true
+            };
+            archive.WriteToDirectory(destination, opts);
+            return;
+        }
+
+        // Add more formats later if desired (e.g., .tar, .tar.gz via SharpCompress)
+        throw new NotSupportedException($"Archive format not supported for auto-unpack: {ext}");
+    }
+
+    private static string? FindExe(string root, string toolName, System.Text.Json.JsonElement platformData) {
+        // First, check if exe_name is specified in the platform data
+        if (platformData.ValueKind == System.Text.Json.JsonValueKind.Object &&
+            platformData.TryGetProperty("exe_name", out System.Text.Json.JsonElement exeNameElem) &&
+            exeNameElem.ValueKind == System.Text.Json.JsonValueKind.String) {
+            
+            string? exeName = exeNameElem.GetString();
+            if (!string.IsNullOrWhiteSpace(exeName)) {
+                string exePath = System.IO.Path.Combine(root, exeName);
+                if (System.IO.File.Exists(exePath)) {
+                    return exePath;
+                }
+                
+                // Also try searching recursively if not found at root
+                try {
+                    foreach (string file in System.IO.Directory.EnumerateFiles(root, exeName, System.IO.SearchOption.AllDirectories)) {
+                        return file;
+                    }
+                } catch {
+#if DEBUG
+                    System.Console.WriteLine($"[ToolsDownloader] Could not search for exe in: {root}");
+#endif
+                }
+            }
+        }
+
+        // Fall back to the original logic: search for exe containing tool name
         try {
             foreach (string file in System.IO.Directory.EnumerateFiles(root, "*.exe", System.IO.SearchOption.AllDirectories)) {
                 string name = System.IO.Path.GetFileName(file).ToLowerInvariant();
@@ -289,7 +361,7 @@ internal sealed class ToolsDownloader {
             }
         } catch {
 #if DEBUG
-            Program.Direct.Console.WriteLine($"[ToolsDownloader] Could not search for exe in: {root}");
+            System.Console.WriteLine($"[ToolsDownloader] Could not search for exe in: {root}");
 #endif
             // ignore
         }

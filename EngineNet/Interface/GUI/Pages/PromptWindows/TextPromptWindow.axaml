@@ -1,0 +1,21 @@
+<Window
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Class="EngineNet.Interface.GUI.Pages.PromptWindows.TextPromptWindow"
+    Width="440" Height="200"
+    WindowStartupLocation="CenterOwner"
+    CanResize="False">
+    <DockPanel Margin="12">
+        <StackPanel DockPanel.Dock="Top" Spacing="8">
+            <TextBlock x:Name="PromptMessage" TextWrapping="Wrap"/>
+            <!-- Single TextBox; code-behind toggles masking via PasswordChar -->
+            <TextBox x:Name="Input"/>
+        </StackPanel>
+
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Content="Cancel" Width="90" Click="OnCancel"/>
+            <Button Content="OK" Width="90" Click="OnOk"/>
+        </StackPanel>
+    </DockPanel>
+</Window>
+

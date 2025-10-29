@@ -13,6 +13,7 @@
 		<!-- Script runtimes -->
 		<PackageReference Include="MoonSharp" Version="2.0.0" />
 		<PackageReference Include="Jint" Version="4.4.1" />
+		<PackageReference Include="SharpCompress" Version="0.41.0" />
 
 		<!-- TOML -->
 		<PackageReference Include="Tomlyn" Version="0.19.0" />

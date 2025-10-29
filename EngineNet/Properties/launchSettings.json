@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "EngineNet-TUI": {
+      "commandName": "Project",
+      "commandLineArgs": "--tui"
+    },
+    "EngineNet-GUI": {
+      "commandName": "Project"
+    }
+  }
+}

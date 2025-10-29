@@ -1,3 +1,6 @@
+using System.Linq;
+using Avalonia;
+
 namespace EngineNet;
 
 public static class Program {
@@ -21,13 +24,23 @@ public static class Program {
             if (!System.IO.File.Exists(configPath)) {
                 try {
                     System.IO.Directory.CreateDirectory(root);
-                    string minimal = "{\n  \"RemakeEngine\": {\n    \"Config\": { \"project_path\": \"" + root.Replace("\\", "\\\\") + "\" },\n    \"Directories\": {},\n    \"Tools\": {}\n  }\n}";
+
+                    string minimal = $$"""
+                    {
+                        "RemakeEngine": {
+                            "Config": {
+                                "project_path": "{{ root.Replace("\\", "\\\\") }}"
+                            }
+                        }
+                    }
+                    """;
+
                     await System.IO.File.WriteAllTextAsync(configPath, minimal);
-                    Direct.Console.ForegroundColor = System.ConsoleColor.DarkYellow;
-                    Program.Direct.Console.WriteLine($"Created default project.json at {configPath}");
-                    Direct.Console.ResetColor();
+                    System.Console.ForegroundColor = System.ConsoleColor.DarkYellow;
+                    System.Console.WriteLine($"Created default project.json at {configPath}");
+                    System.Console.ResetColor();
                 } catch (System.Exception ex) {
-                    Program.Direct.Console.WriteLine($"WARN: Could not create project.json - {ex.Message}");
+                    System.Console.WriteLine($"WARN: Could not create project.json - {ex.Message}");
                 }
             }
 
@@ -44,11 +57,19 @@ public static class Program {
                 return Interface.GUI.AvaloniaGui.Run(engine);
             }
 
+            // Interface selection:
+            // - TUI if ONLY arg is --tui
+            // - Otherwise CLI (CLI handles additional args itself)
+            bool onlyTuiFlag = args.Length == 1 && string.Equals(args[0], "--tui", System.StringComparison.OrdinalIgnoreCase);
+            if (onlyTuiFlag) {
+                return await new Interface.Terminal.TUI(engine).RunInteractiveMenuAsync();
+            }
+
             // if not gui run CLIApp with all args, it then uses CLI or TUI as needed
-            return await new Interface.CommandLine.App(engine).Run(args);
+            return await new Interface.Terminal.CLI(engine).Run(args);
         } catch (System.Exception ex) {
             // Print full exception (message + stack trace) to help diagnose runtime errors
-            Program.Direct.Console.WriteLine($"Engine Error: {ex}");
+            System.Console.WriteLine($"Engine Error: {ex}");
             return 1;
         }
     }
@@ -67,7 +88,7 @@ public static class Program {
         return null;
     }
 
-    // Walk upwards from a starting directory to find a folder containing RemakeRegistry/Games, this is the project root
+    // Walk upwards from a starting directory to find a folder containing EngineApps/Games, this is the project root
     private static string? TryFindProjectRoot(string? startDir) {
         try {
             string? dir;
@@ -77,7 +98,7 @@ public static class Program {
                 dir = System.IO.Path.GetFullPath(startDir!);
             }
             while (!string.IsNullOrEmpty(dir)) {
-                string reg = System.IO.Path.Combine(dir!, "RemakeRegistry");
+                string reg = System.IO.Path.Combine(dir!, "EngineApps");
                 string games = System.IO.Path.Combine(reg, "Games");
                 if (System.IO.Directory.Exists(games)) {
                     return dir!;
@@ -91,7 +112,7 @@ public static class Program {
                 dir = parent.FullName;
             }
         } catch (System.Exception e) {
-            Program.Direct.Console.WriteLine($"Error finding project root: {e.Message}");
+            System.Console.WriteLine($"Error finding project root: {e.Message}");
         }
         return null;
     }
@@ -99,62 +120,14 @@ public static class Program {
     // Create a tool resolver based on available config files
     private static Tools.IToolResolver CreateToolResolver(string root) {
         // Prefer Tools.local.json if present, then Tools.json
-        string RemakeRegistryDir = System.IO.Path.Combine(root, "RemakeRegistry");
+        string EngineAppsDir = System.IO.Path.Combine(root, "EngineApps");
         string[] candidates = new[] {
             System.IO.Path.Combine(root, "Tools.local.json"), System.IO.Path.Combine(root, "tools.local.json"),
-            System.IO.Path.Combine(RemakeRegistryDir, "Tools.json"), System.IO.Path.Combine(RemakeRegistryDir, "tools.json"),
+            System.IO.Path.Combine(EngineAppsDir, "Tools.json"), System.IO.Path.Combine(EngineAppsDir, "tools.json"),
         };
         string? found = candidates.FirstOrDefault(System.IO.File.Exists);
         return !string.IsNullOrEmpty(found) ? new Tools.JsonToolResolver(found) : new Tools.PassthroughToolResolver();
     }
-
-    internal static class Direct {
-        internal static class Console {
-            internal static global::System.ConsoleColor ForegroundColor {
-                get => global::System.Console.ForegroundColor;
-                set => global::System.Console.ForegroundColor = value;
-            }
-
-            // Clear
-            internal static void Clear() =>
-                global::System.Console.Clear();
-            internal static string? ReadLine() =>
-                global::System.Console.ReadLine();
-
-            internal static void WriteLine(string message = "") {
-                global::System.Console.WriteLine(message);
-            }
-            internal static void Write(char message) =>
-                global::System.Console.Write(message);
-
-            internal static void Write(string message) =>
-                global::System.Console.Write(message);
-
-            internal static void ResetColor() =>
-                global::System.Console.ResetColor();
-
-            internal static global::System.IO.TextReader In => global::System.Console.In;
-            internal static global::System.IO.TextWriter Out => global::System.Console.Out;
-
-            internal static void SetCursorPosition(int left, int top) =>
-                global::System.Console.SetCursorPosition(left, top);
-
-            internal static void SetIn(global::System.IO.TextReader reader) =>
-                global::System.Console.SetIn(reader);
-
-
-            internal static int WindowWidth {
-                get => global::System.Console.WindowWidth;
-            }
-
-            internal static int CursorTop {
-                get => global::System.Console.CursorTop;
-                set => global::System.Console.CursorTop = value;
-            }
-
-        }
-    }
-
 
     /* :: :: Methods :: END :: */
     // //

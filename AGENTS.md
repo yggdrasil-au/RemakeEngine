@@ -23,8 +23,8 @@ sub modules are created manually, as the modules should usually be downloaded by
 
 This is the main game module used to develop the engine, it is also a real project for creating a remake of The Simpsons Game 2007 from PS3.
 ```
-[submodule "RemakeRegistry/Games/TheSimpsonsGame-PS3"]
-    path = RemakeRegistry/Games/TheSimpsonsGame-PS3
+[submodule "EngineApps/Games/TheSimpsonsGame-PS3"]
+    path = EngineApps/Games/TheSimpsonsGame-PS3
     url = https://github.com/Superposition28/TheSimpsonsGame-PS3.git
 ```
 This is the documentation repository for the Remake Engine.
