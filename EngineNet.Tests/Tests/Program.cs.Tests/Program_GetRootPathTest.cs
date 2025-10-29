@@ -4,11 +4,7 @@ namespace EngineNet.Tests;
 /// <summary>
 /// Reflection-based tests for internal helpers on EngineNet.Program.
 /// </summary>
-public sealed class Program_GetRootPathTest {
-
-    // We create a temporary test root folder for filesystem-based tests
-    // and clean it up in Dispose().
-    private readonly string _testRoot;
+public sealed partial class ProgramTests {
 
     // =============================================================================
     // GetRootPath tests
