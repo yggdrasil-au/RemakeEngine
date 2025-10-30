@@ -1,5 +1,4 @@
 
-using DynamicData;
 using EngineNet.Core.Utils;
 using System;
 using System.Collections.Generic;
@@ -11,9 +10,8 @@ namespace EngineNet.Core;
 
 internal sealed record RunAllResult(string Game, bool Success, int TotalOperations, int SucceededOperations);
 
-internal sealed partial class Engine {
+internal sealed class Engine {
     private readonly string _rootPath;
-
     private readonly Tools.IToolResolver _tools;
     private readonly EngineConfig _engineConfig;
     private readonly Core.Utils.Registries _registries;
@@ -32,11 +30,7 @@ internal sealed partial class Engine {
     // getters for primary values and objects
 
     internal string GetRootPath() => _rootPath;
-    internal Tools.IToolResolver GetToolResolver() => _tools;
-    internal EngineConfig GetEngineConfig() => _engineConfig;
     internal Core.Utils.Registries GetRegistries() => _registries;
-    internal Core.Utils.CommandBuilder GetCommandBuilder() => _builder;
-    internal Core.Utils.GitTools GetGitTools() => _git;
 
     internal async System.Threading.Tasks.Task<RunAllResult> RunAllAsync(
         string gameName,
@@ -282,7 +276,8 @@ internal sealed partial class Engine {
     }
 
     private static bool IsEmbeddedScript(string scriptType)
-        => scriptType == "engine" || scriptType == "lua" || scriptType == "js";
+        // Ensure 'bms' is treated as an embedded handler (QuickBMS action)
+        => scriptType == "engine" || scriptType == "lua" || scriptType == "js" || scriptType == "bms";
 
     private static Dictionary<string, object?> BuildPromptDefaults(Dictionary<string, object?> op) {
         Dictionary<string, object?> answers = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
@@ -428,58 +423,20 @@ internal sealed partial class Engine {
     /// <param name="onOutput">Optional callback for each output line.</param>
     /// <param name="onEvent">Optional callback for structured events.</param>
     /// <param name="stdinProvider">Optional provider for prompt responses.</param>
-    /// <param name="envOverrides">Optional environment overrides for the child process.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>True on success (exit code 0), false otherwise.</returns>
-    internal bool ExecuteCommand(
-        IList<string> commandParts,
-        string title,
-        EngineNet.Core.ProcessRunner.OutputHandler? onOutput = null,
-        Core.ProcessRunner.EventHandler? onEvent = null,
-        Core.ProcessRunner.StdinProvider? stdinProvider = null,
-        IDictionary<string, object?>? envOverrides = null,
-        CancellationToken cancellationToken = default) {
+    internal bool ExecuteCommand(IList<string> commandParts, string title, EngineNet.Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, IDictionary<string, object?>? envOverrides = null, CancellationToken cancellationToken = default) {
+        // Delegate to ProcessRunner
         Core.ProcessRunner runner = new Core.ProcessRunner();
         return runner.Execute(commandParts, title, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, envOverrides: envOverrides, cancellationToken: cancellationToken);
     }
-    /// <summary>
-    /// Executes a group of operations sequentially, aggregating success across steps.
-    /// </summary>
-    /// <param name="gameName">Game/module id.</param>
-    /// <param name="games">Games map.</param>
-    /// <param name="groupName">Group label (for diagnostics).</param>
-    /// <param name="operations">List of operation maps.</param>
-    /// <param name="promptAnswers">Answers to prompt definitions.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>True if all operations reported success.</returns>
-    internal async System.Threading.Tasks.Task<bool> RunOperationGroupAsync(
-        string gameName,
-		IDictionary<string, object?> games,
-        string groupName,
-		IList<Dictionary<string, object?>> operations,
-		IDictionary<string, object?> promptAnswers,
-		System.Threading.CancellationToken cancellationToken = default) {
-        bool success = true;
-		foreach (Dictionary<string, object?> op in operations)
-		{
-			if (!await RunSingleOperationAsync(gameName, games, op, promptAnswers, cancellationToken)) {
-                success = false;
-            }
-        }
-		return success;
-	}
 
     /// <summary>
     /// Executes a single operation, delegating to embedded engines (Lua/JS), built-in handlers (engine),
     /// or external processes depending on <c>script_type</c>.
     /// </summary>
     /// <returns>True on successful completion.</returns>
-    internal async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
-        string currentGame,
-        IDictionary<string, object?> games,
-        IDictionary<string, object?> op,
-        IDictionary<string, object?> promptAnswers,
-        System.Threading.CancellationToken cancellationToken = default) {
+    internal async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(string currentGame, IDictionary<string, object?> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, System.Threading.CancellationToken cancellationToken = default) {
         string scriptType = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant() ?? "python";
         List<string> parts = _builder.Build(currentGame, games, _engineConfig.Data, op, promptAnswers);
         if (parts.Count < 2) {
@@ -616,12 +573,7 @@ internal sealed partial class Engine {
     /// Executes built-in engine actions such as tool downloads, format extraction/conversion,
     /// file validation, and folder rename helpers.
     /// </summary>
-    internal async System.Threading.Tasks.Task<bool> ExecuteEngineOperationAsync(
-        string currentGame,
-        IDictionary<string, object?> games,
-        IDictionary<string, object?> op,
-        IDictionary<string, object?> promptAnswers,
-        System.Threading.CancellationToken cancellationToken = default) {
+    internal async System.Threading.Tasks.Task<bool> ExecuteEngineOperationAsync(string currentGame, IDictionary<string, object?> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, System.Threading.CancellationToken cancellationToken = default) {
         if (!op.TryGetValue("script", out object? s) || s is null) {
 #if DEBUG
             System.Diagnostics.Trace.WriteLine("[Engine.OperationExecution] Missing 'script' value in engine operation");
@@ -684,7 +636,7 @@ internal sealed partial class Engine {
                     }
                 }  catch (Exception ex) {
 #if DEBUG
-            System.Diagnostics.Trace.WriteLine($"Error reading config.toml: {ex.Message}");
+            System.Diagnostics.Trace.WriteLine($"[Engine.cs] err reading config.toml: {ex.Message}");
 #endif
         }
                 cfgDict0["module_path"] = gameRoot;
@@ -743,7 +695,7 @@ internal sealed partial class Engine {
                     }
                 }  catch (Exception ex) {
 #if DEBUG
-            System.Diagnostics.Trace.WriteLine($"Error reading config.toml: {ex.Message}");
+            System.Diagnostics.Trace.WriteLine($"[Engine.cs] err reading config.toml: {ex.Message}");
 #endif
         }
                 cfgDict1["module_path"] = gameRoot2;
@@ -890,9 +842,9 @@ internal sealed partial class Engine {
                             }
                         }
                     }
-                }  catch {
+                }  catch (System.Exception ex) {
 #if DEBUG
-            System.Diagnostics.Trace.WriteLine($"Error .....'");
+            System.Diagnostics.Trace.WriteLine($"[Engine.cs] err reading config.toml: {ex.Message}");
 #endif
         }
                 cfgDict3["module_path"] = gameRoot4;
@@ -973,9 +925,9 @@ internal sealed partial class Engine {
                             }
                         }
                     }
-                }  catch {
+                }  catch (System.Exception ex) {
 #if DEBUG
-            System.Diagnostics.Trace.WriteLine($"Error .....'");
+            System.Diagnostics.Trace.WriteLine($"[Engine.cs] err reading config.toml: {ex.Message}");
 #endif
         }
                 cfgDict4["module_path"] = gameRoot5;
@@ -1031,11 +983,11 @@ internal sealed partial class Engine {
                             }
                         }
                     }
-                }  catch {
+                }  catch (System.Exception ex) {
 #if DEBUG
-            System.Diagnostics.Trace.WriteLine($"Error .....'");
+                    System.Diagnostics.Trace.WriteLine($"[Engine.cs] err reading config.toml: {ex.Message}");
 #endif
-        }
+                }
                 cfgDict5["module_path"] = gameRoot6;
                 cfgDict5["project_path"] = _rootPath;
 
@@ -1127,7 +1079,7 @@ internal sealed partial class Engine {
         }
         return false;
     }
-        /// <summary>
+    /// <summary>
     /// Lists all discovered games (both installed and not) and enriches them with install information (like exe and title) if available.
     /// </summary>
     /// <returns>
@@ -1148,28 +1100,6 @@ internal sealed partial class Engine {
                 if (!string.IsNullOrWhiteSpace(gi.Title))
                     info["title"] = gi.Title;
             }
-            games[kv.Key] = info;
-        }
-        return games;
-    }
-
-    /// <summary>
-    /// Gets a list of *only* the games that are currently installed/Built.
-    /// </summary>
-    /// <returns>
-    /// A <code>Dictionary&lt;string, object?&gt;</code> mapping module names (string) to a property dictionary (<code>Dictionary&lt;string, object?&gt;</code>). The property dictionary contains details for the installed/built game, such as 'game_root', 'ops_file', 'exe', and 'title'.
-    /// </returns>
-    internal Dictionary<string, object?> GetBuiltGames() {
-        Dictionary<string, object?> games = new Dictionary<string, object?>();
-        foreach (KeyValuePair<string, Core.Utils.GameInfo> kv in _registries.DiscoverBuiltGames()) {
-            Dictionary<string, object?> info = new Dictionary<string, object?> {
-                ["game_root"] = kv.Value.GameRoot,
-                ["ops_file"] = kv.Value.OpsFile
-            };
-            if (!string.IsNullOrWhiteSpace(kv.Value.ExePath))
-                info["exe"] = kv.Value.ExePath;
-            if (!string.IsNullOrWhiteSpace(kv.Value.Title))
-                info["title"] = kv.Value.Title;
             games[kv.Key] = info;
         }
         return games;
@@ -1240,10 +1170,6 @@ internal sealed partial class Engine {
         if (string.IsNullOrWhiteSpace(exe) || !System.IO.File.Exists(exe))
             return false;
 
-        string? launchOverride = System.Environment.GetEnvironmentVariable("ENGINE_NET_TEST_LAUNCH_OVERRIDE");
-        if (!string.IsNullOrEmpty(launchOverride))
-            return string.Equals(launchOverride, "success", System.StringComparison.OrdinalIgnoreCase);
-
         try {
             System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
                 FileName = exe!,
@@ -1255,18 +1181,6 @@ internal sealed partial class Engine {
         } catch {
             return false;
         }
-    }
-
-    /// <summary>
-    /// Determines the installation state of a module based on its directory presence and installation status.
-    /// </summary>
-    /// <param name="name">The module name (string) to check.</param>
-    /// <returns>
-    /// A <code>string</code> indicating the state: "installed", "downloaded" (but not installed), or "not_downloaded".
-    /// </returns>
-    internal string GetModuleState(string name) {
-        string dir = System.IO.Path.Combine(_rootPath, "EngineApps", "Games", name);
-        return !System.IO.Directory.Exists(dir) ? "not_downloaded" : IsModuleInstalled(name) ? "installed" : "downloaded";
     }
 
 }

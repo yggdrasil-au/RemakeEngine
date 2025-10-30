@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 
 using Avalonia.Controls;
+using Avalonia;
+using Avalonia.Threading;
 
 namespace EngineNet.Interface.GUI.Pages;
 
@@ -20,8 +22,55 @@ internal partial class BuildingPage:UserControl {
         InitializeComponent();
         DataContext = this;
 
+        TryWireAutoScroll();
+
         if (Avalonia.Controls.Design.IsDesignMode) {
             SeedDesignData();
+        }
+    }
+
+    private ScrollViewer? _outputScroll;
+    private bool _autoScrollEnabled = true;
+
+    private void TryWireAutoScroll() {
+        try {
+            _outputScroll = this.FindControl<ScrollViewer>(name: "OutputScroll");
+            if (_outputScroll != null) {
+                // Track user-initiated scroll to disable auto-scroll when scrolled up significantly
+                _outputScroll.ScrollChanged += (_, __) => UpdateAutoScrollFlag();
+
+                // When new lines are added, attempt to keep the view pinned to bottom if user hasn't scrolled up
+                Service.Lines.CollectionChanged += (_, __) => {
+                    if (_autoScrollEnabled) {
+                        Dispatcher.UIThread.Post(ScrollToEndSafe, DispatcherPriority.Background);
+                    }
+                };
+            }
+        } catch { /* ignore; non-critical */ }
+    }
+
+    private void UpdateAutoScrollFlag() {
+        if (_outputScroll is null) return;
+        try {
+            // Consider within 24px of bottom as "at bottom"
+            double bottomThreshold = 24.0;
+            var extent = _outputScroll.Extent;
+            var viewport = _outputScroll.Viewport;
+            var offset = _outputScroll.Offset;
+            double remaining = (extent.Height - viewport.Height) - offset.Y;
+            _autoScrollEnabled = remaining <= bottomThreshold;
+        } catch { _autoScrollEnabled = true; }
+    }
+
+    private void ScrollToEndSafe() {
+        if (_outputScroll is null) return;
+        try {
+            var extent = _outputScroll.Extent;
+            var offset = _outputScroll.Offset;
+            // Set Y to max extent to pin bottom; X unchanged
+            _outputScroll.Offset = new Avalonia.Vector(x: offset.X, y: extent.Height);
+        } catch {
+            // Fallback: no-op
         }
     }
 

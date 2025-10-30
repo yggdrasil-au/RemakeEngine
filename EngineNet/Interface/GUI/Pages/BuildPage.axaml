@@ -51,7 +51,7 @@
 
         <!-- Output log display -->
         <Border BorderBrush="Gray" BorderThickness="1" Padding="8" Background="#1E1E1E">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+            <ScrollViewer x:Name="OutputScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                 <ItemsControl ItemsSource="{Binding Service.Lines}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>

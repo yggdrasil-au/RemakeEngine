@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Avalonia.Threading;
 
 namespace EngineNet.Interface.GUI;
 
@@ -107,18 +108,79 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
         });
     }
 
+    // --- High-volume output buffering/throttling state ---
+    private readonly System.Collections.Concurrent.ConcurrentQueue<OutputLine> _pendingLines = new System.Collections.Concurrent.ConcurrentQueue<OutputLine>();
+    private DispatcherTimer? _flushTimer;
+    private readonly object _flushLock = new object();
+    private const int FlushBatchMax = 250;
+    private const int MaxLines = 5000;
+    private const int MaxChars = 200_000;
+    private int _currentChars = 0;
+
     /// <summary>
-    /// Add a raw output line.
+    /// Add a raw output line (buffered + throttled for UI responsiveness).
     /// </summary>
     internal void AddOutput(string text, string stream = "stdout") {
-        global::Avalonia.Threading.Dispatcher.UIThread.Post(() => {
-            Lines.Add(new OutputLine {
-                Timestamp = System.DateTime.Now,
-                Text = text,
-                Type = stream == "stderr" ? "error" : "output",
-                Color = stream == "stderr" ? "Red" : "Gray"
-            });
-        });
+        OutputLine line = new OutputLine {
+            Timestamp = System.DateTime.Now,
+            Text = text,
+            Type = stream == "stderr" ? "error" : "output",
+            Color = stream == "stderr" ? "Red" : "Gray"
+        };
+        EnqueueLine(line);
+    }
+
+    private void EnqueueLine(OutputLine line) {
+        _pendingLines.Enqueue(line);
+        EnsureFlushTimer();
+    }
+
+    private void EnsureFlushTimer() {
+        lock (_flushLock) {
+            if (_flushTimer is null) {
+                _flushTimer = new DispatcherTimer() { Interval = System.TimeSpan.FromMilliseconds(33) };
+                _flushTimer.Tick += FlushPending;
+                _flushTimer.Start();
+            } else if (!_flushTimer.IsEnabled) {
+                _flushTimer.Start();
+            }
+        }
+    }
+
+    private void FlushPending(object? sender, System.EventArgs e) {
+        Dispatcher.UIThread.VerifyAccess();
+        int processed = 0;
+        while (processed < FlushBatchMax && _pendingLines.TryDequeue(out OutputLine? line)) {
+            Lines.Add(line);
+            _currentChars += line.Text?.Length ?? 0;
+            processed++;
+        }
+        TrimIfNeeded();
+        if (_pendingLines.IsEmpty && processed == 0) {
+            lock (_flushLock) { _flushTimer?.Stop(); }
+        }
+    }
+
+    private void TrimIfNeeded() {
+        int removed = 0;
+        while (Lines.Count > MaxLines) {
+            OutputLine first = Lines[0];
+            _currentChars -= first.Text?.Length ?? 0;
+            Lines.RemoveAt(0);
+            removed++;
+        }
+        if (_currentChars > MaxChars) {
+            int idx = 0;
+            while (_currentChars > MaxChars && idx < Lines.Count) {
+                OutputLine first = Lines[idx];
+                _currentChars -= first.Text?.Length ?? 0;
+                Lines.RemoveAt(idx);
+                removed++;
+            }
+        }
+        if (removed > 0 && _progressPanelInsertIndex >= 0) {
+            _progressPanelInsertIndex = System.Math.Max(0, _progressPanelInsertIndex - removed);
+        }
     }
 
     /// <summary>
@@ -131,22 +193,21 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
 
         string? evtType = evtTypeObj?.ToString();
 
-        global::Avalonia.Threading.Dispatcher.UIThread.Post(() => {
-            switch (evtType) {
-                case "print":
-                    string msg = evt.TryGetValue("message", out object? m) ? m?.ToString() ?? string.Empty : string.Empty;
-                    string color = evt.TryGetValue("color", out object? c) ? c?.ToString() ?? "Gray" : "Gray";
-                    Lines.Add(new OutputLine {
-                        Timestamp = System.DateTime.Now,
-                        Text = msg,
-                        Type = "print",
-                        Color = MapColor(color)
-                    });
-                    break;
+        switch (evtType) {
+            case "print":
+                string msg = evt.TryGetValue("message", out object? m) ? m?.ToString() ?? string.Empty : string.Empty;
+                string color = evt.TryGetValue("color", out object? c) ? c?.ToString() ?? "Gray" : "Gray";
+                EnqueueLine(new OutputLine {
+                    Timestamp = System.DateTime.Now,
+                    Text = msg,
+                    Type = "print",
+                    Color = MapColor(color)
+                });
+                break;
 
                 case "warning":
                     string warnMsg = evt.TryGetValue("message", out object? wm) ? wm?.ToString() ?? string.Empty : string.Empty;
-                    Lines.Add(new OutputLine {
+                    EnqueueLine(new OutputLine {
                         Timestamp = System.DateTime.Now,
                         Text = $"⚠ {warnMsg}",
                         Type = "warning",
@@ -156,7 +217,7 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
 
                 case "error":
                     string errMsg = evt.TryGetValue("message", out object? em) ? em?.ToString() ?? string.Empty : string.Empty;
-                    Lines.Add(new OutputLine {
+                    EnqueueLine(new OutputLine {
                         Timestamp = System.DateTime.Now,
                         Text = $"✖ {errMsg}",
                         Type = "error",
@@ -166,7 +227,7 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
 
                 case "prompt":
                     string promptMsg = evt.TryGetValue("message", out object? pm) ? pm?.ToString() ?? string.Empty : string.Empty;
-                    Lines.Add(new OutputLine {
+                    EnqueueLine(new OutputLine {
                         Timestamp = System.DateTime.Now,
                         Text = $"? {promptMsg}",
                         Type = "prompt",
@@ -178,7 +239,7 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
                     int current = evt.TryGetValue("current", out object? cur) ? SafeToInt(cur) : 0;
                     int total = evt.TryGetValue("total", out object? tot) ? SafeToInt(tot) : 0;
                     string label = evt.TryGetValue("label", out object? lbl) ? lbl?.ToString() ?? string.Empty : string.Empty;
-                    Lines.Add(new OutputLine {
+                    EnqueueLine(new OutputLine {
                         Timestamp = System.DateTime.Now,
                         Text = $"[{current}/{total}] {label}",
                         Type = "progress",
@@ -188,7 +249,7 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
 
                 case "start":
                     string startContext = FormatEventData(evt);
-                    Lines.Add(new OutputLine {
+                    EnqueueLine(new OutputLine {
                         Timestamp = System.DateTime.Now,
                         Text = $"▶ Started: {startContext}",
                         Type = "start",
@@ -198,7 +259,7 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
 
                 case "end":
                     bool success = evt.TryGetValue("success", out object? suc) && suc is bool b && b;
-                    Lines.Add(new OutputLine {
+                    EnqueueLine(new OutputLine {
                         Timestamp = System.DateTime.Now,
                         Text = success ? "✓ Completed successfully" : "✗ Completed with errors",
                         Type = "end",
@@ -206,24 +267,24 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
                     });
                     break;
 
-                case "progress_panel_start":
-                    HandleProgressPanelStart();
-                    break;
+            case "progress_panel_start":
+                global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleProgressPanelStart());
+                break;
 
-                case "progress_panel":
-                    HandleProgressPanelUpdate(evt);
-                    break;
+            case "progress_panel":
+                global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleProgressPanelUpdate(evt));
+                break;
 
-                case "progress_panel_end":
-                    HandleProgressPanelEnd();
-                    break;
+            case "progress_panel_end":
+                global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleProgressPanelEnd());
+                break;
 
                 case "run-all-start":
                 case "run-all-op-start":
                 case "run-all-op-end":
                 case "run-all-complete":
                     string seqInfo = FormatEventData(evt);
-                    Lines.Add(new OutputLine {
+                    EnqueueLine(new OutputLine {
                         Timestamp = System.DateTime.Now,
                         Text = $"• {evtType}: {seqInfo}",
                         Type = "info",
@@ -233,7 +294,7 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
 
                 default:
                     string unknownData = FormatEventData(evt);
-                    Lines.Add(new OutputLine {
+                    EnqueueLine(new OutputLine {
                         Timestamp = System.DateTime.Now,
                         Text = $"[{evtType}] {unknownData}",
                         Type = "unknown",
@@ -241,7 +302,6 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
                     });
                     break;
             }
-        });
     }
 
     private void HandleProgressPanelStart() {
