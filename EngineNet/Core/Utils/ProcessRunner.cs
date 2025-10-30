@@ -1,6 +1,7 @@
 
-using System.Collections.Generic;
 using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace EngineNet.Core.Utils;
 
@@ -59,18 +60,19 @@ internal sealed class ProcessRunner {
 
         // Verbose: show exactly what will be executed
         try {
-            System.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
-            System.Console.WriteLine("\nExecuting command:");
-            System.Console.ResetColor();
-            System.Console.WriteLine("  " + FormatCommand(commandParts));
-            System.Console.WriteLine($"  cwd: {System.IO.Directory.GetCurrentDirectory()}");
+            Trace.WriteLine(string.Empty);
+            Trace.WriteLine("Executing command:");
+            Trace.WriteLine("  " + FormatCommand(commandParts));
+            Trace.WriteLine($"  cwd: {System.IO.Directory.GetCurrentDirectory()}");
             if (envOverrides != null && envOverrides.Count > 0) {
-                System.Console.WriteLine("  env overrides:");
+                Trace.WriteLine("  env overrides:");
                 foreach (KeyValuePair<string, object?> kv in envOverrides) {
-                    System.Console.WriteLine($"    {kv.Key}={kv.Value}");
+                    Trace.WriteLine($"    {kv.Key}={kv.Value}");
                 }
             }
-        } catch { /* ignore formatting errors */ }
+        } catch {
+            /* ignore formatting errors */
+        }
 
         System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
             FileName = commandParts[0],

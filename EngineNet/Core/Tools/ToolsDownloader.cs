@@ -1,19 +1,12 @@
 
 using System;
-using System.IO;
 using System.IO.Compression;
-using System.Text.Json;
-using System.Threading.Tasks;
-using System.Linq;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Collections.Generic;
-using System.Collections;
 using SharpCompress.Archives;
 using SharpCompress.Archives.SevenZip;
 using SharpCompress.Common;
 
-namespace EngineNet.Tools;
+namespace EngineNet.Core.Tools;
 
 internal sealed class ToolsDownloader {
     private readonly string _rootPath;
@@ -189,35 +182,25 @@ internal sealed class ToolsDownloader {
         return n > 1024 * 1024 ? $"{n / (1024.0 * 1024.0):0.0} MB" : $"{n / 1024.0:0.0} KB";
     }
 
-    // TODO use sdk Print
     private static void WriteHeader(string msg) {
-        System.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
-        System.Console.WriteLine($"\n=== {msg} ===");
-        System.Console.ResetColor();
+        Core.Utils.EngineSdk.PrintLine(string.Empty);
+        Core.Utils.EngineSdk.PrintLine($"=== {msg} ===", System.ConsoleColor.DarkCyan);
     }
     private static void Title(string msg) {
-        System.Console.ForegroundColor = System.ConsoleColor.Cyan;
-        System.Console.WriteLine(msg);
-        System.Console.ResetColor();
+        Core.Utils.EngineSdk.PrintLine(msg, System.ConsoleColor.Cyan);
     }
     private static void Info(string msg) {
         if (string.IsNullOrEmpty(msg)) {
             return;
         }
 
-        System.Console.ForegroundColor = System.ConsoleColor.Gray;
-        System.Console.WriteLine(msg);
-        System.Console.ResetColor();
+        Core.Utils.EngineSdk.Info(msg);
     }
     private static void Warn(string msg) {
-        System.Console.ForegroundColor = System.ConsoleColor.Yellow;
-        System.Console.WriteLine($"WARN: {msg}");
-        System.Console.ResetColor();
+        Core.Utils.EngineSdk.Warn(msg);
     }
     private static void Error(string msg) {
-        System.Console.ForegroundColor = System.ConsoleColor.Red;
-        System.Console.WriteLine($"1 ERROR: {msg}");
-        System.Console.ResetColor();
+        Core.Utils.EngineSdk.PrintLine($"1 ERROR: {msg}", System.ConsoleColor.Red);
     }
 
     private static string GetPlatformIdentifier() {

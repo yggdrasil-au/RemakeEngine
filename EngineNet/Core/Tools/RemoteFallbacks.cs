@@ -1,4 +1,4 @@
-namespace EngineNet.Tools;
+namespace EngineNet.Core.Tools;
 
 internal static class RemoteFallbacks {
     private const string RepoOwner = "yggdrasil-au";

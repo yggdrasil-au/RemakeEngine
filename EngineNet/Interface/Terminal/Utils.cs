@@ -1,5 +1,7 @@
-
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Text.Json;
 
 namespace EngineNet.Interface.Terminal;
 
@@ -7,6 +9,12 @@ namespace EngineNet.Interface.Terminal;
 /// Utility methods for CLI/TUI handling, can also be used by GUI if needed
 /// </summary>
 internal class Utils {
+
+    private static readonly System.Text.Json.JsonSerializerOptions s_jsonOpts = new() {
+        WriteIndented = false,
+        PropertyNamingPolicy = null,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never
+    };
 
     private static readonly object s_consoleLock = new();
     private static int _progressPanelTop;
@@ -142,6 +150,7 @@ internal class Utils {
     private static string _lastPrompt = "Input required";
 
     internal static void OnEvent(Dictionary<string, object?> evt) {
+        LogEvent(evt);
         if (!evt.TryGetValue("event", out object? typObj)) {
             return;
         }
@@ -208,6 +217,128 @@ internal class Utils {
                 break;
         }
     }
+    
+
+    private static void LogEvent(IReadOnlyDictionary<string, object?> evt) {
+        try {
+            Dictionary<string, object?> safe = CloneForLogging(evt);
+            string json = JsonSerializer.Serialize(safe, s_jsonOpts);
+            Trace.WriteLine($"[TerminalEvent] {json}");
+        } catch (System.Exception ex) {
+            try {
+                Trace.WriteLine($"[TerminalEvent] <serialization failed: {ex.Message}>");
+            } catch {
+                // ignore logging failures entirely
+            }
+        }
+    }
+
+    private static Dictionary<string, object?> CloneForLogging(IReadOnlyDictionary<string, object?> evt) {
+        Dictionary<string, object?> clone = new Dictionary<string, object?>(evt.Count, System.StringComparer.Ordinal);
+        foreach (KeyValuePair<string, object?> kv in evt) {
+            clone[kv.Key] = CloneValue(kv.Value);
+        }
+
+        try {
+            JsonSerializer.Serialize(clone, s_jsonOpts);
+            return clone;
+        } catch {
+            Dictionary<string, object?> safe = new Dictionary<string, object?>(clone.Count, System.StringComparer.Ordinal);
+            foreach (KeyValuePair<string, object?> kv in clone) {
+                safe[kv.Key] = SafeStringify(kv.Value);
+            }
+            return safe;
+        }
+    }
+
+    private static object? CloneValue(object? value) {
+        if (value is null) {
+            return null;
+        }
+
+        switch (value) {
+            case string:
+            case char:
+            case bool:
+            case byte:
+            case sbyte:
+            case short:
+            case ushort:
+            case int:
+            case uint:
+            case long:
+            case ulong:
+            case float:
+            case double:
+            case decimal:
+            case System.Guid:
+            case System.DateTime:
+            case System.DateTimeOffset:
+            case System.TimeSpan:
+                return value;
+        }
+
+        if (value is JsonElement jsonElement) {
+            return jsonElement.Clone();
+        }
+
+        if (value is IReadOnlyDictionary<string, object?> roDict) {
+            Dictionary<string, object?> nested = new Dictionary<string, object?>(System.StringComparer.Ordinal);
+            foreach (KeyValuePair<string, object?> kv in roDict) {
+                nested[kv.Key] = CloneValue(kv.Value);
+            }
+            return nested;
+        }
+
+        if (value is IDictionary dict) {
+            Dictionary<string, object?> nested = new Dictionary<string, object?>(System.StringComparer.Ordinal);
+            foreach (DictionaryEntry entry in dict) {
+                string key = entry.Key?.ToString() ?? string.Empty;
+                nested[key] = CloneValue(entry.Value);
+            }
+            return nested;
+        }
+
+        if (value is IEnumerable enumerable && value is not string) {
+            List<object?> list = new List<object?>();
+            foreach (object? item in enumerable) {
+                list.Add(CloneValue(item));
+            }
+            return list;
+        }
+
+        try {
+            JsonSerializer.Serialize(value, s_jsonOpts);
+            return value;
+        } catch {
+            return value.ToString();
+        }
+    }
+
+    private static object? SafeStringify(object? value) {
+        if (value is null) {
+            return null;
+        }
+
+        if (value is IReadOnlyDictionary<string, object?> roDict) {
+            Dictionary<string, object?> nested = new Dictionary<string, object?>(System.StringComparer.Ordinal);
+            foreach (KeyValuePair<string, object?> kv in roDict) {
+                nested[kv.Key] = SafeStringify(kv.Value);
+            }
+            return nested;
+        }
+
+        if (value is IEnumerable enumerable && value is not string) {
+            List<object?> list = new List<object?>();
+            foreach (object? item in enumerable) {
+                list.Add(SafeStringify(item));
+            }
+            return list;
+        }
+
+        return value.ToString();
+    }
+    
     internal static void HandleProgressPanelStart(int reserve) {
         _progressPanelTop = 0;
         _progressLastLines = 0;

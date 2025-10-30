@@ -1,5 +1,5 @@
 
-namespace EngineNet.Tools;
+namespace EngineNet.Core.Tools;
 
 /// <summary>
 /// Fallback tool resolver that simply returns the tool id as the path.

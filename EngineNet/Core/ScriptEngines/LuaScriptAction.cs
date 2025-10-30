@@ -58,9 +58,8 @@ internal sealed class LuaScriptAction : Helpers.IAction {
         // Preload minimal shims for LuaFileSystem (lfs) and dkjson used by game modules
         LuaModules.LuaShimModules.PreloadShimModules(lua, _scriptPath);
 
-        // TODO use sdk print
-        //Console.WriteLine($"Running lua script '{_scriptPath}' with {_args.Length} args...");
-        //Console.WriteLine($"input args: {string.Join(", ", _args)}");
+        Core.Utils.EngineSdk.PrintLine($"Running lua script '{_scriptPath}' with {_args.Length} args...", System.ConsoleColor.Cyan);
+        Core.Utils.EngineSdk.PrintLine($"input args: {string.Join(", ", _args)}", System.ConsoleColor.Gray);
         await System.Threading.Tasks.Task.Run(() => lua.DoString(code), cancellationToken);
     }
 

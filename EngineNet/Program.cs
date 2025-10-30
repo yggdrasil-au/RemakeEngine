@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Linq;
 using Avalonia;
 
@@ -14,6 +15,20 @@ internal static class Program {
     /* :: :: Main :: START :: */
 
     internal static async System.Threading.Tasks.Task<int> Main(string[] args) {
+        string? logPath = null;
+        try {
+            logPath = System.IO.Path.Combine(System.Environment.CurrentDirectory, "debug.log");
+            string? logDirectory = System.IO.Path.GetDirectoryName(logPath);
+            if (!string.IsNullOrEmpty(logDirectory)) {
+                System.IO.Directory.CreateDirectory(logDirectory);
+            }
+
+            Trace.Listeners.Add(new TextWriterTraceListener(logPath));
+            Trace.AutoFlush = true;
+            Trace.WriteLine($"[EngineNet] Logging started at {System.DateTimeOffset.Now:u}");
+        } catch (System.Exception ex) {
+            System.Console.WriteLine($"WARN: Failed to initialize debug log '{logPath ?? "debug.log"}': {ex.Message}");
+        }
         try {
             string root = GetRootPath(args) ?? TryFindProjectRoot(System.IO.Directory.GetCurrentDirectory())
                                             ?? TryFindProjectRoot(System.AppContext.BaseDirectory)
@@ -44,9 +59,9 @@ internal static class Program {
                 }
             }
 
-            Tools.IToolResolver tools = CreateToolResolver(root);
+            Core.Tools.IToolResolver tools = CreateToolResolver(root);
 
-            EngineConfig engineConfig = new EngineConfig(configPath);
+            Core.EngineConfig engineConfig = new Core.EngineConfig(configPath);
             Core.OperationsEngine engine = new Core.OperationsEngine(root, tools, engineConfig);
 
             // Interface selection:
@@ -118,7 +133,7 @@ internal static class Program {
     }
 
     // Create a tool resolver based on available config files
-    private static Tools.IToolResolver CreateToolResolver(string root) {
+    private static Core.Tools.IToolResolver CreateToolResolver(string root) {
         // Prefer Tools.local.json if present, then Tools.json
         string EngineAppsDir = System.IO.Path.Combine(root, "EngineApps");
         string[] candidates = new[] {
@@ -126,7 +141,7 @@ internal static class Program {
             System.IO.Path.Combine(EngineAppsDir, "Tools.json"), System.IO.Path.Combine(EngineAppsDir, "tools.json"),
         };
         string? found = candidates.FirstOrDefault(System.IO.File.Exists);
-        return !string.IsNullOrEmpty(found) ? new Tools.JsonToolResolver(found) : new Tools.PassthroughToolResolver();
+        return !string.IsNullOrEmpty(found) ? new Core.Tools.JsonToolResolver(found) : new Core.Tools.PassthroughToolResolver();
     }
 
     /* :: :: Methods :: END :: */

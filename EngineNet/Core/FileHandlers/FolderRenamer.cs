@@ -324,16 +324,19 @@ internal static class FolderRenamer {
     private static void WriteError(string message) => Write(System.ConsoleColor.Red, message, true);
 
     private static void Write(System.ConsoleColor color, string message, bool isError = false) {
-        // TODO use sdk
-        /*ConsoleColor previous = Console.ForegroundColor;
-        Console.ForegroundColor = color;
+        string formatted = $"[Rename] {message}";
+        Utils.EngineSdk.PrintLine(formatted, color);
         if (isError) {
-            Console.Error.WriteLine($"[Rename] {message}");
-        } else {
-            Console.WriteLine($"[Rename] {message}");
+            TraceError(formatted);
         }
+    }
 
-        Console.ForegroundColor = previous;*/
+    private static void TraceError(string message) {
+        try {
+            System.Diagnostics.Trace.WriteLine(message);
+        } catch {
+            // ignore trace failures for best-effort logging
+        }
     }
 }
 
