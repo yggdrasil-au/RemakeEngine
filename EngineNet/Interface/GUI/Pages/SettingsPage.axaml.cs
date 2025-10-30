@@ -14,7 +14,7 @@ using Avalonia.Platform.Storage;
 namespace EngineNet.Interface.GUI.Pages;
 
 public partial class SettingsPage:UserControl, INotifyPropertyChanged {
-    private readonly Core.OperationsEngine? _engine;
+    private readonly Core.Engine? _engine;
 
     private string _projectRoot = "";
     internal string ProjectRoot {
@@ -38,9 +38,7 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
     internal System.Windows.Input.ICommand SaveCommand {
         get;
     }
-    internal System.Windows.Input.ICommand ApplyThemeCommand {
-        get;
-    }
+
 
     // preview only constructor
     public SettingsPage() {
@@ -52,10 +50,9 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
         // Initialize commands
         BrowseRootCommand = new Cmd(async _ => await Task.CompletedTask);
         SaveCommand = new Cmd(async _ => await Task.CompletedTask);
-        ApplyThemeCommand = new Cmd(async _ => await Task.CompletedTask);
 
     }
-    internal SettingsPage(Core.OperationsEngine engine) {
+    internal SettingsPage(Core.Engine engine) {
         _engine = engine;
         InitializeComponent();
         DataContext = this;

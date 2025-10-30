@@ -8,9 +8,9 @@ using Tomlyn;
 namespace EngineNet.Interface.Terminal;
 
 internal partial class CLI {
-    private readonly Core.OperationsEngine _engine;
+    private readonly Core.Engine _engine;
 
-    internal CLI(Core.OperationsEngine engine) => _engine = engine;
+    internal CLI(Core.Engine engine) => _engine = engine;
 
     internal async System.Threading.Tasks.Task<int> Run(string[] args) {
         // Strip global flags that Program.cs already handled, like --root PATH
@@ -82,7 +82,7 @@ internal partial class CLI {
             return 1;
         }
         string opsFile = (g is Dictionary<string, object?> gdict && gdict.TryGetValue("ops_file", out object? of) && of is string s) ? s : throw new System.ArgumentException($"Game '{game}' missing ops_file.");
-        List<Dictionary<string, object?>> doc = _engine.LoadOperationsList(opsFile);
+        List<Dictionary<string, object?>> doc = Core.Engine.LoadOperationsList(opsFile);
         System.Console.WriteLine($"Operations for game '{game}':");
         foreach (Dictionary<string, object?> op in doc) {
             if (op.TryGetValue("name", out object? nameObj) && nameObj is string name) {

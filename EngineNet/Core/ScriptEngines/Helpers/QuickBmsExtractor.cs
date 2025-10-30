@@ -65,7 +65,7 @@ internal static class QuickBmsExtractor {
         WriteInfo($"Starting QuickBMS extraction using script '{options.BmsScript}'.");
         WriteInfo($"Found {files.Count} file(s) to process.");
 
-        Utils.ProcessRunner runner = new Utils.ProcessRunner();
+        Core.ProcessRunner runner = new Core.ProcessRunner();
         bool okAll = true;
         int done = 0;
         int succeeded = 0;

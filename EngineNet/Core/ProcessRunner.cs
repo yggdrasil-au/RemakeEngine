@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace EngineNet.Core.Utils;
+namespace EngineNet.Core;
 
 /// <summary>
 /// Executes external processes while streaming output and handling structured
@@ -88,25 +88,6 @@ internal sealed class ProcessRunner {
             psi.ArgumentList.Add(commandParts[i]);
         }
 
-        foreach (DictionaryEntry de in System.Environment.GetEnvironmentVariables()) {
-            psi.Environment[de.Key.ToString()!] = de.Value?.ToString() ?? string.Empty;
-        }
-
-        if (envOverrides != null) {
-            foreach (KeyValuePair<string, object?> kv in envOverrides) {
-                psi.Environment[kv.Key] = kv.Value?.ToString() ?? string.Empty;
-            }
-        }
-
-        // Encourage line-buffered UTF-8 for child Python
-        if (!psi.Environment.ContainsKey("PYTHONUNBUFFERED")) {
-            psi.Environment["PYTHONUNBUFFERED"] = "1";
-        }
-
-        if (!psi.Environment.ContainsKey("PYTHONIOENCODING")) {
-            psi.Environment["PYTHONIOENCODING"] = "utf-8";
-        }
-
         using System.Diagnostics.Process proc = new System.Diagnostics.Process { StartInfo = psi, EnableRaisingEvents = true };
 
         System.Collections.Concurrent.BlockingCollection<(string stream, string line)> q = new System.Collections.Concurrent.BlockingCollection<(string stream, string line)>(boundedCapacity: 1000);
@@ -126,7 +107,6 @@ internal sealed class ProcessRunner {
 
             bool awaitingPrompt = false;
             string? lastPromptMsg = null;
-            bool suppressPromptEcho = !string.IsNullOrWhiteSpace(System.Environment.GetEnvironmentVariable("ENGINE_SUPPRESS_PROMPT_ECHO"));
 
             void SendToChild(string? text) {
                 try {
@@ -136,14 +116,12 @@ internal sealed class ProcessRunner {
             }
 
             string? HandleLine(string line, string streamName) {
-                if (line.StartsWith(EngineSdk.Prefix, System.StringComparison.Ordinal)) {
-                    string payload = line.Substring(EngineSdk.Prefix.Length).Trim();
+                if (line.StartsWith(Core.Utils.EngineSdk.Prefix, System.StringComparison.Ordinal)) {
+                    string payload = line.Substring(Core.Utils.EngineSdk.Prefix.Length).Trim();
                     try {
                         Dictionary<string, object?> evt = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(payload) ?? new();
                         if (evt.TryGetValue("event", out object? evType) && (evType?.ToString() ?? "") == "prompt") {
-                            if (!suppressPromptEcho) {
-                                onEvent?.Invoke(evt);
-                            }
+                            onEvent?.Invoke(evt);
 
                             return evt.TryGetValue("message", out object? msg) ? msg?.ToString() ?? "Input required" : "Input required";
                         }

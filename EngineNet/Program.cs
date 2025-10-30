@@ -2,6 +2,9 @@ using System.Diagnostics;
 using System.Linq;
 using Avalonia;
 
+// Allow 'internal' access for tests
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo(assemblyName: "EngineNet.Tests")]
+
 namespace EngineNet;
 
 internal static class Program {
@@ -62,14 +65,14 @@ internal static class Program {
             Core.Tools.IToolResolver tools = CreateToolResolver(root);
 
             Core.EngineConfig engineConfig = new Core.EngineConfig(configPath);
-            Core.OperationsEngine engine = new Core.OperationsEngine(root, tools, engineConfig);
+            Core.Engine _engine = new Core.Engine(root, tools, engineConfig);
 
             // Interface selection:
             // - GUI if no args or ONLY arg is --gui
             // - Otherwise CLI (CLI handles additional args itself)
             bool onlyGuiFlag = args.Length == 1 && string.Equals(args[0], "--gui", System.StringComparison.OrdinalIgnoreCase);
             if (args.Length == 0 || onlyGuiFlag) {
-                return Interface.GUI.AvaloniaGui.Run(engine);
+                return Interface.GUI.AvaloniaGui.Run(_engine);
             }
 
             // Interface selection:
@@ -77,11 +80,11 @@ internal static class Program {
             // - Otherwise CLI (CLI handles additional args itself)
             bool onlyTuiFlag = args.Length == 1 && string.Equals(args[0], "--tui", System.StringComparison.OrdinalIgnoreCase);
             if (onlyTuiFlag) {
-                return await new Interface.Terminal.TUI(engine).RunInteractiveMenuAsync();
+                return await new Interface.Terminal.TUI(_engine).RunInteractiveMenuAsync();
             }
 
             // if not gui run CLIApp with all args, it then uses CLI or TUI as needed
-            return await new Interface.Terminal.CLI(engine).Run(args);
+            return await new Interface.Terminal.CLI(_engine).Run(args);
         } catch (System.Exception ex) {
             // Print full exception (message + stack trace) to help diagnose runtime errors
             System.Console.WriteLine($"Engine Error: {ex}");

@@ -4,8 +4,8 @@ run-all = true
 Name = "Lua Feature Showcase"
 Instructions = "Demonstrates the embedded Lua engine helpers."
 script_type = "lua"
-script = "RemakeRegistry/Games/demo/scripts/lua_feature_demo.lua"
-args = ["--module", "RemakeRegistry/Games/demo", "--scratch", "RemakeRegistry/Games/demo/TMP/lua-demo"]
+script = "{{Game_Root}}/scripts/lua_feature_demo.lua"
+args = ["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo"]
 
 [[operation.prompts]]
 type = "text"
@@ -18,8 +18,8 @@ run-all = false
 Name = "JavaScript Feature Showcase"
 Instructions = "Runs the JavaScript engine demo covering progress, sqlite, and helpers."
 script_type = "js"
-script = "{{RemakeEngine.Config.module_path}}/scripts/js_feature_demo.js"
-args = ["--module", "{{RemakeEngine.Config.module_path}}", "--scratch", "{{RemakeEngine.Config.module_path}}/TMP/js-demo"]
+script = "{{Game_Root}}/scripts/js_feature_demo.js"
+args = ["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/js-demo"]
 
 [[operation.prompts]]
 type = "confirm"
@@ -40,7 +40,7 @@ run-all = false
 Name = "Python Placeholder (Not Supported)"
 Instructions = "Keeps the legacy Python entry to highlight that scripting is currently disabled."
 script_type = "python"
-script = "{{RemakeEngine.Config.module_path}}/scripts/python_demo.py"
+script = "{{Game_Root}}/scripts/python_demo.py"
 args = []
 
 [[operation]]
@@ -49,4 +49,4 @@ Name = "Download Tools"
 Instructions = "Uses the engine downloader to retrieve optional demo tooling."
 script_type = "engine"
 script = "download_tools"
-tools_manifest = "{{RemakeEngine.Config.module_path}}/Tools.toml"
+tools_manifest = "{{Game_Root}}/Tools.toml"

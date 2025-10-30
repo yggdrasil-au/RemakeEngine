@@ -42,7 +42,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
         }
 
         string code = await System.IO.File.ReadAllTextAsync(_scriptPath, cancellationToken);
-        Engine engine = new Engine(options => options.CancellationToken(cancellationToken));
+        Jint.Engine engine = new Jint.Engine(options => options.CancellationToken(cancellationToken));
         RegisterGlobals(engine, tools);
         PreloadShimModules(engine, _scriptPath);
 #if DEBUG
@@ -58,7 +58,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
     /// </summary>
     /// <param name="engine">The Jint engine instance.</param>
     /// <param name="tools">Tool resolver exposed via the <c>tool</c> global.</param>
-    private void RegisterGlobals(Engine engine, Tools.IToolResolver tools) {
+    private void RegisterGlobals(Jint.Engine engine, Tools.IToolResolver tools) {
         engine.SetValue("tool", new System.Func<string, string>(tools.ResolveToolPath));
         engine.SetValue("argv", _args);
         engine.SetValue("emit", new System.Action<JsValue, JsValue>((ev, data) => {
@@ -95,7 +95,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
     /// </summary>
     /// <param name="engine">The engine to extend.</param>
     /// <param name="scriptPath">Path of the currently executing script (used for debug info).</param>
-    private static void PreloadShimModules(Engine engine, string scriptPath) {
+    private static void PreloadShimModules(Jint.Engine engine, string scriptPath) {
         Dictionary<string, object?> modules = new Dictionary<string, object?>(System.StringComparer.Ordinal);
         LfsModule lfs = new LfsModule();
         DkJsonModule dkjson = new DkJsonModule(engine);
@@ -112,9 +112,9 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
         }));
     }
     private sealed class SdkModule {
-        private readonly Engine _engine;
+        private readonly Jint.Engine _engine;
 
-        internal SdkModule(Engine engine) {
+        internal SdkModule(Jint.Engine engine) {
             _engine = engine;
         }
 
@@ -161,7 +161,9 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
 
         internal JsValue colour_print(object? arg1, object? arg2 = null, object? arg3 = null) => color_print(arg1, arg2, arg3);
 
-        internal string ensure_project_config(string root) => Helpers.ConfigHelpers.EnsureProjectConfig(root);
+        internal static string Ensure_project_config(string root) {
+            return Helpers.ConfigHelpers.EnsureProjectConfig(root);
+        }
 
         internal bool validate_source_dir(string dir) {
             try {
@@ -404,21 +406,21 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
         }
     }
     private sealed class SqliteModule {
-        private readonly Engine _engine;
+        private readonly Jint.Engine _engine;
 
-        internal SqliteModule(Engine engine) {
+        internal SqliteModule(Jint.Engine engine) {
             _engine = engine;
         }
 
         internal SqliteHandle open(string path) => new SqliteHandle(_engine, path);
     }
     private sealed class SqliteHandle:System.IDisposable {
-        private readonly Engine _engine;
+        private readonly Jint.Engine _engine;
         private readonly Microsoft.Data.Sqlite.SqliteConnection _connection;
         private Microsoft.Data.Sqlite.SqliteTransaction? _transaction;
         private bool _disposed;
 
-        public SqliteHandle(Engine engine, string path) {
+        public SqliteHandle(Jint.Engine engine, string path) {
             _engine = engine;
             string fullPath = System.IO.Path.GetFullPath(path);
             Microsoft.Data.Sqlite.SqliteConnectionStringBuilder builder = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder {
@@ -517,7 +519,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
 
         private void EnsureNotDisposed() {
             if (_disposed) {
-                throw new System.ObjectDisposedException(nameof(SqliteHandle));
+                System.ObjectDisposedException.ThrowIf(_disposed, nameof(SqliteHandle));
             }
         }
 
@@ -595,9 +597,9 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
         }
     }
     private sealed class DkJsonModule {
-        private readonly Engine _engine;
+        private readonly Jint.Engine _engine;
 
-        internal DkJsonModule(Engine engine) {
+        internal DkJsonModule(Jint.Engine engine) {
             _engine = engine;
         }
 
@@ -728,11 +730,11 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
     }
     private static class JsInterop {
 
-        internal static JsValue AsJsValue(Engine engine, object? value) {
+        internal static JsValue AsJsValue(Jint.Engine engine, object? value) {
             return value is null ? JsValue.Null : value is JsValue js ? js : JsValue.FromObject(engine, value);
         }
 
-        internal static bool ToBoolean(Engine engine, object? value, bool defaultValue = false) => ToBoolean(AsJsValue(engine, value), defaultValue);
+        internal static bool ToBoolean(Jint.Engine engine, object? value, bool defaultValue = false) => ToBoolean(AsJsValue(engine, value), defaultValue);
 
         internal static bool ToBoolean(JsValue value, bool defaultValue = false) {
             return value.IsNull() || value.IsUndefined() ? defaultValue : Jint.Runtime.TypeConverter.ToBoolean(value);
@@ -742,12 +744,12 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             return value.IsNull() || value.IsUndefined() ? defaultValue : Jint.Runtime.TypeConverter.ToNumber(value);
         }
 
-        internal static Jint.Native.Array.ArrayInstance EnsureArray(Engine engine, object? value, string paramName) {
+        internal static Jint.Native.Array.ArrayInstance EnsureArray(Jint.Engine engine, object? value, string paramName) {
             JsValue js = AsJsValue(engine, value);
             return !js.IsArray() ? throw CreateJsException(engine, "TypeError", $"{paramName} must be an array") : (Jint.Native.Array.ArrayInstance)js.AsArray();
         }
 
-        internal static List<string> ToStringList(Engine engine, object? value) => ToStringList(EnsureArray(engine, value, "value"));
+        internal static List<string> ToStringList(Jint.Engine engine, object? value) => ToStringList(EnsureArray(engine, value, "value"));
 
         internal static List<string> ToStringList(Jint.Native.Array.ArrayInstance array) {
             List<string> list = new List<string>();
@@ -761,14 +763,24 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             return list;
         }
 
-        internal static IDictionary<string, object?> ToDictionary(Engine engine, object? value) {
+        internal static IDictionary<string, object?> ToDictionary(Jint.Engine engine, object? value) {
             JsValue js = AsJsValue(engine, value);
-            return js.IsNull() || js.IsUndefined()
-                ? new Dictionary<string, object?>(System.StringComparer.Ordinal)
-                : !js.IsObject() ? throw CreateJsException(engine, "TypeError", "Expected object value") : ToDictionary(engine, js.AsObject());
+
+            // Case 1: null or undefined => return empty dictionary
+            if (js.IsNull() || js.IsUndefined()) {
+                return new Dictionary<string, object?>(System.StringComparer.Ordinal);
+            }
+
+            // Case 2: not an object => throw
+            if (!js.IsObject()) {
+                throw CreateJsException(engine, constructorName: "TypeError", message: "Expected object value");
+            }
+
+            // Case 3: valid object => recurse
+            return ToDictionary(engine, js.AsObject());
         }
 
-        internal static IDictionary<string, object?> ToDictionary(Engine engine, Jint.Native.Object.ObjectInstance obj) {
+        internal static IDictionary<string, object?> ToDictionary(Jint.Engine engine, Jint.Native.Object.ObjectInstance obj) {
             Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.Ordinal);
             foreach (JsValue key in obj.GetOwnPropertyKeys()) {
                 JsValue value = obj.Get(key, obj);
@@ -777,7 +789,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             return dict;
         }
 
-        internal static object? ToPlainObject(Engine engine, JsValue value) {
+        internal static object? ToPlainObject(Jint.Engine engine, JsValue value) {
             if (value.IsNull() || value.IsUndefined()) {
                 return null;
             }
@@ -814,7 +826,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             return value.ToString();
         }
 
-        internal static Jint.Runtime.JavaScriptException CreateJsException(Engine engine, string constructorName, string message) {
+        internal static Jint.Runtime.JavaScriptException CreateJsException(Jint.Engine engine, string constructorName, string message) {
             try {
                 JsValue ctorValue = engine.GetValue(constructorName);
                 JsValue errorInstance = engine.Invoke(ctorValue, message);
@@ -828,9 +840,9 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             return new Jint.Runtime.JavaScriptException(JsValue.FromObject(engine, message));
         }
 
-        internal static JsValue FromObject(Engine engine, object? value) => JsValue.FromObject(engine, value);
+        internal static JsValue FromObject(Jint.Engine engine, object? value) => JsValue.FromObject(engine, value);
 
-        internal static JsValue FromJsonElement(Engine engine, System.Text.Json.JsonElement element) => FromObject(engine, FromJsonElement(element));
+        internal static JsValue FromJsonElement(Jint.Engine engine, System.Text.Json.JsonElement element) => FromObject(engine, FromJsonElement(element));
 
         internal static object? FromJsonElement(System.Text.Json.JsonElement element) => element.ValueKind switch {
             System.Text.Json.JsonValueKind.Object => ToDictionary(element),
@@ -842,12 +854,12 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             _ => null
         };
 
-        internal static Jint.Native.Object.ObjectInstance? TryGetPlainObject(Engine engine, object? value) {
+        internal static Jint.Native.Object.ObjectInstance? TryGetPlainObject(Jint.Engine engine, object? value) {
             JsValue js = AsJsValue(engine, value);
             return js.IsObject() && !js.IsArray() ? js.AsObject() : null;
         }
 
-        internal static JsValue Get(Jint.Native.Object.ObjectInstance obj, Engine engine, string name) => obj.Get(JsValue.FromObject(engine, name), obj);
+        internal static JsValue Get(Jint.Native.Object.ObjectInstance obj, Jint.Engine engine, string name) => obj.Get(JsValue.FromObject(engine, name), obj);
 
         internal static string ToString(JsValue value) => value.IsString() ? value.AsString() : value.ToString();
 

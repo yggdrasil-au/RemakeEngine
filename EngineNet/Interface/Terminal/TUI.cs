@@ -6,13 +6,9 @@ namespace EngineNet.Interface.Terminal;
 
 internal class TUI {
 
-    private readonly Core.OperationsEngine _engine;
+    private readonly Core.Engine _engine;
 
-    private static readonly object s_consoleLock = new();
-    private int _progressPanelTop;
-    private int _progressLastLines;
-
-    internal TUI(Core.OperationsEngine engine) {
+    internal TUI(Core.Engine engine) {
         _engine = engine;
     }
 
@@ -60,22 +56,22 @@ internal class TUI {
 
         // 2) Load operations list and render menu
         if (!games.TryGetValue(gameName, out object? infoObj) || infoObj is not Dictionary<string, object?> info) {
-            System.Console.Error.WriteLine("Selected game not found.");
+            await System.Console.Error.WriteLineAsync(value: "Selected game not found.");
             return 1;
         }
-        if (!info.TryGetValue("ops_file", out object? of) || of is not string opsFile) {
-            System.Console.Error.WriteLine("Selected game is missing ops_file.");
+        if (!info.TryGetValue(key: "ops_file", out object? of) || of is not string opsFile) {
+            await System.Console.Error.WriteLineAsync(value: "Selected game is missing ops_file.");
             return 1;
         }
-        List<Dictionary<string, object?>> allOps = _engine.LoadOperationsList(opsFile);
-        List<Dictionary<string, object?>> initOps = allOps.FindAll(op => op.TryGetValue("init", out object? i) && i is bool b && b);
-        List<Dictionary<string, object?>> regularOps = allOps.FindAll(op => !op.ContainsKey("init") || !(op["init"] is bool bb && bb));
-        bool didRunInit = false;
+        List<Dictionary<string, object?>> allOps = Core.Engine.LoadOperationsList(opsFile);
+        List<Dictionary<string, object?>> initOps = allOps.FindAll(op => op.TryGetValue(key: "init", out object? i) && i is bool b && b);
+        List<Dictionary<string, object?>> regularOps = allOps.FindAll(op => !op.ContainsKey(key: "init") || !(op[key: "init"] is bool bb && bb));
+        //bool didRunInit = false;
 
         // Auto-run init operations once when a game is selected
         if (initOps.Count > 0) {
             System.Console.Clear();
-            System.Console.WriteLine($"Running {initOps.Count} initialization operation(s) for {gameName}\n");
+            System.Console.WriteLine(value: $"Running {initOps.Count} initialization operation(s) for {gameName}\n");
             bool okAllInit = true;
             foreach (Dictionary<string, object?> op in initOps) {
                 Dictionary<string, object?> answers = new Dictionary<string, object?>();
@@ -84,29 +80,47 @@ internal class TUI {
                 bool ok = new Utils().ExecuteOp(_engine, gameName, games, op, answers);
                 okAllInit &= ok;
             }
-            didRunInit = true;
+            //didRunInit = true;
             System.Console.WriteLine(okAllInit
                 ? "Initialization completed successfully. Press any key to continue..."
                 : "One or more init operations failed. Press any key to continue...");
-            System.Console.ReadKey(true);
+            System.Console.ReadKey(intercept: true);
         }
 
         while (true) {
             System.Console.Clear();
-            System.Console.WriteLine($"--- Operations for: {gameName}");
+            System.Console.WriteLine(value: $"--- Operations for: {gameName}");
             List<string> menu = new List<string>();
-            menu.Add("Run All");
-            menu.Add("---------------");
+            menu.Add(item: "Run All");
+            menu.Add(item: "---------------");
             foreach (Dictionary<string, object?> op in regularOps) {
-                string name = op.TryGetValue("Name", out object? n) && n is string s && !string.IsNullOrWhiteSpace(s)
-                    ? s : System.IO.Path.GetFileName(op.TryGetValue("script", out object? sc) ? sc?.ToString() ?? "(unnamed)" : "(unnamed)");
+                string name;
+
+                // First choice: explicit "Name" entry if it's a non-empty string
+                if (op.TryGetValue(key: "Name", out object? n) &&
+                    n is string s &&
+                    !string.IsNullOrWhiteSpace(s)) {
+                    name = s;
+                } else {
+                    // Fallback: derive from "script" filename, or "(unnamed)"
+                    string? scriptPath = null;
+
+                    if (op.TryGetValue(key: "script", out object? sc)) {
+                        scriptPath = sc?.ToString();
+                    }
+
+                    name = System.IO.Path.GetFileName(
+                        string.IsNullOrWhiteSpace(scriptPath) ? "(unnamed)" : scriptPath
+                    );
+                }
+
                 menu.Add(name);
             }
-            menu.Add("---------------");
-            menu.Add("Change Game");
-            menu.Add("Exit");
+            menu.Add(item: "---------------");
+            menu.Add(item: "Change Game");
+            menu.Add(item: "Exit");
 
-            System.Console.WriteLine("? Select an operation: (Use arrow keys)");
+            System.Console.WriteLine(value: "? Select an operation: (Use arrow keys)");
             int idx = SelectFromMenu(menu, highlightSeparators: true);
             if (idx < 0) {
                 return 0; // canceled
@@ -125,7 +139,6 @@ internal class TUI {
                     System.Console.Clear();
                     System.Console.WriteLine($"Running operations for {gameName}...\n");
 
-                    string lastPrompt = "Input required";
                     Core.RunAllResult result = await _engine.RunAllAsync(
                         gameName,
                         
@@ -138,7 +151,7 @@ internal class TUI {
                         stdinProvider: null  // Let System.Console.ReadLine() work normally for TUI
                     );
 
-                    didRunInit = true; // Mark init as done after run-all completes
+                    //didRunInit = true; // Mark init as done after run-all completes
 
                     System.Console.WriteLine(result.Success
                         ? $"Completed successfully. ({result.SucceededOperations}/{result.TotalOperations} operations succeeded). Press any key to continue..."
@@ -425,18 +438,16 @@ internal class TUI {
                 continue;
             }
 
-            string name = prompt.TryGetValue("Name", out object? n) ? n?.ToString() ?? "" : "";
-            string type = prompt.TryGetValue("type", out object? tt) ? tt?.ToString() ?? "" : "";
+            string? name = prompt.TryGetValue("Name", out object? n) ? n?.ToString() : null;
+            string? type = prompt.TryGetValue("type", out object? tt) ? tt?.ToString() : null;
             if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(type)) {
                 continue;
             }
 
             // If there's a condition and it's false, skip asking and assign an empty value
-            if (prompt.TryGetValue("condition", out object? cond) && cond is string condName) {
-                if (!answers.TryGetValue(condName, out object? condVal) || condVal is not bool b || !b) {
-                    answers[name] = EmptyForType(type);
-                    continue;
-                }
+            if ((prompt.TryGetValue("condition", out object? cond) && cond is string condName) && (!answers.TryGetValue(condName, out object? condVal) || condVal is not bool b || !b)) {
+                answers[name] = EmptyForType(type);
+                continue;
             }
 
             switch (type) {

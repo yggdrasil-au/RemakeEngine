@@ -14,7 +14,7 @@ public partial class StorePage:UserControl {
 
     /* :: :: Vars :: START :: */
     // //
-    private readonly Core.OperationsEngine? _engine;
+    private readonly Core.Engine? _engine;
 
     internal ObservableCollection<StoreItem> Items {
         get;
@@ -69,7 +69,7 @@ public partial class StorePage:UserControl {
     /// Constructs the StorePage with the given OperationsEngine.
     /// </summary>
     /// <param name="engine"></param>
-    internal StorePage(Core.OperationsEngine engine) {
+    internal StorePage(Core.Engine engine) {
         _engine = engine;
         DataContext = this;
         InitializeComponent();
@@ -269,7 +269,6 @@ public partial class StorePage:UserControl {
 
     private sealed class Cmd(System.Func<object?, Task> run):System.Windows.Input.ICommand {
         private readonly Func<object?, Task> _run = run;
-
         public bool CanExecute(object? p) => true;
         public async void Execute(object? p) => await _run(p);
         public event EventHandler? CanExecuteChanged;

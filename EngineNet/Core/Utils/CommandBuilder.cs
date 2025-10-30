@@ -19,15 +19,6 @@ internal sealed class CommandBuilder {
         _rootPath = rootPath;
     }
 
-    private string GetExecutableForOperation(IDictionary<string, object?> op) {
-        string scriptType = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant() ?? "python";
-        if (scriptType == "python") {
-            // TODO: when Python support is re-added, implement IToolResolver for locating Python runtime
-            return "PYTHON NOT RE-IMPLEMENTED YET";
-        }
-        return scriptType; // just returns script type as executable name
-    }
-
     /// <summary>
     /// Build a process invocation for the given operation.
     /// </summary>
@@ -46,42 +37,42 @@ internal sealed class CommandBuilder {
         IDictionary<string, object?> op,
         IDictionary<string, object?> promptAnswers) {
         if (string.IsNullOrWhiteSpace(currentGame)) {
-            throw new System.ArgumentException("No game has been loaded.", nameof(currentGame));
+            throw new System.ArgumentException(message: "No game has been loaded.", nameof(currentGame));
         }
 
         // Build context = engineConfig + built-ins + Game{ RootPath, Name }
-        Dictionary<string, object?> ctx = new(engineConfig, System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object?> ctx = new Dictionary<string, object?>(engineConfig, System.StringComparer.OrdinalIgnoreCase);
 
         if (!games.TryGetValue(currentGame, out object? g) || g is not IDictionary<string, object?> gdict) {
-            throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
+            throw new KeyNotFoundException(message: $"Unknown game '{currentGame}'.");
         }
 
-        string gameRoot = gdict.TryGetValue("game_root", out object? gr) ? gr?.ToString() ?? "" : "";
+        string gameRoot = gdict.TryGetValue(key: "game_root", out object? gr) ? gr?.ToString() ?? "" : "";
         // Inject built-in, non-dotted placeholders for convenience
         // Examples:
         //  - {{Game_Root}} -> path to the active module/game
         //  - {{Project_Root}} -> engine project root folder
         //  - {{Registry_Root}} -> EngineApps folder under project root
-        ctx["Game_Root"] = gameRoot;
-        ctx["Project_Root"] = _rootPath;
-        ctx["Registry_Root"] = System.IO.Path.Combine(_rootPath, "EngineApps");
+        ctx[key: "Game_Root"] = gameRoot;
+        ctx[key: "Project_Root"] = _rootPath;
+        ctx[key: "Registry_Root"] = System.IO.Path.Combine(_rootPath, "EngineApps");
 
-        ctx["Game"] = new Dictionary<string, object?> {
-            ["RootPath"] = gameRoot,
-            ["Name"] = currentGame,
+        ctx[key: "Game"] = new Dictionary<string, object?> {
+            [key: "RootPath"] = gameRoot,
+            [key: "Name"] = currentGame,
         };
 
         // Back-compat: ensure dynamic RemakeEngine.Config.module_path and project_path exist
-        if (!ctx.TryGetValue("RemakeEngine", out object? re) || re is not IDictionary<string, object?> reDict) {
-            ctx["RemakeEngine"] = reDict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+        if (!ctx.TryGetValue(key: "RemakeEngine", out object? re) || re is not IDictionary<string, object?> reDict) {
+            ctx[key: "RemakeEngine"] = reDict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
         }
 
-        if (!reDict.TryGetValue("Config", out object? cfg) || cfg is not IDictionary<string, object?> cfgDict) {
-            reDict["Config"] = cfgDict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+        if (!reDict.TryGetValue(key: "Config", out object? cfg) || cfg is not IDictionary<string, object?> cfgDict) {
+            reDict[key: "Config"] = cfgDict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
         }
 
-        cfgDict["module_path"] = gameRoot;
-        cfgDict["project_path"] = _rootPath;
+        cfgDict[key: "module_path"] = gameRoot;
+        cfgDict[key: "project_path"] = _rootPath;
 
         // Merge module-specific placeholders from config.toml (if present)
         try {
@@ -97,16 +88,15 @@ internal sealed class CommandBuilder {
         } catch {
             // non-fatal: ignore bad/missing config
         }
-
-        string executable = GetExecutableForOperation(op);
-        if (!op.TryGetValue("script", out object? scriptObj)) {
+        string script_type = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant() ?? "python";
+        if (!op.TryGetValue(key: "script", out object? scriptObj)) {
             return [];
         }
 
         string scriptPath = Placeholders.Resolve(scriptObj, ctx)?.ToString() ?? string.Empty;
-        List<string> parts = [executable, scriptPath];
+        List<string> parts = [script_type, scriptPath];
 
-        if (op.TryGetValue("args", out object? argsObj) && argsObj is IList<object?> aList) {
+        if (op.TryGetValue(key: "args", out object? argsObj) && argsObj is IList<object?> aList) {
             IList<object?> resolved = (IList<object?>)(Placeholders.Resolve(aList, ctx) ?? new List<object?>());
             foreach (object? a in resolved) {
                 if (a is not null) {
@@ -115,15 +105,15 @@ internal sealed class CommandBuilder {
             }
         }
 
-        if (op.TryGetValue("prompts", out object? promptsObj) && promptsObj is IList<object?> prompts) {
+        if (op.TryGetValue(key: "prompts", out object? promptsObj) && promptsObj is IList<object?> prompts) {
             // First pass: seed promptAnswers with defaults so conditions can evaluate
             foreach (object? p in prompts) {
                 if (p is not IDictionary<string, object?> prompt) {
                     continue;
                 }
 
-                string name = prompt.TryGetValue("Name", out object? n) ? n?.ToString() ?? "" : "";
-                string type = prompt.TryGetValue("type", out object? t) ? t?.ToString() ?? "" : "";
+                string name = prompt.TryGetValue(key: "Name", out object? n) ? n?.ToString() ?? "" : "";
+                string type = prompt.TryGetValue(key: "type", out object? t) ? t?.ToString() ?? "" : "";
                 if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(type)) {
                     continue;
                 }
@@ -139,30 +129,28 @@ internal sealed class CommandBuilder {
                     continue;
                 }
 
-                string name = prompt.TryGetValue("Name", out object? n) ? n?.ToString() ?? "" : "";
-                string type = prompt.TryGetValue("type", out object? t) ? t?.ToString() ?? "" : "";
+                string name = prompt.TryGetValue(key: "Name", out object? n) ? n?.ToString() ?? "" : "";
+                string type = prompt.TryGetValue(key: "type", out object? t) ? t?.ToString() ?? "" : "";
 
                 if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(type)) {
                     continue;
                 }
 
-                if (prompt.TryGetValue("condition", out object? cond) && cond is string condName) {
-                    if (!promptAnswers.TryGetValue(condName, out object? condVal) || condVal is not bool b || !b) {
-                        continue;
-                    }
+                if (prompt.TryGetValue("condition", out object? cond) && cond is string condName && (!promptAnswers.TryGetValue(condName, out object? condVal) || condVal is not bool b || !b)) {
+                    continue;
                 }
 
                 _ = promptAnswers.TryGetValue(name, out object? ans);
 
                 switch (type) {
                     case "confirm":
-                        if (ans is bool cb && cb && prompt.TryGetValue("cli_arg", out object? cli) && cli is string s1) {
+                        if (ans is bool cb && cb && prompt.TryGetValue(key: "cli_arg", out object? cli) && cli is string s1) {
                             parts.Add(s1);
                         }
 
                         break;
                     case "checkbox":
-                        if (ans is IList<object?> items && prompt.TryGetValue("cli_prefix", out object? pref) && pref is string sp) {
+                        if (ans is IList<object?> items && prompt.TryGetValue(key: "cli_prefix", out object? pref) && pref is string sp) {
                             parts.Add(sp);
                             foreach (object? it in items) {
                                 if (it is not null) {
@@ -189,4 +177,5 @@ internal sealed class CommandBuilder {
 
         return parts;
     }
+
 }

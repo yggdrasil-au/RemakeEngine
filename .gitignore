@@ -137,13 +137,17 @@ dev/
 ############################
 # ignore submodules file, the games modules are managed by the app, this is here for VS code to detect them
 .gitmodules
-EngineApps/Games/**
+EngineApps/Games/
 EngineApps/Games/demo/TMP/
 EngineApps/Games/demo/TMP/**
+EngineApps/Games/demo/TMP/lua-demo/
+EngineApps/Games/demo/TMP/lua-demo/**
 
-# dont ignore demo 
+# dont ignore demo
 !EngineApps/Games/demo/
-!EngineApps/Games/demo/**
+!EngineApps/Games/demo/Tools.toml
+!EngineApps/Games/demo/operations.toml
+!EngineApps/Games/demo/operations_commands.md
 !EngineApps/Games/demo/scripts/
 !EngineApps/Games/demo/scripts/**
 

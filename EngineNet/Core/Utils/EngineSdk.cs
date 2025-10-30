@@ -8,23 +8,17 @@ namespace EngineNet.Core.Utils;
 /// Lightweight SDK to communicate with the Remake Engine runner via stdout JSON events.
 /// Mirrors the behavior of Engine/Utils/Engine_sdk.py for C# tools and scripts.
 /// </summary>
-internal static class EngineSdk {
-    internal const string Prefix = "@@REMAKE@@ ";
-    /// <summary>
-    /// Optional in-process event sink. When set, Emit will invoke this
-    /// delegate with the event payload. If <see cref="MuteStdoutWhenLocalSink"/>
-    /// is true, stdout emission is suppressed to avoid double-printing.
-    /// </summary>
-    internal static System.Action<Dictionary<string, object?>>? LocalEventSink {
-        get; set;
-    }
-    internal static bool MuteStdoutWhenLocalSink { get; set; } = true;
+public static class EngineSdk {
+    /* :: :: Vars :: START :: */
+    public const string Prefix = "@@REMAKE@@ ";
 
-    /// <summary>
-    /// Auto-responses for prompts by ID. When a prompt with matching ID is requested,
-    /// the corresponding response is returned automatically without user interaction.
-    /// </summary>
-    internal static Dictionary<string, string> AutoPromptResponses { get; set; } = new(System.StringComparer.OrdinalIgnoreCase);
+    // Optional in-process event sink. When set, Emit will invoke this delegate with the event payload. If <see cref="MuteStdoutWhenLocalSink"/>
+    // is true, stdout emission is suppressed to avoid double-printing.
+    public static System.Action<Dictionary<string, object?>>? LocalEventSink { get; set; }
+    public static bool MuteStdoutWhenLocalSink { get; set; } = true;
+
+    // Auto-responses for prompts by ID. When a prompt with matching ID is requested, the corresponding response is returned automatically without user interaction.
+    public static Dictionary<string, string> AutoPromptResponses { get; set; } = new(System.StringComparer.OrdinalIgnoreCase);
 
     private static readonly System.Text.Json.JsonSerializerOptions JsonOpts = new() {
         WriteIndented = false,
@@ -32,11 +26,15 @@ internal static class EngineSdk {
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never
     };
 
+    /* :: :: Vars :: END :: */
+    //
+    /* :: :: Methods :: START :: */
+
     /// <summary>
     /// Emit a structured event line to stdout and flush immediately.
     /// Event payloads are single-line JSON preceded by the <see cref="Prefix"/>.
     /// </summary>
-    internal static void Emit(string @event, IDictionary<string, object?>? data = null) {
+    public static void Emit(string @event, IDictionary<string, object?>? data = null) {
         Dictionary<string, object?> payload = new Dictionary<string, object?>(System.StringComparer.Ordinal) {
             ["event"] = @event
         };
@@ -82,32 +80,32 @@ internal static class EngineSdk {
     /// <summary>
     /// Report a non-fatal warning to the engine UI/log.
     /// </summary>
-    internal static void Warn(string message) => Emit("warning", new Dictionary<string, object?> { ["message"] = message });
+    public static void Warn(string message) => Emit("warning", new Dictionary<string, object?> { ["message"] = message });
 
     /// <summary>
     /// Report an error to the engine UI/log (does not exit the process).
     /// </summary>
-    internal static void Error(string message) => Emit("error", new Dictionary<string, object?> { ["message"] = message });
+    public static void Error(string message) => Emit("error", new Dictionary<string, object?> { ["message"] = message });
 
     /// <summary>
     /// Informational message (non-warning).
     /// </summary>
-    internal static void Info(string message) => PrintLine(message, color: "cyan");
+    public static void Info(string message) => PrintLine(message, color: "cyan");
 
     /// <summary>
     /// Success message (green).
     /// </summary>
-    internal static void Success(string message) => PrintLine(message, color: "green");
+    public static void Success(string message) => PrintLine(message, color: "green");
 
     /// <summary>
     /// Mark the start of an operation or phase.
     /// </summary>
-    internal static void Start(string? op = null) => Emit("start", op is null ? null : new Dictionary<string, object?> { ["op"] = op });
+    public static void Start(string? op = null) => Emit("start", op is null ? null : new Dictionary<string, object?> { ["op"] = op });
 
     /// <summary>
     /// Mark the end of an operation or phase.
     /// </summary>
-    internal static void End(bool success = true, int exitCode = 0) => Emit(
+    public static void End(bool success = true, int exitCode = 0) => Emit(
         "end",
         new Dictionary<string, object?> { ["success"] = success, ["exit_code"] = exitCode }
     );
@@ -117,7 +115,7 @@ internal static class EngineSdk {
     /// Returns the answer without the trailing newline. May return an empty string.
     /// If an auto-response is available for the prompt ID, returns that instead of prompting.
     /// </summary>
-    internal static string Prompt(string message, string id = "q1", bool secret = false) {
+    public static string Prompt(string message, string id = "q1", bool secret = false) {
         // Check for auto-response first
         if (AutoPromptResponses.TryGetValue(id, out string? autoResponse)) {
             Emit("print", new Dictionary<string, object?> {
@@ -140,24 +138,68 @@ internal static class EngineSdk {
         }
     }
 
+    // --- Terminal printing helpers ---
+    /// <summary>
+    /// Emit a colored print event. Color names are case-insensitive and map to typical console colors:
+    /// default, gray, darkgray, red, darkred, green, darkgreen, yellow, darkyellow, blue, darkblue, magenta, darkmagenta, cyan, darkcyan, white.
+    /// </summary>
+    public static void Print(string message, string? color = null, bool newline = false) {
+        Dictionary<string, object?> data = new Dictionary<string, object?> {
+            ["message"] = message,
+            ["color"] = string.IsNullOrWhiteSpace(color) ? null : color,
+            ["newline"] = newline
+        };
+        Emit("print", data);
+    }
+
+    /// <summary>
+    /// Emit a colored print event using a ConsoleColor.
+    /// </summary>
+    public static void Print(string message, System.ConsoleColor color, bool newline = false) {
+        Print(message, color.ToString(), newline);
+    }
+
+    /// <summary>
+    /// Emit a colored print event with a trailing newline.
+    /// </summary>
+    public static void PrintLine(string message, string? color = null) {
+        Dictionary<string, object?> data = new Dictionary<string, object?> {
+            ["message"] = message,
+            ["color"] = string.IsNullOrWhiteSpace(color) ? null : color,
+            ["newline"] = true
+        };
+        Emit("print", data);
+    }
+
+    /// <summary>
+    /// Emit a colored print event using a ConsoleColor with a trailing newline.
+    /// </summary>
+    public static void PrintLine(string message, System.ConsoleColor color) {
+        Print(message, color.ToString(), true);
+    }
+
+    /* :: :: Methods :: END :: */
+    //
+    /* :: :: inner Classes :: :: */
+
     /// <summary>
     /// Helper class to report determinate progress to the engine UI.
     /// </summary>
-    internal sealed class Progress {
-        internal int Total {
+    public sealed class Progress {
+        public int Total {
             get;
         }
-        internal int Current {
+        public int Current {
             get; private set;
         }
-        internal string Id {
+        public string Id {
             get;
         }
-        internal string? Label {
+        public string? Label {
             get;
         }
 
-        internal Progress(int total, string id = "p1", string? label = null) {
+        public Progress(int total, string id = "p1", string? label = null) {
             Total = System.Math.Max(1, total);
             Current = 0;
             Id = id;
@@ -170,7 +212,7 @@ internal static class EngineSdk {
             });
         }
 
-        internal void Update(int inc = 1) {
+        public void Update(int inc = 1) {
             Current = System.Math.Min(Total, Current + System.Math.Max(1, inc));
             Emit("progress", new Dictionary<string, object?> {
                 ["id"] = Id,
@@ -181,68 +223,26 @@ internal static class EngineSdk {
         }
     }
 
-    // --- Terminal printing helpers ---
-    /// <summary>
-    /// Emit a colored print event. Color names are case-insensitive and map to typical console colors:
-    /// default, gray, darkgray, red, darkred, green, darkgreen, yellow, darkyellow, blue, darkblue, magenta, darkmagenta, cyan, darkcyan, white.
-    /// </summary>
-    internal static void Print(string message, string? color = null, bool newline = false) {
-        Dictionary<string, object?> data = new Dictionary<string, object?> {
-            ["message"] = message,
-            ["color"] = string.IsNullOrWhiteSpace(color) ? null : color,
-            ["newline"] = newline
-        };
-        Emit("print", data);
-    }
-
-    /// <summary>
-    /// Emit a colored print event using a ConsoleColor.
-    /// </summary>
-    internal static void Print(string message, System.ConsoleColor color, bool newline = false) {
-        Print(message, color.ToString(), newline);
-    }
-
-    /// <summary>
-    /// Emit a colored print event with a trailing newline.
-    /// </summary>
-    internal static void PrintLine(string message, string? color = null) {
-        Dictionary<string, object?> data = new Dictionary<string, object?> {
-            ["message"] = message,
-            ["color"] = string.IsNullOrWhiteSpace(color) ? null : color,
-            ["newline"] = true
-        };
-        Emit("print", data);
-    }
-
-    /// <summary>
-    /// Emit a colored print event using a ConsoleColor with a trailing newline.
-    /// </summary>
-    internal static void PrintLine(string message, System.ConsoleColor color) {
-        Print(message, color.ToString(), true);
-    }
-    // This is the logic from ConsoleProgress.cs, moved inside the SDK
-    // and modified to emit events instead of drawing to the console.
-
     /// <summary>
     /// Simple, reusable console progress panel with an optional list of active jobs.
     /// This class does NOT draw to the console; it emits structured "progress_panel"
     /// events that a listener (like the TUI) can use to render the panel.
     /// </summary>
-    internal static class SdkConsoleProgress {
+    public static class SdkConsoleProgress {
         /// <summary>
         /// Represents a single active process for the progress panel.
         /// </summary>
-        internal sealed class ActiveProcess {
-            internal string Tool { get; set; } = string.Empty;   // e.g., ffmpeg, vgmstream, txd
-            internal string File { get; set; } = string.Empty;   // file name only
-            internal System.DateTime StartedUtc { get; set; } = System.DateTime.UtcNow;
+        public sealed class ActiveProcess {
+            public string Tool { get; set; } = string.Empty;   // e.g., ffmpeg, vgmstream, txd
+            public string File { get; set; } = string.Empty;   // file name only
+            public System.DateTime StartedUtc { get; set; } = System.DateTime.UtcNow;
         }
 
         /// <summary>
         /// Starts a background task that periodically emits progress panel events
         /// until the token is cancelled.
         /// </summary>
-        internal static System.Threading.Tasks.Task StartPanel(
+        public static System.Threading.Tasks.Task StartPanel(
             int total,
             System.Func<(int processed, int ok, int skip, int err)> snapshot,
             System.Func<List<ActiveProcess>> activeSnapshot,

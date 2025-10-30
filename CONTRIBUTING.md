@@ -7,7 +7,6 @@ Thank you for helping build Remake Engine. This guide explains our development p
 ## Development Principles
 - **Module-first improvements:** We evolve the engine while building or maintaining real game modules. Avoid speculative engine changes that are not driven by a concrete module requirement.
 - **UI exception:** Improvements to the Avalonia GUI that improve usability or coherence are welcome even without a specific module driver.
-- **Specs stay in sync:** Every engine component is documented in `EngineNet/specs/`. When behaviour changes, update the matching `.spec.md` file (format described in `EngineNet/specs/spec.spec.md`).
 
 ## C# code style
 see [Style.md](Style.md)
@@ -59,21 +58,14 @@ If you are planning a release, coordinate the tag with maintainers so secrets (S
 3. **Update tests and docs:**
    - Add or adjust tests under `EngineNet.Tests/` when behaviour changes.
    - Update affected module data under `EngineApps/` and public docs in `RemakeEngineDocs/`.
-   - Keep the relevant spec in `EngineNet/specs/` accurate.
 4. **Submit a pull request:** Explain the intent, link to the driving module or issue, and include reproduction steps if fixing a bug. Ensure CI (build + tests + SonarCloud) is green.
 
 ### Pull Request Checklist
 - [ ] `dotnet build RemakeEngine.sln`
 - [ ] `dotnet test RemakeEngine.sln`
 - [ ] Behavioural changes covered by automated tests
-- [ ] Matching specification in `EngineNet/specs/` updated (see `spec.spec.md`)
 - [ ] Docs, manifests, or sample data refreshed when required
 - [ ] No unintentional breaking changes; include migration notes when needed
-
-## Specifications (`EngineNet/specs`)
-- Each `.spec.md` file describes the purpose, intent, goals, invariants, gaps, and TODOs for its corresponding code.
-- Follow the template defined in `EngineNet/specs/spec.spec.md`.
-- Keep specs concise but actionable; they are used during reviews to verify design and behaviour.
 
 ## Local Quality Expectations
 - Keep changes small and focused to streamline review.

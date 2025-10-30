@@ -21,8 +21,8 @@ internal static class DirectoryFlattener {
         internal bool Verbose;
         internal bool Debug;
         internal int? Workers;
-        internal List<string> SkipFlatten = new();
-        internal List<string> IgnoreDirs = new();
+        internal List<string> SkipFlatten = new List<string>();
+        internal List<string> IgnoreDirs = new List<string>();
     }
 
     private sealed class Rule {
@@ -31,7 +31,7 @@ internal static class DirectoryFlattener {
         internal bool IsRegex;
     }
 
-    private static readonly object ConsoleLock = new();
+    private static readonly object ConsoleLock = new object();
 
     /// <summary>
     /// Flattens a directory tree by copying or moving files into a single-level structure.
@@ -79,6 +79,7 @@ internal static class DirectoryFlattener {
         WriteInfo($"Destination: '{options.DestinationDir}'");
         WriteInfo($"Action: '{options.Action.ToUpperInvariant()}'");
         WriteInfo($"Workers: {options.Workers}");
+        WriteInfo($"Verify Hashes: {(options.Verify ? "Enabled" : "Disabled")}");
         if (options.SkipFlatten.Count > 0) {
             WriteInfo($"Skip Flatten: {string.Join(", ", options.SkipFlatten)}");
         }
@@ -124,7 +125,7 @@ internal static class DirectoryFlattener {
         }
 
         Options options = new Options();
-        List<string> positional = new();
+        List<string> positional = new List<string>();
 
         for (int i = 0; i < args.Count; i++) {
             string current = args[i];

@@ -8,7 +8,6 @@
         <StackPanel DockPanel.Dock="Left" Width="220" Spacing="8" Margin="8">
             <TextBlock Text="Navigation" FontWeight="Bold" Margin="0,0,0,8"/>
 
-            <Button Content="Home"    Click="OnHome"/>
             <Button Content="Library" Click="OnLibrary"/>
             <Button Content="Store"   Click="OnStore"/>
             <Button Content="Building" Click="OnBuilding"/>

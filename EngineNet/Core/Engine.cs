@@ -1,15 +1,17 @@
 
+using DynamicData;
+using EngineNet.Core.Utils;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Tomlyn;
-using System;
-using System.Linq;
 
 namespace EngineNet.Core;
 
 internal sealed record RunAllResult(string Game, bool Success, int TotalOperations, int SucceededOperations);
 
-internal sealed partial class OperationsEngine {
+internal sealed partial class Engine {
     private readonly string _rootPath;
 
     private readonly Tools.IToolResolver _tools;
@@ -18,7 +20,7 @@ internal sealed partial class OperationsEngine {
     private readonly Core.Utils.CommandBuilder _builder;
     private readonly Core.Utils.GitTools _git;
 
-    internal OperationsEngine(string rootPath, Tools.IToolResolver tools, EngineConfig engineConfig) {
+    internal Engine(string rootPath, Tools.IToolResolver tools, EngineConfig engineConfig) {
         _rootPath = rootPath;
         _tools = tools;
         _engineConfig = engineConfig;
@@ -38,9 +40,9 @@ internal sealed partial class OperationsEngine {
 
     internal async System.Threading.Tasks.Task<RunAllResult> RunAllAsync(
         string gameName,
-        Core.Utils.ProcessRunner.OutputHandler? onOutput = null,
-        Core.Utils.ProcessRunner.EventHandler? onEvent = null,
-        Core.Utils.ProcessRunner.StdinProvider? stdinProvider = null,
+        Core.ProcessRunner.OutputHandler? onOutput = null,
+        Core.ProcessRunner.EventHandler? onEvent = null,
+        Core.ProcessRunner.StdinProvider? stdinProvider = null,
         System.Threading.CancellationToken cancellationToken = default) {
 
 #if DEBUG
@@ -131,7 +133,7 @@ internal sealed partial class OperationsEngine {
                     } else {
                         List<string> command = BuildCommand(gameName, games, op, promptAnswers);
                         if (command.Count >= 2) {
-                            Core.Utils.ProcessRunner.EventHandler? proxy = onEvent is null ? null : evt => {
+                            Core.ProcessRunner.EventHandler? proxy = onEvent is null ? null : evt => {
                                 Dictionary<string, object?> payload = CloneEvent(evt);
                                 payload["game"] = gameName;
                                 payload["operation"] = currentOperation;
@@ -149,9 +151,9 @@ internal sealed partial class OperationsEngine {
                     }
                 } catch (System.Exception ex) {
                     overallSuccess = false;
-                    EmitSequenceEvent(onEvent, "run-all-op-error", gameName, new Dictionary<string, object?> {
-                        ["name"] = currentOperation,
-                        ["message"] = ex.Message
+                    EmitSequenceEvent(onEvent, evt: "run-all-op-error", gameName, extras: new Dictionary<string, object?> {
+                        [key: "name"] = currentOperation,
+                        [key: "message"] = ex.Message
                     });
                 } finally {
                     ReloadProjectConfig();
@@ -192,7 +194,7 @@ internal sealed partial class OperationsEngine {
     }
 
     private static void EmitSequenceEvent(
-        Core.Utils.ProcessRunner.EventHandler? sink,
+        Core.ProcessRunner.EventHandler? sink,
         string evt,
         string game,
         IDictionary<string, object?>? extras = null) {
@@ -335,13 +337,14 @@ internal sealed partial class OperationsEngine {
         _ => null
     };
 
-    private static string GetString(IDictionary<string, object?> dict, string key)
-        => dict.TryGetValue(key, out object? value) ? value?.ToString() ?? string.Empty : string.Empty;
+    private static string GetString(Dictionary<string, object?> dict, string key) {
+        return dict.TryGetValue(key, out object? value) ? value?.ToString() ?? string.Empty : string.Empty;
+    }
 
     private sealed class StdinRedirectReader:System.IO.TextReader {
-        private readonly Core.Utils.ProcessRunner.StdinProvider _provider;
+        private readonly Core.ProcessRunner.StdinProvider _provider;
 
-        internal StdinRedirectReader(Core.Utils.ProcessRunner.StdinProvider provider) => _provider = provider;
+        internal StdinRedirectReader(Core.ProcessRunner.StdinProvider provider) => _provider = provider;
 
         public override string? ReadLine() => _provider();
     }
@@ -358,7 +361,7 @@ internal sealed partial class OperationsEngine {
     /// </summary>
     /// <param name="opsFile">Path to operations.toml or operations.json.</param>
     /// <returns>List of operation maps (dictionary of string to object).</returns>
-    internal List<Dictionary<string, object?>> LoadOperationsList(string opsFile) {
+    internal static List<Dictionary<string, object?>> LoadOperationsList(string opsFile) {
         string ext = System.IO.Path.GetExtension(opsFile);
         if (ext.Equals(".toml", System.StringComparison.OrdinalIgnoreCase)) {
             Tomlyn.Syntax.DocumentSyntax tdoc = Tomlyn.Toml.Parse(System.IO.File.ReadAllText(opsFile));
@@ -402,9 +405,10 @@ internal sealed partial class OperationsEngine {
             }
             return flat;
         }
-        return new();
+        return new List<Dictionary<string, object?>>();
     }
-        /// <summary>
+
+    /// <summary>
     /// Build a process command line from an operation and context using the underlying <see cref="Core.Utils.CommandBuilder"/>.
     /// </summary>
     /// <param name="currentGame">Selected game/module id.</param>
@@ -430,12 +434,12 @@ internal sealed partial class OperationsEngine {
     internal bool ExecuteCommand(
         IList<string> commandParts,
         string title,
-        EngineNet.Core.Utils.ProcessRunner.OutputHandler? onOutput = null,
-        Core.Utils.ProcessRunner.EventHandler? onEvent = null,
-        Core.Utils.ProcessRunner.StdinProvider? stdinProvider = null,
+        EngineNet.Core.ProcessRunner.OutputHandler? onOutput = null,
+        Core.ProcessRunner.EventHandler? onEvent = null,
+        Core.ProcessRunner.StdinProvider? stdinProvider = null,
         IDictionary<string, object?>? envOverrides = null,
         CancellationToken cancellationToken = default) {
-        Core.Utils.ProcessRunner runner = new Core.Utils.ProcessRunner();
+        Core.ProcessRunner runner = new Core.ProcessRunner();
         return runner.Execute(commandParts, title, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, envOverrides: envOverrides, cancellationToken: cancellationToken);
     }
     /// <summary>
@@ -536,7 +540,7 @@ internal sealed partial class OperationsEngine {
                         try {
                             string cfgPath = System.IO.Path.Combine(gameRootBms, "config.toml");
                             if (!string.IsNullOrWhiteSpace(gameRootBms) && System.IO.File.Exists(cfgPath)) {
-                                Dictionary<string, object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                                Dictionary<string, object?> fromToml = Core.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
                                 foreach (KeyValuePair<string, object?> kv in fromToml) {
                                     if (!ctx.ContainsKey(kv.Key)) ctx[kv.Key] = kv.Value;
                                 }
@@ -574,12 +578,10 @@ internal sealed partial class OperationsEngine {
                     try {
                         string? action = op.TryGetValue("script", out object? s) ? s?.ToString() : null;
                         string? title = op.TryGetValue("Name", out object? n) ? n?.ToString() ?? action : action;
-                        System.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
 #if DEBUG
                         System.Console.WriteLine($"Executing engine operation {title} ({action})");
 #endif
-                        System.Console.WriteLine($"\n>>> Engine operation: {title}");
-                        System.Console.ResetColor();
+                        EngineSdk.PrintLine(message: $"\n>>> Engine operation: {title}");
                         result = await ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, cancellationToken);
                     } catch (System.Exception ex) {
                         System.Console.WriteLine($"engine ERROR: {ex.Message}");
@@ -587,11 +589,8 @@ internal sealed partial class OperationsEngine {
                     }
                     break;
                 }
-                case "python":
                 default: {
                     // not supported
-                    //Core.Utils.ProcessRunner runner = new Core.Utils.ProcessRunner();
-                    //result = runner.Execute(parts, System.IO.Path.GetFileName(scriptPath), cancellationToken: cancellationToken);
                     break;
                 }
             }
@@ -676,7 +675,7 @@ internal sealed partial class OperationsEngine {
                 try {
                     string cfgPath = System.IO.Path.Combine(gameRoot, "config.toml");
                     if (!string.IsNullOrWhiteSpace(gameRoot) && System.IO.File.Exists(cfgPath)) {
-                        Dictionary<string, object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                        Dictionary<string, object?> fromToml = Core.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
                         foreach (KeyValuePair<string, object?> kv in fromToml) {
                             if (!ctx.ContainsKey(kv.Key)) {
                                 ctx[kv.Key] = kv.Value;
@@ -735,7 +734,7 @@ internal sealed partial class OperationsEngine {
                 try {
                     string cfgPath = System.IO.Path.Combine(gameRoot2, "config.toml");
                     if (!string.IsNullOrWhiteSpace(gameRoot2) && System.IO.File.Exists(cfgPath)) {
-                        Dictionary<string, object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                        Dictionary<string, object?> fromToml = Core.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
                         foreach (KeyValuePair<string, object?> kv in fromToml) {
                             if (!ctx.ContainsKey(kv.Key)) {
                                 ctx[kv.Key] = kv.Value;
@@ -805,7 +804,7 @@ internal sealed partial class OperationsEngine {
                 try {
                     string cfgPath = System.IO.Path.Combine(gameRoot3, "config.toml");
                     if (!string.IsNullOrWhiteSpace(gameRoot3) && System.IO.File.Exists(cfgPath)) {
-                        Dictionary<string, object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                        Dictionary<string, object?> fromToml = Core.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
                         foreach (KeyValuePair<string, object?> kv in fromToml) {
                             if (!ctx.ContainsKey(kv.Key)) {
                                 ctx[kv.Key] = kv.Value;
@@ -884,7 +883,7 @@ internal sealed partial class OperationsEngine {
                 try {
                     string cfgPath = System.IO.Path.Combine(gameRoot4, "config.toml");
                     if (!string.IsNullOrWhiteSpace(gameRoot4) && System.IO.File.Exists(cfgPath)) {
-                        Dictionary<string, object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                        Dictionary<string, object?> fromToml = Core.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
                         foreach (KeyValuePair<string, object?> kv in fromToml) {
                             if (!ctx.ContainsKey(kv.Key)) {
                                 ctx[kv.Key] = kv.Value;
@@ -967,7 +966,7 @@ internal sealed partial class OperationsEngine {
                 try {
                     string cfgPath = System.IO.Path.Combine(gameRoot5, "config.toml");
                     if (!string.IsNullOrWhiteSpace(gameRoot5) && System.IO.File.Exists(cfgPath)) {
-                        Dictionary<string, object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                        Dictionary<string, object?> fromToml = Core.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
                         foreach (KeyValuePair<string, object?> kv in fromToml) {
                             if (!ctx.ContainsKey(kv.Key)) {
                                 ctx[kv.Key] = kv.Value;
@@ -1025,7 +1024,7 @@ internal sealed partial class OperationsEngine {
                 try {
                     string cfgPath = System.IO.Path.Combine(gameRoot6, "config.toml");
                     if (!string.IsNullOrWhiteSpace(gameRoot6) && System.IO.File.Exists(cfgPath)) {
-                        Dictionary<string, object?> fromToml = EngineNet.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                        Dictionary<string, object?> fromToml = Core.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
                         foreach (KeyValuePair<string, object?> kv in fromToml) {
                             if (!ctx.ContainsKey(kv.Key)) {
                                 ctx[kv.Key] = kv.Value;
@@ -1269,4 +1268,5 @@ internal sealed partial class OperationsEngine {
         string dir = System.IO.Path.Combine(_rootPath, "EngineApps", "Games", name);
         return !System.IO.Directory.Exists(dir) ? "not_downloaded" : IsModuleInstalled(name) ? "installed" : "downloaded";
     }
+
 }

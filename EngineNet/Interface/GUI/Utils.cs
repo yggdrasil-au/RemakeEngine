@@ -20,10 +20,10 @@ internal static class Utils {
     /// <param name="executor">Callback that runs the actual engine work.</param>
     /// <param name="autoPromptResponses">Optional automatic prompt answers.</param>
     internal static async Task<TResult> ExecuteEngineOperationAsync<TResult>(
-        Core.OperationsEngine engine,
+        Core.Engine engine,
         string moduleName,
         string operationName,
-        System.Func<Core.Utils.ProcessRunner.OutputHandler, Core.Utils.ProcessRunner.EventHandler, Core.Utils.ProcessRunner.StdinProvider, Task<TResult>> executor,
+        System.Func<Core.ProcessRunner.OutputHandler, Core.ProcessRunner.EventHandler, Core.ProcessRunner.StdinProvider, Task<TResult>> executor,
         IDictionary<string, string>? autoPromptResponses = null) {
 
         OperationOutputService outputService = OperationOutputService.Instance;
@@ -48,14 +48,14 @@ internal static class Utils {
             }
         }
 
-        Core.Utils.ProcessRunner.EventHandler eventHandler = evt => {
+        Core.ProcessRunner.EventHandler eventHandler = evt => {
             CapturePrompt(evt);
             outputService.HandleEvent(evt);
         };
 
-        Core.Utils.ProcessRunner.OutputHandler outputHandler = (string line, string stream) => outputService.AddOutput(line, stream);
+        Core.ProcessRunner.OutputHandler outputHandler = (string line, string stream) => outputService.AddOutput(line, stream);
 
-        Core.Utils.ProcessRunner.StdinProvider stdinProvider = () => {
+        Core.ProcessRunner.StdinProvider stdinProvider = () => {
             string? promptMessage;
             string? promptId;
             bool promptSecret;

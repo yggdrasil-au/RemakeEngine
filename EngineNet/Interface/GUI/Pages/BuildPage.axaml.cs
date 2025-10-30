@@ -5,14 +5,16 @@ using Avalonia.Controls;
 
 namespace EngineNet.Interface.GUI.Pages;
 
-internal partial class BuildingPage : UserControl {
+internal partial class BuildingPage:UserControl {
     internal OperationOutputService Service => OperationOutputService.Instance;
 
-    internal Cmd ClearOutputCommand { get; }
+    internal Cmd ClearOutputCommand {
+        get;
+    }
 
     internal BuildingPage() : this(null) { }
 
-    internal BuildingPage(Core.OperationsEngine? engine) {
+    internal BuildingPage(Core.Engine? engine) {
         ClearOutputCommand = new Cmd(async _ => await Service.ClearAsync());
 
         InitializeComponent();
@@ -66,17 +68,15 @@ internal partial class BuildingPage : UserControl {
         svc.HandleEvent(progressPayload);
     }
 
-    internal sealed class Cmd : System.Windows.Input.ICommand {
+    internal sealed class Cmd:System.Windows.Input.ICommand {
         private readonly System.Func<object?, Task> _run;
 
         public Cmd(System.Func<object?, Task> run) {
             _run = run;
         }
 
-        public event System.EventHandler? CanExecuteChanged;
-
         public bool CanExecute(object? parameter) => true;
-
         public async void Execute(object? parameter) => await _run(parameter);
+        public event System.EventHandler? CanExecuteChanged;
     }
 }

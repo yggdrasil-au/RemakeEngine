@@ -5,7 +5,7 @@ namespace EngineNet.Interface.GUI.Pages;
 
 public partial class MainWindow:Window {
     /* :: :: Vars :: START :: */
-    private readonly Core.OperationsEngine? _engine;
+    private readonly Core.Engine? _engine;
 
     /* :: :: Vars :: END :: */
     // //
@@ -15,25 +15,17 @@ public partial class MainWindow:Window {
     /// </summary>
     public MainWindow() {
         InitializeComponent();
-        ShowHome();
+        // dont load any page by default
     }
 
     /// <summary>
     /// Main constructor
     /// </summary>
-    internal MainWindow(Core.OperationsEngine engine) {
+    internal MainWindow(Core.Engine engine) {
         _engine = engine;
         DataContext = this;
         InitializeComponent();
-        ShowHome(); // default page
-    }
-
-    private void ShowHome() {
-        if (_engine is null) {
-            ContentHost.Content = new Pages.HomePage();
-            return;
-        }
-        ContentHost.Content = new Pages.HomePage(_engine);
+        // dont load any page by default
     }
 
     private void ShowLibrary() {
@@ -69,7 +61,6 @@ public partial class MainWindow:Window {
     }
 
     // navbar button handlers
-    private void OnHome(object? s, RoutedEventArgs e) => ShowHome();
     private void OnLibrary(object? s, RoutedEventArgs e) => ShowLibrary();
     private void OnStore(object? s, RoutedEventArgs e) => ShowStore();
     private void OnBuilding(object? s, RoutedEventArgs e) => ShowBuilding();

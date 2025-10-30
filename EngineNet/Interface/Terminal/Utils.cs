@@ -25,7 +25,7 @@ internal class Utils {
     }
 
 
-    internal bool ExecuteOp(Core.OperationsEngine _engine, string game, IDictionary<string, object?> games, Dictionary<string, object?> op, Dictionary<string, object?> answers, Dictionary<string, string>? autoPromptResponses = null) {
+    internal bool ExecuteOp(Core.Engine _engine, string game, IDictionary<string, object?> games, Dictionary<string, object?> op, Dictionary<string, object?> answers, Dictionary<string, string>? autoPromptResponses = null) {
         string? type = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant();
 
         // Use embedded handlers for engine/lua/js/bms to avoid external dependencies

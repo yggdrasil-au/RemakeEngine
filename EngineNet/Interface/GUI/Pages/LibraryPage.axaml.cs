@@ -14,7 +14,7 @@ public partial class LibraryPage:UserControl {
 
     /* :: :: Vars :: START :: */
     // //
-    private readonly Core.OperationsEngine? _engine;
+    private readonly Core.Engine? _engine;
 
     private ObservableCollection<Row> Items {
         get;
@@ -22,16 +22,16 @@ public partial class LibraryPage:UserControl {
 
     // //
 
-    private System.Windows.Input.ICommand RefreshCommand {
+    private System.Windows.Input.ICommand? RefreshCommand {
         get;
     }
-    private System.Windows.Input.ICommand PlayCommand {
+    private System.Windows.Input.ICommand? PlayCommand {
         get;
     }
-    private System.Windows.Input.ICommand RunOpsCommand {
+    private System.Windows.Input.ICommand? RunOpsCommand {
         get;
     }
-    private System.Windows.Input.ICommand OpenFolderCommand {
+    private System.Windows.Input.ICommand? OpenFolderCommand {
         get;
     }
 
@@ -69,7 +69,7 @@ public partial class LibraryPage:UserControl {
     /// Constructs the LibraryPage with the given OperationsEngine.
     /// </summary>
     /// <param name="engine"></param>
-    internal LibraryPage(Core.OperationsEngine engine) {
+    internal LibraryPage(Core.Engine engine) {
         try {
             _engine = engine;
             InitializeComponent();
@@ -91,7 +91,7 @@ public partial class LibraryPage:UserControl {
                             _engine,
                             r.ModuleName,
                             operationName: "Run All Build Operations",
-                            (Core.Utils.ProcessRunner.OutputHandler onOutput, Core.Utils.ProcessRunner.EventHandler onEvent, Core.Utils.ProcessRunner.StdinProvider stdin) => _engine.RunAllAsync(
+                            (Core.ProcessRunner.OutputHandler onOutput, Core.ProcessRunner.EventHandler onEvent, Core.ProcessRunner.StdinProvider stdin) => _engine.RunAllAsync(
                                 r.ModuleName,
                                 onOutput: onOutput,
                                 onEvent: onEvent,

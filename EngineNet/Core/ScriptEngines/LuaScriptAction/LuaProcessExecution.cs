@@ -529,7 +529,7 @@ internal static class LuaProcessExecution {
     }
 
     internal static DynValue ExecInCurrentTerminal(Script lua, List<string> parts, string cwd, IDictionary<string, object?> env) {
-        Utils.ProcessRunner runner = new Utils.ProcessRunner();
+        Core.ProcessRunner runner = new Core.ProcessRunner();
         int exit = -1;
         // Merge env overrides
         Dictionary<string, object?> envOverrides = new Dictionary<string, object?>(env, System.StringComparer.Ordinal);

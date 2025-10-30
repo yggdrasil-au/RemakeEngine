@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace EngineNet.Core.Utils;
 
 /// <summary>
@@ -11,46 +13,26 @@ internal sealed class GitTools {
         _gamesDir = gamesDir;
     }
 
-    internal static bool IsGitInstalled() {
-        try {
-            System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
-                FileName = "git",
-                ArgumentList = { "--version" },
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                StandardOutputEncoding = System.Text.Encoding.UTF8,
-                StandardErrorEncoding = System.Text.Encoding.UTF8,
-            };
-            using System.Diagnostics.Process? p = System.Diagnostics.Process.Start(psi);
-            p!.WaitForExit(3000);
-            return p.ExitCode == 0;
-        } catch {
-            return false;
-        }
-    }
-
     internal bool CloneModule(string url) {
         if (string.IsNullOrWhiteSpace(url)) {
             return false;
         }
 
         if (!IsGitInstalled()) {
-            WriteColored("Git is not installed or not found in PATH.", System.ConsoleColor.Red, prefix: "ENGINE-GitTools");
+            Write("Git is not installed or not found in PATH.", prefix: "ENGINE-GitTools");
             return false;
         }
         try {
             string repoName = GuessRepoName(url);
             string target = System.IO.Path.Combine(_gamesDir, repoName);
             if (System.IO.Directory.Exists(target)) {
-                WriteColored($"Directory '{repoName}' already exists. Skipping download.", System.ConsoleColor.Yellow, prefix: "ENGINE-GitTools");
+                Write($"Directory '{repoName}' already exists. Skipping download.", prefix: "ENGINE-GitTools");
                 return true;
             }
 
             System.IO.Directory.CreateDirectory(_gamesDir);
-            WriteColored($"Downloading '{repoName}' from '{url}'...", System.ConsoleColor.Cyan, prefix: "ENGINE-GitTools");
-            WriteColored($"Target directory: '{target}'", System.ConsoleColor.Cyan, prefix: "ENGINE-GitTools");
+            Write($"Downloading '{repoName}' from '{url}'...", prefix: "ENGINE-GitTools");
+            Write($"Target directory: '{target}'", prefix: "ENGINE-GitTools");
 
             System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
                 FileName = "git",
@@ -70,20 +52,40 @@ internal sealed class GitTools {
                 throw new System.InvalidOperationException("Failed to start git");
             }
 
-            proc.OutputDataReceived += (_, e) => { if (e.Data != null) { WriteColored(e.Data, System.ConsoleColor.Blue, prefix: "ENGINE-GitTools"); } };
-            proc.ErrorDataReceived += (_, e) => { if (e.Data != null) { WriteColored(e.Data, System.ConsoleColor.Blue, prefix: "ENGINE-GitTools"); } };
+            proc.OutputDataReceived += (_, e) => { if (e.Data != null) { Write(e.Data, prefix: "ENGINE-GitTools"); } };
+            proc.ErrorDataReceived += (_, e) => { if (e.Data != null) { Write(e.Data, prefix: "ENGINE-GitTools"); } };
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
             proc.WaitForExit();
             int rc = proc.ExitCode;
             if (rc == 0) {
-                WriteColored($"\nSuccessfully downloaded '{repoName}'.", System.ConsoleColor.Green, prefix: "ENGINE-GitTools");
+                Write($"\nSuccessfully downloaded '{repoName}'.", prefix: "ENGINE-GitTools");
                 return true;
             }
-            WriteColored($"\nFailed to download '{repoName}'. Git exited with code {rc}.", System.ConsoleColor.Red, prefix: "ENGINE-GitTools");
+            Write($"\nFailed to download '{repoName}'. Git exited with code {rc}.", prefix: "ENGINE-GitTools");
             return false;
         } catch (System.Exception ex) {
-            WriteColored($"An error occurred during download: {ex.Message}", System.ConsoleColor.Red, prefix: "ENGINE-GitTools");
+            Write($"An error occurred during download: {ex.Message}", prefix: "ENGINE-GitTools");
+            return false;
+        }
+    }
+
+    private static bool IsGitInstalled() {
+        try {
+            System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
+                FileName = "git",
+                ArgumentList = { "--version" },
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                StandardOutputEncoding = System.Text.Encoding.UTF8,
+                StandardErrorEncoding = System.Text.Encoding.UTF8,
+            };
+            using System.Diagnostics.Process? p = System.Diagnostics.Process.Start(psi);
+            p!.WaitForExit(3000);
+            return p.ExitCode == 0;
+        } catch {
             return false;
         }
     }
@@ -111,18 +113,14 @@ internal sealed class GitTools {
         return name.EndsWith(".git", System.StringComparison.OrdinalIgnoreCase) ? name[..^4] : name;
     }
 
-    private static void WriteColored(string message, System.ConsoleColor color, string? prefix = null) {
-        System.ConsoleColor prev = System.Console.ForegroundColor;
-        try {
-            System.Console.ForegroundColor = color;
-            if (!string.IsNullOrWhiteSpace(prefix)) {
-                System.Console.Write($"[{prefix}] ");
-            }
-
-            System.Console.WriteLine(message);
-        } finally {
-            System.Console.ForegroundColor = prev;
+    private static void Write(string message, string? prefix = null) {
+        //System.Console.ForegroundColor = color;
+        if (!string.IsNullOrWhiteSpace(prefix)) {
+            EngineSdk.Print($"[{prefix}] ");
         }
+
+        EngineSdk.PrintLine(message);
+
     }
 }
 

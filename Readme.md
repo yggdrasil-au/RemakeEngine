@@ -12,7 +12,7 @@ Remake Engine is an extensible cross-platform orchestration engine for repeatabl
 - Tool orchestration for common pipelines (QuickBMS, FFmpeg, vgmstream, etc.).
 
 ## Documentation
-Project docs live at <https://yggdrasil-au.github.io/RemakeEngineDocs/index.html>. Engine internals are to be documented alongside each file (or mirrored under `/spec/` for each directory); see `spec.spec.md` for the specification format.
+Project docs live at <https://github.com/yggdrasil-au/RemakeEngineDocs> with a web page <https://yggdrasil-au.github.io/RemakeEngineDocs/index.html>
 
 ## Getting Started
 

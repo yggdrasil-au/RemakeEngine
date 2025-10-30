@@ -1,15 +1,11 @@
 # AGENTS.md
 
-## Setup commands
-- Install dotnet sdk 9.0.306: https://dotnet.microsoft.com/en-us/download/dotnet/9.0
+## Setup
 - Build: `dotnet build RemakeEngine.sln -c Debug`
 - Run tests: `dotnet test EngineNet.Tests\EngineNet.Tests.csproj -c Debug --no-build --logger "trx;LogFileName=test_results.trx"`
 
 ## Use Exact Code style
 read [Style.md](Style.md)
-
-## Use Spec files
-This project uses spec files to document design and behavior. See [spec.spec.md](spec.spec.md) for guidelines on writing and maintaining spec files.
 
 ## CONTRIBUTING
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and workflows.
