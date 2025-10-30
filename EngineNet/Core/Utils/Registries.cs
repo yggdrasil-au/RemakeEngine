@@ -11,7 +11,7 @@ internal sealed class Registries {
 
     private Dictionary<string, object?> _modules = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
 
-    public Registries(string rootPath) {
+    internal Registries(string rootPath) {
         _rootPath = rootPath;
 
         // Preferred locations (relative to working root)
@@ -30,13 +30,13 @@ internal sealed class Registries {
         _modules = EngineConfig.LoadJsonFile(_modulesRegistryPath);
     }
 
-    public void RefreshModules() => _modules = EngineConfig.LoadJsonFile(_modulesRegistryPath);
+    internal void RefreshModules() => _modules = EngineConfig.LoadJsonFile(_modulesRegistryPath);
 
-    public IReadOnlyDictionary<string, object?> GetRegisteredModules() {
+    internal IReadOnlyDictionary<string, object?> GetRegisteredModules() {
         return _modules.TryGetValue("modules", out object? m) && m is Dictionary<string, object?> dict ? dict : new Dictionary<string, object?>();
     }
 
-    public Dictionary<string, GameInfo> DiscoverGames() {
+    internal Dictionary<string, GameInfo> DiscoverGames() {
         Dictionary<string, GameInfo> games = new Dictionary<string, GameInfo>(System.StringComparer.OrdinalIgnoreCase);
         if (!System.IO.Directory.Exists(_gamesRegistryPath)) {
             return games;
@@ -66,7 +66,7 @@ internal sealed class Registries {
     }
 
 
-    public Dictionary<string, GameInfo> DiscoverBuiltGames() {
+    internal Dictionary<string, GameInfo> DiscoverBuiltGames() {
         Dictionary<string, GameInfo> games = new Dictionary<string, GameInfo>(System.StringComparer.OrdinalIgnoreCase);
         if (!System.IO.Directory.Exists(_gamesRegistryPath)) {
             return games;

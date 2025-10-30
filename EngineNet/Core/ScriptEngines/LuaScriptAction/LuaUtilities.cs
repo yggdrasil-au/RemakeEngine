@@ -17,7 +17,7 @@ namespace EngineNet.Core.ScriptEngines.LuaModules;
 /// Utility methods for converting between Lua and .NET data types.
 /// </summary>
 internal static class LuaUtilities {
-    public static DynValue ToDynValue(Script lua, object? value) {
+    internal static DynValue ToDynValue(Script lua, object? value) {
         if (value is null || value is System.DBNull)
             return DynValue.Nil;
 
@@ -65,7 +65,7 @@ internal static class LuaUtilities {
         return DynValue.NewString(value.ToString() ?? string.Empty);
     }
 
-    public static IDictionary<string, object?> TableToDictionary(Table table) {
+    internal static IDictionary<string, object?> TableToDictionary(Table table) {
         Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.Ordinal);
         foreach (TablePair pair in table.Pairs) {
             // Convert key to string
@@ -79,7 +79,7 @@ internal static class LuaUtilities {
         return dict;
     }
 
-    public static object? FromDynValue(DynValue v) => v.Type switch {
+    internal static object? FromDynValue(DynValue v) => v.Type switch {
         DataType.Nil or DataType.Void => null,
         DataType.Boolean => v.Boolean,
         DataType.Number => v.Number,
@@ -88,7 +88,7 @@ internal static class LuaUtilities {
         _ => v.ToPrintString()
     };
 
-    public static object TableToPlainObject(Table t) {
+    internal static object TableToPlainObject(Table t) {
         // Heuristic: if all keys are consecutive 1..n numbers, treat as array
         int count = 0;
         bool arrayLike = true;
@@ -109,7 +109,7 @@ internal static class LuaUtilities {
         return TableToDictionary(t);
     }
 
-    public static List<string> TableToStringList(Table t) {
+    internal static List<string> TableToStringList(Table t) {
         List<string> list = new List<string>();
         // Iterate up to the numeric length; stop when we hit a Nil entry
         for (int i = 1; i <= t.Length; i++) {
@@ -124,7 +124,7 @@ internal static class LuaUtilities {
         return list;
     }
 
-    public static DynValue JsonElementToDynValue(Script lua, System.Text.Json.JsonElement el) {
+    internal static DynValue JsonElementToDynValue(Script lua, System.Text.Json.JsonElement el) {
         switch (el.ValueKind) {
             case System.Text.Json.JsonValueKind.Object:
                 Table t = new Table(lua);

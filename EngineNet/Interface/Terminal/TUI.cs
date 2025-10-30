@@ -12,11 +12,11 @@ internal class TUI {
     private int _progressPanelTop;
     private int _progressLastLines;
 
-    public TUI(Core.OperationsEngine engine) {
+    internal TUI(Core.OperationsEngine engine) {
         _engine = engine;
     }
 
-    public async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync() {
+    internal async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync() {
         // 1) Pick a game, or offer to download a module if none exist
         Dictionary<string, object?> games = _engine.ListGames();
         while (games.Count == 0) {

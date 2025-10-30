@@ -12,23 +12,23 @@ namespace EngineNet.Core.FileHandlers;
 /// </summary>
 internal static class DirectoryFlattener {
     private sealed class Options {
-        public string SourceDir = string.Empty;
-        public string DestinationDir = string.Empty;
-        public string Action = "copy"; // copy | move
-        public string Separator = "^";
-        public string? RulesFile;
-        public bool Verify;
-        public bool Verbose;
-        public bool Debug;
-        public int? Workers;
-        public List<string> SkipFlatten = new();
-        public List<string> IgnoreDirs = new();
+        internal string SourceDir = string.Empty;
+        internal string DestinationDir = string.Empty;
+        internal string Action = "copy"; // copy | move
+        internal string Separator = "^";
+        internal string? RulesFile;
+        internal bool Verify;
+        internal bool Verbose;
+        internal bool Debug;
+        internal int? Workers;
+        internal List<string> SkipFlatten = new();
+        internal List<string> IgnoreDirs = new();
     }
 
     private sealed class Rule {
-        public string Pattern = string.Empty;
-        public string Replacement = string.Empty;
-        public bool IsRegex;
+        internal string Pattern = string.Empty;
+        internal string Replacement = string.Empty;
+        internal bool IsRegex;
     }
 
     private static readonly object ConsoleLock = new();
@@ -38,7 +38,7 @@ internal static class DirectoryFlattener {
     /// </summary>
     /// <param name="args">CLI-style args: --source DIR --dest DIR [--action copy|move] [--separator S] [--rules FILE] [--verify] [--workers N] [--verbose] [--debug] [--skip-flatten FOLDER] [--ignore FOLDER]</param>
     /// <returns>True if all operations succeed (or nothing to do); false otherwise.</returns>
-    public static bool Run(IList<string> args) {
+    internal static bool Run(IList<string> args) {
         Options options;
         try {
             options = Parse(args);

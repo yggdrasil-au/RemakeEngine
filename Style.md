@@ -1,4 +1,4 @@
-C# Style
+C# Code Style
 
 C# code style for my project
 Namespaces: Use file-scoped namespaces (e.g., namespace MyProject;).
@@ -22,19 +22,26 @@ if (condition) {
 }
 ```
 
-Named Arguments: Use named arguments for clarity, especially for exception constructors (message:) or delegate/lambda parameters (onEvent:).
-Type Declarations: Prefer explicit type declarations over var.
+Named Arguments: Always use named arguments for every Call of any kind.
+Type Declarations: Always use explicit type declarations never var or dynamic unless absolutely necessary.
 Code Structure: Use formatted block comments to delineate major sections within a file.
 ```C#
 /* :: :: Constructors :: START :: */
 
-public LibraryPage() { ... }
+public LibraryPage() {
+    ...
+}
 
 /* :: :: Constructors :: END :: */
 // //
 /* :: :: Methods :: START :: */
 
-private void Load() { ... }
+private void Load() {
+    ...
+}
 
 /* :: :: Methods :: END :: */
 ```
+
+Indentation: Use 4 spaces per indentation level.
+

@@ -39,7 +39,7 @@ internal static class LuaSecurity {
         }
     }
 
-    public static bool EnsurePathAllowedWithPrompt(string path) {
+    internal static bool EnsurePathAllowedWithPrompt(string path) {
         if (IsAllowedPath(path)) {
             return true;
         }
@@ -62,7 +62,7 @@ internal static class LuaSecurity {
     /// Security validation: Check if executable is approved for RemakeEngine use.
     /// Allows registered tools, common system utilities, and resolved tool paths.
     /// </summary>
-    public static bool IsApprovedExecutable(string executable, Tools.IToolResolver tools) {
+    internal static bool IsApprovedExecutable(string executable, Tools.IToolResolver tools) {
         if (string.IsNullOrWhiteSpace(executable)) {
             return false;
         }
@@ -149,7 +149,7 @@ internal static class LuaSecurity {
     /// Security validation: Check if file path is within allowed workspace areas.
     /// Prevents access to sensitive system files while allowing game asset processing.
     /// </summary>
-    public static bool IsAllowedPath(string path) {
+    internal static bool IsAllowedPath(string path) {
         if (string.IsNullOrWhiteSpace(path)) {
             return false;
         }

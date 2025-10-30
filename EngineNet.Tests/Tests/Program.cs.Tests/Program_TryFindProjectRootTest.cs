@@ -7,14 +7,14 @@
 //            - CreateToolResolver (file precedence)
 // Notes:
 //   - We avoid calling Program.Main(...) because it spins up real subsystems.
-//   - We reflect the internal Program type from the EngineNet assembly.
+//   - We reflect the public Program type from the EngineNet assembly.
 // -----------------------------------------------------------------------------
 
 
 namespace EngineNet.Tests;
 
 /// <summary>
-/// Reflection-based tests for internal helpers on EngineNet.Program.
+/// Reflection-based tests for public helpers on EngineNet.Program.
 /// </summary>
 public sealed partial class ProgramTests:IDisposable {
 

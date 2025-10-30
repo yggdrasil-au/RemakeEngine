@@ -11,7 +11,7 @@ internal static partial class Main {
     /// </summary>
     /// <param name="args">CLI-style args: [input_path] [--output_dir DIR]</param>
     /// <returns>True if extraction completed successfully.</returns>
-    public static bool Run(List<string> args) {
+    internal static bool Run(List<string> args) {
         try {
             Options options = Parse(args);
             TxdExporter exporter = new();

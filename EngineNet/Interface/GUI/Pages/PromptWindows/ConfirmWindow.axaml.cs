@@ -2,17 +2,17 @@ using Avalonia.Controls;
 
 namespace EngineNet.Interface.GUI.Pages.PromptWindows;
 
-public partial class ConfirmWindow:Window {
-    public bool Result {
+internal partial class ConfirmWindow:Window {
+    internal bool Result {
         get; private set;
     }
 
     // Parameterless constructor for XAML loader
-    public ConfirmWindow() {
+    internal ConfirmWindow() {
         InitializeComponent();
     }
 
-    public ConfirmWindow(string title, string question) {
+    internal ConfirmWindow(string title, string question) {
         InitializeComponent();
         Title = title;
         this.FindControl<TextBlock>(name: "Question")!.Text = question;
@@ -27,7 +27,7 @@ public partial class ConfirmWindow:Window {
         Close(Result);
     }
 
-    public System.Threading.Tasks.Task<bool> ShowAsync(Window owner) {
+    internal System.Threading.Tasks.Task<bool> ShowAsync(Window owner) {
         return ShowDialog<bool>(owner);
     }
 }

@@ -11,13 +11,13 @@ namespace EngineNet.Core.ScriptEngines.Helpers;
 /// </summary>
 internal static class QuickBmsExtractor {
     private sealed class Options {
-        public string QuickBmsExe = string.Empty;
-        public string BmsScript = string.Empty;
-        public string InputPath = string.Empty;
-        public string OutputPath = string.Empty;
-        public string Extension = "*";
-        public bool Overwrite;
-        public List<string> Targets { get; } = new List<string>();
+        internal string QuickBmsExe = string.Empty;
+        internal string BmsScript = string.Empty;
+        internal string InputPath = string.Empty;
+        internal string OutputPath = string.Empty;
+        internal string Extension = "*";
+        internal bool Overwrite;
+        internal List<string> Targets { get; } = new List<string>();
     }
 
     /// <summary>
@@ -25,7 +25,7 @@ internal static class QuickBmsExtractor {
     /// </summary>
     /// <param name="args">CLI-style args: --quickbms PATH, --script PATH, --input DIR, --output DIR, [--extension EXT], [--overwrite], [targets...]</param>
     /// <returns>True when all processed files succeeded; false otherwise.</returns>
-    public static bool Run(IList<string> args) {
+    internal static bool Run(IList<string> args) {
         Options options;
         try {
             options = Parse(args);

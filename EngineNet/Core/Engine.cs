@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace EngineNet.Core;
 
-public sealed record RunAllResult(string Game, bool Success, int TotalOperations, int SucceededOperations);
+internal sealed record RunAllResult(string Game, bool Success, int TotalOperations, int SucceededOperations);
 
 internal sealed partial class OperationsEngine {
     private readonly string _rootPath;
@@ -18,7 +18,7 @@ internal sealed partial class OperationsEngine {
     private readonly Core.Utils.CommandBuilder _builder;
     private readonly Core.Utils.GitTools _git;
 
-    public OperationsEngine(string rootPath, Tools.IToolResolver tools, EngineConfig engineConfig) {
+    internal OperationsEngine(string rootPath, Tools.IToolResolver tools, EngineConfig engineConfig) {
         _rootPath = rootPath;
         _tools = tools;
         _engineConfig = engineConfig;
@@ -29,14 +29,14 @@ internal sealed partial class OperationsEngine {
 
     // getters for primary values and objects
 
-    public string GetRootPath() => _rootPath;
-    public Tools.IToolResolver GetToolResolver() => _tools;
-    public EngineConfig GetEngineConfig() => _engineConfig;
-    public Core.Utils.Registries GetRegistries() => _registries;
-    public Core.Utils.CommandBuilder GetCommandBuilder() => _builder;
-    public Core.Utils.GitTools GetGitTools() => _git;
+    internal string GetRootPath() => _rootPath;
+    internal Tools.IToolResolver GetToolResolver() => _tools;
+    internal EngineConfig GetEngineConfig() => _engineConfig;
+    internal Core.Utils.Registries GetRegistries() => _registries;
+    internal Core.Utils.CommandBuilder GetCommandBuilder() => _builder;
+    internal Core.Utils.GitTools GetGitTools() => _git;
 
-    public async System.Threading.Tasks.Task<RunAllResult> RunAllAsync(
+    internal async System.Threading.Tasks.Task<RunAllResult> RunAllAsync(
         string gameName,
         Core.Utils.ProcessRunner.OutputHandler? onOutput = null,
         Core.Utils.ProcessRunner.EventHandler? onEvent = null,
@@ -341,7 +341,7 @@ internal sealed partial class OperationsEngine {
     private sealed class StdinRedirectReader:System.IO.TextReader {
         private readonly Core.Utils.ProcessRunner.StdinProvider _provider;
 
-        public StdinRedirectReader(Core.Utils.ProcessRunner.StdinProvider provider) => _provider = provider;
+        internal StdinRedirectReader(Core.Utils.ProcessRunner.StdinProvider provider) => _provider = provider;
 
         public override string? ReadLine() => _provider();
     }
@@ -351,14 +351,14 @@ internal sealed partial class OperationsEngine {
     /// </summary>
     /// <param name="url">Git remote URL.</param>
     /// <returns>True if cloning succeeded.</returns>
-    public bool DownloadModule(string url) => _git.CloneModule(url);
+    internal bool DownloadModule(string url) => _git.CloneModule(url);
 
     /// <summary>
     /// Loads a flat list of operations from a TOML or JSON file.
     /// </summary>
     /// <param name="opsFile">Path to operations.toml or operations.json.</param>
     /// <returns>List of operation maps (dictionary of string to object).</returns>
-    public List<Dictionary<string, object?>> LoadOperationsList(string opsFile) {
+    internal List<Dictionary<string, object?>> LoadOperationsList(string opsFile) {
         string ext = System.IO.Path.GetExtension(opsFile);
         if (ext.Equals(".toml", System.StringComparison.OrdinalIgnoreCase)) {
             Tomlyn.Syntax.DocumentSyntax tdoc = Tomlyn.Toml.Parse(System.IO.File.ReadAllText(opsFile));
@@ -412,7 +412,7 @@ internal sealed partial class OperationsEngine {
     /// <param name="op">Operation object (script, args, prompts, etc.).</param>
     /// <param name="promptAnswers">Prompt answers affecting CLI mapping.</param>
     /// <returns>A list of parts: [exe, scriptPath, args...] or empty if no script.</returns>
-    public List<string> BuildCommand(string currentGame, IDictionary<string, object?> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers) {
+    internal List<string> BuildCommand(string currentGame, IDictionary<string, object?> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers) {
         return _builder.Build(currentGame, games, _engineConfig.Data, op, promptAnswers);
     }
 
@@ -427,7 +427,7 @@ internal sealed partial class OperationsEngine {
     /// <param name="envOverrides">Optional environment overrides for the child process.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>True on success (exit code 0), false otherwise.</returns>
-    public bool ExecuteCommand(
+    internal bool ExecuteCommand(
         IList<string> commandParts,
         string title,
         EngineNet.Core.Utils.ProcessRunner.OutputHandler? onOutput = null,
@@ -448,7 +448,7 @@ internal sealed partial class OperationsEngine {
     /// <param name="promptAnswers">Answers to prompt definitions.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>True if all operations reported success.</returns>
-    public async System.Threading.Tasks.Task<bool> RunOperationGroupAsync(
+    internal async System.Threading.Tasks.Task<bool> RunOperationGroupAsync(
         string gameName,
 		IDictionary<string, object?> games,
         string groupName,
@@ -470,7 +470,7 @@ internal sealed partial class OperationsEngine {
     /// or external processes depending on <c>script_type</c>.
     /// </summary>
     /// <returns>True on successful completion.</returns>
-    public async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
+    internal async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
         string currentGame,
         IDictionary<string, object?> games,
         IDictionary<string, object?> op,
@@ -617,7 +617,7 @@ internal sealed partial class OperationsEngine {
     /// Executes built-in engine actions such as tool downloads, format extraction/conversion,
     /// file validation, and folder rename helpers.
     /// </summary>
-    public async System.Threading.Tasks.Task<bool> ExecuteEngineOperationAsync(
+    internal async System.Threading.Tasks.Task<bool> ExecuteEngineOperationAsync(
         string currentGame,
         IDictionary<string, object?> games,
         IDictionary<string, object?> op,
@@ -1134,7 +1134,7 @@ internal sealed partial class OperationsEngine {
     /// <returns>
     /// A <code>Dictionary&lt;string, object?&gt;</code> where the key is the game's module name (string) and the value is another <code>Dictionary&lt;string, object?&gt;</code> containing game properties like 'game_root', 'ops_file', 'exe', and 'title'.
     /// </returns>
-    public Dictionary<string, object?> ListGames() {
+    internal Dictionary<string, object?> ListGames() {
         Dictionary<string, object?> games = new Dictionary<string, object?>();
         // Also look up installed games to enrich entries with exe/title when available
         Dictionary<string, Core.Utils.GameInfo> installed = _registries.DiscoverBuiltGames();
@@ -1160,7 +1160,7 @@ internal sealed partial class OperationsEngine {
     /// <returns>
     /// A <code>Dictionary&lt;string, object?&gt;</code> mapping module names (string) to a property dictionary (<code>Dictionary&lt;string, object?&gt;</code>). The property dictionary contains details for the installed/built game, such as 'game_root', 'ops_file', 'exe', and 'title'.
     /// </returns>
-    public Dictionary<string, object?> GetBuiltGames() {
+    internal Dictionary<string, object?> GetBuiltGames() {
         Dictionary<string, object?> games = new Dictionary<string, object?>();
         foreach (KeyValuePair<string, Core.Utils.GameInfo> kv in _registries.DiscoverBuiltGames()) {
             Dictionary<string, object?> info = new Dictionary<string, object?> {
@@ -1182,7 +1182,7 @@ internal sealed partial class OperationsEngine {
     /// <returns>
     /// An <code>IReadOnlyDictionary&lt;string, object?&gt;</code> where the key is the module name and the value is an object containing module metadata.
     /// </returns>
-    public IReadOnlyDictionary<string, object?> GetRegisteredModules() {
+    internal IReadOnlyDictionary<string, object?> GetRegisteredModules() {
         return _registries.GetRegisteredModules();
     }
 
@@ -1191,7 +1191,7 @@ internal sealed partial class OperationsEngine {
     /// </summary>
     /// <param name="name">The module name (string) to check.</param>
     /// <returns>A <code>bool</code> (true) if the module is found in the list of installed games; otherwise, <code>false</code>.</returns>
-    public bool IsModuleInstalled(string name) {
+    internal bool IsModuleInstalled(string name) {
         Dictionary<string, Core.Utils.GameInfo> games = _registries.DiscoverBuiltGames();
         return games.ContainsKey(name);
     }
@@ -1204,7 +1204,7 @@ internal sealed partial class OperationsEngine {
     /// A <code>string?</code> representing the full path to the game's executable. 
     /// Returns <code>null</code> if the game is not found or has no executable path defined.
     /// </returns>
-    public string? GetGameExecutable(string name) {
+    internal string? GetGameExecutable(string name) {
         Dictionary<string, Core.Utils.GameInfo> games = _registries.DiscoverBuiltGames();
         return games.TryGetValue(name, out Core.Utils.GameInfo? gi) ? gi.ExePath : null;
     }
@@ -1218,7 +1218,7 @@ internal sealed partial class OperationsEngine {
     /// A <code>string?</code> representing the path to the game's root directory. 
     /// Returns <code>null</code> if the game cannot be found in either the installed or downloaded locations.
     /// </returns>
-    public string? GetGamePath(string name) {
+    internal string? GetGamePath(string name) {
         // Prefer installed location first, then fall back to downloaded location
         Dictionary<string, Core.Utils.GameInfo> games = _registries.DiscoverBuiltGames();
         if (games.TryGetValue(name, out Core.Utils.GameInfo? gi))
@@ -1235,7 +1235,7 @@ internal sealed partial class OperationsEngine {
     /// A <code>bool</code> (true) if the game process was started successfully; 
     /// otherwise, <code>false</code> (e.g., if the executable is not found or an error occurs).
     /// </returns>
-    public bool LaunchGame(string name) {
+    internal bool LaunchGame(string name) {
         string? exe = GetGameExecutable(name);
         string root = GetGamePath(name) ?? _rootPath;
         if (string.IsNullOrWhiteSpace(exe) || !System.IO.File.Exists(exe))
@@ -1265,7 +1265,7 @@ internal sealed partial class OperationsEngine {
     /// <returns>
     /// A <code>string</code> indicating the state: "installed", "downloaded" (but not installed), or "not_downloaded".
     /// </returns>
-    public string GetModuleState(string name) {
+    internal string GetModuleState(string name) {
         string dir = System.IO.Path.Combine(_rootPath, "EngineApps", "Games", name);
         return !System.IO.Directory.Exists(dir) ? "not_downloaded" : IsModuleInstalled(name) ? "installed" : "downloaded";
     }

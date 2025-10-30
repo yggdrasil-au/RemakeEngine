@@ -10,8 +10,8 @@ namespace EngineNet.Interface.GUI;
 /// Shared service for capturing and displaying operation output across all GUI pages.
 /// This ensures that output persists when navigating between pages.
 /// </summary>
-public sealed class OperationOutputService : INotifyPropertyChanged {
-    public static OperationOutputService Instance { get; } = new OperationOutputService();
+internal sealed class OperationOutputService : INotifyPropertyChanged {
+    internal static OperationOutputService Instance { get; } = new OperationOutputService();
 
     private readonly object _lock = new object();
 
@@ -25,7 +25,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     internal ObservableCollection<ActiveJob> ActiveJobs { get; } = new ObservableCollection<ActiveJob>();
 
     private string? _currentOperation;
-    public string? CurrentOperation {
+    internal string? CurrentOperation {
         get {
             lock (_lock) {
                 return _currentOperation;
@@ -42,43 +42,43 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     }
 
     private bool _isProgressPanelActive;
-    public bool IsProgressPanelActive {
+    internal bool IsProgressPanelActive {
         get => _isProgressPanelActive;
         private set => SetField(ref _isProgressPanelActive, value);
     }
 
     private string _progressLabel = string.Empty;
-    public string ProgressLabel {
+    internal string ProgressLabel {
         get => _progressLabel;
         private set => SetField(ref _progressLabel, value);
     }
 
     private string _progressSummaryLine = string.Empty;
-    public string ProgressSummaryLine {
+    internal string ProgressSummaryLine {
         get => _progressSummaryLine;
         private set => SetField(ref _progressSummaryLine, value);
     }
 
     private double _progressPercent;
-    public double ProgressPercent {
+    internal double ProgressPercent {
         get => _progressPercent;
         private set => SetField(ref _progressPercent, value);
     }
 
     private string _activeJobsSummary = "Active: none";
-    public string ActiveJobsSummary {
+    internal string ActiveJobsSummary {
         get => _activeJobsSummary;
         private set => SetField(ref _activeJobsSummary, value);
     }
 
     private int _activeJobCount;
-    public int ActiveJobCount {
+    internal int ActiveJobCount {
         get => _activeJobCount;
         private set => SetField(ref _activeJobCount, value);
     }
 
     private string _currentSpinner = string.Empty;
-    public string CurrentSpinner {
+    internal string CurrentSpinner {
         get => _currentSpinner;
         private set => SetField(ref _currentSpinner, value);
     }
@@ -89,7 +89,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     /// <summary>
     /// Clear output and start a new operation.
     /// </summary>
-    public void StartOperation(string operationName, string gameName) {
+    internal void StartOperation(string operationName, string gameName) {
         global::Avalonia.Threading.Dispatcher.UIThread.Post(() => {
             Lines.Clear();
             ResetProgressPanelTracking();
@@ -110,7 +110,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     /// <summary>
     /// Add a raw output line.
     /// </summary>
-    public void AddOutput(string text, string stream = "stdout") {
+    internal void AddOutput(string text, string stream = "stdout") {
         global::Avalonia.Threading.Dispatcher.UIThread.Post(() => {
             Lines.Add(new OutputLine {
                 Timestamp = System.DateTime.Now,
@@ -124,7 +124,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     /// <summary>
     /// Handle a structured event from the engine.
     /// </summary>
-    public void HandleEvent(Dictionary<string, object?> evt) {
+    internal void HandleEvent(Dictionary<string, object?> evt) {
         if (!evt.TryGetValue("event", out object? evtTypeObj)) {
             return;
         }
@@ -594,7 +594,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     /// <summary>
     /// Clear all output.
     /// </summary>
-    public void Clear() {
+    internal void Clear() {
         global::Avalonia.Threading.Dispatcher.UIThread.Post(() => {
             Lines.Clear();
             ActiveJobs.Clear();
@@ -613,7 +613,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     /// <summary>
     /// Clear all output.
     /// </summary>
-    public async System.Threading.Tasks.Task ClearAsync() {
+    internal async System.Threading.Tasks.Task ClearAsync() {
         await global::Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => {
             Lines.Clear();
             ActiveJobs.Clear();
@@ -646,14 +646,14 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     }
 
     private sealed record ProgressPanelModel {
-        public required string Label { get; init; }
-        public required string Spinner { get; init; }
-        public required double Percent { get; init; }
-        public required string ProgressLine { get; init; }
-        public required string ActiveSummary { get; init; }
-        public required int ActiveTotal { get; init; }
-        public required List<ProgressJobSnapshot> Jobs { get; init; }
-        public required List<string> Lines { get; init; }
+        internal required string Label { get; init; }
+        internal required string Spinner { get; init; }
+        internal required double Percent { get; init; }
+        internal required string ProgressLine { get; init; }
+        internal required string ActiveSummary { get; init; }
+        internal required int ActiveTotal { get; init; }
+        internal required List<ProgressJobSnapshot> Jobs { get; init; }
+        internal required List<string> Lines { get; init; }
     }
 
     private readonly record struct ProgressJobSnapshot(string Tool, string File, string Elapsed);

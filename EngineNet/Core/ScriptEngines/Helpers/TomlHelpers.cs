@@ -20,17 +20,17 @@ namespace EngineNet.Core.ScriptEngines.Helpers;
 /// - Primitives map to their TOML counterparts
 /// </summary>
 internal static class TomlHelpers {
-    public static object ParseFileToPlainObject(string path) {
+    internal static object ParseFileToPlainObject(string path) {
         string text = System.IO.File.Exists(path) ? System.IO.File.ReadAllText(path) : string.Empty;
         return ParseToPlainObject(text);
     }
 
-    public static object ParseToPlainObject(string toml) {
+    internal static object ParseToPlainObject(string toml) {
         Tomlyn.Model.TomlTable model = Tomlyn.Toml.ToModel(toml ?? string.Empty);
         return ConvertTomlToPlain(model);
     }
 
-    public static void WriteTomlFile(string path, object? data) {
+    internal static void WriteTomlFile(string path, object? data) {
         // Convert plain objects to Tomlyn.Model.TomlTable model and serialize
         Tomlyn.Model.TomlTable root = ConvertPlainToTomlTable(data) ?? new Tomlyn.Model.TomlTable();
         string text = Tomlyn.Toml.FromModel(root);

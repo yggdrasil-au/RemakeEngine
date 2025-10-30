@@ -1,33 +1,17 @@
 
 using System;
-using System.IO;
-using System.Text.Json;
-using System.Threading.Tasks;
-using System.Linq;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Collections.Generic;
-using System.Collections;
-
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Threading;
-using Avalonia.Media.Imaging;
-using Avalonia.Interactivity;
-
-
-
 
 namespace EngineNet.Interface.GUI.Pages;
 
-public partial class HomePage:UserControl {
+internal partial class HomePage:UserControl {
     private readonly Core.OperationsEngine? _engine;
 
-    public string Greeting { get; private set; } = "Welcome!";
-    public System.Windows.Input.ICommand RefreshCommand {
+    internal string Greeting { get; private set; } = "Welcome!";
+    internal System.Windows.Input.ICommand RefreshCommand {
         get;
     }
-    public HomePage() {
+    internal HomePage() {
         InitializeComponent();
         DataContext = this;
 
@@ -59,8 +43,9 @@ public partial class HomePage:UserControl {
         => PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(name));
 
     private sealed class RelayCommand:System.Windows.Input.ICommand {
-        private readonly Action<object?> _a; public RelayCommand(Action<object?> a) => _a = a;
-        public bool CanExecute(object? p) => true; public void Execute(object? p) => _a(p);
+        private readonly Action<object?> _a; internal RelayCommand(Action<object?> a) => _a = a;
+        public bool CanExecute(object? p) => true;
+        public void Execute(object? p) => _a(p);
         public event EventHandler? CanExecuteChanged;
     }
 }

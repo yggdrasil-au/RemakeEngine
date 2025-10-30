@@ -10,7 +10,7 @@ internal static class RemoteFallbacks {
     /// RemakeEngine GitHub repository at <paramref name="repoRelativePath"/> using raw URLs.
     /// Returns true if the file exists locally after the call.
     /// </summary>
-    public static bool EnsureRepoFile(string repoRelativePath, string localPath) {
+    internal static bool EnsureRepoFile(string repoRelativePath, string localPath) {
         try {
             if (System.IO.File.Exists(localPath)) {
                 return true;

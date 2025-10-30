@@ -3,17 +3,17 @@ using Avalonia;
 
 namespace EngineNet;
 
-public static class Program {
+internal static class Program {
 
     /* :: :: Vars :: START :: */
     // ensure Avalonia VS preview can find GUI
-    public static AppBuilder BuildAvaloniaApp() => Interface.GUI.AvaloniaGui.BuildAvaloniaApp();
+    internal static AppBuilder BuildAvaloniaApp() => Interface.GUI.AvaloniaGui.BuildAvaloniaApp();
 
     /* :: :: Vars :: END :: */
     // //
     /* :: :: Main :: START :: */
 
-    public static async System.Threading.Tasks.Task<int> Main(string[] args) {
+    internal static async System.Threading.Tasks.Task<int> Main(string[] args) {
         try {
             string root = GetRootPath(args) ?? TryFindProjectRoot(System.IO.Directory.GetCurrentDirectory())
                                             ?? TryFindProjectRoot(System.AppContext.BaseDirectory)

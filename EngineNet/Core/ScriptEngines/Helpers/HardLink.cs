@@ -8,7 +8,7 @@ namespace EngineNet.Core.ScriptEngines.Helpers;
 /// Uses CreateHardLinkW on Windows and link(2) on Unix-like systems.
 /// </summary>
 internal static class HardLink {
-    public static void Create(string existingFile, string newLinkPath) {
+    internal static void Create(string existingFile, string newLinkPath) {
         if (string.IsNullOrWhiteSpace(existingFile)) throw new ArgumentNullException(nameof(existingFile));
         if (string.IsNullOrWhiteSpace(newLinkPath)) throw new ArgumentNullException(nameof(newLinkPath));
 

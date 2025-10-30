@@ -18,7 +18,7 @@ using Avalonia.Interactivity;
 
 namespace EngineNet.Interface.GUI.Pages;
 
-public partial class MainWindow:Window {
+internal partial class MainWindow:Window {
     /* :: :: Vars :: START :: */
     private readonly Core.OperationsEngine? _engine;
 
@@ -28,7 +28,7 @@ public partial class MainWindow:Window {
     /// <summary>
     /// previewer constructor
     /// </summary>
-    public MainWindow() {
+    internal MainWindow() {
         InitializeComponent();
         //ShowHome();
     }

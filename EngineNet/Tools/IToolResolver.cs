@@ -4,7 +4,7 @@ namespace EngineNet.Tools;
 /// <summary>
 /// Provides paths to external command-line tools required by actions.
 /// </summary>
-public interface IToolResolver {
+internal interface IToolResolver {
     /// <summary>
     /// Resolve the absolute path to a registered tool.
     /// </summary>

@@ -15,7 +15,7 @@ internal sealed class CommandBuilder {
     /// Initializes a new instance of <see cref="CommandBuilder"/>.
     /// </summary>
     /// <param name="rootPath">Working root of the engine; may be used for relative resolution.</param>
-    public CommandBuilder(string rootPath) {
+    internal CommandBuilder(string rootPath) {
         _rootPath = rootPath;
     }
 
@@ -39,7 +39,7 @@ internal sealed class CommandBuilder {
     /// <returns>A list of strings suitable for <see cref="ProcessStartInfo"/>: [exe, arg1, ...]. Empty if no script.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="currentGame"/> is empty.</exception>
     /// <exception cref="KeyNotFoundException">Thrown when the game is unknown.</exception>
-    public List<string> Build(
+    internal List<string> Build(
         string currentGame,
         IDictionary<string, object?> games,
         IDictionary<string, object?> engineConfig,

@@ -20,7 +20,7 @@ namespace EngineNet.Tools;
 internal sealed class JsonToolResolver:IToolResolver {
     private readonly Dictionary<string, string> _tools = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
 
-    public JsonToolResolver(string jsonPath) {
+    internal JsonToolResolver(string jsonPath) {
         string _baseDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(jsonPath)) ?? System.IO.Directory.GetCurrentDirectory();
         using System.IO.FileStream stream = System.IO.File.OpenRead(jsonPath);
         using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(stream);

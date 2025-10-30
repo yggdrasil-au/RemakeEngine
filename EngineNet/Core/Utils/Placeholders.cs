@@ -31,7 +31,7 @@ internal static class Placeholders {
     /// - Strings have {{path}} segments replaced when found in the context.
     /// - Non-collection, non-string values are returned as-is.
     /// </returns>
-    public static object? Resolve(object? value, IDictionary<string, object?> context) {
+    internal static object? Resolve(object? value, IDictionary<string, object?> context) {
         // Nulls are returned unchanged.
         if (value is null) {
             return null;

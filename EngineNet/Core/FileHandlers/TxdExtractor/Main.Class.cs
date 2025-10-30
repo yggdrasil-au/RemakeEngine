@@ -16,55 +16,55 @@ using System;
 internal static partial class Main {
 
     private sealed class Options {
-        public string InputPath = string.Empty;
-        public string? OutputDirectory;
+        internal string InputPath = string.Empty;
+        internal string? OutputDirectory;
     }
 
     private sealed class TxdExportException:System.Exception {
-        public TxdExportException(string message) : base(message) { }
+        internal TxdExportException(string message) : base(message) { }
     }
 
     private sealed class NameInfo {
-        public NameInfo(string name, int nameSigOffsetInSegment, int originalFileOffset) {
+        internal NameInfo(string name, int nameSigOffsetInSegment, int originalFileOffset) {
             Name = name;
             NameSigOffsetInSegment = nameSigOffsetInSegment;
             OriginalFileOffset = originalFileOffset;
         }
 
-        public string Name {
+        internal string Name {
             get;
         }
-        public int NameSigOffsetInSegment {
+        internal int NameSigOffsetInSegment {
             get;
         }
-        public int OriginalFileOffset {
+        internal int OriginalFileOffset {
             get;
         }
-        public bool ProcessedMeta {
+        internal bool ProcessedMeta {
             get; private set;
         }
 
-        public void MarkProcessed() {
+        internal void MarkProcessed() {
             ProcessedMeta = true;
         }
     }
 
     private sealed class Segment {
-        public Segment(int startOffset, byte[] data) {
+        internal Segment(int startOffset, byte[] data) {
             StartOffset = startOffset;
             Data = data;
         }
 
-        public int StartOffset {
+        internal int StartOffset {
             get;
         }
-        public byte[] Data {
+        internal byte[] Data {
             get;
         }
     }
 
     private sealed class TextureFormatConverter {
-        public ConversionResult Convert(
+        internal ConversionResult Convert(
             int fmtCode,
             int width,
             int height,
@@ -189,7 +189,7 @@ internal static partial class Main {
     }
 
     internal readonly struct ConversionResult {
-        public ConversionResult(byte[]? header, byte[]? pixels, string? format, bool needsUnswizzle, int bytesPerPixel) {
+        internal ConversionResult(byte[]? header, byte[]? pixels, string? format, bool needsUnswizzle, int bytesPerPixel) {
             Header = header;
             Pixels = pixels;
             Format = format;
@@ -197,19 +197,19 @@ internal static partial class Main {
             BytesPerPixel = bytesPerPixel;
         }
 
-        public byte[]? Header {
+        internal byte[]? Header {
             get;
         }
-        public byte[]? Pixels {
+        internal byte[]? Pixels {
             get;
         }
-        public string? Format {
+        internal string? Format {
             get;
         }
-        public bool NeedsUnswizzle {
+        internal bool NeedsUnswizzle {
             get;
         }
-        public int BytesPerPixel {
+        internal int BytesPerPixel {
             get;
         }
     }
@@ -226,13 +226,13 @@ internal static partial class Main {
         private readonly string _txdFilePath;
         private readonly int _lenEofSignature;
 
-        public SegmentScanner(byte[] data, string txdFilePath) {
+        internal SegmentScanner(byte[] data, string txdFilePath) {
             _data = data;
             _txdFilePath = txdFilePath;
             _lenEofSignature = EofPrefix.Length + LenEofVariablePart + EofSuffix.Length;
         }
 
-        public (List<Segment> segments, int totalTextures) CollectSegments() {
+        internal (List<Segment> segments, int totalTextures) CollectSegments() {
             byte[] data = _data;
             List<Segment> segments = [];
 
@@ -436,7 +436,7 @@ internal static partial class Main {
         private static readonly HashSet<byte> KnownFormatCodes = [0x52, 0x53, 0x54, 0x86, 0x02];
         private static readonly int NameSignatureLength = NameSignature.Length;
 
-        public int ProcessSegment(Segment segment, string outputDir) {
+        internal int ProcessSegment(Segment segment, string outputDir) {
             byte[] segmentData = segment.Data;
             int segmentOriginalStartOffset = segment.StartOffset;
             int texturesFound = 0;
@@ -614,7 +614,7 @@ internal static partial class Main {
     }
 
     private sealed class TxdExporter {
-        public (int totalTexturesExported, int filesProcessed, int filesWithExports) ExportPath(string inputPathAbs, string? outputDirBaseArg) {
+        internal (int totalTexturesExported, int filesProcessed, int filesWithExports) ExportPath(string inputPathAbs, string? outputDirBaseArg) {
             int overallTexturesExported = 0;
             int filesProcessedCount = 0;
             int filesWithExports = 0;
@@ -690,7 +690,7 @@ internal static partial class Main {
             return (overallTexturesExported, filesProcessedCount, filesWithExports);
         }
 
-    public int ExportTexturesFromTxd(string txdFilePath, string outputDirBase) {
+    internal int ExportTexturesFromTxd(string txdFilePath, string outputDirBase) {
             Log.Cyan($"Processing TXD file: {txdFilePath}");
             byte[] data;
             try {
@@ -748,27 +748,27 @@ internal static partial class Main {
     private static class Log {
         private static readonly object Sync = new();
 
-        public static void Cyan(string message) {
+        internal static void Cyan(string message) {
             Write(System.ConsoleColor.Cyan, message);
         }
 
-        public static void Blue(string message) {
+        internal static void Blue(string message) {
             Write(System.ConsoleColor.Blue, message);
         }
 
-        public static void Green(string message) {
+        internal static void Green(string message) {
             Write(System.ConsoleColor.Green, message);
         }
 
-        public static void Yellow(string message) {
+        internal static void Yellow(string message) {
             Write(System.ConsoleColor.Yellow, message);
         }
 
-        public static void Red(string message) {
+        internal static void Red(string message) {
             Write(System.ConsoleColor.Red, message, true);
         }
 
-        public static void Gray(string message) {
+        internal static void Gray(string message) {
             Write(System.ConsoleColor.DarkGray, message);
         }
 

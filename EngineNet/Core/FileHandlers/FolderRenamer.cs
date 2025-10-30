@@ -17,11 +17,11 @@ namespace EngineNet.Core.FileHandlers;
 /// </summary>
 internal static class FolderRenamer {
     private sealed class Options {
-        public string TargetDirectory = string.Empty;
-        public string? MapDbFile;
-        public string DbTableName = "rename_mappings";
-        public List<(string OldName, string NewName)> CliMappings { get; } = new();
-        public string? JsonFile;
+        internal string TargetDirectory = string.Empty;
+        internal string? MapDbFile;
+        internal string DbTableName = "rename_mappings";
+        internal List<(string OldName, string NewName)> CliMappings { get; } = new();
+        internal string? JsonFile;
     }
 
     /// <summary>
@@ -29,7 +29,7 @@ internal static class FolderRenamer {
     /// </summary>
     /// <param name="args">CLI-style args: TARGET_DIR [--map-db-file PATH --db-table-name NAME] | [--map-cli OLD NEW ...] | [--map-json PATH]</param>
     /// <returns>True if renames completed; false if a failure occurred.</returns>
-    public static bool Run(IList<string> args) {
+    internal static bool Run(IList<string> args) {
         Options options;
         try {
             options = Parse(args);

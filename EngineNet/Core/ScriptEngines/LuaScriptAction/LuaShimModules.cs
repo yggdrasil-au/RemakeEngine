@@ -18,7 +18,7 @@ namespace EngineNet.Core.ScriptEngines.LuaModules;
 /// Provides minimal implementations for legacy Lua scripts.
 /// </summary>
 internal static class LuaShimModules {
-    public static void PreloadShimModules(Script lua, string scriptPath) {
+    internal static void PreloadShimModules(Script lua, string scriptPath) {
         // Ensure package.loaded exists
         Table package = lua.Globals.Get("package").IsNil() ? new Table(lua) : lua.Globals.Get("package").Table;
         if (package.Get("loaded").IsNil()) {

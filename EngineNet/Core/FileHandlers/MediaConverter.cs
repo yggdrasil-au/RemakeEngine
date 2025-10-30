@@ -19,23 +19,23 @@ internal static class MediaConverter {
     // Track active jobs using the shared model
 
     private sealed class Options {
-        public string Mode = string.Empty;                // ffmpeg | vgmstream
-        public string Type = string.Empty;                // audio | video
-        public string Source = string.Empty;              // directory
-        public string Target = string.Empty;              // directory
-        public string InputExt = string.Empty;            // eg .vp6, .snu
-        public string OutputExt = string.Empty;           // eg .ogv, .wav
-        public bool Overwrite = false;
-        public bool GodotCompatible = false;
-        public string? FfmpegPath;                        // ffmpeg/ffmpeg.exe
-        public string? VgmstreamCli;                      // vgmstream-cli/vgmstream-cli.exe
-        public string VideoCodec = "libtheora";
-        public string VideoQuality = "10";
-        public string AudioCodec = "libvorbis";
-        public string AudioQuality = "10";
-        public int? Workers = null;                       // default 75% cores
-        public bool Verbose = false;
-        public bool Debug = false;
+        internal string Mode = string.Empty;                // ffmpeg | vgmstream
+        internal string Type = string.Empty;                // audio | video
+        internal string Source = string.Empty;              // directory
+        internal string Target = string.Empty;              // directory
+        internal string InputExt = string.Empty;            // eg .vp6, .snu
+        internal string OutputExt = string.Empty;           // eg .ogv, .wav
+        internal bool Overwrite = false;
+        internal bool GodotCompatible = false;
+        internal string? FfmpegPath;                        // ffmpeg/ffmpeg.exe
+        internal string? VgmstreamCli;                      // vgmstream-cli/vgmstream-cli.exe
+        internal string VideoCodec = "libtheora";
+        internal string VideoQuality = "10";
+        internal string AudioCodec = "libvorbis";
+        internal string AudioQuality = "10";
+        internal int? Workers = null;                       // default 75% cores
+        internal bool Verbose = false;
+        internal bool Debug = false;
     }
 
     // Tracks currently running external conversions (for progress panel)
@@ -50,7 +50,7 @@ internal static class MediaConverter {
     /// --input-ext .ext, --output-ext .ext. Optional: --overwrite,
     /// --workers N, --godot, --verbose, --debug, codec/quality options.</param>
     /// <returns>True if all files were processed successfully; false otherwise.</returns>
-    public static bool Run(Tools.IToolResolver toolResolver, IList<string> args) {
+    internal static bool Run(Tools.IToolResolver toolResolver, IList<string> args) {
         try {
             Options opt = Parse(args);
 

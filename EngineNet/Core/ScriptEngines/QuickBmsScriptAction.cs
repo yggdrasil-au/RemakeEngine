@@ -11,7 +11,7 @@ internal sealed class QuickBmsScriptAction : Helpers.IAction {
     private readonly string _outputDir;
     private readonly string? _extension;
 
-    public QuickBmsScriptAction(
+    internal QuickBmsScriptAction(
         string scriptPath,
         string moduleRoot,
         string projectRoot,

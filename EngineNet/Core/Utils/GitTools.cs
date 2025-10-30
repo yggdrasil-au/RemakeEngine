@@ -7,11 +7,11 @@ namespace EngineNet.Core.Utils;
 internal sealed class GitTools {
     private readonly string _gamesDir;
 
-    public GitTools(string gamesDir) {
+    internal GitTools(string gamesDir) {
         _gamesDir = gamesDir;
     }
 
-    public static bool IsGitInstalled() {
+    internal static bool IsGitInstalled() {
         try {
             System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
                 FileName = "git",
@@ -31,7 +31,7 @@ internal sealed class GitTools {
         }
     }
 
-    public bool CloneModule(string url) {
+    internal bool CloneModule(string url) {
         if (string.IsNullOrWhiteSpace(url)) {
             return false;
         }

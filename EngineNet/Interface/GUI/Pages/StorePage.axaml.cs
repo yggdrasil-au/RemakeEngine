@@ -53,7 +53,7 @@ internal partial class StorePage:UserControl {
     /* :: :: Constructors :: START :: */
 
     // used only for previewer
-    public StorePage() {
+    internal StorePage() {
 
         DataContext = this; // make every instance var an available binding
         InitializeComponent();
@@ -69,7 +69,7 @@ internal partial class StorePage:UserControl {
     /// Constructs the StorePage with the given OperationsEngine.
     /// </summary>
     /// <param name="engine"></param>
-    public StorePage(Core.OperationsEngine engine) {
+    internal StorePage(Core.OperationsEngine engine) {
         _engine = engine;
         DataContext = this;
         InitializeComponent();
@@ -185,12 +185,38 @@ internal partial class StorePage:UserControl {
 
             Status = $"Downloading {item.Name}…";
 
-            // Use the engine's DownloadModule method (wraps git clone)
-            bool success = await Task.Run(() => _engine.DownloadModule(item.Url!));
+            OperationOutputService.Instance.AddOutput($"Starting download for {item.Name}…", "stdout");
 
+            bool success = await GUI.Utils.ExecuteEngineOperationAsync(
+                _engine,
+                item.Name,
+                $"Download {item.Name}",
+                async (onOutput, onEvent, stdin) => {
+                    onEvent(new Dictionary<string, object?> {
+                        ["event"] = "start",
+                        ["name"] = item.Name,
+                        ["url"] = item.Url ?? string.Empty
+                    });
+
+                    bool result = await Task.Run(() => _engine.DownloadModule(item.Url!));
+
+                    onOutput(result ? $"Download complete for {item.Name}." : $"Download failed for {item.Name}.", result ? "stdout" : "stderr");
+                    onEvent(new Dictionary<string, object?> {
+                        ["event"] = "end",
+                        ["success"] = result,
+                        ["name"] = item.Name
+                    });
+
+                    return result;
+                }
+            );
+
+            OperationOutputService.Instance.AddOutput(
+                success ? $"Finished downloading {item.Name}." : $"Unable to download {item.Name}.",
+                success ? "stdout" : "stderr"
+            );
             if (success) {
                 Status = $"Downloaded {item.Name} successfully.";
-                // Reload to update download status
                 await LoadAsync(Query);
             } else {
                 Status = $"Failed to download {item.Name}.";
@@ -209,31 +235,31 @@ internal partial class StorePage:UserControl {
     /// Represents a store item (module from registry).
     /// </summary>
     internal sealed class StoreItem {
-        public string Id {
+        internal string Id {
             get; set;
         } = "";
-        public string Name {
+        internal string Name {
             get; set;
         } = "";
-        public string Title {
+        internal string Title {
             get; set;
         } = "";
-        public string Description {
+        internal string Description {
             get; set;
         } = "";
-        public string? Url {
+        internal string? Url {
             get; set;
         }
-        public bool IsDownloaded {
+        internal bool IsDownloaded {
             get; set;
         }
-        public bool IsInstalled {
+        internal bool IsInstalled {
             get; set;
         }
-        public bool CanDownload {
+        internal bool CanDownload {
             get; set;
         }
-        public bool CanInstall {
+        internal bool CanInstall {
             get; set;
         }
     }

@@ -1,15 +1,6 @@
 using MoonSharp.Interpreter;
 
-
-using System;
-using System.IO;
-using System.Text.Json;
-using System.Threading.Tasks;
-using System.Linq;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Collections.Generic;
-using System.Collections;
 
 namespace EngineNet.Core.ScriptEngines;
 
@@ -34,9 +25,9 @@ internal sealed class LuaScriptAction : Helpers.IAction {
     private readonly string _scriptPath;
     private readonly string[] _args;
 
-    //public LuaScriptAction(string scriptPath) : this(scriptPath, System.Array.Empty<string>()) { }
+    //internal LuaScriptAction(string scriptPath) : this(scriptPath, System.Array.Empty<string>()) { }
 
-    public LuaScriptAction(string scriptPath, IEnumerable<string>? args) {
+    internal LuaScriptAction(string scriptPath, IEnumerable<string>? args) {
         _scriptPath = scriptPath;
         _args = args is null ? System.Array.Empty<string>() : args as string[] ?? new List<string>(args).ToArray();
     }

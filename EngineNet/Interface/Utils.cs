@@ -5,7 +5,7 @@ namespace EngineNet.Interface;
 /// </summary>
 internal class Utils {
 
-    public Utils() {
+    internal Utils() {
         //
     }
 

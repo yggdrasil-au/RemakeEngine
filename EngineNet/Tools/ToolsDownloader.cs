@@ -19,12 +19,12 @@ internal sealed class ToolsDownloader {
     private readonly string _rootPath;
     private readonly string _centralRepoJsonPath;
 
-    public ToolsDownloader(string rootPath, string centralRepoJsonPath) {
+    internal ToolsDownloader(string rootPath, string centralRepoJsonPath) {
         _rootPath = rootPath;
         _centralRepoJsonPath = centralRepoJsonPath;
     }
 
-    public async System.Threading.Tasks.Task<bool> ProcessAsync(string moduleTomlPath, bool force) {
+    internal async System.Threading.Tasks.Task<bool> ProcessAsync(string moduleTomlPath, bool force) {
         WriteHeader($"Tools Downloader - manifest: {moduleTomlPath}");
         if (!System.IO.File.Exists(moduleTomlPath)) {
             throw new System.IO.FileNotFoundException("Tools manifest not found", moduleTomlPath);

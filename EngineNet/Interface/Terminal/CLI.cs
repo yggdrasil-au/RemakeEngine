@@ -10,9 +10,9 @@ namespace EngineNet.Interface.Terminal;
 internal partial class CLI {
     private readonly Core.OperationsEngine _engine;
 
-    public CLI(Core.OperationsEngine engine) => _engine = engine;
+    internal CLI(Core.OperationsEngine engine) => _engine = engine;
 
-    public async System.Threading.Tasks.Task<int> Run(string[] args) {
+    internal async System.Threading.Tasks.Task<int> Run(string[] args) {
         // Strip global flags that Program.cs already handled, like --root PATH
         if (args.Length > 0) {
             List<string> list = new List<string>(args);
@@ -110,7 +110,7 @@ internal partial class CLI {
         return args.Length <= index ? throw new System.ArgumentException(error) : args[index];
     }
 
-    public int RunInlineOperation(string[] args) {
+    internal int RunInlineOperation(string[] args) {
         InlineOperationOptions options;
         try {
             options = InlineOperationOptions.Parse(args);
@@ -145,7 +145,7 @@ internal partial class CLI {
         return ok ? 0 : 1;
     }
 
-    public static bool IsInlineOperationInvocation(string[] args) {
+    internal static bool IsInlineOperationInvocation(string[] args) {
         bool sawGame = false;
         bool sawScript = false;
 
@@ -387,32 +387,32 @@ internal partial class CLI {
     }
 
     internal class InlineOperationOptions {
-        public string? GameIdentifier {
+        internal string? GameIdentifier {
             get; private set;
         }
-        public string? GameRoot {
+        internal string? GameRoot {
             get; private set;
         }
-        public string? GameName {
+        internal string? GameName {
             get; private set;
         }
-        public string? OpsFile {
+        internal string? OpsFile {
             get; private set;
         }
-        public string? Script {
+        internal string? Script {
             get; private set;
         }
-        public string? ScriptType {
+        internal string? ScriptType {
             get; private set;
         }
-        public Dictionary<string, object?> OperationFields { get; } = new(System.StringComparer.OrdinalIgnoreCase);
-        public Dictionary<string, object?> PromptAnswers { get; } = new(System.StringComparer.OrdinalIgnoreCase); // respond to operations.toml prompts
-        public Dictionary<string, string> AutoPromptResponses { get; } = new(System.StringComparer.OrdinalIgnoreCase); // responde to lua prompt() calls
+        internal Dictionary<string, object?> OperationFields { get; } = new(System.StringComparer.OrdinalIgnoreCase);
+        internal Dictionary<string, object?> PromptAnswers { get; } = new(System.StringComparer.OrdinalIgnoreCase); // respond to operations.toml prompts
+        internal Dictionary<string, string> AutoPromptResponses { get; } = new(System.StringComparer.OrdinalIgnoreCase); // responde to lua prompt() calls
 
         private readonly List<string> _args = new();
         private bool _argsOverride;
 
-        public static InlineOperationOptions Parse(string[] args) {
+        internal static InlineOperationOptions Parse(string[] args) {
             InlineOperationOptions options = new InlineOperationOptions();
 
             for (int index = 0; index < args.Length; index++) {
@@ -534,7 +534,7 @@ internal partial class CLI {
             return options;
         }
 
-        public Dictionary<string, object?> BuildOperation() {
+        internal Dictionary<string, object?> BuildOperation() {
             Dictionary<string, object?> op = new Dictionary<string, object?>(OperationFields, System.StringComparer.OrdinalIgnoreCase);
 
             if (!op.ContainsKey("script_type") && !string.IsNullOrWhiteSpace(ScriptType)) {

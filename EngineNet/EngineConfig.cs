@@ -22,7 +22,7 @@ internal sealed class EngineConfig {
     /// <summary>
     /// The file system path to the JSON config file that this instance reads.
     /// </summary>
-    public string Path {
+    internal string Path {
         get;
     }
 
@@ -30,7 +30,7 @@ internal sealed class EngineConfig {
     /// Exposes the loaded data as a read-only dictionary interface.
     /// Keys are case-insensitive due to the underlying comparer.
     /// </summary>
-    public IDictionary<string, object?> Data => _data;
+    internal IDictionary<string, object?> Data => _data;
 
     // Backing store for Data. Uses case-insensitive comparison (OrdinalIgnoreCase).
     private Dictionary<string, object?> _data = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
@@ -39,7 +39,7 @@ internal sealed class EngineConfig {
     /// Constructs a config bound to a file path and immediately loads its content.
     /// </summary>
     /// <param name="path">Absolute or relative path to a JSON file.</param>
-    public EngineConfig(string path) {
+    internal EngineConfig(string path) {
         Path = path;     // Step 1: Remember where to read from
         Reload();        // Step 2: Initial load from disk
     }
@@ -48,7 +48,7 @@ internal sealed class EngineConfig {
     /// Reloads configuration from <see cref="Path"/> and replaces the current data snapshot.
     /// Safe: if the file is missing or invalid, the data becomes an empty dictionary.
     /// </summary>
-    public void Reload() {
+    internal void Reload() {
         // Step: Re-parse the file and swap in the new dictionary
         _data = LoadJsonFile(Path);
     }
@@ -63,7 +63,7 @@ internal sealed class EngineConfig {
     /// </summary>
     /// <param name="filePath">Path to the JSON file.</param>
     /// <returns>Parsed dictionary; never null.</returns>
-    public static Dictionary<string, object?> LoadJsonFile(string filePath) {
+    internal static Dictionary<string, object?> LoadJsonFile(string filePath) {
         try {
             // Step 1: If the file is absent, short-circuit with empty config.
             if (System.IO.File.Exists(filePath)) {

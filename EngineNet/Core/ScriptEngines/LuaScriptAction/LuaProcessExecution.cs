@@ -12,19 +12,19 @@ internal static class LuaProcessExecution {
     // Lightweight managed process support for non-blocking process execution from Lua.
     // Processes are stored in a concurrent dictionary and can be polled/waited from Lua.
     private class ManagedProcess {
-        public System.Diagnostics.Process Process { get; set; } = null!;
-        public System.Text.StringBuilder Stdout { get; } = new System.Text.StringBuilder();
-        public System.Text.StringBuilder Stderr { get; } = new System.Text.StringBuilder();
+        internal System.Diagnostics.Process Process { get; set; } = null!;
+        internal System.Text.StringBuilder Stdout { get; } = new System.Text.StringBuilder();
+        internal System.Text.StringBuilder Stderr { get; } = new System.Text.StringBuilder();
 
         // NEW: locks to make System.Text.StringBuilder access thread-safe
-        public object StdoutLock { get; } = new object();
-        public object StderrLock { get; } = new object();
+        internal object StdoutLock { get; } = new object();
+        internal object StderrLock { get; } = new object();
 
         // NEW: cursors so we can return deltas safely (without breaking existing API)
-        public int StdoutCursor { get; set; } = 0;
-        public int StderrCursor { get; set; } = 0;
+        internal int StdoutCursor { get; set; } = 0;
+        internal int StderrCursor { get; set; } = 0;
 
-        public System.Threading.Tasks.TaskCompletionSource<int> ExitTcs { get; } =
+        internal System.Threading.Tasks.TaskCompletionSource<int> ExitTcs { get; } =
             new System.Threading.Tasks.TaskCompletionSource<int>(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
     }
 
@@ -32,7 +32,7 @@ internal static class LuaProcessExecution {
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, ManagedProcess> s_processes = new System.Collections.Concurrent.ConcurrentDictionary<int, ManagedProcess>();
     private static int s_nextPid = 0;
 
-    public static void AddProcessExecution(Table sdk, Script lua, Tools.IToolResolver tools) {
+    internal static void AddProcessExecution(Table sdk, Script lua, Tools.IToolResolver tools) {
         // exec(args[, options]) -> { success=bool, exit_code=int }
         // options: { cwd=string, env=table, new_terminal=bool, keep_open=bool, title=string, wait=bool }
         sdk["exec"] = DynValue.NewCallback((ctx, args) => {
@@ -288,7 +288,7 @@ internal static class LuaProcessExecution {
         return DynValue.NewBoolean(true);
     }
 
-    public static DynValue RunProcess(Script lua, Table commandArgs, Table? options) {
+    internal static DynValue RunProcess(Script lua, Table commandArgs, Table? options) {
         if (commandArgs == null) {
             throw new ScriptRuntimeException("run_process expects argument table");
         }
@@ -407,7 +407,7 @@ internal static class LuaProcessExecution {
         return DynValue.NewTable(result);
     }
 
-    public static DynValue ExecProcess(Script lua, Table commandArgs, Table? options) {
+    internal static DynValue ExecProcess(Script lua, Table commandArgs, Table? options) {
         if (commandArgs == null) {
             throw new ScriptRuntimeException("exec expects argument table");
         }
@@ -528,7 +528,7 @@ internal static class LuaProcessExecution {
         return DynValue.NewTable(result);
     }
 
-    public static DynValue ExecInCurrentTerminal(Script lua, List<string> parts, string cwd, IDictionary<string, object?> env) {
+    internal static DynValue ExecInCurrentTerminal(Script lua, List<string> parts, string cwd, IDictionary<string, object?> env) {
         Utils.ProcessRunner runner = new Utils.ProcessRunner();
         int exit = -1;
         // Merge env overrides

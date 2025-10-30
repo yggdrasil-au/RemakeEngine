@@ -5,9 +5,9 @@ namespace EngineNet.Core.ScriptEngines.LuaModules;
 /// Provides safe file system operations with proper security checks.
 /// </summary>
 internal static class LuaFileSystemUtils {
-    public static bool PathExists(string path) => System.IO.Directory.Exists(path) || System.IO.File.Exists(path);
+    internal static bool PathExists(string path) => System.IO.Directory.Exists(path) || System.IO.File.Exists(path);
 
-    public static bool PathExistsIncludingLinks(string path) {
+    internal static bool PathExistsIncludingLinks(string path) {
         if (PathExists(path)) {
             return true;
         }
@@ -20,7 +20,7 @@ internal static class LuaFileSystemUtils {
         }
     }
 
-    public static bool IsSymlink(string path) {
+    internal static bool IsSymlink(string path) {
         try {
             System.IO.FileSystemInfo info = GetInfo(path);
             return info.LinkTarget != null || info.Attributes.HasFlag(System.IO.FileAttributes.ReparsePoint);
@@ -29,7 +29,7 @@ internal static class LuaFileSystemUtils {
         }
     }
 
-    public static bool CreateSymlink(string source, string destination, bool isDirectory) {
+    internal static bool CreateSymlink(string source, string destination, bool isDirectory) {
         try {
             string destFull = System.IO.Path.GetFullPath(destination);
             string srcFull = System.IO.Path.GetFullPath(source);
@@ -50,7 +50,7 @@ internal static class LuaFileSystemUtils {
         }
     }
 
-    public static string? RealPath(string path) {
+    internal static string? RealPath(string path) {
         try {
             return System.IO.Path.GetFullPath(path);
         } catch {
@@ -58,7 +58,7 @@ internal static class LuaFileSystemUtils {
         }
     }
 
-    public static string? ReadLink(string path) {
+    internal static string? ReadLink(string path) {
         try {
             System.IO.FileSystemInfo info = GetInfo(path);
             return info.LinkTarget;

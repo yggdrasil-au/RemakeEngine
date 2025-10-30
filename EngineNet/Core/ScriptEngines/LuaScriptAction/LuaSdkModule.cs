@@ -17,7 +17,7 @@ namespace EngineNet.Core.ScriptEngines.LuaModules;
 /// SDK module providing file operations, archive handling, and system utilities for Lua scripts.
 /// </summary>
 internal static class LuaSdkModule {
-    public static Table CreateSdkModule(Script lua, Tools.IToolResolver tools) {
+    internal static Table CreateSdkModule(Script lua, Tools.IToolResolver tools) {
         Table sdk = new Table(lua);
 
         // Color/colour print functionality

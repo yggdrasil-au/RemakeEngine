@@ -2,7 +2,7 @@
 namespace EngineNet.Tests;
 
 /// <summary>
-/// Reflection-based tests for internal helpers on EngineNet.Program.
+/// Reflection-based tests for public helpers on EngineNet.Program.
 /// </summary>
 public sealed partial class ProgramTests {
 

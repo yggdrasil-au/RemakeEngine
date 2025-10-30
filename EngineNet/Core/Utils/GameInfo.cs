@@ -7,25 +7,25 @@ internal sealed class GameInfo {
     /// <summary>
     /// Path to the operations file (toml or json) that describes actions for this game.
     /// </summary>
-    public string OpsFile {
+    internal string OpsFile {
         get;
     }
     /// <summary>
     /// Root directory of the game/module on disk.
     /// </summary>
-    public string GameRoot {
+    internal string GameRoot {
         get;
     }
     /// <summary>
     /// Optional absolute path to the game's executable, if known.
     /// </summary>
-    public string? ExePath {
+    internal string? ExePath {
         get;
     }
     /// <summary>
     /// Optional human-friendly title.
     /// </summary>
-    public string? Title {
+    internal string? Title {
         get;
     }
 
@@ -36,7 +36,7 @@ internal sealed class GameInfo {
     /// <param name="gameRoot">Root directory for game assets.</param>
     /// <param name="exePath">Optional executable path.</param>
     /// <param name="title">Optional title.</param>
-    public GameInfo(string opsFile, string gameRoot, string? exePath = null, string? title = null) {
+    internal GameInfo(string opsFile, string gameRoot, string? exePath = null, string? title = null) {
         OpsFile = opsFile;
         GameRoot = gameRoot;
         ExePath = exePath;

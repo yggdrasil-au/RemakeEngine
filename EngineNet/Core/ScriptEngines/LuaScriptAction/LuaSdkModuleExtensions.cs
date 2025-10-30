@@ -6,7 +6,7 @@ namespace EngineNet.Core.ScriptEngines.LuaModules;
 /// SDK module extensions for archive operations and TOML handling.
 /// </summary>
 internal static class LuaSdkModuleExtensions {
-    public static void AddArchiveOperations(Table sdk) {
+    internal static void AddArchiveOperations(Table sdk) {
         // Archive operations (using system's built-in capabilities)
         sdk["extract_archive"] = (System.Func<string, string, bool>)((archivePath, destDir) => {
             try {
@@ -63,7 +63,7 @@ internal static class LuaSdkModuleExtensions {
         });
     }
 
-    public static void AddTomlHelpers(Table sdk) {
+    internal static void AddTomlHelpers(Table sdk) {
         // TOML helpers
         sdk["toml_read_file"] = (System.Func<string, DynValue>)(path => {
             try {

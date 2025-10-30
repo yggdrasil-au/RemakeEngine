@@ -18,7 +18,7 @@ namespace EngineNet.Tools;
 ///   [[tool]] blocks with keys: name (string), version (string), destination (string), unpack (bool), unpack_destination (string).
 /// </summary>
 internal static class SimpleToml {
-    public static List<Dictionary<string, object?>> ReadTools(string path) {
+    internal static List<Dictionary<string, object?>> ReadTools(string path) {
         List<Dictionary<string, object?>> tools = new List<Dictionary<string, object?>>(capacity: 4);
         Dictionary<string, object?>? current = null;
 
@@ -71,7 +71,7 @@ internal static class SimpleToml {
     ///   ...
     /// Multiple [[placeholders]] blocks are merged; later blocks overwrite earlier keys.
     /// </summary>
-    public static Dictionary<string, object?> ReadPlaceholdersFile(string path) {
+    internal static Dictionary<string, object?> ReadPlaceholdersFile(string path) {
         Dictionary<string, object?> result = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
         if (!System.IO.File.Exists(path)) {
             return result;

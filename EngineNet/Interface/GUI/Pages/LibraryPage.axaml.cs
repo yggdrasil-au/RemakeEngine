@@ -12,7 +12,7 @@ namespace EngineNet.Interface.GUI.Pages;
 /// <summary>
 /// library page in the Graphical Interface.
 /// </summary>
-public partial class LibraryPage:UserControl {
+internal partial class LibraryPage:UserControl {
 
     /* :: :: Vars :: START :: */
     // //
@@ -42,7 +42,7 @@ public partial class LibraryPage:UserControl {
     /* :: :: Constructors :: START :: */
 
     // used only for previewer
-    public LibraryPage() {
+    internal LibraryPage() {
         InitializeComponent();
         DataContext = this; // Set DataContext for design-time bindings
 
@@ -90,64 +90,22 @@ public partial class LibraryPage:UserControl {
             RunOpsCommand = new SimpleCommand(async p => {
                 if (p is Row r && !string.IsNullOrWhiteSpace(r.ModuleName)) {
                     try {
-                        DebugWriteLine($"[LibraryPage] Running all operations for '{r.ModuleName}'...");
-
-                        // Clear previous output and start new operation
-                        OperationOutputService.Instance.StartOperation("Run All Build Operations", r.ModuleName);
-
-                        string? lastPromptMessage = null;
-                        string? lastPromptId = null;
-                        bool lastPromptSecret = false;
-
-                        Core.RunAllResult result = await _engine.RunAllAsync(
+                        await GUI.Utils.ExecuteEngineOperationAsync(
+                            _engine,
                             r.ModuleName,
-                            onOutput: (line, streamName) => {
-                                DebugWriteLine($"[{streamName}] {line}");
-
-                                // Route all raw output to the service
-                                OperationOutputService.Instance.AddOutput(line, streamName);
-                            },
-                            onEvent: (evt) => {
-                                if (evt.TryGetValue("event", out object? evtType)) {
-                                    DebugWriteLine($"[Event] {evtType}: {string.Join(", ", evt.Select(kv => $"{kv.Key}={kv.Value}"))}");
-
-                                    // Capture prompt details for stdinProvider
-                                    if (evtType?.ToString() == "prompt") {
-                                        lastPromptMessage = evt.TryGetValue("message", out object? msg) ? msg?.ToString() : "Input required";
-                                        lastPromptId = evt.TryGetValue("id", out object? id) ? id?.ToString() : null;
-                                        if (evt.TryGetValue("secret", out object? sec)) {
-                                            lastPromptSecret = sec is bool b && b;
-                                        }
-                                    }
-                                }
-
-                                // Route all events to the shared output service
-                                OperationOutputService.Instance.HandleEvent(evt);
-                            },
-                            stdinProvider: () => {
-                                // This runs on a background thread, but Avalonia dialogs must run on UI thread
-                                string? result = null;
-                                global::Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () => {
-                                    try {
-                                        string title = !string.IsNullOrWhiteSpace(lastPromptId) ? lastPromptId : "Input Required";
-                                        string message = lastPromptMessage ?? "Enter value";
-                                        result = await GUI.PromptHelpers.TextAsync(title, message, null, lastPromptSecret);
-                                    } catch (System.Exception ex) {
-                                        DebugWriteLine($"[LibraryPage] Error showing prompt dialog: {ex.Message}");
-                                        result = string.Empty;
-                                    }
-                                }).Wait();
-
-                                return result ?? string.Empty;
-                            }
+                            "Run All Build Operations",
+                            (onOutput, onEvent, stdin) => _engine.RunAllAsync(
+                                r.ModuleName,
+                                onOutput: onOutput,
+                                onEvent: onEvent,
+                                stdinProvider: stdin
+                            )
                         );
-
-                        DebugWriteLine($"[LibraryPage] RunAll completed for '{r.ModuleName}': Success={result.Success}, {result.SucceededOperations}/{result.TotalOperations} operations succeeded.");
 
                         // Refresh the library to update the IsBuilt status
                         Load();
                     } catch (System.Exception ex) {
-                        DebugWriteLine($"[LibraryPage] Exception while running operations for '{r.ModuleName}': {ex}");
+                        OperationOutputService.Instance.AddOutput($"Run-all failed: {ex.Message}", "stderr");
                     }
                 }
             });

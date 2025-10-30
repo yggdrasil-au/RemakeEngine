@@ -5,8 +5,8 @@
 - Build: `dotnet build RemakeEngine.sln -c Debug`
 - Run tests: `dotnet test EngineNet.Tests\EngineNet.Tests.csproj -c Debug --no-build --logger "trx;LogFileName=test_results.trx"`
 
-## Code style
-read at [Style.md](Style.md)
+## Use Exact Code style
+read [Style.md](Style.md)
 
 ## Use Spec files
 This project uses spec files to document design and behavior. See [spec.spec.md](spec.spec.md) for guidelines on writing and maintaining spec files.

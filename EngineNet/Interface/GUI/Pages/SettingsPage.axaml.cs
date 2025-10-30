@@ -13,11 +13,11 @@ using Avalonia.Platform.Storage;
 
 namespace EngineNet.Interface.GUI.Pages;
 
-public partial class SettingsPage:UserControl, INotifyPropertyChanged {
+internal partial class SettingsPage:UserControl, INotifyPropertyChanged {
     private readonly Core.OperationsEngine? _engine;
 
     private string _projectRoot = "";
-    public string ProjectRoot {
+    internal string ProjectRoot {
         get => _projectRoot; set {
             _projectRoot = value;
             Raise(nameof(ProjectRoot));
@@ -25,25 +25,25 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
     }
 
     private string _status = "";
-    public string Status {
+    internal string Status {
         get => _status; private set {
             _status = value;
             Raise(nameof(Status));
         }
     }
 
-    public System.Windows.Input.ICommand BrowseRootCommand {
+    internal System.Windows.Input.ICommand BrowseRootCommand {
         get;
     }
-    public System.Windows.Input.ICommand SaveCommand {
+    internal System.Windows.Input.ICommand SaveCommand {
         get;
     }
-    public System.Windows.Input.ICommand ApplyThemeCommand {
+    internal System.Windows.Input.ICommand ApplyThemeCommand {
         get;
     }
 
     // preview only constructor
-    public SettingsPage() {
+    internal SettingsPage() {
         InitializeComponent();
         DataContext = this;
 
@@ -98,7 +98,7 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
         await Task.Yield();
     }
 
-    public event PropertyChangedEventHandler? PropertyChanged;
+    internal event PropertyChangedEventHandler? PropertyChanged;
     private void Raise(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
     private sealed class Cmd:System.Windows.Input.ICommand {

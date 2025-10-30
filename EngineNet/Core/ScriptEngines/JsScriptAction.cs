@@ -18,14 +18,14 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
     /// Creates a new action that runs the specified JavaScript file with no arguments.
     /// </summary>
     /// <param name="scriptPath">Absolute or relative path to the JavaScript file to execute.</param>
-    //public JsScriptAction(string scriptPath) : this(scriptPath, System.Array.Empty<string>()) { }
+    //internal JsScriptAction(string scriptPath) : this(scriptPath, System.Array.Empty<string>()) { }
 
     /// <summary>
     /// Creates a new action that runs the specified JavaScript file with arguments.
     /// </summary>
     /// <param name="scriptPath">Absolute or relative path to the JavaScript file to execute.</param>
     /// <param name="args">Optional list of arguments to expose to the script via the global <c>argv</c> array.</param>
-    public JsScriptAction(string scriptPath, IEnumerable<string>? args) {
+    internal JsScriptAction(string scriptPath, IEnumerable<string>? args) {
         _scriptPath = scriptPath;
         _args = args is null ? System.Array.Empty<string>() : args as string[] ?? new List<string>(args).ToArray();
     }
@@ -118,7 +118,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             _engine = engine;
         }
 
-        public JsValue color_print(object? arg1, object? arg2 = null, object? arg3 = null) {
+        internal JsValue color_print(object? arg1, object? arg2 = null, object? arg3 = null) {
             string? color = null;
             string message = string.Empty;
             bool newline = true;
@@ -159,11 +159,11 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             return JsValue.Undefined;
         }
 
-        public JsValue colour_print(object? arg1, object? arg2 = null, object? arg3 = null) => color_print(arg1, arg2, arg3);
+        internal JsValue colour_print(object? arg1, object? arg2 = null, object? arg3 = null) => color_print(arg1, arg2, arg3);
 
-        public string ensure_project_config(string root) => Helpers.ConfigHelpers.EnsureProjectConfig(root);
+        internal string ensure_project_config(string root) => Helpers.ConfigHelpers.EnsureProjectConfig(root);
 
-        public bool validate_source_dir(string dir) {
+        internal bool validate_source_dir(string dir) {
             try {
                 Helpers.ConfigHelpers.ValidateSourceDir(dir);
                 return true;
@@ -172,7 +172,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             }
         }
 
-        public bool copy_dir(string src, string dst, object? overwrite = null) {
+        internal bool copy_dir(string src, string dst, object? overwrite = null) {
             try {
                 bool ow = JsInterop.ToBoolean(_engine, overwrite);
                 Helpers.ConfigHelpers.CopyDirectory(src, dst, ow);
@@ -182,7 +182,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             }
         }
 
-        public bool move_dir(string src, string dst, object? overwrite = null) {
+        internal bool move_dir(string src, string dst, object? overwrite = null) {
             try {
                 bool ow = JsInterop.ToBoolean(_engine, overwrite);
                 Helpers.ConfigHelpers.MoveDirectory(src, dst, ow);
@@ -192,9 +192,9 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             }
         }
 
-        public string? find_subdir(string baseDir, string name) => Helpers.ConfigHelpers.FindSubdir(baseDir, name);
+        internal string? find_subdir(string baseDir, string name) => Helpers.ConfigHelpers.FindSubdir(baseDir, name);
 
-        public bool has_all_subdirs(string baseDir, object? names) {
+        internal bool has_all_subdirs(string baseDir, object? names) {
             try {
                 List<string> list = JsInterop.ToStringList(_engine, names);
                 return Helpers.ConfigHelpers.HasAllSubdirs(baseDir, list);
@@ -203,7 +203,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             }
         }
 
-        public bool ensure_dir(string path) {
+        internal bool ensure_dir(string path) {
             try {
                 System.IO.Directory.CreateDirectory(path);
                 return true;
@@ -212,15 +212,15 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             }
         }
 
-        public bool path_exists(string path) => FsUtils.PathExists(path);
+        internal bool path_exists(string path) => FsUtils.PathExists(path);
 
-        public bool lexists(string path) => FsUtils.PathExistsIncludingLinks(path);
+        internal bool lexists(string path) => FsUtils.PathExistsIncludingLinks(path);
 
-        public bool is_dir(string path) => System.IO.Directory.Exists(path);
+        internal bool is_dir(string path) => System.IO.Directory.Exists(path);
 
-        public bool is_file(string path) => System.IO.File.Exists(path);
+        internal bool is_file(string path) => System.IO.File.Exists(path);
 
-        public bool remove_dir(string path) {
+        internal bool remove_dir(string path) {
             try {
                 if (System.IO.Directory.Exists(path)) {
                     System.IO.Directory.Delete(path, true);
@@ -232,7 +232,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             }
         }
 
-        public bool remove_file(string path) {
+        internal bool remove_file(string path) {
             try {
                 if (FsUtils.IsSymlink(path) || System.IO.File.Exists(path)) {
                     System.IO.File.Delete(path);
@@ -244,7 +244,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             }
         }
 
-        public bool copy_file(string src, string dst, object? overwrite = null) {
+        internal bool copy_file(string src, string dst, object? overwrite = null) {
             try {
                 bool ow = JsInterop.ToBoolean(_engine, overwrite);
                 System.IO.File.Copy(src, dst, ow);
@@ -254,15 +254,15 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             }
         }
 
-        public bool create_symlink(string source, string destination, bool isDirectory) => FsUtils.CreateSymlink(source, destination, isDirectory);
+        internal bool create_symlink(string source, string destination, bool isDirectory) => FsUtils.CreateSymlink(source, destination, isDirectory);
 
-        public bool is_symlink(string path) => FsUtils.IsSymlink(path);
+        internal bool is_symlink(string path) => FsUtils.IsSymlink(path);
 
-        public string? realpath(string path) => FsUtils.RealPath(path);
+        internal string? realpath(string path) => FsUtils.RealPath(path);
 
-        public string? readlink(string path) => FsUtils.ReadLink(path);
+        internal string? readlink(string path) => FsUtils.ReadLink(path);
 
-        public void sleep(double seconds) {
+        internal void sleep(double seconds) {
             if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds <= 0) {
                 return;
             }
@@ -277,7 +277,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             }
         }
 
-        public string md5(string text) {
+        internal string md5(string text) {
             try {
                 byte[] data = System.Security.Cryptography.MD5.HashData(System.Text.Encoding.UTF8.GetBytes(text ?? string.Empty));
                 return System.Convert.ToHexString(data).ToLowerInvariant();
@@ -286,7 +286,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             }
         }
 
-        public JsValue run_process(object commandArgs, object? options = null) {
+        internal JsValue run_process(object commandArgs, object? options = null) {
             Jint.Native.Array.ArrayInstance array = JsInterop.EnsureArray(_engine, commandArgs, "run_process arguments");
             List<string> arguments = JsInterop.ToStringList(_engine, array);
             if (arguments.Count == 0) {
@@ -410,7 +410,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             _engine = engine;
         }
 
-        public SqliteHandle open(string path) => new SqliteHandle(_engine, path);
+        internal SqliteHandle open(string path) => new SqliteHandle(_engine, path);
     }
     private sealed class SqliteHandle:System.IDisposable {
         private readonly Engine _engine;
@@ -418,7 +418,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
         private Microsoft.Data.Sqlite.SqliteTransaction? _transaction;
         private bool _disposed;
 
-        internal SqliteHandle(Engine engine, string path) {
+        public SqliteHandle(Engine engine, string path) {
             _engine = engine;
             string fullPath = System.IO.Path.GetFullPath(path);
             Microsoft.Data.Sqlite.SqliteConnectionStringBuilder builder = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder {
@@ -552,9 +552,9 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
     }
     private sealed class LfsModule {
 
-        public string currentdir() => System.Environment.CurrentDirectory;
+        internal string currentdir() => System.Environment.CurrentDirectory;
 
-        public object? mkdir(string path) {
+        internal object? mkdir(string path) {
             try {
                 System.IO.Directory.CreateDirectory(path);
                 return true;
@@ -563,7 +563,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             }
         }
 
-        public object? attributes(string path) {
+        internal object? attributes(string path) {
             if (System.IO.Directory.Exists(path)) {
                 return new Dictionary<string, object?>(System.StringComparer.Ordinal) {
                     ["mode"] = "directory"
@@ -580,7 +580,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             return null;
         }
 
-        public System.Func<object?> dir(string path) {
+        internal System.Func<object?> dir(string path) {
             IEnumerable<string> Enumerate() {
                 yield return ".";
                 yield return "..";
@@ -601,7 +601,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             _engine = engine;
         }
 
-        public string encode(JsValue value, JsValue options) {
+        internal string encode(JsValue value, JsValue options) {
             bool indent = false;
             if (!options.IsUndefined() && !options.IsNull() && options.IsObject()) {
                 JsValue indentVal = JsInterop.Get(options.AsObject(), _engine, "indent");
@@ -614,9 +614,9 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             return System.Text.Json.JsonSerializer.Serialize(plain, jsonOptions);
         }
 
-        public JsValue encode(JsValue value) => encode(value, JsValue.Undefined);
+        internal JsValue encode(JsValue value) => encode(value, JsValue.Undefined);
 
-        public JsValue decode(string json) {
+        internal JsValue decode(string json) {
             try {
                 using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(json);
                 return JsInterop.FromJsonElement(_engine, doc.RootElement);
@@ -632,14 +632,14 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             _scriptPath = scriptPath;
         }
 
-        public object getinfo(object? level = null, object? what = null) {
+        internal object getinfo(object? level = null, object? what = null) {
             return new Dictionary<string, object?>(System.StringComparer.Ordinal) {
                 ["source"] = "@" + _scriptPath
             };
         }
     }
     private sealed class PackageModule {
-        public IDictionary<string, object?> loaded {
+        internal IDictionary<string, object?> loaded {
             get;
         }
 
@@ -649,9 +649,9 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
     }
     private static class FsUtils {
 
-        public static bool PathExists(string path) => System.IO.Directory.Exists(path) || System.IO.File.Exists(path);
+        internal static bool PathExists(string path) => System.IO.Directory.Exists(path) || System.IO.File.Exists(path);
 
-        public static bool PathExistsIncludingLinks(string path) {
+        internal static bool PathExistsIncludingLinks(string path) {
             if (PathExists(path)) {
                 return true;
             }
@@ -664,7 +664,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             }
         }
 
-        public static bool IsSymlink(string path) {
+        internal static bool IsSymlink(string path) {
             try {
                 System.IO.FileSystemInfo info = GetInfo(path);
                 return info.LinkTarget != null || info.Attributes.HasFlag(System.IO.FileAttributes.ReparsePoint);
@@ -673,7 +673,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             }
         }
 
-        public static bool CreateSymlink(string source, string destination, bool isDirectory) {
+        internal static bool CreateSymlink(string source, string destination, bool isDirectory) {
             try {
                 string destFull = System.IO.Path.GetFullPath(destination);
                 string srcFull = System.IO.Path.GetFullPath(source);
@@ -694,7 +694,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             }
         }
 
-        public static string? RealPath(string path) {
+        internal static string? RealPath(string path) {
             try {
                 return System.IO.Path.GetFullPath(path);
             } catch {
@@ -702,7 +702,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             }
         }
 
-        public static string? ReadLink(string path) {
+        internal static string? ReadLink(string path) {
             try {
                 System.IO.FileSystemInfo info = GetInfo(path);
                 return info.LinkTarget;
@@ -728,28 +728,28 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
     }
     private static class JsInterop {
 
-        public static JsValue AsJsValue(Engine engine, object? value) {
+        internal static JsValue AsJsValue(Engine engine, object? value) {
             return value is null ? JsValue.Null : value is JsValue js ? js : JsValue.FromObject(engine, value);
         }
 
-        public static bool ToBoolean(Engine engine, object? value, bool defaultValue = false) => ToBoolean(AsJsValue(engine, value), defaultValue);
+        internal static bool ToBoolean(Engine engine, object? value, bool defaultValue = false) => ToBoolean(AsJsValue(engine, value), defaultValue);
 
-        public static bool ToBoolean(JsValue value, bool defaultValue = false) {
+        internal static bool ToBoolean(JsValue value, bool defaultValue = false) {
             return value.IsNull() || value.IsUndefined() ? defaultValue : Jint.Runtime.TypeConverter.ToBoolean(value);
         }
 
-        public static double ToNumber(JsValue value, double defaultValue = 0) {
+        internal static double ToNumber(JsValue value, double defaultValue = 0) {
             return value.IsNull() || value.IsUndefined() ? defaultValue : Jint.Runtime.TypeConverter.ToNumber(value);
         }
 
-        public static Jint.Native.Array.ArrayInstance EnsureArray(Engine engine, object? value, string paramName) {
+        internal static Jint.Native.Array.ArrayInstance EnsureArray(Engine engine, object? value, string paramName) {
             JsValue js = AsJsValue(engine, value);
             return !js.IsArray() ? throw CreateJsException(engine, "TypeError", $"{paramName} must be an array") : (Jint.Native.Array.ArrayInstance)js.AsArray();
         }
 
-        public static List<string> ToStringList(Engine engine, object? value) => ToStringList(EnsureArray(engine, value, "value"));
+        internal static List<string> ToStringList(Engine engine, object? value) => ToStringList(EnsureArray(engine, value, "value"));
 
-        public static List<string> ToStringList(Jint.Native.Array.ArrayInstance array) {
+        internal static List<string> ToStringList(Jint.Native.Array.ArrayInstance array) {
             List<string> list = new List<string>();
             foreach (JsValue item in array) {
                 if (item.IsNull() || item.IsUndefined()) {
@@ -761,14 +761,14 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             return list;
         }
 
-        public static IDictionary<string, object?> ToDictionary(Engine engine, object? value) {
+        internal static IDictionary<string, object?> ToDictionary(Engine engine, object? value) {
             JsValue js = AsJsValue(engine, value);
             return js.IsNull() || js.IsUndefined()
                 ? new Dictionary<string, object?>(System.StringComparer.Ordinal)
                 : !js.IsObject() ? throw CreateJsException(engine, "TypeError", "Expected object value") : ToDictionary(engine, js.AsObject());
         }
 
-        public static IDictionary<string, object?> ToDictionary(Engine engine, Jint.Native.Object.ObjectInstance obj) {
+        internal static IDictionary<string, object?> ToDictionary(Engine engine, Jint.Native.Object.ObjectInstance obj) {
             Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.Ordinal);
             foreach (JsValue key in obj.GetOwnPropertyKeys()) {
                 JsValue value = obj.Get(key, obj);
@@ -777,7 +777,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             return dict;
         }
 
-        public static object? ToPlainObject(Engine engine, JsValue value) {
+        internal static object? ToPlainObject(Engine engine, JsValue value) {
             if (value.IsNull() || value.IsUndefined()) {
                 return null;
             }
@@ -814,7 +814,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             return value.ToString();
         }
 
-        public static Jint.Runtime.JavaScriptException CreateJsException(Engine engine, string constructorName, string message) {
+        internal static Jint.Runtime.JavaScriptException CreateJsException(Engine engine, string constructorName, string message) {
             try {
                 JsValue ctorValue = engine.GetValue(constructorName);
                 JsValue errorInstance = engine.Invoke(ctorValue, message);
@@ -828,11 +828,11 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             return new Jint.Runtime.JavaScriptException(JsValue.FromObject(engine, message));
         }
 
-        public static JsValue FromObject(Engine engine, object? value) => JsValue.FromObject(engine, value);
+        internal static JsValue FromObject(Engine engine, object? value) => JsValue.FromObject(engine, value);
 
-        public static JsValue FromJsonElement(Engine engine, System.Text.Json.JsonElement element) => FromObject(engine, FromJsonElement(element));
+        internal static JsValue FromJsonElement(Engine engine, System.Text.Json.JsonElement element) => FromObject(engine, FromJsonElement(element));
 
-        public static object? FromJsonElement(System.Text.Json.JsonElement element) => element.ValueKind switch {
+        internal static object? FromJsonElement(System.Text.Json.JsonElement element) => element.ValueKind switch {
             System.Text.Json.JsonValueKind.Object => ToDictionary(element),
             System.Text.Json.JsonValueKind.Array => ToList(element),
             System.Text.Json.JsonValueKind.String => element.GetString(),
@@ -842,18 +842,18 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             _ => null
         };
 
-        public static Jint.Native.Object.ObjectInstance? TryGetPlainObject(Engine engine, object? value) {
+        internal static Jint.Native.Object.ObjectInstance? TryGetPlainObject(Engine engine, object? value) {
             JsValue js = AsJsValue(engine, value);
             return js.IsObject() && !js.IsArray() ? js.AsObject() : null;
         }
 
-        public static JsValue Get(Jint.Native.Object.ObjectInstance obj, Engine engine, string name) => obj.Get(JsValue.FromObject(engine, name), obj);
+        internal static JsValue Get(Jint.Native.Object.ObjectInstance obj, Engine engine, string name) => obj.Get(JsValue.FromObject(engine, name), obj);
 
-        public static string ToString(JsValue value) => value.IsString() ? value.AsString() : value.ToString();
+        internal static string ToString(JsValue value) => value.IsString() ? value.AsString() : value.ToString();
 
-        public static bool ToBoolean(JsValue value) => ToBoolean(value, false);
+        internal static bool ToBoolean(JsValue value) => ToBoolean(value, false);
 
-        public static int? ToNullableInt(JsValue value) {
+        internal static int? ToNullableInt(JsValue value) {
             return value.IsNull() || value.IsUndefined() ? null : (int)System.Math.Max(0, System.Math.Round(Jint.Runtime.TypeConverter.ToNumber(value)));
         }
 

@@ -17,20 +17,20 @@ using Avalonia.Interactivity;
 
 namespace EngineNet.Interface.GUI.Pages.PromptWindows;
 
-public partial class TextPromptWindow:Window {
-    public string? Result {
+internal partial class TextPromptWindow:Window {
+    internal string? Result {
         get; private set;
     }
 
     private readonly TextBox? _textInput;
 
     // Parameterless constructor for XAML loader
-    public TextPromptWindow() {
+    internal TextPromptWindow() {
         DataContext = this;
         InitializeComponent();
     }
 
-    public TextPromptWindow(string title, string message, string? defaultValue, bool secret) {
+    internal TextPromptWindow(string title, string message, string? defaultValue, bool secret) {
         InitializeComponent();
         Title = title;
 
@@ -63,7 +63,7 @@ public partial class TextPromptWindow:Window {
         Close(Result);
     }
 
-    public System.Threading.Tasks.Task<string?> ShowAsync(Window owner) {
+    internal System.Threading.Tasks.Task<string?> ShowAsync(Window owner) {
         return ShowDialog<string?>(owner);
     }
 }

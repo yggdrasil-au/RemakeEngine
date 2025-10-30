@@ -18,7 +18,7 @@ namespace EngineNet.Core.ScriptEngines.LuaModules;
 /// Provides secure database access with path validation.
 /// </summary>
 internal static class LuaSqliteModule {
-    public static Table CreateSqliteModule(Script lua) {
+    internal static Table CreateSqliteModule(Script lua) {
         Table module = new Table(lua);
         module["open"] = DynValue.NewCallback((ctx, args) => {
             if (args.Count < 1 || args[0].Type != DataType.String) {

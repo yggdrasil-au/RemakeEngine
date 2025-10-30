@@ -16,16 +16,16 @@ internal sealed class ProcessRunner {
     /// </summary>
     /// <param name="line">Text of the line.</param>
     /// <param name="streamName">"stdout" or "stderr".</param>
-    public delegate void OutputHandler(string line, string streamName);
+    internal delegate void OutputHandler(string line, string streamName);
     /// <summary>
     /// Callback to receive a structured engine event decoded from the child output.
     /// </summary>
-    public delegate void EventHandler(Dictionary<string, object?> evt);
+    internal delegate void EventHandler(Dictionary<string, object?> evt);
     /// <summary>
     /// Provider used to gather user input when a prompt event is seen.
     /// Return value is written to the child's stdin with a trailing newline.
     /// </summary>
-    public delegate string? StdinProvider();
+    internal delegate string? StdinProvider();
 
     /// <summary>
     /// Execute a command line and stream output until completion or cancellation.
@@ -38,7 +38,7 @@ internal sealed class ProcessRunner {
     /// <param name="envOverrides">Optional environment variables to inject/override for the child.</param>
     /// <param name="cancellationToken">Token to abort execution.</param>
     /// <returns>True on zero exit code; false otherwise.</returns>
-    public bool Execute(
+    internal bool Execute(
         IList<string> commandParts,
         string opTitle,
         OutputHandler? onOutput = null,

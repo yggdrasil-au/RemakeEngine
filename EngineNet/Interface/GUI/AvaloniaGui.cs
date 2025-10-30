@@ -8,7 +8,7 @@ namespace EngineNet.Interface.GUI;
 /// Persists the host application's engine object long enough to
 /// construct view models and start the UI loop.
 /// </summary>
-public static class AvaloniaGui {
+internal static class AvaloniaGui {
     /// <summary>
     /// Engine instance provided by the host application at startup.
     /// Stored temporarily so the App (and its view models) can access it
@@ -55,7 +55,7 @@ public static class AvaloniaGui {
     /// Uses platform detection for the current OS and routes Avalonia logs to trace.
     /// Customize here to add DI, theming, or platform-specific options.
     /// </remarks>
-    public static AppBuilder BuildAvaloniaApp() {
+    internal static AppBuilder BuildAvaloniaApp() {
         // Configure the application type, detect platform backends, and enable tracing.
         return AppBuilder
             .Configure<App>()

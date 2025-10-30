@@ -36,7 +36,7 @@ internal static class ConfigHelpers {
     /// Ensure a minimal project.json exists under <paramref name="rootDir"/>.
     /// If missing, creates a skeleton file similar to EngineNet.Program. Returns the config path.
     /// </summary>
-    public static string EnsureProjectConfig(string rootDir) {
+    internal static string EnsureProjectConfig(string rootDir) {
         if (string.IsNullOrWhiteSpace(rootDir)) {
             throw new System.ArgumentException("rootDir is empty");
         }
@@ -55,7 +55,7 @@ internal static class ConfigHelpers {
     /// Validates that a source directory exists and is accessible.
     /// Throws if invalid.
     /// </summary>
-    public static void ValidateSourceDir(string dir) {
+    internal static void ValidateSourceDir(string dir) {
         if (string.IsNullOrWhiteSpace(dir)) {
             throw new System.ArgumentException("Source directory path is empty");
         }
@@ -76,7 +76,7 @@ internal static class ConfigHelpers {
     /// If <paramref name="overwrite"/> is false and destination exists, throws.
     /// Emits progress updates to the engine System.Console.
     /// </summary>
-    public static void CopyDirectory(string sourceDir, string destDir, bool overwrite = false) {
+    internal static void CopyDirectory(string sourceDir, string destDir, bool overwrite = false) {
         if (string.IsNullOrWhiteSpace(sourceDir)) {
             throw new System.ArgumentException("sourceDir is empty");
         }
@@ -150,7 +150,7 @@ internal static class ConfigHelpers {
     /// destination exists, throws. If moving across volumes or into an existing destination,
     /// falls back to copy+delete. Emits progress for copy operations.
     /// </summary>
-    public static void MoveDirectory(string sourceDir, string destDir, bool overwrite = false) {
+    internal static void MoveDirectory(string sourceDir, string destDir, bool overwrite = false) {
         if (string.IsNullOrWhiteSpace(sourceDir)) {
             throw new System.ArgumentException("sourceDir is empty");
         }
@@ -195,7 +195,7 @@ internal static class ConfigHelpers {
     /// named <paramref name="name"/>. Comparison is case-insensitive on Windows.
     /// Returns null if not found.
     /// </summary>
-    public static string? FindSubdir(string baseDir, string name, bool caseInsensitive = true) {
+    internal static string? FindSubdir(string baseDir, string name, bool caseInsensitive = true) {
         if (!System.IO.Directory.Exists(baseDir)) {
             return null;
         }
@@ -220,7 +220,7 @@ internal static class ConfigHelpers {
     /// Checks whether all subdirectory names in <paramref name="names"/> exist directly under <paramref name="baseDir"/>.
     /// Comparison is case-insensitive on Windows by default.
     /// </summary>
-    public static bool HasAllSubdirs(string baseDir, IEnumerable<string> names, bool caseInsensitive = true) {
+    internal static bool HasAllSubdirs(string baseDir, IEnumerable<string> names, bool caseInsensitive = true) {
         if (!System.IO.Directory.Exists(baseDir)) {
             return false;
         }
