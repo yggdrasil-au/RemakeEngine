@@ -1,24 +1,9 @@
-
-using System.IO;
-using System.Text.Json;
-using System.Threading.Tasks;
-using System.Linq;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Collections.Generic;
-using System.Collections;
-
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Threading;
-using Avalonia.Media.Imaging;
-using Avalonia.Interactivity;
-
 using Avalonia.Interactivity;
 
 namespace EngineNet.Interface.GUI.Pages;
 
-internal partial class MainWindow:Window {
+public partial class MainWindow:Window {
     /* :: :: Vars :: START :: */
     private readonly Core.OperationsEngine? _engine;
 
@@ -28,9 +13,9 @@ internal partial class MainWindow:Window {
     /// <summary>
     /// previewer constructor
     /// </summary>
-    internal MainWindow() {
+    public MainWindow() {
         InitializeComponent();
-        //ShowHome();
+        ShowHome();
     }
 
     /// <summary>
@@ -40,7 +25,7 @@ internal partial class MainWindow:Window {
         _engine = engine;
         DataContext = this;
         InitializeComponent();
-        //ShowHome(); // default page
+        ShowHome(); // default page
     }
 
     private void ShowHome() {

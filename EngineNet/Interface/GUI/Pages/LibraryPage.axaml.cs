@@ -1,6 +1,4 @@
 
-using System;
-using System.Linq;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
 
@@ -12,7 +10,7 @@ namespace EngineNet.Interface.GUI.Pages;
 /// <summary>
 /// library page in the Graphical Interface.
 /// </summary>
-internal partial class LibraryPage:UserControl {
+public partial class LibraryPage:UserControl {
 
     /* :: :: Vars :: START :: */
     // //
@@ -42,7 +40,7 @@ internal partial class LibraryPage:UserControl {
     /* :: :: Constructors :: START :: */
 
     // used only for previewer
-    internal LibraryPage() {
+    public LibraryPage() {
         InitializeComponent();
         DataContext = this; // Set DataContext for design-time bindings
 
@@ -51,16 +49,15 @@ internal partial class LibraryPage:UserControl {
         PlayCommand = new SimpleCommand(_ => { });
         RunOpsCommand = new SimpleCommand(_ => { });
         OpenFolderCommand = new SimpleCommand(_ => { });
-        // NOTE: Your XAML binds to PlayCommand and RunOpsCommand, which don't exist.
         // You'll need to fix this separately. See note below.
 
         // Add some sample data so the previewer isn't empty
-        Items.Add(new Row {
+        Items.Add(item: new Row {
             Title = "Example Game (Installed)",
             IsBuilt = true,
             PrimaryActionText = "Play"
         });
-        Items.Add(new Row {
+        Items.Add(item: new Row {
             Title = "Another Game (Not Installed)",
             IsBuilt = false,
             PrimaryActionText = "Run All Build Operations"
@@ -93,8 +90,8 @@ internal partial class LibraryPage:UserControl {
                         await GUI.Utils.ExecuteEngineOperationAsync(
                             _engine,
                             r.ModuleName,
-                            "Run All Build Operations",
-                            (onOutput, onEvent, stdin) => _engine.RunAllAsync(
+                            operationName: "Run All Build Operations",
+                            (Core.Utils.ProcessRunner.OutputHandler onOutput, Core.Utils.ProcessRunner.EventHandler onEvent, Core.Utils.ProcessRunner.StdinProvider stdin) => _engine.RunAllAsync(
                                 r.ModuleName,
                                 onOutput: onOutput,
                                 onEvent: onEvent,
@@ -119,10 +116,10 @@ internal partial class LibraryPage:UserControl {
                             return;
                         }
                         System.Diagnostics.ProcessStartInfo? psi = new System.Diagnostics.ProcessStartInfo { UseShellExecute = true };
-                        if (OperatingSystem.IsWindows()) {
+                        if (System.OperatingSystem.IsWindows()) {
                             psi.FileName = "explorer";
                             psi.Arguments = $"\"{path}\"";
-                        } else if (OperatingSystem.IsMacOS()) {
+                        } else if (System.OperatingSystem.IsMacOS()) {
                             psi.FileName = "open";
                             psi.Arguments = $"\"{path}\"";
                         } else {
@@ -153,8 +150,8 @@ internal partial class LibraryPage:UserControl {
         try {
             Items.Clear(); // reset
             if (_engine == null) {
-                DebugWriteLine("[LibraryPage] Load() aborted: _engine is null.");
-                throw new InvalidOperationException(message: "Engine is not initialized.");
+                DebugWriteLine(message: "[LibraryPage] Load() aborted: _engine is null.");
+                throw new System.InvalidOperationException(message: "Engine is not initialized.");
             }
 
             Dictionary<string, object?>? games = _engine.ListGames(); // installed + discovered
@@ -163,30 +160,28 @@ internal partial class LibraryPage:UserControl {
                 IDictionary<string, object?>? info = kv.Value as IDictionary<string, object?>;
 
                 string? exe = null;
-                if (info != null && info.TryGetValue(key: "exe", out var e)) {
+                if (info != null && info.TryGetValue(key: "exe", out object? e)) {
                     exe = e?.ToString();
                 } else {
-                    DebugWriteLine($"[LibraryPage] 'exe' missing for '{name}'.");
+                    DebugWriteLine(message: $"[LibraryPage] 'exe' missing for '{name}'.");
                 }
 
                 string? title;
                 if (info != null &&
-                    info.TryGetValue(key: "title", out var t) &&
+                    info.TryGetValue(key: "title", out object? t) &&
                     !string.IsNullOrWhiteSpace(t?.ToString())) {
                     title = t!.ToString()!;
                 } else {
                     title = name;
-                    DebugWriteLine($"[LibraryPage] Title missing/blank for '{name}'. Falling back to module name.");
+                    DebugWriteLine(message: $"[LibraryPage] Title missing/blank for '{name}'. Falling back to module name.");
                 }
 
                 string? gameRoot = null;
-                if (info != null && info.TryGetValue(key: "game_root", out var gr)) {
+                if (info != null && info.TryGetValue(key: "game_root", out object? gr)) {
                     gameRoot = gr?.ToString();
                 } else {
-                    DebugWriteLine($"[LibraryPage] 'game_root' missing for '{name}'.");
+                    DebugWriteLine(message: $"[LibraryPage] 'game_root' missing for '{name}'.");
                 }
-
-                //string? imageUri = ResolveCoverUri(gameRoot);
 
                 bool IsBuilt = !string.IsNullOrWhiteSpace(exe) || _engine.IsModuleInstalled(name);
 
@@ -208,16 +203,16 @@ internal partial class LibraryPage:UserControl {
             }
 
             if (Items.Count == 0) {
-                DebugWriteLine("[LibraryPage] No games found. Adding placeholder row.");
-                Items.Add(new Row {
+                DebugWriteLine(message: "[LibraryPage] No games found. Adding placeholder row.");
+                Items.Add(item: new Row {
                     Title = "No games found.",
                     ModuleName = "",
                     PrimaryActionText = ""
                 });
             }
         } catch (System.Exception ex) {
-            DebugWriteLine($"[LibraryPage] Exception during Load(): {ex}");
-            Items.Add(new Row {
+            DebugWriteLine(message: $"[LibraryPage] Exception during Load(): {ex}");
+            Items.Add(item: new Row {
                 Title = "Error loading games.",
                 ModuleName = "",
                 PrimaryActionText = ""
@@ -306,11 +301,11 @@ internal partial class LibraryPage:UserControl {
     /// </summary>
     private sealed class SimpleCommand:System.Windows.Input.ICommand {
 
-        private readonly Action<object?> _a;
-        public SimpleCommand(Action<object?> a) => _a = a;
+        private readonly System.Action<object?> _a;
+        public SimpleCommand(System.Action<object?> a) => _a = a;
         public bool CanExecute(object? p) => true;
         public void Execute(object? p) => _a(p);
-        public event EventHandler? CanExecuteChanged;
+        public event System.EventHandler? CanExecuteChanged;
     }
 
     /* :: :: Nested Types :: END :: */

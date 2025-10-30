@@ -13,7 +13,7 @@ using Avalonia.Platform.Storage;
 
 namespace EngineNet.Interface.GUI.Pages;
 
-internal partial class SettingsPage:UserControl, INotifyPropertyChanged {
+public partial class SettingsPage:UserControl, INotifyPropertyChanged {
     private readonly Core.OperationsEngine? _engine;
 
     private string _projectRoot = "";
@@ -43,7 +43,7 @@ internal partial class SettingsPage:UserControl, INotifyPropertyChanged {
     }
 
     // preview only constructor
-    internal SettingsPage() {
+    public SettingsPage() {
         InitializeComponent();
         DataContext = this;
 

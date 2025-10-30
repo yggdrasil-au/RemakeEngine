@@ -1,5 +1,4 @@
 using MoonSharp.Interpreter;
-
 using System.Collections.Generic;
 
 namespace EngineNet.Core.ScriptEngines;

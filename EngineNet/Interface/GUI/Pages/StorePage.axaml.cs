@@ -10,7 +10,7 @@ using Avalonia.Controls;
 
 namespace EngineNet.Interface.GUI.Pages;
 
-internal partial class StorePage:UserControl {
+public partial class StorePage:UserControl {
 
     /* :: :: Vars :: START :: */
     // //
@@ -53,7 +53,7 @@ internal partial class StorePage:UserControl {
     /* :: :: Constructors :: START :: */
 
     // used only for previewer
-    internal StorePage() {
+    public StorePage() {
 
         DataContext = this; // make every instance var an available binding
         InitializeComponent();
