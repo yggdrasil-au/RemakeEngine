@@ -21,7 +21,7 @@ local function parse_args(list)
         elseif key == '--scratch' and list[i + 1] then
             opts.scratch = list[i + 1]
             i = i + 2
-        elseif key == '--note' and list[i + 1] then
+        elseif key == '--operation-note' and list[i + 1] then
             opts.note = list[i + 1]
             i = i + 2
         else

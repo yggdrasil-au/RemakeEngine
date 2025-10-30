@@ -11,7 +11,7 @@ args = ["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo"]
 type = "text"
 Name = "lua_note"
 message = "Optional note to record in the Lua demo log"
-cli_arg_prefix = "--note"
+cli_arg_prefix = "--operation-note"
 
 [[operation]]
 run-all = false
@@ -37,8 +37,7 @@ cli_arg_prefix = "--note"
 
 [[operation]]
 run-all = false
-Name = "Python Placeholder (Not Supported)"
-Instructions = "Keeps the legacy Python entry to highlight that scripting is currently disabled."
+Name = "Python Placeholder (Not implemented)"
 script_type = "python"
 script = "{{Game_Root}}/scripts/python_demo.py"
 args = []
@@ -50,3 +49,96 @@ Instructions = "Uses the engine downloader to retrieve optional demo tooling."
 script_type = "engine"
 script = "download_tools"
 tools_manifest = "{{Game_Root}}/Tools.toml"
+
+
+## NOT IMPLEMENTED, DEMO INPUT FILES NEED TO BE MANUALLY CREATED FIRST ##
+
+
+## validates files and folders in the source path
+[[operation]]
+Name = "Validate Source Game Files and Folders"
+run-all = true
+Instructions = "Validate source (root) files using explicit table + required dir arguments"
+script_type = "engine"
+script = "validate-files"
+db = "{{Game_Root}}/config/GameFilesIndex_{{Region}}_Full-{{isRenamed}}.db"
+args = [
+	"{{SourcePath}}",
+	"--tables", "str_index:source_path,video_index:source_path,mus_index:source_path,snu_index:source_path",
+	"--required-dirs", "audiostreams||Assets_1_Audio_Streams,movies||Assets_1_Video_Movies,frontend||Assets_2_Frontend,simpsons_chars||Assets_2_Characters_Simpsons,spr_hub||Map_3-00_SprHub,loc||Map_3-01_LandOfChocolate,brt||Map_3-02_BartmanBegins,eighty_bites||Map_3-03_HungryHungryHomer,tree_hugger||Map_3-04_TreeHugger,mob_rules||Map_3-05_MobRules,cheater||Map_3-06_EnterTheCheatrix,dayofthedolphins||Map_3-07_DayOfTheDolphin,colossaldonut||Map_3-08_TheColossalDonut,dayspringfieldstoodstill||Map_3-09_Invasion,bargainbin||Map_3-10_BargainBin,gamehub||Map_3-00_GameHub,neverquest||Map_3-11_NeverQuest,grand_theft_scratchy||Map_3-12_GrandTheftScratchy,medal_of_homer||Map_3-13_MedalOfHomer,bigsuperhappy||Map_3-14_BigSuperHappy,rhymes||Map_3-15_Rhymes,meetthyplayer||Map_3-16_MeetThyPlayer",
+]
+
+## renames Source Game folders for clarity
+## it should be possible to run without but that case is not be fully tested
+[[operation]]
+Name = "Rename base folders"
+run-all = false
+Instructions = "run rename script"
+script_type = "engine"
+script = "rename-folders"
+args = ["{{SourcePath}}", "--map-db-file", "{{Game_Root}}/config/RenameMap.db"]
+[[operation.onsuccess]]
+Name = "test"
+script_type = "lua"
+script = "{{Game_Root}}/config.lua"
+args = ["--group", "placeholders", "--key", "isRenamed", "--value", "1", "--type", "integer"]
+
+
+## extract textures from texture dictionaries that were extracted from .str files
+[[operation]]
+Name = "Extract Textures (.txd -> .dds)"
+run-all = true
+script_type = "engine"
+script = "format-extract"
+format = "txd"
+args = ["{{Game_Root}}/GameFiles/STROUT"]
+
+[[operation]]
+Name = "Convert Textures (.dds -> .png)"
+run-all = true
+script_type = "engine"
+script = "format-convert"
+tool = "ImageMagick"
+args = [
+	"--source", "{{Game_Root}}/GameFiles/STROUT",
+	"--target", "{{Game_Root}}/GameFiles/STROUT",
+	"--input-ext", ".dds",
+	"--output-ext", ".png"
+]
+## convert videos into a usable format for godot
+[[operation]]
+Name = "Convert Videos (.vp6 -> .ogv)"
+run-all = true
+script_type = "engine"
+script = "format-convert"
+tool = "ffmpeg"
+args = [
+	"-m", "ffmpeg",
+	"--type", "video",
+	"-s", "{{SourcePath}}/movies",
+	"-t", "{{Game_Root}}/GameFiles/STROUT/movies",
+	#"-f", "ffmpeg.exe",
+	"-i", ".vp6",
+	"-o", ".ogv"
+]
+
+## convert Audio into a usable format for godot
+[[operation]]
+Name = "Convert Audio (.snu -> .wav)"
+run-all = true
+script_type = "engine"
+script = "format-convert"
+tool = "vgmstream"
+args = [
+	"-m", "vgmstream",
+	"--type", "audio",
+	"-s", "{{SourcePath}}/audiostreams",
+	"-t", "{{Game_Root}}/GameFiles/STROUT/audiostreams",
+	#"--vgmstream-cli", "vgmstream-cli.exe",
+	"-i", ".snu",
+	"-o", ".wav",
+	"--godot-compatible"
+]
+
+
+
