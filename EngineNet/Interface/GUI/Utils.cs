@@ -84,33 +84,9 @@ internal static class Utils {
             return response ?? string.Empty;
         };
 
-        System.Action<Dictionary<string, object?>>? previousSink = Core.Utils.EngineSdk.LocalEventSink;
-        bool previousMute = Core.Utils.EngineSdk.MuteStdoutWhenLocalSink;
-        Dictionary<string, string> previousAutoPrompts = new Dictionary<string, string>(Core.Utils.EngineSdk.AutoPromptResponses);
-
-        try {
-            if (autoPromptResponses != null && autoPromptResponses.Count > 0) {
-                Core.Utils.EngineSdk.AutoPromptResponses.Clear();
-                foreach (KeyValuePair<string, string> kvp in autoPromptResponses) {
-                    Core.Utils.EngineSdk.AutoPromptResponses[kvp.Key] = kvp.Value;
-                }
-            }
-
-            Core.Utils.EngineSdk.LocalEventSink = evt => {
-                CapturePrompt(evt);
-                outputService.HandleEvent(evt);
-            };
-            Core.Utils.EngineSdk.MuteStdoutWhenLocalSink = true;
-
+        System.Action<System.Collections.Generic.Dictionary<string, object?>> sink = evt => { CapturePrompt(evt); outputService.HandleEvent(evt); };
+        using (new Core.Utils.SdkEventScope(sink: sink, muteStdout: true, autoPromptResponses: autoPromptResponses)) {
             return await executor(outputHandler, eventHandler, stdinProvider).ConfigureAwait(false);
-        } finally {
-            Core.Utils.EngineSdk.LocalEventSink = previousSink;
-            Core.Utils.EngineSdk.MuteStdoutWhenLocalSink = previousMute;
-
-            Core.Utils.EngineSdk.AutoPromptResponses.Clear();
-            foreach (KeyValuePair<string, string> kvp in previousAutoPrompts) {
-                Core.Utils.EngineSdk.AutoPromptResponses[kvp.Key] = kvp.Value;
-            }
         }
     }
 }

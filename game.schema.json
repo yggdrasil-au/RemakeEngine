@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://remake.engine/schemas/game.schema.json",
+  "title": "RemakeEngine Game Module Manifest (game.toml)",
+  "description": "Schema for built game modules. Supports launching via exe, lua script, or Godot project. String paths may include placeholders like {{Game_Root}} and {{Project_Root}} which are resolved by the engine.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Human-friendly title for the game/module."
+    },
+    "name": {
+      "type": "string",
+      "description": "Optional alternate name; if absent the module folder name is used."
+    },
+    "exe": {
+      "$ref": "#/definitions/pathString",
+      "description": "Path to an executable to launch (supports placeholders)."
+    },
+    "executable": {
+      "$ref": "#/definitions/pathString",
+      "description": "Alias of exe."
+    },
+    "lua": {
+      "$ref": "#/definitions/pathString",
+      "description": "Path to a Lua script to execute via embedded interpreter (supports placeholders)."
+    },
+    "lua_script": {
+      "$ref": "#/definitions/pathString",
+      "description": "Alias of lua."
+    },
+    "script": {
+      "$ref": "#/definitions/pathString",
+      "description": "Alias of lua."
+    },
+    "godot": {
+      "$ref": "#/definitions/pathString",
+      "description": "Path to a Godot project file (e.g., project.godot). The engine resolves 'godot' from tools and launches it with this project."
+    },
+    "godot_project": {
+      "$ref": "#/definitions/pathString",
+      "description": "Alias of godot."
+    },
+    "project": {
+      "$ref": "#/definitions/pathString",
+      "description": "Alias of godot."
+    }
+  },
+  "allOf": [
+    {
+      "anyOf": [
+        { "required": ["exe"] },
+        { "required": ["executable"] },
+        { "required": ["lua"] },
+        { "required": ["lua_script"] },
+        { "required": ["script"] },
+        { "required": ["godot"] },
+        { "required": ["godot_project"] },
+        { "required": ["project"] }
+      ]
+    },
+    {
+      "oneOf": [
+        { "required": ["exe"] },
+        { "required": ["executable"] },
+        { "required": ["lua"] },
+        { "required": ["lua_script"] },
+        { "required": ["script"] },
+        { "required": ["godot"] },
+        { "required": ["godot_project"] },
+        { "required": ["project"] }
+      ]
+    }
+  ],
+  "definitions": {
+    "pathString": {
+      "type": "string",
+      "minLength": 1,
+      "examples": [
+        "{{Game_Root}}/bin/Game.exe",
+        "{{Game_Root}}/scripts/entry.lua",
+        "{{Game_Root}}/project.godot"
+      ]
+    }
+  }
+}
+

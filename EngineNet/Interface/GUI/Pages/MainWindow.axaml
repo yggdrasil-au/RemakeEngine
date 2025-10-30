@@ -4,19 +4,31 @@
     x:Class="EngineNet.Interface.GUI.Pages.MainWindow"
     Width="1000" Height="700" Title="EngineNet">
     <DockPanel>
-        <!-- left nav -->
-        <StackPanel DockPanel.Dock="Left" Width="220" Spacing="8" Margin="8">
-            <TextBlock Text="Navigation" FontWeight="Bold" Margin="0,0,0,8"/>
-
+        <!-- top nav -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="8">
             <Button Content="Library" Click="OnLibrary"/>
             <Button Content="Store"   Click="OnStore"/>
             <Button Content="Building" Click="OnBuilding"/>
-
-            <Separator Margin="0,8,0,8"/>
-
-            <!-- add any extra actions here -->
             <Button Content="Settings" Click="OnSettings"/>
         </StackPanel>
+
+        <!-- bottom compact building indicator -->
+        <Border x:Name="BottomPanel"
+                DockPanel.Dock="Bottom"
+                BorderThickness="1"
+                BorderBrush="#3A3A3A"
+                Background="#101010"
+                Padding="8"
+                Margin="8,0,8,8"
+                CornerRadius="6"
+                IsVisible="{Binding IsProgressPanelActive}">
+            <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto">
+                <TextBlock Grid.Column="0" Grid.Row="0" Text="Building:" Foreground="LightGray" Margin="0,0,8,0"/>
+                <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding ProgressSummaryLine, TargetNullValue=Working...}" Foreground="White"/>
+                <Button   Grid.Column="2" Grid.Row="0" x:Name="BottomExpandButton" Content="Expand" Click="OnBuilding"/>
+                <ProgressBar Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="1" Height="8" Minimum="0" Maximum="1" Value="{Binding ProgressPercent}"/>
+            </Grid>
+        </Border>
 
         <!-- page host -->
         <ContentControl x:Name="ContentHost" Margin="8"/>

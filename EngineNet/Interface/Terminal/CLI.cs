@@ -62,26 +62,29 @@ internal partial class CLI {
     }
 
     private int ListGames() {
-        Dictionary<string, object?> games = _engine.ListGames();
-        if (games.Count == 0) {
-            System.Console.WriteLine("No games found in EngineApps/Games.");
+        System.Collections.Generic.Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.ListModules();
+        if (modules.Count == 0) {
+            System.Console.WriteLine("No modules found.");
             return 0;
         }
-        foreach ((string name, object? obj) in games) {
-            if (obj is Dictionary<string, object?> dict && dict.TryGetValue("game_root", out object? root)) {
-                System.Console.WriteLine($"- {name}  (root: {root})");
-            }
+        foreach (System.Collections.Generic.KeyValuePair<string, Core.Utils.GameModuleInfo> kv in modules) {
+            Core.Utils.GameModuleInfo m = kv.Value;
+            string state = m.DescribeState();
+            System.Console.WriteLine($"- {m.Name}  (state: {state}; root: {m.GameRoot})");
         }
         return 0;
     }
 
     private int ListOps(string game) {
-        Dictionary<string, object?> games = _engine.ListGames();
-        if (!games.TryGetValue(game, out object? g)) {
+        System.Collections.Generic.Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.ListModules();
+        if (!modules.TryGetValue(game, out Core.Utils.GameModuleInfo? mod)) {
             System.Console.WriteLine($"Game '{game}' not found.");
             return 1;
         }
-        string opsFile = (g is Dictionary<string, object?> gdict && gdict.TryGetValue("ops_file", out object? of) && of is string s) ? s : throw new System.ArgumentException($"Game '{game}' missing ops_file.");
+        string? opsFile = mod.OpsFile;
+        if (string.IsNullOrWhiteSpace(opsFile) || !System.IO.File.Exists(opsFile)) {
+            throw new System.ArgumentException($"Game '{game}' missing ops_file.");
+        }
         List<Dictionary<string, object?>> doc = Core.Engine.LoadOperationsList(opsFile);
         System.Console.WriteLine($"Operations for game '{game}':");
         foreach (Dictionary<string, object?> op in doc) {

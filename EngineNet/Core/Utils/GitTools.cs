@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace EngineNet.Core.Utils;
 
 /// <summary>

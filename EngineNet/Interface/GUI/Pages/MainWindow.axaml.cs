@@ -26,6 +26,7 @@ public partial class MainWindow:Window {
         DataContext = this;
         InitializeComponent();
         // dont load any page by default
+        TryWireBottomPanel();
     }
 
     private void ShowLibrary() {
@@ -58,6 +59,15 @@ public partial class MainWindow:Window {
             return;
         }
         ContentHost.Content = new Pages.SettingsPage(_engine);
+    }
+
+    private void TryWireBottomPanel() {
+        try {
+            var bottom = this.FindControl<Border>("BottomPanel");
+            if (bottom != null) {
+                bottom.DataContext = OperationOutputService.Instance;
+            }
+        } catch { /* ignore */ }
     }
 
     // navbar button handlers

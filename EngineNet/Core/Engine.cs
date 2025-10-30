@@ -87,6 +87,7 @@ internal sealed class Engine {
         System.Action<Dictionary<string, object?>>? previousSink = Core.Utils.EngineSdk.LocalEventSink;
         bool previousMute = Core.Utils.EngineSdk.MuteStdoutWhenLocalSink;
         string currentOperation = string.Empty;
+        Core.Utils.SdkEventScope? sdkScope = null;
         if (onEvent is not null) {
             Core.Utils.EngineSdk.LocalEventSink = evt => {
                 Dictionary<string, object?> payload = CloneEvent(evt);
@@ -94,10 +95,10 @@ internal sealed class Engine {
                 if (!string.IsNullOrEmpty(currentOperation)) {
                     payload["operation"] = currentOperation;
                 }
-
                 onEvent(payload);
             };
             Core.Utils.EngineSdk.MuteStdoutWhenLocalSink = true;
+            sdkScope = new Core.Utils.SdkEventScope(sink: Core.Utils.EngineSdk.LocalEventSink, muteStdout: true, autoPromptResponses: null);
         }
 
         bool overallSuccess = true;
@@ -166,10 +167,8 @@ internal sealed class Engine {
                 });
             }
         } finally {
-            if (onEvent is not null) {
-                Core.Utils.EngineSdk.LocalEventSink = previousSink;
-                Core.Utils.EngineSdk.MuteStdoutWhenLocalSink = previousMute;
-            }
+            if (sdkScope is not null) { sdkScope.Dispose(); }
+            if (onEvent is not null) { Core.Utils.EngineSdk.LocalEventSink = previousSink; Core.Utils.EngineSdk.MuteStdoutWhenLocalSink = previousMute; }
 
             if (previousReader is not null) {
                 System.Console.SetIn(previousReader);
@@ -449,64 +448,26 @@ internal sealed class Engine {
         bool result = false;
         try {
             switch (scriptType) {
-                case "lua": {
+                case "engine": {
                     try {
-                        Core.ScriptEngines.LuaScriptAction action = new Core.ScriptEngines.LuaScriptAction(scriptPath, args);
-                        await action.ExecuteAsync(_tools, cancellationToken);
-                        result = true;
+                        string? action = op.TryGetValue("script", out object? s) ? s?.ToString() : null;
+                        string? title = op.TryGetValue("Name", out object? n) ? n?.ToString() ?? action : action;
+#if DEBUG
+                        System.Diagnostics.Trace.WriteLine($"Executing engine operation {title} ({action})");
+#endif
+                        Core.Utils.EngineSdk.PrintLine(message: $"\n>>> Engine operation: {title}");
+                        result = await ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, cancellationToken);
                     } catch (System.Exception ex) {
-                        System.Console.WriteLine($"lua engine ERROR: {ex.Message}");
-                        result = false;
-                    }
-                    break;
-                }
-                case "js": {
-                    try {
-                        EngineNet.Core.ScriptEngines.JsScriptAction action = new EngineNet.Core.ScriptEngines.JsScriptAction(scriptPath, args);
-                        await action.ExecuteAsync(_tools, cancellationToken);
-                        result = true;
-                    } catch (System.Exception ex) {
-                        System.Console.WriteLine($"js engine ERROR: {ex.Message}");
+                        Core.Utils.EngineSdk.PrintLine($"engine ERROR: {ex.Message}");
                         result = false;
                     }
                     break;
                 }
                 case "bms": {
                     try {
-                        if (!games.TryGetValue(currentGame, out object? gobjBms) || gobjBms is not IDictionary<string, object?> gdictBms) {
-                            throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
-                        }
-                        string gameRootBms = gdictBms.TryGetValue("game_root", out object? grBms) ? grBms?.ToString() ?? string.Empty : string.Empty;
-
-                        // Build placeholder context
-                        Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase) {
-                            ["Game_Root"] = gameRootBms,
-                            ["Project_Root"] = _rootPath,
-                            ["Registry_Root"] = System.IO.Path.Combine(_rootPath, "EngineApps"),
-                            ["Game"] = new Dictionary<string, object?> { ["RootPath"] = gameRootBms, ["Name"] = currentGame },
-                        };
-                        if (!ctx.TryGetValue("RemakeEngine", out object? reB) || reB is not IDictionary<string, object?> reBdict) {
-                            ctx["RemakeEngine"] = reBdict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
-                        }
-                        if (!reBdict.TryGetValue("Config", out object? cfgB) || cfgB is not IDictionary<string, object?> cfgBdict) {
-                            reBdict["Config"] = cfgBdict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
-                        }
-                        ((IDictionary<string, object?>)ctx["RemakeEngine"]!)["Config"] = cfgBdict;
-                        cfgBdict["module_path"] = gameRootBms;
-                        cfgBdict["project_path"] = _rootPath;
-                        try {
-                            string cfgPath = System.IO.Path.Combine(gameRootBms, "config.toml");
-                            if (!string.IsNullOrWhiteSpace(gameRootBms) && System.IO.File.Exists(cfgPath)) {
-                                Dictionary<string, object?> fromToml = Core.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
-                                foreach (KeyValuePair<string, object?> kv in fromToml) {
-                                    if (!ctx.ContainsKey(kv.Key)) ctx[kv.Key] = kv.Value;
-                                }
-                            }
-                        }  catch {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] bms: error reading config.toml");
-#endif
-        }
+                        // Build context and resolve input/output/extension placeholders
+                        Core.Utils.ExecutionContextBuilder ctxBuilder = new Core.Utils.ExecutionContextBuilder(rootPath: _rootPath);
+                        System.Collections.Generic.Dictionary<string, object?> ctx = ctxBuilder.Build(currentGame: currentGame, games: games, engineConfig: _engineConfig.Data);
 
                         string inputDir = op.TryGetValue("input", out object? in0) ? in0?.ToString() ?? string.Empty : string.Empty;
                         string outputDir = op.TryGetValue("output", out object? out0) ? out0?.ToString() ?? string.Empty : string.Empty;
@@ -515,33 +476,44 @@ internal sealed class Engine {
                         string resolvedOutput = Core.Utils.Placeholders.Resolve(outputDir, ctx)?.ToString() ?? outputDir;
                         string? resolvedExt = extension is null ? null : Core.Utils.Placeholders.Resolve(extension, ctx)?.ToString() ?? extension;
 
+                        if (!games.TryGetValue(currentGame, out object? gobjBms) || gobjBms is not System.Collections.Generic.IDictionary<string, object?> gdictBms) {
+                            throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
+                        }
+                        string gameRootBms = gdictBms.TryGetValue("game_root", out object? grBms) ? grBms?.ToString() ?? string.Empty : string.Empty;
+
                         Core.ScriptEngines.QuickBmsScriptAction action = new Core.ScriptEngines.QuickBmsScriptAction(
-                            scriptPath,
-                            gameRootBms,
-                            _rootPath,
-                            resolvedInput,
-                            resolvedOutput,
-                            resolvedExt
+                            scriptPath: scriptPath,
+                            moduleRoot: gameRootBms,
+                            projectRoot: _rootPath,
+                            inputDir: resolvedInput,
+                            outputDir: resolvedOutput,
+                            extension: resolvedExt
                         );
                         await action.ExecuteAsync(_tools, cancellationToken);
                         result = true;
                     } catch (System.Exception ex) {
-                        System.Console.WriteLine($"bms engine ERROR: {ex.Message}");
+                        Core.Utils.EngineSdk.PrintLine($"bms engine ERROR: {ex.Message}");
                         result = false;
                     }
                     break;
                 }
-                case "engine": {
+                case "lua":
+                case "js": {
                     try {
-                        string? action = op.TryGetValue("script", out object? s) ? s?.ToString() : null;
-                        string? title = op.TryGetValue("Name", out object? n) ? n?.ToString() ?? action : action;
-#if DEBUG
-                        System.Diagnostics.Trace.WriteLine($"Executing engine operation {title} ({action})");
-#endif
-                        EngineSdk.PrintLine(message: $"\n>>> Engine operation: {title}");
-                        result = await ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, cancellationToken);
+                        System.Collections.Generic.IEnumerable<string> argsEnum = args;
+                        Core.ScriptEngines.Helpers.IAction? act = Core.ScriptEngines.Helpers.EmbeddedActionDispatcher.TryCreate(
+                            scriptType: scriptType,
+                            scriptPath: scriptPath,
+                            args: argsEnum,
+                            currentGame: currentGame,
+                            games: games,
+                            rootPath: _rootPath
+                        );
+                        if (act is null) { result = false; break; }
+                        await act.ExecuteAsync(_tools, cancellationToken);
+                        result = true;
                     } catch (System.Exception ex) {
-                        System.Console.WriteLine($"engine ERROR: {ex.Message}");
+                        Core.Utils.EngineSdk.PrintLine($"{scriptType} engine ERROR: {ex.Message}");
                         result = false;
                     }
                     break;
@@ -715,7 +687,7 @@ internal sealed class Engine {
 
                 if (string.Equals(format, "txd", System.StringComparison.OrdinalIgnoreCase)) {
                     System.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
-                    System.Console.WriteLine("\n>>> Built-in TXD extraction");
+                    Core.Utils.EngineSdk.PrintLine("\n>>> Built-in TXD extraction");
                     System.Console.ResetColor();
                     bool okTxd = FileHandlers.TxdExtractor.Main.Run(args);
                     return okTxd;
@@ -785,7 +757,7 @@ internal sealed class Engine {
                 if (string.Equals(tool, "ffmpeg", System.StringComparison.OrdinalIgnoreCase) || string.Equals(tool, "vgmstream", System.StringComparison.OrdinalIgnoreCase)) {
                     // attempt built-in media conversion (ffmpeg/vgmstream) using the same CLI args
                     System.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
-                    System.Console.WriteLine("\n>>> Built-in media conversion");
+                    Core.Utils.EngineSdk.PrintLine("\n>>> Built-in media conversion");
                     System.Console.ResetColor();
 #if DEBUG
                     System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: running media conversion with args: {string.Join(' ', args)}");
@@ -795,7 +767,7 @@ internal sealed class Engine {
                 } else if (string.Equals(tool, "ImageMagick", System.StringComparison.OrdinalIgnoreCase)) {
                     // attempt image conversion (ImageMagick) using the CLI args
                     System.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
-                    System.Console.WriteLine("\n>>> Built-in image conversion");
+                    Core.Utils.EngineSdk.PrintLine("\n>>> Built-in image conversion");
                     System.Console.ResetColor();
 #if DEBUG
                     System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: running image conversion with args: {string.Join(' ', args)}");
@@ -882,13 +854,11 @@ internal sealed class Engine {
                 }
 
                 if (argsValidate.Count < 2) {
-                    System.Console.WriteLine("validate-files requires a database path and base directory.");
+                    Core.Utils.EngineSdk.PrintLine("validate-files requires a database path and base directory.");
                     return false;
                 }
 
-                System.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
-                System.Console.WriteLine("\n>>> Built-in file validation");
-                System.Console.ResetColor();
+                Core.Utils.EngineSdk.PrintLine("\n>>> Built-in file validation");
                 bool okValidate = FileHandlers.FileValidator.Run(argsValidate);
                 return okValidate;
             }
@@ -944,8 +914,8 @@ internal sealed class Engine {
                 }
 
                 System.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
-                System.Console.WriteLine("\n>>> Built-in folder rename");
-                System.Console.WriteLine($"with args: {string.Join(' ', args)}");
+                Core.Utils.EngineSdk.PrintLine("\n>>> Built-in folder rename");
+                Core.Utils.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
                 System.Console.ResetColor();
                 bool okRename = FileHandlers.FolderRenamer.Run(args);
                 return okRename;
@@ -1002,7 +972,7 @@ internal sealed class Engine {
                 }
 
                 System.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
-                System.Console.WriteLine("\n>>> Built-in directory flatten");
+                Core.Utils.EngineSdk.PrintLine("\n>>> Built-in directory flatten");
                 System.Console.ResetColor();
                 bool okFlatten = FileHandlers.DirectoryFlattener.Run(argsFlatten);
                 return okFlatten;
@@ -1041,8 +1011,8 @@ internal sealed class Engine {
             }
         } catch (System.Exception ex) {
             System.Console.ForegroundColor = System.ConsoleColor.Red;
-            System.Console.WriteLine("error reloading project.json:");
-            System.Console.WriteLine(ex.Message);
+            Core.Utils.EngineSdk.PrintLine("error reloading project.json:");
+            Core.Utils.EngineSdk.PrintLine(ex.Message);
             System.Console.ResetColor();
         }
     }
@@ -1106,6 +1076,14 @@ internal sealed class Engine {
     }
 
     /// <summary>
+    /// Lists modules with unified status (registered/installed/built/unverified) and metadata.
+    /// </summary>
+    internal Dictionary<string, Core.Utils.GameModuleInfo> ListModules() {
+        Core.Utils.ModuleScanner scanner = new Core.Utils.ModuleScanner(rootPath: _rootPath, registries: _registries);
+        return scanner.ListModules();
+    }
+
+    /// <summary>
     /// Gets a read-only dictionary of all modules registered with the engine's registries.
     /// </summary>
     /// <returns>
@@ -1165,22 +1143,92 @@ internal sealed class Engine {
     /// otherwise, <code>false</code> (e.g., if the executable is not found or an error occurs).
     /// </returns>
     internal bool LaunchGame(string name) {
-        string? exe = GetGameExecutable(name);
         string root = GetGamePath(name) ?? _rootPath;
-        if (string.IsNullOrWhiteSpace(exe) || !System.IO.File.Exists(exe))
-            return false;
+        string gameToml = System.IO.Path.Combine(root, "game.toml");
 
+        // Build placeholder context for resolution
+        System.Collections.Generic.Dictionary<string, object?> games = ListGames();
+        Core.Utils.ExecutionContextBuilder ctxBuilder = new Core.Utils.ExecutionContextBuilder(_rootPath);
+        System.Collections.Generic.Dictionary<string, object?> ctx;
+        try { ctx = ctxBuilder.Build(currentGame: name, games: games, engineConfig: _engineConfig.Data); }
+        catch { ctx = new System.Collections.Generic.Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase) { ["Game_Root"] = root, ["Project_Root"] = _rootPath }; }
+
+        // Prefer rich config from game.toml if present
+        string? exePath = null;
+        string? luaScript = null;
+        string? godotProject = null;
+        try {
+            if (System.IO.File.Exists(gameToml)) {
+                foreach (string raw in System.IO.File.ReadAllLines(gameToml)) {
+                    string line = raw.Trim();
+                    if (line.Length == 0 || line.StartsWith("#")) continue;
+                    if (line.StartsWith("[")) continue;
+                    int eq = line.IndexOf('=');
+                    if (eq <= 0) continue;
+                    string key = line.Substring(0, eq).Trim();
+                    string valRaw = line.Substring(eq + 1).Trim();
+                    string? val = valRaw.StartsWith("\"") && valRaw.EndsWith("\"") ? valRaw.Substring(1, valRaw.Length - 2) : valRaw;
+                    if (string.IsNullOrWhiteSpace(val)) continue;
+                    switch (key.ToLowerInvariant()) {
+                        case "exe":
+                        case "executable":
+                            exePath = Core.Utils.Placeholders.Resolve(val, ctx)?.ToString() ?? val;
+                            break;
+                        case "lua":
+                        case "lua_script":
+                        case "script":
+                            luaScript = Core.Utils.Placeholders.Resolve(val, ctx)?.ToString() ?? val;
+                            break;
+                        case "godot":
+                        case "godot_project":
+                        case "project":
+                            godotProject = Core.Utils.Placeholders.Resolve(val, ctx)?.ToString() ?? val;
+                            break;
+                    }
+                }
+            }
+        } catch { /* ignore malformed toml */ }
+
+        // If explicit lua script is configured, run via embedded engine
+        if (!string.IsNullOrWhiteSpace(luaScript) && System.IO.File.Exists(luaScript)) {
+            try {
+                var action = new Core.ScriptEngines.LuaScriptAction(luaScript!, System.Array.Empty<string>());
+                action.ExecuteAsync(_tools).GetAwaiter().GetResult();
+                return true;
+            } catch { return false; }
+        }
+
+        // If godot project specified, invoke godot
+        if (!string.IsNullOrWhiteSpace(godotProject)) {
+            try {
+                Core.Tools.ToolMetadataProvider provider = new Core.Tools.ToolMetadataProvider(projectRoot: _rootPath, resolver: _tools);
+                (string? godotExe, _) = provider.ResolveExeAndVersion(toolId: "godot");
+                string godotPath = string.IsNullOrWhiteSpace(godotExe) ? _tools.ResolveToolPath("godot") : godotExe!;
+                if (!System.IO.File.Exists(godotPath)) return false;
+                System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
+                    FileName = godotPath,
+                    UseShellExecute = false,
+                };
+                psi.ArgumentList.Add(godotProject!);
+                psi.WorkingDirectory = System.IO.Path.GetDirectoryName(godotProject!) ?? root;
+                System.Diagnostics.Process.Start(psi);
+                return true;
+            } catch { return false; }
+        }
+
+        // Fallback: exe path from game.toml or registry
+        string? exe = exePath ?? GetGameExecutable(name);
+        string work = GetGamePath(name) ?? root;
+        if (string.IsNullOrWhiteSpace(exe) || !System.IO.File.Exists(exe)) return false;
         try {
             System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
                 FileName = exe!,
-                WorkingDirectory = root!,
+                WorkingDirectory = work!,
                 UseShellExecute = true
             };
             System.Diagnostics.Process.Start(psi);
             return true;
-        } catch {
-            return false;
-        }
+        } catch { return false; }
     }
 
 }

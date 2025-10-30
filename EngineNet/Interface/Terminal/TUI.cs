@@ -14,7 +14,8 @@ internal class TUI {
 
     internal async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync() {
         // 1) Pick a game, or offer to download a module if none exist
-        Dictionary<string, object?> games = _engine.ListGames();
+        System.Collections.Generic.Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.ListModules();
+        Dictionary<string, object?> games = ToGamesMap(modules);
         while (games.Count == 0) {
             System.Console.Clear();
             System.Console.WriteLine("No games found in EngineApps/Games.");
@@ -27,7 +28,8 @@ internal class TUI {
 
             if (actions[aidx].StartsWith("Download")) {
                 ShowDownloadMenu();
-                games = _engine.ListGames();
+                modules = _engine.ListModules();
+                games = ToGamesMap(modules);
             }
         }
         // Allow managing modules from the game selection menu
@@ -35,7 +37,14 @@ internal class TUI {
         while (true) {
             System.Console.Clear();
             System.Console.WriteLine("Select a game:");
-            List<string> gameMenu = new List<string>(games.Keys);
+            List<string> gameMenu = new List<string>();
+            List<string> gameKeyMap = new List<string>();
+            foreach (System.Collections.Generic.KeyValuePair<string, Core.Utils.GameModuleInfo> kv in modules) {
+                Core.Utils.GameModuleInfo m = kv.Value;
+                string display = $"{m.Name}  [{m.DescribeState()}]";
+                gameMenu.Add(display);
+                gameKeyMap.Add(m.Name);
+            }
             gameMenu.Add("---------------");
             gameMenu.Add("Download module...");
             gameMenu.Add("Exit");
@@ -47,10 +56,17 @@ internal class TUI {
             string gsel = gameMenu[gidx];
             if (gsel.StartsWith("Download module")) {
                 ShowDownloadMenu();
-                games = _engine.ListGames();
+                modules = _engine.ListModules();
+                games = ToGamesMap(modules);
                 continue; // show game list again
             }
-            gameName = gsel;
+            // Map selection index to actual module key
+            if (gidx >= 0 && gidx < gameKeyMap.Count) {
+                gameName = gameKeyMap[gidx];
+            } else {
+                // Fallback: treat selection as raw name (legacy)
+                gameName = gsel;
+            }
             break;
         }
 
@@ -177,6 +193,21 @@ internal class TUI {
                 System.Console.ReadKey(true);
             }
         }
+    }
+
+    private static Dictionary<string, object?> ToGamesMap(System.Collections.Generic.Dictionary<string, Core.Utils.GameModuleInfo> modules) {
+        Dictionary<string, object?> map = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+        foreach (System.Collections.Generic.KeyValuePair<string, Core.Utils.GameModuleInfo> kv in modules) {
+            Core.Utils.GameModuleInfo m = kv.Value;
+            // Only include modules with a usable ops file and known root
+            if (!string.IsNullOrWhiteSpace(m.OpsFile) && !string.IsNullOrWhiteSpace(m.GameRoot)) {
+                map[m.Name] = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase) {
+                    ["game_root"] = m.GameRoot,
+                    ["ops_file"] = m.OpsFile!
+                };
+            }
+        }
+        return map;
     }
 
     private static bool CanUseInteractiveMenu(int itemCount) {

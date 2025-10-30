@@ -52,33 +52,9 @@ internal sealed class QuickBmsScriptAction : Helpers.IAction {
             }
         } catch { /* ignore parse issues; best-effort */ }
 
-        // Resolve installed QuickBMS from Tools.local.json
-        string toolsLocal = new[] {
-            System.IO.Path.Combine(_projectRoot, "Tools.local.json"),
-            System.IO.Path.Combine(_projectRoot, "tools.local.json"),
-        }.FirstOrDefault(System.IO.File.Exists) ?? string.Empty;
-
-        string? installedExe = null;
-        string? installedVersion = null;
-        if (!string.IsNullOrEmpty(toolsLocal)) {
-            try {
-                using System.IO.FileStream fs = System.IO.File.OpenRead(toolsLocal);
-                using System.Text.Json.JsonDocument doc = await System.Text.Json.JsonDocument.ParseAsync(fs);
-                if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object && doc.RootElement.TryGetProperty("QuickBMS", out System.Text.Json.JsonElement qbms) && qbms.ValueKind == System.Text.Json.JsonValueKind.Object) {
-                    if (qbms.TryGetProperty("exe", out System.Text.Json.JsonElement exe) && exe.ValueKind == System.Text.Json.JsonValueKind.String) {
-                        installedExe = exe.GetString();
-                    }
-                    if (qbms.TryGetProperty("version", out System.Text.Json.JsonElement ver) && ver.ValueKind == System.Text.Json.JsonValueKind.String) {
-                        installedVersion = ver.GetString();
-                    }
-                }
-            } catch {
-#if DEBUG
-                System.Diagnostics.Trace.WriteLine("Warning: Failed to parse Tools.local.json for QuickBMS info.");
-#endif
-
-            }
-        }
+        // Resolve QuickBMS exe and version via provider (Tools.local.json or resolver)
+        Core.Tools.ToolMetadataProvider provider = new Core.Tools.ToolMetadataProvider(projectRoot: _projectRoot, resolver: tools);
+        (string? installedExe, string? installedVersion) = provider.ResolveExeAndVersion(toolId: "QuickBMS");
 
         // Enforce required version (if declared)
         if (!string.IsNullOrWhiteSpace(requiredVersion)) {
@@ -88,7 +64,7 @@ internal sealed class QuickBmsScriptAction : Helpers.IAction {
         }
 
         // Resolve exe path (prefer Tools.local.json; fallback to tool resolver)
-        string resolvedExe = installedExe ?? tools.ResolveToolPath("QuickBMS");
+        string resolvedExe = installedExe ?? tools.ResolveToolPath(toolId: "QuickBMS");
         if (string.IsNullOrWhiteSpace(resolvedExe) || !System.IO.File.Exists(resolvedExe)) {
             throw new System.IO.FileNotFoundException("QuickBMS is not installed or could not be resolved. Run the 'Download Tools' operation.", resolvedExe);
         }

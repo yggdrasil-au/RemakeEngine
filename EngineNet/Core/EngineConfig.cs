@@ -67,8 +67,7 @@ internal sealed class EngineConfig {
                 // Step 4: If the root is an object, convert it node-by-node for full control.
                 if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object) {
                     // Convert to a .NET structure with case-insensitive dictionaries.
-                    return ToDotNet(doc.RootElement) as Dictionary<string, object?>
-                            ?? new Dictionary<string, object?>();
+                    return Utils.Converters.DocModelConverter.FromJsonObject(obj: doc.RootElement);
                 }
 
                 // Step 5 (Fallback): For simple top-level maps that aren't explicitly objects in the DOM,
@@ -100,56 +99,8 @@ internal sealed class EngineConfig {
     /// - Null/Undefined ? null
     /// </summary>
     private static object? ToDotNet(System.Text.Json.JsonElement el) {
-        switch (el.ValueKind) {
-            case System.Text.Json.JsonValueKind.Object:
-                // Create a case-insensitive dictionary for object properties.
-                Dictionary<string, object?> obj = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
-
-                // Enumerate each property and recursively convert its value.
-                foreach (System.Text.Json.JsonProperty prop in el.EnumerateObject()) {
-                    obj[prop.Name] = ToDotNet(prop.Value); // Step: recurse on property value
-                }
-
-                return obj;
-
-            case System.Text.Json.JsonValueKind.Array:
-                // Convert each item of the array recursively.
-                List<object?> list = new List<object?>();
-                foreach (System.Text.Json.JsonElement item in el.EnumerateArray()) {
-                    list.Add(ToDotNet(item)); // Step: recurse on array element
-                }
-                return list;
-
-            case System.Text.Json.JsonValueKind.String:
-                // Return the string value directly.
-                return el.GetString();
-
-            case System.Text.Json.JsonValueKind.Number:
-                // Prefer long if it fits exactly (e.g., 123).
-                if (el.TryGetInt64(out long l)) {
-                    return l;
-                }
-
-                // Otherwise, try double precision (e.g., 3.14).
-                if (el.TryGetDouble(out double d)) {
-                    return d;
-                }
-
-                // As a last resort, return the raw text (covers uncommon numeric forms).
-                return el.GetRawText();
-
-            case System.Text.Json.JsonValueKind.True:
-                return true;
-
-            case System.Text.Json.JsonValueKind.False:
-                return false;
-
-            case System.Text.Json.JsonValueKind.Null:
-            case System.Text.Json.JsonValueKind.Undefined:
-            default:
-                // Represent JSON null/undefined as C# null.
-                return null;
-        }
+        // Legacy helper preserved for compatibility; delegate to unified converter.
+        return Utils.Converters.DocModelConverter.FromJsonElement(el);
     }
 }
 

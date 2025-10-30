@@ -68,15 +68,34 @@ internal static class QuickBmsExtractor {
 
         Core.ProcessRunner runner = new Core.ProcessRunner();
         bool okAll = true;
-        int done = 0;
-        int succeeded = 0;
+        int processed = 0;
+        int success = 0;
+        int errors = 0;
+
+        // Minimal active job tracking for progress panel
+        System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
+        EngineNet.Core.Utils.EngineSdk.SdkConsoleProgress.ActiveProcess? current = null;
+        System.Threading.Tasks.Task panel = EngineNet.Core.Utils.EngineSdk.SdkConsoleProgress.StartPanel(
+            total: files.Count,
+            snapshot: () => (processed, success, 0, errors),
+            activeSnapshot: () => {
+                if (current is null) return new List<EngineNet.Core.Utils.EngineSdk.SdkConsoleProgress.ActiveProcess>();
+                return new List<EngineNet.Core.Utils.EngineSdk.SdkConsoleProgress.ActiveProcess> { current };
+            },
+            label: "Extracting Archives",
+            token: cts.Token);
+
         foreach (string? file in files) {
-            done++;
             string relative = GetSafeRelative(options.InputPath, file);
             string outputDir = BuildOutputDirectory(options.OutputPath, relative, file, extensionLabel);
             System.IO.Directory.CreateDirectory(outputDir);
 
-            WriteInfo($"[{done}/{files.Count}] Extracting '{file}' -> '{outputDir}'.");
+            // Update active job snapshot
+            current = new EngineNet.Core.Utils.EngineSdk.SdkConsoleProgress.ActiveProcess {
+                Tool = "quickbms",
+                File = System.IO.Path.GetFileName(file),
+                StartedUtc = System.DateTime.UtcNow
+            };
 
             List<string> command = new List<string> {
                 options.QuickBmsExe,
@@ -94,14 +113,20 @@ internal static class QuickBmsExtractor {
                 envOverrides: env);
 
             if (ok) {
-                succeeded++;
+                success++;
             } else {
                 okAll = false;
+                errors++;
                 WriteWarn($"QuickBMS reported a failure for '{file}'.");
             }
+            processed++;
+            current = null;
         }
 
-        WriteInfo($"QuickBMS extraction complete. Success: {succeeded}/{files.Count}.");
+        cts.Cancel();
+        try { panel.Wait(); } catch { /* ignore */ }
+
+        WriteInfo($"QuickBMS extraction complete. Success: {success}/{files.Count}.");
         return okAll;
     }
 
@@ -261,8 +286,11 @@ internal static class QuickBmsExtractor {
         }
 
         ConsoleColor colour = stream == "stderr" ? ConsoleColor.Red : ConsoleColor.DarkGray;
+        // due to large output volumes, only forward stderr in DEBUG builds, use Progress Bar in release
+#if DEBUG
         // this will make stderr red, but for somereason quickbms often outputs to it so outputs may be mixed
         Write(colour, "[quickbms] " + line);
+#endif
     }
 
     private static void WriteInfo(string message) => Write(System.ConsoleColor.Cyan, message);

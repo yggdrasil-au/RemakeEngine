@@ -154,50 +154,32 @@ public partial class LibraryPage:UserControl {
                 throw new System.InvalidOperationException(message: "Engine is not initialized.");
             }
 
-            Dictionary<string, object?>? games = _engine.ListGames(); // installed + discovered
-            foreach (KeyValuePair<string, object?> kv in games) {
-                string? name = kv.Key;
-                IDictionary<string, object?>? info = kv.Value as IDictionary<string, object?>;
+            var modules = _engine.ListModules();
+            foreach (var kv in modules) {
+                var m = kv.Value;
+                string name = m.Name;
+                string? exe = m.ExePath;
+                string title = string.IsNullOrWhiteSpace(m.Title) ? name : m.Title!;
+                string? gameRoot = m.GameRoot;
 
-                string? exe = null;
-                if (info != null && info.TryGetValue(key: "exe", out object? e)) {
-                    exe = e?.ToString();
-                } else {
-                    DebugWriteLine(message: $"[LibraryPage] 'exe' missing for '{name}'.");
-                }
+                bool isBuilt = m.IsBuilt;
+                bool isInstalled = m.IsInstalled;
+                bool isRegistered = m.IsRegistered;
+                bool isUnverified = m.IsUnverified;
+                bool isUnbuilt = isInstalled && !isBuilt;
 
-                string? title;
-                if (info != null &&
-                    info.TryGetValue(key: "title", out object? t) &&
-                    !string.IsNullOrWhiteSpace(t?.ToString())) {
-                    title = t!.ToString()!;
-                } else {
-                    title = name;
-                    DebugWriteLine(message: $"[LibraryPage] Title missing/blank for '{name}'. Falling back to module name.");
-                }
-
-                string? gameRoot = null;
-                if (info != null && info.TryGetValue(key: "game_root", out object? gr)) {
-                    gameRoot = gr?.ToString();
-                } else {
-                    DebugWriteLine(message: $"[LibraryPage] 'game_root' missing for '{name}'.");
-                }
-
-                bool IsBuilt = !string.IsNullOrWhiteSpace(exe) || _engine.IsModuleInstalled(name);
-
-                string primaryActionText;
-                if (IsBuilt) {
-                    primaryActionText = "Play";
-                } else {
-                    primaryActionText = "Run All Build Operations";
-                }
+                string primaryActionText = isBuilt ? "Play" : "Run All Build Operations";
 
                 Items.Add(new Row {
                     ModuleName = name,
                     Title = title,
                     ExePath = exe,
                     Image = ResolveCoverUri(gameRoot),
-                    IsBuilt = IsBuilt,
+                    IsBuilt = isBuilt,
+                    IsInstalled = isInstalled,
+                    IsRegistered = isRegistered,
+                    IsUnverified = isUnverified,
+                    IsUnbuilt = isUnbuilt,
                     PrimaryActionText = primaryActionText
                 });
             }
@@ -291,6 +273,10 @@ public partial class LibraryPage:UserControl {
         public bool IsBuilt {
             get; set;
         }
+        public bool IsInstalled { get; set; }
+        public bool IsRegistered { get; set; }
+        public bool IsUnverified { get; set; }
+        public bool IsUnbuilt { get; set; }
         public string PrimaryActionText {
             get; set;
         } = "Run Built Output";

@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://remake.engine/schemas/tools.schema.json",
+  "title": "RemakeEngine Module Tools Manifest (Tools.toml)",
+  "description": "Schema for declaring module-specific tool requirements. Uses [[tool]] array-of-tables.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "tool": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/toolEntry" },
+      "description": "Array of tool entries (from [[tool]] blocks)."
+    }
+  },
+  "definitions": {
+    "toolEntry": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "description": "Logical tool name (e.g., QuickBMS)." },
+        "version": { "type": "string", "description": "Preferred/required version string." },
+        "destination": { "type": "string", "description": "Install destination folder under the project, if tool is downloaded by the engine." },
+        "unpack": { "type": "boolean", "description": "Whether the downloaded artifact needs unpacking." },
+        "unpack_destination": { "type": "string", "description": "Destination folder for unpacked contents." }
+      },
+      "required": ["name"]
+    }
+  }
+}
+
