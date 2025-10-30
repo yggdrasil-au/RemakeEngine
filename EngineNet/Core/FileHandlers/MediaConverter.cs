@@ -146,7 +146,7 @@ internal static class MediaConverter {
                         System.Threading.Interlocked.Increment(ref errors);
                         errorList.Add((System.IO.Path.GetFileName(src), msg ?? "unknown error"));
 #if DEBUG
-                        System.Console.WriteLine($"Conversion failed for file {src}: {msg}");
+                        System.Diagnostics.Trace.WriteLine($"Conversion failed for file {src}: {msg}");
                         System.Environment.Exit(1);
 #endif
                     }
@@ -156,7 +156,7 @@ internal static class MediaConverter {
                     errorList.Add((System.IO.Path.GetFileName(src), ex.Message));
                     System.Threading.Interlocked.Increment(ref processed);
 #if DEBUG
-                    System.Console.WriteLine($"Conversion error for file {src}: {ex.Message}");
+                    System.Diagnostics.Trace.WriteLine($"Conversion error for file {src}: {ex.Message}");
 #endif
                 }
             });
@@ -170,24 +170,16 @@ internal static class MediaConverter {
             WriteInfo("\n--- Conversion Completed ---");
 
             // Todo use sdk events/logging
-            /*Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"Success: {success}");
-            Console.ResetColor();
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine($"Skipped: {skipped}");
-            Console.ResetColor();
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"Errors: {errors}");
-            Console.ResetColor();*/
+            Utils.EngineSdk.PrintLine($"Success: {success}", System.ConsoleColor.Green);
+            Utils.EngineSdk.PrintLine($"Skipped: {skipped}", System.ConsoleColor.Yellow);
+            Utils.EngineSdk.PrintLine($"Errors: {errors}", System.ConsoleColor.Red);
 
-            /*if (!errorList.IsEmpty) {
+            if (!errorList.IsEmpty) {
                 WriteError("\nEncountered the following errors:");
                 foreach ((string file, string msg) in errorList) {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($" Fail - File: {file}\n    Reason: {msg}");
-                    Console.ResetColor();
+                    Utils.EngineSdk.PrintLine($" Fail - File: {file}\n    Reason: {msg}", System.ConsoleColor.Red);
                 }
-            }*/
+            }
 
             return true;
         } catch (System.Exception ex) {

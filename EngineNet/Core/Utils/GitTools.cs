@@ -103,7 +103,7 @@ internal sealed class GitTools {
             }
         } catch {
 #if DEBUG
-            System.Console.WriteLine("[ENGINE-GitTools] GitTools: Failed to parse URL as URI, falling back to string parsing.");
+            System.Diagnostics.Trace.WriteLine("[ENGINE-GitTools] GitTools: Failed to parse URL as URI, falling back to string parsing.");
 #endif
             /* fall back to string parsing */
         }

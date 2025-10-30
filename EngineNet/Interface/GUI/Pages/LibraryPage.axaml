@@ -33,23 +33,22 @@
                                 TextTrimming="CharacterEllipsis"/>
 
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <!-- Play: only enabled when installed -->
                                 <Button
                                     Content="Play"
                                     IsEnabled="{Binding IsBuilt}"
-                                    Command="{Binding $parent[UserControl].PlayCommand}"
+                                    Command="{Binding $parent[UserControl].Button_Play_Click}"
                                     CommandParameter="{Binding}">
                                 </Button>
 
                                 <!-- Always available: run default group of operations (e.g., build/install) -->
                                 <Button
                                     Content="Run build operations"
-                                    Command="{Binding $parent[UserControl].RunOpsCommand}"
+                                    Command="{Binding $parent[UserControl].Button_RunOps_Click}"
                                     CommandParameter="{Binding}"/>
 
                                 <Button
                                     Content="Open Folder"
-                                    Command="{Binding $parent[UserControl].OpenFolderCommand}"
+                                    Command="{Binding $parent[UserControl].Button_OpenFolder_Click}"
                                     CommandParameter="{Binding}"/>
                             </StackPanel>
                         </StackPanel>

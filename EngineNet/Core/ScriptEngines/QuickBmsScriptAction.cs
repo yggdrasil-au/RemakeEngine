@@ -74,7 +74,7 @@ internal sealed class QuickBmsScriptAction : Helpers.IAction {
                 }
             } catch {
 #if DEBUG
-                System.Console.WriteLine("Warning: Failed to parse Tools.local.json for QuickBMS info.");
+                System.Diagnostics.Trace.WriteLine("Warning: Failed to parse Tools.local.json for QuickBMS info.");
 #endif
 
             }

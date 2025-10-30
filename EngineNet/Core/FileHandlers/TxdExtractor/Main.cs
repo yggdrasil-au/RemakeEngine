@@ -15,7 +15,7 @@ internal static partial class Main {
 
     private static void DebugLog(string message) {
         #if DEBUG
-        System.Console.WriteLine(message);
+        System.Diagnostics.Trace.WriteLine(message);
         #endif
     }
 

@@ -28,7 +28,7 @@ namespace EngineNet.Tests {
 
             // ARRANGE (Step 2): Construct EngineConfig pointing at the temp file path.
             // The constructor will call Reload(), which loads the JSON immediately.
-            EngineNet.EngineConfig cfg = new EngineNet.EngineConfig(tmp.Path);
+            Core.EngineConfig cfg = new Core.EngineConfig(tmp.Path);
 
             // ASSERT (Step 3): The root key "Foo" should be present (case-insensitive), normalized by our dictionary comparer.
             Assert.True(cfg.Data.ContainsKey("foo"));
@@ -56,7 +56,7 @@ namespace EngineNet.Tests {
             using TempFile tmp = new TempFile("{\n  \"Foo\": \"Alpha\",\n  \"Flag\": false\n}\n");
 
             // ARRANGE (Step 2): Load the config.
-            EngineNet.EngineConfig cfg = new EngineNet.EngineConfig(tmp.Path);
+            Core.EngineConfig cfg = new Core.EngineConfig(tmp.Path);
 
             // ASSERT (Step 3): Confirm initial value is present before reload.
             Assert.Equal("Alpha", cfg.Data["foo"]);
@@ -87,7 +87,7 @@ namespace EngineNet.Tests {
             string missingPath = Path.Combine(Path.GetTempPath(), "engcfg_missing_" + Guid.NewGuid().ToString("N") + ".json");
 
             // ACT (Step 2): Attempt to load a missing file.
-            Dictionary<string, object?> missing = EngineNet.EngineConfig.LoadJsonFile(missingPath);
+            Dictionary<string, object?> missing = Core.EngineConfig.LoadJsonFile(missingPath);
 
             // ASSERT (Step 3): We should get an empty dictionary rather than an exception or null.
             Assert.Empty(missing);
@@ -96,7 +96,7 @@ namespace EngineNet.Tests {
             using TempFile tmp = new TempFile("{ invalid json");
 
             // ACT (Step 5): Attempt to load invalid JSON.
-            Dictionary<string, object?> invalid = EngineNet.EngineConfig.LoadJsonFile(tmp.Path);
+            Dictionary<string, object?> invalid = Core.EngineConfig.LoadJsonFile(tmp.Path);
 
             // ASSERT (Step 6): Again, should get an empty dictionary.
             Assert.Empty(invalid);

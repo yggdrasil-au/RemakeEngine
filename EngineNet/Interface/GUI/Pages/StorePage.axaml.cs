@@ -38,13 +38,13 @@ public partial class StorePage:UserControl {
         }
     }
 
-    internal System.Windows.Input.ICommand RefreshCommand {
+    internal System.Windows.Input.ICommand Button_Refresh_Click {
         get;
     }
-    internal System.Windows.Input.ICommand SearchCommand {
+    internal System.Windows.Input.ICommand Button_Search_Click {
         get;
     }
-    internal System.Windows.Input.ICommand DownloadCommand {
+    internal System.Windows.Input.ICommand Button_Download_Click {
         get;
     }
 
@@ -58,9 +58,9 @@ public partial class StorePage:UserControl {
         DataContext = this; // make every instance var an available binding
         InitializeComponent();
 
-        RefreshCommand = new Cmd(async _ => await LoadAsync());
-        SearchCommand = new Cmd(async _ => await LoadAsync(Query));
-        DownloadCommand = new Cmd(async item => await DownloadAsync(item as StoreItem));
+        Button_Refresh_Click = new Cmd(async _ => await LoadAsync());
+        Button_Search_Click = new Cmd(async _ => await LoadAsync(Query));
+        Button_Download_Click = new Cmd(async item => await DownloadAsync(item as StoreItem));
 
         _ = LoadAsync();
     }
@@ -74,9 +74,9 @@ public partial class StorePage:UserControl {
         DataContext = this;
         InitializeComponent();
 
-        RefreshCommand = new Cmd(async _ => await LoadAsync());
-        SearchCommand = new Cmd(async _ => await LoadAsync(Query));
-        DownloadCommand = new Cmd(async item => await DownloadAsync(item as StoreItem));
+        Button_Refresh_Click = new Cmd(async _ => await LoadAsync());
+        Button_Search_Click = new Cmd(async _ => await LoadAsync(Query));
+        Button_Download_Click = new Cmd(async item => await DownloadAsync(item as StoreItem));
 
         _ = LoadAsync();
     }

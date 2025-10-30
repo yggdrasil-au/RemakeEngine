@@ -466,7 +466,7 @@ internal static class DirectoryFlattener {
             dst.Attributes = src.Attributes;
         } catch {
             #if DEBUG
-            System.Console.WriteLine($"Failed to copy metadata from '{sourceFile}' to '{destinationFile}'.");
+            System.Diagnostics.Trace.WriteLine($"Failed to copy metadata from '{sourceFile}' to '{destinationFile}'.");
             #endif
             // Non-fatal: ignore metadata copy failures.
         }

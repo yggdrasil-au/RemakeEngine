@@ -8,14 +8,14 @@ namespace EngineNet.Interface.GUI.Pages;
 internal partial class BuildingPage:UserControl {
     internal OperationOutputService Service => OperationOutputService.Instance;
 
-    internal Cmd ClearOutputCommand {
+    internal Cmd Button_ClearOutput_Click {
         get;
     }
 
     internal BuildingPage() : this(null) { }
 
     internal BuildingPage(Core.Engine? engine) {
-        ClearOutputCommand = new Cmd(async _ => await Service.ClearAsync());
+        Button_ClearOutput_Click = new Cmd(async _ => await Service.ClearAsync());
 
         InitializeComponent();
         DataContext = this;

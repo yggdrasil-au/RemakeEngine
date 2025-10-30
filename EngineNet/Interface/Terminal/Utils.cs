@@ -223,10 +223,10 @@ internal class Utils {
         try {
             Dictionary<string, object?> safe = CloneForLogging(evt);
             string json = JsonSerializer.Serialize(safe, s_jsonOpts);
-            Trace.WriteLine($"[TerminalEvent] {json}");
+            System.Diagnostics.Trace.WriteLine($"[TerminalEvent] {json}");
         } catch (System.Exception ex) {
             try {
-                Trace.WriteLine($"[TerminalEvent] <serialization failed: {ex.Message}>");
+                System.Diagnostics.Trace.WriteLine($"[TerminalEvent] <serialization failed: {ex.Message}>");
             } catch {
                 // ignore logging failures entirely
             }

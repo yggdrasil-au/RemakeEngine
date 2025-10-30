@@ -365,20 +365,11 @@ internal static class FileValidator {
     private static void WriteBlue(string message) => Write(System.ConsoleColor.Blue, message);
     private static void WriteGreen(string message) => Write(System.ConsoleColor.Green, message);
     private static void WriteYellow(string message) => Write(System.ConsoleColor.DarkYellow, message);
-    private static void WriteRed(string message) => Write(System.ConsoleColor.Red, message, true);
+    private static void WriteRed(string message) => Write(System.ConsoleColor.Red, message);
 
-    private static void Write(System.ConsoleColor colour, string message, bool isError = false) {
+    private static void Write(System.ConsoleColor colour, string message) {
         lock (ConsoleLock) {
-            // Todo implement using sdk events
-            /*ConsoleColor previous = Console.ForegroundColor;
-            Console.ForegroundColor = colour;
-            if (isError) {
-                Console.Error.WriteLine(Format(message));
-            } else {
-                Console.WriteLine(Format(message));
-            }
-
-            Console.ForegroundColor = previous;*/
+            Utils.EngineSdk.PrintLine(Format(message), colour);
         }
     }
 

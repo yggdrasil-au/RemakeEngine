@@ -12,8 +12,8 @@
                 Width="260"
                 Watermark="Search modules"
                 Text="{Binding Query}"/>
-            <Button Content="Search" Command="{Binding SearchCommand}"/>
-            <Button Content="Refresh" Command="{Binding RefreshCommand}"/>
+            <Button Content="Search" Command="{Binding Button_Search_Click}"/>
+            <Button Content="Refresh" Command="{Binding Button_Refresh_Click}"/>
             <TextBlock
                 Text="{Binding Status}"
                 Margin="12,0,0,0"
@@ -93,7 +93,7 @@
                                         Content="Download"
                                         IsEnabled="{Binding CanDownload}"
                                         IsVisible="{Binding CanDownload}"
-                                        Command="{Binding $parent[UserControl].DataContext.DownloadCommand}"
+                                        Command="{Binding $parent[UserControl].DataContext.Button_Download_Click}"
                                         CommandParameter="{Binding}"/>
 
                                     <!-- Already installed message -->

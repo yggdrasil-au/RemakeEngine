@@ -226,16 +226,16 @@ internal sealed class LuaScriptAction : Helpers.IAction {
             }
             return DynValue.Nil;
         });
-        safeIo["write"] = (System.Action<string>)((content) => System.Console.Write(content));
-        safeIo["flush"] = () => System.Console.Out.Flush();
-        safeIo["read"] = (System.Func<string?, string?>)((mode) => {
+        safeIo["write"] = (System.Action<string>)((content) => Core.Utils.EngineSdk.Print(content));
+        //safeIo["flush"] = () => System.Console.Out.Flush();
+        /*safeIo["read"] = (System.Func<string?, string?>)((mode) => {
             try {
                 if (mode == "*l" || mode == "*line") {
                     return System.Console.ReadLine();
                 }
                 return System.Console.In.ReadToEnd();
             } catch { return null; }
-        });
+        });*/
         // SECURITY: io.popen removed - use sdk.exec/run_process instead
         lua.Globals["io"] = safeIo;
     }

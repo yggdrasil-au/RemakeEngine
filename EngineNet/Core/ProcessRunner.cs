@@ -60,14 +60,14 @@ internal sealed class ProcessRunner {
 
         // Verbose: show exactly what will be executed
         try {
-            Trace.WriteLine(string.Empty);
-            Trace.WriteLine("Executing command:");
-            Trace.WriteLine("  " + FormatCommand(commandParts));
-            Trace.WriteLine($"  cwd: {System.IO.Directory.GetCurrentDirectory()}");
+            System.Diagnostics.Trace.WriteLine(string.Empty);
+            System.Diagnostics.Trace.WriteLine("Executing command:");
+            System.Diagnostics.Trace.WriteLine("  " + FormatCommand(commandParts));
+            System.Diagnostics.Trace.WriteLine($"  cwd: {System.IO.Directory.GetCurrentDirectory()}");
             if (envOverrides != null && envOverrides.Count > 0) {
-                Trace.WriteLine("  env overrides:");
+                System.Diagnostics.Trace.WriteLine("  env overrides:");
                 foreach (KeyValuePair<string, object?> kv in envOverrides) {
-                    Trace.WriteLine($"    {kv.Key}={kv.Value}");
+                    System.Diagnostics.Trace.WriteLine($"    {kv.Key}={kv.Value}");
                 }
             }
         } catch {
@@ -201,7 +201,7 @@ internal sealed class ProcessRunner {
                 proc.ErrorDataReceived -= errHandler;
             } catch {
 #if DEBUG
-                System.Console.WriteLine("Warning: Failed to detach event handlers.");
+                System.Diagnostics.Trace.WriteLine("Warning: Failed to detach event handlers.");
 #endif
                 /* ignore */
             }
@@ -215,7 +215,7 @@ internal sealed class ProcessRunner {
             }
         } catch {
 #if DEBUG
-            System.Console.WriteLine("Warning: Failed to terminate process.");
+            System.Diagnostics.Trace.WriteLine("Warning: Failed to terminate process.");
 #endif
             /* ignore */
         }

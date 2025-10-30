@@ -39,7 +39,7 @@ public sealed partial class ProgramTests:IDisposable {
     private static Type GetProgramType() {
         // Trick: grab the assembly that contains a known public type (EngineConfig),
         // then fetch the public type by full name "EngineNet.Program".
-        Assembly? asm = typeof(EngineNet.EngineConfig).Assembly;
+        Assembly? asm = typeof(Core.EngineConfig).Assembly;
         return asm.GetType("EngineNet.Program", throwOnError: true)!;
     }
 

@@ -315,7 +315,7 @@ internal static class LuaSdkModule {
                 System.Threading.Thread.Sleep(System.TimeSpan.FromSeconds(seconds));
             }  catch {
 #if DEBUG
-            System.Console.WriteLine($"Error .....'");
+            System.Diagnostics.Trace.WriteLine($"Error .....'");
 #endif
         }
         });

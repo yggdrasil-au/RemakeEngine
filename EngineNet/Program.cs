@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Linq;
 using Avalonia;
@@ -28,9 +29,11 @@ internal static class Program {
 
             Trace.Listeners.Add(new TextWriterTraceListener(logPath));
             Trace.AutoFlush = true;
-            Trace.WriteLine($"[EngineNet] Logging started at {System.DateTimeOffset.Now:u}");
+            System.Diagnostics.Trace.WriteLine($"[EngineNet] Logging started at {System.DateTimeOffset.Now:u}");
         } catch (System.Exception ex) {
+#if DEBUG
             System.Console.WriteLine($"WARN: Failed to initialize debug log '{logPath ?? "debug.log"}': {ex.Message}");
+#endif
         }
         try {
             string root = GetRootPath(args) ?? TryFindProjectRoot(System.IO.Directory.GetCurrentDirectory())
@@ -54,11 +57,11 @@ internal static class Program {
                     """;
 
                     await System.IO.File.WriteAllTextAsync(configPath, minimal);
-                    System.Console.ForegroundColor = System.ConsoleColor.DarkYellow;
-                    System.Console.WriteLine($"Created default project.json at {configPath}");
-                    System.Console.ResetColor();
+                    System.Diagnostics.Trace.WriteLine($"Created default project.json at {configPath}");
                 } catch (System.Exception ex) {
-                    System.Console.WriteLine($"WARN: Could not create project.json - {ex.Message}");
+#if DEBUG
+                    System.Diagnostics.Trace.WriteLine($"WARN: Could not create project.json - {ex.Message}");
+#endif
                 }
             }
 
@@ -86,8 +89,9 @@ internal static class Program {
             // if not gui run CLIApp with all args, it then uses CLI or TUI as needed
             return await new Interface.Terminal.CLI(_engine).Run(args);
         } catch (System.Exception ex) {
-            // Print full exception (message + stack trace) to help diagnose runtime errors
-            System.Console.WriteLine($"Engine Error: {ex}");
+#if DEBUG
+            System.Diagnostics.Trace.WriteLine($"Engine Error: {ex}");
+#endif
             return 1;
         }
     }
@@ -130,7 +134,9 @@ internal static class Program {
                 dir = parent.FullName;
             }
         } catch (System.Exception e) {
-            System.Console.WriteLine($"Error finding project root: {e.Message}");
+#if DEBUG
+            System.Diagnostics.Trace.WriteLine($"Error finding project root: {e.Message}");
+#endif
         }
         return null;
     }

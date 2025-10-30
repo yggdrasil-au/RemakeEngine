@@ -1,13 +1,5 @@
 
-using System;
-using System.IO;
-using System.Text.Json;
-using System.Threading.Tasks;
-using System.Linq;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Collections.Generic;
-using System.Collections;
 
 namespace EngineNet.Core.FileHandlers.TxdExtractor;
 
@@ -773,22 +765,12 @@ internal static partial class Main {
         }
 
         private static void Write(System.ConsoleColor colour, string message, bool isError = false) {
-            #if DEBUG
             lock (Sync) {
-                // Todo Use SDK events
-                //ConsoleColor previous = Console.ForegroundColor;
-                //Console.ForegroundColor = colour;
-                //if (isError) {
-                //    Console.Error.WriteLine(message);
-                //} else {
-                //    Console.WriteLine(message);
-                //}
-
-                //Console.ForegroundColor = previous;
+                #if DEBUG
+                System.Diagnostics.Trace.WriteLine(message);
+                #endif
             }
-            #else
             return;
-            #endif
         }
     }
 

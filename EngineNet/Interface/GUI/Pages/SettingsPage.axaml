@@ -9,8 +9,8 @@
         <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBlock Text="Project Root:" VerticalAlignment="Center"/>
             <TextBox Width="420" Text="{Binding ProjectRoot}" />
-            <Button Content="Browse" Command="{Binding BrowseRootCommand}"/>
-            <Button Content="Save" Command="{Binding SaveCommand}"/>
+            <Button Content="Browse" Command="{Binding Button_BrowseRoot_Click}"/>
+            <Button Content="Save" Command="{Binding Button_Save_Click}"/>
         </StackPanel>
 
         <TextBlock Text="{Binding Status}" />

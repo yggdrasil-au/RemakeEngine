@@ -46,7 +46,7 @@ internal sealed partial class Engine {
         System.Threading.CancellationToken cancellationToken = default) {
 
 #if DEBUG
-        System.Console.WriteLine($"[ENGINE.cs] Starting RunAllAsync for game '{gameName}', onOutput: {(onOutput is null ? "null" : "set")}, onEvent: {(onEvent is null ? "null" : "set")}, stdinProvider: {(stdinProvider is null ? "null" : "set")}");
+        System.Diagnostics.Trace.WriteLine($"[ENGINE.cs] Starting RunAllAsync for game '{gameName}', onOutput: {(onOutput is null ? "null" : "set")}, onEvent: {(onEvent is null ? "null" : "set")}, stdinProvider: {(stdinProvider is null ? "null" : "set")}");
 #endif
 
         if (string.IsNullOrWhiteSpace(gameName)) {
@@ -547,7 +547,7 @@ internal sealed partial class Engine {
                             }
                         }  catch {
 #if DEBUG
-            System.Console.WriteLine($"[Engine.OperationExecution] bms: error reading config.toml");
+            System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] bms: error reading config.toml");
 #endif
         }
 
@@ -579,7 +579,7 @@ internal sealed partial class Engine {
                         string? action = op.TryGetValue("script", out object? s) ? s?.ToString() : null;
                         string? title = op.TryGetValue("Name", out object? n) ? n?.ToString() ?? action : action;
 #if DEBUG
-                        System.Console.WriteLine($"Executing engine operation {title} ({action})");
+                        System.Diagnostics.Trace.WriteLine($"Executing engine operation {title} ({action})");
 #endif
                         EngineSdk.PrintLine(message: $"\n>>> Engine operation: {title}");
                         result = await ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, cancellationToken);
@@ -624,18 +624,18 @@ internal sealed partial class Engine {
         System.Threading.CancellationToken cancellationToken = default) {
         if (!op.TryGetValue("script", out object? s) || s is null) {
 #if DEBUG
-            System.Console.WriteLine("[Engine.OperationExecution] Missing 'script' value in engine operation");
+            System.Diagnostics.Trace.WriteLine("[Engine.OperationExecution] Missing 'script' value in engine operation");
 #endif
             return false;
         } else {
 #if DEBUG
-            System.Console.WriteLine($"[Engine.OperationExecution] engine operation script: {s}");
+            System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] engine operation script: {s}");
 #endif
         }
 
         string? action = s.ToString()?.ToLowerInvariant();
 #if DEBUG
-        System.Console.WriteLine($"[Engine.OperationExecution] Executing engine action: {action}");
+        System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] Executing engine action: {action}");
 #endif
         switch (action) {
             case "download_tools": {
@@ -684,7 +684,7 @@ internal sealed partial class Engine {
                     }
                 }  catch (Exception ex) {
 #if DEBUG
-            System.Console.WriteLine($"Error reading config.toml: {ex.Message}");
+            System.Diagnostics.Trace.WriteLine($"Error reading config.toml: {ex.Message}");
 #endif
         }
                 cfgDict0["module_path"] = gameRoot;
@@ -743,7 +743,7 @@ internal sealed partial class Engine {
                     }
                 }  catch (Exception ex) {
 #if DEBUG
-            System.Console.WriteLine($"Error reading config.toml: {ex.Message}");
+            System.Diagnostics.Trace.WriteLine($"Error reading config.toml: {ex.Message}");
 #endif
         }
                 cfgDict1["module_path"] = gameRoot2;
@@ -774,7 +774,7 @@ internal sealed partial class Engine {
             case "format-convert":
             case "format_convert": {
 #if DEBUG
-                    System.Console.WriteLine("[Engine.OperationExecution] format-convert");
+                    System.Diagnostics.Trace.WriteLine("[Engine.OperationExecution] format-convert");
 #endif
                 // Determine tool
                 string? tool = op.TryGetValue("tool", out object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
@@ -813,7 +813,7 @@ internal sealed partial class Engine {
                     }
                 } catch (System.Exception ex) {
 #if DEBUG
-                    System.Console.WriteLine($"[Engine.OperationExecution] format-convert: failed to read config.toml: {ex.Message}");
+                    System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: failed to read config.toml: {ex.Message}");
 #endif
                 // ignore
                 }
@@ -836,7 +836,7 @@ internal sealed partial class Engine {
                     System.Console.WriteLine("\n>>> Built-in media conversion");
                     System.Console.ResetColor();
 #if DEBUG
-                    System.Console.WriteLine($"[Engine.OperationExecution] format-convert: running media conversion with args: {string.Join(' ', args)}");
+                    System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: running media conversion with args: {string.Join(' ', args)}");
 #endif
                     bool okMedia = FileHandlers.MediaConverter.Run(_tools, args);
                     return okMedia;
@@ -846,13 +846,13 @@ internal sealed partial class Engine {
                     System.Console.WriteLine("\n>>> Built-in image conversion");
                     System.Console.ResetColor();
 #if DEBUG
-                    System.Console.WriteLine($"[Engine.OperationExecution] format-convert: running image conversion with args: {string.Join(' ', args)}");
+                    System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: running image conversion with args: {string.Join(' ', args)}");
 #endif
                     bool okImage = FileHandlers.ImageMagickConverter.Run(_tools, args);
                     return okImage;
                 } else {
 #if DEBUG
-                    System.Console.WriteLine($"[Engine.OperationExecution] format-convert: unknown tool '{tool}'");
+                    System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: unknown tool '{tool}'");
 #endif
                     return false;
                 }
@@ -892,7 +892,7 @@ internal sealed partial class Engine {
                     }
                 }  catch {
 #if DEBUG
-            System.Console.WriteLine($"Error .....'");
+            System.Diagnostics.Trace.WriteLine($"Error .....'");
 #endif
         }
                 cfgDict3["module_path"] = gameRoot4;
@@ -975,7 +975,7 @@ internal sealed partial class Engine {
                     }
                 }  catch {
 #if DEBUG
-            System.Console.WriteLine($"Error .....'");
+            System.Diagnostics.Trace.WriteLine($"Error .....'");
 #endif
         }
                 cfgDict4["module_path"] = gameRoot5;
@@ -1033,7 +1033,7 @@ internal sealed partial class Engine {
                     }
                 }  catch {
 #if DEBUG
-            System.Console.WriteLine($"Error .....'");
+            System.Diagnostics.Trace.WriteLine($"Error .....'");
 #endif
         }
                 cfgDict5["module_path"] = gameRoot6;
@@ -1066,7 +1066,7 @@ internal sealed partial class Engine {
             string projectJson = System.IO.Path.Combine(_rootPath, "project.json");
             if (!System.IO.File.Exists(projectJson)) {
 #if DEBUG
-                System.Console.WriteLine("[Engine.OperationExecution] ReloadProjectConfig: project.json not found");
+                System.Diagnostics.Trace.WriteLine("[Engine.OperationExecution] ReloadProjectConfig: project.json not found");
 #endif
                 return;
             }

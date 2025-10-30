@@ -4,6 +4,7 @@ using Jint.Native;
 
 using System.IO;
 using System.Collections.Generic;
+using EngineNet.Core.Utils;
 
 namespace EngineNet.Core.ScriptEngines;
 /// <summary>
@@ -46,8 +47,8 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
         RegisterGlobals(engine, tools);
         PreloadShimModules(engine, _scriptPath);
 #if DEBUG
-        System.Console.WriteLine($"Running js script '{_scriptPath}' with {_args.Length} args...");
-        System.Console.WriteLine($"input args: {string.Join(", ", _args)}");
+        EngineSdk.PrintLine($"Running js script '{_scriptPath}' with {_args.Length} args...");
+        EngineSdk.PrintLine($"input args: {string.Join(", ", _args)}");
 #endif
         await System.Threading.Tasks.Task.Run(() => engine.Execute(code), cancellationToken);
     }
@@ -273,7 +274,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
                 System.Threading.Thread.Sleep(System.TimeSpan.FromSeconds(seconds));
             } catch {
 #if DEBUG
-                System.Console.WriteLine($"[JsScriptAction.cs] sleep interrupted");
+                System.Diagnostics.Trace.WriteLine($"[JsScriptAction.cs] sleep interrupted");
 #endif
                 // ignore
             }
@@ -378,7 +379,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
                             process.Kill(entireProcessTree: true);
                         } catch {
 #if DEBUG
-                            System.Console.WriteLine($"[JsScriptAction.cs] Failed to kill timed-out process '{fileName}'");
+                            System.Diagnostics.Trace.WriteLine($"[JsScriptAction.cs] Failed to kill timed-out process '{fileName}'");
 #endif
                             // ignore
                         }
@@ -833,7 +834,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
                 return new Jint.Runtime.JavaScriptException(errorInstance);
             } catch {
 #if DEBUG
-                System.Console.WriteLine($"[JsScriptAction.cs] Failed to create JS exception of type '{constructorName}', falling back to generic Error");
+                System.Diagnostics.Trace.WriteLine($"[JsScriptAction.cs] Failed to create JS exception of type '{constructorName}', falling back to generic Error");
 #endif
                 // ignore
             }

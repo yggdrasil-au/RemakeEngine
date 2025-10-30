@@ -32,10 +32,10 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
         }
     }
 
-    internal System.Windows.Input.ICommand BrowseRootCommand {
+    internal System.Windows.Input.ICommand Button_BrowseRoot_Click {
         get;
     }
-    internal System.Windows.Input.ICommand SaveCommand {
+    internal System.Windows.Input.ICommand Button_Save_Click {
         get;
     }
 
@@ -48,8 +48,8 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
         ProjectRoot = @"C:\Example\Project\Root (Design)";
         Status = "Design mode active.";
         // Initialize commands
-        BrowseRootCommand = new Cmd(async _ => await Task.CompletedTask);
-        SaveCommand = new Cmd(async _ => await Task.CompletedTask);
+        Button_BrowseRoot_Click = new Cmd(async _ => await Task.CompletedTask);
+        Button_Save_Click = new Cmd(async _ => await Task.CompletedTask);
 
     }
     internal SettingsPage(Core.Engine engine) {
@@ -57,8 +57,8 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
         InitializeComponent();
         DataContext = this;
 
-        BrowseRootCommand = new Cmd(async _ => await BrowseRootAsync());
-        SaveCommand = new Cmd(async _ => await SaveAsync());
+        Button_BrowseRoot_Click = new Cmd(async _ => await BrowseRootAsync());
+        Button_Save_Click = new Cmd(async _ => await SaveAsync());
 
         ProjectRoot = _engine.GetRootPath();
 

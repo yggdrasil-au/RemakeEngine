@@ -176,7 +176,7 @@ internal static class LuaProcessExecution {
         p.Exited += (_, __) => {
             try { mp.ExitTcs.TrySetResult(p.ExitCode); }  catch {
 #if DEBUG
-            System.Console.WriteLine($"[LuaProcessExecution] Error setting exit code for process '{psi.FileName}'");
+            System.Diagnostics.Trace.WriteLine($"[LuaProcessExecution] Error setting exit code for process '{psi.FileName}'");
 #endif
         }
         };
@@ -277,12 +277,12 @@ internal static class LuaProcessExecution {
         if (!s_processes.TryRemove(pid, out var mp)) return DynValue.NewBoolean(false);
         try { if (!mp.Process.HasExited) mp.Process.Kill(true); }  catch {
 #if DEBUG
-            System.Console.WriteLine($"Error .....'");
+            System.Diagnostics.Trace.WriteLine($"Error .....'");
 #endif
         }
         try { mp.Process.Dispose(); }  catch {
 #if DEBUG
-            System.Console.WriteLine($"Error .....'");
+            System.Diagnostics.Trace.WriteLine($"Error .....'");
 #endif
         }
         return DynValue.NewBoolean(true);
@@ -381,7 +381,7 @@ internal static class LuaProcessExecution {
                         process.Kill(entireProcessTree: true);
                     }  catch {
 #if DEBUG
-            System.Console.WriteLine($"[LuaProcessExecution] Error killing timed-out process '{fileName}'");
+            System.Diagnostics.Trace.WriteLine($"[LuaProcessExecution] Error killing timed-out process '{fileName}'");
 #endif
         }
                     throw new ScriptRuntimeException($"Process '{fileName}' timed out after {timeoutMs.Value} ms");

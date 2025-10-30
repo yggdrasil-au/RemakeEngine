@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
+using EngineNet.Core.Utils;
 
 namespace EngineNet.Core.ScriptEngines.Helpers;
 
@@ -261,19 +262,19 @@ internal static class QuickBmsExtractor {
 
         ConsoleColor colour = stream == "stderr" ? ConsoleColor.Red : ConsoleColor.DarkGray;
         // this will make stderr red, but for somereason quickbms often outputs to it so outputs may be mixed
-        Write(colour, "[quickbms] " + line, stream == "stderr");
+        Write(colour, "[quickbms] " + line);
     }
 
     private static void WriteInfo(string message) => Write(System.ConsoleColor.Cyan, message);
     private static void WriteWarn(string message) => Write(System.ConsoleColor.Yellow, message);
-    private static void WriteError(string message) => Write(System.ConsoleColor.Red, message, isError: true);
+    private static void WriteError(string message) => Write(System.ConsoleColor.Red, message);
 
     private static readonly object s_consoleLock = new();
 
     private static readonly string s_prefix = "[QBMS-Extract] ";
 
-    private static void Write(System.ConsoleColor colour, string message, bool isError = false) {
-        // Ensure all messages emitted from this extractor have a consistent prefix unless
+    private static void Write(System.ConsoleColor colour, string message) {
+        // Ensure all messages written from this extractor have a consistent prefix unless
         // they are already tagged as coming from the wrapped quickbms process.
         if (!string.IsNullOrEmpty(message) &&
             !message.StartsWith("[quickbms]", System.StringComparison.OrdinalIgnoreCase) &&
@@ -281,16 +282,7 @@ internal static class QuickBmsExtractor {
             message = s_prefix + message;
         }
         lock (s_consoleLock) {
-            ConsoleColor previous = Console.ForegroundColor;
-            Console.ForegroundColor = colour;
-            if (isError) {
-                // 
-                Console.Error.WriteLine(message);
-            } else {
-                Console.WriteLine(message);
-            }
-
-            Console.ForegroundColor = previous;
+            EngineSdk.PrintLine(message, colour);
         }
     }
 }

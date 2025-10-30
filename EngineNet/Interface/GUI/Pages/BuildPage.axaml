@@ -10,7 +10,7 @@
                 Text="{Binding Service.CurrentOperation, TargetNullValue=No operation running}"
                 VerticalAlignment="Center"
                 Foreground="Gray"/>
-            <Button Content="Clear Output" Command="{Binding ClearOutputCommand}" Margin="20,0,0,0"/>
+            <Button Content="Clear Output" Command="{Binding Button_ClearOutput_Click}" Margin="20,0,0,0"/>
         </StackPanel>
 
         <!-- Progress panel area -->

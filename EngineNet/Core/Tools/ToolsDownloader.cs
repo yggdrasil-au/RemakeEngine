@@ -29,7 +29,7 @@ internal sealed class ToolsDownloader {
                 System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(_centralRepoJsonPath)) ?? _rootPath);
             }  catch {
 #if DEBUG
-            System.Console.WriteLine($"[ToolsDownloader] Could not create directory for central tools registry: {_centralRepoJsonPath}");
+            System.Diagnostics.Trace.WriteLine($"[ToolsDownloader] Could not create directory for central tools registry: {_centralRepoJsonPath}");
 #endif
         }
 
@@ -163,19 +163,25 @@ internal sealed class ToolsDownloader {
             }
         }
         DrawProgress(totalRead, contentLength);
-        System.Console.WriteLine();
+        //System.Console.WriteLine();
     }
 
     private static void DrawProgress(long read, long total) {
+        string label;
         if (total > 0) {
-            int pct = (int)(read * 100 / total);
-            int barLen = 30;
-            int filled = (int)(barLen * pct / 100.0);
-            string bar = new string('█', filled) + new string('-', barLen - filled);
-            System.Console.Write($"\r[{bar}] {pct,3}%  {Bytes(read)}/{Bytes(total)}   ");
+            // The SDK/UI is responsible for drawing the bar and percentage.
+            // We just need to provide the raw numbers and a useful label.
+            label = $"Downloading... {Bytes(read)} / {Bytes(total)}";
         } else {
-            System.Console.Write($"\r{Bytes(read)} downloaded   ");
+            label = $"Downloading... {Bytes(read)}";
         }
+
+        Core.Utils.EngineSdk.Emit("progress", new Dictionary<string, object?> {
+            ["id"] = "download", // A consistent ID for this progress bar
+            ["current"] = read,  // Send the long value
+            ["total"] = total,   // Send the long value
+            ["label"] = label
+        });
     }
 
     private static string Bytes(long n) {
@@ -313,14 +319,14 @@ internal sealed class ToolsDownloader {
         if (platformData.ValueKind == System.Text.Json.JsonValueKind.Object &&
             platformData.TryGetProperty("exe_name", out System.Text.Json.JsonElement exeNameElem) &&
             exeNameElem.ValueKind == System.Text.Json.JsonValueKind.String) {
-            
+
             string? exeName = exeNameElem.GetString();
             if (!string.IsNullOrWhiteSpace(exeName)) {
                 string exePath = System.IO.Path.Combine(root, exeName);
                 if (System.IO.File.Exists(exePath)) {
                     return exePath;
                 }
-                
+
                 // Also try searching recursively if not found at root
                 try {
                     foreach (string file in System.IO.Directory.EnumerateFiles(root, exeName, System.IO.SearchOption.AllDirectories)) {
@@ -328,7 +334,7 @@ internal sealed class ToolsDownloader {
                     }
                 } catch {
 #if DEBUG
-                    System.Console.WriteLine($"[ToolsDownloader] Could not search for exe in: {root}");
+                    System.Diagnostics.Trace.WriteLine($"[ToolsDownloader] Could not search for exe in: {root}");
 #endif
                 }
             }
@@ -344,7 +350,7 @@ internal sealed class ToolsDownloader {
             }
         } catch {
 #if DEBUG
-            System.Console.WriteLine($"[ToolsDownloader] Could not search for exe in: {root}");
+            System.Diagnostics.Trace.WriteLine($"[ToolsDownloader] Could not search for exe in: {root}");
 #endif
             // ignore
         }

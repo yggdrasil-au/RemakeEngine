@@ -22,16 +22,16 @@ public partial class LibraryPage:UserControl {
 
     // //
 
-    private System.Windows.Input.ICommand? RefreshCommand {
+    private System.Windows.Input.ICommand? Button_Refresh_Click {
         get;
     }
-    private System.Windows.Input.ICommand? PlayCommand {
+    private System.Windows.Input.ICommand? Button_Play_Click {
         get;
     }
-    private System.Windows.Input.ICommand? RunOpsCommand {
+    private System.Windows.Input.ICommand? Button_RunOps_Click {
         get;
     }
-    private System.Windows.Input.ICommand? OpenFolderCommand {
+    private System.Windows.Input.ICommand? Button_OpenFolder_Click {
         get;
     }
 
@@ -45,10 +45,10 @@ public partial class LibraryPage:UserControl {
         DataContext = this; // Set DataContext for design-time bindings
 
         // Initialize commands to prevent binding errors in the designer
-        RefreshCommand = new SimpleCommand(_ => { });
-        PlayCommand = new SimpleCommand(_ => { });
-        RunOpsCommand = new SimpleCommand(_ => { });
-        OpenFolderCommand = new SimpleCommand(_ => { });
+        Button_Refresh_Click = new SimpleCommand(_ => { });
+        Button_Play_Click = new SimpleCommand(_ => { });
+        Button_RunOps_Click = new SimpleCommand(_ => { });
+        Button_OpenFolder_Click = new SimpleCommand(_ => { });
         // You'll need to fix this separately. See note below.
 
         // Add some sample data so the previewer isn't empty
@@ -75,16 +75,16 @@ public partial class LibraryPage:UserControl {
             InitializeComponent();
             DataContext = this;
 
-            RefreshCommand = new SimpleCommand(_ => Load());
+            Button_Refresh_Click = new SimpleCommand(_ => Load());
 
-            PlayCommand = new SimpleCommand(p => {
+            Button_Play_Click = new SimpleCommand(p => {
                 if (p is Row r && !string.IsNullOrWhiteSpace(r.ExePath)) {
                     _engine.LaunchGame(r.ModuleName);
                 }
             });
 
             // run operations marked Run-All
-            RunOpsCommand = new SimpleCommand(async p => {
+            Button_RunOps_Click = new SimpleCommand(async p => {
                 if (p is Row r && !string.IsNullOrWhiteSpace(r.ModuleName)) {
                     try {
                         await GUI.Utils.ExecuteEngineOperationAsync(
@@ -107,7 +107,7 @@ public partial class LibraryPage:UserControl {
                 }
             });
 
-            OpenFolderCommand = new SimpleCommand(async p => {
+            Button_OpenFolder_Click = new SimpleCommand(async p => {
                 if (p is Row r) {
                     try {
                         string? path = _engine.GetGamePath(r.ModuleName);
@@ -312,7 +312,7 @@ public partial class LibraryPage:UserControl {
 
     private static void DebugWriteLine(string message) {
 #if DEBUG
-        System.Console.WriteLine(message);
+        System.Diagnostics.Trace.WriteLine(message);
 #endif
     }
 }

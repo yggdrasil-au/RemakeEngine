@@ -63,7 +63,7 @@ internal static partial class Main {
                 progress.Wait();
             } catch {
 #if DEBUG
-                System.Console.WriteLine("[TxdExtractor] Progress task cancelled.");
+                System.Diagnostics.Trace.WriteLine("[TxdExtractor] Progress task cancelled.");
 #endif
                 /* ignore */
             }

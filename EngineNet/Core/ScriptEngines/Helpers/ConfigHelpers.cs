@@ -8,16 +8,8 @@ namespace EngineNet.Core.ScriptEngines.Helpers;
 /// Utility helpers for common project setup and filesystem operations used by scripts.
 /// </summary>
 internal static class ConfigHelpers {
-    private static void Emit(string message, bool newline = true, string? color = null) {
-        try {
-            Core.Utils.EngineSdk.Print(message ?? string.Empty, color, newline);
-        } catch {
-            if (newline) {
-                System.Console.WriteLine(message);
-            } else {
-                System.Console.Write(message);
-            }
-        }
+    private static void Write(string message, bool newline = true, string? color = null) {
+        Core.Utils.EngineSdk.Print(message ?? string.Empty, color, newline);
     }
 
     private static string BuildProgressBar(string label, int current, int total, int width = 30) {
@@ -74,7 +66,7 @@ internal static class ConfigHelpers {
     /// <summary>
     /// Recursively copy a directory to destination. Creates destination if needed.
     /// If <paramref name="overwrite"/> is false and destination exists, throws.
-    /// Emits progress updates to the engine System.Console.
+    /// Writes progress updates to the engine System.Console.
     /// </summary>
     internal static void CopyDirectory(string sourceDir, string destDir, bool overwrite = false) {
         if (string.IsNullOrWhiteSpace(sourceDir)) {
@@ -114,9 +106,9 @@ internal static class ConfigHelpers {
         System.DateTime lastUpdate = System.DateTime.UtcNow;
         int lastPercent = -1;
 
-        // Emit initial line
+        // Write initial line
         if (total > 0) {
-            Emit($"Copying {total} files from '{srcRoot}' to '{dstRoot}'...");
+            Write($"Copying {total} files from '{srcRoot}' to '{dstRoot}'...");
         }
 
         // Copy files with progress
@@ -133,7 +125,7 @@ internal static class ConfigHelpers {
             System.DateTime now = System.DateTime.UtcNow;
             if (percent != lastPercent || (now - lastUpdate).TotalMilliseconds >= 100 || current == total) {
                 string line = "\r" + BuildProgressBar("Copying", current, total);
-                Emit(line, newline: false);
+                Write(line, newline: false);
                 lastPercent = percent;
                 lastUpdate = now;
             }
@@ -141,14 +133,14 @@ internal static class ConfigHelpers {
 
         // Finish line
         if (total > 0) {
-            Emit(string.Empty, newline: true);
+            Write(string.Empty, newline: true);
         }
     }
 
     /// <summary>
     /// Move a directory to a new location. If <paramref name="overwrite"/> is false and
     /// destination exists, throws. If moving across volumes or into an existing destination,
-    /// falls back to copy+delete. Emits progress for copy operations.
+    /// falls back to copy+delete. Writes progress for copy operations.
     /// </summary>
     internal static void MoveDirectory(string sourceDir, string destDir, bool overwrite = false) {
         if (string.IsNullOrWhiteSpace(sourceDir)) {
@@ -168,25 +160,25 @@ internal static class ConfigHelpers {
                 throw new System.IO.IOException($"Destination already exists: {destDir}");
             }
             // We'll merge by copy then delete source
-            Emit($"Merging '{sourceDir}' into existing '{destDir}'...");
+            Write($"Merging '{sourceDir}' into existing '{destDir}'...");
             CopyDirectory(sourceDir, destDir, overwrite: true);
-            Emit("Deleting source after merge...");
+            Write("Deleting source after merge...");
             System.IO.Directory.Delete(sourceDir, recursive: true);
-            Emit("Move complete.");
+            Write("Move complete.");
             return;
         }
 
         try {
-            Emit($"Moving directory '{sourceDir}' -> '{destDir}' (fast move) ...", newline: false);
+            Write($"Moving directory '{sourceDir}' -> '{destDir}' (fast move) ...", newline: false);
             System.IO.Directory.Move(sourceDir, destDir);
-            Emit(" done.", newline: true);
+            Write(" done.", newline: true);
         } catch {
             // Fallback to copy+delete for cross-device moves
-            Emit("Fast move not available; falling back to copy...", newline: true);
+            Write("Fast move not available; falling back to copy...", newline: true);
             CopyDirectory(sourceDir, destDir, overwrite: true);
-            Emit("Deleting source after copy...", newline: true);
+            Write("Deleting source after copy...", newline: true);
             System.IO.Directory.Delete(sourceDir, recursive: true);
-            Emit("Move complete.");
+            Write("Move complete.");
         }
     }
 
@@ -210,7 +202,7 @@ internal static class ConfigHelpers {
             }
         } catch {
 #if DEBUG
-            System.Console.WriteLine($"Error .....'");
+            System.Diagnostics.Trace.WriteLine($"[ConfigHelpers] Failed to enumerate directories under '{baseDir}'");
 #endif
         }
         return null;
