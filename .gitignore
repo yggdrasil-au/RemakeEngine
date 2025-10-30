@@ -143,7 +143,9 @@ EngineApps/Games/demo/TMP/**
 
 # dont ignore demo 
 !EngineApps/Games/demo/
-
+!EngineApps/Games/demo/**
+!EngineApps/Games/demo/scripts/
+!EngineApps/Games/demo/scripts/**
 
 
 ############################
