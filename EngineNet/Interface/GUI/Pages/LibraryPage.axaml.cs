@@ -1,21 +1,11 @@
 
 using System;
-using System.IO;
-using System.Text.Json;
-using System.Threading.Tasks;
 using System.Linq;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Collections.Generic;
-using System.Collections;
 
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Threading;
 using Avalonia.Media.Imaging;
-using Avalonia.Interactivity;
-
-
 
 namespace EngineNet.Interface.GUI.Pages;
 
@@ -103,7 +93,7 @@ public partial class LibraryPage:UserControl {
                         DebugWriteLine($"[LibraryPage] Running all operations for '{r.ModuleName}'...");
 
                         // Clear previous output and start new operation
-                        OperationOutputService.StartOperation("Run All Build Operations", r.ModuleName);
+                        OperationOutputService.Instance.StartOperation("Run All Build Operations", r.ModuleName);
 
                         string? lastPromptMessage = null;
                         string? lastPromptId = null;
@@ -115,7 +105,7 @@ public partial class LibraryPage:UserControl {
                                 DebugWriteLine($"[{streamName}] {line}");
 
                                 // Route all raw output to the service
-                                OperationOutputService.AddOutput(line, streamName);
+                                OperationOutputService.Instance.AddOutput(line, streamName);
                             },
                             onEvent: (evt) => {
                                 if (evt.TryGetValue("event", out object? evtType)) {
@@ -132,7 +122,7 @@ public partial class LibraryPage:UserControl {
                                 }
 
                                 // Route all events to the shared output service
-                                OperationOutputService.HandleEvent(evt);
+                                OperationOutputService.Instance.HandleEvent(evt);
                             },
                             stdinProvider: () => {
                                 // This runs on a background thread, but Avalonia dialogs must run on UI thread
@@ -373,3 +363,4 @@ public partial class LibraryPage:UserControl {
 #endif
     }
 }
+
