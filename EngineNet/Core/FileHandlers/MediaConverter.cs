@@ -310,7 +310,12 @@ internal static class MediaConverter {
                                 if (System.IO.File.Exists(tmpWav)) {
                                     System.IO.File.Delete(tmpWav);
                                 }
-                            } catch { /* ignore */ }
+                            } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
                         }
                     } else {
                         List<string> a = new List<string> { "-o", destPath, srcPath };
@@ -344,13 +349,21 @@ internal static class MediaConverter {
                 File = System.IO.Path.GetFileName(srcPath),
                 StartedUtc = System.DateTime.UtcNow
             };
-        } catch {
+        } catch{
+#if DEBUG
+// todo add trace writeline
+#endif
             /* ignore */
         }
     }
 
     private static void UnregisterActive() {
-        try { s_active.TryRemove(System.Threading.Thread.CurrentThread.ManagedThreadId, out _); } catch { /* ignore */ }
+        try { s_active.TryRemove(System.Threading.Thread.CurrentThread.ManagedThreadId, out _); } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
     }
 
     private static (bool ok, string? message) Exec(string fileName, IList<string> arguments, bool passthroughOutput) {
@@ -552,9 +565,19 @@ internal static class MediaConverter {
                     if (System.IO.File.Exists(candidate)) {
                         return candidate;
                     }
-                } catch { /* ignore */ }
+                } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
             }
-        } catch { /* ignore */ }
+        } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
         return null;
     }
 

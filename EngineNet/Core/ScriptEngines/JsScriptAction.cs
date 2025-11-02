@@ -9,7 +9,7 @@ using EngineNet.Core.Utils;
 namespace EngineNet.Core.ScriptEngines;
 /// <summary>
 /// Executes a JavaScript file using the embedded Jint interpreter.
-/// Exposes a host API that mirrors the Lua engine capabilities.
+/// Exposes a host API that mirrors the Lua js_engine capabilities.
 /// </summary>
 internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IAction {
     private readonly string _scriptPath;
@@ -32,7 +32,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
     }
 
     /// <summary>
-    /// Executes the JavaScript file in an embedded Jint engine.
+    /// Executes the JavaScript file in an embedded Jint js_engine.
     /// </summary>
     /// <param name="tools">Resolver used by the <c>tool(name)</c> global to locate external executables.</param>
     /// <param name="cancellationToken">Token used to cancel script execution.</param>
@@ -43,89 +43,80 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
         }
 
         string code = await System.IO.File.ReadAllTextAsync(_scriptPath, cancellationToken);
-        Jint.Engine engine = new Jint.Engine(options => options.CancellationToken(cancellationToken));
-        RegisterGlobals(engine, tools);
-        PreloadShimModules(engine, _scriptPath);
+        Jint.Engine js_engine = new Jint.Engine(options => options.CancellationToken(cancellationToken));
+        RegisterGlobals(js_engine, tools);
+        PreloadShimModules(js_engine, _scriptPath);
 #if DEBUG
         EngineSdk.PrintLine($"Running js script '{_scriptPath}' with {_args.Length} args...");
         EngineSdk.PrintLine($"input args: {string.Join(", ", _args)}");
 #endif
-        await System.Threading.Tasks.Task.Run(() => engine.Execute(code), cancellationToken);
+        await System.Threading.Tasks.Task.Run(() => js_engine.Execute(code), cancellationToken);
     }
 
     /// <summary>
     /// Registers host functions and shims exposed to JavaScript, such as <c>emit</c>, <c>prompt</c>,
     /// <c>progress</c>, <c>sqlite</c>, and filesystem helpers.
     /// </summary>
-    /// <param name="engine">The Jint engine instance.</param>
+    /// <param name="js_engine">The Jint js_engine instance.</param>
     /// <param name="tools">Tool resolver exposed via the <c>tool</c> global.</param>
-    private void RegisterGlobals(Jint.Engine engine, Tools.IToolResolver tools) {
-        engine.SetValue("tool", new System.Func<string, string>(tools.ResolveToolPath));
-        engine.SetValue("argv", _args);
-        engine.SetValue("emit", new System.Action<JsValue, JsValue>((ev, data) => {
-            string eventName = ev.IsString() ? ev.AsString() : ev.ToString();
-            IDictionary<string, object?>? payload = null;
-            if (!data.IsUndefined() && !data.IsNull()) {
-                payload = JsInterop.ToDictionary(engine, data);
-            }
-
-            Core.Utils.EngineSdk.Emit(eventName, payload);
-        }));
-        engine.SetValue("warn", new System.Action<string>(Core.Utils.EngineSdk.Warn));
-        engine.SetValue("error", new System.Action<string>(Core.Utils.EngineSdk.Error));
-        engine.SetValue("prompt", new System.Func<JsValue, JsValue, JsValue, string>((message, id, secret) => {
+    private void RegisterGlobals(Jint.Engine js_engine, Tools.IToolResolver tools) {
+        js_engine.SetValue("tool", new System.Func<string, string>(tools.ResolveToolPath));
+        js_engine.SetValue("argv", _args);
+        js_engine.SetValue("warn", new System.Action<string>(Core.Utils.EngineSdk.Warn));
+        js_engine.SetValue("error", new System.Action<string>(Core.Utils.EngineSdk.Error));
+        js_engine.SetValue("prompt", new System.Func<JsValue, JsValue, JsValue, string>((message, id, secret) => {
             string msg = message.IsString() ? message.AsString() : message.ToString();
             string promptId = id.IsNull() || id.IsUndefined() ? "q1" : id.IsString() ? id.AsString() : id.ToString();
             bool hide = secret.IsBoolean() && secret.AsBoolean();
             return Core.Utils.EngineSdk.Prompt(msg, promptId, hide);
         }));
-        engine.SetValue("progress", new System.Func<JsValue, JsValue, JsValue, Core.Utils.EngineSdk.Progress>((total, id, label) => {
+        js_engine.SetValue("progress", new System.Func<JsValue, JsValue, JsValue, Core.Utils.EngineSdk.PanelProgress>((total, id, label) => {
             double totalNumber = JsInterop.ToNumber(total, 1);
             int totalSteps = (int)System.Math.Max(1, System.Math.Round(totalNumber));
             string progressId = id.IsNull() || id.IsUndefined() ? "p1" : id.IsString() ? id.AsString() : id.ToString();
             string? labelText = label.IsNull() || label.IsUndefined() ? null : label.IsString() ? label.AsString() : label.ToString();
-            return new Core.Utils.EngineSdk.Progress(totalSteps, progressId, labelText);
+            return new Core.Utils.EngineSdk.PanelProgress(totalSteps, progressId, labelText);
         }));
-        engine.SetValue("sdk", new SdkModule(engine));
-        engine.SetValue("sqlite", new SqliteModule(engine));
+        js_engine.SetValue("sdk", new SdkModule(js_engine));
+        js_engine.SetValue("sqlite", new SqliteModule(js_engine));
     }
 
     /// <summary>
     /// Preloads a minimal set of shim modules to emulate some Lua ecosystem pieces
     /// expected by existing module scripts (e.g. <c>lfs</c>, <c>dkjson</c>, <c>debug</c>).
     /// </summary>
-    /// <param name="engine">The engine to extend.</param>
+    /// <param name="js_engine">The js_engine to extend.</param>
     /// <param name="scriptPath">Path of the currently executing script (used for debug info).</param>
-    private static void PreloadShimModules(Jint.Engine engine, string scriptPath) {
+    private static void PreloadShimModules(Jint.Engine js_engine, string scriptPath) {
         Dictionary<string, object?> modules = new Dictionary<string, object?>(System.StringComparer.Ordinal);
         LfsModule lfs = new LfsModule();
-        DkJsonModule dkjson = new DkJsonModule(engine);
+        DkJsonModule dkjson = new DkJsonModule(js_engine);
         DebugModule debug = new DebugModule(scriptPath);
         modules["lfs"] = lfs;
         modules["dkjson"] = dkjson;
         modules["debug"] = debug;
-        engine.SetValue("debug", debug);
-        engine.SetValue("package", new PackageModule(modules));
-        engine.SetValue("require", new System.Func<string, object>(name => {
+        js_engine.SetValue("debug", debug);
+        js_engine.SetValue("package", new PackageModule(modules));
+        js_engine.SetValue("require", new System.Func<string, object>(name => {
             return modules.TryGetValue(name, out object? module) && module != null
                 ? module
-                : throw JsInterop.CreateJsException(engine, "Error", $"module '{name}' not found (only preloaded modules available)");
+                : throw JsInterop.CreateJsException(js_engine, "Error", $"module '{name}' not found (only preloaded modules available)");
         }));
     }
     private sealed class SdkModule {
-        private readonly Jint.Engine _engine;
+        private readonly Jint.Engine js_engine;
 
-        internal SdkModule(Jint.Engine engine) {
-            _engine = engine;
+        internal SdkModule(Jint.Engine js_engine) {
+            this.js_engine = js_engine;
         }
 
         internal JsValue color_print(object? arg1, object? arg2 = null, object? arg3 = null) {
             string? color = null;
             string message = string.Empty;
             bool newline = true;
-            JsValue first = JsInterop.AsJsValue(_engine, arg1);
+            JsValue first = JsInterop.AsJsValue(js_engine, arg1);
             if (first.IsObject() && !first.IsNull() && !first.IsUndefined() && !first.IsArray() && !first.IsString()) {
-                IDictionary<string, object?> dict = JsInterop.ToDictionary(_engine, first.AsObject());
+                IDictionary<string, object?> dict = JsInterop.ToDictionary(js_engine, first.AsObject());
                 if (!dict.TryGetValue("color", out object? colorObj) && !dict.TryGetValue("colour", out colorObj)) {
                     colorObj = null;
                 }
@@ -146,12 +137,12 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
                     color = JsInterop.ToString(first);
                 }
 
-                JsValue messageValue = JsInterop.AsJsValue(_engine, arg2);
+                JsValue messageValue = JsInterop.AsJsValue(js_engine, arg2);
                 if (!messageValue.IsNull() && !messageValue.IsUndefined()) {
                     message = JsInterop.ToString(messageValue);
                 }
 
-                JsValue newlineValue = JsInterop.AsJsValue(_engine, arg3);
+                JsValue newlineValue = JsInterop.AsJsValue(js_engine, arg3);
                 if (newlineValue.IsBoolean()) {
                     newline = newlineValue.AsBoolean();
                 }
@@ -177,7 +168,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
 
         internal bool copy_dir(string src, string dst, object? overwrite = null) {
             try {
-                bool ow = JsInterop.ToBoolean(_engine, overwrite);
+                bool ow = JsInterop.ToBoolean(js_engine, overwrite);
                 Helpers.ConfigHelpers.CopyDirectory(src, dst, ow);
                 return true;
             } catch {
@@ -187,7 +178,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
 
         internal bool move_dir(string src, string dst, object? overwrite = null) {
             try {
-                bool ow = JsInterop.ToBoolean(_engine, overwrite);
+                bool ow = JsInterop.ToBoolean(js_engine, overwrite);
                 Helpers.ConfigHelpers.MoveDirectory(src, dst, ow);
                 return true;
             } catch {
@@ -199,7 +190,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
 
         internal bool has_all_subdirs(string baseDir, object? names) {
             try {
-                List<string> list = JsInterop.ToStringList(_engine, names);
+                List<string> list = JsInterop.ToStringList(js_engine, names);
                 return Helpers.ConfigHelpers.HasAllSubdirs(baseDir, list);
             } catch {
                 return false;
@@ -249,7 +240,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
 
         internal bool copy_file(string src, string dst, object? overwrite = null) {
             try {
-                bool ow = JsInterop.ToBoolean(_engine, overwrite);
+                bool ow = JsInterop.ToBoolean(js_engine, overwrite);
                 System.IO.File.Copy(src, dst, ow);
                 return true;
             } catch {
@@ -290,10 +281,10 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
         }
 
         internal JsValue run_process(object commandArgs, object? options = null) {
-            Jint.Native.Array.ArrayInstance array = JsInterop.EnsureArray(_engine, commandArgs, "run_process arguments");
-            List<string> arguments = JsInterop.ToStringList(_engine, array);
+            Jint.Native.Array.ArrayInstance array = JsInterop.EnsureArray(js_engine, commandArgs, "run_process arguments");
+            List<string> arguments = JsInterop.ToStringList(js_engine, array);
             if (arguments.Count == 0) {
-                throw JsInterop.CreateJsException(_engine, "TypeError", "run_process requires at least one argument (executable path)");
+                throw JsInterop.CreateJsException(js_engine, "TypeError", "run_process requires at least one argument (executable path)");
             }
 
             string fileName = arguments[0];
@@ -311,31 +302,31 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             bool captureStdout = true;
             bool captureStderr = true;
             int? timeoutMs = null;
-            Jint.Native.Object.ObjectInstance? opts = JsInterop.TryGetPlainObject(_engine, options);
+            Jint.Native.Object.ObjectInstance? opts = JsInterop.TryGetPlainObject(js_engine, options);
             if (opts != null) {
-                JsValue cwdValue = JsInterop.Get(opts, _engine, "cwd");
+                JsValue cwdValue = JsInterop.Get(opts, js_engine, "cwd");
                 if (cwdValue.IsString()) {
                     psi.WorkingDirectory = cwdValue.AsString();
                 }
 
-                JsValue stdoutValue = JsInterop.Get(opts, _engine, "capture_stdout");
+                JsValue stdoutValue = JsInterop.Get(opts, js_engine, "capture_stdout");
                 if (!stdoutValue.IsUndefined()) {
                     captureStdout = JsInterop.ToBoolean(stdoutValue);
                 }
 
-                JsValue stderrValue = JsInterop.Get(opts, _engine, "capture_stderr");
+                JsValue stderrValue = JsInterop.Get(opts, js_engine, "capture_stderr");
                 if (!stderrValue.IsUndefined()) {
                     captureStderr = JsInterop.ToBoolean(stderrValue);
                 }
 
-                JsValue timeoutValue = JsInterop.Get(opts, _engine, "timeout_ms");
+                JsValue timeoutValue = JsInterop.Get(opts, js_engine, "timeout_ms");
                 if (!timeoutValue.IsUndefined()) {
                     timeoutMs = JsInterop.ToNullableInt(timeoutValue);
                 }
 
-                JsValue envValue = JsInterop.Get(opts, _engine, "env");
+                JsValue envValue = JsInterop.Get(opts, js_engine, "env");
                 if (!envValue.IsUndefined() && envValue.IsObject()) {
-                    IDictionary<string, object?> dict = JsInterop.ToDictionary(_engine, envValue.AsObject());
+                    IDictionary<string, object?> dict = JsInterop.ToDictionary(js_engine, envValue.AsObject());
                     foreach (KeyValuePair<string, object?> kv in dict) {
                         if (kv.Value is string s) {
                             psi.Environment[kv.Key] = s;
@@ -383,13 +374,13 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
 #endif
                             // ignore
                         }
-                        throw JsInterop.CreateJsException(_engine, "Error", $"Process '{fileName}' timed out after {timeoutMs.Value} ms");
+                        throw JsInterop.CreateJsException(js_engine, "Error", $"Process '{fileName}' timed out after {timeoutMs.Value} ms");
                     }
                 } else {
                     process.WaitForExit();
                 }
             } catch (System.Exception ex) {
-                throw JsInterop.CreateJsException(_engine, "Error", $"Failed to run process '{fileName}': {ex.Message}");
+                throw JsInterop.CreateJsException(js_engine, "Error", $"Failed to run process '{fileName}': {ex.Message}");
             }
             Dictionary<string, object?> result = new Dictionary<string, object?>(System.StringComparer.Ordinal) {
                 ["exit_code"] = process.ExitCode,
@@ -403,26 +394,26 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
                 result["stderr"] = stderrBuilder.ToString();
             }
 
-            return JsInterop.FromObject(_engine, result);
+            return JsInterop.FromObject(js_engine, result);
         }
     }
     private sealed class SqliteModule {
-        private readonly Jint.Engine _engine;
+        private readonly Jint.Engine js_engine;
 
-        internal SqliteModule(Jint.Engine engine) {
-            _engine = engine;
+        internal SqliteModule(Jint.Engine js_engine) {
+            this.js_engine = js_engine;
         }
 
-        internal SqliteHandle open(string path) => new SqliteHandle(_engine, path);
+        internal SqliteHandle open(string path) => new SqliteHandle(js_engine, path);
     }
     private sealed class SqliteHandle:System.IDisposable {
-        private readonly Jint.Engine _engine;
+        private readonly Jint.Engine js_engine;
         private readonly Microsoft.Data.Sqlite.SqliteConnection _connection;
         private Microsoft.Data.Sqlite.SqliteTransaction? _transaction;
         private bool _disposed;
 
-        public SqliteHandle(Jint.Engine engine, string path) {
-            _engine = engine;
+        public SqliteHandle(Jint.Engine js_engine, string path) {
+            this.js_engine = js_engine;
             string fullPath = System.IO.Path.GetFullPath(path);
             Microsoft.Data.Sqlite.SqliteConnectionStringBuilder builder = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder {
                 DataSource = fullPath
@@ -462,7 +453,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
                 }
                 rows.Add(row);
             }
-            return JsInterop.FromObject(_engine, rows);
+            return JsInterop.FromObject(js_engine, rows);
         }
 
         public void begin() => BeginTransaction();
@@ -529,7 +520,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
                 return;
             }
 
-            IDictionary<string, object?> dict = JsInterop.ToDictionary(_engine, parameters);
+            IDictionary<string, object?> dict = JsInterop.ToDictionary(js_engine, parameters);
             foreach (KeyValuePair<string, object?> kv in dict) {
                 Microsoft.Data.Sqlite.SqliteParameter parameter = command.CreateParameter();
                 string name = kv.Key;
@@ -598,21 +589,21 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
         }
     }
     private sealed class DkJsonModule {
-        private readonly Jint.Engine _engine;
+        private readonly Jint.Engine js_engine;
 
-        internal DkJsonModule(Jint.Engine engine) {
-            _engine = engine;
+        internal DkJsonModule(Jint.Engine js_engine) {
+            this.js_engine = js_engine;
         }
 
         internal string encode(JsValue value, JsValue options) {
             bool indent = false;
             if (!options.IsUndefined() && !options.IsNull() && options.IsObject()) {
-                JsValue indentVal = JsInterop.Get(options.AsObject(), _engine, "indent");
+                JsValue indentVal = JsInterop.Get(options.AsObject(), js_engine, "indent");
                 if (!indentVal.IsUndefined()) {
                     indent = JsInterop.ToBoolean(indentVal);
                 }
             }
-            object? plain = JsInterop.ToPlainObject(_engine, value);
+            object? plain = JsInterop.ToPlainObject(js_engine, value);
             System.Text.Json.JsonSerializerOptions jsonOptions = new System.Text.Json.JsonSerializerOptions { WriteIndented = indent };
             return System.Text.Json.JsonSerializer.Serialize(plain, jsonOptions);
         }
@@ -622,7 +613,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
         internal JsValue decode(string json) {
             try {
                 using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(json);
-                return JsInterop.FromJsonElement(_engine, doc.RootElement);
+                return JsInterop.FromJsonElement(js_engine, doc.RootElement);
             } catch {
                 return JsValue.Null;
             }
@@ -731,11 +722,11 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
     }
     private static class JsInterop {
 
-        internal static JsValue AsJsValue(Jint.Engine engine, object? value) {
-            return value is null ? JsValue.Null : value is JsValue js ? js : JsValue.FromObject(engine, value);
+        internal static JsValue AsJsValue(Jint.Engine js_engine, object? value) {
+            return value is null ? JsValue.Null : value is JsValue js ? js : JsValue.FromObject(js_engine, value);
         }
 
-        internal static bool ToBoolean(Jint.Engine engine, object? value, bool defaultValue = false) => ToBoolean(AsJsValue(engine, value), defaultValue);
+        internal static bool ToBoolean(Jint.Engine js_engine, object? value, bool defaultValue = false) => ToBoolean(AsJsValue(js_engine, value), defaultValue);
 
         internal static bool ToBoolean(JsValue value, bool defaultValue = false) {
             return value.IsNull() || value.IsUndefined() ? defaultValue : Jint.Runtime.TypeConverter.ToBoolean(value);
@@ -745,12 +736,12 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             return value.IsNull() || value.IsUndefined() ? defaultValue : Jint.Runtime.TypeConverter.ToNumber(value);
         }
 
-        internal static Jint.Native.Array.ArrayInstance EnsureArray(Jint.Engine engine, object? value, string paramName) {
-            JsValue js = AsJsValue(engine, value);
-            return !js.IsArray() ? throw CreateJsException(engine, "TypeError", $"{paramName} must be an array") : (Jint.Native.Array.ArrayInstance)js.AsArray();
+        internal static Jint.Native.Array.ArrayInstance EnsureArray(Jint.Engine js_engine, object? value, string paramName) {
+            JsValue js = AsJsValue(js_engine, value);
+            return !js.IsArray() ? throw CreateJsException(js_engine, "TypeError", $"{paramName} must be an array") : (Jint.Native.Array.ArrayInstance)js.AsArray();
         }
 
-        internal static List<string> ToStringList(Jint.Engine engine, object? value) => ToStringList(EnsureArray(engine, value, "value"));
+        internal static List<string> ToStringList(Jint.Engine js_engine, object? value) => ToStringList(EnsureArray(js_engine, value, "value"));
 
         internal static List<string> ToStringList(Jint.Native.Array.ArrayInstance array) {
             List<string> list = new List<string>();
@@ -764,8 +755,8 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             return list;
         }
 
-        internal static IDictionary<string, object?> ToDictionary(Jint.Engine engine, object? value) {
-            JsValue js = AsJsValue(engine, value);
+        internal static IDictionary<string, object?> ToDictionary(Jint.Engine js_engine, object? value) {
+            JsValue js = AsJsValue(js_engine, value);
 
             // Case 1: null or undefined => return empty dictionary
             if (js.IsNull() || js.IsUndefined()) {
@@ -774,23 +765,23 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
 
             // Case 2: not an object => throw
             if (!js.IsObject()) {
-                throw CreateJsException(engine, constructorName: "TypeError", message: "Expected object value");
+                throw CreateJsException(js_engine, constructorName: "TypeError", message: "Expected object value");
             }
 
             // Case 3: valid object => recurse
-            return ToDictionary(engine, js.AsObject());
+            return ToDictionary(js_engine, js.AsObject());
         }
 
-        internal static IDictionary<string, object?> ToDictionary(Jint.Engine engine, Jint.Native.Object.ObjectInstance obj) {
+        internal static IDictionary<string, object?> ToDictionary(Jint.Engine js_engine, Jint.Native.Object.ObjectInstance obj) {
             Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.Ordinal);
             foreach (JsValue key in obj.GetOwnPropertyKeys()) {
                 JsValue value = obj.Get(key, obj);
-                dict[key.IsString() ? key.AsString() : key.ToString()] = ToPlainObject(engine, value);
+                dict[key.IsString() ? key.AsString() : key.ToString()] = ToPlainObject(js_engine, value);
             }
             return dict;
         }
 
-        internal static object? ToPlainObject(Jint.Engine engine, JsValue value) {
+        internal static object? ToPlainObject(Jint.Engine js_engine, JsValue value) {
             if (value.IsNull() || value.IsUndefined()) {
                 return null;
             }
@@ -810,7 +801,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             if (value.IsArray()) {
                 List<object?> list = new List<object?>();
                 foreach (JsValue item in value.AsArray()) {
-                    list.Add(ToPlainObject(engine, item));
+                    list.Add(ToPlainObject(js_engine, item));
                 }
 
                 return list;
@@ -819,7 +810,7 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
                 Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.Ordinal);
                 Jint.Native.Object.ObjectInstance obj = value.AsObject();
                 foreach (JsValue key in obj.GetOwnPropertyKeys()) {
-                    dict[key.IsString() ? key.AsString() : key.ToString()] = ToPlainObject(engine, obj.Get(key, obj));
+                    dict[key.IsString() ? key.AsString() : key.ToString()] = ToPlainObject(js_engine, obj.Get(key, obj));
                 }
 
                 return dict;
@@ -827,10 +818,10 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             return value.ToString();
         }
 
-        internal static Jint.Runtime.JavaScriptException CreateJsException(Jint.Engine engine, string constructorName, string message) {
+        internal static Jint.Runtime.JavaScriptException CreateJsException(Jint.Engine js_engine, string constructorName, string message) {
             try {
-                JsValue ctorValue = engine.GetValue(constructorName);
-                JsValue errorInstance = engine.Invoke(ctorValue, message);
+                JsValue ctorValue = js_engine.GetValue(constructorName);
+                JsValue errorInstance = js_engine.Invoke(ctorValue, message);
                 return new Jint.Runtime.JavaScriptException(errorInstance);
             } catch {
 #if DEBUG
@@ -838,12 +829,12 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
 #endif
                 // ignore
             }
-            return new Jint.Runtime.JavaScriptException(JsValue.FromObject(engine, message));
+            return new Jint.Runtime.JavaScriptException(JsValue.FromObject(js_engine, message));
         }
 
-        internal static JsValue FromObject(Jint.Engine engine, object? value) => JsValue.FromObject(engine, value);
+        internal static JsValue FromObject(Jint.Engine js_engine, object? value) => JsValue.FromObject(js_engine, value);
 
-        internal static JsValue FromJsonElement(Jint.Engine engine, System.Text.Json.JsonElement element) => FromObject(engine, FromJsonElement(element));
+        internal static JsValue FromJsonElement(Jint.Engine js_engine, System.Text.Json.JsonElement element) => FromObject(js_engine, FromJsonElement(element));
 
         internal static object? FromJsonElement(System.Text.Json.JsonElement element) => element.ValueKind switch {
             System.Text.Json.JsonValueKind.Object => ToDictionary(element),
@@ -855,12 +846,12 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
             _ => null
         };
 
-        internal static Jint.Native.Object.ObjectInstance? TryGetPlainObject(Jint.Engine engine, object? value) {
-            JsValue js = AsJsValue(engine, value);
+        internal static Jint.Native.Object.ObjectInstance? TryGetPlainObject(Jint.Engine js_engine, object? value) {
+            JsValue js = AsJsValue(js_engine, value);
             return js.IsObject() && !js.IsArray() ? js.AsObject() : null;
         }
 
-        internal static JsValue Get(Jint.Native.Object.ObjectInstance obj, Jint.Engine engine, string name) => obj.Get(JsValue.FromObject(engine, name), obj);
+        internal static JsValue Get(Jint.Native.Object.ObjectInstance obj, Jint.Engine js_engine, string name) => obj.Get(JsValue.FromObject(js_engine, name), obj);
 
         internal static string ToString(JsValue value) => value.IsString() ? value.AsString() : value.ToString();
 

@@ -78,7 +78,12 @@ public sealed class LuaIntegrationTests {
                 if (parent is null) break;
                 dir = parent.FullName;
             }
-        } catch { /* ignore */ }
+        } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
         return null;
     }
 }

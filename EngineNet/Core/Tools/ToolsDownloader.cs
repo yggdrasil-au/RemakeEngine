@@ -92,9 +92,18 @@ internal sealed class ToolsDownloader {
                 Info("Downloading...");
                 using System.Net.Http.HttpResponseMessage resp = await http.GetAsync(url, System.Net.Http.HttpCompletionOption.ResponseHeadersRead);
                 resp.EnsureSuccessStatusCode();
+
+                long contentLength = resp.Content.Headers.ContentLength ?? -1;
+
                 await using System.IO.FileStream outFs = System.IO.File.Create(archivePath);
                 await using System.IO.Stream inStream = await resp.Content.ReadAsStreamAsync();
-                await CopyStreamWithProgressAsync(inStream, outFs, resp.Content.Headers.ContentLength ?? -1);
+
+                using (var progress = new Core.Utils.EngineSdk.PanelProgress(
+                    total: contentLength > 0 ? contentLength : 1,
+                    id: "download",
+                    label: $"Downloading {fileName}")) {
+                    await CopyStreamWithProgressAsync(inStream, outFs, progress);
+                }
                 Info("Download complete.");
             }
 
@@ -148,44 +157,18 @@ internal sealed class ToolsDownloader {
         return true;
     }
 
-    private static async System.Threading.Tasks.Task CopyStreamWithProgressAsync(System.IO.Stream input, System.IO.Stream output, long contentLength) {
+    private static async System.Threading.Tasks.Task CopyStreamWithProgressAsync(
+        System.IO.Stream input,
+        System.IO.Stream output,
+        Core.Utils.EngineSdk.PanelProgress progress) {
         const int BufferSize = 81920;
         byte[] buffer = new byte[BufferSize];
-        long totalRead = 0;
         int read;
-        System.DateTime lastDraw = System.DateTime.UtcNow;
         while ((read = await input.ReadAsync(buffer.AsMemory(0, BufferSize))) > 0) {
             await output.WriteAsync(buffer.AsMemory(0, read));
-            totalRead += read;
-            if ((System.DateTime.UtcNow - lastDraw).TotalMilliseconds > 100) {
-                DrawProgress(totalRead, contentLength);
-                lastDraw = System.DateTime.UtcNow;
-            }
+            progress.Update(read);
         }
-        DrawProgress(totalRead, contentLength);
-        //System.Console.WriteLine();
-    }
-
-    private static void DrawProgress(long read, long total) {
-        string label;
-        if (total > 0) {
-            // The SDK/UI is responsible for drawing the bar and percentage.
-            // We just need to provide the raw numbers and a useful label.
-            label = $"Downloading... {Bytes(read)} / {Bytes(total)}";
-        } else {
-            label = $"Downloading... {Bytes(read)}";
-        }
-
-        Core.Utils.EngineSdk.Emit("progress", new Dictionary<string, object?> {
-            ["id"] = "download", // A consistent ID for this progress bar
-            ["current"] = read,  // Send the long value
-            ["total"] = total,   // Send the long value
-            ["label"] = label
-        });
-    }
-
-    private static string Bytes(long n) {
-        return n > 1024 * 1024 ? $"{n / (1024.0 * 1024.0):0.0} MB" : $"{n / 1024.0:0.0} KB";
+        // Completion is handled by disposing the progress handle.
     }
 
     private static void WriteHeader(string msg) {

@@ -52,7 +52,12 @@ internal static class LuaSecurity {
             try {
                 string normalized = NormalizeLowerFullPath(root).TrimEnd(System.IO.Path.DirectorySeparatorChar);
                 UserApprovedRoots.Add(normalized);
-            } catch { /* ignore */ }
+            } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
             return true;
         }
         Core.Utils.EngineSdk.Error($"Access denied: File path '{path}' is outside allowed workspace areas");

@@ -74,8 +74,18 @@ public sealed class LuaEngineUnitTests {
             foreach (KeyValuePair<string, string> kv in prevAuto) {
                 EngineNet.Core.Utils.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
             }
-            try { System.IO.File.Delete(luaPath); } catch { /* ignore */ }
-            try { System.IO.Directory.Delete(tempDir, recursive: true); } catch { /* ignore */ }
+            try { System.IO.File.Delete(luaPath); } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
+            try { System.IO.Directory.Delete(tempDir, recursive: true); } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
         }
     }
 
@@ -91,7 +101,12 @@ public sealed class LuaEngineUnitTests {
                 if (parent is null) break;
                 dir = parent.FullName;
             }
-        } catch { /* ignore */ }
+        } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
         return null;
     }
 }

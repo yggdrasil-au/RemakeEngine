@@ -124,7 +124,12 @@ internal static class QuickBmsExtractor {
         }
 
         cts.Cancel();
-        try { panel.Wait(); } catch { /* ignore */ }
+        try { panel.Wait(); } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
 
         WriteInfo($"QuickBMS extraction complete. Success: {success}/{files.Count}.");
         return okAll;

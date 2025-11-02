@@ -200,7 +200,12 @@ internal class Utils {
                 if (evt.TryGetValue("reserve", out object? r) && r is System.IConvertible rc) {
                     try {
                         reserve = rc.ToInt32(null);
-                    } catch { /* ignore */ }
+                    } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
                 }
                 HandleProgressPanelStart(reserve);
                 break;
@@ -215,9 +220,23 @@ internal class Utils {
                 // The panel is finished, release the console
                 HandleProgressPanelEnd();
                 break;
+
+            case "script_active_start":
+            case "script_progress":
+            case "script_active_end":
+                // Placeholder: Script stage progress is a GUI-only indicator for now.
+                // Not implemented in the TUI until it supports richer UI composition.
+                // Intentionally do nothing here.
+                break;
+
+            default:
+                // Unknown event type, throw error, all events must be known
+                WriteColored($"✖ Unknown event type: {typ}", System.ConsoleColor.Red);
+                Trace.TraceError($"Unknown event type received in Terminal Utils: {typ}");
+                break;
         }
     }
-    
+
 
     private static void LogEvent(IReadOnlyDictionary<string, object?> evt) {
         try {
@@ -353,7 +372,12 @@ internal class Utils {
 
                 try {
                     System.Console.SetCursorPosition(0, _progressPanelTop);
-                } catch { /* ignore */ }
+                } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
                 _progressLastLines = reserve;
             }
         } catch {
@@ -406,7 +430,12 @@ internal class Utils {
             int width = 30;
             try {
                 width = System.Math.Max(10, System.Math.Min(40, System.Console.WindowWidth - 60));
-            } catch { /* ignore */ }
+            } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
             int filled = (int)System.Math.Round(percent * width);
             System.Text.StringBuilder bar = new System.Text.StringBuilder(width + 48);
             bar.Append(label);
@@ -452,7 +481,12 @@ internal class Utils {
                     int maxFile = 50;
                     try {
                         maxFile = System.Math.Max(18, System.Console.WindowWidth - 20);
-                    } catch { /* ignore */ }
+                    } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
                     if (file.Length > maxFile) {
                         file = file.Substring(0, maxFile - 3) + "...";
                     }

@@ -48,7 +48,8 @@ internal sealed class LuaScriptAction : Helpers.IAction {
         SetupCoreFunctions(lua, tools);
 
         // Register UserData types
-        UserData.RegisterType<Core.Utils.EngineSdk.Progress>();
+        UserData.RegisterType<Core.Utils.EngineSdk.PanelProgress>();
+        UserData.RegisterType<Core.Utils.EngineSdk.ScriptProgress>();
         UserData.RegisterType<LuaModules.SqliteHandle>();
 
         // Setup SDK and modules
@@ -58,9 +59,20 @@ internal sealed class LuaScriptAction : Helpers.IAction {
         // Preload minimal shims for LuaFileSystem (lfs) and dkjson used by game modules
         LuaModules.LuaShimModules.PreloadShimModules(lua, _scriptPath);
 
-        Core.Utils.EngineSdk.PrintLine($"Running lua script '{_scriptPath}' with {_args.Length} args...", System.ConsoleColor.Cyan);
-        Core.Utils.EngineSdk.PrintLine($"input args: {string.Join(", ", _args)}", System.ConsoleColor.Gray);
-        await System.Threading.Tasks.Task.Run(() => lua.DoString(code), cancellationToken);
+        Core.Utils.EngineSdk.PrintLine(message: $"Running lua script '{_scriptPath}' with {_args.Length} args...", color: System.ConsoleColor.Cyan);
+        Core.Utils.EngineSdk.PrintLine(message: $"input args: {string.Join(", ", _args)}", color: System.ConsoleColor.Gray);
+
+        // Signal GUI that a script is active so the bottom panel can reflect activity even without progress events
+        Core.Utils.EngineSdk.ScriptActiveStart(scriptPath: _scriptPath);
+
+        bool ok = false;
+        try {
+            await System.Threading.Tasks.Task.Run(() => lua.DoString(code), cancellationToken).ConfigureAwait(false);
+            ok = true;
+        } finally {
+            // Always signal end; GUI will jump to 100% and close the indicator.
+            Core.Utils.EngineSdk.ScriptActiveEnd(success: ok, exitCode: ok ? 0 : 1);
+        }
     }
 
     private void SetupSafeLuaEnvironment(Script lua) {
@@ -211,13 +223,28 @@ internal sealed class LuaScriptAction : Helpers.IAction {
                             using System.IO.StreamWriter writer = new System.IO.StreamWriter(fs, leaveOpen: true);
                             writer.Write(content);
                             writer.Flush();
-                        } catch { /* ignore */ }
+                        } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
                     });
                     fileHandle["close"] = (System.Action)(() => {
-                        try { fs?.Dispose(); } catch { /* ignore */ }
+                        try { fs?.Dispose(); } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
                     });
                     fileHandle["flush"] = (System.Action)(() => {
-                        try { fs?.Flush(); } catch { /* ignore */ }
+                        try { fs?.Flush(); } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
                     });
                     return DynValue.NewTable(fileHandle);
                 }
@@ -226,9 +253,10 @@ internal sealed class LuaScriptAction : Helpers.IAction {
             }
             return DynValue.Nil;
         });
+        // redirect write to EngineSdk.Print for any UI integration
         safeIo["write"] = (System.Action<string>)((content) => Core.Utils.EngineSdk.Print(content));
-        //safeIo["flush"] = () => System.Console.Out.Flush();
-        /*safeIo["read"] = (System.Func<string?, string?>)((mode) => {
+        //safeIo["flush"] = () => System.Console.Out.Flush(); // removed for now, maybe add later as an event that can be optionally handled by active UI System
+        /*safeIo["read"] = (System.Func<string?, string?>)((mode) => { // removed for now, maybe add later with user prompt integration
             try {
                 if (mode == "*l" || mode == "*line") {
                     return System.Console.ReadLine();
@@ -254,13 +282,6 @@ internal sealed class LuaScriptAction : Helpers.IAction {
         lua.Globals["warn"] = (System.Action<string>)Core.Utils.EngineSdk.Warn;
         lua.Globals["error"] = (System.Action<string>)Core.Utils.EngineSdk.Error;
 
-        // emit(event, data?) where data is an optional Lua table
-        lua.Globals["emit"] = (System.Action<DynValue, DynValue>)((ev, data) => {
-            string evName = ev.Type == DataType.String ? ev.String : ev.ToPrintString();
-            IDictionary<string, object?>? dict = data.Type == DataType.Nil || data.Type == DataType.Void ? null : LuaModules.LuaUtilities.TableToDictionary(data.Table);
-            Core.Utils.EngineSdk.Emit(evName, dict);
-        });
-
         // prompt(message, id?, secret?) -> string
         lua.Globals["prompt"] = (System.Func<DynValue, DynValue, DynValue, string>)((message, id, secret) => {
             string msg = message.Type == DataType.String ? message.String : message.ToPrintString();
@@ -269,10 +290,18 @@ internal sealed class LuaScriptAction : Helpers.IAction {
             return Core.Utils.EngineSdk.Prompt(msg, pid, sec);
         });
 
-        // progress(total, id?, label?) -> Core.Utils.EngineSdk.Progress userdata
-        lua.Globals["progress"] = (System.Func<int, string?, string?, Core.Utils.EngineSdk.Progress>)((total, id, label) => {
+        // progress(total, id?, label?) -> Core.Utils.EngineSdk.PanelProgress userdata
+        lua.Globals["progress"] = (System.Func<int, string?, string?, Core.Utils.EngineSdk.PanelProgress>)((total, id, label) => {
             string pid = string.IsNullOrEmpty(id) ? "p1" : id!;
-            return new Core.Utils.EngineSdk.Progress(total, pid, label);
+            return new Core.Utils.EngineSdk.PanelProgress(total, pid, label);
         });
+
+        // script_progress(total, id?, label?) -> Core.Utils.EngineSdk.ScriptProgress userdata
+        // Usage: local s = script_progress(5, 'setup', 'Initialization'); s:Update()
+        lua.Globals["script_progress"] = (System.Func<int, string?, string?, Core.Utils.EngineSdk.ScriptProgress>)((total, id, label) => {
+            string pid = string.IsNullOrEmpty(id) ? "s1" : id!;
+            return new Core.Utils.EngineSdk.ScriptProgress(total, pid, label);
+        });
+
     }
 }

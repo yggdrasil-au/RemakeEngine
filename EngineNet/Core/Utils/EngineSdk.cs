@@ -1,5 +1,6 @@
 
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace EngineNet.Core.Utils;
@@ -31,10 +32,11 @@ public static class EngineSdk {
     /* :: :: Methods :: START :: */
 
     /// <summary>
+    /// dont use directly.
     /// Emit a structured event line to stdout and flush immediately.
     /// Event payloads are single-line JSON preceded by the <see cref="Prefix"/>.
     /// </summary>
-    public static void Emit(string @event, IDictionary<string, object?>? data = null) {
+    private static void Emit(string @event, IDictionary<string, object?>? data = null) {
         Dictionary<string, object?> payload = new Dictionary<string, object?>(System.StringComparer.Ordinal) {
             ["event"] = @event
         };
@@ -182,51 +184,166 @@ public static class EngineSdk {
     //
     /* :: :: inner Classes :: :: */
 
+    /* :: :: Script Progress :: START :: */
     /// <summary>
-    /// Helper class to report determinate progress to the engine UI.
+    /// Lightweight stage-based script progress emitter.
+    /// Emits "script_progress" events with current/total/label for GUI consumption.
+    /// TUI intentionally treats these as no-ops (placeholder for future enhancement).
     /// </summary>
-    public sealed class Progress {
-        public int Total {
-            get;
-        }
-        public int Current {
-            get; private set;
-        }
-        public string Id {
-            get;
-        }
-        public string? Label {
-            get;
-        }
+    public sealed class ScriptProgress {
+        private int _processed;
+        private int _total;
+        private readonly string _label;
 
-        public Progress(int total, string id = "p1", string? label = null) {
-            Total = System.Math.Max(1, total);
-            Current = 0;
+        public int Total => _total;
+        public int Current => System.Threading.Volatile.Read(ref _processed);
+        public string Id { get; }
+        public string? Label => _label;
+
+        public ScriptProgress(int total, string id = "s1", string? label = null) {
+            _total = System.Math.Max(1, total);
             Id = id;
-            Label = label;
-            Emit("progress", new Dictionary<string, object?> {
-                ["id"] = Id,
-                ["current"] = 0,
-                ["total"] = Total,
-                ["label"] = Label
-            });
+            _label = label ?? string.Empty;
+            _processed = 0;
+            EmitProgress();
         }
 
         public void Update(int inc = 1) {
-            Current = System.Math.Min(Total, Current + System.Math.Max(1, inc));
-            Emit("progress", new Dictionary<string, object?> {
+            int add = System.Math.Max(1, inc);
+            int newVal = System.Threading.Interlocked.Add(ref _processed, add);
+            if (newVal > _total) {
+                System.Threading.Interlocked.Exchange(ref _processed, _total);
+            }
+            EmitProgress();
+        }
+
+        public void Complete() {
+            try {
+                System.Threading.Interlocked.Exchange(ref _processed, _total);
+                EmitProgress();
+            } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
+        }
+
+        private void EmitProgress() {
+            Dictionary<string, object?> data = new Dictionary<string, object?> {
                 ["id"] = Id,
-                ["current"] = Current,
-                ["total"] = Total,
-                ["label"] = Label
-            });
+                ["current"] = System.Threading.Volatile.Read(ref _processed),
+                ["total"] = _total,
+                ["label"] = _label
+            };
+            Emit("script_progress", data);
+        }
+    }
+
+    /// <summary>
+    /// Signal the start of a script run to consumers (e.g., GUI bottom panel).
+    /// </summary>
+    public static void ScriptActiveStart(string scriptPath) {
+        string name = string.Empty;
+        try {
+            name = System.IO.Path.GetFileName(scriptPath);
+        } catch {
+#if DEBUG
+            Trace.WriteLine("EngineSdk.ScriptActiveStart: failed to get file name from path.");
+#endif
+        }
+        Emit("script_active_start", new Dictionary<string, object?> {
+            ["name"] = string.IsNullOrEmpty(name) ? scriptPath : name,
+            ["path"] = scriptPath
+        });
+    }
+
+    /// <summary>
+    /// Signal the end of a script run to consumers.
+    /// Always executes by lua script action when the script ends.
+    /// Triggers the GUI to jump to 100% and close the panel.
+    /// </summary>
+    public static void ScriptActiveEnd(bool success = true, int exitCode = 0) {
+        Emit("script_active_end", new Dictionary<string, object?> {
+            ["success"] = success,
+            ["exit_code"] = exitCode
+        });
+    }
+    /* :: :: Script Progress :: END :: */
+
+    /// <summary>
+    /// progress handle now backed by SdkConsoleProgress panel events.
+    /// Provides the same Update(int) API expected by scripts while rendering
+    /// using the improved progress panel in the UI.
+    /// </summary>
+    public sealed class PanelProgress : System.IDisposable {
+        private readonly System.Threading.CancellationTokenSource _cts;
+        private readonly System.Threading.Tasks.Task _panelTask;
+        private long _processed;
+        private long _total;
+        private readonly string _label;
+
+        public long Total => _total;
+        public long Current => System.Threading.Volatile.Read(ref _processed);
+        public string Id { get; }
+        public string? Label => _label;
+
+        public PanelProgress(long total, string id = "p1", string? label = null) {
+            _total = System.Math.Max(1, total);
+            Id = id;
+            _label = label ?? string.Empty;
+            _processed = 0;
+            _cts = new System.Threading.CancellationTokenSource();
+            _panelTask = SdkConsoleProgress.StartPanel(
+                total: _total,
+                snapshot: () => {
+                    long p = System.Threading.Volatile.Read(ref _processed);
+                    // Use 'ok' equal to processed (clamped to int) for a simple linear flow.
+                    int ok = p > int.MaxValue ? int.MaxValue : (int)p;
+                    return (processed: p, ok: ok, skip: 0, err: 0);
+                },
+                activeSnapshot: () => new System.Collections.Generic.List<SdkConsoleProgress.ActiveProcess>(),
+                label: _label,
+                token: _cts.Token
+            );
+        }
+
+        public void Update(long inc = 1) {
+            long add = System.Math.Max(1, inc);
+            long newVal = System.Threading.Interlocked.Add(ref _processed, add);
+            if (newVal > _total) {
+                System.Threading.Interlocked.Exchange(ref _processed, _total);
+            }
+        }
+
+        public void Complete() {
+            try {
+                if (!_cts.IsCancellationRequested) {
+                    _cts.Cancel();
+                }
+                try { _panelTask.Wait(1000); } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
+            } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
+        }
+
+        public void Dispose() {
+            Complete();
+            _cts.Dispose();
         }
     }
 
     /// <summary>
     /// Simple, reusable console progress panel with an optional list of active jobs.
-    /// This class does NOT draw to the console; it emits structured "progress_panel"
-    /// events that a listener (like the TUI) can use to render the panel.
+    /// Emits structured "progress_panel" events that a listener (like the TUI) can use to render the panel.
     /// </summary>
     public static class SdkConsoleProgress {
         /// <summary>
@@ -243,8 +360,8 @@ public static class EngineSdk {
         /// until the token is cancelled.
         /// </summary>
         public static System.Threading.Tasks.Task StartPanel(
-            int total,
-            System.Func<(int processed, int ok, int skip, int err)> snapshot,
+            long total,
+            System.Func<(long processed, int ok, int skip, int err)> snapshot,
             System.Func<List<ActiveProcess>> activeSnapshot,
             string label,
             System.Threading.CancellationToken token) {
@@ -255,7 +372,7 @@ public static class EngineSdk {
                 int spinnerIndex = 0;
                 char[] spinner = new[] { '|', '/', '-', '\\' };
                 while (!token.IsCancellationRequested) {
-                    (int processed, int ok, int skip, int err) s = snapshot();
+                    (long processed, int ok, int skip, int err) s = snapshot();
                     List<ActiveProcess> actives = activeSnapshot();
 
                     // Build the data payload
@@ -269,7 +386,7 @@ public static class EngineSdk {
                 }
 
                 // Final event emit
-                (int processed, int ok, int skip, int err) finalS = snapshot();
+                (long processed, int ok, int skip, int err) finalS = snapshot();
                 List<ActiveProcess> finalAct = activeSnapshot();
                 Dictionary<string, object?> finalData = BuildPanelData(total, finalS, finalAct, ' ', label);
                 Core.Utils.EngineSdk.Emit("progress_panel", finalData);
@@ -281,7 +398,12 @@ public static class EngineSdk {
 
         private static void EmitPanelStart() {
             int procs = 8;
-            try { procs = System.Math.Max(1, System.Math.Min(16, System.Environment.ProcessorCount)); } catch { /* ignore */ }
+            try { procs = System.Math.Max(1, System.Math.Min(16, System.Environment.ProcessorCount)); } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
             // 1 (progress) + 1 (header/none) + procs (active job lines) + 1 (overflow)
             int reserve = 1 + 1 + procs + 1;
             Core.Utils.EngineSdk.Emit("progress_panel_start", new Dictionary<string, object?> { ["reserve"] = reserve });
@@ -291,7 +413,7 @@ public static class EngineSdk {
             Core.Utils.EngineSdk.Emit("progress_panel_end");
         }
 
-        private static Dictionary<string, object?> BuildPanelData(int total, (int processed, int ok, int skip, int err) s, List<ActiveProcess> actives, char spinner, string label) {
+        private static Dictionary<string, object?> BuildPanelData(long total, (long processed, int ok, int skip, int err) s, List<ActiveProcess> actives, char spinner, string label) {
             if (total < 0) total = 0;
 
             double percent = System.Math.Clamp(total == 0 ? 1.0 : (double)s.processed / System.Math.Max(1, total), 0.0, 1.0);
@@ -308,7 +430,12 @@ public static class EngineSdk {
             var jobList = new List<Dictionary<string, object?>>();
             if (actives.Count > 0) {
                 int max = 8;
-                try { max = System.Math.Max(1, System.Math.Min(16, System.Environment.ProcessorCount)); } catch { /* ignore */ }
+                try { max = System.Math.Max(1, System.Math.Min(16, System.Environment.ProcessorCount)); } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
                 System.DateTime now = System.DateTime.UtcNow;
 
                 foreach (ActiveProcess job in actives.OrderBy(j => j.StartedUtc).Take(max)) {

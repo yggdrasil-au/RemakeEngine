@@ -112,7 +112,9 @@ internal sealed class ProcessRunner {
                 try {
                     proc.StandardInput.WriteLine(text ?? string.Empty);
                     proc.StandardInput.Flush();
-                } catch { /* ignore */ }
+                } catch {
+                /* ignore */
+}
             }
 
             string? HandleLine(string line, string streamName) {

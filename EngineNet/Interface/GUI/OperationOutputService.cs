@@ -66,6 +66,11 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
         private set => SetField(ref _progressPercent, value);
     }
 
+    // Script activity tracking (stage-based indicator)
+    private string _activeScriptName = string.Empty;
+    private int _activeScriptStages = 0;
+    private int _activeScriptCurrent = 0;
+
     private string _activeJobsSummary = "Active: none";
     internal string ActiveJobsSummary {
         get => _activeJobsSummary;
@@ -279,6 +284,18 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
                 global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleProgressPanelEnd());
                 break;
 
+            case "script_active_start":
+                global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleScriptActiveStart(evt));
+                break;
+
+            case "script_progress":
+                global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleScriptProgress(evt));
+                break;
+
+            case "script_active_end":
+                global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleScriptActiveEnd(evt));
+                break;
+
                 case "run-all-start":
                 case "run-all-op-start":
                 case "run-all-op-end":
@@ -339,6 +356,52 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
         ActiveJobsSummary = "Active: none";
         ActiveJobs.Clear();
         ResetProgressPanelTracking();
+    }
+
+    private void HandleScriptActiveStart(Dictionary<string, object?> payload) {
+        _activeScriptName = payload.TryGetValue("name", out object? n) ? n?.ToString() ?? "Script" : "Script";
+        _activeScriptStages = 0;
+        _activeScriptCurrent = 0;
+        // Use bottom panel to show script activity even if no progress panel is active
+        IsProgressPanelActive = true;
+        ProgressLabel = _activeScriptName;
+        ProgressSummaryLine = $"Running script: {_activeScriptName}";
+        ProgressPercent = 0.0;
+        CurrentSpinner = "|";
+    }
+
+    private void HandleScriptProgress(Dictionary<string, object?> payload) {
+        int total = payload.TryGetValue("total", out object? t) ? SafeToInt(t) : 0;
+        int current = payload.TryGetValue("current", out object? c) ? SafeToInt(c) : 0;
+        string label = payload.TryGetValue("label", out object? l) ? l?.ToString() ?? string.Empty : string.Empty;
+
+        if (total < 1) total = 1;
+        if (current < 0) current = 0;
+        if (current > total) current = total;
+
+        _activeScriptStages = total;
+        _activeScriptCurrent = current;
+
+        IsProgressPanelActive = true;
+        ProgressLabel = string.IsNullOrEmpty(label) ? (_activeScriptName.Length > 0 ? _activeScriptName : "Script") : label;
+        ProgressSummaryLine = string.IsNullOrEmpty(label)
+            ? $"Stage {current}/{total}"
+            : $"Stage {current}/{total}: {label}";
+        ProgressPercent = System.Math.Clamp(total == 0 ? 0.0 : (double)current / System.Math.Max(1, total), 0.0, 1.0);
+        CurrentSpinner = "/";
+    }
+
+    private void HandleScriptActiveEnd(Dictionary<string, object?> payload) {
+        bool success = payload.TryGetValue("success", out object? suc) && suc is bool b && b;
+        // Jump to 100% then hide the panel (mirrors requested behavior)
+        IsProgressPanelActive = true;
+        ProgressPercent = 1.0;
+        ProgressSummaryLine = success ? "Script completed successfully" : "Script completed with errors";
+        CurrentSpinner = string.Empty;
+        // Leave panel visible at 100% until next operation resets/overrides it
+        _activeScriptName = string.Empty;
+        _activeScriptStages = 0;
+        _activeScriptCurrent = 0;
     }
 
     private void UpdateProgressPanelLines(IReadOnlyList<string> lines) {

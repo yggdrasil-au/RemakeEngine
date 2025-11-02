@@ -53,7 +53,28 @@ internal static class LuaProcessExecution {
                 throw new ScriptRuntimeException($"Executable '{parts[0]}' is not in the approved tools list. Use tool() function to resolve approved tools.");
             }
 
-            return ExecProcess(lua, commandArgs, options);
+            return ExecProcess(lua, commandArgs, options, false);
+        });
+
+        sdk["execSilent"] = DynValue.NewCallback((ctx, args) => {
+            if (args.Count < 1 || args[0].Type != DataType.Table) {
+                throw new ScriptRuntimeException("exec expects first argument to be an array/table of strings (command + args)");
+            }
+
+            Table commandArgs = args[0].Table;
+            Table? options = args.Count > 1 && args[1].Type == DataType.Table ? args[1].Table : null;
+
+            // Security: Validate command before execution
+            List<string> parts = LuaUtilities.TableToStringList(commandArgs);
+            if (parts.Count == 0) {
+                throw new ScriptRuntimeException("exec requires at least one argument (executable)");
+            }
+
+            if (!LuaSecurity.IsApprovedExecutable(parts[0], tools)) {
+                throw new ScriptRuntimeException($"Executable '{parts[0]}' is not in the approved tools list. Use tool() function to resolve approved tools.");
+            }
+
+            return ExecProcess(lua, commandArgs, options, true);
         });
 
         sdk["run_process"] = DynValue.NewCallback((ctx, args) => {
@@ -407,7 +428,7 @@ internal static class LuaProcessExecution {
         return DynValue.NewTable(result);
     }
 
-    internal static DynValue ExecProcess(Script lua, Table commandArgs, Table? options) {
+    internal static DynValue ExecProcess(Script lua, Table commandArgs, Table? options, bool silentRun) {
         if (commandArgs == null) {
             throw new ScriptRuntimeException("exec expects argument table");
         }
@@ -455,14 +476,15 @@ internal static class LuaProcessExecution {
 
         // If requested to open in a new terminal window, best-effort platform specific handling
         if (newTerminal) {
-            return HandleNewTerminalExecution(lua, parts, cwd, env, keepOpen, wait);
+            // Handle new terminal execution, no silent run in new terminal
+            return HandleNewTerminalExecution(lua, parts, cwd, env, keepOpen, wait, false);
         }
 
         // Default: stream in current engine output using ProcessRunner
-        return ExecInCurrentTerminal(lua, parts, cwd, env);
+        return ExecInCurrentTerminal(lua, parts, cwd, env, silentRun);
     }
 
-    private static DynValue HandleNewTerminalExecution(Script lua, List<string> parts, string cwd, Dictionary<string, object?> env, bool keepOpen, bool wait) {
+    private static DynValue HandleNewTerminalExecution(Script lua, List<string> parts, string cwd, Dictionary<string, object?> env, bool keepOpen, bool wait, bool silentRun) {
         int exitCode = 0;
         try {
             if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)) {
@@ -515,7 +537,7 @@ internal static class LuaProcessExecution {
                     if (wait) { p.WaitForExit(); exitCode = p.ExitCode; } else { exitCode = 0; }
                 } else {
                     // No terminal emulator found; stream in current window instead
-                    return ExecInCurrentTerminal(lua, parts, cwd, env);
+                    return ExecInCurrentTerminal(lua, parts, cwd, env, silentRun);
                 }
             }
         } catch (System.Exception ex) {
@@ -528,7 +550,7 @@ internal static class LuaProcessExecution {
         return DynValue.NewTable(result);
     }
 
-    internal static DynValue ExecInCurrentTerminal(Script lua, List<string> parts, string cwd, IDictionary<string, object?> env) {
+    internal static DynValue ExecInCurrentTerminal(Script lua, List<string> parts, string cwd, IDictionary<string, object?> env, bool silentRun = false) {
         Core.ProcessRunner runner = new Core.ProcessRunner();
         int exit = -1;
         // Merge env overrides
@@ -544,8 +566,13 @@ internal static class LuaProcessExecution {
             onOutput: (line, stream) => {
                 // Map stderr to red for visibility
                 string? color = stream == "stderr" ? "red" : null;
-                Core.Utils.EngineSdk.Print(line, color, true);
-            },
+                if (!silentRun) {
+                    Core.Utils.EngineSdk.Print(line, color, true);
+#if DEBUG
+                    System.Diagnostics.Trace.WriteLine($"[ProcessRunner][{stream}] {line}");
+#endif
+            }
+                },
             onEvent: (evt) => {
                 if (evt.TryGetValue("event", out object? ev) && (ev?.ToString() ?? string.Empty) == "end") {
                     if (evt.TryGetValue("exit_code", out object? code) && int.TryParse(code?.ToString(), out int c)) {

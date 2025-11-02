@@ -230,7 +230,12 @@ internal static class LuaSdkModule {
                     if (LuaFileSystemUtils.IsSymlink(destFull) || System.IO.File.Exists(destFull)) {
                         System.IO.File.Delete(destFull);
                     }
-                } catch { /* ignore */ }
+                } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
                 try {
                     Helpers.HardLink.Create(srcFull, destFull);
                     return true;

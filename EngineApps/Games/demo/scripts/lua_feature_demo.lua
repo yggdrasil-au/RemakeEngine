@@ -1,7 +1,7 @@
 --[[
 Comprehensive Lua feature showcase for the RemakeEngine demo module.
 Demonstrates EVERY C# tool available from LuaScriptAction.cs including:
-- Global functions: tool(), argv, warn/error, emit(), prompt(), progress()
+- Global functions: tool(), argv, warn/error, prompt(), progress()
 - SDK file/directory operations: ensure_dir, path_exists, copy/move operations, etc.
 - SDK symlink operations: create_symlink, is_symlink, realpath, readlink
 - SDK utilities: color_print, sleep, md5, TOML helpers
@@ -38,41 +38,38 @@ local module_root = opts.module or '.'
 local scratch_root = opts.scratch or (module_root .. '/TMP/lua-demo-comprehensive')
 local note = opts.note or 'Comprehensive Lua API demo'
 
--- Emit structured events
-emit('demo_start', { 
-    language = 'lua', 
-    step = 'initialization', 
-    module_root = module_root,
-    argv_count = #(argv or {})
-})
 
 -- Color printing demonstrations
-sdk.color_print('red', '=== RemakeEngine Lua API Comprehensive Demo ===')
+sdk.color_print('white', '=== RemakeEngine Lua API Comprehensive Demo ===')
 sdk.color_print({ color = 'cyan', message = 'Scratch workspace: ' .. scratch_root })
 sdk.color_print({ colour = 'green', message = 'Australian spelling works too!', newline = false })
 sdk.color_print('white', ' (color vs colour)')
 
--- Progress tracking setup  
+-- Stage-based script progress (for GUI status indicator)
 local total_steps = 18  -- Updated count (removed educational sections from step count)
-local progress_handle = progress(total_steps, 'comprehensive-demo', 'Comprehensive Lua API Demo')
+local script_stage = script_progress(total_steps, 'comprehensive-demo', 'Comprehensive Lua API Demo')
 local current_step = 0
 
 sdk.color_print('yellow', '--- Progress Tracking Examples ---')
 -- ❌ INCORRECT: Common progress mistakes
-sdk.color_print('red', '❌ INCORRECT progress usage:')
-sdk.color_print('white', "progress()  -- Missing required total parameter")
-sdk.color_print('white', "progress_handle.Update()  -- Wrong: use colon syntax")
-sdk.color_print('white', "progress_handle:Update(50)  -- Wrong: increment, don't set absolute")
+sdk.color_print('cyan', '❌ INCORRECT progress usage:')
+sdk.color_print('white', "progress()  -- Missing required 'total' parameter")
+sdk.color_print('white', "local p = progress(100) -- p is now a progress object")
+sdk.color_print('white', "p.Update()  -- Wrong: use colon syntax (p:Update())")
+sdk.color_print('white', "p:Update(50)  -- Correct syntax, but '50' is an increment, not an absolute value.")
 
 -- ✅ CORRECT: Proper progress usage
 sdk.color_print('green', '✅ CORRECT progress usage:')
-sdk.color_print('white', "local p = progress(100, 'my-id', 'My Operation')")
+sdk.color_print('white', "local p = progress(100, 'my-id', 'My Operation') -- For panel")
 sdk.color_print('white', "p:Update()  -- Increment by 1 (default)")
 sdk.color_print('white', "p:Update(5)  -- Increment by 5")
+sdk.color_print('white', "local s = script_progress(10, 'stage-id', 'My Stage') -- For script stage")
+sdk.color_print('white', "s:Update()  -- Move to next stage")
 
 local function next_step(description)
     current_step = current_step + 1
-    progress_handle:Update()
+    -- Use script_progress for overall script stages (not the progress panel)
+    script_stage:Update()
     sdk.color_print('magenta', string.format('[Step %d/%d] %s', current_step, total_steps, description))
 end
 
@@ -112,14 +109,14 @@ local test_file1 = scratch_root .. '/test_file1.txt'
 local test_file2 = scratch_root .. '/test_file2.txt'
 local test_file_backup = scratch_root .. '/test_file_backup.txt'
 
--- Write test content to files using SDK since io library is sandboxed
--- Note: We'll create the file content using process execution since direct io is restricted
-local create_result = sdk.run_process({'powershell', '-Command', 
-    string.format('Set-Content -Path "%s" -Value "Hello from Lua demo!\\nThis is test content for file operations."', test_file1)
-}, {capture_stdout = true, capture_stderr = true})
-
-if not create_result or not create_result.success then
-    sdk.color_print('red', 'Warning: Could not create test file via process execution')
+-- Write test content to files using the sandboxed io library
+-- This is the correct, cross-platform method for file I/O
+local file = io.open(test_file1, 'w')
+if file then
+    file:write('Hello from Lua demo!\nThis is test content for file operations.')
+    file:close()
+else
+    sdk.color_print('red', 'Warning: Could not create test file using io.open()')
 end
 
 next_step('Testing file operations')
@@ -128,7 +125,7 @@ sdk.color_print('yellow', '--- File Operations Examples ---')
 sdk.color_print('white', 'RemakeEngine file operations have specific parameter requirements:')
 
 -- ❌ INCORRECT: Common mistakes with file operations
-sdk.color_print('red', '❌ INCORRECT approaches that will fail:')
+sdk.color_print('cyan', '❌ INCORRECT approaches that will fail:')
 sdk.color_print('white', "sdk.copy_file(src, dst)  -- Missing overwrite parameter (required)")
 sdk.color_print('white', "sdk.copy_file(src, dst, 'yes')  -- String instead of boolean")
 sdk.color_print('white', "sdk.ensure_dir()  -- Missing required path parameter")
@@ -154,12 +151,12 @@ local test_dest_dir = scratch_root .. '/dest_dir'
 local test_move_dir = scratch_root .. '/move_dir'
 
 sdk.ensure_dir(test_source_dir)
--- Create a test file in source dir using SDK
-local source_create_result = sdk.run_process({'powershell', '-Command', 
-    string.format('Set-Content -Path "%s" -Value "Source directory test content"', test_source_dir .. '/source_test.txt')
-}, {capture_stdout = true, capture_stderr = true})
-
-if not source_create_result or not source_create_result.success then
+-- Create a test file in source dir using sandboxed io
+local file2 = io.open(test_source_dir .. '/source_test.txt', 'w')
+if file2 then
+    file2:write('Source directory test content')
+    file2:close()
+else
     sdk.color_print('red', 'Warning: Could not create source test file')
 end
 
@@ -240,7 +237,8 @@ sdk.color_print('green', 'Ensured project config at: ' .. config_path)
 next_step('Testing process execution (run_process)')
 
 -- SDK Process execution - run_process (safer, captures output)
-local process_result = sdk.run_process({'pwsh', '-c', 'echo Hello from run_process'}, {
+-- Using 'git --version' as a reliable, cross-platform, approved executable
+local process_result = sdk.run_process({'git', '--version'}, {
     capture_stdout = true,
     capture_stderr = true,
     timeout_ms = 5000
@@ -260,19 +258,20 @@ sdk.color_print('yellow', '--- Process Execution Examples ---')
 sdk.color_print('white', 'The RemakeEngine has two process execution methods with different purposes:')
 
 -- ❌ INCORRECT: Common mistakes developers make
-sdk.color_print('red', '❌ INCORRECT approaches:')
+sdk.color_print('cyan', '❌ INCORRECT approaches:')
 sdk.color_print('white', "sdk.exec('echo hello')  -- Wrong: expects table, not string")
 sdk.color_print('white', "sdk.exec({'cmd', '/c', 'echo hello && pause'})  -- Problematic: blocks indefinitely")
 sdk.color_print('white', "sdk.run_process('git status')  -- Wrong: expects table of command parts")
 
 -- ✅ CORRECT: Proper usage
 sdk.color_print('green', '✅ CORRECT approaches:')
-sdk.color_print('white', "sdk.exec({'echo', 'hello'}, {wait=true})  -- Streams output to terminal")
+sdk.color_print('white', "sdk.exec({'git', '--version'}, {wait=true})  -- Streams output to terminal")
 sdk.color_print('white', "sdk.run_process({'git', 'status'}, {capture_stdout=true})  -- Captures output")
 sdk.color_print('white', 'Use exec() for interactive processes, run_process() to capture output')
 
 -- SDK Process execution - exec (streams to current terminal)
-local exec_result = sdk.exec({'echo', 'Hello from exec'}, {
+-- Using 'git --version' as a reliable, cross-platform, approved executable
+local exec_result = sdk.exec({'git', '--version'}, {
     wait = true,
     new_terminal = false
 })
@@ -302,7 +301,6 @@ db:exec([[CREATE TABLE demo_features(
 local features_to_log = {
     {'globals', 'tool()', 'Resolve tool paths'},
     {'globals', 'argv', 'Command line arguments access'},
-    {'globals', 'emit()', 'Structured event emission'},
     {'globals', 'warn()', 'Warning messages'},
     {'globals', 'error()', 'Error messages'},
     {'globals', 'prompt()', 'User input prompts'},
@@ -331,7 +329,7 @@ sdk.color_print('yellow', '--- SQLite Parameter Binding Examples ---')
 sdk.color_print('white', 'The RemakeEngine SQLite module uses NAMED parameters, not positional ones.')
 
 -- ❌ INCORRECT: This approach will NOT work (positional parameters)
-sdk.color_print('red', '❌ INCORRECT (will fail with "Must add values for parameters" error):')
+sdk.color_print('cyan', '❌ INCORRECT (will fail with "Must add values for parameters" error):')
 sdk.color_print('white', "db:exec('INSERT INTO table(a,b,c) VALUES (?,?,?)', {'val1', 'val2', 'val3'})")
 sdk.color_print('white', 'Reason: The C# SQLite wrapper expects named parameters (dictionary-style), not arrays.')
 
@@ -458,38 +456,17 @@ next_step('Testing user prompt')
 local user_input = prompt('Enter a test message (or press Enter to skip)', 'demo_prompt', false)
 sdk.color_print('green', 'User input received: ' .. (user_input or 'No input'))
 
-next_step('Cleanup and final operations')
 
 -- Demonstrate file removal
 local cleanup_success = sdk.remove_file(test_file2)
 sdk.color_print('green', 'Cleanup file removal: ' .. tostring(cleanup_success))
 
--- Final progress update
-progress_handle:Update()
-
--- Emit completion event with comprehensive data
-emit('comprehensive_demo_complete', {
-    language = 'lua',
-    features_demonstrated = {
-        'Global functions: tool, argv, warn, error, emit, prompt, progress',
-        'SDK file ops: ensure_dir, path_exists, lexists, is_dir, is_file, remove_dir, remove_file, copy_file, copy_dir, move_dir',
-        'SDK symlink ops: create_symlink, is_symlink, realpath, readlink',  
-        'SDK config ops: ensure_project_config, validate_source_dir, find_subdir, has_all_subdirs',
-        'SDK utilities: color_print, sleep, md5',
-        'SDK TOML: toml_read_file, toml_write_file',
-        'SDK process: exec (streaming), run_process (capture)',
-        'SQLite: open, exec, query, begin, commit, rollback, close',
-        'Shimmed modules: lfs (LuaFileSystem), dkjson (JSON)'
-    },
-    artifacts = {
-        sqlite = sqlite_path,
-        config = config_path,
-        toml = toml_test_path,
-        scratch_workspace = scratch_root
-    },
-    summary = comprehensive_summary
-})
 
 sdk.color_print('green', '=== Comprehensive Lua API Demo Complete ===')
 sdk.color_print('cyan', 'All RemakeEngine Lua API features have been demonstrated!')
 sdk.color_print('yellow', 'Check the artifacts directory for generated files: ' .. scratch_root)
+
+
+-- Final progress update
+next_step('lua_feature_demo.lua::EOF')
+

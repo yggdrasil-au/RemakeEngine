@@ -435,7 +435,9 @@ internal partial class CLI {
                 }
 
                 string normalized = NormalizeOptionKey(key);
-
+#if DEBUG
+                System.Diagnostics.Trace.WriteLine($"DEBUG: Parsing option --{key} (normalized: {normalized}) with value '{value}'");
+#endif
                 switch (normalized) {
                     case "game":
                     case "game_module":
@@ -490,11 +492,17 @@ internal partial class CLI {
                         break;
                     case "args":
                         if (value is null) {
+#if DEBUG
+                            System.Diagnostics.Trace.WriteLine("DEBUG: --args missing value");
+#endif
                             throw new System.ArgumentException("Option '--args' requires a value.");
                         }
                         foreach (string item in ParseArgsList(value)) {
                             options._args.Add(item);
                         }
+#if DEBUG
+                        System.Diagnostics.Trace.WriteLine($"DEBUG: --args parsed {options._args.Count} items");
+#endif
                         break;
                     case "answer":
                         if (value is null) {

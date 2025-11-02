@@ -67,7 +67,12 @@ public partial class MainWindow:Window {
             if (bottom != null) {
                 bottom.DataContext = OperationOutputService.Instance;
             }
-        } catch { /* ignore */ }
+        } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
     }
 
     // navbar button handlers

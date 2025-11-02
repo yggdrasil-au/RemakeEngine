@@ -239,13 +239,21 @@ internal static class ImageMagickConverter {
                 File = System.IO.Path.GetFileName(srcPath),
                 StartedUtc = System.DateTime.UtcNow
             };
-        } catch {
+        } catch{
+#if DEBUG
+// todo add trace writeline
+#endif
             /* ignore */
         }
     }
 
     private static void UnregisterActive() {
-        try { s_active.TryRemove(System.Threading.Thread.CurrentThread.ManagedThreadId, out _); } catch { /* ignore */ }
+        try { s_active.TryRemove(System.Threading.Thread.CurrentThread.ManagedThreadId, out _); } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
     }
     // --- END ADD ---
 
@@ -432,9 +440,19 @@ internal static class ImageMagickConverter {
                     if (File.Exists(candidate)) {
                         return candidate;
                     }
-                } catch { /* ignore */ }
+                } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
             }
-        } catch { /* ignore */ }
+        } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
         return null;
     }
 
@@ -443,6 +461,11 @@ internal static class ImageMagickConverter {
             if (!string.IsNullOrWhiteSpace(path) && File.Exists(path)) {
                 File.Delete(path);
             }
-        } catch { /* ignore */ }
+        } catch {
+#if DEBUG
+// todo add trace writeline
+#endif
+/* ignore */
+}
     }
 }

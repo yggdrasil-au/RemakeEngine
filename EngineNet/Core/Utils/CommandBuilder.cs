@@ -55,11 +55,14 @@ internal sealed class CommandBuilder {
         string scriptPath = Placeholders.Resolve(scriptObj, ctx)?.ToString() ?? string.Empty;
         List<string> parts = [script_type, scriptPath];
 
-        if (op.TryGetValue(key: "args", out object? argsObj) && argsObj is IList<object?> aList) {
-            IList<object?> resolved = (IList<object?>)(Placeholders.Resolve(aList, ctx) ?? new List<object?>());
-            foreach (object? a in resolved) {
-                if (a is not null) {
-                    parts.Add(a.ToString()!);
+        // Accept args as any list type (e.g., List<string> from CLI or List<object?> from tests)
+        if (op.TryGetValue(key: "args", out object? argsObj) && argsObj is System.Collections.IList aList) {
+            object? resolvedObj = Placeholders.Resolve(aList, ctx);
+            if (resolvedObj is System.Collections.IList resolvedList) {
+                foreach (object? a in resolvedList) {
+                    if (a is not null) {
+                        parts.Add(a.ToString()!);
+                    }
                 }
             }
         }
