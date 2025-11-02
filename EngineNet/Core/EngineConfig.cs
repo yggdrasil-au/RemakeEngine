@@ -11,13 +11,6 @@ namespace EngineNet.Core;
 /// </summary>
 internal sealed class EngineConfig {
     /// <summary>
-    /// The file system path to the JSON config file that this instance reads.
-    /// </summary>
-    internal string Path {
-        get;
-    }
-
-    /// <summary>
     /// Exposes the loaded data as a read-only dictionary interface.
     /// Keys are case-insensitive due to the underlying comparer.
     /// </summary>
@@ -25,24 +18,6 @@ internal sealed class EngineConfig {
 
     // Backing store for Data. Uses case-insensitive comparison (OrdinalIgnoreCase).
     private Dictionary<string, object?> _data = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>
-    /// Constructs a config bound to a file path and immediately loads its content.
-    /// </summary>
-    /// <param name="path">Absolute or relative path to a JSON file.</param>
-    internal EngineConfig(string path) {
-        Path = path;     // Step 1: Remember where to read from
-        Reload();        // Step 2: Initial load from disk
-    }
-
-    /// <summary>
-    /// Reloads configuration from <see cref="Path"/> and replaces the current data snapshot.
-    /// Safe: if the file is missing or invalid, the data becomes an empty dictionary.
-    /// </summary>
-    internal void Reload() {
-        // Step: Re-parse the file and swap in the new dictionary
-        _data = LoadJsonFile(Path);
-    }
 
     /// <summary>
     /// Loads a JSON file into a case-insensitive dictionary:
@@ -73,9 +48,7 @@ internal sealed class EngineConfig {
                 // Step 5 (Fallback): For simple top-level maps that aren't explicitly objects in the DOM,
                 // attempt direct deserialize into Dictionary<string, object?>.
                 fs.Position = 0; // Rewind stream for a second read
-                Dictionary<string, object?>? dict =
-                    System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(fs,
-                        new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                Dictionary<string, object?>? dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(fs, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
                 // Step 6: Ensure we never return null.
                 return dict ?? new Dictionary<string, object?>();

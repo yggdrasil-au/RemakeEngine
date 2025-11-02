@@ -2,75 +2,88 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     x:Class="EngineNet.Interface.GUI.Pages.LibraryPage">
-    <ScrollViewer>
-        <ItemsControl ItemsSource="{Binding Items}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel Margin="15" />
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
+    <DockPanel>
+        <!-- Left module list -->
+        <Border DockPanel.Dock="Left" Width="240" BorderThickness="1" Padding="8" Classes="card" Margin="8,0,8,0">
+            <StackPanel>
+                <TextBlock Text="Modules" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                <ListBox x:Name="ModulesList"
+                         ItemsSource="{Binding Items}"
+                         SelectedItem="{Binding SelectedRow}"
+                         SelectionChanged="OnModuleSelected"
+                         HorizontalAlignment="Stretch">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding ModuleName}"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </StackPanel>
+        </Border>
 
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <Border
-                        Width="300" Margin="8" Padding="8" CornerRadius="12"
-                        BorderThickness="1" Classes="card">
-                        <StackPanel Spacing="8">
-                            <Grid>
-                                <Image Source="{Binding Image}" Height="120" Stretch="UniformToFill" />
-                                <!-- Installed pill -->
-                                <Border
-                                    Background="{DynamicResource ThemeAccentBrush}" CornerRadius="10"
-                                    HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6"
-                                    IsVisible="{Binding IsBuilt}">
-                                    <TextBlock Text="Built" Margin="8,2" Foreground="White" FontSize="11"/>
+        <!-- Main content area: Cards view or Details -->
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="8">
+                <Button Content="Refresh" Command="{Binding Button_Refresh_Click}"/>
+                <Button Content="Back to All" Click="OnBackToAll"/>
+            </StackPanel>
+
+            <!-- Cards Grid -->
+            <ScrollViewer Grid.Row="1" x:Name="CardsGrid">
+                <ItemsControl ItemsSource="{Binding Items}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Margin="15" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Command="{Binding $parent[UserControl].Button_Details_Click}"
+                                    CommandParameter="{Binding}"
+                                    Classes="flat">
+                                <Border Width="300" Margin="8" Padding="8" CornerRadius="12"
+                                        BorderThickness="1" Classes="card">
+                                    <StackPanel Spacing="8">
+                                        <Grid>
+                                            <Image Source="{Binding Image}" Height="120" Stretch="UniformToFill" />
+                                            <Border Background="{DynamicResource ThemeAccentBrush}" CornerRadius="10"
+                                                    HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6"
+                                                    IsVisible="{Binding IsBuilt}">
+                                                <TextBlock Text="Built" Margin="8,2" Foreground="White" FontSize="11"/>
+                                            </Border>
+                                        </Grid>
+                                        <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <WrapPanel>
+                                            <Border Background="#4A4A4A" CornerRadius="8" Padding="6,2" IsVisible="{Binding IsRegistered}">
+                                                <TextBlock Text="Registered" Foreground="White" FontSize="11"/>
+                                            </Border>
+                                            <Border Background="#6A6A6A" CornerRadius="8" Padding="6,2" IsVisible="{Binding IsInstalled}">
+                                                <TextBlock Text="Installed" Foreground="White" FontSize="11"/>
+                                            </Border>
+                                            <Border Background="#D97706" CornerRadius="8" Padding="6,2" IsVisible="{Binding IsUnbuilt}">
+                                                <TextBlock Text="Unbuilt" Foreground="White" FontSize="11"/>
+                                            </Border>
+                                            <Border Background="#B91C1C" CornerRadius="8" Padding="6,2" IsVisible="{Binding IsUnverified}">
+                                                <TextBlock Text="Unverified" Foreground="White" FontSize="11"/>
+                                            </Border>
+                                        </WrapPanel>
+                                    </StackPanel>
                                 </Border>
-                            </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
 
-                            <TextBlock
-                                Text="{Binding Title}"
-                                FontSize="16" FontWeight="SemiBold"
-                                TextTrimming="CharacterEllipsis"/>
-
-                            <!-- State tags -->
-                            <WrapPanel>
-                                <Border Background="#4A4A4A" CornerRadius="8" Padding="6,2" IsVisible="{Binding IsRegistered}">
-                                    <TextBlock Text="Registered" Foreground="White" FontSize="11"/>
-                                </Border>
-                                <Border Background="#6A6A6A" CornerRadius="8" Padding="6,2" IsVisible="{Binding IsInstalled}">
-                                    <TextBlock Text="Installed" Foreground="White" FontSize="11"/>
-                                </Border>
-                                <Border Background="#D97706" CornerRadius="8" Padding="6,2" IsVisible="{Binding IsUnbuilt}">
-                                    <TextBlock Text="Unbuilt" Foreground="White" FontSize="11"/>
-                                </Border>
-                                <Border Background="#B91C1C" CornerRadius="8" Padding="6,2" IsVisible="{Binding IsUnverified}">
-                                    <TextBlock Text="Unverified" Foreground="White" FontSize="11"/>
-                                </Border>
-                            </WrapPanel>
-
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <Button
-                                    Content="Play"
-                                    IsEnabled="{Binding IsBuilt}"
-                                    Command="{Binding $parent[UserControl].Button_Play_Click}"
-                                    CommandParameter="{Binding}">
-                                </Button>
-
-                                <!-- Always available: run default group of operations (e.g., build/install) -->
-                                <Button
-                                    Content="Run build operations"
-                                    Command="{Binding $parent[UserControl].Button_RunOps_Click}"
-                                    CommandParameter="{Binding}"/>
-
-                                <Button
-                                    Content="Open Folder"
-                                    Command="{Binding $parent[UserControl].Button_OpenFolder_Click}"
-                                    CommandParameter="{Binding}"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
-    </ScrollViewer>
+            <!-- Details Host -->
+            <ContentControl x:Name="DetailsHost" Grid.Row="1" IsVisible="False"/>
+        </Grid>
+    </DockPanel>
 </UserControl>

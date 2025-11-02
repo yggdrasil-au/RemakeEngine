@@ -25,25 +25,6 @@ internal static class ConfigHelpers {
     }
 
     /// <summary>
-    /// Ensure a minimal project.json exists under <paramref name="rootDir"/>.
-    /// If missing, creates a skeleton file similar to EngineNet.Program. Returns the config path.
-    /// </summary>
-    internal static string EnsureProjectConfig(string rootDir) {
-        if (string.IsNullOrWhiteSpace(rootDir)) {
-            throw new System.ArgumentException("rootDir is empty");
-        }
-
-        System.IO.Directory.CreateDirectory(rootDir);
-        string configPath = System.IO.Path.Combine(rootDir, "project.json");
-        if (!System.IO.File.Exists(configPath)) {
-            // Keep consistent with EngineNet/Program.cs default content
-            string minimal = "{\n  \"RemakeEngine\": {\n    \"Config\": { \"project_path\": \"" + rootDir.Replace("\\", "\\\\") + "\" },\n    \"Directories\": {},\n    \"Tools\": {}\n  }\n}";
-            System.IO.File.WriteAllText(configPath, minimal);
-        }
-        return configPath;
-    }
-
-    /// <summary>
     /// Validates that a source directory exists and is accessible.
     /// Throws if invalid.
     /// </summary>

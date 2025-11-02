@@ -47,6 +47,9 @@ public partial class StorePage:UserControl {
     internal System.Windows.Input.ICommand Button_Download_Click {
         get;
     }
+    internal System.Windows.Input.ICommand Button_OpenModule_Click {
+        get;
+    }
 
     /* :: :: Vars :: END :: */
     // //
@@ -61,6 +64,7 @@ public partial class StorePage:UserControl {
         Button_Refresh_Click = new Cmd(async _ => await LoadAsync());
         Button_Search_Click = new Cmd(async _ => await LoadAsync(Query));
         Button_Download_Click = new Cmd(async item => await DownloadAsync(item as StoreItem));
+        Button_OpenModule_Click = new Cmd(async item => await OpenModuleAsync(item as StoreItem));
 
         _ = LoadAsync();
     }
@@ -77,6 +81,7 @@ public partial class StorePage:UserControl {
         Button_Refresh_Click = new Cmd(async _ => await LoadAsync());
         Button_Search_Click = new Cmd(async _ => await LoadAsync(Query));
         Button_Download_Click = new Cmd(async item => await DownloadAsync(item as StoreItem));
+        Button_OpenModule_Click = new Cmd(async item => await OpenModuleAsync(item as StoreItem));
 
         _ = LoadAsync();
     }
@@ -230,6 +235,17 @@ public partial class StorePage:UserControl {
     /* :: :: Methods :: END :: */
     // //
     /* :: :: Nested Types :: START :: */
+
+    private async System.Threading.Tasks.Task OpenModuleAsync(StoreItem? item) {
+        if (item is null) return;
+        try {
+            Window? w = TopLevel.GetTopLevel(this) as Window;
+            if (w is MainWindow mw && _engine is not null) {
+                mw.ShowLibraryFor(item.Name);
+            }
+        } catch { /* ignore */ }
+        await System.Threading.Tasks.Task.CompletedTask;
+    }
 
     /// <summary>
     /// Represents a store item (module from registry).

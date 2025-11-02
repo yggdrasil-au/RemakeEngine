@@ -45,6 +45,22 @@ public partial class MainWindow:Window {
         ContentHost.Content = new Pages.StorePage(_engine);
     }
 
+    internal void ShowModule(string moduleName) {
+        if (_engine is null) {
+            return;
+        }
+        ContentHost.Content = new Pages.ModulePage(_engine, moduleName);
+    }
+
+    internal void ShowLibraryFor(string moduleName) {
+        if (_engine is null) {
+            return;
+        }
+        Pages.LibraryPage page = new Pages.LibraryPage(_engine);
+        ContentHost.Content = page;
+        page.ShowDetailsPublic(moduleName);
+    }
+
     private void ShowBuilding() {
         if (_engine is null) {
             ContentHost.Content = new Pages.BuildingPage();

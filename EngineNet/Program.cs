@@ -39,35 +39,10 @@ internal static class Program {
             string root = GetRootPath(args) ?? TryFindProjectRoot(System.IO.Directory.GetCurrentDirectory())
                                             ?? TryFindProjectRoot(System.AppContext.BaseDirectory)
                                             ?? System.IO.Directory.GetCurrentDirectory();
-            string configPath = System.IO.Path.Combine(root, "project.json");
-
-            // Auto-create a minimal project.json if missing
-            if (!System.IO.File.Exists(configPath)) {
-                try {
-                    System.IO.Directory.CreateDirectory(root);
-
-                    string minimal = $$"""
-                    {
-                        "RemakeEngine": {
-                            "Config": {
-                                "project_path": "{{ root.Replace("\\", "\\\\") }}"
-                            }
-                        }
-                    }
-                    """;
-
-                    await System.IO.File.WriteAllTextAsync(configPath, minimal);
-                    System.Diagnostics.Trace.WriteLine($"Created default project.json at {configPath}");
-                } catch (System.Exception ex) {
-#if DEBUG
-                    System.Diagnostics.Trace.WriteLine($"WARN: Could not create project.json - {ex.Message}");
-#endif
-                }
-            }
 
             Core.Tools.IToolResolver tools = CreateToolResolver(root);
 
-            Core.EngineConfig engineConfig = new Core.EngineConfig(configPath);
+            Core.EngineConfig engineConfig = new Core.EngineConfig();
             Core.Engine _engine = new Core.Engine(root, tools, engineConfig);
 
             // Interface selection:

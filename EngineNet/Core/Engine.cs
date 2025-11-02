@@ -524,7 +524,7 @@ internal sealed class Engine {
                 }
             }
         } finally {
-            // Ensure we pick up any config changes (e.g., init.lua writes project.json)
+            // Ensure we pick up any config changes (e.g., init.lua writes config.toml)
             ReloadProjectConfig();
         }
         // If the main operation succeeded, run any nested [[operation.onsuccess]] steps

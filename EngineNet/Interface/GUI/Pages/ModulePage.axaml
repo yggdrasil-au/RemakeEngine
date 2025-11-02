@@ -1,0 +1,72 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Class="EngineNet.Interface.GUI.Pages.ModulePage">
+    <DockPanel Margin="8">
+        <!-- Header -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="12">
+            <Border Width="120" Height="80" CornerRadius="8" Background="{DynamicResource SystemAccentColorLight1}">
+                <Image Source="{Binding Image}" Stretch="UniformToFill"/>
+            </Border>
+            <StackPanel>
+                <TextBlock Text="{Binding Title}" FontSize="20" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding ModuleName}" FontSize="12" Foreground="Gray"/>
+                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                    <Border Background="#4A4A4A" CornerRadius="8" Padding="6,2" IsVisible="{Binding IsRegistered}">
+                        <TextBlock Text="Registered" Foreground="White" FontSize="11"/>
+                    </Border>
+                    <Border Background="#6A6A6A" CornerRadius="8" Padding="6,2" IsVisible="{Binding IsInstalled}">
+                        <TextBlock Text="Installed" Foreground="White" FontSize="11"/>
+                    </Border>
+                    <Border Background="#D97706" CornerRadius="8" Padding="6,2" IsVisible="{Binding IsUnbuilt}">
+                        <TextBlock Text="Unbuilt" Foreground="White" FontSize="11"/>
+                    </Border>
+                    <Border Background="#22C55E" CornerRadius="8" Padding="6,2" IsVisible="{Binding IsBuilt}">
+                        <TextBlock Text="Built" Foreground="White" FontSize="11"/>
+                    </Border>
+                    <Border Background="#B91C1C" CornerRadius="8" Padding="6,2" IsVisible="{Binding IsUnverified}">
+                        <TextBlock Text="Unverified" Foreground="White" FontSize="11"/>
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="12,0,0,0" Spacing="8">
+                <Button Content="Play" IsEnabled="{Binding CanPlay}" Command="{Binding Button_Play_Click}"/>
+                <Button Content="Run All" IsEnabled="{Binding CanRunAll}" Command="{Binding Button_RunAll_Click}"/>
+                <Button Content="Open Folder" Command="{Binding Button_OpenFolder_Click}"/>
+                <Button Content="Download" IsVisible="{Binding CanDownload}" Command="{Binding Button_Download_Click}"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Details + Operations -->
+        <ScrollViewer>
+            <StackPanel Spacing="12">
+                <Border CornerRadius="6" BorderThickness="1" Classes="card" Padding="8">
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+                        <TextBlock Grid.Column="0" Grid.Row="0" Text="Game Root:" Foreground="Gray" Margin="0,0,8,0"/>
+                        <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding GameRoot}"/>
+                        <TextBlock Grid.Column="0" Grid.Row="1" Text="Executable:" Foreground="Gray" Margin="0,0,8,0"/>
+                        <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding ExePath}"/>
+                        <TextBlock Grid.Column="0" Grid.Row="2" Text="Registry URL:" Foreground="Gray" Margin="0,0,8,0"/>
+                        <TextBlock Grid.Column="1" Grid.Row="2" Text="{Binding RegistryUrl}"/>
+                    </Grid>
+                </Border>
+
+                <TextBlock Text="Operations" FontSize="16" FontWeight="SemiBold"/>
+                <ItemsControl ItemsSource="{Binding Operations}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border CornerRadius="6" BorderThickness="1" Classes="card" Padding="8" Margin="0,4,0,0">
+                                <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto">
+                                    <TextBlock Grid.Column="0" Grid.Row="0" Text="{Binding Name}" FontWeight="SemiBold"/>
+                                    <TextBlock Grid.Column="0" Grid.Row="1" Text="{Binding ScriptPath}" FontSize="12" Foreground="Gray" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding ScriptType}" FontSize="12" Foreground="Gray" Margin="8,0,8,0"/>
+                                    <Button Grid.Column="2" Grid.Row="0" Content="Run" Command="{Binding $parent[UserControl].Button_RunOp_Click}" CommandParameter="{Binding}"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

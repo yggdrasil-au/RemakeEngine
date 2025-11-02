@@ -21,4 +21,12 @@ internal static class PromptHelpers {
         return await dlg.ShowAsync(window);
     }
 
+    internal static async System.Threading.Tasks.Task<bool> ConfirmAsync(string title, string message, bool defaultValue = false) {
+        Window? window = TryGetMainWindow();
+        if (window is null) return defaultValue;
+        Pages.PromptWindows.ConfirmWindow? dlg = new Pages.PromptWindows.ConfirmWindow(title, message);
+        bool result = await dlg.ShowAsync(window);
+        return result;
+    }
+
 }

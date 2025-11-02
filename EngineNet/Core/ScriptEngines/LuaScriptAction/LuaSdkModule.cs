@@ -91,7 +91,6 @@ internal static class LuaSdkModule {
     }
 
     private static void AddConfigurationHelpers(Table sdk) {
-        sdk["ensure_project_config"] = (System.Func<string, string>)((root) => Helpers.ConfigHelpers.EnsureProjectConfig(root));
         sdk["validate_source_dir"] = (System.Func<string, bool>)((dir) => {
             try {
                 Helpers.ConfigHelpers.ValidateSourceDir(dir);

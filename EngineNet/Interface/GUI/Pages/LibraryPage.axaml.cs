@@ -25,14 +25,12 @@ public partial class LibraryPage:UserControl {
     private System.Windows.Input.ICommand? Button_Refresh_Click {
         get;
     }
-    private System.Windows.Input.ICommand? Button_Play_Click {
+    private System.Windows.Input.ICommand? Button_Details_Click {
         get;
     }
-    private System.Windows.Input.ICommand? Button_RunOps_Click {
-        get;
-    }
-    private System.Windows.Input.ICommand? Button_OpenFolder_Click {
-        get;
+
+    private Row? SelectedRow {
+        get; set;
     }
 
     /* :: :: Vars :: END :: */
@@ -46,9 +44,7 @@ public partial class LibraryPage:UserControl {
 
         // Initialize commands to prevent binding errors in the designer
         Button_Refresh_Click = new SimpleCommand(_ => { });
-        Button_Play_Click = new SimpleCommand(_ => { });
-        Button_RunOps_Click = new SimpleCommand(_ => { });
-        Button_OpenFolder_Click = new SimpleCommand(_ => { });
+        Button_Details_Click = new SimpleCommand(_ => { });
         // You'll need to fix this separately. See note below.
 
         // Add some sample data so the previewer isn't empty
@@ -77,59 +73,9 @@ public partial class LibraryPage:UserControl {
 
             Button_Refresh_Click = new SimpleCommand(_ => Load());
 
-            Button_Play_Click = new SimpleCommand(p => {
-                if (p is Row r && !string.IsNullOrWhiteSpace(r.ExePath)) {
-                    _engine.LaunchGame(r.ModuleName);
-                }
-            });
-
-            // run operations marked Run-All
-            Button_RunOps_Click = new SimpleCommand(async p => {
+            Button_Details_Click = new SimpleCommand(p => {
                 if (p is Row r && !string.IsNullOrWhiteSpace(r.ModuleName)) {
-                    try {
-                        await GUI.Utils.ExecuteEngineOperationAsync(
-                            _engine,
-                            r.ModuleName,
-                            operationName: "Run All Build Operations",
-                            (Core.ProcessRunner.OutputHandler onOutput, Core.ProcessRunner.EventHandler onEvent, Core.ProcessRunner.StdinProvider stdin) => _engine.RunAllAsync(
-                                r.ModuleName,
-                                onOutput: onOutput,
-                                onEvent: onEvent,
-                                stdinProvider: stdin
-                            )
-                        );
-
-                        // Refresh the library to update the IsBuilt status
-                        Load();
-                    } catch (System.Exception ex) {
-                        OperationOutputService.Instance.AddOutput($"Run-all failed: {ex.Message}", "stderr");
-                    }
-                }
-            });
-
-            Button_OpenFolder_Click = new SimpleCommand(async p => {
-                if (p is Row r) {
-                    try {
-                        string? path = _engine.GetGamePath(r.ModuleName);
-                        if (string.IsNullOrWhiteSpace(path) || !System.IO.Directory.Exists(path)) {
-                            DebugWriteLine(message: $"[LibraryPage] OpenFolder skipped for '{r.ModuleName}'. Path missing or doesn't exist: '{path ?? "<null>"}'");
-                            return;
-                        }
-                        System.Diagnostics.ProcessStartInfo? psi = new System.Diagnostics.ProcessStartInfo { UseShellExecute = true };
-                        if (System.OperatingSystem.IsWindows()) {
-                            psi.FileName = "explorer";
-                            psi.Arguments = $"\"{path}\"";
-                        } else if (System.OperatingSystem.IsMacOS()) {
-                            psi.FileName = "open";
-                            psi.Arguments = $"\"{path}\"";
-                        } else {
-                            psi.FileName = "xdg-open";
-                            psi.Arguments = $"\"{path}\"";
-                        }
-                        System.Diagnostics.Process.Start(psi);
-                    } catch (System.Exception ex) {
-                        DebugWriteLine($"[LibraryPage] Exception while opening folder for '{r.ModuleName}': {ex}");
-                    }
+                    ShowDetails(r.ModuleName);
                 }
             });
 
@@ -252,6 +198,41 @@ public partial class LibraryPage:UserControl {
 
     /* :: :: Methods :: END :: */
     // //
+    internal void ShowDetailsPublic(string moduleName) => ShowDetails(moduleName);
+
+    private void ShowDetails(string moduleName) {
+        try {
+            ContentControl? host = this.FindControl<ContentControl>(name: "DetailsHost");
+            ScrollViewer? cards = this.FindControl<ScrollViewer>(name: "CardsGrid");
+            if (host is null || cards is null) return;
+            if (_engine is null) return;
+            host.Content = new ModulePage(_engine, moduleName);
+            host.IsVisible = true;
+            cards.IsVisible = false;
+        } catch { /* ignore */ }
+    }
+
+    private void ShowCards() {
+        try {
+            ContentControl? host = this.FindControl<ContentControl>(name: "DetailsHost");
+            ScrollViewer? cards = this.FindControl<ScrollViewer>(name: "CardsGrid");
+            if (host is null || cards is null) return;
+            host.Content = null;
+            host.IsVisible = false;
+            cards.IsVisible = true;
+        } catch { /* ignore */ }
+    }
+
+    private void OnModuleSelected(object? sender, SelectionChangedEventArgs e) {
+        if (SelectedRow is Row r && !string.IsNullOrWhiteSpace(r.ModuleName)) {
+            ShowDetails(r.ModuleName);
+        }
+    }
+
+    private void OnBackToAll(object? sender, Avalonia.Interactivity.RoutedEventArgs e) {
+        ShowCards();
+    }
+
     /* :: :: Nested Types :: START :: */
 
     /// <summary>

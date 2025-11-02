@@ -103,6 +103,11 @@
                                         Foreground="Green"
                                         FontWeight="SemiBold"
                                         IsVisible="{Binding IsInstalled}"/>
+
+                                    <Button
+                                        Content="Details"
+                                        Command="{Binding $parent[UserControl].DataContext.Button_OpenModule_Click}"
+                                        CommandParameter="{Binding}"/>
                                 </StackPanel>
                             </StackPanel>
                         </Border>
