@@ -112,7 +112,6 @@ internal sealed class GitTools {
     }
 
     private static void Write(string message, string? prefix = null) {
-        //System.Console.ForegroundColor = color;
         if (!string.IsNullOrWhiteSpace(prefix)) {
             EngineSdk.Print($"[{prefix}] ");
         }

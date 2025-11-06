@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
+using System.Diagnostics;
 
 namespace EngineNet.Interface.GUI.Pages;
 
@@ -84,7 +85,7 @@ internal sealed partial class ModulePage:UserControl {
             Operations.Clear();
 
             // Gather module info from multiple sources
-            System.Collections.Generic.Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.ListModules();
+            Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.Modules(Core.Utils.ModuleFilter.All);
             Core.Utils.GameModuleInfo? m = modules.TryGetValue(_moduleName, out Core.Utils.GameModuleInfo? mm) ? mm : null;
             if (m is not null) {
                 Title = string.IsNullOrWhiteSpace(m.Title) ? m.Name : m.Title!;
@@ -113,17 +114,20 @@ internal sealed partial class ModulePage:UserControl {
 
             // Load operations if ops_file exists
             string? opsFile = null;
-            System.Collections.Generic.Dictionary<string, object?> games = _engine.ListGames();
-            if (games.TryGetValue(_moduleName, out object? infoObj) && infoObj is IDictionary<string, object?> info) {
-                opsFile = info.TryGetValue(key: "ops_file", value: out object? of) ? of?.ToString() : null;
+            Dictionary<string, Core.Utils.GameModuleInfo> games = _engine.Modules(Core.Utils.ModuleFilter.All);
+            if (games.TryGetValue(_moduleName, out Core.Utils.GameModuleInfo? gameInfo)) {
+                opsFile = gameInfo.OpsFile;
                 if (string.IsNullOrWhiteSpace(ExePath)) {
-                    string? ex = info.TryGetValue(key: "exe", value: out object? exObj) ? exObj?.ToString() : null;
-                    if (!string.IsNullOrWhiteSpace(ex)) ExePath = ex;
+                    ExePath = gameInfo.ExePath;
                 }
+
                 if (string.IsNullOrWhiteSpace(GameRoot)) {
-                    string? gr = info.TryGetValue(key: "game_root", value: out object? grObj) ? grObj?.ToString() : null;
-                    if (!string.IsNullOrWhiteSpace(gr)) GameRoot = gr;
+                    GameRoot = gameInfo.GameRoot;
                 }
+            } else {
+#if DEBUG
+                Trace.WriteLine($"Load: No game info found for module {_moduleName}.");
+#endif
             }
 
             if (!string.IsNullOrWhiteSpace(opsFile) && System.IO.File.Exists(path: opsFile)) {
@@ -134,6 +138,10 @@ internal sealed partial class ModulePage:UserControl {
                     string scriptPath = op.TryGetValue(key: "script", value: out object? sp) ? sp?.ToString() ?? "" : "";
                     Operations.Add(item: new OpRow { Name = string.IsNullOrWhiteSpace(name) ? scriptPath : name, ScriptType = scriptType, ScriptPath = scriptPath, Op = op });
                 }
+            } else {
+#if DEBUG
+                Trace.WriteLine($"Load: Ops file not found for module {_moduleName} at path '{opsFile}'.");
+#endif
             }
 
             Raise(nameof(Title));
@@ -151,6 +159,9 @@ internal sealed partial class ModulePage:UserControl {
             Raise(nameof(RegistryUrl));
         } catch (System.Exception ex) {
             OperationOutputService.Instance.AddOutput(text: $"Module load failed: {ex.Message}", stream: "stderr");
+            #if DEBUG
+            Trace.WriteLine($"Load: {ex}");
+            #endif
         }
     }
 
@@ -159,11 +170,16 @@ internal sealed partial class ModulePage:UserControl {
             return null;
         }
         string? icon = string.IsNullOrWhiteSpace(gameRoot) ? null : System.IO.Path.Combine(path1: gameRoot!, path2: "icon.png");
-        string placeholder = System.IO.Path.Combine(path1: _engine.GetRootPath(), path2: "placeholder.png");
+        string placeholder = System.IO.Path.Combine(path1: _engine.rootPath, path2: "placeholder.png");
         string pick = (!string.IsNullOrWhiteSpace(icon) && System.IO.File.Exists(path: icon!)) ? icon! : placeholder;
         try {
             return System.IO.File.Exists(path: pick) ? new Bitmap(pick) : null;
-        } catch { return null; }
+        } catch (System.Exception ex) {
+            #if DEBUG
+            Trace.WriteLine($"ResolveCoverBitmap: Failed to load bitmap from {pick}. {ex}");
+            #endif
+            return null;
+        }
     }
 
     private async System.Threading.Tasks.Task PlayAsync() {
@@ -173,6 +189,9 @@ internal sealed partial class ModulePage:UserControl {
             _engine.LaunchGame(name: ModuleName);
         } catch (System.Exception ex) {
             OperationOutputService.Instance.AddOutput(text: $"Launch failed: {ex.Message}", stream: "stderr");
+#if DEBUG
+            Trace.WriteLine($"PlayAsync: {ex}");
+#endif
         }
         await System.Threading.Tasks.Task.CompletedTask;
     }
@@ -188,6 +207,9 @@ internal sealed partial class ModulePage:UserControl {
             );
             Load();
         } catch (System.Exception ex) {
+            #if DEBUG
+            Trace.WriteLine($"RunAllAsync: {ex}");
+            #endif
             OperationOutputService.Instance.AddOutput(text: $"Run All failed: {ex.Message}", stream: "stderr");
         }
     }
@@ -195,7 +217,7 @@ internal sealed partial class ModulePage:UserControl {
     private async System.Threading.Tasks.Task RunOpAsync(OpRow? row) {
         if (row is null || _engine is null) return;
         try {
-            Dictionary<string, object?> games = _engine.ListGames();
+            Dictionary<string, Core.Utils.GameModuleInfo> games = _engine.Modules(Core.Utils.ModuleFilter.All);
 
             Dictionary<string, object?> answers = new Dictionary<string, object?>();
             await CollectAnswersForOperationAsync(op: row.Op, answers: answers);
@@ -215,12 +237,22 @@ internal sealed partial class ModulePage:UserControl {
                         bool ok = await _engine.RunSingleOperationAsync(currentGame: ModuleName, games: games, op: row.Op, promptAnswers: answers);
                         return ok;
                     } finally {
-                        try { System.Console.SetIn(new System.IO.StreamReader(System.Console.OpenStandardInput())); } catch { System.Console.SetIn(previous); }
+                        try {
+                            System.Console.SetIn(new System.IO.StreamReader(System.Console.OpenStandardInput()));
+                        } catch (Exception ex) {
+                            System.Console.SetIn(previous);
+#if DEBUG
+                            Trace.WriteLine($"RunOpAsync: Failed to restore Console.In. {ex}");
+#endif
+                        }
                     }
                 }
             );
             Load();
         } catch (System.Exception ex) {
+#if DEBUG
+            Trace.WriteLine($"RunOpAsync: {ex}");
+#endif
             OperationOutputService.Instance.AddOutput(text: $"Operation failed: {ex.Message}", stream: "stderr");
         }
     }
@@ -243,6 +275,9 @@ internal sealed partial class ModulePage:UserControl {
             );
             Load();
         } catch (System.Exception ex) {
+#if DEBUG
+            Trace.WriteLine($"DownloadAsync: {ex}");
+#endif
             OperationOutputService.Instance.AddOutput(text: $"Download failed: {ex.Message}", stream: "stderr");
         }
     }
@@ -266,13 +301,17 @@ internal sealed partial class ModulePage:UserControl {
                 psi.Arguments = $"\"{path}\"";
             }
             System.Diagnostics.Process.Start(psi);
-        } catch { /* ignore */ }
+        } catch {
+#if DEBUG
+            Trace.WriteLine("OpenFolderAsync: Failed to open folder.");
+#endif
+        }
         await System.Threading.Tasks.Task.CompletedTask;
     }
 
     private bool IsDownloaded() {
         if (_engine is null) return false;
-        string path = System.IO.Path.Combine(path1: _engine.GetRootPath(), path2: System.IO.Path.Combine("EngineApps", "Games", _moduleName));
+        string path = System.IO.Path.Combine(path1: _engine.rootPath, path2: System.IO.Path.Combine("EngineApps", "Games", _moduleName));
         return System.IO.Directory.Exists(path: path);
     }
 

@@ -24,7 +24,7 @@ internal sealed class SdkEventScope:System.IDisposable {
 
         if (autoPromptResponses != null) {
             Core.Utils.EngineSdk.AutoPromptResponses.Clear();
-            foreach (System.Collections.Generic.KeyValuePair<string, string> kv in autoPromptResponses) {
+            foreach (KeyValuePair<string, string> kv in autoPromptResponses) {
                 Core.Utils.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
             }
         }
@@ -34,7 +34,7 @@ internal sealed class SdkEventScope:System.IDisposable {
         Core.Utils.EngineSdk.LocalEventSink = _prevSink;
         Core.Utils.EngineSdk.MuteStdoutWhenLocalSink = _prevMute;
         Core.Utils.EngineSdk.AutoPromptResponses.Clear();
-        foreach (System.Collections.Generic.KeyValuePair<string, string> kv in _prevAuto) {
+        foreach (KeyValuePair<string, string> kv in _prevAuto) {
             Core.Utils.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
         }
     }

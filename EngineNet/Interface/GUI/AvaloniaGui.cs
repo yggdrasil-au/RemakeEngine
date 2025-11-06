@@ -28,7 +28,7 @@ internal static class AvaloniaGui {
     /// <returns>
     /// 0 on normal shutdown; 1 if an exception is caught during startup/run.
     /// </returns>
-    internal static int Run(Core.Engine engine) {
+    internal static async System.Threading.Tasks.Task<int> RunAsync(Core.Engine engine) {
         try {
             // 1) Stash the engine so App.OnFrameworkInitializationCompleted (or similar)
             //    can pull it to compose view models.
@@ -57,10 +57,7 @@ internal static class AvaloniaGui {
     /// </remarks>
     internal static AppBuilder BuildAvaloniaApp() {
         // Configure the application type, detect platform backends, and enable tracing.
-        return AppBuilder
-            .Configure<App>()
-            .UsePlatformDetect()
-            .LogToTrace();
+        return AppBuilder.Configure<App>().UsePlatformDetect().LogToTrace();
     }
 }
 

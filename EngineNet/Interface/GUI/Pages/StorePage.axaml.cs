@@ -109,7 +109,7 @@ public partial class StorePage:UserControl {
             IReadOnlyDictionary<string, object?> modules = _engine.GetRegistries().GetRegisteredModules();
 
             // Get already downloaded games
-            Dictionary<string, object?> downloadedGames = _engine.ListGames();
+            Dictionary<string, Core.Utils.GameModuleInfo> downloadedGames = _engine.Modules(Core.Utils.ModuleFilter.Installed);
 
             foreach (KeyValuePair<string, object?> kv in modules) {
                 string moduleName = kv.Key;
@@ -137,10 +137,8 @@ public partial class StorePage:UserControl {
 
                 // Check if installed (has game.toml with exe)
                 bool isInstalled = false;
-                if (isDownloaded && downloadedGames.TryGetValue(moduleName, out object? gameObj) &&
-                    gameObj is IDictionary<string, object?> gameInfo) {
-                    isInstalled = gameInfo.TryGetValue("exe", out object? exe) &&
-                                  !string.IsNullOrWhiteSpace(exe?.ToString());
+                if (isDownloaded && downloadedGames.TryGetValue(moduleName, out Core.Utils.GameModuleInfo? gameInfo)) {
+                    isInstalled = gameInfo.IsInstalled;
                 }
 
                 Items.Add(new StoreItem {

@@ -12,8 +12,9 @@ internal static class Program {
 
     /* :: :: Vars :: START :: */
     // ensure Avalonia VS preview can find GUI
-    internal static AppBuilder BuildAvaloniaApp() => Interface.GUI.AvaloniaGui.BuildAvaloniaApp();
-
+    internal static AppBuilder BuildAvaloniaApp()  {
+        return Interface.GUI.AvaloniaGui.BuildAvaloniaApp();
+    }
     /* :: :: Vars :: END :: */
     // //
     /* :: :: Main :: START :: */
@@ -29,16 +30,42 @@ internal static class Program {
 
             Trace.Listeners.Add(new TextWriterTraceListener(logPath));
             Trace.AutoFlush = true;
-            System.Diagnostics.Trace.WriteLine($"[EngineNet] Logging started at {System.DateTimeOffset.Now:u}");
+            Trace.WriteLine($"[EngineNet] Logging started at {System.DateTimeOffset.Now:u}");
         } catch (System.Exception ex) {
 #if DEBUG
-            System.Console.WriteLine($"WARN: Failed to initialize debug log '{logPath ?? "debug.log"}': {ex.Message}");
+            System.Console.Error.WriteLine($"WARN: Failed to initialize debug log '{logPath ?? "debug.log"}': {ex.Message}");
 #endif
         }
         try {
-            string root = GetRootPath(args) ?? TryFindProjectRoot(System.IO.Directory.GetCurrentDirectory())
-                                            ?? TryFindProjectRoot(System.AppContext.BaseDirectory)
-                                            ?? System.IO.Directory.GetCurrentDirectory();
+            string root;
+            string? explicitRoot = GetRootPath(args);
+            if (explicitRoot != null) {
+#if DEBUG
+                Trace.WriteLine($"[EngineNet] Using explicit root from --root: {explicitRoot}");
+#endif
+                root = explicitRoot;
+            } else {
+                string? foundRoot = TryFindProjectRoot(System.IO.Directory.GetCurrentDirectory());
+                if (foundRoot != null) {
+#if DEBUG
+                    Trace.WriteLine($"[EngineNet] Found project root from current directory: {foundRoot}");
+#endif
+                    root = foundRoot;
+                } else {
+                    foundRoot = TryFindProjectRoot(System.AppContext.BaseDirectory);
+                    if (foundRoot != null) {
+#if DEBUG
+                        Trace.WriteLine($"[EngineNet] Found project root from base directory: {foundRoot}");
+#endif
+                        root = foundRoot;
+                    } else {
+#if DEBUG
+                        Trace.WriteLine($"[EngineNet] No project root found, using current directory: {System.IO.Directory.GetCurrentDirectory()}");
+#endif
+                        root = System.IO.Directory.GetCurrentDirectory();
+                    }
+                }
+            }
 
             Core.Tools.IToolResolver tools = CreateToolResolver(root);
 
@@ -50,7 +77,7 @@ internal static class Program {
             // - Otherwise CLI (CLI handles additional args itself)
             bool onlyGuiFlag = args.Length == 1 && string.Equals(args[0], "--gui", System.StringComparison.OrdinalIgnoreCase);
             if (args.Length == 0 || onlyGuiFlag) {
-                return Interface.GUI.AvaloniaGui.Run(_engine);
+                return await Interface.GUI.AvaloniaGui.RunAsync(_engine);
             }
 
             // Interface selection:
@@ -58,14 +85,16 @@ internal static class Program {
             // - Otherwise CLI (CLI handles additional args itself)
             bool onlyTuiFlag = args.Length == 1 && string.Equals(args[0], "--tui", System.StringComparison.OrdinalIgnoreCase);
             if (onlyTuiFlag) {
-                return await new Interface.Terminal.TUI(_engine).RunInteractiveMenuAsync();
+                Interface.Terminal.TUI TUI = new Interface.Terminal.TUI(_engine);
+                return await TUI.RunInteractiveMenuAsync();
             }
 
             // if not gui run CLIApp with all args, it then uses CLI or TUI as needed
-            return await new Interface.Terminal.CLI(_engine).Run(args);
+            Interface.Terminal.CLI CLI = new Interface.Terminal.CLI(_engine);
+            return await CLI.RunAsync(args);
         } catch (System.Exception ex) {
 #if DEBUG
-            System.Diagnostics.Trace.WriteLine($"Engine Error: {ex}");
+            Trace.WriteLine($"Engine Error: {ex}");
 #endif
             return 1;
         }
@@ -110,7 +139,7 @@ internal static class Program {
             }
         } catch (System.Exception e) {
 #if DEBUG
-            System.Diagnostics.Trace.WriteLine($"Error finding project root: {e.Message}");
+            Trace.WriteLine($"Error finding project root: {e.Message}");
 #endif
         }
         return null;

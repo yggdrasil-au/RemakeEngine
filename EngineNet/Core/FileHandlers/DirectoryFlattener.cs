@@ -134,6 +134,9 @@ internal static class DirectoryFlattener {
             }
 
             switch (current) {
+                case "--verify":
+                    options.Verify = true;
+                    break;
                 case "--action":
                     options.Action = ExpectValue(args, ref i, current).ToLowerInvariant();
                     break;

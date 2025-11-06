@@ -51,12 +51,16 @@ public partial class LibraryPage:UserControl {
         Items.Add(item: new Row {
             Title = "Example Game (Installed)",
             IsBuilt = true,
-            PrimaryActionText = "Play"
+            PrimaryActionText = "Play",
+            ExePath = string.Empty,
+            ModuleName = string.Empty
         });
         Items.Add(item: new Row {
             Title = "Another Game (Not Installed)",
             IsBuilt = false,
-            PrimaryActionText = "Run All Build Operations"
+            PrimaryActionText = "Run All Build Operations",
+            ExePath = string.Empty,
+            ModuleName = string.Empty
         });
 
     }
@@ -100,13 +104,24 @@ public partial class LibraryPage:UserControl {
                 throw new System.InvalidOperationException(message: "Engine is not initialized.");
             }
 
-            var modules = _engine.ListModules();
+            var modules = _engine.Modules(Core.Utils.ModuleFilter.Installed);
+#if DEBUG
+            DebugWriteLine(message: $"[LibraryPage] Load(): Found {modules.Count} modules.");
+            // list all modules
+            foreach (var kv in modules) {
+                var m = kv.Value;
+                DebugWriteLine(message: $"[LibraryPage]   Module: {m.Name}, Installed: {m.IsInstalled}, Built: {m.IsBuilt}, Unverified: {m.IsUnverified}, Registered: {m.IsRegistered}");
+            }
+#endif
             foreach (var kv in modules) {
                 var m = kv.Value;
                 string name = m.Name;
                 string? exe = m.ExePath;
                 string title = string.IsNullOrWhiteSpace(m.Title) ? name : m.Title!;
-                string? gameRoot = m.GameRoot;
+                string gameRoot = m.GameRoot;
+                if (string.IsNullOrWhiteSpace(gameRoot)) {
+                    DebugWriteLine(message: $"[LibraryPage] Load(): Module '{name}' has no game root defined.");
+                }
 
                 bool isBuilt = m.IsBuilt;
                 bool isInstalled = m.IsInstalled;
@@ -135,7 +150,8 @@ public partial class LibraryPage:UserControl {
                 Items.Add(item: new Row {
                     Title = "No games found.",
                     ModuleName = "",
-                    PrimaryActionText = ""
+                    PrimaryActionText = "",
+                    ExePath = string.Empty
                 });
             }
         } catch (System.Exception ex) {
@@ -143,7 +159,8 @@ public partial class LibraryPage:UserControl {
             Items.Add(item: new Row {
                 Title = "Error loading games.",
                 ModuleName = "",
-                PrimaryActionText = ""
+                PrimaryActionText = "",
+                ExePath = string.Empty
             });
         }
     }
@@ -158,6 +175,9 @@ public partial class LibraryPage:UserControl {
             DebugWriteLine("[LibraryPage] Load() aborted: _engine is null.");
             throw new System.InvalidOperationException(message: "Engine is not initialized.");
         }
+        if (string.IsNullOrWhiteSpace(gameRoot)) {
+            return null;
+        }
         // 1) try <game_root>/icon.png
         string? icon = null;
         if (string.IsNullOrWhiteSpace(gameRoot)) {
@@ -167,7 +187,7 @@ public partial class LibraryPage:UserControl {
         }
 
         // 2) fallback to <project_root>/placeholder.png
-        string placeholder = System.IO.Path.Combine(_engine.GetRootPath(), "placeholder.png");
+        string placeholder = System.IO.Path.Combine(_engine.rootPath, "placeholder.png");
 
         string pick;
         if (!string.IsNullOrWhiteSpace(icon) && System.IO.File.Exists(icon)) {
@@ -239,21 +259,11 @@ public partial class LibraryPage:UserControl {
     /// Represents a single row/item in the library list.
     /// </summary>
     private sealed class Row {
-        public string ModuleName {
-            get; set;
-        } = "???";
-        public string Title {
-            get; set;
-        } = "??";
-        public string? ExePath {
-            get; set;
-        }
-        public Bitmap? Image {
-            get; set;
-        }
-        public bool IsBuilt {
-            get; set;
-        }
+        public required string ModuleName { get; set; }
+        public required string Title { get; set; }
+        public required string ExePath { get; set; }
+        public Bitmap? Image { get; set; }
+        public bool IsBuilt { get; set; }
         public bool IsInstalled { get; set; }
         public bool IsRegistered { get; set; }
         public bool IsUnverified { get; set; }

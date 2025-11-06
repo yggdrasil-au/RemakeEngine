@@ -1,15 +1,19 @@
+
+using System.IO;
+
 namespace EngineNet.Core.Utils;
 
 /// <summary>
 /// Represents a game module and its discovery/verification status.
 /// </summary>
 internal sealed class GameModuleInfo {
-    public string Name { get; set; } = string.Empty;
-    public string GameRoot { get; set; } = string.Empty;
-    public string? OpsFile { get; set; }
-    public string? ExePath { get; set; }
-    public string? Title { get; set; }
-
+    public required string Id { get; set; }
+    public required string Name { get; set; }
+    public required string GameRoot { get; set; }
+    public required string OpsFile { get; set; }
+    public required string ExePath { get; set; }
+    public required string Title { get; set; }
+    public required string Url { get; set; }
     public bool IsRegistered { get; set; }
     public bool IsInstalled { get; set; }
     public bool IsBuilt { get; set; }

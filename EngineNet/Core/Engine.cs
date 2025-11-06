@@ -11,33 +11,34 @@ namespace EngineNet.Core;
 internal sealed record RunAllResult(string Game, bool Success, int TotalOperations, int SucceededOperations);
 
 internal sealed class Engine {
-    private readonly string _rootPath;
-    private readonly Tools.IToolResolver _tools;
-    private readonly EngineConfig _engineConfig;
-    private readonly Core.Utils.Registries _registries;
-    private readonly Core.Utils.CommandBuilder _builder;
-    private readonly Core.Utils.GitTools _git;
 
-    internal Engine(string rootPath, Tools.IToolResolver tools, EngineConfig engineConfig) {
-        _rootPath = rootPath;
+    /* :: :: Vars :: Start :: */
+    // root path of the project
+    public string rootPath { get; }
+    private readonly Core.Tools.IToolResolver  _tools;
+    private readonly Core.EngineConfig         _engineConfig;
+    private readonly Core.Utils.Registries     _registries;
+    private readonly Core.Utils.CommandBuilder _builder;
+    private readonly Core.Utils.GitTools       _git;
+    private readonly Core.Utils.ModuleScanner _scanner;
+    /* :: :: Vars :: End :: */
+    //
+    /* :: :: Constructor :: Start :: */
+    // Constructor
+    internal Engine(string _rootPath, Tools.IToolResolver tools, EngineConfig engineConfig) {
+        rootPath = _rootPath;
         _tools = tools;
         _engineConfig = engineConfig;
         _registries = new Core.Utils.Registries(rootPath);
         _builder = new Core.Utils.CommandBuilder(rootPath);
         _git = new Core.Utils.GitTools(System.IO.Path.Combine(rootPath, "EngineApps", "Games"));
+        _scanner = new Core.Utils.ModuleScanner(rootPath, _registries);
     }
+    /* :: :: Constructor :: End :: */
 
-    // getters for primary values and objects
-
-    internal string GetRootPath() => _rootPath;
     internal Core.Utils.Registries GetRegistries() => _registries;
 
-    internal async System.Threading.Tasks.Task<RunAllResult> RunAllAsync(
-        string gameName,
-        Core.ProcessRunner.OutputHandler? onOutput = null,
-        Core.ProcessRunner.EventHandler? onEvent = null,
-        Core.ProcessRunner.StdinProvider? stdinProvider = null,
-        System.Threading.CancellationToken cancellationToken = default) {
+    internal async System.Threading.Tasks.Task<RunAllResult> RunAllAsync(string gameName, Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, System.Threading.CancellationToken cancellationToken = default) {
 
 #if DEBUG
         System.Diagnostics.Trace.WriteLine($"[ENGINE.cs] Starting RunAllAsync for game '{gameName}', onOutput: {(onOutput is null ? "null" : "set")}, onEvent: {(onEvent is null ? "null" : "set")}, stdinProvider: {(stdinProvider is null ? "null" : "set")}");
@@ -47,16 +48,16 @@ internal sealed class Engine {
             throw new System.ArgumentException("Game name is required.", nameof(gameName));
         }
 
-        Dictionary<string, object?> games = ListGames();
-        if (!games.TryGetValue(gameName, out object? infoObj) || infoObj is not IDictionary<string, object?> gameInfo) {
+        Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games = Modules(Core.Utils.ModuleFilter.All);
+        if (!games.TryGetValue(gameName, out EngineNet.Core.Utils.GameModuleInfo? gameInfo)) {
             throw new KeyNotFoundException($"Game '{gameName}' not found.");
         }
 
-        if (!gameInfo.TryGetValue("ops_file", out object? opsObj) || opsObj is not string opsFile || !System.IO.File.Exists(opsFile)) {
-            throw new System.IO.FileNotFoundException($"Operations file for '{gameName}' is missing.", opsObj?.ToString());
+        if (!System.IO.File.Exists(gameInfo.OpsFile)) {
+            throw new System.IO.FileNotFoundException($"Operations file for '{gameName}' is missing.", gameInfo.OpsFile);
         }
 
-        List<Dictionary<string, object?>> allOps = LoadOperationsList(opsFile);
+        List<Dictionary<string, object?>> allOps = LoadOperationsList(gameInfo.OpsFile);
         List<Dictionary<string, object?>> selected = new List<Dictionary<string, object?>>();
         foreach (Dictionary<string, object?> op in allOps) {
             if (IsFlagSet(op, "init")) {
@@ -150,8 +151,6 @@ internal sealed class Engine {
                         [key: "name"] = currentOperation,
                         [key: "message"] = ex.Message
                     });
-                } finally {
-                    ReloadProjectConfig();
                 }
 
                 overallSuccess &= ok;
@@ -186,11 +185,7 @@ internal sealed class Engine {
         return new RunAllResult(gameName, overallSuccess, selected.Count, succeeded);
     }
 
-    private static void EmitSequenceEvent(
-        Core.ProcessRunner.EventHandler? sink,
-        string evt,
-        string game,
-        IDictionary<string, object?>? extras = null) {
+    private static void EmitSequenceEvent(Core.ProcessRunner.EventHandler? sink, string evt, string game, IDictionary<string, object?>? extras = null) {
         if (sink is null) {
             return;
         }
@@ -343,18 +338,8 @@ internal sealed class Engine {
         public override string? ReadLine() => _provider();
     }
 
-    /// <summary>
-    /// Clones a game module repository into the local registry.
-    /// </summary>
-    /// <param name="url">Git remote URL.</param>
-    /// <returns>True if cloning succeeded.</returns>
     internal bool DownloadModule(string url) => _git.CloneModule(url);
 
-    /// <summary>
-    /// Loads a flat list of operations from a TOML or JSON file.
-    /// </summary>
-    /// <param name="opsFile">Path to operations.toml or operations.json.</param>
-    /// <returns>List of operation maps (dictionary of string to object).</returns>
     internal static List<Dictionary<string, object?>> LoadOperationsList(string opsFile) {
         string ext = System.IO.Path.GetExtension(opsFile);
         if (ext.Equals(".toml", System.StringComparison.OrdinalIgnoreCase)) {
@@ -402,40 +387,17 @@ internal sealed class Engine {
         return new List<Dictionary<string, object?>>();
     }
 
-    /// <summary>
-    /// Build a process command line from an operation and context using the underlying <see cref="Core.Utils.CommandBuilder"/>.
-    /// </summary>
-    /// <param name="currentGame">Selected game/module id.</param>
-    /// <param name="games">Map of known games.</param>
-    /// <param name="op">Operation object (script, args, prompts, etc.).</param>
-    /// <param name="promptAnswers">Prompt answers affecting CLI mapping.</param>
-    /// <returns>A list of parts: [exe, scriptPath, args...] or empty if no script.</returns>
-    internal List<string> BuildCommand(string currentGame, IDictionary<string, object?> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers) {
+    internal List<string> BuildCommand(string currentGame, Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers) {
         return _builder.Build(currentGame, games, _engineConfig.Data, op, promptAnswers);
     }
 
-    /// <summary>
-    /// Execute a previously built command line while streaming output and events.
-    /// </summary>
-    /// <param name="commandParts">Executable followed by its arguments.</param>
-    /// <param name="title">Human-friendly title for logs.</param>
-    /// <param name="onOutput">Optional callback for each output line.</param>
-    /// <param name="onEvent">Optional callback for structured events.</param>
-    /// <param name="stdinProvider">Optional provider for prompt responses.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>True on success (exit code 0), false otherwise.</returns>
     internal bool ExecuteCommand(IList<string> commandParts, string title, EngineNet.Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, IDictionary<string, object?>? envOverrides = null, CancellationToken cancellationToken = default) {
         // Delegate to ProcessRunner
         Core.ProcessRunner runner = new Core.ProcessRunner();
         return runner.Execute(commandParts, title, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, envOverrides: envOverrides, cancellationToken: cancellationToken);
     }
 
-    /// <summary>
-    /// Executes a single operation, delegating to embedded engines (Lua/JS), built-in handlers (engine),
-    /// or external processes depending on <c>script_type</c>.
-    /// </summary>
-    /// <returns>True on successful completion.</returns>
-    internal async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(string currentGame, IDictionary<string, object?> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, System.Threading.CancellationToken cancellationToken = default) {
+    internal async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(string currentGame, Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, System.Threading.CancellationToken cancellationToken = default) {
         string scriptType = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant() ?? "python";
         List<string> parts = _builder.Build(currentGame, games, _engineConfig.Data, op, promptAnswers);
         if (parts.Count < 2) {
@@ -466,8 +428,8 @@ internal sealed class Engine {
                 case "bms": {
                     try {
                         // Build context and resolve input/output/extension placeholders
-                        Core.Utils.ExecutionContextBuilder ctxBuilder = new Core.Utils.ExecutionContextBuilder(rootPath: _rootPath);
-                        System.Collections.Generic.Dictionary<string, object?> ctx = ctxBuilder.Build(currentGame: currentGame, games: games, engineConfig: _engineConfig.Data);
+                        Core.Utils.ExecutionContextBuilder ctxBuilder = new Core.Utils.ExecutionContextBuilder(rootPath: rootPath);
+                        Dictionary<string, object?> ctx = ctxBuilder.Build(currentGame: currentGame, games: games, engineConfig: _engineConfig.Data);
 
                         string inputDir = op.TryGetValue("input", out object? in0) ? in0?.ToString() ?? string.Empty : string.Empty;
                         string outputDir = op.TryGetValue("output", out object? out0) ? out0?.ToString() ?? string.Empty : string.Empty;
@@ -476,15 +438,15 @@ internal sealed class Engine {
                         string resolvedOutput = Core.Utils.Placeholders.Resolve(outputDir, ctx)?.ToString() ?? outputDir;
                         string? resolvedExt = extension is null ? null : Core.Utils.Placeholders.Resolve(extension, ctx)?.ToString() ?? extension;
 
-                        if (!games.TryGetValue(currentGame, out object? gobjBms) || gobjBms is not System.Collections.Generic.IDictionary<string, object?> gdictBms) {
+                        if (!games.TryGetValue(currentGame, out EngineNet.Core.Utils.GameModuleInfo? gobjBms)) {
                             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                         }
-                        string gameRootBms = gdictBms.TryGetValue("game_root", out object? grBms) ? grBms?.ToString() ?? string.Empty : string.Empty;
+                        string gameRootBms = gobjBms.GameRoot;
 
                         Core.ScriptEngines.QuickBmsScriptAction action = new Core.ScriptEngines.QuickBmsScriptAction(
                             scriptPath: scriptPath,
                             moduleRoot: gameRootBms,
-                            projectRoot: _rootPath,
+                            projectRoot: rootPath,
                             inputDir: resolvedInput,
                             outputDir: resolvedOutput,
                             extension: resolvedExt
@@ -500,14 +462,14 @@ internal sealed class Engine {
                 case "lua":
                 case "js": {
                     try {
-                        System.Collections.Generic.IEnumerable<string> argsEnum = args;
+                        IEnumerable<string> argsEnum = args;
                         Core.ScriptEngines.Helpers.IAction? act = Core.ScriptEngines.Helpers.EmbeddedActionDispatcher.TryCreate(
                             scriptType: scriptType,
                             scriptPath: scriptPath,
                             args: argsEnum,
                             currentGame: currentGame,
                             games: games,
-                            rootPath: _rootPath
+                            rootPath: rootPath
                         );
                         if (act is null) { result = false; break; }
                         await act.ExecuteAsync(_tools, cancellationToken);
@@ -523,10 +485,14 @@ internal sealed class Engine {
                     break;
                 }
             }
-        } finally {
-            // Ensure we pick up any config changes (e.g., init.lua writes config.toml)
-            ReloadProjectConfig();
+        } catch (System.Exception ex) {
+#if DEBUG
+            System.Diagnostics.Trace.WriteLine($"[Engine.cs] err running single op: {ex.Message}");
+#endif
+            Core.Utils.EngineSdk.PrintLine($"operation ERROR: {ex.Message}");
+            result = false;
         }
+
         // If the main operation succeeded, run any nested [[operation.onsuccess]] steps
         if (result && TryGetOnSuccessOperations(op, out List<Dictionary<string, object?>>? followUps) && followUps is not null) {
             foreach (Dictionary<string, object?> childOp in followUps) {
@@ -541,11 +507,7 @@ internal sealed class Engine {
         return result;
     }
 
-    /// <summary>
-    /// Executes built-in engine actions such as tool downloads, format extraction/conversion,
-    /// file validation, and folder rename helpers.
-    /// </summary>
-    internal async System.Threading.Tasks.Task<bool> ExecuteEngineOperationAsync(string currentGame, IDictionary<string, object?> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, System.Threading.CancellationToken cancellationToken = default) {
+    private async System.Threading.Tasks.Task<bool> ExecuteEngineOperationAsync(string currentGame, Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, System.Threading.CancellationToken cancellationToken = default) {
         if (!op.TryGetValue("script", out object? s) || s is null) {
 #if DEBUG
             System.Diagnostics.Trace.WriteLine("[Engine.OperationExecution] Missing 'script' value in engine operation");
@@ -576,14 +538,14 @@ internal sealed class Engine {
                 }
 
                 Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
-                if (!games.TryGetValue(currentGame, out object? gobj) || gobj is not IDictionary<string, object?> gdict) {
+                if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobj)) {
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                 }
                 // Built-in placeholders
-                string gameRoot = gdict.TryGetValue("game_root", out object? gr0) ? gr0?.ToString() ?? string.Empty : string.Empty;
+                string gameRoot = gobj.GameRoot;
                 ctx["Game_Root"] = gameRoot;
-                ctx["Project_Root"] = _rootPath;
-                ctx["Registry_Root"] = System.IO.Path.Combine(_rootPath, "EngineApps");
+                ctx["Project_Root"] = rootPath;
+                ctx["Registry_Root"] = System.IO.Path.Combine(rootPath, "EngineApps");
                 ctx["Game"] = new Dictionary<string, object?> {
                     ["RootPath"] = gameRoot,
                     ["Name"] = currentGame,
@@ -612,9 +574,9 @@ internal sealed class Engine {
 #endif
         }
                 cfgDict0["module_path"] = gameRoot;
-                cfgDict0["project_path"] = _rootPath;
+                cfgDict0["project_path"] = rootPath;
                 string resolvedManifest = Core.Utils.Placeholders.Resolve(manifest!, ctx)?.ToString() ?? manifest!;
-                string central = System.IO.Path.Combine(_rootPath, "EngineApps/Tools.json");
+                string central = System.IO.Path.Combine(rootPath, "EngineApps/Tools.json");
                 bool force = false;
                 if (promptAnswers.TryGetValue("force download", out object? fd) && fd is bool b1) {
                     force = b1;
@@ -624,7 +586,7 @@ internal sealed class Engine {
                     force = b2;
                 }
 
-                Tools.ToolsDownloader dl = new Tools.ToolsDownloader(_rootPath, central);
+                Tools.ToolsDownloader dl = new Tools.ToolsDownloader(rootPath, central);
                 await dl.ProcessAsync(resolvedManifest, force);
                 return true;
             }
@@ -635,14 +597,14 @@ internal sealed class Engine {
 
                 // Resolve args (used for both TXD and media conversions)
                 Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
-                if (!games.TryGetValue(currentGame, out object? gobj) || gobj is not IDictionary<string, object?> gdict2) {
+                if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobj)) {
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                 }
                 // Built-in placeholders
-                string gameRoot2 = gdict2.TryGetValue("game_root", out object? gr2a) ? gr2a?.ToString() ?? string.Empty : string.Empty;
+                string gameRoot2 = gobj.GameRoot;
                 ctx["Game_Root"] = gameRoot2;
-                ctx["Project_Root"] = _rootPath;
-                ctx["Registry_Root"] = System.IO.Path.Combine(_rootPath, "EngineApps");
+                ctx["Project_Root"] = rootPath;
+                ctx["Registry_Root"] = System.IO.Path.Combine(rootPath, "EngineApps");
                 ctx["Game"] = new Dictionary<string, object?> {
                     ["RootPath"] = gameRoot2,
                     ["Name"] = currentGame,
@@ -671,7 +633,7 @@ internal sealed class Engine {
 #endif
         }
                 cfgDict1["module_path"] = gameRoot2;
-                cfgDict1["project_path"] = _rootPath;
+                cfgDict1["project_path"] = rootPath;
 
                 List<string> args = new List<string>();
                 if (op.TryGetValue("args", out object? aobj) && aobj is IList<object?> aList) {
@@ -686,9 +648,7 @@ internal sealed class Engine {
                 // If format is TXD, use built-in extractor
 
                 if (string.Equals(format, "txd", System.StringComparison.OrdinalIgnoreCase)) {
-                    System.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
                     Core.Utils.EngineSdk.PrintLine("\n>>> Built-in TXD extraction");
-                    System.Console.ResetColor();
                     bool okTxd = FileHandlers.TxdExtractor.Main.Run(args);
                     return okTxd;
                 } else {
@@ -705,14 +665,14 @@ internal sealed class Engine {
 
                 // Resolve args (used for both TXD and media conversions)
                 Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
-                if (!games.TryGetValue(currentGame, out object? gobj) || gobj is not IDictionary<string, object?> gdict2) {
+                if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobj)) {
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                 }
                 // Built-in placeholders
-                string gameRoot3 = gdict2.TryGetValue("game_root", out object? gr3a) ? gr3a?.ToString() ?? string.Empty : string.Empty;
+                string gameRoot3 = gobj.GameRoot;
                 ctx["Game_Root"] = gameRoot3;
-                ctx["Project_Root"] = _rootPath;
-                ctx["Registry_Root"] = System.IO.Path.Combine(_rootPath, "EngineApps");
+                ctx["Project_Root"] = rootPath;
+                ctx["Registry_Root"] = System.IO.Path.Combine(rootPath, "EngineApps");
                 ctx["Game"] = new Dictionary<string, object?> {
                     ["RootPath"] = gameRoot3,
                     ["Name"] = currentGame,
@@ -742,7 +702,7 @@ internal sealed class Engine {
                 // ignore
                 }
                 cfgDict2["module_path"] = gameRoot3;
-                cfgDict2["project_path"] = _rootPath;
+                cfgDict2["project_path"] = rootPath;
 
                 List<string> args = new List<string>();
                 if (op.TryGetValue("args", out object? aobj) && aobj is IList<object?> aList) {
@@ -756,9 +716,7 @@ internal sealed class Engine {
 
                 if (string.Equals(tool, "ffmpeg", System.StringComparison.OrdinalIgnoreCase) || string.Equals(tool, "vgmstream", System.StringComparison.OrdinalIgnoreCase)) {
                     // attempt built-in media conversion (ffmpeg/vgmstream) using the same CLI args
-                    System.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
                     Core.Utils.EngineSdk.PrintLine("\n>>> Built-in media conversion");
-                    System.Console.ResetColor();
 #if DEBUG
                     System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: running media conversion with args: {string.Join(' ', args)}");
 #endif
@@ -766,9 +724,7 @@ internal sealed class Engine {
                     return okMedia;
                 } else if (string.Equals(tool, "ImageMagick", System.StringComparison.OrdinalIgnoreCase)) {
                     // attempt image conversion (ImageMagick) using the CLI args
-                    System.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
                     Core.Utils.EngineSdk.PrintLine("\n>>> Built-in image conversion");
-                    System.Console.ResetColor();
 #if DEBUG
                     System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: running image conversion with args: {string.Join(' ', args)}");
 #endif
@@ -784,14 +740,14 @@ internal sealed class Engine {
             case "validate-files":
             case "validate_files": {
                 Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
-                if (!games.TryGetValue(currentGame, out object? gobjValidate) || gobjValidate is not IDictionary<string, object?> gdictValidate) {
+                if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobjValidate)) {
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                 }
                 // Built-in placeholders
-                string gameRoot4 = gdictValidate.TryGetValue("game_root", out object? grValidate0) ? grValidate0?.ToString() ?? string.Empty : string.Empty;
+                string gameRoot4 = gobjValidate.GameRoot;
                 ctx["Game_Root"] = gameRoot4;
-                ctx["Project_Root"] = _rootPath;
-                ctx["Registry_Root"] = System.IO.Path.Combine(_rootPath, "EngineApps");
+                ctx["Project_Root"] = rootPath;
+                ctx["Registry_Root"] = System.IO.Path.Combine(rootPath, "EngineApps");
                 ctx["Game"] = new Dictionary<string, object?> {
                     ["RootPath"] = gameRoot4,
                     ["Name"] = currentGame,
@@ -820,7 +776,7 @@ internal sealed class Engine {
 #endif
         }
                 cfgDict3["module_path"] = gameRoot4;
-                cfgDict3["project_path"] = _rootPath;
+                cfgDict3["project_path"] = rootPath;
 
                 string? resolvedDbPath = null;
                 if (op.TryGetValue("db", out object? dbObj) && dbObj is not null) {
@@ -865,14 +821,14 @@ internal sealed class Engine {
             case "rename-folders":
             case "rename_folders": {
                 Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
-                if (!games.TryGetValue(currentGame, out object? gobj3) || gobj3 is not IDictionary<string, object?> gdict3) {
+                if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobj3)) {
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                 }
                 // Built-in placeholders
-                string gameRoot5 = gdict3.TryGetValue("game_root", out object? gr3) ? gr3?.ToString() ?? string.Empty : string.Empty;
+                string gameRoot5 = gobj3.GameRoot;
                 ctx["Game_Root"] = gameRoot5;
-                ctx["Project_Root"] = _rootPath;
-                ctx["Registry_Root"] = System.IO.Path.Combine(_rootPath, "EngineApps");
+                ctx["Project_Root"] = rootPath;
+                ctx["Registry_Root"] = System.IO.Path.Combine(rootPath, "EngineApps");
                 ctx["Game"] = new Dictionary<string, object?> {
                     ["RootPath"] = gameRoot5,
                     ["Name"] = currentGame,
@@ -901,7 +857,7 @@ internal sealed class Engine {
 #endif
         }
                 cfgDict4["module_path"] = gameRoot5;
-                cfgDict4["project_path"] = _rootPath;
+                cfgDict4["project_path"] = rootPath;
 
                 List<string> args = new List<string>();
                 if (op.TryGetValue("args", out object? aobjRename) && aobjRename is IList<object?> aListRename) {
@@ -913,24 +869,22 @@ internal sealed class Engine {
                     }
                 }
 
-                System.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
                 Core.Utils.EngineSdk.PrintLine("\n>>> Built-in folder rename");
                 Core.Utils.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
-                System.Console.ResetColor();
                 bool okRename = FileHandlers.FolderRenamer.Run(args);
                 return okRename;
             }
             case "flatten":
             case "flatten-folder-structure": {
                 Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
-                if (!games.TryGetValue(currentGame, out object? gobjFlatten) || gobjFlatten is not IDictionary<string, object?> gdictFlatten) {
+                if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobjFlatten)) {
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                 }
                 // Built-in placeholders
-                string gameRoot6 = gdictFlatten.TryGetValue("game_root", out object? grFlatten0) ? grFlatten0?.ToString() ?? string.Empty : string.Empty;
+                string gameRoot6 = gobjFlatten.GameRoot;
                 ctx["Game_Root"] = gameRoot6;
-                ctx["Project_Root"] = _rootPath;
-                ctx["Registry_Root"] = System.IO.Path.Combine(_rootPath, "EngineApps");
+                ctx["Project_Root"] = rootPath;
+                ctx["Registry_Root"] = System.IO.Path.Combine(rootPath, "EngineApps");
                 ctx["Game"] = new Dictionary<string, object?> {
                     ["RootPath"] = gameRoot6,
                     ["Name"] = currentGame,
@@ -959,7 +913,7 @@ internal sealed class Engine {
 #endif
                 }
                 cfgDict5["module_path"] = gameRoot6;
-                cfgDict5["project_path"] = _rootPath;
+                cfgDict5["project_path"] = rootPath;
 
                 List<string> argsFlatten = new List<string>();
                 if (op.TryGetValue("args", out object? aobjFlatten) && aobjFlatten is IList<object?> aListFlatten) {
@@ -971,9 +925,7 @@ internal sealed class Engine {
                     }
                 }
 
-                System.Console.ForegroundColor = System.ConsoleColor.DarkCyan;
                 Core.Utils.EngineSdk.PrintLine("\n>>> Built-in directory flatten");
-                System.Console.ResetColor();
                 bool okFlatten = FileHandlers.DirectoryFlattener.Run(argsFlatten);
                 return okFlatten;
             }
@@ -983,43 +935,6 @@ internal sealed class Engine {
         }
     }
 
-    private void ReloadProjectConfig() {
-        try {
-            string projectJson = System.IO.Path.Combine(_rootPath, "project.json");
-            if (!System.IO.File.Exists(projectJson)) {
-#if DEBUG
-                System.Diagnostics.Trace.WriteLine("[Engine.OperationExecution] ReloadProjectConfig: project.json not found");
-#endif
-                return;
-            }
-
-            using System.IO.FileStream fs = System.IO.File.OpenRead(projectJson);
-            using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(fs);
-            if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object) {
-                return;
-            }
-
-            Dictionary<string, object?> map = Core.Utils.Operations.ToMap(doc.RootElement);
-            IDictionary<string, object?>? data = _engineConfig.Data;
-            if (data is null) {
-                return;
-            }
-
-            data.Clear();
-            foreach (KeyValuePair<string, object?> kv in map) {
-                data[kv.Key] = kv.Value;
-            }
-        } catch (System.Exception ex) {
-            System.Console.ForegroundColor = System.ConsoleColor.Red;
-            Core.Utils.EngineSdk.PrintLine("error reloading project.json:");
-            Core.Utils.EngineSdk.PrintLine(ex.Message);
-            System.Console.ResetColor();
-        }
-    }
-
-    /// <summary>
-    /// Extracts any nested onsuccess operations from an operation map. Supports keys 'onsuccess' and 'on_success'.
-    /// </summary>
     private static bool TryGetOnSuccessOperations(IDictionary<string, object?> op, out List<Dictionary<string, object?>>? ops) {
         ops = null;
         if (op is null) return false;
@@ -1049,109 +964,35 @@ internal sealed class Engine {
         }
         return false;
     }
-    /// <summary>
-    /// Lists all discovered games (both installed and not) and enriches them with install information (like exe and title) if available.
-    /// </summary>
-    /// <returns>
-    /// A <code>Dictionary&lt;string, object?&gt;</code> where the key is the game's module name (string) and the value is another <code>Dictionary&lt;string, object?&gt;</code> containing game properties like 'game_root', 'ops_file', 'exe', and 'title'.
-    /// </returns>
-    internal Dictionary<string, object?> ListGames() {
-        Dictionary<string, object?> games = new Dictionary<string, object?>();
-        // Also look up installed games to enrich entries with exe/title when available
-        Dictionary<string, Core.Utils.GameInfo> installed = _registries.DiscoverBuiltGames();
-        foreach (KeyValuePair<string, Core.Utils.GameInfo> kv in _registries.DiscoverGames()) {
-            Dictionary<string, object?> info = new Dictionary<string, object?> {
-                ["game_root"] = kv.Value.GameRoot,
-                ["ops_file"] = kv.Value.OpsFile
-            };
-            if (installed.TryGetValue(kv.Key, out Core.Utils.GameInfo? gi)) {
-                if (!string.IsNullOrWhiteSpace(gi.ExePath))
-                    info["exe"] = gi.ExePath;
-                if (!string.IsNullOrWhiteSpace(gi.Title))
-                    info["title"] = gi.Title;
-            }
-            games[kv.Key] = info;
-        }
-        return games;
+
+    internal Dictionary<string, Core.Utils.GameModuleInfo> Modules(Core.Utils.ModuleFilter _Filter) {
+        return _scanner.Modules(_Filter);
     }
 
-    /// <summary>
-    /// Lists modules with unified status (registered/installed/built/unverified) and metadata.
-    /// </summary>
-    internal Dictionary<string, Core.Utils.GameModuleInfo> ListModules() {
-        Core.Utils.ModuleScanner scanner = new Core.Utils.ModuleScanner(rootPath: _rootPath, registries: _registries);
-        return scanner.ListModules();
-    }
-
-    /// <summary>
-    /// Gets a read-only dictionary of all modules registered with the engine's registries.
-    /// </summary>
-    /// <returns>
-    /// An <code>IReadOnlyDictionary&lt;string, object?&gt;</code> where the key is the module name and the value is an object containing module metadata.
-    /// </returns>
-    internal IReadOnlyDictionary<string, object?> GetRegisteredModules() {
-        return _registries.GetRegisteredModules();
-    }
-
-    /// <summary>
-    /// Checks if a specific module is currently installed by querying the game registries.
-    /// </summary>
-    /// <param name="name">The module name (string) to check.</param>
-    /// <returns>A <code>bool</code> (true) if the module is found in the list of installed games; otherwise, <code>false</code>.</returns>
-    internal bool IsModuleInstalled(string name) {
-        Dictionary<string, Core.Utils.GameInfo> games = _registries.DiscoverBuiltGames();
-        return games.ContainsKey(name);
-    }
-
-    /// <summary>
-    /// Gets the full file path to the executable for an installed game.
-    /// </summary>
-    /// <param name="name">The module name (string) of the game.</param>
-    /// <returns>
-    /// A <code>string?</code> representing the full path to the game's executable. 
-    /// Returns <code>null</code> if the game is not found or has no executable path defined.
-    /// </returns>
     internal string? GetGameExecutable(string name) {
         Dictionary<string, Core.Utils.GameInfo> games = _registries.DiscoverBuiltGames();
         return games.TryGetValue(name, out Core.Utils.GameInfo? gi) ? gi.ExePath : null;
     }
 
-    /// <summary>
-    /// Gets the root directory path for a game.
-    /// It prioritizes the installed game's location first, then falls back to the downloaded (but not yet installed) game directory.
-    /// </summary>
-    /// <param name="name">The module name (string) of the game.</param>
-    /// <returns>
-    /// A <code>string?</code> representing the path to the game's root directory. 
-    /// Returns <code>null</code> if the game cannot be found in either the installed or downloaded locations.
-    /// </returns>
     internal string? GetGamePath(string name) {
         // Prefer installed location first, then fall back to downloaded location
         Dictionary<string, Core.Utils.GameInfo> games = _registries.DiscoverBuiltGames();
         if (games.TryGetValue(name, out Core.Utils.GameInfo? gi))
             return gi.GameRoot;
-        string dir = System.IO.Path.Combine(_rootPath, "EngineApps", "Games", name);
+        string dir = System.IO.Path.Combine(rootPath, "EngineApps", "Games", name);
         return System.IO.Directory.Exists(dir) ? dir : null;
     }
 
-    /// <summary>
-    /// Attempts to launch an installed game using its registered executable and game path as the working directory.
-    /// </summary>
-    /// <param name="name">The module name (string) of the game to launch.</param>
-    /// <returns>
-    /// A <code>bool</code> (true) if the game process was started successfully; 
-    /// otherwise, <code>false</code> (e.g., if the executable is not found or an error occurs).
-    /// </returns>
     internal bool LaunchGame(string name) {
-        string root = GetGamePath(name) ?? _rootPath;
+        string root = GetGamePath(name) ?? rootPath;
         string gameToml = System.IO.Path.Combine(root, "game.toml");
 
         // Build placeholder context for resolution
-        System.Collections.Generic.Dictionary<string, object?> games = ListGames();
-        Core.Utils.ExecutionContextBuilder ctxBuilder = new Core.Utils.ExecutionContextBuilder(_rootPath);
-        System.Collections.Generic.Dictionary<string, object?> ctx;
+        Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games = Modules(Core.Utils.ModuleFilter.All);
+        Core.Utils.ExecutionContextBuilder ctxBuilder = new Core.Utils.ExecutionContextBuilder(rootPath);
+        Dictionary<string, object?> ctx;
         try { ctx = ctxBuilder.Build(currentGame: name, games: games, engineConfig: _engineConfig.Data); }
-        catch { ctx = new System.Collections.Generic.Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase) { ["Game_Root"] = root, ["Project_Root"] = _rootPath }; }
+        catch { ctx = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase) { ["Game_Root"] = root, ["Project_Root"] = rootPath }; }
 
         // Prefer rich config from game.toml if present
         string? exePath = null;
@@ -1201,7 +1042,7 @@ internal sealed class Engine {
         // If godot project specified, invoke godot
         if (!string.IsNullOrWhiteSpace(godotProject)) {
             try {
-                Core.Tools.ToolMetadataProvider provider = new Core.Tools.ToolMetadataProvider(projectRoot: _rootPath, resolver: _tools);
+                Core.Tools.ToolMetadataProvider provider = new Core.Tools.ToolMetadataProvider(projectRoot: rootPath, resolver: _tools);
                 (string? godotExe, _) = provider.ResolveExeAndVersion(toolId: "godot");
                 string godotPath = string.IsNullOrWhiteSpace(godotExe) ? _tools.ResolveToolPath("godot") : godotExe!;
                 if (!System.IO.File.Exists(godotPath)) return false;

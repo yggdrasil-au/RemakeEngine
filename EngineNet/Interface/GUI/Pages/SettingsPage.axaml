@@ -8,12 +8,13 @@
 
         <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBlock Text="Project Root:" VerticalAlignment="Center"/>
-            <TextBox Width="420" Text="{Binding ProjectRoot}" />
-            <Button Content="Browse" Command="{Binding Button_BrowseRoot_Click}"/>
-            <Button Content="Save" Command="{Binding Button_Save_Click}"/>
+            <TextBlock Width="420" Text="{Binding ProjectRoot}" />
         </StackPanel>
 
-        <TextBlock Text="{Binding Status}" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="Project Status:" VerticalAlignment="Center"/>
+            <TextBlock Width="420" Text="{Binding Status}" />
+        </StackPanel>
 
     </StackPanel>
 

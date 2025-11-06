@@ -65,7 +65,6 @@ internal sealed class Registries {
         return games;
     }
 
-
     internal Dictionary<string, GameInfo> DiscoverBuiltGames() {
         Dictionary<string, GameInfo> games = new Dictionary<string, GameInfo>(System.StringComparer.OrdinalIgnoreCase);
         if (!System.IO.Directory.Exists(_gamesRegistryPath)) {

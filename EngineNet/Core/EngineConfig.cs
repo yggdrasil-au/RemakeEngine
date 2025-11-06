@@ -1,5 +1,5 @@
-using System.Text.Json;
 using System.Collections.Generic;
+using System.Diagnostics;
 namespace EngineNet.Core;
 
 /// <summary>
@@ -54,26 +54,14 @@ internal sealed class EngineConfig {
                 return dict ?? new Dictionary<string, object?>();
             }
         } catch {
-            // Step 7: Swallow parsing/IO errors and fall through to empty map.
-            // Rationale: Config consumers often prefer "no config" over hard failure on corrupt files.
+            #if DEBUG
+            Trace.WriteLine($"[EngineConfig] Failed to load or parse JSON config file at '{filePath}'. Returning empty config.");
+            #endif
         }
 
         // Step 8: Missing file or error path -> empty config (safe default).
         return new Dictionary<string, object?>();
     }
 
-    /// <summary>
-    /// Recursively converts a <see cref="JsonElement"/> to idiomatic .NET objects:
-    /// - object  ? Dictionary&lt;string, object?&gt; (case-insensitive keys)
-    /// - Array   ? List&lt;object?&gt;
-    /// - string  ? string
-    /// - Number  ? long if possible, otherwise Double, otherwise raw text
-    /// - True/False ? bool
-    /// - Null/Undefined ? null
-    /// </summary>
-    private static object? ToDotNet(System.Text.Json.JsonElement el) {
-        // Legacy helper preserved for compatibility; delegate to unified converter.
-        return Utils.Converters.DocModelConverter.FromJsonElement(el);
-    }
 }
 

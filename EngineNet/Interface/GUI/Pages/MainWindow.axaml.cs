@@ -15,7 +15,7 @@ public partial class MainWindow:Window {
     /// </summary>
     public MainWindow() {
         InitializeComponent();
-        // dont load any page by default
+        ShowLibrary(); // default page
     }
 
     /// <summary>
@@ -25,8 +25,8 @@ public partial class MainWindow:Window {
         _engine = engine;
         DataContext = this;
         InitializeComponent();
-        // dont load any page by default
         TryWireBottomPanel();
+        ShowLibrary(); // default page
     }
 
     private void ShowLibrary() {
@@ -85,9 +85,8 @@ public partial class MainWindow:Window {
             }
         } catch {
 #if DEBUG
-// todo add trace writeline
+System.Diagnostics.Trace.WriteLine("Failed to wire bottom panel");
 #endif
-/* ignore */
 }
     }
 

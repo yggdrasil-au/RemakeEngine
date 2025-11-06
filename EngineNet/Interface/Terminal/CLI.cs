@@ -2,7 +2,6 @@
 
 using System.Linq;
 using System.Collections.Generic;
-using Tomlyn;
 
 
 namespace EngineNet.Interface.Terminal;
@@ -12,7 +11,7 @@ internal partial class CLI {
 
     internal CLI(Core.Engine engine) => _engine = engine;
 
-    internal async System.Threading.Tasks.Task<int> Run(string[] args) {
+    internal async System.Threading.Tasks.Task<int> RunAsync(string[] args) {
         // Strip global flags that Program.cs already handled, like --root PATH
         if (args.Length > 0) {
             List<string> list = new List<string>(args);
@@ -30,11 +29,6 @@ internal partial class CLI {
             args = list.ToArray();
         }
 
-        if (args.Length == 0) {
-            throw new System.NotImplementedException();
-            //return await new Interface.Terminal.TUI(_engine).RunInteractiveMenuAsync();
-        }
-
         if (IsInlineOperationInvocation(args)) {
             return RunInlineOperation(args);
         }
@@ -46,10 +40,6 @@ internal partial class CLI {
             case "--help":
                 PrintHelp();
                 return 0;
-            case "--tui":
-            case "--menu":
-                throw new System.NotImplementedException();
-                //return await new TUI(_engine).RunInteractiveMenuAsync();
             case "--list-games":
                 return ListGames();
             case "--list-ops":
@@ -62,12 +52,12 @@ internal partial class CLI {
     }
 
     private int ListGames() {
-        System.Collections.Generic.Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.ListModules();
+        Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.Modules(Core.Utils.ModuleFilter.All);
         if (modules.Count == 0) {
             System.Console.WriteLine("No modules found.");
             return 0;
         }
-        foreach (System.Collections.Generic.KeyValuePair<string, Core.Utils.GameModuleInfo> kv in modules) {
+        foreach (KeyValuePair<string, Core.Utils.GameModuleInfo> kv in modules) {
             Core.Utils.GameModuleInfo m = kv.Value;
             string state = m.DescribeState();
             System.Console.WriteLine($"- {m.Name}  (state: {state}; root: {m.GameRoot})");
@@ -76,7 +66,7 @@ internal partial class CLI {
     }
 
     private int ListOps(string game) {
-        System.Collections.Generic.Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.ListModules();
+        Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.Modules(Core.Utils.ModuleFilter.All);
         if (!modules.TryGetValue(game, out Core.Utils.GameModuleInfo? mod)) {
             System.Console.WriteLine($"Game '{game}' not found.");
             return 1;
@@ -99,13 +89,14 @@ internal partial class CLI {
     private static void PrintHelp() {
             System.Console.WriteLine(@"RemakeEngine
         TUI Usage:
-            engine [--root PATH] --tui (to launch terminal ui menu)
+            engine --tui (to launch terminal ui menu)
         CLI Usage:
-            engine [--root PATH] --list-games (to list available game modules)
-            engine [--root PATH] --list-ops <game> (to list available operations for a game module)
-            engine [--root PATH] --game_module <name|path> --script <action> [--script_type <type>] [--args ""...""] (to manually run an operation directly)
+            engine --list-games (to list available game modules)
+            engine --list-ops <game> (to list available operations for a game module)
+            engine --game_module <name|path> --script <action> [--script_type <type>] [--args ""...""] (to manually run an operation directly)
         Other commands:
-            engine [--root PATH] --gui (to launch GUI application)
+            --root ""PATH""
+            --gui
         ");
     }
 
@@ -132,7 +123,7 @@ internal partial class CLI {
             return 2;
         }
 
-        Dictionary<string, object?> games = _engine.ListGames();
+        Dictionary<string, Core.Utils.GameModuleInfo> games = _engine.Modules(Core.Utils.ModuleFilter.All);
         if (!TryResolveInlineGame(options, games, out string? gameName)) {
             System.Console.Error.WriteLine("ERROR: Unable to resolve the specified game/module.");
             return 1;
@@ -170,14 +161,21 @@ internal partial class CLI {
         return sawGame && sawScript;
     }
 
-    private static bool TryResolveInlineGame(InlineOperationOptions options, Dictionary<string, object?> games, out string? resolvedName) {
+    private static bool TryResolveInlineGame(InlineOperationOptions options, Dictionary<string, Core.Utils.GameModuleInfo> games, out string? resolvedName) {
         resolvedName = null;
+        string GameRoot;
+
+        if (options.GameRoot is null) {
+            GameRoot = string.Empty;
+        } else {
+            GameRoot = options.GameRoot;
+        }
 
         string? identifier = options.GameIdentifier;
-        string? preferredRoot = ResolveFullPathSafe(options.GameRoot);
+        string? preferredRoot = ResolveFullPathSafe(GameRoot);
 
         if (!string.IsNullOrWhiteSpace(identifier)) {
-            foreach (KeyValuePair<string, object?> kv in games) {
+            foreach (KeyValuePair<string, Core.Utils.GameModuleInfo> kv in games) {
                 if (string.Equals(kv.Key, identifier, System.StringComparison.OrdinalIgnoreCase)) {
                     resolvedName = kv.Key;
                     ApplyGameOverrides(games, resolvedName, preferredRoot, options.OpsFile);
@@ -187,9 +185,9 @@ internal partial class CLI {
 
             string? identifierPath = ResolveFullPathSafe(identifier);
             if (!string.IsNullOrWhiteSpace(identifierPath)) {
-                foreach (KeyValuePair<string, object?> kv in games) {
-                    if (kv.Value is Dictionary<string, object?> info && info.TryGetValue("game_root", out object? rootObj) && rootObj is not null) {
-                        string? existingRoot = ResolveFullPathSafe(rootObj.ToString());
+                foreach (KeyValuePair<string, Core.Utils.GameModuleInfo> kv in games) {
+                    if (kv.Value.GameRoot is not null) {
+                        string? existingRoot = ResolveFullPathSafe(kv.Value.GameRoot);
                         if (!string.IsNullOrWhiteSpace(existingRoot) && PathsEqual(existingRoot, identifierPath)) {
                             resolvedName = kv.Key;
                             ApplyGameOverrides(games, resolvedName, preferredRoot, options.OpsFile);
@@ -200,13 +198,19 @@ internal partial class CLI {
 
                 if (System.IO.Directory.Exists(identifierPath)) {
                     string inferredName = options.GameName ?? new System.IO.DirectoryInfo(identifierPath).Name;
-                    Dictionary<string, object?> info = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase) {
-                        ["game_root"] = identifierPath
+                    Core.Utils.GameModuleInfo moduleInfo = new Core.Utils.GameModuleInfo {
+                        Id = string.Empty,
+                        GameRoot = identifierPath,
+                        Name = string.Empty,
+                        OpsFile = string.Empty,
+                        ExePath = string.Empty,
+                        Title = string.Empty,
+                        Url = string.Empty
                     };
                     if (!string.IsNullOrWhiteSpace(options.OpsFile)) {
-                        info["ops_file"] = ResolveFullPathSafe(options.OpsFile);
+                        moduleInfo.OpsFile = ResolveFullPathSafe(options.OpsFile);
                     }
-                    games[inferredName] = info;
+                    games[inferredName] = moduleInfo;
                     resolvedName = inferredName;
                     return true;
                 }
@@ -214,13 +218,19 @@ internal partial class CLI {
         }
         if (!string.IsNullOrWhiteSpace(preferredRoot) && System.IO.Directory.Exists(preferredRoot)) {
             string inferredName = options.GameName ?? new System.IO.DirectoryInfo(preferredRoot).Name;
-            Dictionary<string, object?> info = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase) {
-                ["game_root"] = preferredRoot
+            Core.Utils.GameModuleInfo moduleInfo = new Core.Utils.GameModuleInfo {
+                Id = string.Empty,
+                GameRoot = preferredRoot,
+                Name = string.Empty,
+                OpsFile = string.Empty,
+                ExePath = string.Empty,
+                Title = string.Empty,
+                Url = string.Empty
             };
             if (!string.IsNullOrWhiteSpace(options.OpsFile)) {
-                info["ops_file"] = ResolveFullPathSafe(options.OpsFile);
+                moduleInfo.OpsFile = ResolveFullPathSafe(options.OpsFile);
             }
-            games[inferredName] = info;
+            games[inferredName] = moduleInfo;
             resolvedName = inferredName;
             return true;
         }
@@ -228,28 +238,32 @@ internal partial class CLI {
         return false;
     }
 
-    private static void ApplyGameOverrides(Dictionary<string, object?> games, string gameName, string? preferredRoot, string? opsFile) {
-        if (!games.TryGetValue(gameName, out object? infoObj) || infoObj is not Dictionary<string, object?> info) {
+    private static void ApplyGameOverrides(Dictionary<string, Core.Utils.GameModuleInfo> games, string gameName, string? preferredRoot, string? opsFile) {
+        if (!games.TryGetValue(gameName, out Core.Utils.GameModuleInfo? moduleInfo)) {
             return;
         }
 
         if (!string.IsNullOrWhiteSpace(preferredRoot)) {
-            info["game_root"] = preferredRoot;
+            moduleInfo.GameRoot = preferredRoot;
         }
 
         if (!string.IsNullOrWhiteSpace(opsFile)) {
-            info["ops_file"] = ResolveFullPathSafe(opsFile);
+            moduleInfo.OpsFile = ResolveFullPathSafe(opsFile);
         }
     }
 
-    private static string? ResolveFullPathSafe(string? path) {
+    private static string ResolveFullPathSafe(string path) {
         if (string.IsNullOrWhiteSpace(path)) {
-            return null;
+            return string.Empty;
         }
 
-        try {
-            return System.IO.Path.GetFullPath(path);
-        } catch {
+        if (System.IO.File.Exists(path) || System.IO.Directory.Exists(path)) {
+            try {
+                return System.IO.Path.GetFullPath(path);
+            } catch {
+                return path;
+            }
+        } else {
             return path;
         }
     }

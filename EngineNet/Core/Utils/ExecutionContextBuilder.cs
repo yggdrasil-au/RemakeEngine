@@ -15,7 +15,7 @@ internal sealed class ExecutionContextBuilder {
 
     internal Dictionary<string, object?> Build(
         string currentGame,
-        IDictionary<string, object?> games,
+        Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
         IDictionary<string, object?> engineConfig) {
         if (string.IsNullOrWhiteSpace(currentGame)) {
             throw new System.ArgumentException(message: "No game has been loaded.", paramName: nameof(currentGame));
@@ -23,16 +23,15 @@ internal sealed class ExecutionContextBuilder {
 
         Dictionary<string, object?> ctx = new Dictionary<string, object?>(engineConfig, System.StringComparer.OrdinalIgnoreCase);
 
-        if (!games.TryGetValue(currentGame, out object? g) || g is not IDictionary<string, object?> gdict) {
-            throw new System.Collections.Generic.KeyNotFoundException(message: $"Unknown game '{currentGame}'.");
+        if (!games.TryGetValue(currentGame, out EngineNet.Core.Utils.GameModuleInfo? g) || g is not GameModuleInfo gdict) {
+            throw new KeyNotFoundException(message: $"Unknown game '{currentGame}'.");
         }
 
-        string gameRoot = gdict.TryGetValue(key: "game_root", out object? gr) ? gr?.ToString() ?? string.Empty : string.Empty;
-        ctx[key: "Game_Root"] = gameRoot;
+        ctx[key: "Game_Root"] = gdict.GameRoot;
         ctx[key: "Project_Root"] = _rootPath;
         ctx[key: "Registry_Root"] = System.IO.Path.Combine(_rootPath, "EngineApps");
         ctx[key: "Game"] = new Dictionary<string, object?> {
-            [key: "RootPath"] = gameRoot,
+            [key: "RootPath"] = gdict.GameRoot,
             [key: "Name"] = currentGame,
         };
 
@@ -42,14 +41,14 @@ internal sealed class ExecutionContextBuilder {
         if (!reDict.TryGetValue(key: "Config", out object? cfg) || cfg is not IDictionary<string, object?> cfgDict) {
             reDict[key: "Config"] = cfgDict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
         }
-        cfgDict[key: "module_path"] = gameRoot;
+        cfgDict[key: "module_path"] = gdict.GameRoot;
         cfgDict[key: "project_path"] = _rootPath;
 
         try {
-            string cfgPath = System.IO.Path.Combine(gameRoot, "config.toml");
-            if (!string.IsNullOrWhiteSpace(gameRoot) && System.IO.File.Exists(cfgPath)) {
+            string cfgPath = System.IO.Path.Combine(gdict.GameRoot, "config.toml");
+            if (!string.IsNullOrWhiteSpace(gdict.GameRoot) && System.IO.File.Exists(cfgPath)) {
                 Dictionary<string, object?> fromToml = Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
-                foreach (System.Collections.Generic.KeyValuePair<string, object?> kv in fromToml) {
+                foreach (KeyValuePair<string, object?> kv in fromToml) {
                     if (!ctx.ContainsKey(kv.Key)) {
                         ctx[kv.Key] = kv.Value;
                     }

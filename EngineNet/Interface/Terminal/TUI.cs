@@ -1,6 +1,7 @@
 
 using System.Linq;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace EngineNet.Interface.Terminal;
 
@@ -14,9 +15,8 @@ internal class TUI {
 
     internal async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync() {
         // 1) Pick a game, or offer to download a module if none exist
-        System.Collections.Generic.Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.ListModules();
-        Dictionary<string, object?> games = ToGamesMap(modules);
-        while (games.Count == 0) {
+        Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.Modules(Core.Utils.ModuleFilter.Installed);
+        while (modules.Count == 0) {
             System.Console.Clear();
             System.Console.WriteLine("No games found in EngineApps/Games.");
             List<string> actions = new List<string> { "Download module...", "Exit" };
@@ -28,8 +28,7 @@ internal class TUI {
 
             if (actions[aidx].StartsWith("Download")) {
                 ShowDownloadMenu();
-                modules = _engine.ListModules();
-                games = ToGamesMap(modules);
+                modules = _engine.Modules(Core.Utils.ModuleFilter.All);
             }
         }
         // Allow managing modules from the game selection menu
@@ -39,7 +38,7 @@ internal class TUI {
             System.Console.WriteLine("Select a game:");
             List<string> gameMenu = new List<string>();
             List<string> gameKeyMap = new List<string>();
-            foreach (System.Collections.Generic.KeyValuePair<string, Core.Utils.GameModuleInfo> kv in modules) {
+            foreach (KeyValuePair<string, Core.Utils.GameModuleInfo> kv in modules) {
                 Core.Utils.GameModuleInfo m = kv.Value;
                 string display = $"{m.Name}  [{m.DescribeState()}]";
                 gameMenu.Add(display);
@@ -56,8 +55,7 @@ internal class TUI {
             string gsel = gameMenu[gidx];
             if (gsel.StartsWith("Download module")) {
                 ShowDownloadMenu();
-                modules = _engine.ListModules();
-                games = ToGamesMap(modules);
+                modules = _engine.Modules(Core.Utils.ModuleFilter.All);
                 continue; // show game list again
             }
             // Map selection index to actual module key
@@ -71,18 +69,17 @@ internal class TUI {
         }
 
         // 2) Load operations list and render menu
-        if (!games.TryGetValue(gameName, out object? infoObj) || infoObj is not Dictionary<string, object?> info) {
-            await System.Console.Error.WriteLineAsync(value: "Selected game not found.");
+        if (!modules.TryGetValue(gameName, out Core.Utils.GameModuleInfo? moduleInfo) || moduleInfo is not Core.Utils.GameModuleInfo info) {
+            Trace.WriteLine(value: "Selected game not found.");
             return 1;
         }
-        if (!info.TryGetValue(key: "ops_file", out object? of) || of is not string opsFile) {
-            await System.Console.Error.WriteLineAsync(value: "Selected game is missing ops_file.");
+        if (info.OpsFile is null) {
+            Trace.WriteLine(value: "Selected game is missing ops_file.");
             return 1;
         }
-        List<Dictionary<string, object?>> allOps = Core.Engine.LoadOperationsList(opsFile);
+        List<Dictionary<string, object?>> allOps = Core.Engine.LoadOperationsList(info.OpsFile);
         List<Dictionary<string, object?>> initOps = allOps.FindAll(op => op.TryGetValue(key: "init", out object? i) && i is bool b && b);
         List<Dictionary<string, object?>> regularOps = allOps.FindAll(op => !op.ContainsKey(key: "init") || !(op[key: "init"] is bool bb && bb));
-        //bool didRunInit = false;
 
         // Auto-run init operations once when a game is selected
         if (initOps.Count > 0) {
@@ -93,7 +90,7 @@ internal class TUI {
                 Dictionary<string, object?> answers = new Dictionary<string, object?>();
                 // Initialization runs non-interactively; use defaults when provided
                 CollectAnswersForOperation(op, answers, defaultsOnly: true);
-                bool ok = new Utils().ExecuteOp(_engine, gameName, games, op, answers);
+                bool ok = new Utils().ExecuteOp(_engine, gameName, modules, op, answers);
                 okAllInit &= ok;
             }
             //didRunInit = true;
@@ -155,19 +152,7 @@ internal class TUI {
                     System.Console.Clear();
                     System.Console.WriteLine($"Running operations for {gameName}...\n");
 
-                    Core.RunAllResult result = await _engine.RunAllAsync(
-                        gameName,
-                        
-                        // CHANGED: Use the method from Utils.cs
-                        onOutput: Utils.OnOutput,
-                        
-                        // CHANGED: Use the method from Utils.cs
-                        onEvent: Utils.OnEvent,
-
-                        stdinProvider: null  // Let System.Console.ReadLine() work normally for TUI
-                    );
-
-                    //didRunInit = true; // Mark init as done after run-all completes
+                    Core.RunAllResult result = await _engine.RunAllAsync(gameName, onOutput: Utils.OnOutput, onEvent: Utils.OnEvent, stdinProvider: null);
 
                     System.Console.WriteLine(result.Success
                         ? $"Completed successfully. ({result.SucceededOperations}/{result.TotalOperations} operations succeeded). Press any key to continue..."
@@ -175,6 +160,9 @@ internal class TUI {
                     System.Console.ReadKey(true);
                     continue;
                 } catch (System.Exception ex) {
+#if DEBUG
+                    Trace.WriteLine($"Error during Run All: {ex.Message}");
+#endif
                     System.Console.WriteLine($"Error during Run All: {ex.Message}");
                 }
             }
@@ -188,26 +176,11 @@ internal class TUI {
                 CollectAnswersForOperation(op, answers, defaultsOnly: false);
                 System.Console.Clear();
                 System.Console.WriteLine($"Running: {selection}\n");
-                bool ok = new Utils().ExecuteOp(_engine, gameName, games, op, answers);
+                bool ok = new Utils().ExecuteOp(_engine, gameName, modules, op, answers);
                 System.Console.WriteLine(ok ? "Completed successfully. Press any key to continue..." : "Operation failed. Press any key to continue...");
                 System.Console.ReadKey(true);
             }
         }
-    }
-
-    private static Dictionary<string, object?> ToGamesMap(System.Collections.Generic.Dictionary<string, Core.Utils.GameModuleInfo> modules) {
-        Dictionary<string, object?> map = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
-        foreach (System.Collections.Generic.KeyValuePair<string, Core.Utils.GameModuleInfo> kv in modules) {
-            Core.Utils.GameModuleInfo m = kv.Value;
-            // Only include modules with a usable ops file and known root
-            if (!string.IsNullOrWhiteSpace(m.OpsFile) && !string.IsNullOrWhiteSpace(m.GameRoot)) {
-                map[m.Name] = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase) {
-                    ["game_root"] = m.GameRoot,
-                    ["ops_file"] = m.OpsFile!
-                };
-            }
-        }
-        return map;
     }
 
     private static bool CanUseInteractiveMenu(int itemCount) {
@@ -360,9 +333,11 @@ internal class TUI {
             string choice = items[idx];
             if (choice.StartsWith("From registry")) {
                 // Load registry entries and list modules
-                IReadOnlyDictionary<string, object?> regs = _engine.GetRegisteredModules();
+                // filter to get only modules that are registered but not installed.
+                IReadOnlyDictionary<string, Core.Utils.GameModuleInfo> regs = _engine.Modules(Core.Utils.ModuleFilter.Uninstalled);
+
                 if (regs.Count == 0) {
-                    System.Console.WriteLine("No modules in registry. Press any key to go back...");
+                    System.Console.WriteLine("No uninstalled modules found in registry. Press any key to go back...");
                     System.Console.ReadKey(true);
                     continue;
                 }
@@ -377,12 +352,12 @@ internal class TUI {
                 }
 
                 string name = names[mIdx];
-                if (!regs.TryGetValue(name, out object? obj) || obj is not Dictionary<string, object?> mod) {
+                if (!regs.TryGetValue(name, out Core.Utils.GameModuleInfo? obj)) {
                     System.Console.WriteLine("Invalid module entry. Press any key...");
                     System.Console.ReadKey(true);
                     continue;
                 }
-                string? url = mod.TryGetValue("url", out object? u) ? u?.ToString() : null;
+                string? url = obj.Url;
                 if (string.IsNullOrWhiteSpace(url)) {
                     System.Console.WriteLine("Selected module has no URL. Press any key...");
                     System.Console.ReadKey(true);

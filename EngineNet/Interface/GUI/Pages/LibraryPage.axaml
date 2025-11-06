@@ -7,11 +7,12 @@
         <Border DockPanel.Dock="Left" Width="240" BorderThickness="1" Padding="8" Classes="card" Margin="8,0,8,0">
             <StackPanel>
                 <TextBlock Text="Modules" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                <ListBox x:Name="ModulesList"
-                         ItemsSource="{Binding Items}"
-                         SelectedItem="{Binding SelectedRow}"
-                         SelectionChanged="OnModuleSelected"
-                         HorizontalAlignment="Stretch">
+                <ListBox
+                    x:Name="ModulesList"
+                    ItemsSource="{Binding Items}"
+                    SelectedItem="{Binding SelectedRow}"
+                    SelectionChanged="OnModuleSelected"
+                    HorizontalAlignment="Stretch">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding ModuleName}"/>
@@ -58,8 +59,10 @@
                                                 <TextBlock Text="Built" Margin="8,2" Foreground="White" FontSize="11"/>
                                             </Border>
                                         </Grid>
-                                        <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold"
-                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock
+                                            Text="{Binding Title}"
+                                            FontSize="16" FontWeight="SemiBold"
+                                            TextTrimming="CharacterEllipsis"/>
                                         <WrapPanel>
                                             <Border Background="#4A4A4A" CornerRadius="8" Padding="6,2" IsVisible="{Binding IsRegistered}">
                                                 <TextBlock Text="Registered" Foreground="White" FontSize="11"/>

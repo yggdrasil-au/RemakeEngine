@@ -153,10 +153,6 @@ internal sealed class JsScriptAction:EngineNet.Core.ScriptEngines.Helpers.IActio
 
         internal JsValue colour_print(object? arg1, object? arg2 = null, object? arg3 = null) => color_print(arg1, arg2, arg3);
 
-        internal static string Ensure_project_config(string root) {
-            return Helpers.ConfigHelpers.EnsureProjectConfig(root);
-        }
-
         internal bool validate_source_dir(string dir) {
             try {
                 Helpers.ConfigHelpers.ValidateSourceDir(dir);

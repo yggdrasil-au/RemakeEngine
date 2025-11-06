@@ -48,7 +48,7 @@ internal static class DocModelConverter {
 
     internal static Dictionary<string, object?> FromTomlTable(Tomlyn.Model.TomlTable table) {
         Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
-        foreach (System.Collections.Generic.KeyValuePair<string, object> kv in table) {
+        foreach (KeyValuePair<string, object> kv in table) {
             dict[kv.Key] = FromTomlValue(kv.Value);
         }
         return dict;
