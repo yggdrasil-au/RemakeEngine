@@ -5,61 +5,23 @@
 ############################
 .vscode/
 .VSCodeCounter/
-.history/
-.vs/
 
-############################
-# Python / Testing
-############################
-__pycache__/
-**/__pycache__/
-*.pyc
-.pytest_cache/
-remakeengine/Scripts/activate/
+.history/
+**/.history/**
+
+.vs/
 
 EngineNet.Tests/TestResults/**
 
-coverage.opencover.xml
-
-
-############################
-# Godot
-############################
-/.godot/
-/godot/
-
-############################
+###########################
 # Build Artifacts / Dependencies
 ############################
-build/
-dist/
 bin/
 obj/
-EngineNet/Interface/GUI.Avalonia/bin/
-EngineNet/Interface/GUI.Avalonia/obj/
 *.csproj.user
 
 ############################
-# Logs
-############################
-*.log
-main.log
-
-############################
-# Configuration / Project History
-############################
-config.ini
-project.json
-
-############################
-# Asset / Texture Mapping Cache
-############################
-texture_mapping.json
-asset_mapping.json
-asset_map.sqlite
-
-############################
-# Tools & Local Tooling
+# Tools
 ############################
 /Tools/**
 Tools.local.json
@@ -69,13 +31,6 @@ Tools.local.json
 ############################
 remake-engine-docs/
 RemakeEngineDocs/
-
-############################
-# Generated Game Files (RemakeEngine output)
-############################
-/Game/
-/GameFiles/
-/game/
 
 ############################
 # Original Game Files (do not commit for licensing/copyright)
@@ -115,22 +70,11 @@ localereftableD4815ED6.txt
 *.vp6
 
 ############################
-# Tests / Debug / Investigation
-############################
-.test/
-test/
-investigation_tools/blank.blend
-investigation_tools/blank.blend1
-
-
-
-############################
 # Temporary / Backup / Archived
 ############################
 /TMP/
 dev/
 *.blend1
-# uv_map_extract/
 
 ############################
 # Repo/Submodules
@@ -138,10 +82,6 @@ dev/
 # ignore submodules file, the games modules are managed by the app, this is here for VS code to detect them
 .gitmodules
 EngineApps/Games/
-EngineApps/Games/demo/TMP/
-EngineApps/Games/demo/TMP/**
-EngineApps/Games/demo/TMP/lua-demo/
-EngineApps/Games/demo/TMP/lua-demo/**
 
 # dont ignore demo
 !EngineApps/Games/demo/
@@ -149,11 +89,6 @@ EngineApps/Games/demo/TMP/lua-demo/**
 !EngineApps/Games/demo/operations.toml
 !EngineApps/Games/demo/operations_commands.md
 !EngineApps/Games/demo/scripts/
+!EngineApps/Games/demo/scripts/*.lua
 !EngineApps/Games/demo/scripts/**
 
-
-############################
-# Misc Workspace
-############################
-sandbox/
-reverse_engineering_stuff/
