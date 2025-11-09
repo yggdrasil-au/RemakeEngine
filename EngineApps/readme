@@ -1,0 +1,4 @@
+# Tools.json
+blender:
+the exe path set to blender.exe however it can be set to blender-launcher.exe but blender.exe will produce cli ouput and error ouput unlike blender-launcher.exe,
+so blender.exe best for verbose logging and blender-launcher.exe best for silent running.

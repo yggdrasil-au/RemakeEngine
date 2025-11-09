@@ -242,10 +242,14 @@ internal class Utils {
         try {
             Dictionary<string, object?> safe = CloneForLogging(evt);
             string json = JsonSerializer.Serialize(safe, s_jsonOpts);
+#if DEBUG
             System.Diagnostics.Trace.WriteLine($"[TerminalEvent] {json}");
+#endif
         } catch (System.Exception ex) {
             try {
+#if DEBUG
                 System.Diagnostics.Trace.WriteLine($"[TerminalEvent] <serialization failed: {ex.Message}>");
+#endif
             } catch {
                 // ignore logging failures entirely
             }

@@ -30,7 +30,9 @@ internal static class Program {
 
             Trace.Listeners.Add(new TextWriterTraceListener(logPath));
             Trace.AutoFlush = true;
-            Trace.WriteLine($"[EngineNet] Logging started at {System.DateTimeOffset.Now:u}");
+#if DEBUG
+            Trace.WriteLine($"[EngineNet\\Program.cs] Logging started at {System.DateTimeOffset.Now:u}");
+#endif
         } catch (System.Exception ex) {
 #if DEBUG
             System.Console.Error.WriteLine($"WARN: Failed to initialize debug log '{logPath ?? "debug.log"}': {ex.Message}");

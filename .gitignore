@@ -92,3 +92,4 @@ EngineApps/Games/
 !EngineApps/Games/demo/scripts/*.lua
 !EngineApps/Games/demo/scripts/**
 
+debug.log
