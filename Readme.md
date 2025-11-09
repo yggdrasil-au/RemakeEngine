@@ -25,9 +25,9 @@ Project docs live at <https://github.com/yggdrasil-au/RemakeEngineDocs> with a w
 git clone https://github.com/yggdrasil-au/RemakeEngine.git
 cd RemakeEngine
 
-# Build and run tests
-dotnet build RemakeEngine.sln
-dotnet test RemakeEngine.sln --nologo
+# Build and run tests (solution-wide)
+dotnet build RemakeEngine.sln -c Debug
+dotnet test EngineNet.Tests/EngineNet.Tests.csproj -c Debug --no-build --logger "trx;LogFileName=test_results.trx"
 ```
 
 ### Run the Engine using one of the three UX options
@@ -41,6 +41,16 @@ dotnet run -c Release --project EngineNet --framework net9.0 -- --tui
 
 # CLI example, great for direct operation invocations
 dotnet run -c Release --project EngineNet --framework net9.0 -- --game_module "EngineApps/Games/demo" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua"
+```
+
+### Quick Demo Run
+Run the demo module’s Lua feature script with arguments as used for development validation:
+```pwsh
+dotnet run -c Release --project EngineNet --framework net9.0 -- \
+  --game_module "./EngineApps/Games/demo" \
+  --script_type lua \
+  --script "{{Game_Root}}/scripts/lua_feature_demo.lua" \
+  --args "[\"--module\", \"RemakeRegistry/Games/demo\", \"--scratch\", \"RemakeRegistry/Games/demo/TMP/lua-demo\", \"--note\", \"Hello from the Lua demo\"]"
 ```
 
 ## Continuous Integration & Releases
@@ -67,14 +77,27 @@ Run `dotnet build RemakeEngine.sln` and `dotnet test RemakeEngine.sln --nologo` 
 - `project.json` (auto-created on first run if missing) stores per-user settings such as project paths and tool overrides.
 - `Tools/` contains shared binaries or helper scripts. Module manifests declare dependencies that the engine can download via `ToolsDownloader`.
 
+JSON Schemas are included to help author and validate manifests in editors:
+- `json.schema/operations.schema.json` — operations files
+- `json.schema/config.schema.json` — engine configuration
+- `json.schema/game.schema.json` — game/module metadata
+- `json.schema/tools.schema.json` — tools manifests
+
 Manifest placeholders follow `{{PlaceholderName}}` syntax and are resolved with data from the engine config, module metadata, and TOML placeholder tables.
 
 ## Repository Layout
 ```text
 RemakeEngine/
+    EngineApps/                       # Game modules and registrys
+        Games/                        # Game modules
+            demo/                     # Demo game module
+                operations.json       # Sample operations manifest
+                config.toml           # Sample per-module config
+        register.json                 # Module registry listing registered game modules
+        Tools.json                    # Tool manifest registry
     EngineNet/                        # C# core engine and CLI entry point
     EngineNet.Tests/                  # Tests
-    EngineApps/                   # Game/module definitions and assets
+    json.schema/                      # JSON schemas
     Tools/                            # any tool downloaded by the engine
     project.json                      # Created on demand; local machine configuration
     RemakeEngine.sln                  # Solution file for builds and tests
