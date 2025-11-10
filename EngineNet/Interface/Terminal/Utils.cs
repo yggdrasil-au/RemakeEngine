@@ -229,6 +229,17 @@ internal class Utils {
                 // Intentionally do nothing here.
                 break;
 
+            case "run-all-op-end": {
+                WriteColored($"✔ Operation completed via run-all: {evt.GetValueOrDefault("name", "Unnamed")}", System.ConsoleColor.Green);
+                System.Console.WriteLine(""); // newline for separation
+                break;
+            }
+
+            case "run-all-op-start": {
+                WriteColored($"✔ Operation started via run-all: {evt.GetValueOrDefault("name", "Unnamed")}", System.ConsoleColor.Green);
+                break;
+            }
+
             default:
                 // Unknown event type, throw error, all events must be known
                 WriteColored($"✖ Unknown event type: {typ}", System.ConsoleColor.Red);
@@ -367,38 +378,46 @@ internal class Utils {
         _progressLastLines = 0;
         try {
             lock (s_consoleLock) {
-                // We can't clear, as "Run All" output is already printing.
-                // We must reserve rows.
-                _progressPanelTop = System.Console.CursorTop;
-                for (int i = 0; i < reserve; i++) {
+                int width;
+                int height;
+                try { width = System.Math.Max(20, System.Console.BufferWidth - 1); } catch { width = 120; }
+                try { height = System.Math.Max(10, System.Console.BufferHeight); } catch { height = 50; }
+
+                // Establish the top of the panel at current cursor row, clamped
+                int curTop;
+                try { curTop = System.Console.CursorTop; } catch { curTop = 0; }
+                _progressPanelTop = curTop;
+
+                // Compute the actual reserve we can fit
+                int available = System.Math.Max(1, height - _progressPanelTop - 1);
+                int actualReserve = System.Math.Max(1, System.Math.Min(reserve, available));
+
+                // Reserve rows by ensuring the cursor moves down enough
+                for (int i = 0; i < actualReserve; i++) {
                     System.Console.WriteLine();
                 }
 
-                try {
-                    System.Console.SetCursorPosition(0, _progressPanelTop);
-                } catch {
-#if DEBUG
-// todo add trace writeline
-#endif
-/* ignore */
-}
-                _progressLastLines = reserve;
+                // Reset cursor to top of panel
+                try { System.Console.SetCursorPosition(0, _progressPanelTop); } catch { /* ignore */ }
+                _progressLastLines = actualReserve;
             }
         } catch {
-            // As a last resort, keep defaults
+            // Fall back silently; drawing will use safe defaults
         }
     }
 
     internal static void HandleProgressPanelEnd() {
-        // Move cursor to the end of the panel area
+        // Leave the last rendered panel visible and move cursor just after it
         try {
             lock (s_consoleLock) {
-                System.Console.SetCursorPosition(0, _progressPanelTop + _progressLastLines);
-                System.Console.WriteLine(); // Final newline to move past the panel
+                int target = _progressPanelTop + _progressLastLines;
+                try { System.Console.SetCursorPosition(0, target); } catch { /* ignore */ }
+                System.Console.WriteLine();
             }
         } catch {
-            System.Console.WriteLine(); // Fallback
+            try { System.Console.WriteLine(); } catch { /* ignore */ }
         }
+        // Keep panel content intact; reset tracking so future panels reserve new space
         _progressLastLines = 0;
         _progressPanelTop = 0;
     }
@@ -430,19 +449,21 @@ internal class Utils {
             int skip = (stats.TryGetValue("skip", out object? sk) ? (sk as System.IConvertible)?.ToInt32(null) : 0) ?? 0;
             int err = (stats.TryGetValue("err", out object? e) ? (e as System.IConvertible)?.ToInt32(null) : 0) ?? 0;
             double percent = (stats.TryGetValue("percent", out object? pct) ? (pct as System.IConvertible)?.ToDouble(null) : 0.0) ?? 0.0;
-
             int width = 30;
             try {
-                width = System.Math.Max(10, System.Math.Min(40, System.Console.WindowWidth - 60));
-            } catch {
-#if DEBUG
-// todo add trace writeline
-#endif
-/* ignore */
-}
+                int buf = System.Math.Max(20, System.Console.BufferWidth);
+                // Keep the bar a reasonable fraction of buffer width
+                width = System.Math.Clamp(buf - 40, 10, 60);
+            } catch { width = 30; }
             int filled = (int)System.Math.Round(percent * width);
             System.Text.StringBuilder bar = new System.Text.StringBuilder(width + 48);
-            bar.Append(label);
+            // Truncate label to keep line short; Draw method still clamps
+            string lbl = label;
+            try {
+                int maxLabel = System.Math.Max(8, System.Math.Min(30, System.Console.BufferWidth - (width + 20)));
+                if (lbl.Length > maxLabel) lbl = lbl.Substring(0, maxLabel - 3) + "...";
+            } catch { /* ignore */ }
+            bar.Append(lbl);
             bar.Append(' ');
             bar.Append('[');
             for (int i = 0; i < width; i++) {
@@ -483,14 +504,7 @@ internal class Utils {
                     string elapsed = (job.TryGetValue("elapsed", out object? e) ? e?.ToString() : "...") ?? "...";
 
                     int maxFile = 50;
-                    try {
-                        maxFile = System.Math.Max(18, System.Console.WindowWidth - 20);
-                    } catch {
-#if DEBUG
-// todo add trace writeline
-#endif
-/* ignore */
-}
+                    try { maxFile = System.Math.Max(18, System.Console.BufferWidth - 20); } catch { maxFile = 50; }
                     if (file.Length > maxFile) {
                         file = file.Substring(0, maxFile - 3) + "...";
                     }
@@ -507,39 +521,35 @@ internal class Utils {
     private static void DrawTuiProgressPanel(IReadOnlyList<string> lines, ref int panelTop, ref int lastLines) {
         lock (s_consoleLock) {
             try {
-                System.Console.SetCursorPosition(0, panelTop);
-                int width;
-                try {
-                    width = System.Math.Max(20, System.Console.WindowWidth - 1);
-                } catch { width = 120; }
+                int width; try { width = System.Math.Max(20, System.Console.BufferWidth - 1); } catch { width = 120; }
+                int height; try { height = System.Math.Max(10, System.Console.BufferHeight); } catch { height = 50; }
 
-                // Draw new lines
-                for (int i = 0; i < lines.Count; i++) {
-                    string line = lines[i];
-                    if (line.Length > width) {
-                        line = line.Substring(0, width);
-                    }
-                    System.Console.Write(line.PadRight(width));
-                    if (i < lines.Count - 1) {
-                        System.Console.Write('\n');
-                    }
+                int maxLines = System.Math.Max(lastLines, lines.Count);
+                // Clamp panelTop into visible area if terminal resized
+                if (panelTop + maxLines >= height) {
+                    panelTop = System.Math.Max(0, height - maxLines - 1);
                 }
 
-                // Clear old lines
-                for (int i = lines.Count; i < lastLines; i++) {
-                    System.Console.Write('\n');
-                    System.Console.Write(new string(' ', System.Math.Max(20, System.Console.WindowWidth - 1)));
+                // Write each row in-place without newlines to avoid growing the buffer
+                for (int i = 0; i < maxLines; i++) {
+                    try { System.Console.SetCursorPosition(0, panelTop + i); } catch { /* ignore */ }
+                    if (i < lines.Count) {
+                        string line = lines[i];
+                        if (line.Length > width) line = line.Substring(0, width);
+                        System.Console.Write(line.PadRight(width));
+                    } else {
+                        System.Console.Write(new string(' ', width));
+                    }
                 }
 
                 lastLines = lines.Count;
-                System.Console.SetCursorPosition(0, panelTop + lastLines);
+                try { System.Console.SetCursorPosition(0, panelTop + lastLines); } catch { /* ignore */ }
             } catch {
                 try {
                     // Fallback for non-interactive console
-                    System.Console.Write("\r" + (lines.Count > 0 ? lines[0] : string.Empty));
-                } catch {
-                    // ignore
-                }
+                    string first = (lines.Count > 0 ? lines[0] : string.Empty);
+                    System.Console.Write("\r" + first);
+                } catch { /* ignore */ }
             }
         }
     }

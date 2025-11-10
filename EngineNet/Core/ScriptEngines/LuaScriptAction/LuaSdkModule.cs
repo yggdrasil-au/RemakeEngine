@@ -1,15 +1,7 @@
 using MoonSharp.Interpreter;
 
-
-using System;
 using System.IO;
-using System.Text.Json;
-using System.Threading.Tasks;
-using System.Linq;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Collections.Generic;
-using System.Collections;
 
 namespace EngineNet.Core.ScriptEngines.LuaModules;
 
@@ -146,6 +138,23 @@ internal static class LuaSdkModule {
         sdk["lexists"] = (System.Func<string, bool>)LuaFileSystemUtils.PathExistsIncludingLinks;
         sdk["is_dir"] = (System.Func<string, bool>)System.IO.Directory.Exists;
         sdk["is_file"] = (System.Func<string, bool>)System.IO.File.Exists;
+
+        sdk["is_writable"] = (System.Func<string, bool>)(path => {
+            try {
+                if (!Directory.Exists(path))
+                    return false;
+
+                string testFile = Path.Combine(path, Path.GetRandomFileName());
+
+                // Create a zero-byte file and delete it immediately when closed
+                using (File.Create(testFile, 1, FileOptions.DeleteOnClose)) {
+                }
+
+                return true;
+            } catch {
+                return false;
+            }
+        });
 
         sdk["remove_dir"] = (System.Func<string, bool>)(path => {
             try {

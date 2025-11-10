@@ -2,14 +2,14 @@
     "Lua.diagnostics.globals": [
         "tool",
         "argv",
+        "argc",
         "warn",
         "error",
-        "emit",
         "prompt",
         "progress",
+        "script_progress",
         "sdk",
         "sqlite",
-        "debug",
-        "package"
+        "lfs"
     ]
 }
