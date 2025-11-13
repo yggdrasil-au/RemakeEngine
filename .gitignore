@@ -51,7 +51,7 @@ localereftableD4815ED6.txt
 *.imb
 *.inf
 *.lh2
-*.lua
+#*.lua dont ignore lua, just dont accidentally commit original game scripts
 *.meta.xml
 *.mib
 *.msb
@@ -79,17 +79,19 @@ dev/
 ############################
 # Repo/Submodules
 ############################
+
+# ignore demo temporary files
+EngineApps/Games/demo/**/TMP/**
+EngineApps/Games/demo/TMP
+
 # ignore submodules file, the games modules are managed by the app, this is here for VS code to detect them
 .gitmodules
-EngineApps/Games/
+#EngineApps/Games/**/* ignore specific registerd games instead, to not ignore demo
+EngineApps/Games/TheSimpsonsGame-PS3/
+EngineApps/Games/TheSimpsonsGame-PS2/
+EngineApps/Games/TheSimpsonsRoadRage-PS2/
+EngineApps/Games/SimpsonsHitAndRun/
 
-# dont ignore demo
-!EngineApps/Games/demo/
-!EngineApps/Games/demo/Tools.toml
-!EngineApps/Games/demo/operations.toml
-!EngineApps/Games/demo/operations_commands.md
-!EngineApps/Games/demo/scripts/
-!EngineApps/Games/demo/scripts/*.lua
-!EngineApps/Games/demo/scripts/**
 
 debug.log
+EngineApps/Games/demo/config.toml

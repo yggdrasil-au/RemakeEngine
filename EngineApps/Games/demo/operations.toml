@@ -20,6 +20,110 @@ script = "{{Game_Root}}/config.lua"
 args = ["--group", "demo", "--key", "demo", "--value", "complete", "--type", "string"]
 
 
+[[operation]]
+run-all = false
+Name = "Download Tools"
+Instructions = "Uses the engine downloader to retrieve optional demo tooling."
+script_type = "engine"
+script = "download_tools"
+tools_manifest = "{{Game_Root}}/Tools.toml"
+
+[[operation]]
+id = 3
+Name = "Rename folders in specified directory, not recursive"
+run-all = true
+depends-on = []
+script_type = "engine"
+script = "rename-folders"
+args = ["{{Game_Root}}/Files/engine/rename-folders-demo", "--map-db-file", "{{Game_Root}}/config/RenameMap.db"]
+
+[[operation]]
+id = 6
+Name = "execute any QuickBMS script, eg (.zip -> extracted files)"
+run-all = true
+depends-on = []
+script_type = "bms"
+script = "{{Game_Root}}/scripts/zip.bms"
+input = "{{Game_Root}}/Files/bms/extract-demo"
+output = "{{Game_Root}}/Files/bms/TMP/extract-demo"
+extension = ".zip"
+
+[[operation]]
+id = 8
+Name = "Extract Textures (.txd -> .dds)"
+run-all = true
+depends-on = []
+script_type = "engine"
+script = "format-extract"
+format = "txd"
+args = ["{{Game_Root}}/Files/engine/txd-extract-demo"]
+
+[[operation]]
+id = 9
+Name = "Convert Textures (.dds -> .png)"
+run-all = true
+depends-on = []
+script_type = "engine"
+script = "format-convert"
+tool = "ImageMagick"
+args = [
+	"--source", "{{Game_Root}}/Files/engine/txd-extract-demo",
+	"--target", "{{Game_Root}}/Files/TMP/engine/txd-extract-demo",
+	"--input-ext", ".dds",
+	"--output-ext", ".png"
+]
+
+## convert videos into a usable format for godot
+[[operation]]
+id = 12
+Name = "Convert Videos (.mp4 -> .ogv)"
+run-all = true
+depends-on = []
+script_type = "engine"
+script = "format-convert"
+tool = "ffmpeg"
+args = [
+	"-m", "ffmpeg",
+	"--type", "video",
+	"-s", "{{Game_Root}}/Files/engine/format-convert-demo",
+	"-t", "{{Game_Root}}/Files/engine/format-convert-demo/TMP",
+	"-i", ".mp4",
+	"-o", ".ogv"
+]
+
+[[operation]]
+id = 13
+Name = "Convert Audio (.mp3 -> .wav)"
+run-all = true
+depends-on = [0]
+script_type = "engine"
+script = "format-convert"
+tool = "vgmstream"
+args = [
+	"-m", "vgmstream",
+	"--type", "audio",
+	"-s", "{{Game_Root}}/Files/engine/format-convert-demo",
+	"-t", "{{Game_Root}}/Files/engine/format-convert-demo/TMP",
+	"-i", ".mp3",
+	"-o", ".wav"
+]
+
+## NOT IMPLEMENTED, DEMO INPUT FILES NEED TO BE MANUALLY CREATED FIRST ##
+
+[[operation]]
+id = 1
+Name = "Validate Files and Folders"
+run-all = false
+depends-on = []
+script_type = "engine"
+script = "validate-files"
+db = "{{Game_Root}}/config/db.db"
+args = [
+	"{{Game_Root}}/Files/engine/validate-files-demo",
+	"--tables", "table1:column1,table2:column2",
+	"--required-dirs", "folder1||folder1.2,folder2||folder2.2",
+]
+
 
 [[operation]]
 run-all = false
@@ -43,123 +147,10 @@ message = "Message to log from the JavaScript demo"
 default = "Hello from the JavaScript demo"
 cli_arg_prefix = "--note"
 
+
 [[operation]]
 run-all = false
 Name = "Python Placeholder (Not implemented)"
 script_type = "python"
 script = "{{Game_Root}}/scripts/python_demo.py"
 args = []
-
-[[operation]]
-run-all = false
-Name = "Download Tools"
-Instructions = "Uses the engine downloader to retrieve optional demo tooling."
-script_type = "engine"
-script = "download_tools"
-tools_manifest = "{{Game_Root}}/Tools.toml"
-
-
-## NOT IMPLEMENTED, DEMO INPUT FILES NEED TO BE MANUALLY CREATED FIRST ##
-
-[[operation]]
-id = 1
-Name = "Validate Files and Folders"
-run-all = false
-depends-on = []
-script_type = "engine"
-script = "validate-files"
-db = "{{Game_Root}}/config/db.db"
-args = [
-	"{{Game_Root}}/Files/engine/validate-files-demo",
-	"--tables", "table1:column1,table2:column2",
-	"--required-dirs", "folder1||folder1.2,folder2||folder2.2",
-]
-
-[[operation]]
-id = 3
-Name = "Rename folders in specified directory, not recursive"
-run-all = true
-depends-on = []
-script_type = "engine"
-script = "rename-folders"
-args = ["{{Game_Root}}/Files/engine/rename-folders-demo", "--map-db-file", "{{Game_Root}}/config/RenameMap.db"]
-
-
-[[operation]]
-id = 6
-Name = "execute any QuickBMS script, if downloaded via Download Tools operation"
-run-all = true
-depends-on = []
-script_type = "bms"
-script = "{{Game_Root}}/scripts/zip.bms"
-input = "{{Game_Root}}/Files/bms/extract-demo"
-output = "{{Game_Root}}/Files/bms/TMP/extract-demo"
-extension = ".zip"
-
-
-[[operation]]
-id = 8
-Name = "Extract Textures (.txd -> .dds)"
-run-all = true
-depends-on = [0,7]
-script_type = "engine"
-script = "format-extract"
-format = "txd"
-args = ["{{Game_Root}}/GameFiles/{{STROUT}}"]
-
-[[operation]]
-id = 9
-Name = "Convert Textures (.dds -> .png)"
-run-all = true
-depends-on = [0,7,8,2]
-script_type = "engine"
-script = "format-convert"
-tool = "ImageMagick"
-args = [
-	"--source", "{{Game_Root}}/GameFiles/{{STROUT}}",
-	"--target", "{{Game_Root}}/GameFiles/{{STROUT}}",
-	"--input-ext", ".dds",
-	"--output-ext", ".png"
-]
-
-
-## convert videos into a usable format for godot
-[[operation]]
-id = 12
-Name = "Convert Videos (.vp6 -> .ogv)"
-run-all = true
-depends-on = [0,2] # depends on ffmpeg being downloaded
-script_type = "engine"
-script = "format-convert"
-tool = "ffmpeg"
-args = [
-	"-m", "ffmpeg",
-	"--type", "video",
-	## doesnt need to specify the location of the movies folder as its within the source path and {{STROUT}} and the only location vp6 files exist
-	"-s", "{{Game_Root}}",
-	"-t", "{{Game_Root}}/GameFiles/{{STROUT}}",
-	#"-f", "ffmpeg.exe",
-	"-i", ".vp6",
-	"-o", ".ogv"
-]
-
-## convert Audio into a usable format for godot
-[[operation]]
-id = 13
-Name = "Convert Audio (.snu -> .wav)"
-run-all = true
-depends-on = [0,2] # depends on vgmstream being downloaded, could depend on audio reorg but that is technically optional
-script_type = "engine"
-script = "format-convert"
-tool = "vgmstream"
-args = [
-	"-m", "vgmstream",
-	"--type", "audio",
-	## doesnt need to specify the location of the audiostreams folder as its within the source path and {{STROUT}} and the only location snu files exist
-	"-s", "{{Game_Root}}",
-	"-t", "{{Game_Root}}/GameFiles/{{STROUT}}",
-	#"--vgmstream-cli", "vgmstream-cli.exe",
-	"-i", ".snu",
-	"-o", ".wav",
-	"--godot-compatible"
-]
