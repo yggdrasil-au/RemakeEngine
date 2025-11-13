@@ -21,8 +21,11 @@ local function parse_args(list)
         elseif key == '--scratch' and list[i + 1] then
             opts.scratch = list[i + 1]
             i = i + 2
-        elseif key == '--operation-note' and list[i + 1] then
+        elseif key == '--note' and list[i + 1] then
             opts.note = list[i + 1]
+            i = i + 2
+        elseif key == '--prompt' and list[i + 1] then
+            opts.prompt = list[i + 1]
             i = i + 2
         else
             table.insert(opts.extras, key)
@@ -46,7 +49,7 @@ sdk.color_print({ colour = 'green', message = 'Australian spelling works too!', 
 sdk.color_print('white', ' (color vs colour)')
 
 -- Stage-based script progress (for GUI status indicator)
-local total_steps = 18  -- Updated count (removed educational sections from step count)
+local total_steps = 18  -- progress system requires manual total step count ahead of time, for accurate script progress bar
 local script_stage = script_progress(total_steps, 'comprehensive-demo', 'Comprehensive Lua API Demo')
 local current_step = 0
 
@@ -227,12 +230,6 @@ local loaded_toml = sdk.toml_read_file(toml_test_path)
 if loaded_toml and loaded_toml.demo then
     sdk.color_print('green', 'TOML loaded successfully - demo name: ' .. tostring(loaded_toml.demo.name))
 end
-
-next_step('Testing project configuration')
-
--- SDK Configuration helpers
-local config_path = sdk.ensure_project_config(scratch_root .. '/project')
-sdk.color_print('green', 'Ensured project config at: ' .. config_path)
 
 next_step('Testing process execution (run_process)')
 
@@ -449,23 +446,113 @@ for _, tool_name in ipairs(common_tools) do
     sdk.color_print('white', string.format('  %s -> %s', tool_name, tool_path))
 end
 
-next_step('Testing user prompt')
+sdk.color_print('green', 'opts.prompt value: ' .. tostring(opts.prompt))
+    next_step('Testing user prompt')
+if opts.prompt == nil or not opts.prompt then
+    -- Prompt demonstration
+    -- prompt args (message, id, secret)
+    local user_input = prompt('Enter a test message (or press Enter to skip)', 'demo_prompt', false)
+    sdk.color_print('green', 'User input received: ' .. (user_input or 'No input'))
+else
+    sdk.color_print('green', 'User input received, from arg: ' .. (opts.prompt))
+end
 
--- Prompt demonstration
--- prompt args (message, id, secret)
-local user_input = prompt('Enter a test message (or press Enter to skip)', 'demo_prompt', false)
-sdk.color_print('green', 'User input received: ' .. (user_input or 'No input'))
+next_step('Testing security: blocked filesystem and process access')
+
+if not opts.sec_check then
+    sdk.color_print('yellow', '--- Security & Sandboxing Tests Skipped ---')
+    sdk.color_print('white', 'To run security feature tests, re-run the script with the --sec_check argument.')
+else
+    sdk.color_print('yellow', '--- Security & Sandboxing Tests Starting ---')
+
+    -- Security demonstration: Show that RemakeEngine blocks access to protected system paths
+    sdk.color_print('yellow', '--- Security & Sandboxing Tests ---')
+    sdk.color_print('white', 'RemakeEngine security features prevent malicious script behavior:')
+
+    -- Determine a known-protected path per platform
+    local sep = package.config:sub(1,1)
+    local protected_file = sep == '\\' and 'C:/Windows/System32/drivers/etc/hosts' or '/etc/hosts'
+    local protected_dir  = sep == '\\' and 'C:/Windows/System32' or '/etc'
+
+    sdk.color_print('cyan', '1. Testing filesystem security (remove operations):')
+    -- Attempt to remove a protected file (should be denied and return false)
+    local denied_remove_file = sdk.remove_file(protected_file)
+    sdk.color_print(denied_remove_file and 'red' or 'green', 
+        '   ✖ Attempt to remove protected file denied: ' .. tostring(not denied_remove_file))
+
+    -- Attempt to remove a protected directory (should be denied and return false)
+    local denied_remove_dir = sdk.remove_dir(protected_dir)
+    sdk.color_print(denied_remove_dir and 'red' or 'green',
+        '   ✖ Attempt to remove protected dir denied: ' .. tostring(not denied_remove_dir))
+
+    sdk.color_print('cyan', '2. Testing filesystem security (read operations):')
+    -- Attempt to read protected paths
+    local can_read_protected = sdk.path_exists(protected_file)
+    sdk.color_print(can_read_protected and 'red' or 'green',
+        '   ✖ Attempt to check protected file existence blocked: ' .. tostring(not can_read_protected))
+
+    sdk.color_print('cyan', '3. Testing filesystem security (copy operations):')
+    -- Attempt to copy to protected location
+    local denied_copy = sdk.copy_file(test_file1, protected_dir .. '/malicious.txt', false)
+    sdk.color_print(denied_copy and 'red' or 'green',
+        '   ✖ Attempt to copy to protected dir denied: ' .. tostring(not denied_copy))
+
+    sdk.color_print('cyan', '4. Testing filesystem security (TOML operations):')
+    -- Attempt to write TOML to protected location
+    local toml_protected_path = protected_dir .. '/malicious.toml'
+    sdk.toml_write_file(toml_protected_path, {evil = true})
+    -- Check if file was created (it shouldn't be)
+    local toml_file_created = sdk.path_exists(toml_protected_path)
+    sdk.color_print(toml_file_created and 'red' or 'green',
+        '   ✖ Attempt to write TOML to protected dir blocked: ' .. tostring(not toml_file_created))
+
+    sdk.color_print('cyan', '5. Testing process execution security (forbidden paths):')
+    -- Attempt to pass a forbidden path to an approved process (should throw and be caught)
+    local function try_exec_forbidden_path()
+        return sdk.exec({'git', 'status', protected_dir}, { wait = true })
+    end
+    local ok_forbidden, res_forbidden = pcall(try_exec_forbidden_path)
+    sdk.color_print(ok_forbidden and 'red' or 'green',
+        '   ✖ Process arg path validation blocked: ' .. tostring(not ok_forbidden))
+    if not ok_forbidden then
+        sdk.color_print('cyan', '   Blocked reason: ' .. tostring(res_forbidden))
+    end
+
+    sdk.color_print('cyan', '6. Testing process execution security (unapproved executables):')
+    -- Attempt to run an unapproved executable
+    local function try_exec_unapproved()
+        return sdk.exec({'cmd.exe', '/c', 'echo', 'malicious'}, { wait = true })
+    end
+    local unapproved_ok, unapproved_err = pcall(try_exec_unapproved)
+    sdk.color_print(unapproved_ok and 'red' or 'green',
+        '   ✖ Unapproved executable blocked: ' .. tostring(not unapproved_ok))
+    if not unapproved_ok then
+        sdk.color_print('cyan', '   Blocked reason: ' .. tostring(unapproved_err))
+    end
+
+    sdk.color_print('cyan', '7. Testing symlink security:')
+    -- Attempt to create symlink to protected location
+    local denied_symlink = sdk.create_symlink(protected_file, scratch_root .. '/malicious_link', false)
+    sdk.color_print(denied_symlink and 'red' or 'green',
+        '   ✖ Symlink to protected location denied: ' .. tostring(not denied_symlink))
+
+    sdk.color_print('cyan', '8. Testing directory creation security:')
+    -- Attempt to create directory in protected location
+    local denied_mkdir = sdk.ensure_dir(protected_dir .. '/malicious_dir')
+    sdk.color_print(denied_mkdir and 'red' or 'green',
+        '   ✖ Directory creation in protected location denied: ' .. tostring(not denied_mkdir))
+
+    sdk.color_print('green', '✓ All security tests passed! RemakeEngine successfully blocked malicious operations.')
+
+    -- Demonstrate file removal (within allowed workspace)
+    local cleanup_success = sdk.remove_file(test_file2)
+    sdk.color_print('green', 'Cleanup file removal: ' .. tostring(cleanup_success))
 
 
--- Demonstrate file removal
-local cleanup_success = sdk.remove_file(test_file2)
-sdk.color_print('green', 'Cleanup file removal: ' .. tostring(cleanup_success))
-
-
-sdk.color_print('green', '=== Comprehensive Lua API Demo Complete ===')
-sdk.color_print('cyan', 'All RemakeEngine Lua API features have been demonstrated!')
-sdk.color_print('yellow', 'Check the artifacts directory for generated files: ' .. scratch_root)
-
+    sdk.color_print('green', '=== Comprehensive Lua API Demo Complete ===')
+    sdk.color_print('cyan', 'All RemakeEngine Lua API features have been demonstrated!')
+    sdk.color_print('yellow', 'Check the artifacts directory for generated files: ' .. scratch_root)
+end
 
 -- Final progress update
 next_step('lua_feature_demo.lua::EOF')

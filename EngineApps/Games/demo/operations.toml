@@ -1,3 +1,5 @@
+
+
 [[operation]]
 #init = true
 run-all = true
@@ -5,13 +7,19 @@ Name = "Lua Feature Showcase"
 Instructions = "Demonstrates the embedded Lua engine helpers."
 script_type = "lua"
 script = "{{Game_Root}}/scripts/lua_feature_demo.lua"
-args = ["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo"]
-
+args = ["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo", "--prompt", "prompt overide"]
 [[operation.prompts]]
 type = "text"
 Name = "lua_note"
 message = "Optional note to record in the Lua demo log"
-cli_arg_prefix = "--operation-note"
+cli_arg_prefix = "--note"
+[[operation.onsuccess]]
+Name = "set isRenamed placeholder"
+script_type = "lua"
+script = "{{Game_Root}}/config.lua"
+args = ["--group", "demo", "--key", "demo", "--value", "complete", "--type", "string"]
+
+
 
 [[operation]]
 run-all = false
@@ -53,70 +61,83 @@ tools_manifest = "{{Game_Root}}/Tools.toml"
 
 ## NOT IMPLEMENTED, DEMO INPUT FILES NEED TO BE MANUALLY CREATED FIRST ##
 
-
-## validates files and folders in the source path
 [[operation]]
-Name = "Validate Source Game Files and Folders"
-run-all = true
-Instructions = "Validate source (root) files using explicit table + required dir arguments"
+id = 1
+Name = "Validate Files and Folders"
+run-all = false
+depends-on = []
 script_type = "engine"
 script = "validate-files"
-db = "{{Game_Root}}/config/GameFilesIndex_{{Region}}_Full-{{isRenamed}}.db"
+db = "{{Game_Root}}/config/db.db"
 args = [
-	"{{SourcePath}}",
-	"--tables", "str_index:source_path,video_index:source_path,mus_index:source_path,snu_index:source_path",
-	"--required-dirs", "audiostreams||Assets_1_Audio_Streams,movies||Assets_1_Video_Movies,frontend||Assets_2_Frontend,simpsons_chars||Assets_2_Characters_Simpsons,spr_hub||Map_3-00_SprHub,loc||Map_3-01_LandOfChocolate,brt||Map_3-02_BartmanBegins,eighty_bites||Map_3-03_HungryHungryHomer,tree_hugger||Map_3-04_TreeHugger,mob_rules||Map_3-05_MobRules,cheater||Map_3-06_EnterTheCheatrix,dayofthedolphins||Map_3-07_DayOfTheDolphin,colossaldonut||Map_3-08_TheColossalDonut,dayspringfieldstoodstill||Map_3-09_Invasion,bargainbin||Map_3-10_BargainBin,gamehub||Map_3-00_GameHub,neverquest||Map_3-11_NeverQuest,grand_theft_scratchy||Map_3-12_GrandTheftScratchy,medal_of_homer||Map_3-13_MedalOfHomer,bigsuperhappy||Map_3-14_BigSuperHappy,rhymes||Map_3-15_Rhymes,meetthyplayer||Map_3-16_MeetThyPlayer",
+	"{{Game_Root}}/Files/engine/validate-files-demo",
+	"--tables", "table1:column1,table2:column2",
+	"--required-dirs", "folder1||folder1.2,folder2||folder2.2",
 ]
 
-## renames Source Game folders for clarity
-## it should be possible to run without but that case is not be fully tested
 [[operation]]
-Name = "Rename base folders"
-run-all = false
-Instructions = "run rename script"
+id = 3
+Name = "Rename folders in specified directory, not recursive"
+run-all = true
+depends-on = []
 script_type = "engine"
 script = "rename-folders"
-args = ["{{SourcePath}}", "--map-db-file", "{{Game_Root}}/config/RenameMap.db"]
-[[operation.onsuccess]]
-Name = "test"
-script_type = "lua"
-script = "{{Game_Root}}/config.lua"
-args = ["--group", "placeholders", "--key", "isRenamed", "--value", "1", "--type", "integer"]
+args = ["{{Game_Root}}/Files/engine/rename-folders-demo", "--map-db-file", "{{Game_Root}}/config/RenameMap.db"]
 
 
-## extract textures from texture dictionaries that were extracted from .str files
 [[operation]]
+id = 6
+Name = "execute any QuickBMS script, if downloaded via Download Tools operation"
+run-all = true
+depends-on = []
+script_type = "bms"
+script = "{{Game_Root}}/scripts/zip.bms"
+input = "{{Game_Root}}/Files/bms/extract-demo"
+output = "{{Game_Root}}/Files/bms/TMP/extract-demo"
+extension = ".zip"
+
+
+[[operation]]
+id = 8
 Name = "Extract Textures (.txd -> .dds)"
 run-all = true
+depends-on = [0,7]
 script_type = "engine"
 script = "format-extract"
 format = "txd"
-args = ["{{Game_Root}}/GameFiles/STROUT"]
+args = ["{{Game_Root}}/GameFiles/{{STROUT}}"]
 
 [[operation]]
+id = 9
 Name = "Convert Textures (.dds -> .png)"
 run-all = true
+depends-on = [0,7,8,2]
 script_type = "engine"
 script = "format-convert"
 tool = "ImageMagick"
 args = [
-	"--source", "{{Game_Root}}/GameFiles/STROUT",
-	"--target", "{{Game_Root}}/GameFiles/STROUT",
+	"--source", "{{Game_Root}}/GameFiles/{{STROUT}}",
+	"--target", "{{Game_Root}}/GameFiles/{{STROUT}}",
 	"--input-ext", ".dds",
 	"--output-ext", ".png"
 ]
+
+
 ## convert videos into a usable format for godot
 [[operation]]
+id = 12
 Name = "Convert Videos (.vp6 -> .ogv)"
 run-all = true
+depends-on = [0,2] # depends on ffmpeg being downloaded
 script_type = "engine"
 script = "format-convert"
 tool = "ffmpeg"
 args = [
 	"-m", "ffmpeg",
 	"--type", "video",
-	"-s", "{{SourcePath}}/movies",
-	"-t", "{{Game_Root}}/GameFiles/STROUT/movies",
+	## doesnt need to specify the location of the movies folder as its within the source path and {{STROUT}} and the only location vp6 files exist
+	"-s", "{{Game_Root}}",
+	"-t", "{{Game_Root}}/GameFiles/{{STROUT}}",
 	#"-f", "ffmpeg.exe",
 	"-i", ".vp6",
 	"-o", ".ogv"
@@ -124,21 +145,21 @@ args = [
 
 ## convert Audio into a usable format for godot
 [[operation]]
+id = 13
 Name = "Convert Audio (.snu -> .wav)"
 run-all = true
+depends-on = [0,2] # depends on vgmstream being downloaded, could depend on audio reorg but that is technically optional
 script_type = "engine"
 script = "format-convert"
 tool = "vgmstream"
 args = [
 	"-m", "vgmstream",
 	"--type", "audio",
-	"-s", "{{SourcePath}}/audiostreams",
-	"-t", "{{Game_Root}}/GameFiles/STROUT/audiostreams",
+	## doesnt need to specify the location of the audiostreams folder as its within the source path and {{STROUT}} and the only location snu files exist
+	"-s", "{{Game_Root}}",
+	"-t", "{{Game_Root}}/GameFiles/{{STROUT}}",
 	#"--vgmstream-cli", "vgmstream-cli.exe",
 	"-i", ".snu",
 	"-o", ".wav",
 	"--godot-compatible"
 ]
-
-
-

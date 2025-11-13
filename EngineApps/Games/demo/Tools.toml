@@ -1,44 +1,46 @@
 title = "demo Tools"
 
+
 [[tool]]
 name = "Blender"
-version = "4.0.2"
-destination = "./TMP/Downloads"
+version = "4.5.4"
+#version = "4.0.2"
+destination = "{{Game_Root}}/TMP/Downloads"
 unpack = true
-unpack_destination = "./Tools/Blender"
+unpack_destination = "{{Game_Root}}/Tools/Blender"
 
 [[tool]]
 name = "QuickBMS"
 version = "0.12.0"
-destination = "./TMP/Downloads"
+destination = "{{Project_Root}}/TMP/Downloads"
 unpack = true
-unpack_destination = "./Tools/QuickBMS/exe"
+unpack_destination = "{{Project_Root}}/Tools/QuickBMS/exe"
 
 [[tool]]
 name = "Godot"
 version = "4.5-stable-mono"
-destination = "./TMP/Downloads"
+destination = "{{Game_Root}}/TMP/Downloads"
 unpack = true
-unpack_destination = "./Tools/Godot"
+unpack_destination = "{{Game_Root}}/Tools/Godot"
 
 [[tool]]
 name = "vgmstream-cli"
 version = "r2023"
-destination = "./TMP/Downloads"
+destination = "{{Game_Root}}/TMP/Downloads"
 unpack = true
-unpack_destination = "./Tools/vgmstream-cli"
+unpack_destination = "{{Game_Root}}/Tools/vgmstream-cli"
 
 [[tool]]
 name = "ffmpeg"
 version = "8.0"
-destination = "./TMP/Downloads"
+destination = "{{Game_Root}}/TMP/Downloads"
 unpack = true
-unpack_destination = "./Tools/ffmpeg"
+unpack_destination = "{{Game_Root}}/Tools/ffmpeg"
 
 [[tool]]
 name = "ImageMagick"
 version = "7.1.2-8-Q16-HDRI"
-destination = "./TMP/Downloads"
+destination = "{{Game_Root}}/TMP/Downloads"
 unpack = true
-unpack_destination = "./Tools/ImageMagick"
+unpack_destination = "{{Game_Root}}/Tools/ImageMagick"
 

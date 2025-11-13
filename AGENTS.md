@@ -32,14 +32,11 @@ This is the documentation repository for the Remake Engine.
 
 Always test Engine functionality with the demo game module "demo" when making changes to the engine, using the cli direct operation execution commands
 ```pwsh
-dotnet run -c Release
- --project EngineNet
- --framework net9.0
- --
- --game_module ".\EngineApps\Games\demo\"
- --script_type lua
- --script "{{Game_Root}}/scripts/lua_feature_demo.lua"
- --args ["--module", "RemakeRegistry/Games/demo", "--scratch", "RemakeRegistry/Games/demo/TMP/lua-demo", "--note", "Hello from the Lua demo"]
+dotnet run -c Release --project EngineNet --framework net9.0 -- --game_module ".\EngineApps\Games\demo\" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua" --args '["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo", "--note", "Hello from the Lua demo", "--prompt", "prompt overide"]'
 ```
-when adding new new features, or changing existing features update the lua script to demonstrate the feature in the demo game module located at `EngineApps/Games/demo/scripts/lua_feature_demo.lua`
+or
+```pwsh
+dotnet run -c Debug --project EngineNet --framework net9.0 -- --game_module ".\EngineApps\Games\demo\" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua" --args '["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo", "--note", "Hello from the Lua demo", "--prompt", "prompt overide"]'
+```
+when adding new new features, or changing existing features update the lua script to demonstrate the feature in the demo game module located at `{{Game_Root}}/scripts/lua_feature_demo.lua`
 
