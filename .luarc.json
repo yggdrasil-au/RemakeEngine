@@ -10,6 +10,7 @@
         "script_progress",
         "sdk",
         "sqlite",
-        "lfs"
+        "lfs",
+        "DEBUG"
     ]
 }

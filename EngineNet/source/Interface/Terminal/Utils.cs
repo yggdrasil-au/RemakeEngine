@@ -182,7 +182,6 @@ internal class Utils {
             case "color_prompt":
                 string promptMsg = evt.TryGetValue("message", out object? pm) ? pm?.ToString() ?? "Input required" : "Input required";
                 string promptColorName = evt.TryGetValue("color", out object? pc) ? pc?.ToString() : "cyan";
-                System.Console.WriteLine("promptColorName: " + promptColorName); // blank line before prompt
                 _lastPrompt = promptMsg;
                 prev = System.Console.ForegroundColor;
                 try {

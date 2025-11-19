@@ -163,10 +163,10 @@ internal static class LuaSdkModule {
             }
         });
 
-        sdk["path_exists"] = (System.Func<string, bool>)(path => LuaSecurity.IsAllowedPath(path) && LuaFileSystemUtils.PathExists(path));
-        sdk["lexists"] = (System.Func<string, bool>)(path => LuaSecurity.IsAllowedPath(path) && LuaFileSystemUtils.PathExistsIncludingLinks(path));
-        sdk["is_dir"] = (System.Func<string, bool>)(path => LuaSecurity.IsAllowedPath(path) && System.IO.Directory.Exists(path));
-        sdk["is_file"] = (System.Func<string, bool>)(path => LuaSecurity.IsAllowedPath(path) && System.IO.File.Exists(path));
+        sdk["path_exists"] = (System.Func<string, bool>)(path => LuaSecurity.EnsurePathAllowedWithPrompt(path) && LuaFileSystemUtils.PathExists(path));
+        sdk["lexists"] = (System.Func<string, bool>)(path => LuaSecurity.EnsurePathAllowedWithPrompt(path) && LuaFileSystemUtils.PathExistsIncludingLinks(path));
+        sdk["is_dir"] = (System.Func<string, bool>)(path => LuaSecurity.EnsurePathAllowedWithPrompt(path) && System.IO.Directory.Exists(path));
+        sdk["is_file"] = (System.Func<string, bool>)(path => LuaSecurity.EnsurePathAllowedWithPrompt(path) && System.IO.File.Exists(path));
 
         sdk["is_writable"] = (System.Func<string, bool>)(path => {
             try {

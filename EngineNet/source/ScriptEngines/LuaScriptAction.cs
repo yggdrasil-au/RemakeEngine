@@ -196,6 +196,7 @@ internal sealed class LuaScriptAction : Helpers.IAction {
 
             try {
                 mode = mode ?? "r";
+                bool binaryMode = mode.Contains("b");
                 System.IO.FileStream? fs = null;
                 if (mode.Contains("r")) {
                     fs = new System.IO.FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read);
@@ -207,23 +208,87 @@ internal sealed class LuaScriptAction : Helpers.IAction {
 
                 if (fs != null) {
                     Table fileHandle = new Table(lua);
-                    fileHandle["read"] = (System.Func<string?, string?>)((readMode) => {
+                    
+                    // Implement file:read() with support for both text and binary modes
+                    fileHandle["read"] = (System.Func<DynValue, string?>)((readMode) => {
                         try {
-                            if (readMode == "*a" || readMode == "*all") {
-                                using System.IO.StreamReader reader = new System.IO.StreamReader(fs, leaveOpen: true);
-                                return reader.ReadToEnd();
-                            } else if (readMode == "*l" || readMode == "*line") {
-                                using System.IO.StreamReader reader = new System.IO.StreamReader(fs, leaveOpen: true);
-                                return reader.ReadLine();
+                            // Handle numeric argument: read N bytes (standard Lua behavior)
+                            if (readMode.Type == DataType.Number) {
+                                int count = (int)readMode.Number;
+                                if (count <= 0) return string.Empty;
+                                
+                                byte[] buffer = new byte[count];
+                                int bytesRead = fs.Read(buffer, 0, count);
+                                if (bytesRead == 0) return null; // EOF
+                                
+                                // Return as string with bytes preserved (Lua convention for binary data)
+                                return System.Text.Encoding.Latin1.GetString(buffer, 0, bytesRead);
+                            }
+                            
+                            // Handle string format specifiers
+                            string? format = readMode.Type == DataType.String ? readMode.String : readMode.ToPrintString();
+                            
+                            if (binaryMode) {
+                                // Binary mode: read operations return raw bytes as Latin1 strings
+                                if (format == "*a" || format == "*all") {
+                                    long remaining = fs.Length - fs.Position;
+                                    if (remaining == 0) return null;
+                                    byte[] buffer = new byte[remaining];
+                                    int bytesRead = fs.Read(buffer, 0, (int)remaining);
+                                    return System.Text.Encoding.Latin1.GetString(buffer, 0, bytesRead);
+                                } else if (format == "*l" || format == "*line") {
+                                    // Read until newline in binary mode
+                                    System.Collections.Generic.List<byte> lineBytes = new System.Collections.Generic.List<byte>();
+                                    int b;
+                                    while ((b = fs.ReadByte()) != -1) {
+                                        if (b == '\n') break;
+                                        if (b != '\r') lineBytes.Add((byte)b);
+                                    }
+                                    return lineBytes.Count == 0 && b == -1 ? null : System.Text.Encoding.Latin1.GetString(lineBytes.ToArray());
+                                }
+                            } else {
+                                // Text mode: use StreamReader for proper text handling
+                                if (format == "*a" || format == "*all") {
+                                    using System.IO.StreamReader reader = new System.IO.StreamReader(fs, leaveOpen: true);
+                                    return reader.ReadToEnd();
+                                } else if (format == "*l" || format == "*line") {
+                                    using System.IO.StreamReader reader = new System.IO.StreamReader(fs, leaveOpen: true);
+                                    return reader.ReadLine();
+                                }
                             }
                             return null;
                         } catch { return null; }
                     });
+                    
+                    // Implement file:seek() for binary file navigation
+                    fileHandle["seek"] = (System.Func<string?, long?, long?>)((whence, offset) => {
+                        try {
+                            whence = whence ?? "cur";
+                            offset = offset ?? 0;
+                            
+                            System.IO.SeekOrigin origin = whence switch {
+                                "set" => System.IO.SeekOrigin.Begin,
+                                "end" => System.IO.SeekOrigin.End,
+                                _ => System.IO.SeekOrigin.Current
+                            };
+                            
+                            return fs.Seek(offset.Value, origin);
+                        } catch { return null; }
+                    });
+                    
                     fileHandle["write"] = (System.Action<string>)((content) => {
                         try {
-                            using System.IO.StreamWriter writer = new System.IO.StreamWriter(fs, leaveOpen: true);
-                            writer.Write(content);
-                            writer.Flush();
+                            if (binaryMode) {
+                                // Binary mode: write raw bytes
+                                byte[] bytes = System.Text.Encoding.Latin1.GetBytes(content);
+                                fs.Write(bytes, 0, bytes.Length);
+                                fs.Flush();
+                            } else {
+                                // Text mode: use StreamWriter
+                                using System.IO.StreamWriter writer = new System.IO.StreamWriter(fs, leaveOpen: true);
+                                writer.Write(content);
+                                writer.Flush();
+                            }
                         } catch {
                             #if DEBUG
                             Trace.WriteLine("io.write failed");
@@ -298,6 +363,9 @@ internal sealed class LuaScriptAction : Helpers.IAction {
             return Core.Utils.EngineSdk.color_prompt(msg, col, pid, sec);
         });
         lua.Globals["colour_prompt"] = lua.Globals["color_prompt"]; // (Correct) AU spelling
+
+        // integrate #if DEBUG checks into lua to allow debug-only code paths when running engine with debugger attached
+        lua.Globals["DEBUG"] = System.Diagnostics.Debugger.IsAttached;
 
         // progress(total, id?, label?) -> Core.Utils.EngineSdk.PanelProgress userdata
         lua.Globals["progress"] = (System.Func<int, string?, string?, Core.Utils.EngineSdk.PanelProgress>)((total, id, label) => {

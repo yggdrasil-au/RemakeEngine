@@ -516,6 +516,8 @@ internal partial class CLI {
                         }
 #if DEBUG
                         System.Diagnostics.Trace.WriteLine($"DEBUG: --args parsed {options._args.Count} items");
+                        System.Diagnostics.Trace.WriteLine($"DEBUG: --args items: {string.Join(", ", options._args)}");
+                        System.Diagnostics.Trace.WriteLine($"DEBUG: --args raw value: {value}");
 #endif
                         break;
                     case "answer":

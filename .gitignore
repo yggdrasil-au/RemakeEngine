@@ -75,6 +75,7 @@ localereftableD4815ED6.txt
 /TMP/
 dev/
 *.blend1
+devtest_**.*
 
 ############################
 # Repo/Submodules
