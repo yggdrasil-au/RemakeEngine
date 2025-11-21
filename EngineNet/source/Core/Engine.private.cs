@@ -228,7 +228,7 @@ internal sealed partial class Engine {
                 cfgDict0["module_path"] = gameRoot;
                 cfgDict0["project_path"] = rootPath;
                 string resolvedManifest = Core.Utils.Placeholders.Resolve(manifest!, ctx)?.ToString() ?? manifest!;
-                string central = System.IO.Path.Combine(rootPath, "EngineApps/Tools.json");
+                string central = System.IO.Path.Combine(rootPath, "EngineApps", "Registries", "Tools", "Main.json");
                 bool force = false;
                 if (promptAnswers.TryGetValue("force download", out object? fd) && fd is bool b1) {
                     force = b1;

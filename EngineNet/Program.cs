@@ -149,11 +149,11 @@ internal static class Program {
 
     // Create a tool resolver based on available config files
     private static Core.Tools.IToolResolver CreateToolResolver(string root) {
-        // Prefer Tools.local.json if present, then Tools.json
+        // Prefer Tools.local.json if present, then "EngineApps", "Registries", "Tools", "Main.json"
         string EngineAppsDir = System.IO.Path.Combine(root, "EngineApps");
         string[] candidates = new[] {
             System.IO.Path.Combine(root, "Tools.local.json"), System.IO.Path.Combine(root, "tools.local.json"),
-            System.IO.Path.Combine(EngineAppsDir, "Tools.json"), System.IO.Path.Combine(EngineAppsDir, "tools.json"),
+            System.IO.Path.Combine(EngineAppsDir, "EngineApps", "Registries", "Tools", "Main.json"), System.IO.Path.Combine(EngineAppsDir, "EngineApps", "Registries", "Tools", "main.json"),
         };
         string? found = candidates.FirstOrDefault(System.IO.File.Exists);
         return !string.IsNullOrEmpty(found) ? new Core.Tools.JsonToolResolver(found) : new Core.Tools.PassthroughToolResolver();

@@ -22,7 +22,7 @@ internal static class LuaSdkModuleExtensions {
                     return true;
                 }
                 // For other formats, suggest using approved tools
-                Core.Utils.EngineSdk.Error($"Unsupported archive format '{ext}'. Use 7z tool from Tools.json for other formats.");
+                Core.Utils.EngineSdk.Error($"Unsupported archive format '{ext}'. Use 7z tool from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" for other formats.");
                 return false;
             } catch (System.Exception ex) {
                 Core.Utils.EngineSdk.Error($"Archive extraction failed: {ex.Message}");
@@ -54,7 +54,7 @@ internal static class LuaSdkModuleExtensions {
                     return true;
                 }
                 // For other formats, suggest using approved tools
-                Core.Utils.EngineSdk.Error($"Unsupported archive type '{type}'. Use 7z tool from Tools.json for other formats.");
+                Core.Utils.EngineSdk.Error($"Unsupported archive type '{type}'. Use 7z tool from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" for other formats.");
                 return false;
             } catch (System.Exception ex) {
                 Core.Utils.EngineSdk.Error($"Archive creation failed: {ex.Message}");

@@ -24,7 +24,7 @@ internal sealed class ToolsDownloader {
         }
 
         if (!System.IO.File.Exists(_centralRepoJsonPath)) {
-            // Attempt remote fallback to fetch Tools.json from the engine repo
+            // Attempt remote fallback to fetch "EngineApps", "Registries", "Tools", "Main.json" from the engine repo
             try {
                 System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(_centralRepoJsonPath)) ?? _rootPath);
             }  catch {
@@ -33,7 +33,7 @@ internal sealed class ToolsDownloader {
 #endif
         }
 
-            RemoteFallbacks.EnsureRepoFile("EngineApps/Tools.json", _centralRepoJsonPath);
+            RemoteFallbacks.EnsureRepoFile(System.IO.Path.Combine("EngineApps", "Registries", "Tools", "Main.json"), _centralRepoJsonPath);
         }
         if (!System.IO.File.Exists(_centralRepoJsonPath)) {
             throw new System.IO.FileNotFoundException("Central tools registry not found", _centralRepoJsonPath);

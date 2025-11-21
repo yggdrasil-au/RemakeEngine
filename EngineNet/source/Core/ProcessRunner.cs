@@ -289,7 +289,7 @@ internal sealed class ProcessRunner {
 
         // Approved RemakeEngine tools (case-insensitive)
         HashSet<string> approvedTools = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase) {
-            // Core RemakeEngine tools from Tools.json
+            // Core RemakeEngine tools from "EngineApps", "Registries", "Tools", "Main.json"
             "blender", "blender.exe", "blender-launcher.exe",
             "quickbms", "quickbms.exe",
             "godot", "godot.exe",
@@ -325,7 +325,7 @@ internal sealed class ProcessRunner {
         }
 
         // For unrecognized executables, provide guidance
-        onOutput?.Invoke($"SECURITY: Executable '{executable}' is not approved for RemakeEngine. Use registered tools from Tools.json or SDK methods for file operations.", "stderr");
+        onOutput?.Invoke($"SECURITY: Executable '{executable}' is not approved for RemakeEngine. Use registered tools from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" or SDK methods for file operations.", "stderr");
         return false;
     }
 }

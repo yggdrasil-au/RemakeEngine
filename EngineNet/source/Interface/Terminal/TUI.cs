@@ -320,7 +320,7 @@ internal class TUI {
             System.Console.Clear();
             System.Console.WriteLine("Download module:");
             List<string> items = new List<string> {
-                "From registry (EngineApps/register.json)...",
+                "From local registry (EngineApps\\Registries\\Modules)...",
                 "From Git URL...",
                 "Back"
             };

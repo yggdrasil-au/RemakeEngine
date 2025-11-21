@@ -14,15 +14,17 @@ internal sealed class Registries {
     internal Registries(string rootPath) {
         _rootPath = rootPath;
 
+        string Module_registry = System.IO.Path.Combine("EngineApps", "Registries", "Modules", "Main.json");
+
         // Preferred locations (relative to working root)
         string gamesRel = System.IO.Path.Combine(rootPath, "EngineApps", "Games");
-        string modulesRel = System.IO.Path.Combine(rootPath, "EngineApps", "register.json");
+        string modulesRel = System.IO.Path.Combine(rootPath, Module_registry);
 
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(modulesRel) ?? rootPath);
 
         // If modules registry JSON is missing, try to download from GitHub repo
         if (!System.IO.File.Exists(modulesRel)) {
-            RemoteFallbacks.EnsureRepoFile(System.IO.Path.Combine("EngineApps", "register.json"), modulesRel);
+            RemoteFallbacks.EnsureRepoFile(Module_registry, modulesRel);
         }
 
         _gamesRegistryPath = gamesRel;

@@ -104,7 +104,7 @@ public partial class StorePage:UserControl {
                 throw new InvalidOperationException(message: "Engine is not initialized.");
             }
 
-            // Get registered modules from EngineApps/register.json
+            // Get registered modules from EngineApps\Registries\Modules\Main.json
             _engine.GetRegistries().RefreshModules();
             IReadOnlyDictionary<string, object?> modules = _engine.GetRegistries().GetRegisteredModules();
 
