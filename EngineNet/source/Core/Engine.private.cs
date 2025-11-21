@@ -288,8 +288,9 @@ internal sealed partial class Engine {
                 cfgDict1["project_path"] = rootPath;
 
                 List<string> args = new List<string>();
-                if (op.TryGetValue("args", out object? aobj) && aobj is IList<object?> aList) {
-                    IList<object?> resolved = (IList<object?>)(Core.Utils.Placeholders.Resolve(aList, ctx) ?? new List<object?>());
+                if (op.TryGetValue("args", out object? aobj) && aobj is System.Collections.IList aList) {
+                    object? resolvedObj = Core.Utils.Placeholders.Resolve(aobj, ctx);
+                    System.Collections.IList resolved = resolvedObj as System.Collections.IList ?? aList;
                     foreach (object? a in resolved) {
                         if (a is not null) {
                             args.Add(a.ToString()!);
@@ -303,7 +304,14 @@ internal sealed partial class Engine {
                     Core.Utils.EngineSdk.PrintLine("\n>>> Built-in TXD extraction");
                     bool okTxd = FileHandlers.TxdExtractor.Main.Run(args);
                     return okTxd;
+                } else if (string.IsNullOrWhiteSpace(format)) {
+                    // Auto-detect format - default to TXD for now
+                    Core.Utils.EngineSdk.PrintLine("\n>>> Built-in TXD extraction (auto-detected)");
+                    bool okTxd = FileHandlers.TxdExtractor.Main.Run(args);
+                    return okTxd;
                 } else {
+                    Core.Utils.EngineSdk.PrintLine($"ERROR: format-extract does not support format '{format}'");
+                    Core.Utils.EngineSdk.PrintLine("Supported formats: txd (default)");
                     return false;
                 }
             }
@@ -312,8 +320,64 @@ internal sealed partial class Engine {
 #if DEBUG
                     System.Diagnostics.Trace.WriteLine("[Engine.OperationExecution] format-convert");
 #endif
-                // Determine tool
+                // Determine tool - check both 'tool' field and '-m'/'--mode' in args
                 string? tool = op.TryGetValue("tool", out object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
+                
+#if DEBUG
+                if (op.TryGetValue("args", out object? argsDebugObj)) {
+                    System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: args type = {argsDebugObj?.GetType().FullName ?? "null"}");
+                    if (argsDebugObj is System.Collections.IList argsDebugList) {
+                        System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: args count = {argsDebugList.Count}");
+                        for (int i = 0; i < argsDebugList.Count; i++) {
+                            System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: args[{i}] = '{argsDebugList[i]}'");
+                        }
+                    }
+                }
+#endif
+                
+                // If tool not specified, try to extract from args
+                if (string.IsNullOrWhiteSpace(tool) && op.TryGetValue("args", out object? argsObj)) {
+                    if (argsObj is System.Collections.IList argsList) {
+                        // Check for -m/--mode flag
+                        for (int i = 0; i < argsList.Count - 1; i++) {
+                            string arg = argsList[i]?.ToString() ?? string.Empty;
+                            if (arg == "-m" || arg == "--mode") {
+                                tool = argsList[i + 1]?.ToString()?.ToLowerInvariant();
+#if DEBUG
+                                System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: extracted tool from args: '{tool}'");
+#endif
+                                break;
+                            }
+                        }
+                        
+                        // If still no tool, try to infer from arguments pattern
+                        if (string.IsNullOrWhiteSpace(tool)) {
+                            bool hasSource = false;
+                            bool hasInputExt = false;
+                            bool hasOutputExt = false;
+                            bool hasType = false;
+                            
+                            foreach (object? a in argsList) {
+                                string arg = a?.ToString() ?? string.Empty;
+                                if (arg == "--source" || arg == "-s") hasSource = true;
+                                if (arg == "--input-ext" || arg == "-i") hasInputExt = true;
+                                if (arg == "--output-ext" || arg == "-o") hasOutputExt = true;
+                                if (arg == "--type") hasType = true;
+                            }
+                            
+                            // If has --source, --input-ext, --output-ext but no --type, likely ImageMagick
+                            if (hasSource && hasInputExt && hasOutputExt && !hasType) {
+                                tool = "imagemagick";
+#if DEBUG
+                                System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: inferred tool from args pattern: '{tool}'");
+#endif
+                            }
+                        }
+                    }
+                }
+#if DEBUG
+                System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: final tool = '{tool}'");
+#endif
 
                 // Resolve args (used for both TXD and media conversions)
                 Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
@@ -357,8 +421,9 @@ internal sealed partial class Engine {
                 cfgDict2["project_path"] = rootPath;
 
                 List<string> args = new List<string>();
-                if (op.TryGetValue("args", out object? aobj) && aobj is IList<object?> aList) {
-                    IList<object?> resolved = (IList<object?>)(Core.Utils.Placeholders.Resolve(aList, ctx) ?? new List<object?>());
+                if (op.TryGetValue("args", out object? aobj) && aobj is System.Collections.IList aList) {
+                    object? resolvedObj = Core.Utils.Placeholders.Resolve(aobj, ctx);
+                    System.Collections.IList resolved = resolvedObj as System.Collections.IList ?? aList;
                     foreach (object? a in resolved) {
                         if (a is not null) {
                             args.Add(a.ToString()!);
@@ -386,6 +451,9 @@ internal sealed partial class Engine {
 #if DEBUG
                     System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: unknown tool '{tool}'");
 #endif
+                    Core.Utils.EngineSdk.PrintLine($"ERROR: format-convert requires a valid tool. Found: '{tool ?? "(null)"}'");
+                    Core.Utils.EngineSdk.PrintLine("Supported tools: ffmpeg, vgmstream, ImageMagick");
+                    Core.Utils.EngineSdk.PrintLine("Specify tool with --tool parameter or -m/--mode in args.");
                     return false;
                 }
             }
@@ -444,8 +512,9 @@ internal sealed partial class Engine {
                 if (!string.IsNullOrWhiteSpace(resolvedDbPath)) {
                     argsValidate.Add(resolvedDbPath);
                 }
-                if (op.TryGetValue("args", out object? aobjValidate) && aobjValidate is IList<object?> aListValidate) {
-                    IList<object?> resolved = (IList<object?>)(Core.Utils.Placeholders.Resolve(aListValidate, ctx) ?? new List<object?>());
+                if (op.TryGetValue("args", out object? aobjValidate) && aobjValidate is System.Collections.IList aListValidate) {
+                    object? resolvedObj = Core.Utils.Placeholders.Resolve(aobjValidate, ctx);
+                    System.Collections.IList resolved = resolvedObj as System.Collections.IList ?? aListValidate;
                     for (int i = 0; i < resolved.Count; i++) {
                         object? a = resolved[i];
                         if (a is null) {
@@ -512,8 +581,9 @@ internal sealed partial class Engine {
                 cfgDict4["project_path"] = rootPath;
 
                 List<string> args = new List<string>();
-                if (op.TryGetValue("args", out object? aobjRename) && aobjRename is IList<object?> aListRename) {
-                    IList<object?> resolved = (IList<object?>)(Core.Utils.Placeholders.Resolve(aListRename, ctx) ?? new List<object?>());
+                if (op.TryGetValue("args", out object? aobjRename) && aobjRename is System.Collections.IList aListRename) {
+                    object? resolvedObj = Core.Utils.Placeholders.Resolve(aobjRename, ctx);
+                    System.Collections.IList resolved = resolvedObj as System.Collections.IList ?? aListRename;
                     foreach (object? a in resolved) {
                         if (a is not null) {
                             args.Add(a.ToString()!);
