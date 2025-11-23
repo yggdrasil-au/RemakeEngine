@@ -145,7 +145,8 @@
         "1.0.0": {
             "win-x64": {
                 "url": "https://modbakery.donutteam.com/release-branch-version-files/download/11/51/88/84",
-                "sha256": ""
+                "sha256": "",
+                "exe_name": "LRCFB.exe"
             }
         }
     },

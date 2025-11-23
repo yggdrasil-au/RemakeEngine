@@ -125,6 +125,9 @@ internal static class LuaSecurity {
         if (blockedUtilities.TryGetValue(exeName, out string? suggestion) ||
             blockedUtilities.TryGetValue(fullName, out suggestion)) {
             Core.Utils.EngineSdk.Error($"System utility '{executable}' is blocked for security. Use SDK alternative: {suggestion}");
+#if DEBUG
+            System.Diagnostics.Trace.WriteLine($"[LuaSecurity.cs::IsApprovedExecutable()] Blocked utility attempted: {executable}");
+#endif
             return false;
         }
 
@@ -134,7 +137,14 @@ internal static class LuaSecurity {
              executable.Contains("QuickBMS", System.StringComparison.OrdinalIgnoreCase) ||
              executable.Contains("Godot", System.StringComparison.OrdinalIgnoreCase) ||
              executable.Contains("vgmstream", System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("ffmpeg", System.StringComparison.OrdinalIgnoreCase))) {
+             executable.Contains("ffmpeg", System.StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("ImageMagick", System.StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("Lucas_Radcore_Cement_Library_Builder", System.StringComparison.OrdinalIgnoreCase))) {
+            return true;
+        } else if (executable.Contains("Tools", System.StringComparison.OrdinalIgnoreCase)) {
+#if DEBUG
+            System.Diagnostics.Trace.WriteLine($"[LuaSecurity.cs::IsApprovedExecutable()] Allowing executable in Tools directory: {executable}");
+#endif
             return true;
         }
 

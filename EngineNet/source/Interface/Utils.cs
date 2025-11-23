@@ -1,13 +1,9 @@
 namespace EngineNet.Interface;
 
 /// <summary>
-/// Global UI utility methods
+/// Global interface utility methods for GUI, TUI and CLI.
 /// </summary>
-internal class Utils {
-
-    internal Utils() {
-        //
-    }
+internal static class Utils {
 
 
 }

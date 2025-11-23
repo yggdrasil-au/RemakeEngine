@@ -11,7 +11,7 @@ namespace EngineNet.Core.Utils;
 /// </summary>
 public static class EngineSdk {
     /* :: :: Vars :: START :: */
-    public const string Prefix = "@@REMAKE@@ ";
+    //public const string Prefix = "@@REMAKE@@ ";
 
     // Optional in-process event sink. When set, Emit will invoke this delegate with the event payload. If <see cref="MuteStdoutWhenLocalSink"/>
     // is true, stdout emission is suppressed to avoid double-printing.
@@ -34,7 +34,7 @@ public static class EngineSdk {
     /// <summary>
     /// dont use directly.
     /// Emit a structured event line to stdout and flush immediately.
-    /// Event payloads are single-line JSON preceded by the <see cref="Prefix"/>.
+
     /// </summary>
     private static void Emit(string @event, IDictionary<string, object?>? data = null) {
         Dictionary<string, object?> payload = new Dictionary<string, object?>(System.StringComparer.Ordinal) {
@@ -71,7 +71,7 @@ public static class EngineSdk {
         }
 
         try {
-            System.Console.Out.Write(Prefix);
+            //System.Console.Out.Write(Prefix);
             System.Console.Out.WriteLine(json.Replace('\n', ' '));
             System.Console.Out.Flush();
         } catch {

@@ -57,7 +57,10 @@ internal sealed partial class Engine {
             throw new System.IO.FileNotFoundException($"Operations file for '{gameName}' is missing.", gameInfo.OpsFile);
         }
 
-        List<Dictionary<string, object?>> allOps = LoadOperationsList(gameInfo.OpsFile);
+        List<Dictionary<string, object?>>? allOps = LoadOperationsList(gameInfo.OpsFile);
+        if (allOps is null) {
+            throw new System.Exception($"Failed to load operations file for '{gameName}'.");
+        }
         List<Dictionary<string, object?>> selected = new List<Dictionary<string, object?>>();
         foreach (Dictionary<string, object?> op in allOps) {
             if (IsFlagSet(op, "init")) {
@@ -185,53 +188,64 @@ internal sealed partial class Engine {
         return new RunAllResult(gameName, overallSuccess, selected.Count, succeeded);
     }
 
-    internal bool DownloadModule(string url) => _git.CloneModule(url);
+    // Download a module from a git URL
+    internal bool DownloadModule(string url) {
+        return _git.CloneModule(url);
+    }
 
-    internal static List<Dictionary<string, object?>> LoadOperationsList(string opsFile) {
-        string ext = System.IO.Path.GetExtension(opsFile);
-        if (ext.Equals(".toml", System.StringComparison.OrdinalIgnoreCase)) {
-            Tomlyn.Syntax.DocumentSyntax tdoc = Tomlyn.Toml.Parse(System.IO.File.ReadAllText(opsFile));
-            Tomlyn.Model.TomlTable model = tdoc.ToModel();
-            List<Dictionary<string, object?>> list = new List<Dictionary<string, object?>>();
-            if (model is Tomlyn.Model.TomlTable table) {
-                foreach (KeyValuePair<string, object> kv in table) {
-                    if (kv.Value is Tomlyn.Model.TomlTableArray arr) {
-                        foreach (Tomlyn.Model.TomlTable item in arr) {
-                            if (item is Tomlyn.Model.TomlTable tt) {
-                                list.Add(Core.Utils.Operations.ToMap(tt));
+    internal static List<Dictionary<string, object?>>? LoadOperationsList(string opsFile) {
+        try {
+
+            string ext = System.IO.Path.GetExtension(opsFile);
+            if (ext.Equals(".toml", System.StringComparison.OrdinalIgnoreCase)) {
+                Tomlyn.Syntax.DocumentSyntax tdoc = Tomlyn.Toml.Parse(System.IO.File.ReadAllText(opsFile));
+                Tomlyn.Model.TomlTable model = tdoc.ToModel();
+                List<Dictionary<string, object?>> list = new List<Dictionary<string, object?>>();
+                if (model is Tomlyn.Model.TomlTable table) {
+                    foreach (KeyValuePair<string, object> kv in table) {
+                        if (kv.Value is Tomlyn.Model.TomlTableArray arr) {
+                            foreach (Tomlyn.Model.TomlTable item in arr) {
+                                if (item is Tomlyn.Model.TomlTable tt) {
+                                    list.Add(Core.Utils.Operations.ToMap(tt));
+                                }
                             }
                         }
                     }
                 }
+                return list;
             }
-            return list;
-        }
-		using System.IO.FileStream fs = System.IO.File.OpenRead(opsFile);
-        using System.Text.Json.JsonDocument jdoc = System.Text.Json.JsonDocument.Parse(fs);
-        if (jdoc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array) {
-            List<Dictionary<string, object?>> list = new List<Dictionary<string, object?>>();
-            foreach (System.Text.Json.JsonElement item in jdoc.RootElement.EnumerateArray()) {
-                if (item.ValueKind == System.Text.Json.JsonValueKind.Object) {
-                    list.Add(Core.Utils.Operations.ToMap(item));
+            using System.IO.FileStream fs = System.IO.File.OpenRead(opsFile);
+            using System.Text.Json.JsonDocument jdoc = System.Text.Json.JsonDocument.Parse(fs);
+            if (jdoc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array) {
+                List<Dictionary<string, object?>> list = new List<Dictionary<string, object?>>();
+                foreach (System.Text.Json.JsonElement item in jdoc.RootElement.EnumerateArray()) {
+                    if (item.ValueKind == System.Text.Json.JsonValueKind.Object) {
+                        list.Add(Core.Utils.Operations.ToMap(item));
+                    }
                 }
+                return list;
             }
-            return list;
-        }
-        if (jdoc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object) {
-            // Fallback: flatten grouped format into a single list (preserving group order)
-            List<Dictionary<string, object?>> flat = new List<Dictionary<string, object?>>();
-            foreach (System.Text.Json.JsonProperty prop in jdoc.RootElement.EnumerateObject()) {
-                if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Array) {
-                    foreach (System.Text.Json.JsonElement item in prop.Value.EnumerateArray()) {
-                        if (item.ValueKind == System.Text.Json.JsonValueKind.Object) {
-                            flat.Add(Core.Utils.Operations.ToMap(item));
+            if (jdoc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object) {
+                // Fallback: flatten grouped format into a single list (preserving group order)
+                List<Dictionary<string, object?>> flat = new List<Dictionary<string, object?>>();
+                foreach (System.Text.Json.JsonProperty prop in jdoc.RootElement.EnumerateObject()) {
+                    if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Array) {
+                        foreach (System.Text.Json.JsonElement item in prop.Value.EnumerateArray()) {
+                            if (item.ValueKind == System.Text.Json.JsonValueKind.Object) {
+                                flat.Add(Core.Utils.Operations.ToMap(item));
+                            }
                         }
                     }
                 }
+                return flat;
             }
-            return flat;
+            return new List<Dictionary<string, object?>>();
+        } catch (System.Exception ex) {
+#if DEBUG
+            System.Diagnostics.Trace.WriteLine($"[Engine.cs] err loading ops file '{opsFile}': {ex.Message}");
+#endif
+            return null;
         }
-        return new List<Dictionary<string, object?>>();
     }
 
     internal List<string> BuildCommand(string currentGame, Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers) {
@@ -355,6 +369,10 @@ internal sealed partial class Engine {
     }
 
     internal Dictionary<string, Core.Utils.GameModuleInfo> Modules(Core.Utils.ModuleFilter _Filter) {
+#if DEBUG
+        System.Diagnostics.Trace.WriteLine($"[Engine.cs::Modules()] Scanning modules with filter {_Filter}");
+        System.Diagnostics.Trace.WriteLine($"[Engine.cs::Modules()] {_scanner.Modules(_Filter).Count} found");
+#endif
         return _scanner.Modules(_Filter);
     }
 

@@ -31,7 +31,7 @@ internal static class Program {
             Trace.Listeners.Add(new TextWriterTraceListener(logPath));
             Trace.AutoFlush = true;
 #if DEBUG
-            Trace.WriteLine($"[EngineNet\\Program.cs] Logging started at {System.DateTimeOffset.Now:u}");
+            Trace.WriteLine($"[Program.cs::Main()] Logging started at {System.DateTimeOffset.Now:u}");
 #endif
         } catch (System.Exception ex) {
 #if DEBUG
@@ -43,26 +43,26 @@ internal static class Program {
             string? explicitRoot = GetRootPath(args);
             if (explicitRoot != null) {
 #if DEBUG
-                Trace.WriteLine($"[EngineNet] Using explicit root from --root: {explicitRoot}");
+                Trace.WriteLine($"[Program.cs::Main()] Using explicit root from --root: {explicitRoot}");
 #endif
                 root = explicitRoot;
             } else {
                 string? foundRoot = TryFindProjectRoot(System.IO.Directory.GetCurrentDirectory());
                 if (foundRoot != null) {
 #if DEBUG
-                    Trace.WriteLine($"[EngineNet] Found project root from current directory: {foundRoot}");
+                    Trace.WriteLine($"[Program.cs::Main()] Found project root from current directory: {foundRoot}");
 #endif
                     root = foundRoot;
                 } else {
                     foundRoot = TryFindProjectRoot(System.AppContext.BaseDirectory);
                     if (foundRoot != null) {
 #if DEBUG
-                        Trace.WriteLine($"[EngineNet] Found project root from base directory: {foundRoot}");
+                        Trace.WriteLine($"[Program.cs::Main()] Found project root from base directory: {foundRoot}");
 #endif
                         root = foundRoot;
                     } else {
 #if DEBUG
-                        Trace.WriteLine($"[EngineNet] No project root found, using current directory: {System.IO.Directory.GetCurrentDirectory()}");
+                        Trace.WriteLine($"[Program.cs::Main()] No project root found, using current directory: {System.IO.Directory.GetCurrentDirectory()}");
 #endif
                         root = System.IO.Directory.GetCurrentDirectory();
                     }

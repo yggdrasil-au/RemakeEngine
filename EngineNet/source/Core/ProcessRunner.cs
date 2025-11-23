@@ -7,7 +7,7 @@ namespace EngineNet.Core;
 
 /// <summary>
 /// Executes external processes while streaming output and handling structured
-/// engine events embedded in stdout/stderr. Lines starting with <see cref="EngineSdk.Prefix"/>
+
 /// are parsed as JSON event payloads and forwarded to <c>onEvent</c>.
 /// Supports interactive prompts by invoking <c>stdinProvider</c> when a prompt event is received.
 /// </summary>
@@ -113,12 +113,15 @@ internal sealed class ProcessRunner {
                     proc.StandardInput.WriteLine(text ?? string.Empty);
                     proc.StandardInput.Flush();
                 } catch {
-                /* ignore */
-}
+#if DEBUG
+                    System.Diagnostics.Trace.WriteLine("[ProcessRunner.cs::Execute()] Warning: Failed to write to child stdin.");
+#endif
+                    /* ignore */
+                }
             }
 
             string? HandleLine(string line, string streamName) {
-                if (line.StartsWith(Core.Utils.EngineSdk.Prefix, System.StringComparison.Ordinal)) {
+                /*if (line.StartsWith(Core.Utils.EngineSdk.Prefix, System.StringComparison.Ordinal)) {
                     string payload = line.Substring(Core.Utils.EngineSdk.Prefix.Length).Trim();
                     try {
                         Dictionary<string, object?> evt = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(payload) ?? new();
@@ -133,10 +136,10 @@ internal sealed class ProcessRunner {
                         onOutput?.Invoke(line, streamName);
                         return null;
                     }
-                } else {
+                } else {*/
                     onOutput?.Invoke(line, streamName);
                     return null;
-                }
+                //}
             }
 
             while (!proc.HasExited) {
@@ -316,16 +319,32 @@ internal sealed class ProcessRunner {
         // Allow executables that are in the Tools directory structure
         if (executable.Contains("Tools", System.StringComparison.OrdinalIgnoreCase) &&
             (executable.Contains("Blender", System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("bms", System.StringComparison.OrdinalIgnoreCase) ||
              executable.Contains("QuickBMS", System.StringComparison.OrdinalIgnoreCase) ||
              executable.Contains("Godot", System.StringComparison.OrdinalIgnoreCase) ||
              executable.Contains("vgmstream", System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("ffmpeg", System.StringComparison.OrdinalIgnoreCase))) {
+             executable.Contains("ffmpeg", System.StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("ImageMagick", System.StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("Lucas_Radcore_Cement_Library_Builder", System.StringComparison.OrdinalIgnoreCase))) {
+#if DEBUG
+            System.Diagnostics.Trace.WriteLine($"[ProcessRunner.cs::IsApprovedExecutable()] Allowing specific executable in Tools directory: {executable}");
+#endif
             return true;
+        } else if (executable.Contains("Tools", System.StringComparison.OrdinalIgnoreCase)) {
+#if DEBUG
+            System.Diagnostics.Trace.WriteLine($"[ProcessRunner.cs::IsApprovedExecutable()] Allowing executable in Tools directory: {executable}");
+#endif
+            return true;
+        } else {
+#if DEBUG
+            System.Diagnostics.Trace.WriteLine($"[ProcessRunner.cs::IsApprovedExecutable()] executable not in Tools directory: {executable}, disallowing.");
+#endif
         }
 
         // For unrecognized executables, provide guidance
         onOutput?.Invoke($"SECURITY: Executable '{executable}' is not approved for RemakeEngine. Use registered tools from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" or SDK methods for file operations.", "stderr");
+#if DEBUG
+        System.Diagnostics.Trace.WriteLine($"[ProcessRunner.cs::IsApprovedExecutable()] Blocked unrecognized executable: {executable}");
+#endif
         return false;
     }
 }

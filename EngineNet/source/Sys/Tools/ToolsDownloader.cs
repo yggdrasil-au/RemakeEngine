@@ -81,17 +81,38 @@ internal sealed class ToolsDownloader {
 
             string downloadDir = System.IO.Path.GetFullPath(System.IO.Path.Combine(_rootPath, destination ?? "./TMP/Downloads"));
             System.IO.Directory.CreateDirectory(downloadDir);
+            
+            // Initial filename from URL (may be incorrect for redirects)
             string fileName = System.IO.Path.GetFileName(new System.Uri(url).AbsolutePath);
             string archivePath = System.IO.Path.Combine(downloadDir, fileName);
             Info($"Download dir: {downloadDir}");
-            Info($"Archive: {archivePath}");
 
             if (!force && System.IO.File.Exists(archivePath)) {
+                Info($"Archive: {archivePath}");
                 Info("Archive exists. Skipping download (use force to re-download).");
             } else {
                 Info("Downloading...");
                 using System.Net.Http.HttpResponseMessage resp = await http.GetAsync(url, System.Net.Http.HttpCompletionOption.ResponseHeadersRead);
                 resp.EnsureSuccessStatusCode();
+
+                // Try to get the real filename from Content-Disposition header or final URL after redirects
+                string? realFileName = null;
+                if (resp.Content.Headers.ContentDisposition?.FileName != null) {
+                    realFileName = resp.Content.Headers.ContentDisposition.FileName.Trim('"');
+                    // Decode URL-encoded characters in the filename
+                    realFileName = System.Web.HttpUtility.UrlDecode(realFileName);
+                } else if (resp.RequestMessage?.RequestUri != null) {
+                    // Use the final URL after redirects
+                    realFileName = System.IO.Path.GetFileName(resp.RequestMessage.RequestUri.AbsolutePath);
+                    realFileName = System.Web.HttpUtility.UrlDecode(realFileName);
+                }
+
+                if (!string.IsNullOrWhiteSpace(realFileName) && realFileName != fileName) {
+                    fileName = realFileName;
+                    archivePath = System.IO.Path.Combine(downloadDir, fileName);
+                }
+
+                Info($"Archive: {archivePath}");
 
                 long contentLength = resp.Content.Headers.ContentLength ?? -1;
 

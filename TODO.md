@@ -24,17 +24,6 @@ Select a module to download:
 @@REMAKE@@ {"event":"print","message":"[ENGINE-GitTools] ","color":null,"newline":false}
 @@REMAKE@@ {"event":"print","message":"Cloning into \u0027A:\\RemakeEngine\\EngineApps\\Games\\TheSimpsonsGame-PS3\u0027...","color":null,"newline":true}
 
-* :: ISSUE :: engine tui displays the uninstalled modules in the main menu list only after entering and exiting the git module downloader menu:
-Select a game:
-> demo  [registered, installed, unbuilt]
-  TheSimpsonsGame-PS3  [registered, installed, unbuilt]
-  TheSimpsonsGame-PS2  [registered, uninstalled]
-  SimpsonsHitAndRun  [registered, uninstalled]
-  TheSimpsonsRoadRage-PS2  [registered, uninstalled]
-  TheSimpsonsGame-PS3-Dev  [installed, unverified, unbuilt]
-  ---------------
-  Download module...
-  Exit
 
 * :: ISSUE :: progress bar issue
  if console window is too tall it will print many progress bars that all actually work, but are partial repeats of the same bar

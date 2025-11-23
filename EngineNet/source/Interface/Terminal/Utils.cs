@@ -1,3 +1,4 @@
+
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,7 +9,7 @@ namespace EngineNet.Interface.Terminal;
 /// <summary>
 /// Utility methods for CLI/TUI handling, can also be used by GUI if needed
 /// </summary>
-internal class Utils {
+internal class Utils() {
 
     private static readonly System.Text.Json.JsonSerializerOptions s_jsonOpts = new() {
         WriteIndented = false,
@@ -20,59 +21,61 @@ internal class Utils {
     private static int _progressPanelTop;
     private static int _progressLastLines;
 
-    internal Utils() {
-        //
-    }
-
-
     internal bool ExecuteOp(Core.Engine _engine, string game, Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games, Dictionary<string, object?> op, Dictionary<string, object?> answers, Dictionary<string, string>? autoPromptResponses = null) {
-        string? type = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant();
+        try {
+            string? type = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant();
 
-        // Use embedded handlers for engine/lua/js/bms to avoid external dependencies
-        if (type == "engine" || type == "lua" || type == "js" || type == "bms") {
-            // Route in-process SDK events to our terminal renderer
-            System.Action<Dictionary<string, object?>>? prevSink = Core.Utils.EngineSdk.LocalEventSink;
-            bool prevMute = Core.Utils.EngineSdk.MuteStdoutWhenLocalSink;
-            Dictionary<string, string> prevAutoResponses = new(Core.Utils.EngineSdk.AutoPromptResponses);
-            try {
-                // Set auto-prompt responses if provided
-                if (autoPromptResponses != null && autoPromptResponses.Count > 0) {
+            // Use embedded handlers for engine/lua/js/bms to avoid external dependencies
+            if (type == "engine" || type == "lua" || type == "js" || type == "bms") {
+                // Route in-process SDK events to our terminal renderer
+                System.Action<Dictionary<string, object?>>? prevSink = Core.Utils.EngineSdk.LocalEventSink;
+                bool prevMute = Core.Utils.EngineSdk.MuteStdoutWhenLocalSink;
+                Dictionary<string, string> prevAutoResponses = new(Core.Utils.EngineSdk.AutoPromptResponses);
+                try {
+                    // Set auto-prompt responses if provided
+                    if (autoPromptResponses != null && autoPromptResponses.Count > 0) {
+                        Core.Utils.EngineSdk.AutoPromptResponses.Clear();
+                        foreach (KeyValuePair<string, string> kv in autoPromptResponses) {
+                            Core.Utils.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
+                        }
+                    }
+
+                    Core.Utils.EngineSdk.LocalEventSink = OnEvent;
+                    Core.Utils.EngineSdk.MuteStdoutWhenLocalSink = true;
+                    return _engine.RunSingleOperationAsync(game, games, op, answers).GetAwaiter().GetResult();
+                } finally {
+                    // Restore previous auto-prompt responses
                     Core.Utils.EngineSdk.AutoPromptResponses.Clear();
-                    foreach (KeyValuePair<string, string> kv in autoPromptResponses) {
+                    foreach (KeyValuePair<string, string> kv in prevAutoResponses) {
                         Core.Utils.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
                     }
-                }
 
-                Core.Utils.EngineSdk.LocalEventSink = OnEvent;
-                Core.Utils.EngineSdk.MuteStdoutWhenLocalSink = true;
-                return _engine.RunSingleOperationAsync(game, games, op, answers).GetAwaiter().GetResult();
-            } finally {
-                // Restore previous auto-prompt responses
-                Core.Utils.EngineSdk.AutoPromptResponses.Clear();
-                foreach (KeyValuePair<string, string> kv in prevAutoResponses) {
-                    Core.Utils.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
+                    Core.Utils.EngineSdk.LocalEventSink = prevSink;
+                    Core.Utils.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
                 }
-
-                Core.Utils.EngineSdk.LocalEventSink = prevSink;
-                Core.Utils.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
             }
-        }
 
-        // Default: build and execute as external command (e.g., python)
-        List<string> parts = _engine.BuildCommand(game, games, op, answers);
-        if (parts.Count < 2) {
+            // Default: build and execute as external command (e.g., python)
+            List<string> parts = _engine.BuildCommand(game, games, op, answers);
+            if (parts.Count < 2) {
+                return false;
+            }
+
+            string title = op.TryGetValue("Name", out object? n) ? n?.ToString() ?? System.IO.Path.GetFileName(parts[1]) : System.IO.Path.GetFileName(parts[1]);
+            return _engine.ExecuteCommand(
+                parts,
+                title,
+                onOutput: OnOutput,
+                onEvent: OnEvent,
+                stdinProvider: StdinProvider,
+                envOverrides: new Dictionary<string, object?> { ["TERM"] = "dumb" }
+            );
+        } catch (System.Exception ex) {
+#if DEBUG
+            Trace.WriteLine($"[Utils.cs::ExecuteOp()] Error executing operation: {ex.Message}");
+#endif
             return false;
         }
-
-        string title = op.TryGetValue("Name", out object? n) ? n?.ToString() ?? System.IO.Path.GetFileName(parts[1]) : System.IO.Path.GetFileName(parts[1]);
-        return _engine.ExecuteCommand(
-            parts,
-            title,
-            onOutput: OnOutput,
-            onEvent: OnEvent,
-            stdinProvider: StdinProvider,
-            envOverrides: new Dictionary<string, object?> { ["TERM"] = "dumb" }
-        );
     }
 
     private static void WriteColored(string message, System.ConsoleColor color) {
@@ -213,7 +216,7 @@ internal class Utils {
                         reserve = rc.ToInt32(null);
                     } catch {
                         #if DEBUG
-                        Trace.WriteLine("Failed to convert reserve value");
+                        Trace.WriteLine("[Utils.cs::OnEvent()] Failed to convert reserve value");
                         #endif
                         /* ignore */
                     }
@@ -240,13 +243,15 @@ internal class Utils {
                 // Intentionally do nothing here.
                 break;
 
-            case "run-all-op-end": {
+            case "run-all-op-end":
+            case "run-all-complete": {
                 WriteColored($"✔ Operation completed via run-all: {evt.GetValueOrDefault("name", "Unnamed")}", System.ConsoleColor.Green);
                 System.Console.WriteLine(""); // newline for separation
                 break;
             }
 
-            case "run-all-op-start": {
+            case "run-all-op-start":
+            case "run-all-start": {
                 WriteColored($"✔ Operation started via run-all: {evt.GetValueOrDefault("name", "Unnamed")}", System.ConsoleColor.Green);
                 break;
             }
@@ -254,27 +259,24 @@ internal class Utils {
             default:
                 // Unknown event type, throw error, all events must be known
                 WriteColored($"✖ Unknown event type: {typ}", System.ConsoleColor.Red);
-                Trace.TraceError($"Unknown event type received in Terminal Utils: {typ}");
+#if DEBUG
+                Trace.TraceError($"[Utils.cs::OnEvent()] Unknown event type received in Terminal Utils: {typ}");
+#endif
                 break;
         }
     }
-
 
     private static void LogEvent(IReadOnlyDictionary<string, object?> evt) {
         try {
             Dictionary<string, object?> safe = CloneForLogging(evt);
             string json = JsonSerializer.Serialize(safe, s_jsonOpts);
 #if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[TerminalEvent] {json}");
+            Trace.WriteLine($"[Utils.cs::OnEvent()] {json}");
 #endif
         } catch (System.Exception ex) {
-            try {
 #if DEBUG
-                System.Diagnostics.Trace.WriteLine($"[TerminalEvent] <serialization failed: {ex.Message}>");
+            Trace.WriteLine($"[Utils.cs::OnEvent()] <serialization failed: {ex.Message}>");
 #endif
-            } catch {
-                // ignore logging failures entirely
-            }
         }
     }
 
@@ -383,7 +385,7 @@ internal class Utils {
 
         return value.ToString();
     }
-    
+
     internal static void HandleProgressPanelStart(int reserve) {
         _progressPanelTop = 0;
         _progressLastLines = 0;

@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RemakeEngine operations schema v1",
+  "description": "Schema describing operations.toml files consumed by the Remake Engine.",
+  "type": "object",
+  "patternProperties": {
+    ".*": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/operation" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "operation": {
+      "type": "object",
+      "required": ["script"],
+      "properties": {
+        "id": { 
+          "type": "integer", 
+          "description": "Unique identifier for the operation. Negative IDs are typically dev/debug operations."
+        },
+        "Name": { 
+          "type": "string", 
+          "description": "Display name for the operation shown in UI/TUI menus."
+        },
+        "Instructions": { 
+          "type": "string", 
+          "description": "Optional instructions shown to the user before execution."
+        },
+        "script": { 
+          "type": "string", 
+          "description": "Path to the script or executable. Supports {{Game_Root}} and {{Project_Root}} placeholders."
+        },
+        "script_type": {
+          "type": "string",
+          "description": "Script interpreter/execution type.",
+          "enum": ["lua", "engine", "bms", "python", "js"],
+          "default": "lua"
+        },
+        "args": {
+          "type": "array",
+          "description": "Static arguments passed to the script. Supports placeholder expansion.",
+          "items": { "type": ["string", "number", "boolean"] }
+        },
+        "init": { 
+          "type": "boolean", 
+          "description": "If true, operation runs automatically during module initialization and is hidden from UI menus.",
+          "default": false
+        },
+        "run-all": { 
+          "type": "boolean", 
+          "description": "If true, operation is included when performing the 'Run All' sequence.",
+          "default": false
+        },
+        "depends-on": {
+          "type": "array",
+          "description": "Array of operation IDs that must complete successfully before this operation can run.",
+          "items": { "type": "integer" }
+        },
+        "prompts": {
+          "type": "array",
+          "description": "Interactive prompts displayed before execution to gather user input.",
+          "items": { "$ref": "#/$defs/prompt" }
+        },
+        "onsuccess": {
+          "type": "array",
+          "description": "Operations to execute upon successful completion.",
+          "items": { "$ref": "#/$defs/operation" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "prompt": {
+      "type": "object",
+      "required": ["Name", "type"],
+      "description": "Interactive prompt configuration for gathering user input before operation execution.",
+      "properties": {
+        "Name": { 
+          "type": "string",
+          "description": "Internal identifier for the prompt. Used as the key in prompt answers dictionary."
+        },
+        "type": { 
+          "type": "string", 
+          "enum": ["confirm", "checkbox", "text"],
+          "description": "Prompt type: 'confirm' for boolean yes/no, 'checkbox' for multi-select, 'text' for string input."
+        },
+        "message": {
+          "type": "string",
+          "description": "Message displayed to the user when prompting for input."
+        },
+        "default": {
+          "description": "Default value if user provides no input. Type varies based on prompt type."
+        },
+        "Required": {
+          "type": "boolean",
+          "description": "If true, user must provide a value (cannot be empty).",
+          "default": false
+        },
+        "choices": { 
+          "type": "array", 
+          "description": "Available options for 'checkbox' type prompts.",
+          "items": { "type": "string" } 
+        },
+        "cli_arg": { 
+          "type": "string",
+          "description": "For 'confirm' type: CLI flag added to args when value is true (e.g., '--verbose')."
+        },
+        "cli_prefix": { 
+          "type": "string",
+          "description": "For 'checkbox' type: CLI flag prefix followed by selected items (e.g., '--export' followed by 'glb' 'fbx')."
+        },
+        "cli_arg_prefix": { 
+          "type": "string",
+          "description": "For 'text' type: CLI flag followed by user input value as separate args (e.g., '--source' followed by 'D:\\path')."
+        },
+        "condition": { 
+          "type": "string",
+          "description": "Name of another prompt whose value must be truthy for this prompt to be shown."
+        },
+        "validation": {
+          "type": "object",
+          "description": "Validation rules for the prompt input.",
+          "properties": {
+            "required": { "type": "boolean" },
+            "message": { "type": "string" }
+          }
+        }
+      },
+      "additionalProperties": true,
+      "examples": [
+        {
+          "comment": "Boolean confirm prompt with CLI flag",
+          "Name": "verbose",
+          "type": "confirm",
+          "message": "Enable verbose output?",
+          "default": false,
+          "cli_arg": "--verbose"
+        },
+        {
+          "comment": "Text input prompt with CLI argument prefix",
+          "Name": "source",
+          "type": "text",
+          "message": "Source directory path:",
+          "Required": true,
+          "cli_arg_prefix": "--source"
+        },
+        {
+          "comment": "Checkbox multi-select with CLI prefix",
+          "Name": "export_formats",
+          "type": "checkbox",
+          "message": "Select export formats:",
+          "default": ["glb"],
+          "choices": ["fbx", "glb", "obj"],
+          "cli_prefix": "--export",
+          "condition": "enable_export",
+          "validation": { "required": true, "message": "You must select at least one format." }
+        }
+      ]
+    }
+  }
+}

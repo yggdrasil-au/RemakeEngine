@@ -5,32 +5,38 @@ namespace EngineNet.Core.Utils;
 /// Mirrors LegacyEnginePy/Core/git_tools.py behavior.
 /// </summary>
 internal sealed class GitTools {
-    private readonly string _gamesDir;
 
+    /* :: :: Constructor, Var :: START :: */
+    private readonly string _gamesDir;
     internal GitTools(string gamesDir) {
         _gamesDir = gamesDir;
     }
-
+    /* :: :: Constructor, Var :: END :: */
+    //
+    /* :: :: Methods ::  :: */
     internal bool CloneModule(string url) {
         if (string.IsNullOrWhiteSpace(url)) {
             return false;
         }
 
         if (!IsGitInstalled()) {
-            Write("Git is not installed or not found in PATH.", prefix: "ENGINE-GitTools");
+            EngineSdk.Warn("Git is not installed or not found in PATH.");
+#if DEBUG
+            System.Diagnostics.Trace.WriteLine("[GitTools.cs::CloneModule()] GitTools: Git is not installed or not found in PATH.");
+#endif
             return false;
         }
         try {
             string repoName = GuessRepoName(url);
             string target = System.IO.Path.Combine(_gamesDir, repoName);
             if (System.IO.Directory.Exists(target)) {
-                Write($"Directory '{repoName}' already exists. Skipping download.", prefix: "ENGINE-GitTools");
+                EngineSdk.Info($"Directory '{repoName}' already exists. Skipping download.");
                 return true;
             }
 
             System.IO.Directory.CreateDirectory(_gamesDir);
-            Write($"Downloading '{repoName}' from '{url}'...", prefix: "ENGINE-GitTools");
-            Write($"Target directory: '{target}'", prefix: "ENGINE-GitTools");
+            EngineSdk.Print($"Downloading '{repoName}' from '{url}'...");
+            EngineSdk.Print($"Target directory: '{target}'");
 
             System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
                 FileName = "git",
@@ -50,20 +56,26 @@ internal sealed class GitTools {
                 throw new System.InvalidOperationException("Failed to start git");
             }
 
-            proc.OutputDataReceived += (_, e) => { if (e.Data != null) { Write(e.Data, prefix: "ENGINE-GitTools"); } };
-            proc.ErrorDataReceived += (_, e) => { if (e.Data != null) { Write(e.Data, prefix: "ENGINE-GitTools"); } };
+            proc.OutputDataReceived += (_, e) => { if (e.Data != null) { EngineSdk.Print(e.Data); } };
+            proc.ErrorDataReceived += (_, e) => { if (e.Data != null) { EngineSdk.Print(e.Data); } };
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
             proc.WaitForExit();
             int rc = proc.ExitCode;
             if (rc == 0) {
-                Write($"\nSuccessfully downloaded '{repoName}'.", prefix: "ENGINE-GitTools");
+                EngineSdk.Success($"\nSuccessfully downloaded '{repoName}'.");
                 return true;
             }
-            Write($"\nFailed to download '{repoName}'. Git exited with code {rc}.", prefix: "ENGINE-GitTools");
+            EngineSdk.Error($"\nFailed to download '{repoName}'. Git exited with code {rc}.");
+#if DEBUG
+            System.Diagnostics.Trace.WriteLine($"[GitTools.cs::CloneModule()] GitTools: Git exited with code {rc}.");
+#endif
             return false;
         } catch (System.Exception ex) {
-            Write($"An error occurred during download: {ex.Message}", prefix: "ENGINE-GitTools");
+            EngineSdk.Error($"An error occurred during download: {ex.Message}");
+#if DEBUG
+            System.Diagnostics.Trace.WriteLine($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
+#endif
             return false;
         }
     }
@@ -84,6 +96,9 @@ internal sealed class GitTools {
             p!.WaitForExit(3000);
             return p.ExitCode == 0;
         } catch {
+#if DEBUG
+            System.Diagnostics.Trace.WriteLine("[GitTools.cs::CloneModule()] Exception while checking for git installation.");
+#endif
             return false;
         }
     }
@@ -101,7 +116,7 @@ internal sealed class GitTools {
             }
         } catch {
 #if DEBUG
-            System.Diagnostics.Trace.WriteLine("[ENGINE-GitTools] GitTools: Failed to parse URL as URI, falling back to string parsing.");
+            System.Diagnostics.Trace.WriteLine("[GitTools.cs::CloneModule()] GitTools: Failed to parse URL as URI, falling back to string parsing.");
 #endif
             /* fall back to string parsing */
         }
@@ -111,13 +126,5 @@ internal sealed class GitTools {
         return name.EndsWith(".git", System.StringComparison.OrdinalIgnoreCase) ? name[..^4] : name;
     }
 
-    private static void Write(string message, string? prefix = null) {
-        if (!string.IsNullOrWhiteSpace(prefix)) {
-            EngineSdk.Print($"[{prefix}] ");
-        }
-
-        EngineSdk.PrintLine(message);
-
-    }
 }
 
