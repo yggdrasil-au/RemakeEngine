@@ -2,16 +2,16 @@ using MoonSharp.Interpreter;
 
 using System.Collections.Generic;
 
-namespace EngineNet.ScriptEngines.LuaModules;
+namespace EngineNet.ScriptEngines.lua.LuaModules;
 
 /// <summary>
 /// SQLite database functionality for Lua scripts.
 /// Provides secure database access with path validation.
 /// </summary>
 internal static class LuaSqliteModule {
-    internal static Table CreateSqliteModule(Script lua) {
-        Table module = new Table(lua);
-        module["open"] = DynValue.NewCallback((ctx, args) => {
+    internal static Table CreateSqliteModule(LuaWorld LuaEnvObj) {
+
+        LuaEnvObj.SqliteModule["open"] = DynValue.NewCallback((ctx, args) => {
             if (args.Count < 1 || args[0].Type != DataType.String) {
                 throw new ScriptRuntimeException("sqlite.open(path) requires a string path");
             }
@@ -23,15 +23,15 @@ internal static class LuaSqliteModule {
                 throw new ScriptRuntimeException($"Access denied: SQLite database path '{path}' is outside allowed workspace areas");
             }
 
-            SqliteHandle handle = new SqliteHandle(lua, path);
-            return DynValue.NewTable(CreateSqliteHandleTable(lua, handle));
+            SqliteHandle handle = new SqliteHandle(LuaEnvObj.LuaScript, path);
+            return DynValue.NewTable(CreateSqliteHandleTable(LuaEnvObj, handle));
         });
-        return module;
+        return LuaEnvObj.SqliteModule;
     }
 
-    private static Table CreateSqliteHandleTable(Script lua, SqliteHandle handle) {
-        Table table = new Table(lua);
-        table["exec"] = DynValue.NewCallback((ctx, args) => {
+    private static Table CreateSqliteHandleTable(LuaWorld LuaEnvObj, SqliteHandle handle) {
+        Table SqliteHandleTable = new Table(LuaEnvObj.LuaScript);
+        SqliteHandleTable["exec"] = DynValue.NewCallback((ctx, args) => {
             int offset = args.Count > 0 && args[0].Type == DataType.Table ? 1 : 0;
             if (args.Count <= offset || args[offset].Type != DataType.String) {
                 throw new ScriptRuntimeException("sqlite handle exec(sql [, params])");
@@ -42,7 +42,7 @@ internal static class LuaSqliteModule {
             int affected = handle.Execute(sql, paramTable);
             return DynValue.NewNumber(affected);
         });
-        table["query"] = DynValue.NewCallback((ctx, args) => {
+        SqliteHandleTable["query"] = DynValue.NewCallback((ctx, args) => {
             int offset = args.Count > 0 && args[0].Type == DataType.Table ? 1 : 0;
             if (args.Count <= offset || args[offset].Type != DataType.String) {
                 throw new ScriptRuntimeException("sqlite handle query(sql [, params])");
@@ -52,25 +52,25 @@ internal static class LuaSqliteModule {
             Table? paramTable = args.Count > offset + 1 && args[offset + 1].Type == DataType.Table ? args[offset + 1].Table : null;
             return handle.Query(sql, paramTable);
         });
-        table["begin"] = DynValue.NewCallback((ctx, args) => {
+        SqliteHandleTable["begin"] = DynValue.NewCallback((ctx, args) => {
             handle.BeginTransaction();
             return DynValue.Nil;
         });
-        table["commit"] = DynValue.NewCallback((ctx, args) => {
+        SqliteHandleTable["commit"] = DynValue.NewCallback((ctx, args) => {
             handle.Commit();
             return DynValue.Nil;
         });
-        table["rollback"] = DynValue.NewCallback((ctx, args) => {
+        SqliteHandleTable["rollback"] = DynValue.NewCallback((ctx, args) => {
             handle.Rollback();
             return DynValue.Nil;
         });
-        table["close"] = DynValue.NewCallback((ctx, args) => {
+        SqliteHandleTable["close"] = DynValue.NewCallback((ctx, args) => {
             handle.Dispose();
             return DynValue.Nil;
         });
-        table["dispose"] = table.Get("close");
-        table["__handle"] = UserData.Create(handle);
-        return table;
+        SqliteHandleTable["dispose"] = SqliteHandleTable.Get("close");
+        SqliteHandleTable["__handle"] = UserData.Create(handle);
+        return SqliteHandleTable;
     }
 }
 
@@ -122,7 +122,7 @@ internal sealed class SqliteHandle:System.IDisposable {
             for (int i = 0; i < reader.FieldCount; i++) {
                 string columnName = reader.GetName(i);
                 object? value = reader.GetValue(i);
-                row[columnName] = LuaUtilities.ToDynValue(_script, value);
+                row[columnName] = Utils.LuaUtilities.ToDynValue(_script, value);
             }
             result[index++] = DynValue.NewTable(row);
         }
@@ -183,7 +183,7 @@ internal sealed class SqliteHandle:System.IDisposable {
             return;
         }
 
-        IDictionary<string, object?> dict = LuaUtilities.TableToDictionary(parameters);
+        IDictionary<string, object?> dict = Utils.LuaUtilities.TableToDictionary(parameters);
         foreach (KeyValuePair<string, object?> kv in dict) {
             Microsoft.Data.Sqlite.SqliteParameter parameter = command.CreateParameter();
             string name = kv.Key;

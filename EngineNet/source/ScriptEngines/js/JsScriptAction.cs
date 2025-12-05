@@ -6,7 +6,7 @@ using System.IO;
 using System.Collections.Generic;
 using EngineNet.Core.Utils;
 
-namespace EngineNet.ScriptEngines;
+namespace EngineNet.ScriptEngines.js;
 /// <summary>
 /// Executes a JavaScript file using the embedded Jint interpreter.
 /// Exposes a host API that mirrors the Lua js_engine capabilities.

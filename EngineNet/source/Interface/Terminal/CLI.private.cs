@@ -37,7 +37,12 @@ internal partial class CLI {
             if (string.IsNullOrWhiteSpace(opsFile) || !System.IO.File.Exists(opsFile)) {
                 throw new System.ArgumentException($"Game '{game}' missing ops_file.");
             }
-            List<Dictionary<string, object?>> doc = Core.Engine.LoadOperationsList(opsFile);
+            List<Dictionary<string, object?>>? doc = Core.Engine.LoadOperationsList(opsFile);
+            if (doc is null || doc.Count == 0) {
+                System.Console.WriteLine($"No operations found for game '{game}'.");
+                Core.Diagnostics.Log($"No operations found in ops_file '{opsFile}' for game '{game}'.");
+                return 0;
+            }
             System.Console.WriteLine($"Operations for game '{game}':");
             foreach (Dictionary<string, object?> op in doc) {
                 if (op.TryGetValue("name", out object? nameObj) && nameObj is string name) {

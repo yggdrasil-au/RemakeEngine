@@ -26,9 +26,6 @@ local function parse_args(list)
         elseif key == '--prompt' and list[i + 1] then
             opts.prompt = list[i + 1]
             i = i + 2
-        elseif key == '--sec_check' then
-            opts.sec_check = true
-            i = i + 1
         else
             table.insert(opts.extras, key)
             i = i + 1
@@ -369,32 +366,28 @@ sdk.color_print('yellow', 'Record count after rollback: ' .. count_after_rollbac
 
 db:close()
 
-next_step('Collecting directory info (engine APIs)')
+next_step('Testing LuaFileSystem (lfs) module')
 
--- Replace removed lfs usage with engine SDK helpers
+-- LuaFileSystem module demonstration
+local lfs = require('lfs')
 local entries = {}
-do
-    -- Sample: list a couple of known subdirs using engine helpers
-    local base = scratch_root .. '/test_dirs'
-    local d1 = sdk.find_subdir(base, 'subdir1')
-    local d2 = sdk.find_subdir(base, 'subdir2')
-    if d1 then table.insert(entries, d1) end
-    if d2 then table.insert(entries, d2) end
-    -- Also include module root attributes via sdk.attributes
-    local attrs = sdk.attributes(module_root)
-    if attrs then
-        table.insert(entries, 'module_root:' .. tostring(attrs.mode))
-    end
+local iterator = lfs.dir(module_root)
+while true do
+    local entry = iterator()
+    if entry == nil then break end
+    table.insert(entries, entry)
+    if #entries >= 10 then break end -- Limit to first 10 entries
 end
 
-sdk.color_print('cyan', 'Directory info collected via engine SDK:')
+sdk.color_print('cyan', 'LFS directory entries from module root:')
 for i, entry in ipairs(entries) do
     sdk.color_print('white', string.format('  %d: %s', i, entry))
 end
 
-next_step('Testing JSON encoding (engine JSON)')
+next_step('Testing JSON encoding (dkjson)')
 
--- Use engine-provided JSON helpers under sdk.text.json (encode/decode)
+-- JSON module demonstration
+local dkjson = require('dkjson')
 
 local comprehensive_summary = {
     demo_info = {
@@ -417,29 +410,18 @@ local comprehensive_summary = {
         toml_operations = loaded_toml ~= nil,
         sqlite_operations = count_after_rollback > 0,
         process_execution = process_result and process_result.success,
-        json_module = true
+        lfs_module = #entries > 0
     },
     sample_data = {
-        entries = entries,
+        lfs_entries = entries,
         md5_hash = md5_hash,
         note = note
     }
 }
-local json_path = scratch_root .. '/artifacts/comprehensive_demo.json'
-sdk.ensure_dir(scratch_root .. '/artifacts')
-local encoded_json = sdk.text.json.encode(comprehensive_summary, { indent = true })
-local jf = io.open(json_path, 'w')
-if jf then jf:write(encoded_json); jf:close() end
-sdk.color_print('yellow', 'Comprehensive demo summary written (JSON): ' .. json_path)
-local rf = io.open(json_path, 'r')
-local loaded_json
-if rf then
-    local content = rf:read('*a'); rf:close()
-    loaded_json = sdk.text.json.decode(content)
-end
-if loaded_json and loaded_json.demo_info then
-    sdk.color_print('green', 'JSON loaded successfully - title: ' .. tostring(loaded_json.demo_info.title))
-end
+
+local encoded_json = dkjson.encode(comprehensive_summary, { indent = true })
+sdk.color_print('yellow', 'Comprehensive demo summary (JSON):')
+sdk.color_print('white', encoded_json)
 
 next_step('Testing warning and error functions')
 

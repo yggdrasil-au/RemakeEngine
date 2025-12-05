@@ -163,6 +163,38 @@ public static class EngineSdk {
         }
     }
 
+    /// <summary>
+    /// Prompt the user for a boolean confirmation (Yes/No).
+    /// Emits a confirm event, then blocks to read a single line from stdin.
+    /// Returns true if the user answers 'y', 'yes', or 'true' (case-insensitive).
+    /// </summary>
+    public static bool Confirm(string message, string id = "q1", bool defaultValue = false) {
+        // Check for auto-response first
+        if (AutoPromptResponses.TryGetValue(id, out string? autoResponse)) {
+            Emit("print", new Dictionary<string, object?> {
+                ["message"] = $"? {message} [y/n]",
+                ["color"] = "cyan"
+            });
+            Emit("print", new Dictionary<string, object?> {
+                ["message"] = $"> {autoResponse} (auto-response)",
+                ["color"] = "yellow"
+            });
+            return autoResponse.Trim().StartsWith("y", System.StringComparison.OrdinalIgnoreCase) || 
+                   autoResponse.Trim().Equals("true", System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        Emit("confirm", new Dictionary<string, object?> { ["id"] = id, ["message"] = message, ["default"] = defaultValue });
+        try {
+            string? line = System.Console.In.ReadLine();
+            if (string.IsNullOrWhiteSpace(line)) return defaultValue;
+            return line.Trim().StartsWith("y", System.StringComparison.OrdinalIgnoreCase) || 
+                   line.Trim().Equals("true", System.StringComparison.OrdinalIgnoreCase) ||
+                   line.Trim().Equals("yes", System.StringComparison.OrdinalIgnoreCase);
+        } catch {
+            return defaultValue;
+        }
+    }
+
     // --- Terminal printing helpers ---
     /// <summary>
     /// Emit a colored print event. Color names are case-insensitive and map to typical console colors:

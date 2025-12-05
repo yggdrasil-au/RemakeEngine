@@ -7,12 +7,12 @@ using Avalonia;
 
 namespace EngineNet;
 
-internal static class Program {
+public static class Program {
 
-    internal static string rootPath = string.Empty;
+    public static string rootPath {get; private set;} = string.Empty;
 
     /* :: :: Vars :: START :: */
-    internal static AppBuilder BuildAvaloniaApp()  {
+    public static AppBuilder BuildAvaloniaApp()  {
         return Interface.GUI.AvaloniaGui.BuildAvaloniaApp();
     }
     /* :: :: Vars :: END :: */
@@ -25,50 +25,41 @@ internal static class Program {
             var parsedArgs = ParseArguments(args);
 
             // 2. Resolve Root Path
-            string root;
             if (parsedArgs.ExplicitRoot != null) {
-                root = parsedArgs.ExplicitRoot;
+                rootPath = parsedArgs.ExplicitRoot;
             } else {
-                string? foundRoot = TryFindProjectRoot(System.IO.Directory.GetCurrentDirectory());
-                if (foundRoot != null) {
-                    root = foundRoot;
+                string foundRoot = TryFindProjectRoot(System.IO.Directory.GetCurrentDirectory());
+                if (foundRoot != string.Empty) {
+                    rootPath = foundRoot;
                 } else {
                     foundRoot = TryFindProjectRoot(System.AppContext.BaseDirectory);
-                    if (foundRoot != null) {
-                        root = foundRoot;
+                    if (foundRoot != string.Empty) {
+                        rootPath = foundRoot;
                     } else {
-                        root = System.IO.Directory.GetCurrentDirectory();
+                        rootPath = System.IO.Directory.GetCurrentDirectory();
                     }
                 }
             }
 
-            rootPath = root;
-
             // :: Initialize the Logger
-            Core.Diagnostics.Initialize(root);
-
-            Core.Tools.IToolResolver tools = CreateToolResolver(root);
-
-            Core.EngineConfig engineConfig = new Core.EngineConfig();
-            Core.Engine _engine = new Core.Engine(root, tools, engineConfig);
+            Core.Diagnostics.Initialize();
+            //Core.Tools.IToolResolver tools = CreateToolResolver();
+            //Core.EngineConfig engineConfig = new Core.EngineConfig();
+            Core.Engine _engine = new Core.Engine();
 
             // 3. Interface selection based on "Remaining Args" (args with --root removed)
 
             // Logic:
             // - No remaining args -> GUI
             // - One arg "--gui" -> GUI
-            bool isGui = parsedArgs.Remaining.Count == 0 ||
-                         (parsedArgs.Remaining.Count == 1 && parsedArgs.Remaining[0].Equals("--gui", System.StringComparison.OrdinalIgnoreCase));
-
+            bool isGui = parsedArgs.Remaining.Count == 0 || (parsedArgs.Remaining.Count == 1 && parsedArgs.Remaining[0].Equals("--gui", System.StringComparison.OrdinalIgnoreCase));
             if (isGui) {
                 return await Interface.GUI.AvaloniaGui.RunAsync(_engine);
             }
 
             // Logic:
             // - One arg "--tui" -> TUI
-            bool isTui = parsedArgs.Remaining.Count == 1 &&
-                         parsedArgs.Remaining[0].Equals("--tui", System.StringComparison.OrdinalIgnoreCase);
-
+            bool isTui = parsedArgs.Remaining.Count == 1 && parsedArgs.Remaining[0].Equals("--tui", System.StringComparison.OrdinalIgnoreCase);
             if (isTui) {
                 Interface.Terminal.TUI TUI = new Interface.Terminal.TUI(_engine);
                 return await TUI.RunInteractiveMenuAsync();
@@ -78,7 +69,6 @@ internal static class Program {
             // - Anything else -> CLI (Pass original args so CLI can parse specific commands like 'build', 'run', etc.)
             Interface.Terminal.CLI CLI = new Interface.Terminal.CLI(_engine);
             return await CLI.RunAsync(args);
-
         } catch (System.Exception ex) {
             Core.Diagnostics.Bug("Critical Engine Failure in Main", ex);
             Core.Diagnostics.Log($"Engine Error: {ex}");
@@ -120,11 +110,11 @@ internal static class Program {
         return result;
     }
 
-    private static string? TryFindProjectRoot(string? startDir) {
+    private static string TryFindProjectRoot(string? startDir) {
         try {
-            string? dir;
+            string dir;
             if (string.IsNullOrWhiteSpace(startDir)) {
-                dir = null;
+                dir = string.Empty;
             } else {
                 dir = System.IO.Path.GetFullPath(startDir!);
             }
@@ -143,20 +133,9 @@ internal static class Program {
                 dir = parent.FullName;
             }
         } catch (System.Exception e) {
-#if DEBUG
             Core.Diagnostics.Bug($"Error finding project root: {e.Message}");
-#endif
         }
-        return null;
-    }
-
-    private static Core.Tools.IToolResolver CreateToolResolver(string root) {
-        string[] candidates = new[] {
-            System.IO.Path.Combine(root, "Tools.local.json"), System.IO.Path.Combine(root, "tools.local.json"),
-            System.IO.Path.Combine(root, "EngineApps", "Registries", "Tools", "Main.json"), System.IO.Path.Combine(root, "EngineApps", "Registries", "Tools", "main.json"),
-        };
-        string? found = candidates.FirstOrDefault(System.IO.File.Exists);
-        return !string.IsNullOrEmpty(found) ? new Core.Tools.JsonToolResolver(found) : new Core.Tools.PassthroughToolResolver();
+        return string.Empty;
     }
 
     /* :: :: Methods :: END :: */

@@ -10,13 +10,13 @@ namespace EngineNet.Core.Utils;
 /// Responsible for resolving placeholders and mapping prompts/answers to CLI args.
 /// </summary>
 internal sealed class CommandBuilder {
-    private readonly string _rootPath;
+
     /// <summary>
     /// Initializes a new instance of <see cref="CommandBuilder"/>.
     /// </summary>
     /// <param name="rootPath">Working root of the engine; may be used for relative resolution.</param>
-    internal CommandBuilder(string rootPath) {
-        _rootPath = rootPath;
+    internal CommandBuilder() {
+        //
     }
 
     /// <summary>
@@ -41,7 +41,7 @@ internal sealed class CommandBuilder {
         }
 
         // Build execution context via centralized builder
-        ExecutionContextBuilder ctxBuilder = new ExecutionContextBuilder(rootPath: _rootPath);
+        ExecutionContextBuilder ctxBuilder = new ExecutionContextBuilder();
         Dictionary<string, object?> ctx = ctxBuilder.Build(
             currentGame: currentGame,
             games: games,

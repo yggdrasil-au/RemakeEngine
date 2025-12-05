@@ -7,10 +7,10 @@ using System.Collections.Generic;
 /// including module placeholders merged from config.toml.
 /// </summary>
 internal sealed class ExecutionContextBuilder {
-    private readonly string _rootPath;
 
-    internal ExecutionContextBuilder(string rootPath) {
-        _rootPath = rootPath;
+
+    internal ExecutionContextBuilder() {
+        //
     }
 
     internal Dictionary<string, object?> Build(
@@ -28,8 +28,8 @@ internal sealed class ExecutionContextBuilder {
         }
 
         ctx[key: "Game_Root"] = gdict.GameRoot;
-        ctx[key: "Project_Root"] = _rootPath;
-        ctx[key: "Registry_Root"] = System.IO.Path.Combine(_rootPath, "EngineApps");
+        ctx[key: "Project_Root"] = Program.rootPath;
+        ctx[key: "Registry_Root"] = System.IO.Path.Combine(Program.rootPath, "EngineApps");
         ctx[key: "Game"] = new Dictionary<string, object?> {
             [key: "RootPath"] = gdict.GameRoot,
             [key: "Name"] = currentGame,
@@ -42,7 +42,7 @@ internal sealed class ExecutionContextBuilder {
             reDict[key: "Config"] = cfgDict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
         }
         cfgDict[key: "module_path"] = gdict.GameRoot;
-        cfgDict[key: "project_path"] = _rootPath;
+        cfgDict[key: "project_path"] = Program.rootPath;
 
         try {
             string cfgPath = System.IO.Path.Combine(gdict.GameRoot, "config.toml");

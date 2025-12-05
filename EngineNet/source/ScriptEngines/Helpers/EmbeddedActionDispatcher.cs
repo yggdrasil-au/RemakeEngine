@@ -17,9 +17,9 @@ internal static class EmbeddedActionDispatcher {
         string t = (scriptType ?? string.Empty).ToLowerInvariant();
         switch (t) {
             case "lua":
-                return new ScriptEngines.LuaScriptAction(scriptPath: scriptPath, args: args);
+                return new ScriptEngines.lua.LuaScriptAction(scriptPath: scriptPath, args: args);
             case "js":
-                return new ScriptEngines.JsScriptAction(scriptPath: scriptPath, args: args);
+                return new ScriptEngines.js.JsScriptAction(scriptPath: scriptPath, args: args);
             case "bms": {
                 if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobj)) {
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
@@ -40,6 +40,9 @@ internal static class EmbeddedActionDispatcher {
                     extension: ext
                 );
             }
+            case "python":
+            case "py":
+                return new ScriptEngines.PythonScriptAction(scriptPath: scriptPath, args: args);
             default:
                 return null;
         }

@@ -103,7 +103,7 @@ internal sealed partial class ModulePage:UserControl {
             }
 
             // Registry info (URL)
-            IReadOnlyDictionary<string, object?> regs = _engine.GetRegistries().GetRegisteredModules();
+            IReadOnlyDictionary<string, object?> regs = _engine.GetRegistries.GetRegisteredModules();
             if (regs.TryGetValue(_moduleName, out object? regObj) && regObj is IDictionary<string, object?> reg) {
                 RegistryUrl = reg.TryGetValue(key: "url", value: out object? u) ? u?.ToString() : null;
                 if (string.IsNullOrWhiteSpace(Title)) {
@@ -317,7 +317,7 @@ internal sealed partial class ModulePage:UserControl {
             switch (type) {
                 case "confirm": {
                     bool def = prompt.TryGetValue(key: "default", value: out object? dv) && dv is bool db && db;
-                    bool res = await PromptHelpers.ConfirmAsync(title: name, message: name, defaultValue: def);
+                    bool res = await OperationOutputService.Instance.RequestConfirmPromptAsync(title: name, message: name, defaultValue: def);
                     answers[name] = res;
                     break;
                 }
@@ -325,7 +325,7 @@ internal sealed partial class ModulePage:UserControl {
                     // Fallback to comma-separated input prompt
                     string? hint = prompt.TryGetValue(key: "hint", value: out object? h) ? h?.ToString() : null;
                     string msg = string.IsNullOrWhiteSpace(hint) ? "Enter comma-separated values" : hint!;
-                    string? v = await PromptHelpers.TextAsync(title: name, message: msg, defaultValue: null, secret: false);
+                    string? v = await OperationOutputService.Instance.RequestTextPromptAsync(title: name, message: msg, defaultValue: null, secret: false);
                     List<object?> list = new List<object?>();
                     if (!string.IsNullOrWhiteSpace(v)) {
                         string[] parts = v.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);
@@ -338,7 +338,7 @@ internal sealed partial class ModulePage:UserControl {
                 default: {
                     string label = prompt.TryGetValue(key: "message", value: out object? msgObj) ? msgObj?.ToString() ?? name : name;
                     string? def = prompt.TryGetValue(key: "default", value: out object? d) ? d?.ToString() : null;
-                    string? v = await PromptHelpers.TextAsync(title: name, message: label, defaultValue: def, secret: false);
+                    string? v = await OperationOutputService.Instance.RequestTextPromptAsync(title: name, message: label, defaultValue: def, secret: false);
                     answers[name] = string.IsNullOrEmpty(v) ? def : v;
                     break;
                 }

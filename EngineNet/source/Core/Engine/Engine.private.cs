@@ -465,8 +465,8 @@ internal sealed partial class Engine {
                         }
                     }
                 }  catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
-        }
+                    Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
+                }
                 cfgDict3["module_path"] = gameRoot4;
                 cfgDict3["project_path"] = rootPath;
 

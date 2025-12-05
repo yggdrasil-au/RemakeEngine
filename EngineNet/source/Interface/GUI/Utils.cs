@@ -33,17 +33,24 @@ internal static class Utils {
         string? lastPromptMessage = null;
         string? lastPromptId = null;
         bool lastPromptSecret = false;
+        string? lastPromptType = null;
+        bool lastPromptDefault = false;
 
         void CapturePrompt(Dictionary<string, object?> evt) {
             if (!evt.TryGetValue("event", out object? typeObj)) {
                 return;
             }
 
-            if (typeObj?.ToString() == "prompt") {
+            string type = typeObj?.ToString() ?? "";
+            if (type == "prompt" || type == "color_prompt" || type == "confirm") {
                 lock (promptLock) {
+                    lastPromptType = type;
                     lastPromptMessage = evt.TryGetValue("message", out object? msg) ? msg?.ToString() : "Input required";
                     lastPromptId = evt.TryGetValue("id", out object? idObj) ? idObj?.ToString() : null;
                     lastPromptSecret = evt.TryGetValue("secret", out object? secretObj) && secretObj is bool b && b;
+                    if (type == "confirm") {
+                        lastPromptDefault = evt.TryGetValue("default", out object? defObj) && defObj is bool d && d;
+                    }
                 }
             }
         }
@@ -59,10 +66,14 @@ internal static class Utils {
             string? promptMessage;
             string? promptId;
             bool promptSecret;
+            string? promptType;
+            bool promptDefault;
             lock (promptLock) {
                 promptMessage = lastPromptMessage ?? "Input required";
                 promptId = lastPromptId;
                 promptSecret = lastPromptSecret;
+                promptType = lastPromptType;
+                promptDefault = lastPromptDefault;
             }
 
             string? response = null;
@@ -70,7 +81,12 @@ internal static class Utils {
                 global::Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () => {
                     try {
                         string title = !string.IsNullOrWhiteSpace(promptId) ? promptId : "Input Required";
-                        response = await PromptHelpers.TextAsync(title, promptMessage ?? "Enter value", defaultValue: null, promptSecret);
+                        if (promptType == "confirm") {
+                            bool res = await OperationOutputService.Instance.RequestConfirmPromptAsync(title, promptMessage ?? "Confirm?", promptDefault);
+                            response = res ? "y" : "n";
+                        } else {
+                            response = await OperationOutputService.Instance.RequestTextPromptAsync(title, promptMessage ?? "Enter value", defaultValue: null, promptSecret);
+                        }
                     } catch (System.Exception ex) {
                         outputService.AddOutput($"Prompt dialog failed: {ex.Message}", stream: "stderr");
                         response = string.Empty;

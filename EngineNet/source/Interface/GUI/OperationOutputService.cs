@@ -752,6 +752,97 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
         });
     }
 
+    // --- Prompt / Popup State ---
+    private bool _isPromptActive;
+    internal bool IsPromptActive {
+        get => _isPromptActive;
+        private set => SetField(ref _isPromptActive, value);
+    }
+
+    private string _promptTitle = string.Empty;
+    internal string PromptTitle {
+        get => _promptTitle;
+        private set => SetField(ref _promptTitle, value);
+    }
+
+    private string _promptMessage = string.Empty;
+    internal string PromptMessage {
+        get => _promptMessage;
+        private set => SetField(ref _promptMessage, value);
+    }
+
+    private string _promptValue = string.Empty;
+    internal string PromptValue {
+        get => _promptValue;
+        set => SetField(ref _promptValue, value);
+    }
+
+    private bool _isConfirmPrompt;
+    internal bool IsConfirmPrompt {
+        get => _isConfirmPrompt;
+        private set {
+            if (SetField(ref _isConfirmPrompt, value)) {
+                OnPropertyChanged(nameof(IsTextPrompt));
+            }
+        }
+    }
+
+    internal bool IsTextPrompt => !IsConfirmPrompt;
+
+    private bool _isSecret;
+    internal bool IsSecret {
+        get => _isSecret;
+        private set => SetField(ref _isSecret, value);
+    }
+
+    private System.Threading.Tasks.TaskCompletionSource<string?>? _promptTcs;
+
+    internal async System.Threading.Tasks.Task<string?> RequestTextPromptAsync(string title, string message, string? defaultValue, bool secret) {
+        return await Dispatcher.UIThread.InvokeAsync(async () => {
+             PromptTitle = title;
+             PromptMessage = message;
+             PromptValue = defaultValue ?? "";
+             IsSecret = secret;
+             IsConfirmPrompt = false;
+             IsPromptActive = true;
+
+             _promptTcs = new System.Threading.Tasks.TaskCompletionSource<string?>();
+             return await _promptTcs.Task;
+        });
+    }
+
+    internal async System.Threading.Tasks.Task<bool> RequestConfirmPromptAsync(string title, string message, bool defaultValue) {
+        return await Dispatcher.UIThread.InvokeAsync(async () => {
+            PromptTitle = title;
+            PromptMessage = message;
+            IsConfirmPrompt = true;
+            IsPromptActive = true;
+            PromptValue = "";
+
+            _promptTcs = new System.Threading.Tasks.TaskCompletionSource<string?>();
+            string? res = await _promptTcs.Task;
+            return res == "y";
+        });
+    }
+
+    internal void SubmitPrompt() {
+        IsPromptActive = false;
+        if (IsConfirmPrompt) {
+             _promptTcs?.TrySetResult("y");
+        } else {
+             _promptTcs?.TrySetResult(PromptValue);
+        }
+    }
+
+    internal void CancelPrompt() {
+        IsPromptActive = false;
+        if (IsConfirmPrompt) {
+             _promptTcs?.TrySetResult("n");
+        } else {
+             _promptTcs?.TrySetResult(null);
+        }
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null) {

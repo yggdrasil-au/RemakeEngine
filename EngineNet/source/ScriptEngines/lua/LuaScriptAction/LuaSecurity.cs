@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace EngineNet.ScriptEngines.LuaModules;
+namespace EngineNet.ScriptEngines.lua.LuaModules;
 
 /// <summary>
 /// Security validation methods for Lua script execution.
@@ -36,15 +36,16 @@ internal static class LuaSecurity {
         }
         // Ask the user for permission to grant temporary access to this external path
         string root = DetermineApprovalRoot(path);
-        string msg = $"Permission requested: Allow this script to access external path '\"{root}\"'?\nType 'y' to allow for this session, anything else to deny.";
-        string answer = Core.Utils.EngineSdk.color_prompt(msg, "red", "ext_path_access", false) ?? string.Empty;
-        if (answer.Trim().Equals("y", System.StringComparison.OrdinalIgnoreCase) ||
-            answer.Trim().Equals("yes", System.StringComparison.OrdinalIgnoreCase)) {
+        string msg = $"Permission requested: Allow this script to access external path '\"{root}\"'?";
+
+        bool allowed = Core.Utils.EngineSdk.Confirm(msg, "ext_path_access", false);
+
+        if (allowed) {
             try {
                 string normalized = NormalizeLowerFullPath(root).TrimEnd(System.IO.Path.DirectorySeparatorChar);
                 UserApprovedRoots.Add(normalized);
             } catch {
-                                Core.Diagnostics.Bug("Failed to normalize and approve path: " + root);
+                Core.Diagnostics.Bug("[LuaSecurity.cs::EnsurePathAllowedWithPrompt()] Failed to normalize and approve path: " + root);
                 /* ignore */
             }
             return true;
@@ -122,12 +123,15 @@ internal static class LuaSecurity {
     /// </summary>
     internal static bool IsAllowedPath(string path) {
         if (string.IsNullOrWhiteSpace(path)) {
+            Core.Diagnostics.Trace("[LuaSecurity.cs::IsAllowedPath()] Denying access to empty or whitespace path");
             return false;
         }
 
         try {
             string fullPath = System.IO.Path.GetFullPath(path);
             string normalizedPath = fullPath.Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant();
+            Core.Diagnostics.Trace($"[LuaSecurity.cs::IsAllowedPath()] Checking path '{fullPath}'");
+            Core.Diagnostics.Trace($"[LuaSecurity.cs::IsAllowedPath()] Normalized path '{normalizedPath}'");
 
             // First, allow any user-approved roots for this session
             foreach (string approved in UserApprovedRoots) {
@@ -138,36 +142,69 @@ internal static class LuaSecurity {
 
             // Get current working directory and common workspace patterns
             string currentDir = System.IO.Directory.GetCurrentDirectory().Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant();
-            string projectRoot = string.IsNullOrWhiteSpace(EngineNet.Program.rootPath) 
-                ? currentDir 
+            string projectRoot = string.IsNullOrWhiteSpace(EngineNet.Program.rootPath)
+                ? currentDir
                 : EngineNet.Program.rootPath.Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant();
+
+            Core.Diagnostics.Trace($"[LuaSecurity.cs::IsAllowedPath()] Current directory '{currentDir}'");
+            Core.Diagnostics.Trace($"[LuaSecurity.cs::IsAllowedPath()] Project root '{projectRoot}'");
 
             // Allowed path patterns (case-insensitive)
             string[] allowedPatterns = {
                 // Current workspace and subdirectories
                 currentDir,
+                //
                 projectRoot,
 
-                // Common game/project directories
+                // project directories
                 System.IO.Path.Combine(projectRoot, "EngineApps"),
                 System.IO.Path.Combine(projectRoot, "gamefiles"),
                 System.IO.Path.Combine(projectRoot, "tools"),
                 System.IO.Path.Combine(projectRoot, "tmp"),
-                System.IO.Path.Combine(projectRoot, "source"),
-
-                // Temp directories
-                System.IO.Path.GetTempPath().TrimEnd(System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
-
-                // User profile directories (for game installations)
-                System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile).Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
-                System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments).Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
             };
 
             // Allow if path starts with any allowed pattern
             foreach (string allowedPattern in allowedPatterns) {
                 if (normalizedPath.StartsWith(allowedPattern, System.StringComparison.OrdinalIgnoreCase)) {
+                    Core.Diagnostics.Trace($"[LuaSecurity.cs::IsAllowedPath()] Path '{normalizedPath}' starts with allowed pattern '{allowedPattern}'");
                     return true;
+                } else {
+                    Core.Diagnostics.Trace($"[LuaSecurity.cs::IsAllowedPath()] Path '{normalizedPath}' does not start with allowed pattern '{allowedPattern}'");
                 }
+            }
+
+            // Check if the path itself or any of its parents are symlinks that resolve to an allowed path
+            try {
+                string? check = fullPath;
+                string? root = System.IO.Path.GetPathRoot(check);
+                Core.Diagnostics.Trace($"[LuaSecurity.cs::IsAllowedPath()] Checking symlinks for path '{check}'");
+
+                while (!string.IsNullOrEmpty(check) && !string.Equals(check, root, System.StringComparison.OrdinalIgnoreCase)) {
+                    if (System.IO.Directory.Exists(check)) {
+                        var info = new System.IO.DirectoryInfo(check);
+                        var target = info.ResolveLinkTarget(true); // true = return final target
+                        if (target != null) {
+                            string targetPath = target.FullName;
+                            string suffix = "";
+                            if (fullPath.Length > check.Length) {
+                                suffix = fullPath.Substring(check.Length);
+                            }
+
+                            string resolvedFullPath = targetPath + suffix;
+                            string normalizedResolved = resolvedFullPath.Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant();
+
+                            foreach (string allowedPattern in allowedPatterns) {
+                                if (normalizedResolved.StartsWith(allowedPattern, System.StringComparison.OrdinalIgnoreCase)) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                    check = System.IO.Path.GetDirectoryName(check);
+                }
+            } catch {
+                /* ignore */
+                Core.Diagnostics.Bug("IsAllowedPath: Failed to resolve symlink for path: " + fullPath);
             }
 
             // Deny access to sensitive system directories
@@ -183,6 +220,7 @@ internal static class LuaSecurity {
             foreach (string forbiddenPattern in forbiddenPatterns) {
                 string normalizedForbidden = forbiddenPattern.Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant();
                 if (normalizedPath.StartsWith(normalizedForbidden, System.StringComparison.OrdinalIgnoreCase)) {
+                    Core.Diagnostics.Trace($"[LuaSecurity.cs::IsAllowedPath()] Path '{normalizedPath}' starts with forbidden pattern '{normalizedForbidden}'");
                     return false;
                 }
             }

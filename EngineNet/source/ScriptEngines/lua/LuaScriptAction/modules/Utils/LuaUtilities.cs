@@ -2,7 +2,7 @@ using MoonSharp.Interpreter;
 
 using System.Collections.Generic;
 
-namespace EngineNet.ScriptEngines.LuaModules;
+namespace EngineNet.ScriptEngines.lua.LuaModules.Utils;
 
 /// <summary>
 /// Utility methods for converting between Lua and .NET data types.

@@ -38,8 +38,6 @@ this may also occur in other tools, and is likly connected to console size W and
 
 ### GUI:
 ...
-
-
 ## Engine:
 ### Tools:
 * :: FEATURE :: make the Download module menu a built in operations.toml instead of hardcoded into every interface
@@ -48,6 +46,15 @@ this may also occur in other tools, and is likly connected to console size W and
  Downloader:
 * :: ISSUE :: vgmstream-cli has no checksum
 * :: ISSUE :: when re-runing the downloader with no force redownload, it always redownloads despite the file existing already in both the tools and tmp downloads, but then stops when it find the exe in the tools folder, its checking the exe path after it determines what the file is named, which it can only know after downloading it first, so it always downloads again even if its already there
+
+ gitdownloader:
+ issue: does not appear as a progress event in gui, only shows in building page logs, not the progress bar
+
+ feature: move prompts and other popups to be inside the gui window, not separate windows
+
+
+issue: when running bms script in TSG for str extraction the entire gui freezes until the operation is complete
+
 
 
 ### Operations:

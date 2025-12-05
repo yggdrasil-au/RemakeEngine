@@ -2,7 +2,7 @@ using MoonSharp.Interpreter;
 
 using System.Collections.Generic;
 
-namespace EngineNet.ScriptEngines.LuaModules;
+namespace EngineNet.ScriptEngines.lua.LuaModules.Utils;
 
 /// <summary>
 /// Process execution functionality for Lua scripts.
@@ -78,10 +78,10 @@ internal static class LuaProcessExecution {
         return true;
     }
 
-    internal static void AddProcessExecution(Table sdk, Script lua, Core.Tools.IToolResolver tools) {
+    internal static void AddProcessExecution(LuaWorld LuaEnvObj, Core.Tools.IToolResolver tools) {
         // exec(args[, options]) -> { success=bool, exit_code=int }
         // options: { cwd=string, env=table, new_terminal=bool, keep_open=bool, title=string, wait=bool }
-        sdk["exec"] = DynValue.NewCallback((ctx, args) => {
+        LuaEnvObj.sdk["exec"] = DynValue.NewCallback((ctx, args) => {
             if (args.Count < 1 || args[0].Type != DataType.Table) {
                 throw new ScriptRuntimeException("exec expects first argument to be an array/table of strings (command + args)");
             }
@@ -99,10 +99,10 @@ internal static class LuaProcessExecution {
                 throw new ScriptRuntimeException($"Executable '{parts[0]}' is not in the approved tools list. Use tool() function to resolve approved tools.");
             }
 
-            return ExecProcess(lua, commandArgs, options, false);
+            return ExecProcess(LuaEnvObj.LuaScript, commandArgs, options, false);
         });
 
-        sdk["execSilent"] = DynValue.NewCallback((ctx, args) => {
+        LuaEnvObj.sdk["execSilent"] = DynValue.NewCallback((ctx, args) => {
             if (args.Count < 1 || args[0].Type != DataType.Table) {
                 throw new ScriptRuntimeException("exec expects first argument to be an array/table of strings (command + args)");
             }
@@ -120,10 +120,10 @@ internal static class LuaProcessExecution {
                 throw new ScriptRuntimeException($"Executable '{parts[0]}' is not in the approved tools list. Use tool() function to resolve approved tools.");
             }
 
-            return ExecProcess(lua, commandArgs, options, true);
+            return ExecProcess(LuaEnvObj.LuaScript, commandArgs, options, true);
         });
 
-        sdk["run_process"] = DynValue.NewCallback((ctx, args) => {
+        LuaEnvObj.sdk["run_process"] = DynValue.NewCallback((ctx, args) => {
             if (args.Count < 1 || args[0].Type != DataType.Table) {
                 throw new ScriptRuntimeException("run_process expects argument table");
             }
@@ -141,11 +141,11 @@ internal static class LuaProcessExecution {
                 throw new ScriptRuntimeException($"Executable '{parts[0]}' is not in the approved tools list. Use tool() function to resolve approved tools.");
             }
 
-            return RunProcess(lua, commandArgs, options);
+            return RunProcess(LuaEnvObj.LuaScript, commandArgs, options);
         });
 
         // Register non-blocking spawn/poll/wait/close helpers for Lua scripts
-        sdk["spawn_process"] = DynValue.NewCallback((ctx, args) => {
+        LuaEnvObj.sdk["spawn_process"] = DynValue.NewCallback((ctx, args) => {
             if (args.Count < 1 || args[0].Type != DataType.Table) {
                 throw new ScriptRuntimeException("spawn_process expects a table of command parts");
             }
@@ -154,18 +154,18 @@ internal static class LuaProcessExecution {
             if (args.Count > 1 && args[1].Type == DataType.Table) {
                 options = args[1].Table;
             }
-            return SpawnProcess(lua, cmdTable, options, tools);
+            return SpawnProcess(LuaEnvObj.LuaScript, cmdTable, options, tools);
         });
 
-        sdk["poll_process"] = DynValue.NewCallback((ctx, args) => {
+        LuaEnvObj.sdk["poll_process"] = DynValue.NewCallback((ctx, args) => {
             if (args.Count < 1 || args[0].Type != DataType.Number) {
                 throw new ScriptRuntimeException("poll_process requires a numeric process id");
             }
             int pid = (int)args[0].Number;
-            return PollProcess(lua, pid);
+            return PollProcess(LuaEnvObj.LuaScript, pid);
         });
 
-        sdk["wait_process"] = DynValue.NewCallback((ctx, args) => {
+        LuaEnvObj.sdk["wait_process"] = DynValue.NewCallback((ctx, args) => {
             if (args.Count < 1 || args[0].Type != DataType.Number) {
                 throw new ScriptRuntimeException("wait_process requires a numeric process id");
             }
@@ -174,15 +174,15 @@ internal static class LuaProcessExecution {
             if (args.Count > 1 && args[1].Type == DataType.Number) {
                 timeoutMs = (int)args[1].Number;
             }
-            return WaitProcess(lua, pid, timeoutMs);
+            return WaitProcess(LuaEnvObj.LuaScript, pid, timeoutMs);
         });
 
-        sdk["close_process"] = DynValue.NewCallback((ctx, args) => {
+        LuaEnvObj.sdk["close_process"] = DynValue.NewCallback((ctx, args) => {
             if (args.Count < 1 || args[0].Type != DataType.Number) {
                 throw new ScriptRuntimeException("close_process requires a numeric process id");
             }
             int pid = (int)args[0].Number;
-            return CloseProcess(lua, pid);
+            return CloseProcess(LuaEnvObj.LuaScript, pid);
         });
     }
 

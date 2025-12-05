@@ -1,4 +1,6 @@
-namespace EngineNet.ScriptEngines.LuaModules;
+
+
+namespace EngineNet.ScriptEngines.lua.LuaModules.Utils;
 
 /// <summary>
 /// File system utilities for Lua script execution.

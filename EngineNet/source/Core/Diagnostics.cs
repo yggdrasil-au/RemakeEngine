@@ -19,10 +19,10 @@ internal static class Diagnostics {
     private static StreamWriter? _bugWriter;   // Just Diagnostics.Bug
     private static readonly object _lock = new();
 
-    internal static void Initialize(string rootDirectory) {
+    internal static void Initialize() {
         string logDirectory = string.Empty;
         try {
-            string logDir = Path.Combine(rootDirectory, "logs");
+            string logDir = Path.Combine(Program.rootPath, "logs");
             string logsubdir = DateTime.Now.ToString("dd_HH-mm-ss");
 
             // delete logdir if exists else create it
@@ -94,6 +94,22 @@ internal static class Diagnostics {
         }
     }
 
+    /// <summary>
+    /// Log a trace message to trace.log, only in Debug builds, use anywhere for excessively verbose tracing
+    /// </summary>
+    /// <param name="message"></param>
+    internal static void Trace(string message) {
+#if DEBUG
+        if (_traceWriter == null) return;
+
+        lock (_lock) {
+            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+            string formattedMsg = $"[{timestamp}] [TRACE] {message}";
+            // Write to trace.log in Debug builds
+            _traceWriter.WriteLine(formattedMsg);
+        }
+#endif
+    }
 
     /// <summary>
     /// Logs an informational message to debug.log and trace.log
@@ -177,7 +193,7 @@ internal static class Diagnostics {
         _luaLogWriter?.Close();
 #if DEBUG
         _traceWriter?.Close();
-        Trace.Listeners.Clear();
+        System.Diagnostics.Trace.Listeners.Clear();
 #endif
     }
 
@@ -206,6 +222,26 @@ internal static class Diagnostics {
                 }
 #endif
             }
+        }
+
+        /// <summary>
+        /// trace into main trace log from Lua scripts, only in Debug builds, use lua.log in release builds
+        /// </summary>
+        /// <param name="message"></param>
+        internal static void LuaTrace(string message) {
+#if DEBUG
+            if (Diagnostics._traceWriter == null) return;
+
+            lock (Diagnostics._lock) {
+                string timestamp = DateTime.Now.ToString("HH:mm:ss");
+                string formattedMsg = $"[{timestamp}] [LUA_TRACE] {message}";
+                // Write to trace.log in Debug builds
+                Diagnostics._traceWriter.WriteLine(formattedMsg);
+            }
+#else
+            // use lua.log
+            LuaLog(message);
+#endif
         }
     }
 

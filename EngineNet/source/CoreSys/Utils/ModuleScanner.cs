@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-// using System.IO; // No longer needed
 
 namespace EngineNet.Core.Utils;
 
@@ -44,11 +43,10 @@ internal enum ModuleFilter {
 /// Scans registry and file system to produce a consistent view of modules with status flags.
 /// </summary>
 internal sealed class ModuleScanner {
-    private readonly string _rootPath;
+
     private readonly Registries _registries;
 
-    internal ModuleScanner(string rootPath, Registries registries) {
-        _rootPath = rootPath; // _rootPath is no longer used here, but kept in case of future use.
+    internal ModuleScanner(Registries registries) {
         _registries = registries;
     }
 
@@ -70,6 +68,7 @@ internal sealed class ModuleScanner {
     /// about iteration or serialization and don't want the name->info map.
     /// </summary>
     internal Dictionary<string, GameModuleInfo> Modules(ModuleFilter filter) {
+        Core.Diagnostics.Trace($"[Core :: ModuleScanner.cs::Modules()] Scanning modules with filter {filter}");
         Dictionary<string, GameModuleInfo> all = ScanAllModules();
         IEnumerable<GameModuleInfo> filtered = FilterModules(all.Values, filter);
 
@@ -77,7 +76,7 @@ internal sealed class ModuleScanner {
         Dictionary<string, GameModuleInfo> dict = new Dictionary<string, GameModuleInfo>(StringComparer.OrdinalIgnoreCase);
         foreach (GameModuleInfo info in filtered) {
             dict[info.Name] = info;
-            Core.Diagnostics.Log($"[GUI :: ModuleScanner.cs::Modules()] Including module: {info.Name} (State: {info.DescribeState()})");
+            Core.Diagnostics.Trace($"[Core :: ModuleScanner.cs::Modules()] Including module: {info.Name} (State: {info.DescribeState()})");
         }
         return dict;
     }
@@ -156,7 +155,7 @@ internal sealed class ModuleScanner {
                 }
             }
 
-            string GameRoot = !string.IsNullOrWhiteSpace(path) ? System.IO.Path.Combine(_rootPath, path) : string.Empty;
+            string GameRoot = !string.IsNullOrWhiteSpace(path) ? System.IO.Path.Combine(Program.rootPath, path) : string.Empty;
 
             // opts file could be .toml or .json;
             string opsFile = System.IO.Path.Combine(GameRoot, "operations.toml");
@@ -187,7 +186,7 @@ internal sealed class ModuleScanner {
             GameModuleInfo info;
             // if not already present (i.e. registered), create a new entry
             if (!result.TryGetValue(name, out info!)) {
-                Core.Diagnostics.Log($"[ModuleScanner.cs::ScanAllModules()] Found unregistered but installed module: {name}");
+                Core.Diagnostics.Trace($"[ModuleScanner.cs::ScanAllModules()] Found unregistered but installed module: {name}");
                 info = new GameModuleInfo {
                     Id = string.Empty, // unknown
                     Name = name, // from directory name
@@ -239,27 +238,28 @@ internal sealed class ModuleScanner {
     /// </summary>
     private static IEnumerable<GameModuleInfo> FilterModules(IEnumerable<GameModuleInfo> source, ModuleFilter filter) {
         switch (filter) {
-            case ModuleFilter.All:
+            case ModuleFilter.All: {
                 return source;
-
-            case ModuleFilter.Installed:
+            }
+            case ModuleFilter.Installed: {
                 return Only(source, m => m.IsInstalled);
-
-            case ModuleFilter.Unverified:
+            }
+            case ModuleFilter.Unverified: {
                 return Only(source, m => m.IsUnverified);
-
-            case ModuleFilter.Registered:
+            }
+            case ModuleFilter.Registered: {
                 return Only(source, m => m.IsRegistered);
-
-            case ModuleFilter.Uninstalled:
+            }
+            case ModuleFilter.Uninstalled: {
                 return Only(source, m => m.IsRegistered && !m.IsInstalled);
-
-            case ModuleFilter.Built:
+            }
+            case ModuleFilter.Built: {
                 return Only(source, m => m.IsBuilt);
-
-            default:
+            }
+            default: {
                 // fallback to "All" if future enum values slip through
                 return source;
+            }
         }
     }
 
@@ -269,8 +269,9 @@ internal sealed class ModuleScanner {
     /// </summary>
     private static IEnumerable<GameModuleInfo> Only(IEnumerable<GameModuleInfo> src, Func<GameModuleInfo, bool> pred) {
         foreach (GameModuleInfo m in src) {
-            if (pred(m))
+            if (pred(m)) {
                 yield return m;
+            }
         }
     }
 

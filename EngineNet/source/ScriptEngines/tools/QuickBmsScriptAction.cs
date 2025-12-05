@@ -81,12 +81,10 @@ internal sealed class QuickBmsScriptAction : Helpers.IAction {
             extractorArgs.Add(_extension!);
         }
 
-        // Run synchronously; extractor already streams output
-        bool ok = Helpers.QuickBmsExtractor.Run(extractorArgs);
+        // Run asynchronously to avoid blocking the UI thread
+        bool ok = await System.Threading.Tasks.Task.Run(() => Helpers.QuickBmsExtractor.Run(extractorArgs), cancellationToken);
         if (!ok) {
             throw new System.InvalidOperationException("QuickBMS extraction failed.");
         }
-
-        await System.Threading.Tasks.Task.CompletedTask;
     }
 }

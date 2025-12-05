@@ -26,6 +26,7 @@ public partial class MainWindow:Window {
         DataContext = this;
         InitializeComponent();
         TryWireBottomPanel();
+        TryWirePromptOverlay();
         ShowLibrary(); // default page
     }
 
@@ -88,9 +89,24 @@ public partial class MainWindow:Window {
         }
     }
 
+    private void TryWirePromptOverlay() {
+        try {
+            var overlay = this.FindControl<Border>("PromptOverlay");
+            if (overlay != null) {
+                overlay.DataContext = OperationOutputService.Instance;
+            }
+        } catch {
+            Core.Diagnostics.Bug("GUI :: MainWindow.axaml.cs::TryWirePromptOverlay() Failed to wire prompt overlay");
+        }
+    }
+
     // navbar button handlers
     private void OnLibrary(object? s, RoutedEventArgs e) => ShowLibrary();
     private void OnStore(object? s, RoutedEventArgs e) => ShowStore();
     private void OnBuilding(object? s, RoutedEventArgs e) => ShowBuilding();
     private void OnSettings(object? s, RoutedEventArgs e) => ShowSettings();
+
+    // prompt handlers
+    private void OnPromptSubmit(object? s, RoutedEventArgs e) => OperationOutputService.Instance.SubmitPrompt();
+    private void OnPromptCancel(object? s, RoutedEventArgs e) => OperationOutputService.Instance.CancelPrompt();
 }

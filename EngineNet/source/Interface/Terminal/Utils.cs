@@ -199,6 +199,16 @@ internal class Utils() {
                 System.Console.ForegroundColor = prev;
                 break;
 
+            case "confirm":
+                string confirmMsg = evt.TryGetValue("message", out object? cm) ? cm?.ToString() ?? "Confirm?" : "Confirm?";
+                bool def = evt.TryGetValue("default", out object? d) && d is bool db && db;
+                _lastPrompt = confirmMsg;
+                prev = System.Console.ForegroundColor;
+                System.Console.ForegroundColor = System.ConsoleColor.Cyan;
+                System.Console.WriteLine($"? {confirmMsg} [{(def ? "Y/n" : "y/N")}]");
+                System.Console.ForegroundColor = prev;
+                break;
+
             case "warning":
                 WriteColored($"⚠ {evt.GetValueOrDefault("message", "")}", System.ConsoleColor.Yellow);
                 break;
