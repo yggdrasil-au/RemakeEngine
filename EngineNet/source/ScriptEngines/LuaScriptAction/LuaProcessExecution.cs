@@ -247,9 +247,7 @@ internal static class LuaProcessExecution {
         }
         p.Exited += (_, __) => {
             try { mp.ExitTcs.TrySetResult(p.ExitCode); }  catch {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[LuaProcessExecution] Error setting exit code for process '{psi.FileName}'");
-#endif
+            Core.Diagnostics.Bug($"[LuaProcessExecution] Error setting exit code for process '{psi.FileName}'");
         }
         };
 
@@ -348,14 +346,10 @@ internal static class LuaProcessExecution {
     private static DynValue CloseProcess(Script lua, int pid) {
         if (!s_processes.TryRemove(pid, out var mp)) return DynValue.NewBoolean(false);
         try { if (!mp.Process.HasExited) mp.Process.Kill(true); }  catch {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"Error .....'");
-#endif
+            Core.Diagnostics.Bug($"Error .....'");
         }
         try { mp.Process.Dispose(); }  catch {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"Error .....'");
-#endif
+            Core.Diagnostics.Bug($"Error .....'");
         }
         return DynValue.NewBoolean(true);
     }
@@ -457,9 +451,7 @@ internal static class LuaProcessExecution {
                     try {
                         process.Kill(entireProcessTree: true);
                     }  catch {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[LuaProcessExecution] Error killing timed-out process '{fileName}'");
-#endif
+            Core.Diagnostics.Bug($"[LuaProcessExecution] Error killing timed-out process '{fileName}'");
         }
                     throw new ScriptRuntimeException($"Process '{fileName}' timed out after {timeoutMs.Value} ms");
                 }
@@ -629,9 +621,7 @@ internal static class LuaProcessExecution {
                 string? color = stream == "stderr" ? "red" : null;
                 if (!silentRun) {
                     Core.Utils.EngineSdk.Print(line, color, true);
-#if DEBUG
-                    System.Diagnostics.Trace.WriteLine($"[ProcessRunner][{stream}] {line}");
-#endif
+                    Core.Diagnostics.Log($"[ProcessRunner][{stream}] {line}");
             }
                 },
             onEvent: (evt) => {

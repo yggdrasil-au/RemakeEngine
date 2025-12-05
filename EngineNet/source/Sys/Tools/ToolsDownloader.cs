@@ -28,9 +28,7 @@ internal sealed class ToolsDownloader {
             try {
                 System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(_centralRepoJsonPath)) ?? _rootPath);
             }  catch {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[ToolsDownloader] Could not create directory for central tools registry: {_centralRepoJsonPath}");
-#endif
+            Core.Diagnostics.Bug($"[ToolsDownloader] Could not create directory for central tools registry: {_centralRepoJsonPath}");
         }
 
             RemoteFallbacks.EnsureRepoFile(System.IO.Path.Combine("EngineApps", "Registries", "Tools", "Main.json"), _centralRepoJsonPath);
@@ -337,9 +335,7 @@ internal sealed class ToolsDownloader {
                         return file;
                     }
                 } catch {
-#if DEBUG
-                    System.Diagnostics.Trace.WriteLine($"[ToolsDownloader] Could not search for exe in: {root}");
-#endif
+                    Core.Diagnostics.Bug($"[ToolsDownloader] Could not search for exe in: {root}");
                 }
             }
         }
@@ -353,9 +349,7 @@ internal sealed class ToolsDownloader {
                 }
             }
         } catch {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[ToolsDownloader] Could not search for exe in: {root}");
-#endif
+            Core.Diagnostics.Bug($"[ToolsDownloader] Could not search for exe in: {root}");
             // ignore
         }
         return null;

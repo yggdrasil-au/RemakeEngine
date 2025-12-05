@@ -239,18 +239,14 @@ internal static class ImageMagickConverter {
                 StartedUtc = System.DateTime.UtcNow
             };
         } catch{
-            #if DEBUG
-            Trace.WriteLine("Failed to register active process");
-            #endif
+            Core.Diagnostics.Bug("Failed to register active process");
             /* ignore */
         }
     }
 
     private static void UnregisterActive() {
         try { s_active.TryRemove(System.Threading.Thread.CurrentThread.ManagedThreadId, out _); } catch {
-            #if DEBUG
-            Trace.WriteLine("Failed to unregister active process");
-            #endif
+            Core.Diagnostics.Bug("Failed to unregister active process");
             /* ignore */
         }
     }
@@ -439,16 +435,12 @@ internal static class ImageMagickConverter {
                         return candidate;
                     }
                 } catch {
-                    #if DEBUG
-                    Trace.WriteLine("Failed to find executable: " + name);
-                    #endif
+                    Core.Diagnostics.Bug("Failed to find executable: " + name);
                     /* ignore */
                 }
             }
         } catch {
-            #if DEBUG
-            Trace.WriteLine("Failed to get PATH environment variable");
-            #endif
+            Core.Diagnostics.Bug("Failed to get PATH environment variable");
             /* ignore */
         }
         return null;
@@ -460,9 +452,7 @@ internal static class ImageMagickConverter {
                 File.Delete(path);
             }
         } catch {
-            #if DEBUG
-            Trace.WriteLine("Failed to delete file: " + path);
-            #endif
+            Core.Diagnostics.Bug("Failed to delete file: " + path);
             /* ignore */
         }
     }

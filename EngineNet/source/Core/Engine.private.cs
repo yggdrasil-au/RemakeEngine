@@ -161,20 +161,14 @@ internal sealed partial class Engine {
 
     private async System.Threading.Tasks.Task<bool> ExecuteEngineOperationAsync(string currentGame, Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, System.Threading.CancellationToken cancellationToken = default) {
         if (!op.TryGetValue("script", out object? s) || s is null) {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine("[Engine.OperationExecution] Missing 'script' value in engine operation");
-#endif
+            Core.Diagnostics.Log("[Engine.OperationExecution] Missing 'script' value in engine operation");
             return false;
         } else {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] engine operation script: {s}");
-#endif
+            Core.Diagnostics.Log($"[Engine.OperationExecution] engine operation script: {s}");
         }
 
         string? action = s.ToString()?.ToLowerInvariant();
-#if DEBUG
-        System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] Executing engine action: {action}");
-#endif
+        Core.Diagnostics.Log($"[Engine.OperationExecution] Executing engine action: {action}");
         switch (action) {
             case "download_tools": {
                 // Expect a 'tools_manifest' value (path), or fallback to first arg
@@ -221,10 +215,8 @@ internal sealed partial class Engine {
                         }
                     }
                 }  catch (Exception ex) {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[Engine.cs] err reading config.toml: {ex.Message}");
-#endif
-        }
+                    Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
+                }
                 cfgDict0["module_path"] = gameRoot;
                 cfgDict0["project_path"] = rootPath;
                 string resolvedManifest = Core.Utils.Placeholders.Resolve(manifest!, ctx)?.ToString() ?? manifest!;
@@ -280,10 +272,8 @@ internal sealed partial class Engine {
                         }
                     }
                 }  catch (Exception ex) {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[Engine.cs] err reading config.toml: {ex.Message}");
-#endif
-        }
+                    Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
+                }
                 cfgDict1["module_path"] = gameRoot2;
                 cfgDict1["project_path"] = rootPath;
 
@@ -317,24 +307,22 @@ internal sealed partial class Engine {
             }
             case "format-convert":
             case "format_convert": {
-#if DEBUG
-                    System.Diagnostics.Trace.WriteLine("[Engine.OperationExecution] format-convert");
-#endif
+                Core.Diagnostics.Log("[Engine.OperationExecution] format-convert");
                 // Determine tool - check both 'tool' field and '-m'/'--mode' in args
                 string? tool = op.TryGetValue("tool", out object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
-                
+
 #if DEBUG
                 if (op.TryGetValue("args", out object? argsDebugObj)) {
-                    System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: args type = {argsDebugObj?.GetType().FullName ?? "null"}");
+                    Core.Diagnostics.Log($"[Engine.OperationExecution] format-convert: args type = {argsDebugObj?.GetType().FullName ?? "null"}");
                     if (argsDebugObj is System.Collections.IList argsDebugList) {
-                        System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: args count = {argsDebugList.Count}");
+                        Core.Diagnostics.Log($"[Engine.OperationExecution] format-convert: args count = {argsDebugList.Count}");
                         for (int i = 0; i < argsDebugList.Count; i++) {
-                            System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: args[{i}] = '{argsDebugList[i]}'");
+                            Core.Diagnostics.Log($"[Engine.OperationExecution] format-convert: args[{i}] = '{argsDebugList[i]}'");
                         }
                     }
                 }
 #endif
-                
+
                 // If tool not specified, try to extract from args
                 if (string.IsNullOrWhiteSpace(tool) && op.TryGetValue("args", out object? argsObj)) {
                     if (argsObj is System.Collections.IList argsList) {
@@ -343,20 +331,18 @@ internal sealed partial class Engine {
                             string arg = argsList[i]?.ToString() ?? string.Empty;
                             if (arg == "-m" || arg == "--mode") {
                                 tool = argsList[i + 1]?.ToString()?.ToLowerInvariant();
-#if DEBUG
-                                System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: extracted tool from args: '{tool}'");
-#endif
+                                Core.Diagnostics.Log($"[Engine.OperationExecution] format-convert: extracted tool from args: '{tool}'");
                                 break;
                             }
                         }
-                        
+
                         // If still no tool, try to infer from arguments pattern
                         if (string.IsNullOrWhiteSpace(tool)) {
                             bool hasSource = false;
                             bool hasInputExt = false;
                             bool hasOutputExt = false;
                             bool hasType = false;
-                            
+
                             foreach (object? a in argsList) {
                                 string arg = a?.ToString() ?? string.Empty;
                                 if (arg == "--source" || arg == "-s") hasSource = true;
@@ -364,20 +350,16 @@ internal sealed partial class Engine {
                                 if (arg == "--output-ext" || arg == "-o") hasOutputExt = true;
                                 if (arg == "--type") hasType = true;
                             }
-                            
+
                             // If has --source, --input-ext, --output-ext but no --type, likely ImageMagick
                             if (hasSource && hasInputExt && hasOutputExt && !hasType) {
                                 tool = "imagemagick";
-#if DEBUG
-                                System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: inferred tool from args pattern: '{tool}'");
-#endif
+                                Core.Diagnostics.Log($"[Engine.OperationExecution] format-convert: inferred tool from args pattern: '{tool}'");
                             }
                         }
                     }
                 }
-#if DEBUG
-                System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: final tool = '{tool}'");
-#endif
+                Core.Diagnostics.Log($"[Engine.OperationExecution] format-convert: final tool = '{tool}'");
 
                 // Resolve args (used for both TXD and media conversions)
                 Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
@@ -412,9 +394,7 @@ internal sealed partial class Engine {
                         }
                     }
                 } catch (System.Exception ex) {
-#if DEBUG
-                    System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: failed to read config.toml: {ex.Message}");
-#endif
+                    Core.Diagnostics.Bug($"[Engine.OperationExecution] format-convert: failed to read config.toml: {ex.Message}");
                 // ignore
                 }
                 cfgDict2["module_path"] = gameRoot3;
@@ -434,23 +414,17 @@ internal sealed partial class Engine {
                 if (string.Equals(tool, "ffmpeg", System.StringComparison.OrdinalIgnoreCase) || string.Equals(tool, "vgmstream", System.StringComparison.OrdinalIgnoreCase)) {
                     // attempt built-in media conversion (ffmpeg/vgmstream) using the same CLI args
                     Core.Utils.EngineSdk.PrintLine("\n>>> Built-in media conversion");
-#if DEBUG
-                    System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: running media conversion with args: {string.Join(' ', args)}");
-#endif
+                    Core.Diagnostics.Log($"[Engine.OperationExecution] format-convert: running media conversion with args: {string.Join(' ', args)}");
                     bool okMedia = FileHandlers.MediaConverter.Run(_tools, args);
                     return okMedia;
                 } else if (string.Equals(tool, "ImageMagick", System.StringComparison.OrdinalIgnoreCase)) {
                     // attempt image conversion (ImageMagick) using the CLI args
                     Core.Utils.EngineSdk.PrintLine("\n>>> Built-in image conversion");
-#if DEBUG
-                    System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: running image conversion with args: {string.Join(' ', args)}");
-#endif
+                    Core.Diagnostics.Log($"[Engine.OperationExecution] format-convert: running image conversion with args: {string.Join(' ', args)}");
                     bool okImage = FileHandlers.ImageMagickConverter.Run(_tools, args);
                     return okImage;
                 } else {
-#if DEBUG
-                    System.Diagnostics.Trace.WriteLine($"[Engine.OperationExecution] format-convert: unknown tool '{tool}'");
-#endif
+                    Core.Diagnostics.Log($"[Engine.OperationExecution] format-convert: unknown tool '{tool}'");
                     Core.Utils.EngineSdk.PrintLine($"ERROR: format-convert requires a valid tool. Found: '{tool ?? "(null)"}'");
                     Core.Utils.EngineSdk.PrintLine("Supported tools: ffmpeg, vgmstream, ImageMagick");
                     Core.Utils.EngineSdk.PrintLine("Specify tool with --tool parameter or -m/--mode in args.");
@@ -491,9 +465,7 @@ internal sealed partial class Engine {
                         }
                     }
                 }  catch (System.Exception ex) {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[Engine.cs] err reading config.toml: {ex.Message}");
-#endif
+            Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
         }
                 cfgDict3["module_path"] = gameRoot4;
                 cfgDict3["project_path"] = rootPath;
@@ -573,10 +545,8 @@ internal sealed partial class Engine {
                         }
                     }
                 }  catch (System.Exception ex) {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[Engine.cs] err reading config.toml: {ex.Message}");
-#endif
-        }
+                    Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
+                }
                 cfgDict4["module_path"] = gameRoot5;
                 cfgDict4["project_path"] = rootPath;
 

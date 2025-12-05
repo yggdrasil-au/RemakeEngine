@@ -84,10 +84,8 @@ public partial class MainWindow:Window {
                 bottom.DataContext = OperationOutputService.Instance;
             }
         } catch {
-#if DEBUG
-System.Diagnostics.Trace.WriteLine("Failed to wire bottom panel");
-#endif
-}
+            Core.Diagnostics.Bug("GUI :: MainWindow.axaml.cs::TryWireBottomPanel() Failed to wire bottom panel");
+        }
     }
 
     // navbar button handlers

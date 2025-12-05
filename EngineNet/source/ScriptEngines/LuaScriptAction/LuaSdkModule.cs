@@ -287,9 +287,7 @@ internal static class LuaSdkModule {
                         System.IO.File.Delete(destFull);
                     }
                 } catch {
-                    #if DEBUG
-                    System.Diagnostics.Trace.WriteLine("Failed to delete existing file or link: " + destFull);
-                    #endif
+                                        Core.Diagnostics.Bug("Failed to delete existing file or link: " + destFull);
                     /* ignore */
                 }
                 try {
@@ -375,9 +373,7 @@ internal static class LuaSdkModule {
             try {
                 System.Threading.Thread.Sleep(System.TimeSpan.FromSeconds(seconds));
             }  catch {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"Error .....'");
-#endif
+            Core.Diagnostics.Bug($"Error .....'");
         }
         });
     }

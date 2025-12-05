@@ -44,9 +44,7 @@ internal static class LuaSecurity {
                 string normalized = NormalizeLowerFullPath(root).TrimEnd(System.IO.Path.DirectorySeparatorChar);
                 UserApprovedRoots.Add(normalized);
             } catch {
-                #if DEBUG
-                System.Diagnostics.Trace.WriteLine("Failed to normalize and approve path: " + root);
-                #endif
+                                Core.Diagnostics.Bug("Failed to normalize and approve path: " + root);
                 /* ignore */
             }
             return true;
@@ -93,42 +91,11 @@ internal static class LuaSecurity {
             // Note: These require additional argument validation
             "pwsh", "pwsh.exe", "powershell", "powershell.exe",
 
-            // Python/Node (if needed for legacy scripts)
-            "python", "python.exe", "python3", "python3.exe",
-            "node", "node.exe", "npm", "npm.exe"
         };
 
         // Check both with and without common extensions
         if (approvedTools.Contains(exeName) || approvedTools.Contains(fullName)) {
             return true;
-        }
-
-        // Check for blocked system utilities and provide SDK alternatives
-        Dictionary<string, string> blockedUtilities = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase) {
-            { "copy", "sdk.copy_file(src, dst, overwrite)" },
-            { "xcopy", "sdk.copy_dir(src, dst, overwrite)" },
-            { "robocopy", "sdk.copy_dir(src, dst, overwrite)" },
-            { "move", "sdk.move_dir(src, dst, overwrite) or sdk.rename_file(old, new)" },
-            { "ren", "sdk.rename_file(old_name, new_name)" },
-            { "rename", "sdk.rename_file(old_name, new_name)" },
-            { "cp", "sdk.copy_file(src, dst, overwrite) or sdk.copy_dir(src, dst, overwrite)" },
-            { "mv", "sdk.move_dir(src, dst, overwrite) or sdk.rename_file(old, new)" },
-            { "rm", "sdk.remove_file(path) or sdk.remove_dir(path)" },
-            { "mkdir", "sdk.ensure_dir(path) or sdk.mkdir(path)" },
-            { "rmdir", "sdk.remove_dir(path)" },
-            { "tar", "sdk.extract_archive(archive, dest) or sdk.create_archive(src, dest, type)" },
-            { "unzip", "sdk.extract_archive(archive, dest)" },
-            { "7z", "sdk.extract_archive(archive, dest) or sdk.create_archive(src, dest, 'zip')" },
-            { "7za", "sdk.extract_archive(archive, dest) or sdk.create_archive(src, dest, 'zip')" }
-        };
-
-        if (blockedUtilities.TryGetValue(exeName, out string? suggestion) ||
-            blockedUtilities.TryGetValue(fullName, out suggestion)) {
-            Core.Utils.EngineSdk.Error($"System utility '{executable}' is blocked for security. Use SDK alternative: {suggestion}");
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[LuaSecurity.cs::IsApprovedExecutable()] Blocked utility attempted: {executable}");
-#endif
-            return false;
         }
 
         // Allow executables that are in the Tools directory structure
@@ -142,9 +109,7 @@ internal static class LuaSecurity {
              executable.Contains("Lucas_Radcore_Cement_Library_Builder", System.StringComparison.OrdinalIgnoreCase))) {
             return true;
         } else if (executable.Contains("Tools", System.StringComparison.OrdinalIgnoreCase)) {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[LuaSecurity.cs::IsApprovedExecutable()] Allowing executable in Tools directory: {executable}");
-#endif
+            Core.Diagnostics.Log($"[LuaSecurity.cs::IsApprovedExecutable()] Allowing executable in Tools directory: {executable}");
             return true;
         }
 
@@ -173,18 +138,22 @@ internal static class LuaSecurity {
 
             // Get current working directory and common workspace patterns
             string currentDir = System.IO.Directory.GetCurrentDirectory().Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant();
+            string projectRoot = string.IsNullOrWhiteSpace(EngineNet.Program.rootPath) 
+                ? currentDir 
+                : EngineNet.Program.rootPath.Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant();
 
             // Allowed path patterns (case-insensitive)
             string[] allowedPatterns = {
                 // Current workspace and subdirectories
                 currentDir,
+                projectRoot,
 
                 // Common game/project directories
-                System.IO.Path.Combine(currentDir, "EngineApps"),
-                System.IO.Path.Combine(currentDir, "gamefiles"),
-                System.IO.Path.Combine(currentDir, "tools"),
-                System.IO.Path.Combine(currentDir, "tmp"),
-                System.IO.Path.Combine(currentDir, "source"),
+                System.IO.Path.Combine(projectRoot, "EngineApps"),
+                System.IO.Path.Combine(projectRoot, "gamefiles"),
+                System.IO.Path.Combine(projectRoot, "tools"),
+                System.IO.Path.Combine(projectRoot, "tmp"),
+                System.IO.Path.Combine(projectRoot, "source"),
 
                 // Temp directories
                 System.IO.Path.GetTempPath().TrimEnd(System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),

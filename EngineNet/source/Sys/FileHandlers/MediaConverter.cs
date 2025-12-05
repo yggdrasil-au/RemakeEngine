@@ -146,7 +146,7 @@ internal static class MediaConverter {
                         System.Threading.Interlocked.Increment(ref errors);
                         errorList.Add((System.IO.Path.GetFileName(src), msg ?? "unknown error"));
 #if DEBUG
-                        System.Diagnostics.Trace.WriteLine($"Conversion failed for file {src}: {msg}");
+                        Core.Diagnostics.Log($"Conversion failed for file {src}: {msg}");
                         System.Environment.Exit(1);
 #endif
                     }
@@ -155,9 +155,7 @@ internal static class MediaConverter {
                     System.Threading.Interlocked.Increment(ref errors);
                     errorList.Add((System.IO.Path.GetFileName(src), ex.Message));
                     System.Threading.Interlocked.Increment(ref processed);
-#if DEBUG
-                    System.Diagnostics.Trace.WriteLine($"Conversion error for file {src}: {ex.Message}");
-#endif
+                    Core.Diagnostics.Bug($"Conversion error for file {src}: {ex.Message}");
                 }
             });
             progressCts.Cancel();
@@ -311,9 +309,7 @@ internal static class MediaConverter {
                                     System.IO.File.Delete(tmpWav);
                                 }
                             } catch {
-                                #if DEBUG
-                                System.Diagnostics.Trace.WriteLine("Failed to delete temporary WAV file: " + tmpWav);
-                                #endif
+                                                                Core.Diagnostics.Bug("Failed to delete temporary WAV file: " + tmpWav);
                                 /* ignore */
                             }
                         }
@@ -350,18 +346,14 @@ internal static class MediaConverter {
                 StartedUtc = System.DateTime.UtcNow
             };
         } catch{
-            #if DEBUG
-            System.Diagnostics.Trace.WriteLine("Failed to register active process for media conversion");
-            #endif
+                        Core.Diagnostics.Bug("Failed to register active process for media conversion");
             /* ignore */
         }
     }
 
     private static void UnregisterActive() {
         try { s_active.TryRemove(System.Threading.Thread.CurrentThread.ManagedThreadId, out _); } catch {
-            #if DEBUG
-            System.Diagnostics.Trace.WriteLine("Failed to unregister active process for media conversion");
-            #endif
+                        Core.Diagnostics.Bug("Failed to unregister active process for media conversion");
             /* ignore */
         }
     }
@@ -566,16 +558,12 @@ internal static class MediaConverter {
                         return candidate;
                     }
                 } catch {
-                    #if DEBUG
-                    System.Diagnostics.Trace.WriteLine("Failed to find executable in PATH: " + name);
-                    #endif
+                    Core.Diagnostics.Bug("Failed to find executable in PATH: " + name);
                     /* ignore */
                 }
             }
         } catch {
-            #if DEBUG
-            System.Diagnostics.Trace.WriteLine("Failed to enumerate PATH directories");
-            #endif
+            Core.Diagnostics.Bug("Failed to enumerate PATH directories");
             /* ignore */
         }
         return null;

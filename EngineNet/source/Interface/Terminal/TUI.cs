@@ -55,9 +55,7 @@ internal partial class TUI {
 
                 string gsel = gameMenu[gidx];
                 if (gsel.StartsWith("Download module")) {
-    #if DEBUG
-                    Trace.WriteLine("[TUI::RunInteractiveMenuAsync()] User selected Download module from game menu.");
-    #endif
+                        Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] User selected Download module from game menu.");
                     ShowDownloadMenu();
                     // only refresh installed modules after download
                     modules = _engine.Modules(Core.Utils.ModuleFilter.Installed);
@@ -75,15 +73,11 @@ internal partial class TUI {
 
             // 2) Load operations list and render menu
             if (!modules.TryGetValue(gameName, out Core.Utils.GameModuleInfo? moduleInfo) || moduleInfo is not Core.Utils.GameModuleInfo info) {
-    #if DEBUG
-                Trace.WriteLine("[TUI::RunInteractiveMenuAsync()] Selected game not found.");
-    #endif
+                    Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game not found.");
                 return 1;
             }
             if (info.OpsFile is null) {
-    #if DEBUG
-                Trace.WriteLine("[TUI::RunInteractiveMenuAsync()] Selected game is missing ops_file.");
-    #endif
+                    Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game is missing ops_file.");
                 return 1;
             }
             List<Dictionary<string, object?>> allOps = Core.Engine.LoadOperationsList(info.OpsFile);
@@ -169,9 +163,7 @@ internal partial class TUI {
                         System.Console.ReadKey(true);
                         continue;
                     } catch (System.Exception ex) {
-    #if DEBUG
-                        Trace.WriteLine($"[TUI::RunAll()] Error during Run All: {ex.Message}");
-    #endif
+                        Core.Diagnostics.Bug($"[TUI::RunAll()] Error during Run All: {ex.Message}");
                         System.Console.WriteLine($"Error during Run All: {ex.Message}");
                     }
                 }
@@ -191,9 +183,7 @@ internal partial class TUI {
                 }
             }
         } catch (System.Exception ex) {
-#if DEBUG
-            Trace.WriteLine($"[TUI::RunInteractiveMenuAsync()] Error: {ex}");
-#endif
+            Core.Diagnostics.Bug($"[TUI::RunInteractiveMenuAsync()] Error: {ex}");
             System.Console.WriteLine($"Error: {ex.Message}\nPress any key to exit...");
             System.Console.ReadKey(true);
             return -1;

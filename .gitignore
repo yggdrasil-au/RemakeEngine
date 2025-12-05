@@ -94,5 +94,7 @@ EngineApps/Games/TheSimpsonsRoadRage-PS2/
 EngineApps/Games/SimpsonsHitAndRun/
 
 
-debug.log
+logs/
 EngineApps/Games/demo/config.toml
+EngineBuild/
+

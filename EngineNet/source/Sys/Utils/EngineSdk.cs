@@ -245,9 +245,7 @@ public static class EngineSdk {
                 System.Threading.Interlocked.Exchange(ref _processed, _total);
                 EmitProgress();
             } catch {
-                #if DEBUG
-                System.Diagnostics.Trace.WriteLine("Failed to unregister active process for media conversion");
-                #endif
+                                Core.Diagnostics.Bug("Failed to unregister active process for media conversion");
                 /* ignore */
             }
         }
@@ -271,9 +269,7 @@ public static class EngineSdk {
         try {
             name = System.IO.Path.GetFileName(scriptPath);
         } catch {
-#if DEBUG
-            Trace.WriteLine("EngineSdk.ScriptActiveStart: failed to get file name from path.");
-#endif
+            Core.Diagnostics.Bug("EngineSdk.ScriptActiveStart: failed to get file name from path.");
         }
         Emit("script_active_start", new Dictionary<string, object?> {
             ["name"] = string.IsNullOrEmpty(name) ? scriptPath : name,
@@ -345,15 +341,11 @@ public static class EngineSdk {
                     _cts.Cancel();
                 }
                 try { _panelTask.Wait(1000); } catch {
-                    #if DEBUG
-                    System.Diagnostics.Trace.WriteLine("Failed to wait for panel task completion");
-                    #endif
+                                        Core.Diagnostics.Bug("Failed to wait for panel task completion");
                     /* ignore */
                 }
             } catch {
-                #if DEBUG
-                System.Diagnostics.Trace.WriteLine("Failed to cancel panel task");
-                #endif
+                                Core.Diagnostics.Bug("Failed to cancel panel task");
                 /* ignore */
             }
         }
@@ -422,9 +414,7 @@ public static class EngineSdk {
         private static void EmitPanelStart() {
             int procs = 8;
             try { procs = System.Math.Max(1, System.Math.Min(16, System.Environment.ProcessorCount)); } catch {
-                #if DEBUG
-                System.Diagnostics.Trace.WriteLine("Failed to enumerate PATH directories");
-                #endif
+                                Core.Diagnostics.Bug("Failed to enumerate PATH directories");
                 /* ignore */
             }
             // 1 (progress) + 1 (header/none) + procs (active job lines) + 1 (overflow)
@@ -456,9 +446,7 @@ public static class EngineSdk {
                 try {
                     max = System.Math.Max(1, System.Math.Min(16, System.Environment.ProcessorCount));
                 } catch {
-                    #if DEBUG
-                    System.Diagnostics.Trace.WriteLine("Failed to enumerate PATH directories");
-                    #endif
+                                        Core.Diagnostics.Bug("Failed to enumerate PATH directories");
                     /* ignore */
                 }
                 System.DateTime now = System.DateTime.UtcNow;

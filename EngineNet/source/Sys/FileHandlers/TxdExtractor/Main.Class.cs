@@ -766,9 +766,7 @@ internal static partial class Main {
 
         private static void Write(System.ConsoleColor colour, string message, bool isError = false) {
             lock (Sync) {
-                #if DEBUG
-                System.Diagnostics.Trace.WriteLine(message);
-                #endif
+                                Core.Diagnostics.Log(message);
             }
             return;
         }

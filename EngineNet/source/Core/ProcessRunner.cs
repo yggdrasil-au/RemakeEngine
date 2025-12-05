@@ -60,14 +60,14 @@ internal sealed class ProcessRunner {
 
         // Verbose: show exactly what will be executed
         try {
-            System.Diagnostics.Trace.WriteLine(string.Empty);
-            System.Diagnostics.Trace.WriteLine("Executing command:");
-            System.Diagnostics.Trace.WriteLine("  " + FormatCommand(commandParts));
-            System.Diagnostics.Trace.WriteLine($"  cwd: {System.IO.Directory.GetCurrentDirectory()}");
+            Core.Diagnostics.Log(string.Empty);
+            Core.Diagnostics.Log("Executing command:");
+            Core.Diagnostics.Log("  " + FormatCommand(commandParts));
+            Core.Diagnostics.Log($"  cwd: {System.IO.Directory.GetCurrentDirectory()}");
             if (envOverrides != null && envOverrides.Count > 0) {
-                System.Diagnostics.Trace.WriteLine("  env overrides:");
+                Core.Diagnostics.Log("  env overrides:");
                 foreach (KeyValuePair<string, object?> kv in envOverrides) {
-                    System.Diagnostics.Trace.WriteLine($"    {kv.Key}={kv.Value}");
+                    Core.Diagnostics.Log($"    {kv.Key}={kv.Value}");
                 }
             }
         } catch {
@@ -113,9 +113,7 @@ internal sealed class ProcessRunner {
                     proc.StandardInput.WriteLine(text ?? string.Empty);
                     proc.StandardInput.Flush();
                 } catch {
-#if DEBUG
-                    System.Diagnostics.Trace.WriteLine("[ProcessRunner.cs::Execute()] Warning: Failed to write to child stdin.");
-#endif
+                    Core.Diagnostics.Bug("[ProcessRunner.cs::Execute()] Warning: Failed to write to child stdin.");
                     /* ignore */
                 }
             }
@@ -205,9 +203,7 @@ internal sealed class ProcessRunner {
                 proc.OutputDataReceived -= outHandler;
                 proc.ErrorDataReceived -= errHandler;
             } catch {
-#if DEBUG
-                System.Diagnostics.Trace.WriteLine("Warning: Failed to detach event handlers.");
-#endif
+                Core.Diagnostics.Bug("Warning: Failed to detach event handlers.");
                 /* ignore */
             }
         }
@@ -219,9 +215,7 @@ internal sealed class ProcessRunner {
                 proc.Kill(entireProcessTree: true);
             }
         } catch {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine("Warning: Failed to terminate process.");
-#endif
+            Core.Diagnostics.Bug("Warning: Failed to terminate process.");
             /* ignore */
         }
     }
@@ -325,26 +319,18 @@ internal sealed class ProcessRunner {
              executable.Contains("ffmpeg", System.StringComparison.OrdinalIgnoreCase) ||
              executable.Contains("ImageMagick", System.StringComparison.OrdinalIgnoreCase) ||
              executable.Contains("Lucas_Radcore_Cement_Library_Builder", System.StringComparison.OrdinalIgnoreCase))) {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[ProcessRunner.cs::IsApprovedExecutable()] Allowing specific executable in Tools directory: {executable}");
-#endif
+            Core.Diagnostics.Log($"[ProcessRunner.cs::IsApprovedExecutable()] Allowing specific executable in Tools directory: {executable}");
             return true;
         } else if (executable.Contains("Tools", System.StringComparison.OrdinalIgnoreCase)) {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[ProcessRunner.cs::IsApprovedExecutable()] Allowing executable in Tools directory: {executable}");
-#endif
+            Core.Diagnostics.Log($"[ProcessRunner.cs::IsApprovedExecutable()] Allowing executable in Tools directory: {executable}");
             return true;
         } else {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[ProcessRunner.cs::IsApprovedExecutable()] executable not in Tools directory: {executable}, disallowing.");
-#endif
+            Core.Diagnostics.Log($"[ProcessRunner.cs::IsApprovedExecutable()] executable not in Tools directory: {executable}, disallowing.");
         }
 
         // For unrecognized executables, provide guidance
         onOutput?.Invoke($"SECURITY: Executable '{executable}' is not approved for RemakeEngine. Use registered tools from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" or SDK methods for file operations.", "stderr");
-#if DEBUG
-        System.Diagnostics.Trace.WriteLine($"[ProcessRunner.cs::IsApprovedExecutable()] Blocked unrecognized executable: {executable}");
-#endif
+        Core.Diagnostics.Log($"[ProcessRunner.cs::IsApprovedExecutable()] Blocked unrecognized executable: {executable}");
         return false;
     }
 }

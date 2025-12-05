@@ -14,9 +14,7 @@ namespace EngineNet.Core.FileHandlers.TxdExtractor;
 internal static partial class Main {
 
     private static void DebugLog(string message) {
-        #if DEBUG
-        System.Diagnostics.Trace.WriteLine(message);
-        #endif
+                Core.Diagnostics.Log(message);
     }
 
     private static List<string> EnumerateTxdFiles(string inputPathAbs) {

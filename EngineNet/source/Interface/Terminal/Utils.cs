@@ -71,9 +71,7 @@ internal class Utils() {
                 envOverrides: new Dictionary<string, object?> { ["TERM"] = "dumb" }
             );
         } catch (System.Exception ex) {
-#if DEBUG
-            Trace.WriteLine($"[Utils.cs::ExecuteOp()] Error executing operation: {ex.Message}");
-#endif
+            Core.Diagnostics.Bug($"[Utils.cs::ExecuteOp()] Error executing operation: {ex.Message}");
             return false;
         }
     }
@@ -215,9 +213,7 @@ internal class Utils() {
                     try {
                         reserve = rc.ToInt32(null);
                     } catch {
-                        #if DEBUG
-                        Trace.WriteLine("[Utils.cs::OnEvent()] Failed to convert reserve value");
-                        #endif
+                        Core.Diagnostics.Bug("[Utils.cs::OnEvent()] Failed to convert reserve value");
                         /* ignore */
                     }
                 }
@@ -270,13 +266,9 @@ internal class Utils() {
         try {
             Dictionary<string, object?> safe = CloneForLogging(evt);
             string json = JsonSerializer.Serialize(safe, s_jsonOpts);
-#if DEBUG
-            Trace.WriteLine($"[Utils.cs::OnEvent()] {json}");
-#endif
+            Core.Diagnostics.Log($"[Utils.cs::OnEvent()] {json}");
         } catch (System.Exception ex) {
-#if DEBUG
-            Trace.WriteLine($"[Utils.cs::OnEvent()] <serialization failed: {ex.Message}>");
-#endif
+            Core.Diagnostics.Bug($"[Utils.cs::OnEvent()] <serialization failed: {ex.Message}>");
         }
     }
 

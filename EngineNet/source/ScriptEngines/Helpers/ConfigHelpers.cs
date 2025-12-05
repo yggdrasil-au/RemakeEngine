@@ -182,9 +182,7 @@ internal static class ConfigHelpers {
                 }
             }
         } catch {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[ConfigHelpers] Failed to enumerate directories under '{baseDir}'");
-#endif
+            Core.Diagnostics.Bug($"[ConfigHelpers] Failed to enumerate directories under '{baseDir}'");
         }
         return null;
     }

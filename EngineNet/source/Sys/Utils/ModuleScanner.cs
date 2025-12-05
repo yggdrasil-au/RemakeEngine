@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 // using System.IO; // No longer needed
 
 namespace EngineNet.Core.Utils;
@@ -78,9 +77,7 @@ internal sealed class ModuleScanner {
         Dictionary<string, GameModuleInfo> dict = new Dictionary<string, GameModuleInfo>(StringComparer.OrdinalIgnoreCase);
         foreach (GameModuleInfo info in filtered) {
             dict[info.Name] = info;
-#if DEBUG
-            Trace.WriteLine($"[ModuleScanner] Modules(): Including module: {info.Name} (State: {info.DescribeState()})");
-#endif
+            Core.Diagnostics.Log($"[GUI :: ModuleScanner.cs::Modules()] Including module: {info.Name} (State: {info.DescribeState()})");
         }
         return dict;
     }
@@ -190,9 +187,7 @@ internal sealed class ModuleScanner {
             GameModuleInfo info;
             // if not already present (i.e. registered), create a new entry
             if (!result.TryGetValue(name, out info!)) {
-#if DEBUG
-                Trace.WriteLine($"[ModuleScanner] Found unregistered but installed module: {name}");
-#endif
+                Core.Diagnostics.Log($"[ModuleScanner.cs::ScanAllModules()] Found unregistered but installed module: {name}");
                 info = new GameModuleInfo {
                     Id = string.Empty, // unknown
                     Name = name, // from directory name

@@ -21,9 +21,7 @@ internal sealed class GitTools {
 
         if (!IsGitInstalled()) {
             EngineSdk.Warn("Git is not installed or not found in PATH.");
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine("[GitTools.cs::CloneModule()] GitTools: Git is not installed or not found in PATH.");
-#endif
+            Core.Diagnostics.Log("[GitTools.cs::CloneModule()] GitTools: Git is not installed or not found in PATH.");
             return false;
         }
         try {
@@ -67,15 +65,11 @@ internal sealed class GitTools {
                 return true;
             }
             EngineSdk.Error($"\nFailed to download '{repoName}'. Git exited with code {rc}.");
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[GitTools.cs::CloneModule()] GitTools: Git exited with code {rc}.");
-#endif
+            Core.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Git exited with code {rc}.");
             return false;
         } catch (System.Exception ex) {
             EngineSdk.Error($"An error occurred during download: {ex.Message}");
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
-#endif
+            Core.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
             return false;
         }
     }
@@ -96,9 +90,7 @@ internal sealed class GitTools {
             p!.WaitForExit(3000);
             return p.ExitCode == 0;
         } catch {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine("[GitTools.cs::CloneModule()] Exception while checking for git installation.");
-#endif
+            Core.Diagnostics.Bug("[GitTools.cs::CloneModule()] Exception while checking for git installation.");
             return false;
         }
     }
@@ -115,9 +107,7 @@ internal sealed class GitTools {
                 return leaf;
             }
         } catch {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine("[GitTools.cs::CloneModule()] GitTools: Failed to parse URL as URI, falling back to string parsing.");
-#endif
+            Core.Diagnostics.Bug("[GitTools.cs::CloneModule()] GitTools: Failed to parse URL as URI, falling back to string parsing.");
             /* fall back to string parsing */
         }
         string tail = url.Replace("\\", "/");

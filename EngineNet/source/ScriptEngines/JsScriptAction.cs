@@ -260,9 +260,7 @@ internal sealed class JsScriptAction:EngineNet.ScriptEngines.Helpers.IAction {
             try {
                 System.Threading.Thread.Sleep(System.TimeSpan.FromSeconds(seconds));
             } catch {
-#if DEBUG
-                System.Diagnostics.Trace.WriteLine($"[JsScriptAction.cs] sleep interrupted");
-#endif
+                Core.Diagnostics.Bug($"[JsScriptAction.cs] sleep interrupted");
                 // ignore
             }
         }
@@ -365,9 +363,7 @@ internal sealed class JsScriptAction:EngineNet.ScriptEngines.Helpers.IAction {
                         try {
                             process.Kill(entireProcessTree: true);
                         } catch {
-#if DEBUG
-                            System.Diagnostics.Trace.WriteLine($"[JsScriptAction.cs] Failed to kill timed-out process '{fileName}'");
-#endif
+                            Core.Diagnostics.Bug($"[JsScriptAction.cs] Failed to kill timed-out process '{fileName}'");
                             // ignore
                         }
                         throw JsInterop.CreateJsException(js_engine, "Error", $"Process '{fileName}' timed out after {timeoutMs.Value} ms");
@@ -820,9 +816,7 @@ internal sealed class JsScriptAction:EngineNet.ScriptEngines.Helpers.IAction {
                 JsValue errorInstance = js_engine.Invoke(ctorValue, message);
                 return new Jint.Runtime.JavaScriptException(errorInstance);
             } catch {
-#if DEBUG
-                System.Diagnostics.Trace.WriteLine($"[JsScriptAction.cs] Failed to create JS exception of type '{constructorName}', falling back to generic Error");
-#endif
+                Core.Diagnostics.Bug($"[JsScriptAction.cs] Failed to create JS exception of type '{constructorName}', falling back to generic Error");
                 // ignore
             }
             return new Jint.Runtime.JavaScriptException(JsValue.FromObject(js_engine, message));

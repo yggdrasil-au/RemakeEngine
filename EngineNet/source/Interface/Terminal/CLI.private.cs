@@ -21,9 +21,7 @@ internal partial class CLI {
             }
             return 0;
         } catch (System.Exception ex) {
-#if DEBUG
-            Trace.WriteLine($"Error listing games: {ex}");
-#endif
+            Core.Diagnostics.Bug($"Error listing games: {ex}");
             return -1;
         }
     }
@@ -49,9 +47,7 @@ internal partial class CLI {
 
             return 0;
         } catch (System.Exception ex) {
-#if DEBUG
-            Trace.WriteLine($"Error listing operations for game '{game}': {ex}");
-#endif
+            Core.Diagnostics.Bug($"Error listing operations for game '{game}': {ex}");
             return -1;
         }
     }

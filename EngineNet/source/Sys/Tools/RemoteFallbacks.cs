@@ -30,20 +30,18 @@ internal static class RemoteFallbacks {
 
                     byte[] bytes = resp.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
                     System.IO.File.WriteAllBytes(localPath, bytes);
-#if DEBUG
-                    System.Diagnostics.Trace.WriteLine($"Fetched missing file from GitHub: {repoRelativePath} -> {localPath}");
-#endif
+                    Core.Diagnostics.Log($"Fetched missing file from GitHub: {repoRelativePath} -> {localPath}");
                     return true;
                 } catch {
 #if DEBUG
-                    System.Diagnostics.Trace.WriteLine($"Failed to fetch file from GitHub: {repoRelativePath} -> {localPath}");
+                    Core.Diagnostics.Log($"Failed to fetch file from GitHub: {repoRelativePath} -> {localPath}");
                     /* try next branch */
 #endif
                 }
             }
         } catch {
 #if DEBUG
-            System.Diagnostics.Trace.WriteLine($"Failed to fetch missing file from GitHub: {repoRelativePath} -> {localPath}");
+            Core.Diagnostics.Log($"Failed to fetch missing file from GitHub: {repoRelativePath} -> {localPath}");
             // ignore failures, caller will handle missing file case
 #endif
         }

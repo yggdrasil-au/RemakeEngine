@@ -125,9 +125,7 @@ internal sealed partial class ModulePage:UserControl {
                     GameRoot = gameInfo.GameRoot;
                 }
             } else {
-#if DEBUG
-                Trace.WriteLine($"Load: No game info found for module {_moduleName}.");
-#endif
+                Core.Diagnostics.Log($"Load: No game info found for module {_moduleName}.");
             }
 
             if (!string.IsNullOrWhiteSpace(opsFile) && System.IO.File.Exists(path: opsFile)) {
@@ -139,9 +137,7 @@ internal sealed partial class ModulePage:UserControl {
                     Operations.Add(item: new OpRow { Name = string.IsNullOrWhiteSpace(name) ? scriptPath : name, ScriptType = scriptType, ScriptPath = scriptPath, Op = op });
                 }
             } else {
-#if DEBUG
-                Trace.WriteLine($"Load: Ops file not found for module {_moduleName} at path '{opsFile}'.");
-#endif
+                Core.Diagnostics.Log($"Load: Ops file not found for module {_moduleName} at path '{opsFile}'.");
             }
 
             Raise(nameof(Title));
@@ -159,9 +155,7 @@ internal sealed partial class ModulePage:UserControl {
             Raise(nameof(RegistryUrl));
         } catch (System.Exception ex) {
             OperationOutputService.Instance.AddOutput(text: $"Module load failed: {ex.Message}", stream: "stderr");
-            #if DEBUG
-            Trace.WriteLine($"Load: {ex}");
-            #endif
+                        Core.Diagnostics.Log($"Load: {ex}");
         }
     }
 
@@ -175,9 +169,7 @@ internal sealed partial class ModulePage:UserControl {
         try {
             return System.IO.File.Exists(path: pick) ? new Bitmap(pick) : null;
         } catch (System.Exception ex) {
-            #if DEBUG
-            Trace.WriteLine($"ResolveCoverBitmap: Failed to load bitmap from {pick}. {ex}");
-            #endif
+            Core.Diagnostics.Bug($"ResolveCoverBitmap: Failed to load bitmap from {pick}. {ex}");
             return null;
         }
     }
@@ -189,9 +181,7 @@ internal sealed partial class ModulePage:UserControl {
             _engine.LaunchGame(name: ModuleName);
         } catch (System.Exception ex) {
             OperationOutputService.Instance.AddOutput(text: $"Launch failed: {ex.Message}", stream: "stderr");
-#if DEBUG
-            Trace.WriteLine($"PlayAsync: {ex}");
-#endif
+            Core.Diagnostics.Log($"PlayAsync: {ex}");
         }
         await System.Threading.Tasks.Task.CompletedTask;
     }
@@ -207,9 +197,7 @@ internal sealed partial class ModulePage:UserControl {
             );
             Load();
         } catch (System.Exception ex) {
-            #if DEBUG
-            Trace.WriteLine($"RunAllAsync: {ex}");
-            #endif
+            Core.Diagnostics.Bug($"RunAllAsync: {ex}");
             OperationOutputService.Instance.AddOutput(text: $"Run All failed: {ex.Message}", stream: "stderr");
         }
     }
@@ -240,19 +228,14 @@ internal sealed partial class ModulePage:UserControl {
                         try {
                             System.Console.SetIn(new System.IO.StreamReader(System.Console.OpenStandardInput()));
                         } catch (Exception ex) {
-                            System.Console.SetIn(previous);
-#if DEBUG
-                            Trace.WriteLine($"RunOpAsync: Failed to restore Console.In. {ex}");
-#endif
+                            System.Console.SetIn(previous);                            Core.Diagnostics.Bug($"RunOpAsync: Failed to restore Console.In. {ex}");
                         }
                     }
                 }
             );
             Load();
         } catch (System.Exception ex) {
-#if DEBUG
-            Trace.WriteLine($"RunOpAsync: {ex}");
-#endif
+            Core.Diagnostics.Bug($"RunOpAsync: {ex}");
             OperationOutputService.Instance.AddOutput(text: $"Operation failed: {ex.Message}", stream: "stderr");
         }
     }
@@ -275,9 +258,7 @@ internal sealed partial class ModulePage:UserControl {
             );
             Load();
         } catch (System.Exception ex) {
-#if DEBUG
-            Trace.WriteLine($"DownloadAsync: {ex}");
-#endif
+            Core.Diagnostics.Bug($"DownloadAsync: {ex}");
             OperationOutputService.Instance.AddOutput(text: $"Download failed: {ex.Message}", stream: "stderr");
         }
     }
@@ -302,9 +283,7 @@ internal sealed partial class ModulePage:UserControl {
             }
             System.Diagnostics.Process.Start(psi);
         } catch {
-#if DEBUG
-            Trace.WriteLine("OpenFolderAsync: Failed to open folder.");
-#endif
+            Core.Diagnostics.Bug("OpenFolderAsync: Failed to open folder.");
         }
         await System.Threading.Tasks.Task.CompletedTask;
     }

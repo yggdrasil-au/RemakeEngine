@@ -54,9 +54,7 @@ internal sealed class EngineConfig {
                 return dict ?? new Dictionary<string, object?>();
             }
         } catch {
-            #if DEBUG
-            Trace.WriteLine($"[EngineConfig] Failed to load or parse JSON config file at '{filePath}'. Returning empty config.");
-            #endif
+            Core.Diagnostics.Bug($"[EngineConfig] Failed to load or parse JSON config file at '{filePath}'. Returning empty config.");
         }
 
         // Step 8: Missing file or error path -> empty config (safe default).

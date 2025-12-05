@@ -31,9 +31,7 @@ internal partial class TUI {
 
             return true;
         } catch {
-#if DEBUG
-            Trace.WriteLine("[TUI.private.cs::CanUseInteractiveMenu()] Error checking console capabilities.");
-#endif
+            Core.Diagnostics.Bug("[TUI.private.cs::CanUseInteractiveMenu()] Error checking console capabilities.");
             return false;
         }
     }
@@ -100,9 +98,7 @@ internal partial class TUI {
                 }
             }
         } catch (System.Exception) {
-#if DEBUG
-            Trace.WriteLine("[TUI.private.cs::SelectFromMenu()] Error in SelectFromMenu");
-#endif
+            Core.Diagnostics.Bug("[TUI.private.cs::SelectFromMenu()] Error in SelectFromMenu");
             return -1;
         }
     }
@@ -148,9 +144,7 @@ internal partial class TUI {
                 System.Console.WriteLine("Invalid selection. Please enter a valid number.");
             }
         } catch (System.Exception) {
-#if DEBUG
-            Trace.WriteLine("[TUI.private.cs::SelectFromMenuFallback()] Error in SelectFromMenuFallback");
-#endif
+            Core.Diagnostics.Bug("[TUI.private.cs::SelectFromMenuFallback()] Error in SelectFromMenuFallback");
             return -1;
         }
     }
@@ -170,9 +164,7 @@ internal partial class TUI {
                 int idx = SelectFromMenu(items);
                 // Handle cancel/back
                 if (idx < 0 || items[idx] == "Back") {
-#if DEBUG
-                    Trace.WriteLine("[TUI.private.cs::ShowDownloadMenu()] User cancelled or selected Back in download menu, returning to previous menu.");
-#endif
+                    Core.Diagnostics.Log("[TUI.private.cs::ShowDownloadMenu()] User cancelled or selected Back in download menu, returning to previous menu.");
                     return;
                 }
 
@@ -194,9 +186,7 @@ internal partial class TUI {
                     System.Console.WriteLine("Select a module to download:");
                     int mIdx = SelectFromMenu(names);
                     if (mIdx < 0 || names[mIdx] == "Back") {
-#if DEBUG
-                        Trace.WriteLine("[TUI.private.cs::ShowDownloadMenu()] User cancelled or selected Back in registry module list, returning to download menu.");
-#endif
+                        Core.Diagnostics.Log("[TUI.private.cs::ShowDownloadMenu()] User cancelled or selected Back in registry module list, returning to download menu.");
                         continue;
                     }
 
@@ -225,16 +215,12 @@ internal partial class TUI {
                 } else if (choice == "Back") {
                     return;
                 } else {
-#if DEBUG
-                    Trace.WriteLine($"[TUI.private.cs::ShowDownloadMenu()] Unexpected choice in ShowDownloadMenu: {choice}");
-#endif
+                    Core.Diagnostics.Log($"[TUI.private.cs::ShowDownloadMenu()] Unexpected choice in ShowDownloadMenu: {choice}");
                     return;
                 }
             }
         } catch (System.Exception ex) {
-#if DEBUG
-            Trace.WriteLine($"[TUI.private.cs::ShowDownloadMenu()] Error in ShowDownloadMenu: {ex.Message}");
-#endif
+            Core.Diagnostics.Bug($"[TUI.private.cs::ShowDownloadMenu()] Error in ShowDownloadMenu: {ex.Message}");
         }
     }
 
@@ -359,9 +345,7 @@ internal partial class TUI {
                 }
             }
         } catch (System.Exception ex) {
-#if DEBUG
-            Trace.WriteLine($"[TUI.private.cs::PromptUser()] Error during interactive prompts: {ex.Message}");
-#endif
+            Core.Diagnostics.Bug($"[TUI.private.cs::PromptUser()] Error during interactive prompts: {ex.Message}");
         }
     }
 

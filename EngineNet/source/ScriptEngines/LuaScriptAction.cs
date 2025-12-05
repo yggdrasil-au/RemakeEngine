@@ -1,4 +1,5 @@
 using MoonSharp.Interpreter;
+using SQLitePCL;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -127,7 +128,8 @@ internal sealed class LuaScriptAction : Helpers.IAction {
             }
             return null;
         });
-        safeOs["execute"] = (System.Func<string, DynValue>)((command) => {
+        // temporarily disable os.execute for testing better alternatives via sdk.exec/run_process etc
+        /*safeOs["execute"] = (System.Func<string, DynValue>)((command) => {
             // SECURITY: Limited os.execute - only allow safe directory operations
             if (string.IsNullOrWhiteSpace(command)) {
                 return DynValue.NewNumber(1); // Error
@@ -182,7 +184,7 @@ internal sealed class LuaScriptAction : Helpers.IAction {
             // Block all other commands
             Core.Utils.EngineSdk.Error($"os.execute blocked for security: '{command}'. Use sdk.exec or sdk.run_process for approved external tools.");
             return DynValue.NewNumber(1); // Error
-        });
+        });*/
         lua.Globals["os"] = safeOs;
     }
 
@@ -290,25 +292,19 @@ internal sealed class LuaScriptAction : Helpers.IAction {
                                 writer.Flush();
                             }
                         } catch {
-                            #if DEBUG
-                            Trace.WriteLine("io.write failed");
-                            #endif
+                            Core.Diagnostics.Bug("io.write failed");
                             /* ignore */
                         }
                     });
                     fileHandle["close"] = (System.Action)(() => {
                         try { fs?.Dispose(); } catch {
-                            #if DEBUG
-                            Trace.WriteLine("io.close failed");
-                            #endif
+                            Core.Diagnostics.Bug("io.close failed");
                             /* ignore */
                         }
                     });
                     fileHandle["flush"] = (System.Action)(() => {
                         try { fs?.Flush(); } catch {
-                            #if DEBUG
-                            Trace.WriteLine("io.flush failed");
-                            #endif
+                            Core.Diagnostics.Bug("io.flush failed");
                             /* ignore */
                         }
                     });
@@ -366,6 +362,15 @@ internal sealed class LuaScriptAction : Helpers.IAction {
 
         // integrate #if DEBUG checks into lua to allow debug-only code paths when running engine with debugger attached
         lua.Globals["DEBUG"] = System.Diagnostics.Debugger.IsAttached;
+
+        // Diagnostics logging pass-through for Lua scripts
+        Table DiagnosticsMethods = new Table(lua);
+        // Diagnostics.Log(message) -> logs to lua.log and trace.log
+        DiagnosticsMethods["Log"] = (System.Action<string>)Core.Diagnostics.LuaLogger.LuaLog;
+        // TODO: (in Core.Diagnostics) create a sub class for lua logging that mirrors Diagnostics class, to log all types (Info, Bug, etc) to logs/lua.log
+        // then expose those methods here as well
+
+        lua.Globals["Diagnostics"] = DiagnosticsMethods;
 
         // progress(total, id?, label?) -> Core.Utils.EngineSdk.PanelProgress userdata
         lua.Globals["progress"] = (System.Func<int, string?, string?, Core.Utils.EngineSdk.PanelProgress>)((total, id, label) => {

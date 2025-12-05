@@ -85,7 +85,7 @@ public partial class LibraryPage:UserControl {
 
             Load();
         } catch (System.Exception ex) {
-            DebugWriteLine($"[LibraryPage] Error during initialization: {ex}");
+            Core.Diagnostics.Bug($"[GUI :: LibraryPage.axaml.cs::LibraryPage()::constructor] Error during initialization: {ex}");
         }
     }
 
@@ -100,17 +100,17 @@ public partial class LibraryPage:UserControl {
         try {
             Items.Clear(); // reset
             if (_engine == null) {
-                DebugWriteLine(message: "[LibraryPage] Load() aborted: _engine is null.");
+                Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] Load() aborted: _engine is null.");
                 throw new System.InvalidOperationException(message: "Engine is not initialized.");
             }
 
             var modules = _engine.Modules(Core.Utils.ModuleFilter.Installed);
 #if DEBUG
-            DebugWriteLine(message: $"[LibraryPage] Load(): Found {modules.Count} modules.");
+        Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] Found {modules.Count} modules.");
             // list all modules
             foreach (var kv in modules) {
                 var m = kv.Value;
-                DebugWriteLine(message: $"[LibraryPage]   Module: {m.Name}, Installed: {m.IsInstalled}, Built: {m.IsBuilt}, Unverified: {m.IsUnverified}, Registered: {m.IsRegistered}");
+                Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()]   Module: {m.Name}, Installed: {m.IsInstalled}, Built: {m.IsBuilt}, Unverified: {m.IsUnverified}, Registered: {m.IsRegistered}");
             }
 #endif
             foreach (var kv in modules) {
@@ -120,7 +120,7 @@ public partial class LibraryPage:UserControl {
                 string title = string.IsNullOrWhiteSpace(m.Title) ? name : m.Title!;
                 string gameRoot = m.GameRoot;
                 if (string.IsNullOrWhiteSpace(gameRoot)) {
-                    DebugWriteLine(message: $"[LibraryPage] Load(): Module '{name}' has no game root defined.");
+        Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load(): Module '{name}' has no game root defined.");
                 }
 
                 bool isBuilt = m.IsBuilt;
@@ -146,7 +146,7 @@ public partial class LibraryPage:UserControl {
             }
 
             if (Items.Count == 0) {
-                DebugWriteLine(message: "[LibraryPage] No games found. Adding placeholder row.");
+                Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] No games found. Adding placeholder row.");
                 Items.Add(item: new Row {
                     Title = "No games found.",
                     ModuleName = "",
@@ -155,7 +155,7 @@ public partial class LibraryPage:UserControl {
                 });
             }
         } catch (System.Exception ex) {
-            DebugWriteLine(message: $"[LibraryPage] Exception during Load(): {ex}");
+            Core.Diagnostics.Bug($"[GUI :: LibraryPage.axaml.cs::Load()] Exception during Load(): {ex}");
             Items.Add(item: new Row {
                 Title = "Error loading games.",
                 ModuleName = "",
@@ -172,7 +172,7 @@ public partial class LibraryPage:UserControl {
     /// <returns>
     private Bitmap? ResolveCoverUri(string? gameRoot) {
         if (_engine == null) {
-            DebugWriteLine("[LibraryPage] Load() aborted: _engine is null.");
+            Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() aborted: _engine is null.");
             throw new System.InvalidOperationException(message: "Engine is not initialized.");
         }
         if (string.IsNullOrWhiteSpace(gameRoot)) {
@@ -181,7 +181,7 @@ public partial class LibraryPage:UserControl {
         // 1) try <game_root>/icon.png
         string? icon = null;
         if (string.IsNullOrWhiteSpace(gameRoot)) {
-            DebugWriteLine("[LibraryPage] ResolveCoverUri: gameRoot is null/whitespace; skipping icon.png.");
+            Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() aborted: gameRoot is null/whitespace; skipping icon.png.");
         } else {
             icon = System.IO.Path.Combine(gameRoot, "icon.png");
         }
@@ -194,10 +194,10 @@ public partial class LibraryPage:UserControl {
             pick = icon;
         } else {
             if (System.IO.File.Exists(placeholder)) {
-                DebugWriteLine($"[LibraryPage] ResolveCoverUri: Using placeholder image at '{placeholder}'.");
+                Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() Using placeholder image at '{placeholder}'.");
                 pick = placeholder;
             } else {
-                DebugWriteLine($"[LibraryPage] ResolveCoverUri: Placeholder missing at '{placeholder}'. Returning URI may reference a non-existent file.");
+                Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() Placeholder missing at '{placeholder}'. Returning URI may reference a non-existent file.");
                 // Keep the same behavior as original (still set to placeholder path even if missing)
                 pick = placeholder;
             }
@@ -207,11 +207,11 @@ public partial class LibraryPage:UserControl {
             try {
                 return new Bitmap(pick); // Load the image
             } catch (System.Exception ex) {
-                DebugWriteLine($"[LibraryPage] Failed to load bitmap at '{pick}': {ex.Message}");
+                Core.Diagnostics.Bug($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() Failed to load bitmap at '{pick}': {ex.Message}");
                 return null; // Return null if loading fails
             }
         } else {
-            DebugWriteLine($"[LibraryPage] ResolveCoverUri: Image file missing at '{pick}'.");
+            Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() Image file missing at '{pick}'.");
             return null; // Return null if no file exists
         }
     }
@@ -229,7 +229,9 @@ public partial class LibraryPage:UserControl {
             host.Content = new ModulePage(_engine, moduleName);
             host.IsVisible = true;
             cards.IsVisible = false;
-        } catch { /* ignore */ }
+        } catch {
+            /* ignore */
+        }
     }
 
     private void ShowCards() {
@@ -240,7 +242,9 @@ public partial class LibraryPage:UserControl {
             host.Content = null;
             host.IsVisible = false;
             cards.IsVisible = true;
-        } catch { /* ignore */ }
+        } catch {
+            /* ignore */
+        }
     }
 
     private void OnModuleSelected(object? sender, SelectionChangedEventArgs e) {
@@ -286,11 +290,5 @@ public partial class LibraryPage:UserControl {
     }
 
     /* :: :: Nested Types :: END :: */
-
-    private static void DebugWriteLine(string message) {
-#if DEBUG
-        System.Diagnostics.Trace.WriteLine(message);
-#endif
-    }
 }
 

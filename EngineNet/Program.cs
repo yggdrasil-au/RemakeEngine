@@ -1,6 +1,5 @@
-using System;
-using System.Diagnostics;
 using System.Linq;
+using System.Collections.Generic;
 using Avalonia;
 
 // Allow 'internal' access for tests
@@ -10,8 +9,9 @@ namespace EngineNet;
 
 internal static class Program {
 
+    internal static string rootPath = string.Empty;
+
     /* :: :: Vars :: START :: */
-    // ensure Avalonia VS preview can find GUI
     internal static AppBuilder BuildAvaloniaApp()  {
         return Interface.GUI.AvaloniaGui.BuildAvaloniaApp();
     }
@@ -20,85 +20,71 @@ internal static class Program {
     /* :: :: Main :: START :: */
 
     internal static async System.Threading.Tasks.Task<int> Main(string[] args) {
-        string? logPath = null;
         try {
-            logPath = System.IO.Path.Combine(System.Environment.CurrentDirectory, "debug.log");
-            string? logDirectory = System.IO.Path.GetDirectoryName(logPath);
-            if (!string.IsNullOrEmpty(logDirectory)) {
-                System.IO.Directory.CreateDirectory(logDirectory);
-            }
+            // 1. Parse Args to separate the Root path from the Mode flags
+            var parsedArgs = ParseArguments(args);
 
-            Trace.Listeners.Add(new TextWriterTraceListener(logPath));
-            Trace.AutoFlush = true;
-#if DEBUG
-            Trace.WriteLine($"[Program.cs::Main()] Logging started at {System.DateTimeOffset.Now:u}");
-#endif
-        } catch (System.Exception ex) {
-#if DEBUG
-            System.Console.Error.WriteLine($"WARN: Failed to initialize debug log '{logPath ?? "debug.log"}': {ex.Message}");
-#endif
-        }
-        try {
+            // 2. Resolve Root Path
             string root;
-            string? explicitRoot = GetRootPath(args);
-            if (explicitRoot != null) {
-#if DEBUG
-                Trace.WriteLine($"[Program.cs::Main()] Using explicit root from --root: {explicitRoot}");
-#endif
-                root = explicitRoot;
+            if (parsedArgs.ExplicitRoot != null) {
+                root = parsedArgs.ExplicitRoot;
             } else {
                 string? foundRoot = TryFindProjectRoot(System.IO.Directory.GetCurrentDirectory());
                 if (foundRoot != null) {
-#if DEBUG
-                    Trace.WriteLine($"[Program.cs::Main()] Found project root from current directory: {foundRoot}");
-#endif
                     root = foundRoot;
                 } else {
                     foundRoot = TryFindProjectRoot(System.AppContext.BaseDirectory);
                     if (foundRoot != null) {
-#if DEBUG
-                        Trace.WriteLine($"[Program.cs::Main()] Found project root from base directory: {foundRoot}");
-#endif
                         root = foundRoot;
                     } else {
-#if DEBUG
-                        Trace.WriteLine($"[Program.cs::Main()] No project root found, using current directory: {System.IO.Directory.GetCurrentDirectory()}");
-#endif
                         root = System.IO.Directory.GetCurrentDirectory();
                     }
                 }
             }
+
+            rootPath = root;
+
+            // :: Initialize the Logger
+            Core.Diagnostics.Initialize(root);
 
             Core.Tools.IToolResolver tools = CreateToolResolver(root);
 
             Core.EngineConfig engineConfig = new Core.EngineConfig();
             Core.Engine _engine = new Core.Engine(root, tools, engineConfig);
 
-            // Interface selection:
-            // - GUI if no args or ONLY arg is --gui
-            // - Otherwise CLI (CLI handles additional args itself)
-            bool onlyGuiFlag = args.Length == 1 && string.Equals(args[0], "--gui", System.StringComparison.OrdinalIgnoreCase);
-            if (args.Length == 0 || onlyGuiFlag) {
+            // 3. Interface selection based on "Remaining Args" (args with --root removed)
+
+            // Logic:
+            // - No remaining args -> GUI
+            // - One arg "--gui" -> GUI
+            bool isGui = parsedArgs.Remaining.Count == 0 ||
+                         (parsedArgs.Remaining.Count == 1 && parsedArgs.Remaining[0].Equals("--gui", System.StringComparison.OrdinalIgnoreCase));
+
+            if (isGui) {
                 return await Interface.GUI.AvaloniaGui.RunAsync(_engine);
             }
 
-            // Interface selection:
-            // - TUI if ONLY arg is --tui
-            // - Otherwise CLI (CLI handles additional args itself)
-            bool onlyTuiFlag = args.Length == 1 && string.Equals(args[0], "--tui", System.StringComparison.OrdinalIgnoreCase);
-            if (onlyTuiFlag) {
+            // Logic:
+            // - One arg "--tui" -> TUI
+            bool isTui = parsedArgs.Remaining.Count == 1 &&
+                         parsedArgs.Remaining[0].Equals("--tui", System.StringComparison.OrdinalIgnoreCase);
+
+            if (isTui) {
                 Interface.Terminal.TUI TUI = new Interface.Terminal.TUI(_engine);
                 return await TUI.RunInteractiveMenuAsync();
             }
 
-            // if not gui run CLIApp with all args, it then uses CLI or TUI as needed
+            // Logic:
+            // - Anything else -> CLI (Pass original args so CLI can parse specific commands like 'build', 'run', etc.)
             Interface.Terminal.CLI CLI = new Interface.Terminal.CLI(_engine);
             return await CLI.RunAsync(args);
+
         } catch (System.Exception ex) {
-#if DEBUG
-            Trace.WriteLine($"Engine Error: {ex}");
-#endif
+            Core.Diagnostics.Bug("Critical Engine Failure in Main", ex);
+            Core.Diagnostics.Log($"Engine Error: {ex}");
             return 1;
+        } finally {
+            Core.Diagnostics.Close();
         }
     }
 
@@ -106,17 +92,34 @@ internal static class Program {
     // //
     /* :: :: Methods :: START :: */
 
-    // Parse --root <path> from args
-    private static string? GetRootPath(string[] args) {
-        for (int i = 0; i < args.Length; i++) {
-            if (args[i] == "--root" && i + 1 < args.Length) {
-                return args[i + 1];
-            }
-        }
-        return null;
+    // Simple container for parsed results
+    private class ParsedArgs {
+        public string? ExplicitRoot { get; set; }
+        public List<string> Remaining { get; set; } = new List<string>();
     }
 
-    // Walk upwards from a starting directory to find a folder containing EngineApps/Games, this is the project root
+    // Walks arguments, extracts --root value, and keeps the rest preserving order
+    private static ParsedArgs ParseArguments(string[] args) {
+        var result = new ParsedArgs();
+        for (int i = 0; i < args.Length; i++) {
+            bool isRootFlag = args[i].Equals("--root", System.StringComparison.OrdinalIgnoreCase);
+
+            if (isRootFlag && i + 1 < args.Length) {
+                // Found --root and a value exists next to it
+                result.ExplicitRoot = args[i + 1];
+                i++; // Skip the value argument in the next loop
+            }
+            else {
+                // Determine if this is a loose --root without a value (CLI error case usually, but we treat as arg here)
+                // or just a normal argument
+                if (!isRootFlag) {
+                    result.Remaining.Add(args[i]);
+                }
+            }
+        }
+        return result;
+    }
+
     private static string? TryFindProjectRoot(string? startDir) {
         try {
             string? dir;
@@ -141,19 +144,16 @@ internal static class Program {
             }
         } catch (System.Exception e) {
 #if DEBUG
-            Trace.WriteLine($"Error finding project root: {e.Message}");
+            Core.Diagnostics.Bug($"Error finding project root: {e.Message}");
 #endif
         }
         return null;
     }
 
-    // Create a tool resolver based on available config files
     private static Core.Tools.IToolResolver CreateToolResolver(string root) {
-        // Prefer Tools.local.json if present, then "EngineApps", "Registries", "Tools", "Main.json"
-        string EngineAppsDir = System.IO.Path.Combine(root, "EngineApps");
         string[] candidates = new[] {
             System.IO.Path.Combine(root, "Tools.local.json"), System.IO.Path.Combine(root, "tools.local.json"),
-            System.IO.Path.Combine(EngineAppsDir, "EngineApps", "Registries", "Tools", "Main.json"), System.IO.Path.Combine(EngineAppsDir, "EngineApps", "Registries", "Tools", "main.json"),
+            System.IO.Path.Combine(root, "EngineApps", "Registries", "Tools", "Main.json"), System.IO.Path.Combine(root, "EngineApps", "Registries", "Tools", "main.json"),
         };
         string? found = candidates.FirstOrDefault(System.IO.File.Exists);
         return !string.IsNullOrEmpty(found) ? new Core.Tools.JsonToolResolver(found) : new Core.Tools.PassthroughToolResolver();

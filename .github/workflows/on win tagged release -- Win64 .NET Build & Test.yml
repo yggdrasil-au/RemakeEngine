@@ -110,12 +110,11 @@ jobs:
       # Publish a Release build (win-x64); tweak RID/self-contained to taste
       - name: Publish
         shell: pwsh
-        run: dotnet publish EngineNet\EngineNet.csproj -v:d -c Release -f net8.0 -r win-x64 --self-contained true -o out/win-x64 -p:PublishSingleFile=true
+        run: dotnet publish EngineNet\EngineNet.csproj -v:d -c Release -f net9.0 -r win-x64 --self-contained true -o EngineBuild/win-x64 -p:PublishSingleFile=true
 
       - name: Zip artifact
         shell: pwsh
-        run: Compress-Archive -Path out\win-x64\* -DestinationPath RemakeEngineCore-win-x64.zip
-
+        run: Compress-Archive -Path EngineBuild\win-x64\* -DestinationPath RemakeEngineCore-win-x64.zip
       - name: Create GitHub Release and upload artifact
         env:
           GITHUB_TOKEN: ${{ secrets.SUPERSECRET_TOKEN }}

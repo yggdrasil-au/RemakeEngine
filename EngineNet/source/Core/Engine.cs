@@ -40,9 +40,7 @@ internal sealed partial class Engine {
 
     internal async System.Threading.Tasks.Task<RunAllResult> RunAllAsync(string gameName, Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, System.Threading.CancellationToken cancellationToken = default) {
 
-#if DEBUG
-        System.Diagnostics.Trace.WriteLine($"[ENGINE.cs] Starting RunAllAsync for game '{gameName}', onOutput: {(onOutput is null ? "null" : "set")}, onEvent: {(onEvent is null ? "null" : "set")}, stdinProvider: {(stdinProvider is null ? "null" : "set")}");
-#endif
+        Core.Diagnostics.Log($"[ENGINE.cs] Starting RunAllAsync for game '{gameName}', onOutput: {(onOutput is null ? "null" : "set")}, onEvent: {(onEvent is null ? "null" : "set")}, stdinProvider: {(stdinProvider is null ? "null" : "set")}");
 
         if (string.IsNullOrWhiteSpace(gameName)) {
             throw new System.ArgumentException("Game name is required.", nameof(gameName));
@@ -241,9 +239,7 @@ internal sealed partial class Engine {
             }
             return new List<Dictionary<string, object?>>();
         } catch (System.Exception ex) {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[Engine.cs] err loading ops file '{opsFile}': {ex.Message}");
-#endif
+            Core.Diagnostics.Bug($"[Engine.cs] err loading ops file '{opsFile}': {ex.Message}");
             return null;
         }
     }
@@ -275,9 +271,7 @@ internal sealed partial class Engine {
                     try {
                         string? action = op.TryGetValue("script", out object? s) ? s?.ToString() : null;
                         string? title = op.TryGetValue("Name", out object? n) ? n?.ToString() ?? action : action;
-#if DEBUG
-                        System.Diagnostics.Trace.WriteLine($"Executing engine operation {title} ({action})");
-#endif
+                        Core.Diagnostics.Log($"Executing engine operation {title} ({action})");
                         Core.Utils.EngineSdk.PrintLine(message: $"\n>>> Engine operation: {title}");
                         result = await ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, cancellationToken);
                     } catch (System.Exception ex) {
@@ -347,9 +341,8 @@ internal sealed partial class Engine {
                 }
             }
         } catch (System.Exception ex) {
-#if DEBUG
-            System.Diagnostics.Trace.WriteLine($"[Engine.cs] err running single op: {ex.Message}");
-#endif
+            Core.Diagnostics.Bug($"[Engine.cs] err running single op: {ex.Message}");
+
             Core.Utils.EngineSdk.PrintLine($"operation ERROR: {ex.Message}");
             result = false;
         }
@@ -369,10 +362,8 @@ internal sealed partial class Engine {
     }
 
     internal Dictionary<string, Core.Utils.GameModuleInfo> Modules(Core.Utils.ModuleFilter _Filter) {
-#if DEBUG
-        System.Diagnostics.Trace.WriteLine($"[Engine.cs::Modules()] Scanning modules with filter {_Filter}");
-        System.Diagnostics.Trace.WriteLine($"[Engine.cs::Modules()] {_scanner.Modules(_Filter).Count} found");
-#endif
+        Core.Diagnostics.Log($"[Core :: Engine.cs::Modules()] Scanning modules with filter {_Filter}");
+        Core.Diagnostics.Log($"[Core :: Engine.cs::Modules()] {_scanner.Modules(_Filter).Count} found");
         return _scanner.Modules(_Filter);
     }
 

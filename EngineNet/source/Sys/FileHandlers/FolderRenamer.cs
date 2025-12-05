@@ -333,7 +333,7 @@ internal static class FolderRenamer {
 
     private static void TraceError(string message) {
         try {
-            System.Diagnostics.Trace.WriteLine(message);
+            Core.Diagnostics.Log(message);
         } catch {
             // ignore trace failures for best-effort logging
         }

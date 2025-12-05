@@ -53,9 +53,7 @@ internal partial class CLI {
                     return 2;
             }
         } catch (System.Exception ex) {
-#if DEBUG
-            Trace.WriteLine($"CLI Error: {ex}");
-#endif
+            Core.Diagnostics.Bug($"CLI Error: {ex}");
             System.Console.WriteLine($"Error: {ex.Message}");
             return -1;
         }
@@ -164,9 +162,7 @@ internal partial class CLI {
                 }
 
                 string normalized = NormalizeOptionKey(key);
-#if DEBUG
-                System.Diagnostics.Trace.WriteLine($"DEBUG: Parsing option --{key} (normalized: {normalized}) with value '{value}'");
-#endif
+                Core.Diagnostics.Log($"DEBUG: Parsing option --{key} (normalized: {normalized}) with value '{value}'");
                 switch (normalized) {
                     case "game":
                     case "game_module":
@@ -221,18 +217,16 @@ internal partial class CLI {
                         break;
                     case "args":
                         if (value is null) {
-#if DEBUG
-                            System.Diagnostics.Trace.WriteLine("DEBUG: --args missing value");
-#endif
+                            Core.Diagnostics.Log("DEBUG: --args missing value");
                             throw new System.ArgumentException("Option '--args' requires a value.");
                         }
                         foreach (string item in ParseArgsList(value)) {
                             options._args.Add(item);
                         }
 #if DEBUG
-                        System.Diagnostics.Trace.WriteLine($"DEBUG: --args parsed {options._args.Count} items");
-                        System.Diagnostics.Trace.WriteLine($"DEBUG: --args items: {string.Join(", ", options._args)}");
-                        System.Diagnostics.Trace.WriteLine($"DEBUG: --args raw value: {value}");
+                        Core.Diagnostics.Log($"DEBUG: --args parsed {options._args.Count} items");
+                        Core.Diagnostics.Log($"DEBUG: --args items: {string.Join(", ", options._args)}");
+                        Core.Diagnostics.Log($"DEBUG: --args raw value: {value}");
 #endif
                         break;
                     case "answer":
