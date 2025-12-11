@@ -17,6 +17,7 @@ internal class Utils() {
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never
     };
 
+
     private static readonly object s_consoleLock = new();
     private static int _progressPanelTop;
     private static int _progressLastLines;
