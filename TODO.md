@@ -6,7 +6,7 @@
 
 ### TUI:
 * :: FEATURE :: add colors to tui menus, defined in the operations file
-* :: FEATURE :: add a way to cancel an operation or operations.prompt when user selectes an operation to run
+* :: FEATURE :: add a way to cancel an operation or operations.prompt when user selectes an operation to run, otherwise the user is stuck in a prompt until they choose a valid option and then forced to wait for the operation to complete, add cancel in opertion prompts and also add a global cancel key (eg ESC) to cancel any running operation or lua prompt, add lua handler for cancel events so modules can handle it optionally, otherwise default to stopping the operation forcibly
 
 
 * :: ISSUE :: engine git module downloader: tui issue:
@@ -40,8 +40,8 @@ this may also occur in other tools, and is likly connected to console size W and
 ...
 ## Engine:
 ### Tools:
-* :: FEATURE :: make the Download module menu a built in operations.toml instead of hardcoded into every interface
-* :: FEATURE :: change from sinlge json file to multiple json files
+* :: FEATURE :: make the Download module menu a built in operations.toml instead of hardcoded into every interface, allow internal ops to execute C# code directly, to prevent the download feature from being accessable to modules, as its an engine feature not a module feature, this would also allow the engine to have its own internal operations that are not part of any module, such as engine updates, engine tool downloads/updates, engine self maintenance tasks etc
+* :: FEATURE :: change tools from sinlge json file to multiple json files
 
  Downloader:
 * :: ISSUE :: vgmstream-cli has no checksum
