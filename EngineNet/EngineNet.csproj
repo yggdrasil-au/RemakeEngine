@@ -3,6 +3,7 @@
 		<!-- Default TFMs for CI and most dev machines (no Apple workloads required) -->
 		<TargetFrameworks>
 			net9.0;
+			net10.0;
 		</TargetFrameworks>
 		<Nullable>enable</Nullable>
 		<OutputType>Exe</OutputType>
@@ -28,7 +29,6 @@
 
 		<!-- Other -->
 		<PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.11" />
-		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -48,6 +48,5 @@
 			<DependentUpon>SettingsPage.axaml</DependentUpon>
 		</Compile>
 	</ItemGroup>
-
 
 </Project>

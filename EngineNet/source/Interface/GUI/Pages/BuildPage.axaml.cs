@@ -117,15 +117,23 @@ internal partial class BuildingPage:UserControl {
         svc.HandleEvent(progressPayload);
     }
 
+    /// <summary>
+    /// Command wrapper for button actions
+    /// </summary>
     internal sealed class Cmd:System.Windows.Input.ICommand {
+        // Constructor parameter
         private readonly System.Func<object?, Task> _run;
 
+        // Constructor
         public Cmd(System.Func<object?, Task> run) {
             _run = run;
         }
 
+        // Unused, but required by interface
         public bool CanExecute(object? parameter) => true;
+        // Unused, but required by interface
         public async void Execute(object? parameter) => await _run(parameter);
+        // Unused, but required by interface
         public event System.EventHandler? CanExecuteChanged;
     }
 }

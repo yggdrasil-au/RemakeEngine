@@ -98,3 +98,5 @@ logs/
 EngineApps/Games/demo/config.toml
 EngineBuild/
 
+# incomplete unit test project
+Unit.Tests/

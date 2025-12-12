@@ -129,7 +129,11 @@ internal sealed partial class ModulePage:UserControl {
             }
 
             if (!string.IsNullOrWhiteSpace(opsFile) && System.IO.File.Exists(path: opsFile)) {
-                List<Dictionary<string, object?>> allOps = Core.Engine.LoadOperationsList(opsFile);
+                List<Dictionary<string, object?>>? allOps = Core.Engine.LoadOperationsList(opsFile);
+                if (allOps is null) {
+                    Core.Diagnostics.Log($"Load: Failed to load operations list for module {_moduleName} from ops file '{opsFile}'.");
+                    return;
+                }
                 foreach (Dictionary<string, object?> op in allOps) {
                     string name = op.TryGetValue(key: "name", value: out object? n) ? n?.ToString() ?? "" : "";
                     string scriptType = (op.TryGetValue(key: "script_type", value: out object? st) ? st?.ToString() : null) ?? "python";
