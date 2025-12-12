@@ -1,3 +1,5 @@
 major = 2
-minor = 3
-patch = 5
+minor = 9
+patch = 6
+isAlpha = false
+isBeta = false

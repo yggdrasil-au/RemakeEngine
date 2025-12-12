@@ -214,7 +214,9 @@ internal static class LuaSecurity {
                 @"c:\program files",
                 @"c:\program files (x86)",
                 "/etc/", "/bin/", "/sbin/", "/usr/bin/", "/usr/sbin/",
-                "/sys/", "/proc/", "/dev/"
+                "/sys/", "/proc/", "/dev/",
+                // Explicitly deny access to Registries to prevent tampering
+                System.IO.Path.Combine(projectRoot, "EngineApps", "Registries").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant()
             };
 
             foreach (string forbiddenPattern in forbiddenPatterns) {

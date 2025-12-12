@@ -27,7 +27,7 @@ internal class Utils() {
             string? type = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant();
 
             // Use embedded handlers for engine/lua/js/bms to avoid external dependencies
-            if (type == "engine" || type == "lua" || type == "js" || type == "bms") {
+            if (type == "engine" || type == "lua" || type == "js" || type == "bms" || type == "internal") {
                 // Route in-process SDK events to our terminal renderer
                 System.Action<Dictionary<string, object?>>? prevSink = Core.Utils.EngineSdk.LocalEventSink;
                 bool prevMute = Core.Utils.EngineSdk.MuteStdoutWhenLocalSink;

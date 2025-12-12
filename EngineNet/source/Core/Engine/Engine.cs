@@ -82,7 +82,9 @@ internal sealed partial class Engine {
                         if (kv.Value is Tomlyn.Model.TomlTableArray arr) {
                             foreach (Tomlyn.Model.TomlTable item in arr) {
                                 if (item is Tomlyn.Model.TomlTable tt) {
-                                    list.Add(Core.Utils.Operations.ToMap(tt));
+                                    var map = Core.Utils.Operations.ToMap(tt);
+                                    map["_source_file"] = opsFile;
+                                    list.Add(map);
                                 }
                             }
                         }
@@ -96,7 +98,9 @@ internal sealed partial class Engine {
                 List<Dictionary<string, object?>> list = new List<Dictionary<string, object?>>();
                 foreach (System.Text.Json.JsonElement item in jdoc.RootElement.EnumerateArray()) {
                     if (item.ValueKind == System.Text.Json.JsonValueKind.Object) {
-                        list.Add(Core.Utils.Operations.ToMap(item));
+                        var map = Core.Utils.Operations.ToMap(item);
+                        map["_source_file"] = opsFile;
+                        list.Add(map);
                     }
                 }
                 return list;
@@ -108,7 +112,9 @@ internal sealed partial class Engine {
                     if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Array) {
                         foreach (System.Text.Json.JsonElement item in prop.Value.EnumerateArray()) {
                             if (item.ValueKind == System.Text.Json.JsonValueKind.Object) {
-                                flat.Add(Core.Utils.Operations.ToMap(item));
+                                var map = Core.Utils.Operations.ToMap(item);
+                                map["_source_file"] = opsFile;
+                                flat.Add(map);
                             }
                         }
                     }

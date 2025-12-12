@@ -92,7 +92,7 @@ internal sealed partial class Engine {
 
     private static bool IsEmbeddedScript(string scriptType)
         // Ensure 'bms' is treated as an embedded handler (QuickBMS action)
-        => scriptType == "engine" || scriptType == "lua" || scriptType == "js" || scriptType == "bms";
+        => scriptType == "engine" || scriptType == "lua" || scriptType == "js" || scriptType == "bms" || scriptType == "internal";
 
     private static Dictionary<string, object?> BuildPromptDefaults(Dictionary<string, object?> op) {
         Dictionary<string, object?> answers = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
@@ -153,23 +153,78 @@ internal sealed partial class Engine {
 
     private sealed class StdinRedirectReader:System.IO.TextReader {
         private readonly Core.ProcessRunner.StdinProvider _provider;
-
         internal StdinRedirectReader(Core.ProcessRunner.StdinProvider provider) => _provider = provider;
-
         public override string? ReadLine() => _provider();
     }
 
     private async System.Threading.Tasks.Task<bool> ExecuteEngineOperationAsync(string currentGame, Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, System.Threading.CancellationToken cancellationToken = default) {
         if (!op.TryGetValue("script", out object? s) || s is null) {
-            Core.Diagnostics.Log("[Engine.OperationExecution] Missing 'script' value in engine operation");
+            Core.Diagnostics.Log("[Engine.private.cs :: OperationExecution()] Missing 'script' value in engine operation");
             return false;
         } else {
-            Core.Diagnostics.Log($"[Engine.OperationExecution] engine operation script: {s}");
+            Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] engine operation script: {s}");
         }
 
         string? action = s.ToString()?.ToLowerInvariant();
-        Core.Diagnostics.Log($"[Engine.OperationExecution] Executing engine action: {action}");
+
+        // Security check for internal operations
+        string type = op.TryGetValue("script_type", out object? st) ? st?.ToString()?.ToLowerInvariant() ?? "python" : "python";
+        if (type == "internal") {
+            string? sourceFile = op.TryGetValue("_source_file", out object? sf) ? sf?.ToString() : null;
+            if (string.IsNullOrWhiteSpace(sourceFile)) {
+                Core.Utils.EngineSdk.Error("Internal operation blocked: Missing source file context.");
+                return false;
+            }
+            string allowedDir = System.IO.Path.Combine(rootPath, "EngineApps", "Registries", "ops");
+            string fullSource = System.IO.Path.GetFullPath(sourceFile);
+            string fullAllowed = System.IO.Path.GetFullPath(allowedDir);
+
+            if (!fullSource.StartsWith(fullAllowed, System.StringComparison.OrdinalIgnoreCase)) {
+                Core.Utils.EngineSdk.Error($"Internal operation blocked: Source '{sourceFile}' is not in allowed directory '{allowedDir}'.");
+                return false;
+            }
+        }
+
+        Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] Executing engine action: {action}");
         switch (action) {
+            case "download_module_git": {
+                string? url = null;
+                if (promptAnswers.TryGetValue("url", out object? u)) {
+                    url = u?.ToString();
+                }
+                if (string.IsNullOrWhiteSpace(url)) {
+                    Core.Utils.EngineSdk.Error("No URL provided.");
+                    Core.Diagnostics.Trace("[Engine.private.cs :: OperationExecution()]] download_module_git: no url provided");
+                    return false;
+                }
+                return _git.CloneModule(url);
+            }
+            case "download_module_registry": {
+                string? input = null;
+                if (promptAnswers.TryGetValue("url", out object? u)) {
+                    input = u?.ToString();
+                }
+                if (string.IsNullOrWhiteSpace(input)) {
+                    Core.Utils.EngineSdk.Error("No input provided.");
+                    return false;
+                }
+
+                var knownModules = GetRegistries.GetRegisteredModules();
+                string? url = input;
+
+                if (knownModules.TryGetValue(input!, out object? modObj) && modObj is Dictionary<string, object?> modData) {
+                    if (modData.TryGetValue("url", out object? uObj)) {
+                        url = uObj?.ToString();
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(url)) {
+                    Core.Utils.EngineSdk.Error($"Could not resolve URL for '{input}'.");
+                    return false;
+                }
+
+                return _git.CloneModule(url);
+            }
             case "download_tools": {
                 // Expect a 'tools_manifest' value (path), or fallback to first arg
                 string? manifest = null;
@@ -307,17 +362,17 @@ internal sealed partial class Engine {
             }
             case "format-convert":
             case "format_convert": {
-                Core.Diagnostics.Log("[Engine.OperationExecution] format-convert");
+                Core.Diagnostics.Log("[Engine.private.cs :: OperationExecution()]] format-convert");
                 // Determine tool - check both 'tool' field and '-m'/'--mode' in args
                 string? tool = op.TryGetValue("tool", out object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
 
 #if DEBUG
                 if (op.TryGetValue("args", out object? argsDebugObj)) {
-                    Core.Diagnostics.Log($"[Engine.OperationExecution] format-convert: args type = {argsDebugObj?.GetType().FullName ?? "null"}");
+                    Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] format-convert: args type = {argsDebugObj?.GetType().FullName ?? "null"}");
                     if (argsDebugObj is System.Collections.IList argsDebugList) {
-                        Core.Diagnostics.Log($"[Engine.OperationExecution] format-convert: args count = {argsDebugList.Count}");
+                        Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] format-convert: args count = {argsDebugList.Count}");
                         for (int i = 0; i < argsDebugList.Count; i++) {
-                            Core.Diagnostics.Log($"[Engine.OperationExecution] format-convert: args[{i}] = '{argsDebugList[i]}'");
+                            Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] format-convert: args[{i}] = '{argsDebugList[i]}'");
                         }
                     }
                 }
@@ -331,7 +386,7 @@ internal sealed partial class Engine {
                             string arg = argsList[i]?.ToString() ?? string.Empty;
                             if (arg == "-m" || arg == "--mode") {
                                 tool = argsList[i + 1]?.ToString()?.ToLowerInvariant();
-                                Core.Diagnostics.Log($"[Engine.OperationExecution] format-convert: extracted tool from args: '{tool}'");
+                                Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] format-convert: extracted tool from args: '{tool}'");
                                 break;
                             }
                         }
@@ -354,12 +409,12 @@ internal sealed partial class Engine {
                             // If has --source, --input-ext, --output-ext but no --type, likely ImageMagick
                             if (hasSource && hasInputExt && hasOutputExt && !hasType) {
                                 tool = "imagemagick";
-                                Core.Diagnostics.Log($"[Engine.OperationExecution] format-convert: inferred tool from args pattern: '{tool}'");
+                                Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] format-convert: inferred tool from args pattern: '{tool}'");
                             }
                         }
                     }
                 }
-                Core.Diagnostics.Log($"[Engine.OperationExecution] format-convert: final tool = '{tool}'");
+                Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] format-convert: final tool = '{tool}'");
 
                 // Resolve args (used for both TXD and media conversions)
                 Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
@@ -394,7 +449,7 @@ internal sealed partial class Engine {
                         }
                     }
                 } catch (System.Exception ex) {
-                    Core.Diagnostics.Bug($"[Engine.OperationExecution] format-convert: failed to read config.toml: {ex.Message}");
+                    Core.Diagnostics.Bug($"[Engine.private.cs :: OperationExecution()]] format-convert: failed to read config.toml: {ex.Message}");
                 // ignore
                 }
                 cfgDict2["module_path"] = gameRoot3;
@@ -414,17 +469,17 @@ internal sealed partial class Engine {
                 if (string.Equals(tool, "ffmpeg", System.StringComparison.OrdinalIgnoreCase) || string.Equals(tool, "vgmstream", System.StringComparison.OrdinalIgnoreCase)) {
                     // attempt built-in media conversion (ffmpeg/vgmstream) using the same CLI args
                     Core.Utils.EngineSdk.PrintLine("\n>>> Built-in media conversion");
-                    Core.Diagnostics.Log($"[Engine.OperationExecution] format-convert: running media conversion with args: {string.Join(' ', args)}");
+                    Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] format-convert: running media conversion with args: {string.Join(' ', args)}");
                     bool okMedia = FileHandlers.MediaConverter.Run(_tools, args);
                     return okMedia;
                 } else if (string.Equals(tool, "ImageMagick", System.StringComparison.OrdinalIgnoreCase)) {
                     // attempt image conversion (ImageMagick) using the CLI args
                     Core.Utils.EngineSdk.PrintLine("\n>>> Built-in image conversion");
-                    Core.Diagnostics.Log($"[Engine.OperationExecution] format-convert: running image conversion with args: {string.Join(' ', args)}");
+                    Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] format-convert: running image conversion with args: {string.Join(' ', args)}");
                     bool okImage = FileHandlers.ImageMagickConverter.Run(_tools, args);
                     return okImage;
                 } else {
-                    Core.Diagnostics.Log($"[Engine.OperationExecution] format-convert: unknown tool '{tool}'");
+                    Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] format-convert: unknown tool '{tool}'");
                     Core.Utils.EngineSdk.PrintLine($"ERROR: format-convert requires a valid tool. Found: '{tool ?? "(null)"}'");
                     Core.Utils.EngineSdk.PrintLine("Supported tools: ffmpeg, vgmstream, ImageMagick");
                     Core.Utils.EngineSdk.PrintLine("Specify tool with --tool parameter or -m/--mode in args.");

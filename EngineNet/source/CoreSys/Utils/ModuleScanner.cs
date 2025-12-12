@@ -230,7 +230,41 @@ internal sealed class ModuleScanner {
             info.IsUnverified = info.IsInstalled && !info.IsRegistered;
         }
 
+        // 5. Scan standalone operations in EngineApps/Registries/ops/
+        ScanStandaloneOperations(result);
+
         return result;
+    }
+
+    private void ScanStandaloneOperations(Dictionary<string, GameModuleInfo> result) {
+        try {
+            string opsDir = System.IO.Path.Combine(Program.rootPath, "EngineApps", "Registries", "ops");
+            if (!System.IO.Directory.Exists(opsDir)) return;
+
+            string[] files = System.IO.Directory.GetFiles(opsDir, "*.toml");
+            foreach (string file in files) {
+                string name = System.IO.Path.GetFileNameWithoutExtension(file);
+
+                if (!result.ContainsKey(name)) {
+                    GameModuleInfo info = new GameModuleInfo {
+                        Id = name,
+                        Name = name,
+                        IsRegistered = true,
+                        IsInstalled = true,
+                        IsInternal = true,
+                        GameRoot = opsDir,
+                        OpsFile = file,
+                        ExePath = string.Empty,
+                        Title = name,
+                        Url = string.Empty
+                    };
+                    result[name] = info;
+                    Core.Diagnostics.Trace($"[ModuleScanner.cs::ScanStandaloneOperations()] Found standalone module: {name}");
+                }
+            }
+        } catch (Exception ex) {
+            Core.Diagnostics.Bug($"[ModuleScanner.cs] Error scanning standalone ops: {ex.Message}");
+        }
     }
 
     /// <summary>

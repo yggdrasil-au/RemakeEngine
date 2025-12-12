@@ -15,23 +15,9 @@ internal partial class TUI {
 
     internal async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync() {
         try {
-            // 1) Pick a game, or offer to download a module if none exist
+            // 1) Pick a game
             Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.Modules(Core.Utils.ModuleFilter.Installed);
-            while (modules.Count == 0) {
-                System.Console.Clear();
-                System.Console.WriteLine("No games found in EngineApps/Games.");
-                List<string> actions = new List<string> { "Download module...", "Exit" };
-                System.Console.WriteLine("? Choose an action:");
-                int aidx = SelectFromMenu(actions);
-                if (aidx < 0 || actions[aidx] == "Exit") {
-                    return 0;
-                }
 
-                if (actions[aidx].StartsWith("Download")) {
-                    ShowDownloadMenu();
-                    modules = _engine.Modules(Core.Utils.ModuleFilter.All);
-                }
-            }
             // Allow managing modules from the game selection menu
             string gameName;
             while (true) {
@@ -39,14 +25,25 @@ internal partial class TUI {
                 System.Console.WriteLine("Select a game:");
                 List<string> gameMenu = new List<string>();
                 List<string> gameKeyMap = new List<string>();
+                List<Core.Utils.GameModuleInfo> internalModules = new List<Core.Utils.GameModuleInfo>();
+
                 foreach (KeyValuePair<string, Core.Utils.GameModuleInfo> kv in modules) {
                     Core.Utils.GameModuleInfo m = kv.Value;
+                    if (m.IsInternal) {
+                        internalModules.Add(m);
+                        continue;
+                    }
                     string display = $"{m.Name}  [{m.DescribeState()}]";
                     gameMenu.Add(display);
                     gameKeyMap.Add(m.Name);
                 }
                 gameMenu.Add("---------------");
-                gameMenu.Add("Download module...");
+
+                foreach (Core.Utils.GameModuleInfo m in internalModules) {
+                    gameMenu.Add(m.Name);
+                    gameKeyMap.Add(m.Name);
+                }
+
                 gameMenu.Add("Exit");
                 int gidx = SelectFromMenu(gameMenu, highlightSeparators: true);
                 if (gidx < 0 || gameMenu[gidx] == "Exit") {
@@ -54,13 +51,7 @@ internal partial class TUI {
                 }
 
                 string gsel = gameMenu[gidx];
-                if (gsel.StartsWith("Download module")) {
-                        Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] User selected Download module from game menu.");
-                    ShowDownloadMenu();
-                    // only refresh installed modules after download
-                    modules = _engine.Modules(Core.Utils.ModuleFilter.Installed);
-                    continue; // show game list again
-                }
+
                 // Map selection index to actual module key
                 if (gidx >= 0 && gidx < gameKeyMap.Count) {
                     gameName = gameKeyMap[gidx];

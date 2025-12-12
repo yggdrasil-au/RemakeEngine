@@ -18,8 +18,10 @@ internal sealed class GameModuleInfo {
     public bool IsInstalled { get; set; }
     public bool IsBuilt { get; set; }
     public bool IsUnverified { get; set; }
+    public bool IsInternal { get; set; }
 
     public string DescribeState() {
+        if (IsInternal) return "internal";
         System.Collections.Generic.List<string> states = new System.Collections.Generic.List<string>();
         if (IsRegistered) states.Add("registered");
         if (IsInstalled) states.Add("installed");
