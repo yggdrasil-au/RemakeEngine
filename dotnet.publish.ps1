@@ -1,6 +1,6 @@
 # dotnet.publish.ps1
 param(
-    [string]$Framework = "net9.0",
+    [string]$Framework = "net10.0",
     [string]$Runtime   = "win-x64"
 )
 

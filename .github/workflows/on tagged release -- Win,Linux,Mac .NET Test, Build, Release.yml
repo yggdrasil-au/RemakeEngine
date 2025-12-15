@@ -38,6 +38,8 @@
 
 name: on tagged release -- Win,Linux,Mac .NET Test, Build, Release.yml
 
+## this is the github release workflow for all platforms
+
 on:
   push:
     #branches: [ "main" ] # only run when tag release is pushed
@@ -63,17 +65,17 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       Solution_Name: RemakeEngine.sln
-      ForceTFM: net8.0
+      ForceTFM: net10.0
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup .NET SDK 8.x (with NuGet cache)
+      - name: Setup .NET SDK 10.x (with NuGet cache)
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 10.0.x
           cache: true
           cache-dependency-path: |
             **/*.sln
@@ -136,10 +138,10 @@ jobs:
         uses: actions/checkout@v4
         with: { fetch-depth: 0 }
 
-      - name: Setup .NET SDK 8.x (with NuGet cache)
+      - name: Setup .NET SDK 10.x (with NuGet cache)
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 10.0.x
           cache: true
           cache-dependency-path: |
             **/*.sln
@@ -166,7 +168,7 @@ jobs:
         shell: pwsh
         run: >
           dotnet publish "$env:App_Project"
-          -c Release -f net8.0 -r ${{ matrix.rid }} --self-contained true
+          -c Release -f net10.0 -r ${{ matrix.rid }} --self-contained true
           -o out/${{ matrix.rid }}
           -p:PublishSingleFile=true
           -p:IncludeNativeLibrariesForSelfExtract=true

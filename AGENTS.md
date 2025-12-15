@@ -2,7 +2,7 @@
 
 ## Setup
 - Build: `dotnet build RemakeEngine.sln -c Debug`
-- Run tests: `dotnet test EngineNet.Tests\EngineNet.Tests.csproj -c Debug --no-build --logger "trx;LogFileName=test_results.trx"`
+- Run tests: `dotnet test Unit.Tests\EngineNet.Tests.csproj -c Debug --no-build --logger "trx;LogFileName=test_results.trx"`
 
 ignore any failing tests for now
 ignore test project build failures for now

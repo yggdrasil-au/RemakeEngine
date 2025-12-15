@@ -1,6 +1,6 @@
 # Remake Engine
 
-Remake Engine is an extensible cross-platform orchestration engine for repeatable game workflows. It ships with a .NET 9 core (**EngineNet**) that can run through either a command-line interface or TUI or an Avalonia-based GUI.
+Remake Engine is an extensible cross-platform orchestration engine for repeatable game workflows. It ships with a .NET 10 core (**EngineNet**) that can run through either a command-line interface or TUI or an Avalonia-based GUI.
 
 <!-- It's closer to a domain-specific ETL framework for games, with multi-language scripting support: -->
 
@@ -17,7 +17,7 @@ Project docs live at <https://github.com/yggdrasil-au/RemakeEngineDocs> with a w
 ## Getting Started
 
 ### Prerequisites
-- [.NET SDK 9.0.306](https://dotnet.microsoft.com/)
+- [.NET SDK 10.0](https://dotnet.microsoft.com/)
 - git
 
 ### Clone and Build
@@ -27,30 +27,30 @@ cd RemakeEngine
 
 # Build and run tests (solution-wide)
 dotnet build RemakeEngine.sln -c Debug
-dotnet test EngineNet.Tests/EngineNet.Tests.csproj -c Debug --no-build --logger "trx;LogFileName=test_results.trx"
+dotnet test Unit.Tests/EngineNet.Tests.csproj -c Debug --no-build --logger "trx;LogFileName=test_results.trx"
 ```
 
 ### Run the Engine using one of the three UX options
 ```pwsh
 # Default entry point (auto-selects GUI when no CLI args are supplied)
-dotnet run -c Release --framework net9.0 --project EngineNet
+dotnet run -c Release --framework net10.0 --project EngineNet
 
 # Use GUI or interactive CLI (TUI)
-dotnet run -c Release --project EngineNet --framework net9.0 -- --gui
-dotnet run -c Release --project EngineNet --framework net9.0 -- --tui
+dotnet run -c Release --project EngineNet --framework net10.0 -- --gui
+dotnet run -c Release --project EngineNet --framework net10.0 -- --tui
 
 # CLI example, great for direct operation invocations
-dotnet run -c Release --project EngineNet --framework net9.0 -- --game_module "EngineApps/Games/demo" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua"
+dotnet run -c Release --project EngineNet --framework net10.0 -- --game_module "EngineApps/Games/demo" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua"
 ```
 
 ### Quick Demo Run
 Run the demo module’s Lua feature script with arguments as used for development validation:
 ```pwsh
-dotnet run -c Release --project EngineNet --framework net9.0 -- \
+dotnet run -c Release --project EngineNet --framework net10.0 -- \
   --game_module "./EngineApps/Games/demo" \
   --script_type lua \
   --script "{{Game_Root}}/scripts/lua_feature_demo.lua" \
-  --args "[\"--module\", \"RemakeRegistry/Games/demo\", \"--scratch\", \"RemakeRegistry/Games/demo/TMP/lua-demo\", \"--note\", \"Hello from the Lua demo\"]"
+  --args "[\"--module\", \"EngineApps/Games/demo\", \"--scratch\", \"EngineApps/Games/demo/TMP/lua-demo\", \"--note\", \"Hello from the Lua demo\"]"
 ```
 
 ## Continuous Integration & Releases
@@ -78,10 +78,10 @@ Run `dotnet build RemakeEngine.sln` and `dotnet test RemakeEngine.sln --nologo` 
 - `Tools/` contains shared binaries or helper scripts. Module manifests declare dependencies that the engine can download via `ToolsDownloader`.
 
 JSON Schemas are included to help author and validate manifests in editors:
-- `json.schema/operations.schema.json` — operations files
-- `json.schema/config.schema.json` — engine configuration
-- `json.schema/game.schema.json` — game/module metadata
-- `json.schema/tools.schema.json` — tools manifests
+- `schemas/operations.schema.json` — operations files
+- `schemas/config.schema.json` — engine configuration
+- `schemas/game.schema.json` — game/module metadata
+- `schemas/tools.schema.json` — tools manifests
 
 Manifest placeholders follow `{{PlaceholderName}}` syntax and are resolved with data from the engine config, module metadata, and TOML placeholder tables.
 
@@ -91,13 +91,12 @@ RemakeEngine/
     EngineApps/                       # Game modules and registrys
         Games/                        # Game modules
             demo/                     # Demo game module
-                operations.json       # Sample operations manifest
+                operations.toml       # Sample operations manifest
                 config.toml           # Sample per-module config
-        register.json                 # Module registry listing registered game modules
-        Tools.json                    # Tool manifest registry
+        Registries/                   # Module and Tool registries
     EngineNet/                        # C# core engine and CLI entry point
-    EngineNet.Tests/                  # Tests
-    json.schema/                      # JSON schemas
+    Unit.Tests/                       # Tests
+    schemas/                          # JSON schemas
     Tools/                            # any tool downloaded by the engine
     project.json                      # Created on demand; local machine configuration
     RemakeEngine.sln                  # Solution file for builds and tests

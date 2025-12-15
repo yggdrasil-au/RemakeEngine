@@ -8,6 +8,7 @@ name: SonarQube default - build.yml (DISABLED - Reference Only)
 #   pull_request:
 #     types: [opened, synchronize, reopened]
 
+# disabled
 
 on:
   workflow_dispatch: {} # allow manual runs

@@ -2,7 +2,7 @@
 	<PropertyGroup>
 		<!-- Default TFMs for CI and most dev machines (no Apple workloads required) -->
 		<TargetFrameworks>
-			net9.0;
+			<!-- net9.0; -->
 			net10.0;
 		</TargetFrameworks>
 		<Nullable>enable</Nullable>
