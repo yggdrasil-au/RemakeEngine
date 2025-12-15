@@ -32,7 +32,7 @@ internal sealed partial class Engine {
                 Core.Utils.EngineSdk.Error("Internal operation blocked: Missing source file context.");
                 return false;
             }
-            string allowedDir = System.IO.Path.Combine(rootPath, "EngineApps", "Registries", "ops");
+            string allowedDir = System.IO.Path.Combine(RootPath, "EngineApps", "Registries", "ops");
             string fullSource = System.IO.Path.GetFullPath(sourceFile);
             string fullAllowed = System.IO.Path.GetFullPath(allowedDir);
 
@@ -57,7 +57,7 @@ internal sealed partial class Engine {
                     Core.Diagnostics.Trace("[Engine.private.cs :: OperationExecution()]] download_module_git: no url provided");
                     return false;
                 }
-                return _git.CloneModule(url);
+                return GitService.CloneModule(url);
             }
             case "download_module_registry": {
                 string? input = null;
@@ -69,7 +69,7 @@ internal sealed partial class Engine {
                     return false;
                 }
 
-                var knownModules = GetRegistries.GetRegisteredModules();
+                var knownModules = GameRegistry.GetRegisteredModules();
                 string? url = input;
 
                 if (knownModules.TryGetValue(input!, out object? modObj) && modObj is Dictionary<string, object?> modData) {
@@ -83,7 +83,7 @@ internal sealed partial class Engine {
                     return false;
                 }
 
-                return _git.CloneModule(url);
+                return GitService.CloneModule(url);
             }
             case "download_tools": {
                 // Expect a 'tools_manifest' value (path), or fallback to first arg
@@ -98,15 +98,15 @@ internal sealed partial class Engine {
                     return false;
                 }
 
-                Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, object?> ctx = new Dictionary<string, object?>(EngineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
                 if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobj)) {
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                 }
                 // Built-in placeholders
                 string gameRoot = gobj.GameRoot;
                 ctx["Game_Root"] = gameRoot;
-                ctx["Project_Root"] = rootPath;
-                ctx["Registry_Root"] = System.IO.Path.Combine(rootPath, "EngineApps");
+                ctx["Project_Root"] = RootPath;
+                ctx["Registry_Root"] = System.IO.Path.Combine(RootPath, "EngineApps");
                 ctx["Game"] = new Dictionary<string, object?> {
                     ["RootPath"] = gameRoot,
                     ["Name"] = currentGame,
@@ -136,9 +136,9 @@ internal sealed partial class Engine {
                     Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
                 }
                 cfgDict0["module_path"] = gameRoot;
-                cfgDict0["project_path"] = rootPath;
+                cfgDict0["project_path"] = RootPath;
                 string resolvedManifest = Core.Utils.Placeholders.Resolve(manifest!, ctx)?.ToString() ?? manifest!;
-                string central = System.IO.Path.Combine(rootPath, "EngineApps", "Registries", "Tools", "Main.json");
+                string central = System.IO.Path.Combine(RootPath, "EngineApps", "Registries", "Tools", "Main.json");
                 bool force = false;
                 if (promptAnswers.TryGetValue("force download", out object? fd) && fd is bool b1) {
                     force = b1;
@@ -148,7 +148,7 @@ internal sealed partial class Engine {
                     force = b2;
                 }
 
-                Tools.ToolsDownloader dl = new Tools.ToolsDownloader(rootPath, central);
+                Tools.ToolsDownloader dl = new Tools.ToolsDownloader(RootPath, central);
                 await dl.ProcessAsync(resolvedManifest, force);
                 return true;
             }
@@ -158,15 +158,15 @@ internal sealed partial class Engine {
                 string? format = op.TryGetValue("format", out object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
 
                 // Resolve args (used for both TXD and media conversions)
-                Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, object?> ctx = new Dictionary<string, object?>(EngineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
                 if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobj)) {
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                 }
                 // Built-in placeholders
                 string gameRoot2 = gobj.GameRoot;
                 ctx["Game_Root"] = gameRoot2;
-                ctx["Project_Root"] = rootPath;
-                ctx["Registry_Root"] = System.IO.Path.Combine(rootPath, "EngineApps");
+                ctx["Project_Root"] = RootPath;
+                ctx["Registry_Root"] = System.IO.Path.Combine(RootPath, "EngineApps");
                 ctx["Game"] = new Dictionary<string, object?> {
                     ["RootPath"] = gameRoot2,
                     ["Name"] = currentGame,
@@ -193,7 +193,7 @@ internal sealed partial class Engine {
                     Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
                 }
                 cfgDict1["module_path"] = gameRoot2;
-                cfgDict1["project_path"] = rootPath;
+                cfgDict1["project_path"] = RootPath;
 
                 List<string> args = new List<string>();
                 if (op.TryGetValue("args", out object? aobj) && aobj is System.Collections.IList aList) {
@@ -280,15 +280,15 @@ internal sealed partial class Engine {
                 Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] format-convert: final tool = '{tool}'");
 
                 // Resolve args (used for both TXD and media conversions)
-                Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, object?> ctx = new Dictionary<string, object?>(EngineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
                 if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobj)) {
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                 }
                 // Built-in placeholders
                 string gameRoot3 = gobj.GameRoot;
                 ctx["Game_Root"] = gameRoot3;
-                ctx["Project_Root"] = rootPath;
-                ctx["Registry_Root"] = System.IO.Path.Combine(rootPath, "EngineApps");
+                ctx["Project_Root"] = RootPath;
+                ctx["Registry_Root"] = System.IO.Path.Combine(RootPath, "EngineApps");
                 ctx["Game"] = new Dictionary<string, object?> {
                     ["RootPath"] = gameRoot3,
                     ["Name"] = currentGame,
@@ -316,7 +316,7 @@ internal sealed partial class Engine {
                 // ignore
                 }
                 cfgDict2["module_path"] = gameRoot3;
-                cfgDict2["project_path"] = rootPath;
+                cfgDict2["project_path"] = RootPath;
 
                 List<string> args = new List<string>();
                 if (op.TryGetValue("args", out object? aobj) && aobj is System.Collections.IList aList) {
@@ -333,13 +333,13 @@ internal sealed partial class Engine {
                     // attempt built-in media conversion (ffmpeg/vgmstream) using the same CLI args
                     Core.Utils.EngineSdk.PrintLine("\n>>> Built-in media conversion");
                     Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] format-convert: running media conversion with args: {string.Join(' ', args)}");
-                    bool okMedia = FileHandlers.MediaConverter.Run(_tools, args);
+                    bool okMedia = FileHandlers.MediaConverter.Run(ToolResolver, args);
                     return okMedia;
                 } else if (string.Equals(tool, "ImageMagick", System.StringComparison.OrdinalIgnoreCase)) {
                     // attempt image conversion (ImageMagick) using the CLI args
                     Core.Utils.EngineSdk.PrintLine("\n>>> Built-in image conversion");
                     Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] format-convert: running image conversion with args: {string.Join(' ', args)}");
-                    bool okImage = FileHandlers.ImageMagickConverter.Run(_tools, args);
+                    bool okImage = FileHandlers.ImageMagickConverter.Run(ToolResolver, args);
                     return okImage;
                 } else {
                     Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] format-convert: unknown tool '{tool}'");
@@ -351,15 +351,15 @@ internal sealed partial class Engine {
             }
             case "validate-files":
             case "validate_files": {
-                Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, object?> ctx = new Dictionary<string, object?>(EngineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
                 if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobjValidate)) {
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                 }
                 // Built-in placeholders
                 string gameRoot4 = gobjValidate.GameRoot;
                 ctx["Game_Root"] = gameRoot4;
-                ctx["Project_Root"] = rootPath;
-                ctx["Registry_Root"] = System.IO.Path.Combine(rootPath, "EngineApps");
+                ctx["Project_Root"] = RootPath;
+                ctx["Registry_Root"] = System.IO.Path.Combine(RootPath, "EngineApps");
                 ctx["Game"] = new Dictionary<string, object?> {
                     ["RootPath"] = gameRoot4,
                     ["Name"] = currentGame,
@@ -386,7 +386,7 @@ internal sealed partial class Engine {
                     Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
                 }
                 cfgDict3["module_path"] = gameRoot4;
-                cfgDict3["project_path"] = rootPath;
+                cfgDict3["project_path"] = RootPath;
 
                 string? resolvedDbPath = null;
                 if (op.TryGetValue("db", out object? dbObj) && dbObj is not null) {
@@ -431,15 +431,15 @@ internal sealed partial class Engine {
             }
             case "rename-folders":
             case "rename_folders": {
-                Dictionary<string, object?> ctx = new Dictionary<string, object?>(_engineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, object?> ctx = new Dictionary<string, object?>(EngineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
                 if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobj3)) {
                     throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                 }
                 // Built-in placeholders
                 string gameRoot5 = gobj3.GameRoot;
                 ctx["Game_Root"] = gameRoot5;
-                ctx["Project_Root"] = rootPath;
-                ctx["Registry_Root"] = System.IO.Path.Combine(rootPath, "EngineApps");
+                ctx["Project_Root"] = RootPath;
+                ctx["Registry_Root"] = System.IO.Path.Combine(RootPath, "EngineApps");
                 ctx["Game"] = new Dictionary<string, object?> {
                     ["RootPath"] = gameRoot5,
                     ["Name"] = currentGame,
@@ -466,7 +466,7 @@ internal sealed partial class Engine {
                     Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
                 }
                 cfgDict4["module_path"] = gameRoot5;
-                cfgDict4["project_path"] = rootPath;
+                cfgDict4["project_path"] = RootPath;
 
                 List<string> args = new List<string>();
                 if (op.TryGetValue("args", out object? aobjRename) && aobjRename is System.Collections.IList aListRename) {

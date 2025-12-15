@@ -602,17 +602,6 @@ sdk.color_print('yellow', '"This is a standard log message from Lua." and should
 Diagnostics.Trace('This is a trace message from Lua.')
 sdk.color_print('yellow', '"This is a trace message from Lua." and should appear in logs\\<ui>\\<datetme>\\trace.log')
 
--- Simulate a real error that isn't expected and log to trace
-local function risky_operation()
-    error("Something went wrong in risky_operation!")
-end
-
-local status, err = pcall(risky_operation)
-if not status then
-    sdk.color_print('red', 'Caught expected error: ' .. err)
-    Diagnostics.Trace('Error caught in Lua script: ' .. err)
-end
-
 
 -- Final progress update
 progress.step('lua_feature_demo.lua::EOF')

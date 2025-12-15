@@ -47,9 +47,27 @@ public static class Program {
 
             // :: Initialize the Logger
             Core.Diagnostics.Initialize(isGui, isTui);
-            //Core.Tools.IToolResolver tools = CreateToolResolver();
-            //Core.EngineConfig engineConfig = new Core.EngineConfig();
-            Core.Engine _engine = new Core.Engine();
+            
+            // :: Setup Services
+            Core.Tools.IToolResolver tools = CreateToolResolver(rootPath);
+            Core.EngineConfig engineConfig = new Core.EngineConfig();
+            
+            Core.Abstractions.IGameRegistry gameRegistry = new Core.Services.GameRegistry(rootPath);
+            Core.Abstractions.IGameLauncher gameLauncher = new Core.Services.GameLauncher(gameRegistry, tools, engineConfig, rootPath);
+            Core.Abstractions.IOperationsLoader opsLoader = new Core.Services.OperationsLoader();
+            Core.Abstractions.IGitService gitService = new Core.Services.GitService(rootPath);
+            Core.Abstractions.ICommandService commandService = new Core.Services.CommandService();
+
+            Core.Engine _engine = new Core.Engine(
+                rootPath: rootPath,
+                gameRegistry: gameRegistry,
+                gameLauncher: gameLauncher,
+                operationsLoader: opsLoader,
+                gitService: gitService,
+                commandService: commandService,
+                toolResolver: tools,
+                engineConfig: engineConfig
+            );
 
             // 3. Interface selection based on "Remaining Args" (args with --root removed)
 
@@ -83,6 +101,16 @@ public static class Program {
     /* :: :: Main :: END :: */
     // //
     /* :: :: Methods :: START :: */
+
+    // Creates the tool resolver based on available config files
+    private static Core.Tools.IToolResolver CreateToolResolver(string root) {
+        string[] candidates = new[] {
+            System.IO.Path.Combine(root, "Tools.local.json"), System.IO.Path.Combine(root, "tools.local.json"),
+            System.IO.Path.Combine(root, "EngineApps", "Registries", "Tools", "Main.json"), System.IO.Path.Combine(root, "EngineApps", "Registries", "Tools", "main.json"),
+        };
+        string? found = candidates.FirstOrDefault(System.IO.File.Exists);
+        return !string.IsNullOrEmpty(found) ? new Core.Tools.JsonToolResolver(found) : new Core.Tools.PassthroughToolResolver();
+    }
 
     // Simple container for parsed results
     private class ParsedArgs {

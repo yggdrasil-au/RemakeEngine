@@ -103,7 +103,7 @@ internal sealed partial class ModulePage:UserControl {
             }
 
             // Registry info (URL)
-            IReadOnlyDictionary<string, object?> regs = _engine.GetRegistries.GetRegisteredModules();
+            IReadOnlyDictionary<string, object?> regs = _engine.GameRegistry.GetRegisteredModules();
             if (regs.TryGetValue(_moduleName, out object? regObj) && regObj is IDictionary<string, object?> reg) {
                 RegistryUrl = reg.TryGetValue(key: "url", value: out object? u) ? u?.ToString() : null;
                 if (string.IsNullOrWhiteSpace(Title)) {
@@ -129,7 +129,7 @@ internal sealed partial class ModulePage:UserControl {
             }
 
             if (!string.IsNullOrWhiteSpace(opsFile) && System.IO.File.Exists(path: opsFile)) {
-                List<Dictionary<string, object?>>? allOps = Core.Engine.LoadOperationsList(opsFile);
+                List<Dictionary<string, object?>>? allOps = _engine.LoadOperationsList(opsFile);
                 if (allOps is null) {
                     Core.Diagnostics.Log($"Load: Failed to load operations list for module {_moduleName} from ops file '{opsFile}'.");
                     return;
@@ -168,7 +168,7 @@ internal sealed partial class ModulePage:UserControl {
             return null;
         }
         string? icon = string.IsNullOrWhiteSpace(gameRoot) ? null : System.IO.Path.Combine(path1: gameRoot!, path2: "icon.png");
-        string placeholder = System.IO.Path.Combine(path1: _engine.rootPath, path2: "placeholder.png");
+        string placeholder = System.IO.Path.Combine(path1: _engine.RootPath, path2: "placeholder.png");
         string pick = (!string.IsNullOrWhiteSpace(icon) && System.IO.File.Exists(path: icon!)) ? icon! : placeholder;
         try {
             return System.IO.File.Exists(path: pick) ? new Bitmap(pick) : null;
@@ -294,7 +294,7 @@ internal sealed partial class ModulePage:UserControl {
 
     private bool IsDownloaded() {
         if (_engine is null) return false;
-        string path = System.IO.Path.Combine(path1: _engine.rootPath, path2: System.IO.Path.Combine("EngineApps", "Games", _moduleName));
+        string path = System.IO.Path.Combine(path1: _engine.RootPath, path2: System.IO.Path.Combine("EngineApps", "Games", _moduleName));
         return System.IO.Directory.Exists(path: path);
     }
 

@@ -71,7 +71,7 @@ internal partial class TUI {
                     Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game is missing ops_file.");
                 return 1;
             }
-            List<Dictionary<string, object?>>? allOps = Core.Engine.LoadOperationsList(info.OpsFile);
+            List<Dictionary<string, object?>>? allOps = _engine.LoadOperationsList(info.OpsFile);
             if (allOps is null) {
                 Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Failed to load operations list.");
                 System.Console.WriteLine($"Failed to load operations file for '{gameName}'.\nPress any key to exit...");

@@ -17,7 +17,7 @@ Project docs live at <https://github.com/yggdrasil-au/RemakeEngineDocs> with a w
 ## Getting Started
 
 ### Prerequisites
-- [.NET SDK 10.0](https://dotnet.microsoft.com/)
+- [.NET SDK 10.0](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
 - git
 
 ### Clone and Build
@@ -88,18 +88,21 @@ Manifest placeholders follow `{{PlaceholderName}}` syntax and are resolved with 
 ## Repository Layout
 ```text
 RemakeEngine/
-    EngineApps/                       # Game modules and registrys
-        Games/                        # Game modules
-            demo/                     # Demo game module
-                operations.toml       # Sample operations manifest
-                config.toml           # Sample per-module config
-        Registries/                   # Module and Tool registries
-    EngineNet/                        # C# core engine and CLI entry point
-    Unit.Tests/                       # Tests
-    schemas/                          # JSON schemas
-    Tools/                            # any tool downloaded by the engine
-    project.json                      # Created on demand; local machine configuration
-    RemakeEngine.sln                  # Solution file for builds and tests
+  EngineApps/                       # Game modules and registrys
+    Games/                        # Game modules
+      demo/                     # Demo game module
+        operations.toml       # Sample operations manifest
+        config.toml           # Sample per-module config
+    Registries/                   # Module and Tool registries
+      Modules/
+      Tools/
+      ops/
+  EngineNet/                        # C# core engine and CLI entry point
+  Unit.Tests/                       # Tests
+  schemas/                          # JSON schemas
+  Tools/                            # any tool downloaded by the engine
+  project.json                      # Created on demand; local machine configuration
+  RemakeEngine.sln                  # Solution file for builds and tests
 ```
 
 ## Contributing

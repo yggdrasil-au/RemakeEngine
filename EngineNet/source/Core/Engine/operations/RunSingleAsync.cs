@@ -25,7 +25,7 @@ internal sealed partial class Engine {
         System.Threading.CancellationToken cancellationToken = default
     ) {
         string? scriptType = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant();
-        List<string> parts = _builder.Build(currentGame, games, _engineConfig.Data, op, promptAnswers);
+        List<string> parts = CommandService.BuildCommand(currentGame, games, EngineConfig.Data, op, promptAnswers);
         if (parts.Count < 2) {
             return false;
         }
@@ -54,7 +54,7 @@ internal sealed partial class Engine {
                     try {
                         // Build context and resolve input/output/extension placeholders
                         Core.Utils.ExecutionContextBuilder ctxBuilder = new Core.Utils.ExecutionContextBuilder();
-                        Dictionary<string, object?> ctx = ctxBuilder.Build(currentGame: currentGame, games: games, engineConfig: _engineConfig.Data);
+                        Dictionary<string, object?> ctx = ctxBuilder.Build(currentGame: currentGame, games: games, engineConfig: EngineConfig.Data);
 
                         string inputDir = op.TryGetValue("input", out object? in0) ? in0?.ToString() ?? string.Empty : string.Empty;
                         string outputDir = op.TryGetValue("output", out object? out0) ? out0?.ToString() ?? string.Empty : string.Empty;
@@ -71,12 +71,12 @@ internal sealed partial class Engine {
                         ScriptEngines.QuickBmsScriptAction action = new ScriptEngines.QuickBmsScriptAction(
                             scriptPath: scriptPath,
                             moduleRoot: gameRootBms,
-                            projectRoot: rootPath,
+                            projectRoot: RootPath,
                             inputDir: resolvedInput,
                             outputDir: resolvedOutput,
                             extension: resolvedExt
                         );
-                        await action.ExecuteAsync(_tools, cancellationToken);
+                        await action.ExecuteAsync(ToolResolver, cancellationToken);
                         result = true;
                     } catch (System.Exception ex) {
                         Core.Utils.EngineSdk.PrintLine($"bms engine ERROR: {ex.Message}");
@@ -98,7 +98,7 @@ internal sealed partial class Engine {
                             args: argsEnum,
                             currentGame: currentGame,
                             games: games,
-                            rootPath: rootPath
+                            rootPath: RootPath
                         );
                         // null act means unsupported script type
                         if (act is null) {
@@ -107,7 +107,7 @@ internal sealed partial class Engine {
                             break;
                         }
                         // execute the action
-                        await act.ExecuteAsync(_tools, cancellationToken);
+                        await act.ExecuteAsync(ToolResolver, cancellationToken);
                         result = true;
                     } catch (System.Exception ex) {
                         Core.Utils.EngineSdk.PrintLine($"{scriptType} engine ERROR: {ex.Message}");

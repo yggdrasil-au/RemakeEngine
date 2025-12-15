@@ -105,8 +105,8 @@ public partial class StorePage:UserControl {
             }
 
             // Get registered modules from EngineApps\Registries\Modules\Main.json
-            _engine.GetRegistries.RefreshModules();
-            IReadOnlyDictionary<string, object?> modules = _engine.GetRegistries.GetRegisteredModules();
+            _engine.GameRegistry.RefreshModules();
+            IReadOnlyDictionary<string, object?> modules = _engine.GameRegistry.GetRegisteredModules();
 
             // Get already downloaded games
             Dictionary<string, Core.Utils.GameModuleInfo> downloadedGames = _engine.Modules(Core.Utils.ModuleFilter.Installed);

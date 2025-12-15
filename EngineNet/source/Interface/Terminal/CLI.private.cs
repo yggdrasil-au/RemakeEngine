@@ -40,7 +40,7 @@ internal partial class CLI {
                 throw new System.ArgumentException($"Game '{game}' missing ops_file.");
             }
             // Load and validate operations
-            List<Dictionary<string, object?>>? doc = Core.Engine.LoadOperationsList(opsFile);
+            List<Dictionary<string, object?>>? doc = _engine.LoadOperationsList(opsFile);
             if (doc is null || doc.Count == 0) {
                 System.Console.WriteLine($"No operations found for game '{game}'.");
                 Core.Diagnostics.Log($"No operations found in ops_file '{opsFile}' for game '{game}'.");
