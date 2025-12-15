@@ -30,9 +30,13 @@ internal sealed partial class LuaScriptAction : Helpers.IAction {
     /// </summary>
     /// <param name="scriptPath">The path to the Lua script file.</param>
     /// <param name="args">The arguments to pass to the Lua script.</param>
-    internal LuaScriptAction(string scriptPath, IEnumerable<string>? args) {
+    /// <param name="gameRoot">The root directory of the current game module.</param>
+    /// <param name="projectRoot">The root directory of the engine project.</param>
+    internal LuaScriptAction(string scriptPath, IEnumerable<string>? args, string gameRoot, string projectRoot) {
         _scriptPath = scriptPath;
         _args = args is null ? System.Array.Empty<string>() : args as string[] ?? new List<string>(args).ToArray();
+        _gameRoot = gameRoot;
+        _projectRoot = projectRoot;
     }
 
     /// <summary>

@@ -4,7 +4,7 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EngineNet", "EngineNet\EngineNet.csproj", "{E9A6C93D-0A40-4E5C-978F-F737C5DB35B5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EngineNet.Tests", "EngineNet.Tests\EngineNet.Tests.csproj", "{F0880F11-ED73-A557-78A7-C51F36FB834E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EngineNet.Tests", "Unit.Tests\EngineNet.Tests.csproj", "{F0880F11-ED73-A557-78A7-C51F36FB834E}"
 EndProject
 
 Global

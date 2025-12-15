@@ -13,6 +13,7 @@ internal class LuaWorld {
     public Table fileHandle { get; }
 
     // global tables
+    public Table progress { get; }
     public Table os { get; }
     public Table dateTable { get; }// used within os as os.date("*t")
 
@@ -40,6 +41,8 @@ internal class LuaWorld {
 
         // global tables, alongside sdk table, to be set as Script.Globals[""] in LuaScriptAction.private.cs::SetupCoreFunctions()
         // here only for centralized management of all tables
+
+        progress = new Table(LuaScript);
 
         os = new Table(LuaScript);
         dateTable = new Table(LuaScript);

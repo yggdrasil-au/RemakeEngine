@@ -1,0 +1,52 @@
+{
+    "7.1.2-8-Q8": {
+        "win-arm64": {
+            "url": "https://github.com/ImageMagick/ImageMagick/releases/download/7.1.2-8/ImageMagick-7.1.2-8-portable-Q8-arm64.7z",
+            "sha256": "a0bb8b4c14fbf52cc029c06067acd303e6d8d4fae62fffc3ce39b36b3086aaab",
+            "exe_name": "magick.exe"
+        },
+        "win-x64": {
+            "url": "https://github.com/ImageMagick/ImageMagick/releases/download/7.1.2-8/ImageMagick-7.1.2-8-portable-Q8-x64.7z",
+            "sha256": "cedb7a908fee3aa10786f91ac1f3a2c2fe5add4db4f871f980d463f875b0f87b",
+            "exe_name": "magick.exe"
+        },
+        "win-x86": {
+            "url": "https://github.com/ImageMagick/ImageMagick/releases/download/7.1.2-8/ImageMagick-7.1.2-8-portable-Q8-x86.7z",
+            "sha256": "f301274a7438bdb9332f42f9e687b8ee60faaa2c03843df4d56e68c14a4bf153",
+            "exe_name": "magick.exe"
+        }
+    },
+    "7.1.2-8-Q16": {
+        "win-arm64": {
+            "url": "https://github.com/ImageMagick/ImageMagick/releases/download/7.1.2-8/ImageMagick-7.1.2-8-portable-Q16-arm64.7z",
+            "sha256": "1e27591e0b87be8b19d2317efb6bd8a12ca6f04cee4c0e2f7de8fe607761bd4f",
+            "exe_name": "magick.exe"
+        },
+        "win-x64": {
+            "url": "https://github.com/ImageMagick/ImageMagick/releases/download/7.1.2-8/ImageMagick-7.1.2-8-portable-Q16-x64.7z",
+            "sha256": "21f54fa3137eeed088db44ae3802cfe8326862172c68b792f602bcda705a71c0",
+            "exe_name": "magick.exe"
+        },
+        "win-x86": {
+            "url": "https://github.com/ImageMagick/ImageMagick/releases/download/7.1.2-8/ImageMagick-7.1.2-8-portable-Q16-x86.7z",
+            "sha256": "99f84efcf80c4e7214ac2703b693d3390ec3b7277341330c2a4f10d24fd6b692",
+            "exe_name": "magick.exe"
+        }
+    },
+    "7.1.2-8-Q16-HDRI": {
+        "win-arm64": {
+            "url": "https://github.com/ImageMagick/ImageMagick/releases/download/7.1.2-8/ImageMagick-7.1.2-8-portable-Q16-HDRI-arm64.7z",
+            "sha256": "06d7830c7203886d2aecff271498f62694463fbb591dd6e3808a73005598b940"
+        },
+        "win-x64": {
+            "url": "https://github.com/ImageMagick/ImageMagick/releases/download/7.1.2-8/ImageMagick-7.1.2-8-portable-Q16-HDRI-x64.7z",
+            "sha256": "432aa98bc04cd6e7cecf22a5f9b56e804c9bdef97f4cf983dac02dd6d208e3ee",
+            "exe_name": "magick.exe"
+        },
+        "win-x86": {
+            "url": "https://github.com/ImageMagick/ImageMagick/releases/download/7.1.2-8/ImageMagick-7.1.2-8-portable-Q16-HDRI-x86.7z",
+            "sha256": "6748ca1c0865255bffbc2ef56ffaa8f2989b92e1da4c3fdda5fe4103e2382f7c",
+            "exe_name": "magick.exe"
+        }
+    }
+}

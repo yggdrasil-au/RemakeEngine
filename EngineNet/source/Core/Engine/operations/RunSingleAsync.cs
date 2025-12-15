@@ -6,9 +6,25 @@ namespace EngineNet.Core;
 
 internal sealed partial class Engine {
 
+    // used to run a single op by both runallasync and direct operation execution in the GUI/TUI
 
-    internal async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(string currentGame, Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, System.Threading.CancellationToken cancellationToken = default) {
-        string scriptType = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant() ?? "python";
+    /// <summary>
+    /// Runs a single operation, which may be any supported script type.
+    /// </summary>
+    /// <param name="currentGame"></param>
+    /// <param name="games"></param>
+    /// <param name="op"></param>
+    /// <param name="promptAnswers"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    internal async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
+        string currentGame,
+        Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
+        IDictionary<string, object?> op,
+        IDictionary<string, object?> promptAnswers,
+        System.Threading.CancellationToken cancellationToken = default
+    ) {
+        string? scriptType = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant();
         List<string> parts = _builder.Build(currentGame, games, _engineConfig.Data, op, promptAnswers);
         if (parts.Count < 2) {
             return false;
@@ -24,8 +40,9 @@ internal sealed partial class Engine {
                     try {
                         string? action = op.TryGetValue("script", out object? s) ? s?.ToString() : null;
                         string? title = op.TryGetValue("Name", out object? n) ? n?.ToString() ?? action : action;
-                        Core.Diagnostics.Log($"Executing engine operation {title} ({action})");
+                        Core.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Executing engine operation {title} ({action})");
                         Core.Utils.EngineSdk.PrintLine(message: $"\n>>> Engine operation: {title}");
+                        // delegate engine type handling to ExecuteEngineOperationAsync
                         result = await ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, cancellationToken);
                     } catch (System.Exception ex) {
                         Core.Utils.EngineSdk.PrintLine($"engine ERROR: {ex.Message}");
@@ -67,9 +84,12 @@ internal sealed partial class Engine {
                     }
                     break;
                 }
+                // embedded script engines, Moonsharp (Lua), Python (IronPython), JavaScript (Jint)
                 case "lua":
+                case "python":
                 case "js": {
                     try {
+                        // create the action with the dispatcher
                         IEnumerable<string> argsEnum = args;
                         ScriptEngines.Helpers.IAction? act = ScriptEngines.Helpers.EmbeddedActionDispatcher.TryCreate(
                             scriptType: scriptType,
@@ -79,7 +99,13 @@ internal sealed partial class Engine {
                             games: games,
                             rootPath: rootPath
                         );
-                        if (act is null) { result = false; break; }
+                        // null act means unsupported script type
+                        if (act is null) {
+                            result = false;
+                            Core.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Unsupported embedded script type '{scriptType}'");
+                            break;
+                        }
+                        // execute the action
                         await act.ExecuteAsync(_tools, cancellationToken);
                         result = true;
                     } catch (System.Exception ex) {
@@ -90,11 +116,13 @@ internal sealed partial class Engine {
                 }
                 default: {
                     // not supported
+                    scriptType ??= "null";
+                    Core.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Unsupported script type '{scriptType}'");
                     break;
                 }
             }
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"[Engine.cs] err running single op: {ex.Message}");
+            Core.Diagnostics.Bug($"[RunSingleAsync.cs::RunSingleOperationAsync()] err running single op: {ex.Message}");
 
             Core.Utils.EngineSdk.PrintLine($"operation ERROR: {ex.Message}");
             result = false;
@@ -113,6 +141,5 @@ internal sealed partial class Engine {
 
         return result;
     }
-
 
 }

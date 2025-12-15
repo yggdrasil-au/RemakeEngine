@@ -1,162 +1,21 @@
-
-using System;
 using System.Collections.Generic;
 
 namespace EngineNet.Core;
 
 internal sealed partial class Engine {
 
-    private static void EmitSequenceEvent(Core.ProcessRunner.EventHandler? sink, string evt, string game, IDictionary<string, object?>? extras = null) {
-        if (sink is null) {
-            return;
-        }
+    // used by run single operation to execute engine operations of type "engine"
 
-        Dictionary<string, object?> payload = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase) {
-            ["event"] = evt,
-            ["game"] = game
-        };
-
-        if (extras is not null) {
-            foreach (KeyValuePair<string, object?> kv in extras) {
-                payload[kv.Key] = kv.Value;
-            }
-        }
-
-        sink(payload);
-    }
-
-    private static Dictionary<string, object?> CloneEvent(Dictionary<string, object?> evt) {
-        Dictionary<string, object?> clone = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
-        foreach (KeyValuePair<string, object?> kv in evt) {
-            clone[kv.Key] = kv.Value;
-        }
-
-        return clone;
-    }
-
-    private static void AddUnique(List<Dictionary<string, object?>> list, Dictionary<string, object?> op) {
-        foreach (Dictionary<string, object?> existing in list) {
-            if (ReferenceEquals(existing, op)) {
-                return;
-            }
-        }
-
-        list.Add(op);
-    }
-
-    private static bool IsFlagSet(Dictionary<string, object?> op, string key) {
-        if (!op.TryGetValue(key, out object? value) || value is null) {
-            return false;
-        }
-
-        if (value is bool b) {
-            return b;
-        }
-
-        if (value is string s) {
-            return bool.TryParse(s, out bool parsed) && parsed;
-        }
-
-        try {
-            return System.Convert.ToInt32(value) != 0;
-        } catch {
-            return false;
-        }
-    }
-
-    private static string ResolveOperationName(Dictionary<string, object?> op) {
-        if (op.TryGetValue("Name", out object? nameObj) && nameObj is not null) {
-            string name = nameObj.ToString() ?? string.Empty;
-            if (!string.IsNullOrWhiteSpace(name)) {
-                return name;
-            }
-        }
-
-        if (op.TryGetValue("script", out object? scriptObj) && scriptObj is not null) {
-            string script = scriptObj.ToString() ?? string.Empty;
-            if (!string.IsNullOrWhiteSpace(script)) {
-                return System.IO.Path.GetFileName(script);
-            }
-        }
-
-        return "Operation";
-    }
-
-    private static string GetScriptType(Dictionary<string, object?> op) {
-        if (op.TryGetValue("script_type", out object? value) && value is not null) {
-            return value.ToString()?.ToLowerInvariant() ?? "python";
-        }
-
-        return "python";
-    }
-
-    private static bool IsEmbeddedScript(string scriptType)
-        // Ensure 'bms' is treated as an embedded handler (QuickBMS action)
-        => scriptType == "engine" || scriptType == "lua" || scriptType == "js" || scriptType == "bms" || scriptType == "internal";
-
-    private static Dictionary<string, object?> BuildPromptDefaults(Dictionary<string, object?> op) {
-        Dictionary<string, object?> answers = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
-        if (!op.TryGetValue("prompts", out object? promptsObj) || promptsObj is not IList<object?> prompts) {
-            return answers;
-        }
-
-        foreach (object? promptObj in prompts) {
-            if (promptObj is not Dictionary<string, object?> prompt) {
-                continue;
-            }
-
-            string name = GetString(prompt, "Name");
-            if (string.IsNullOrEmpty(name)) {
-                continue;
-            }
-
-            string type = GetString(prompt, "type").ToLowerInvariant();
-            if (prompt.TryGetValue("condition", out object? conditionObj) && conditionObj is string conditionName) {
-                if (!answers.TryGetValue(conditionName, out object? conditionValue)) {
-                    foreach (object? other in prompts) {
-                        if (other is Dictionary<string, object?> otherPrompt &&
-                            string.Equals(GetString(otherPrompt, "Name"), conditionName, System.StringComparison.OrdinalIgnoreCase)) {
-                            if (!answers.ContainsKey(conditionName) && otherPrompt.TryGetValue("default", out object? condDefault)) {
-                                answers[conditionName] = condDefault;
-                            }
-
-                            break;
-                        }
-                    }
-                }
-
-                if (!answers.TryGetValue(conditionName, out object? evaluated) || evaluated is not bool condBool || !condBool) {
-                    answers[name] = EmptyForPrompt(type);
-                    continue;
-                }
-            }
-
-            if (prompt.TryGetValue("default", out object? defaultValue)) {
-                answers[name] = defaultValue;
-            } else if (!answers.ContainsKey(name)) {
-                answers[name] = EmptyForPrompt(type);
-            }
-        }
-
-        return answers;
-    }
-
-    private static object? EmptyForPrompt(string type) => type switch {
-        "confirm" => false,
-        "checkbox" => new List<object?>(),
-        _ => null
-    };
-
-    private static string GetString(Dictionary<string, object?> dict, string key) {
-        return dict.TryGetValue(key, out object? value) ? value?.ToString() ?? string.Empty : string.Empty;
-    }
-
-    private sealed class StdinRedirectReader:System.IO.TextReader {
-        private readonly Core.ProcessRunner.StdinProvider _provider;
-        internal StdinRedirectReader(Core.ProcessRunner.StdinProvider provider) => _provider = provider;
-        public override string? ReadLine() => _provider();
-    }
-
+    /// <summary>
+    /// Executes an engine operation of type "engine".
+    /// </summary>
+    /// <param name="currentGame"></param>
+    /// <param name="games"></param>
+    /// <param name="op"></param>
+    /// <param name="promptAnswers"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    /// <exception cref="KeyNotFoundException"></exception>
     private async System.Threading.Tasks.Task<bool> ExecuteEngineOperationAsync(string currentGame, Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, System.Threading.CancellationToken cancellationToken = default) {
         if (!op.TryGetValue("script", out object? s) || s is null) {
             Core.Diagnostics.Log("[Engine.private.cs :: OperationExecution()] Missing 'script' value in engine operation");
@@ -165,10 +24,8 @@ internal sealed partial class Engine {
             Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] engine operation script: {s}");
         }
 
-        string? action = s.ToString()?.ToLowerInvariant();
-
-        // Security check for internal operations
-        string type = op.TryGetValue("script_type", out object? st) ? st?.ToString()?.ToLowerInvariant() ?? "python" : "python";
+        // internal operations
+        string? type = op.TryGetValue("script_type", out object? st) ? st?.ToString()?.ToLowerInvariant() : null;
         if (type == "internal") {
             string? sourceFile = op.TryGetValue("_source_file", out object? sf) ? sf?.ToString() : null;
             if (string.IsNullOrWhiteSpace(sourceFile)) {
@@ -184,6 +41,9 @@ internal sealed partial class Engine {
                 return false;
             }
         }
+
+        // Determine action
+        string? action = s.ToString()?.ToLowerInvariant();
 
         Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] Executing engine action: {action}");
         switch (action) {
@@ -251,12 +111,15 @@ internal sealed partial class Engine {
                     ["RootPath"] = gameRoot,
                     ["Name"] = currentGame,
                 };
+                // Ensure RemakeEngine dictionary exists
                 if (!ctx.TryGetValue("RemakeEngine", out object? re0) || re0 is not IDictionary<string, object?> reDict0) {
                     ctx["RemakeEngine"] = reDict0 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+                    Core.Diagnostics.Log("[Engine.private.cs :: OperationExecution()]] Created RemakeEngine dictionary in placeholders context");
                 }
-
+                // Ensure Config dictionary exists
                 if (!reDict0.TryGetValue("Config", out object? cfg0) || cfg0 is not IDictionary<string, object?> cfgDict0) {
                     reDict0["Config"] = cfgDict0 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+                    Core.Diagnostics.Log("[Engine.private.cs :: OperationExecution()]] Created RemakeEngine.Config dictionary in placeholders context");
                 }
                 // Merge module placeholders from config.toml
                 try {
@@ -269,7 +132,7 @@ internal sealed partial class Engine {
                             }
                         }
                     }
-                }  catch (Exception ex) {
+                }  catch (System.Exception ex) {
                     Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
                 }
                 cfgDict0["module_path"] = gameRoot;
@@ -326,7 +189,7 @@ internal sealed partial class Engine {
                             }
                         }
                     }
-                }  catch (Exception ex) {
+                }  catch (System.Exception ex) {
                     Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
                 }
                 cfgDict1["module_path"] = gameRoot2;
@@ -623,12 +486,23 @@ internal sealed partial class Engine {
             }
 
             default: {
+                Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] Unknown engine action: {action}");
                 return false;
             }
         }
     }
 
-    private static bool TryGetOnSuccessOperations(IDictionary<string, object?> op, out List<Dictionary<string, object?>>? ops) {
+
+    /// <summary>
+    /// Try to get the list of operations defined in the "onsuccess" or "on_success" field of the given operation.
+    /// </summary>
+    /// <param name="op"></param>
+    /// <param name="ops"></param>
+    /// <returns></returns>
+    private static bool TryGetOnSuccessOperations(
+        IDictionary<string, object?> op,
+        out List<Dictionary<string, object?>>? ops
+    ) {
         ops = null;
         if (op is null) return false;
 
@@ -657,5 +531,4 @@ internal sealed partial class Engine {
         }
         return false;
     }
-
 }

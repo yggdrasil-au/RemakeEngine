@@ -17,7 +17,6 @@ internal class Utils() {
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never
     };
 
-
     private static readonly object s_consoleLock = new();
     private static int _progressPanelTop;
     private static int _progressLastLines;
@@ -54,6 +53,8 @@ internal class Utils() {
                     Core.Utils.EngineSdk.LocalEventSink = prevSink;
                     Core.Utils.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
                 }
+            } else {
+                Core.Diagnostics.Log($"[Utils.cs::ExecuteOp()] Routing operation of type '{type}' to external command execution");
             }
 
             // Default: build and execute as external command (e.g., python)

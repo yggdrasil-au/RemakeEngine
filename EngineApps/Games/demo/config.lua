@@ -2,6 +2,7 @@
 -- Single, safe implementation: updates only the targeted key and preserves everything else.
 -- Runtime guarantees: sdk (with TOML helpers) and argv are provided by engine
 
+
 local function usage(msg)
     if msg then print(msg .. "\n") end
     print([[Usage:
@@ -21,12 +22,26 @@ Options:
 ]])
 end
 
+
 local function script_dir()
+    if Game_Root then return Game_Root end
+
+    if type(debug) ~= 'table' then return '.' end
+
+    Diagnostics.Trace('Determining script directory')
+    -- Obtain debug info for current function
     local info = debug.getinfo(1, 'S')
+    Diagnostics.Trace('Debug info source: ' .. tostring(info and info.source or '<nil>'))
+    -- Extract source path and sanitize
     local source = info and info.source or ''
+    Diagnostics.Trace('Raw source path: ' .. source)
+    -- Remove leading '@' if present
     if source:sub(1,1) == '@' then source = source:sub(2) end
+    Diagnostics.Trace('Sanitized source path: ' .. source)
+    -- Extract directory portion
     return source:match('(.+)[/\\][^/\\]+$') or '.'
 end
+
 
 local function parse_args(list)
     local opts = { group = 'placeholders', index = 1, type_hint = 'auto', sets = {} }
@@ -48,6 +63,7 @@ local function parse_args(list)
     return opts
 end
 
+
 local function as_string(v)
     local t = type(v)
     if t == 'string' then return v
@@ -56,6 +72,7 @@ local function as_string(v)
     elseif v == nil then return 'nil' end
     return '<' .. t .. '>'
 end
+
 
 local function convert_value(raw, hint)
     hint = (hint or 'auto'):lower()
@@ -85,6 +102,7 @@ local function convert_value(raw, hint)
     return s
 end
 
+
 local function list_doc(cfg_path, doc)
     print('Config file: ' .. cfg_path)
     local printed = false
@@ -110,6 +128,7 @@ local function list_doc(cfg_path, doc)
     if not printed then print('No sections found yet.') end
 end
 
+
 local function parse_set_token(token)
     -- token form: key=value[:type]
     if not token or token == '' then return nil end
@@ -129,6 +148,7 @@ local function parse_set_token(token)
     end
     return { key = key, value = rest, type_hint = type_hint }
 end
+
 
 local function ensure_group_entry(doc, group, index)
     local g = doc[group]
@@ -155,13 +175,17 @@ local function ensure_group_entry(doc, group, index)
     return arr[index]
 end
 
+
 local function main()
     if not sdk or not sdk.toml_read_file or not sdk.toml_write_file then
         error('SDK TOML helpers unavailable - engine integrity issue')
+        Diagnostics.Trace('SDK TOML helpers unavailable - engine integrity issue')
     end
 
     local opts = parse_args(argv)
+    -- Handle help request
     if opts.help then usage(); return 0 end
+
 
     local base = script_dir()
     local cfg_path = opts.config_path or (base .. '/config.toml')
@@ -170,9 +194,11 @@ local function main()
     local doc = sdk.toml_read_file(cfg_path)
     if not doc or type(doc) ~= 'table' then
         error('Failed to read existing config.toml at ' .. cfg_path .. '; refusing to overwrite.')
+        Diagnostics.Trace('Failed to read existing config.toml at ' .. cfg_path .. '; refusing to overwrite.')
     end
 
     if opts.list or (not opts.group and not opts.key and not opts.value) then
+        Diagnostics.Trace('Listing config.toml contents at ' .. cfg_path)
         list_doc(cfg_path, doc)
         return 0
     end
@@ -193,22 +219,26 @@ local function main()
             end
         end
         sdk.toml_write_file(cfg_path, doc)
+        Diagnostics.Trace('Performed multi-set updates to config.toml at ' .. cfg_path)
         return 0
     end
 
     -- Single-set mode
     if not opts.group or not opts.key then
         usage('Missing --group/--key for set operation')
+        Diagnostics.Trace('Missing --group/--key for set operation')
         return 1
     end
     if opts.value == nil then
         usage('Missing --value for set operation')
+        Diagnostics.Trace('Missing --value for set operation')
         return 1
     end
 
     local ok, newValue = pcall(convert_value, opts.value, opts.type_hint)
     if not ok then
         error('Value conversion failed: ' .. tostring(newValue))
+        Diagnostics.Trace('Value conversion failed: ' .. tostring(newValue))
     end
 
     local target = ensure_group_entry(doc, opts.group, opts.index)
@@ -217,9 +247,12 @@ local function main()
     -- Persist entire document as-is, only the targeted key changed
     sdk.toml_write_file(cfg_path, doc)
 
+    Diagnostics.Trace(string.format('Updated %s[%d].%s = %s in config.toml at %s', opts.group, opts.index or 1, opts.key, as_string(newValue), cfg_path))
     sdk.colour_print({ colour = 'green', message = string.format('Updated %s[%d].%s = %s', opts.group, opts.index or 1, opts.key, as_string(newValue)) })
     return 0
 end
 
-local status = main()
-if type(os) == 'table' and os.exit then os.exit(status) end
+-- execute main and exit with its return code
+os.exit(main())
+
+

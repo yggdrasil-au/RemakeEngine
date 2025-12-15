@@ -22,6 +22,8 @@ namespace EngineNet.ScriptEngines.lua;
 internal sealed partial class LuaScriptAction : ScriptEngines.Helpers.IAction {
     private readonly string _scriptPath;
     private readonly string[] _args;
+    private readonly string _gameRoot;
+    private readonly string _projectRoot;
 
     // called by LuaScriptAction.ExecuteAsync()
     /// <summary>
@@ -254,6 +256,13 @@ internal sealed partial class LuaScriptAction : ScriptEngines.Helpers.IAction {
         LuaEnvObj.LuaScript.Globals["argc"] = _args.Length; // number of arguments
 
 
+        // get gameroot and projectroot paths
+        LuaEnvObj.LuaScript.Globals["Game_Root"] = _gameRoot;
+        Core.Diagnostics.Log($"[LuaScriptAction.cs::SetupCoreFunctions()] Set Game_Root to '{_gameRoot}'");
+        LuaEnvObj.LuaScript.Globals["Project_Root"] = _projectRoot;
+        Core.Diagnostics.Log($"[LuaScriptAction.cs::SetupCoreFunctions()] Set Project_Root to '{_projectRoot}'");
+
+
         // :: start :: methods for emitting engineSDK events from Lua scripts ::
 
         // basic outputs for warning and error events
@@ -276,18 +285,55 @@ internal sealed partial class LuaScriptAction : ScriptEngines.Helpers.IAction {
         });
         LuaEnvObj.LuaScript.Globals["colour_prompt"] = LuaEnvObj.LuaScript.Globals["color_prompt"]; // (Correct) AU spelling
 
-        // progress(total, id?, label?) -> Core.Utils.EngineSdk.PanelProgress userdata
-        LuaEnvObj.LuaScript.Globals["progress"] = (System.Func<int, string?, string?, Core.Utils.EngineSdk.PanelProgress>)((total, id, label) => {
+        // :: Progress System ::
+        Core.Utils.EngineSdk.ScriptProgress? activeScriptProgress = null;
+
+        // progress.new(total, id, label) -> Core.Utils.EngineSdk.PanelProgress userdata
+        LuaEnvObj.progress["new"] = (System.Func<int, string?, string?, Core.Utils.EngineSdk.PanelProgress>)((total, id, label) => {
             string pid = string.IsNullOrEmpty(id) ? "p1" : id!;
             return new Core.Utils.EngineSdk.PanelProgress(total, pid, label);
         });
 
+        // progress.start(total, label) -> Core.Utils.EngineSdk.ScriptProgress userdata
+        LuaEnvObj.progress["start"] = (System.Func<int, string?, Core.Utils.EngineSdk.ScriptProgress>)((total, label) => {
+            activeScriptProgress = new Core.Utils.EngineSdk.ScriptProgress(total, "s1", label);
+            return activeScriptProgress;
+        });
+
+        // progress.step(label?) -> increments current progress by 1, optionally updates label
+        LuaEnvObj.progress["step"] = (System.Action<string?>)((label) => {
+            if (activeScriptProgress != null) {
+                activeScriptProgress.Update(1, label);
+                if (!string.IsNullOrEmpty(label)) {
+                    Core.Utils.EngineSdk.PrintLine($"[Step {activeScriptProgress.Current}/{activeScriptProgress.Total}] {label}", System.ConsoleColor.Magenta);
+                }
+            }
+        });
+
+        // progress.add_steps(count) -> increases total steps
+        LuaEnvObj.progress["add_steps"] = (System.Action<int>)((count) => {
+            if (activeScriptProgress != null) {
+                activeScriptProgress.SetTotal(activeScriptProgress.Total + count);
+            }
+        });
+
+        // progress.finish() -> completes the progress
+        LuaEnvObj.progress["finish"] = (System.Action)(() => {
+            if (activeScriptProgress != null) {
+                activeScriptProgress.Complete();
+            }
+        });
+
+        LuaEnvObj.LuaScript.Globals["progress"] = LuaEnvObj.progress;
+
         // script_progress(total, id?, label?) -> Core.Utils.EngineSdk.ScriptProgress userdata
         // Usage: local s = script_progress(5, 'setup', 'Initialization'); s:Update()
+        /*
         LuaEnvObj.LuaScript.Globals["script_progress"] = (System.Func<int, string?, string?, Core.Utils.EngineSdk.ScriptProgress>)((total, id, label) => {
             string pid = string.IsNullOrEmpty(id) ? "s1" : id!;
             return new Core.Utils.EngineSdk.ScriptProgress(total, pid, label);
         });
+        */
 
         // :: end ::
         //

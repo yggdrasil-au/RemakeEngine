@@ -248,7 +248,7 @@ public static class EngineSdk {
     public sealed class ScriptProgress {
         private int _processed;
         private int _total;
-        private readonly string _label;
+        private string _label;
 
         public int Total => _total;
         public int Current => System.Threading.Volatile.Read(ref _processed);
@@ -263,12 +263,18 @@ public static class EngineSdk {
             EmitProgress();
         }
 
-        public void Update(int inc = 1) {
+        public void Update(int inc = 1, string? newLabel = null) {
+            if (newLabel != null) _label = newLabel;
             int add = System.Math.Max(1, inc);
             int newVal = System.Threading.Interlocked.Add(ref _processed, add);
             if (newVal > _total) {
                 System.Threading.Interlocked.Exchange(ref _processed, _total);
             }
+            EmitProgress();
+        }
+
+        public void SetTotal(int total) {
+            _total = System.Math.Max(1, total);
             EmitProgress();
         }
 

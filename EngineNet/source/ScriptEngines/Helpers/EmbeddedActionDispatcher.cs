@@ -13,38 +13,25 @@ internal static class EmbeddedActionDispatcher {
         IEnumerable<string> args,
         string currentGame,
         Dictionary<string, Core.Utils.GameModuleInfo> games,
-        string rootPath) {
+        string rootPath
+    ) {
         string t = (scriptType ?? string.Empty).ToLowerInvariant();
+        string gameRoot = string.Empty;
+        if (games != null && !string.IsNullOrEmpty(currentGame) && games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? info)) {
+            gameRoot = info.GameRoot;
+        }
+
         switch (t) {
             case "lua":
-                return new ScriptEngines.lua.LuaScriptAction(scriptPath: scriptPath, args: args);
+                return new ScriptEngines.lua.LuaScriptAction(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: rootPath);
             case "js":
                 return new ScriptEngines.js.JsScriptAction(scriptPath: scriptPath, args: args);
-            case "bms": {
-                if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobj)) {
-                    throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
-                }
-                string gameRoot = gobj.GameRoot;
-                // For BMS we need module/project/input/output/ext; the args array should already contain input/output/ext resolved by CommandBuilder
-                // The QuickBmsScriptAction constructor expects (scriptPath, moduleRoot, projectRoot, inputDir, outputDir, ext?)
-                // We only create the action here when args contain at least input and output; otherwise, let Engine handle errors upstream.
-                string inputDir = args is null ? string.Empty : System.Linq.Enumerable.ElementAtOrDefault(args, 0) ?? string.Empty;
-                string outputDir = args is null ? string.Empty : System.Linq.Enumerable.ElementAtOrDefault(args, 1) ?? string.Empty;
-                string? ext = args is null ? null : System.Linq.Enumerable.ElementAtOrDefault(args, 2);
-                return new ScriptEngines.QuickBmsScriptAction(
-                    scriptPath: scriptPath,
-                    moduleRoot: gameRoot,
-                    projectRoot: rootPath,
-                    inputDir: inputDir,
-                    outputDir: outputDir,
-                    extension: ext
-                );
-            }
-            case "python":
-            case "py":
+            case "python": case "py":
                 return new ScriptEngines.PythonScriptAction(scriptPath: scriptPath, args: args);
-            default:
+            default: {
+                Core.Diagnostics.Log($"[EmbeddedActionDispatcher.cs::TryCreate()] Unsupported embedded script type '{scriptType}'");
                 return null;
+            }
         }
     }
 }

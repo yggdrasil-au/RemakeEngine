@@ -14,8 +14,11 @@ local function parse_args(list)
     local i = 1
     while i <= #list do
         local key = list[i]
-        if key == '--module' and list[i + 1] then
+        if (key == '--Game_Root' or key == '--module') and list[i + 1] then
             opts.module = list[i + 1]
+            i = i + 2
+        elseif key == '--Project_Root' and list[i + 1] then
+            opts.projectroot = list[i + 1]
             i = i + 2
         elseif key == '--scratch' and list[i + 1] then
             opts.scratch = list[i + 1]
@@ -51,34 +54,24 @@ sdk.color_print({ colour = 'green', message = 'Australian spelling works too!', 
 sdk.color_print('white', ' (color vs colour)')
 
 -- Stage-based script progress (for GUI status indicator)
-local total_steps = 18  -- progress system requires manual total step count ahead of time, for accurate script progress bar
-local script_stage = script_progress(total_steps, 'comprehensive-demo', 'Comprehensive Lua API Demo')
-local current_step = 0
+-- New progress API usage
+progress.start(19, 'Comprehensive Lua API Demo')
 
 sdk.color_print('yellow', '--- Progress Tracking Examples ---')
 -- ❌ INCORRECT: Common progress mistakes
 sdk.color_print('cyan', '❌ INCORRECT progress usage:')
-sdk.color_print('white', "progress()  -- Missing required 'total' parameter")
-sdk.color_print('white', "local p = progress(100) -- p is now a progress object")
+sdk.color_print('white', "progress.new()  -- Missing required 'total' parameter")
+sdk.color_print('white', "local p = progress.new(100) -- p is now a progress object")
 sdk.color_print('white', "p.Update()  -- Wrong: use colon syntax (p:Update())")
-sdk.color_print('white', "p:Update(50)  -- Correct syntax, but '50' is an increment, not an absolute value.")
 
 -- ✅ CORRECT: Proper progress usage
 sdk.color_print('green', '✅ CORRECT progress usage:')
-sdk.color_print('white', "local p = progress(100, 'my-id', 'My Operation') -- For panel")
+sdk.color_print('white', "local p = progress.new(100, 'my-id', 'My Operation') -- For panel")
 sdk.color_print('white', "p:Update()  -- Increment by 1 (default)")
-sdk.color_print('white', "p:Update(5)  -- Increment by 5")
-sdk.color_print('white', "local s = script_progress(10, 'stage-id', 'My Stage') -- For script stage")
-sdk.color_print('white', "s:Update()  -- Move to next stage")
+sdk.color_print('white', "progress.start(10, 'My Stage') -- Start script progress")
+sdk.color_print('white', "progress.step('Next step description') -- Move to next stage")
 
-local function next_step(description)
-    current_step = current_step + 1
-    -- Use script_progress for overall script stages (not the progress panel)
-    script_stage:Update()
-    sdk.color_print('magenta', string.format('[Step %d/%d] %s', current_step, total_steps, description))
-end
-
-next_step('Creating directory structure')
+progress.step('Creating directory structure')
 
 -- SDK Directory operations
 sdk.ensure_dir(scratch_root)
@@ -87,7 +80,7 @@ sdk.ensure_dir(scratch_root .. '/test_dirs/subdir1')
 sdk.ensure_dir(scratch_root .. '/test_dirs/subdir2')
 sdk.ensure_dir(scratch_root .. '/symlink_test')
 
-next_step('Testing path existence functions')
+progress.step('Testing path existence functions')
 
 -- SDK Path existence checks
 local paths_to_test = {
@@ -102,12 +95,11 @@ for _, path in ipairs(paths_to_test) do
     local lexists = sdk.lexists(path)
     local is_dir = sdk.is_dir(path)
     local is_file = sdk.is_file(path)
-    
-    sdk.color_print('yellow', string.format('Path: %s | exists: %s | lexists: %s | is_dir: %s | is_file: %s',
-        path, tostring(exists), tostring(lexists), tostring(is_dir), tostring(is_file)))
+
+    sdk.color_print('yellow', string.format('Path: %s | exists: %s | lexists: %s | is_dir: %s | is_file: %s', path, tostring(exists), tostring(lexists), tostring(is_dir), tostring(is_file)))
 end
 
-next_step('Creating test files')
+progress.step('Creating test files')
 
 -- Create test files for file operations
 local test_file1 = scratch_root .. '/test_file1.txt'
@@ -124,7 +116,7 @@ else
     sdk.color_print('red', 'Warning: Could not create test file using io.open()')
 end
 
-next_step('Testing file operations')
+progress.step('Testing file operations')
 
 sdk.color_print('yellow', '--- File Operations Examples ---')
 sdk.color_print('white', 'RemakeEngine file operations have specific parameter requirements:')
@@ -138,7 +130,7 @@ sdk.color_print('white', "sdk.ensure_dir()  -- Missing required path parameter")
 -- ✅ CORRECT: Proper file operation usage
 sdk.color_print('green', '✅ CORRECT approaches:')
 sdk.color_print('white', "sdk.copy_file(src, dst, false)  -- Don't overwrite if exists")
-sdk.color_print('white', "sdk.copy_file(src, dst, true)   -- Overwrite if exists") 
+sdk.color_print('white', "sdk.copy_file(src, dst, true)   -- Overwrite if exists")
 sdk.color_print('white', "sdk.ensure_dir('/path/to/create')  -- Creates directory and parents")
 
 -- SDK File operations
@@ -148,7 +140,7 @@ sdk.color_print('green', 'File copy result: ' .. tostring(copy_success))
 local backup_success = sdk.copy_file(test_file1, test_file_backup, true) -- overwrite = true
 sdk.color_print('green', 'File backup result: ' .. tostring(backup_success))
 
-next_step('Testing directory operations')
+progress.step('Testing directory operations')
 
 -- SDK Directory operations
 local test_source_dir = scratch_root .. '/source_dir'
@@ -178,7 +170,7 @@ sdk.color_print('green', 'Found subdir: ' .. tostring(found_subdir))
 local has_all = sdk.has_all_subdirs(scratch_root .. '/test_dirs', {'subdir1', 'subdir2'})
 sdk.color_print('green', 'Has all subdirs: ' .. tostring(has_all))
 
-next_step('Testing symlink operations')
+progress.step('Testing symlink operations')
 
 -- SDK Symlink operations (if supported on platform)
 local symlink_target = test_file1
@@ -191,13 +183,13 @@ if symlink_success then
     local is_symlink = sdk.is_symlink(symlink_path)
     local real_path = sdk.realpath(symlink_path)
     local link_target = sdk.readlink(symlink_path)
-    
+
     sdk.color_print('yellow', 'Is symlink: ' .. tostring(is_symlink))
     sdk.color_print('yellow', 'Real path: ' .. tostring(real_path))
     sdk.color_print('yellow', 'Link target: ' .. tostring(link_target))
 end
 
-next_step('Testing MD5 and sleep functions')
+progress.step('Testing MD5 and sleep functions')
 
 -- SDK Utility functions
 local test_string = 'RemakeEngine Lua API Test'
@@ -209,7 +201,7 @@ sdk.color_print('yellow', 'Testing sleep function (0.1s)...')
 sdk.sleep(0.1)
 sdk.color_print('yellow', 'Sleep completed!')
 
-next_step('Testing TOML operations')
+progress.step('Testing TOML operations')
 
 -- SDK TOML helpers
 local toml_test_path = scratch_root .. '/test_config.toml'
@@ -233,7 +225,7 @@ if loaded_toml and loaded_toml.demo then
     sdk.color_print('green', 'TOML loaded successfully - demo name: ' .. tostring(loaded_toml.demo.name))
 end
 
-next_step('Testing process execution (run_process)')
+progress.step('Testing process execution (run_process)')
 
 -- SDK Process execution - run_process (safer, captures output)
 -- Using 'git --version' as a reliable, cross-platform, approved executable
@@ -251,7 +243,7 @@ if process_result then
     end
 end
 
-next_step('Testing process execution (exec)')
+progress.step('Testing process execution (exec)')
 
 sdk.color_print('yellow', '--- Process Execution Examples ---')
 sdk.color_print('white', 'The RemakeEngine has two process execution methods with different purposes:')
@@ -280,7 +272,7 @@ if exec_result then
     sdk.color_print('cyan', 'exec success: ' .. tostring(exec_result.success))
 end
 
-next_step('Testing SQLite operations')
+progress.step('Testing SQLite operations')
 
 -- SQLite module comprehensive demo
 local sqlite_path = scratch_root .. '/comprehensive_demo.sqlite'
@@ -331,7 +323,7 @@ sdk.color_print('cyan', '❌ INCORRECT (will fail with "Must add values for para
 sdk.color_print('white', "db:exec('INSERT INTO table(a,b,c) VALUES (?,?,?)', {'val1', 'val2', 'val3'})")
 sdk.color_print('white', 'Reason: The C# SQLite wrapper expects named parameters (dictionary-style), not arrays.')
 
--- ✅ CORRECT: This approach works (named parameters) 
+-- ✅ CORRECT: This approach works (named parameters)
 sdk.color_print('green', '✅ CORRECT (this works):')
 sdk.color_print('white', "db:exec('INSERT INTO table(a,b,c) VALUES (:a,:b,:c)', {a='val1', b='val2', c='val3'})")
 sdk.color_print('white', 'Reason: Named parameters provide clear mapping and are safer for SQL injection prevention.')
@@ -342,7 +334,7 @@ for _, feature in ipairs(features_to_log) do
     -- ✅ CORRECT: Use named parameters instead of positional parameters
     db:exec('INSERT INTO demo_features(category, feature_name, description) VALUES (:cat, :name, :desc)', {
         cat = feature[1],
-        name = feature[2], 
+        name = feature[2],
         desc = feature[3]
     })
 end
@@ -358,8 +350,8 @@ end
 -- Demonstrate rollback (create a transaction and roll it back)
 db:begin()
 db:exec('INSERT INTO demo_features(category, feature_name, description) VALUES (:cat, :name, :desc)', {
-    cat = 'test', 
-    name = 'rollback_test', 
+    cat = 'test',
+    name = 'rollback_test',
     desc = 'This should not appear'
 })
 db:rollback()
@@ -369,7 +361,7 @@ sdk.color_print('yellow', 'Record count after rollback: ' .. count_after_rollbac
 
 db:close()
 
-next_step('Collecting directory info (engine APIs)')
+progress.step('Collecting directory info (engine APIs)')
 
 -- Replace removed lfs usage with engine SDK helpers
 local entries = {}
@@ -392,7 +384,7 @@ for i, entry in ipairs(entries) do
     sdk.color_print('white', string.format('  %d: %s', i, entry))
 end
 
-next_step('Testing JSON encoding (engine JSON)')
+progress.step('Testing JSON encoding (engine JSON)')
 
 -- Use engine-provided JSON helpers under sdk.text.json (encode/decode)
 
@@ -406,7 +398,7 @@ local comprehensive_summary = {
     paths = {
         module_root = module_root,
         scratch_root = scratch_root,
-        config_path = config_path,
+        --config_path = config_path,
         sqlite_path = sqlite_path,
         toml_path = toml_test_path
     },
@@ -441,13 +433,13 @@ if loaded_json and loaded_json.demo_info then
     sdk.color_print('green', 'JSON loaded successfully - title: ' .. tostring(loaded_json.demo_info.title))
 end
 
-next_step('Testing warning and error functions')
+progress.step('Testing warning and error functions')
 
 -- Demonstrate warning and error functions
 warn('This is a demonstration warning message')
 -- Note: We don't call error() as it would terminate the script
 
-next_step('Testing tool resolution')
+progress.step('Testing tool resolution')
 
 -- Tool resolution demonstration (if any tools are registered)
 local function safe_tool_resolve(tool_name)
@@ -463,7 +455,7 @@ for _, tool_name in ipairs(common_tools) do
 end
 
 sdk.color_print('green', 'opts.prompt value: ' .. tostring(opts.prompt))
-    next_step('Testing user prompt')
+    progress.step('Testing user prompt')
 if opts.prompt == nil or not opts.prompt then
     -- Prompt demonstration
     -- prompt args (message, id, secret)
@@ -473,7 +465,7 @@ else
     sdk.color_print('green', 'User input received, from arg: ' .. (opts.prompt))
 end
 
-next_step('Testing security: blocked filesystem and process access')
+progress.step('Testing security: blocked filesystem and process access')
 
 if not opts.sec_check then
     sdk.color_print('yellow', '--- Security & Sandboxing Tests Skipped ---')
@@ -493,7 +485,7 @@ else
     sdk.color_print('cyan', '1. Testing filesystem security (remove operations):')
     -- Attempt to remove a protected file (should be denied and return false)
     local denied_remove_file = sdk.remove_file(protected_file)
-    sdk.color_print(denied_remove_file and 'red' or 'green', 
+    sdk.color_print(denied_remove_file and 'red' or 'green',
         '   ✖ Attempt to remove protected file denied: ' .. tostring(not denied_remove_file))
 
     -- Attempt to remove a protected directory (should be denied and return false)
@@ -510,8 +502,7 @@ else
     sdk.color_print('cyan', '3. Testing filesystem security (copy operations):')
     -- Attempt to copy to protected location
     local denied_copy = sdk.copy_file(test_file1, protected_dir .. '/malicious.txt', false)
-    sdk.color_print(denied_copy and 'red' or 'green',
-        '   ✖ Attempt to copy to protected dir denied: ' .. tostring(not denied_copy))
+    sdk.color_print(denied_copy and 'red' or 'green', '   ✖ Attempt to copy to protected dir denied: ' .. tostring(not denied_copy))
 
     sdk.color_print('cyan', '4. Testing filesystem security (TOML operations):')
     -- Attempt to write TOML to protected location
@@ -528,8 +519,7 @@ else
         return sdk.exec({'git', 'status', protected_dir}, { wait = true })
     end
     local ok_forbidden, res_forbidden = pcall(try_exec_forbidden_path)
-    sdk.color_print(ok_forbidden and 'red' or 'green',
-        '   ✖ Process arg path validation blocked: ' .. tostring(not ok_forbidden))
+    sdk.color_print(ok_forbidden and 'red' or 'green', '   ✖ Process arg path validation blocked: ' .. tostring(not ok_forbidden))
     if not ok_forbidden then
         sdk.color_print('cyan', '   Blocked reason: ' .. tostring(res_forbidden))
     end
@@ -570,6 +560,61 @@ else
     sdk.color_print('yellow', 'Check the artifacts directory for generated files: ' .. scratch_root)
 end
 
+-- next test gameroot and projectroot globals, compaire to ones pased into args
+progress.step('Testing global variables (Game_Root and Project_Root)')
+
+if type(Game_Root) == 'string' then
+    sdk.color_print('green', 'Game_Root global is set: ' .. Game_Root)
+    if opts.module then
+        if Game_Root == opts.module then
+            sdk.color_print('green', 'Game_Root matches --module/--Game_Root argument.')
+        else
+            sdk.color_print('red', 'Game_Root mismatch! Global: ' .. Game_Root .. ', Arg: ' .. opts.module)
+        end
+    else
+        sdk.color_print('yellow', 'No --module/--Game_Root argument passed for comparison.')
+    end
+else
+    sdk.color_print('red', 'Game_Root global is NOT a string (nil or wrong type)')
+end
+
+if type(Project_Root) == 'string' then
+    sdk.color_print('green', 'Project_Root global is set: ' .. Project_Root)
+    if opts.projectroot then
+        if Project_Root == opts.projectroot then
+            sdk.color_print('green', 'Project_Root matches --Project_Root argument.')
+        else
+            sdk.color_print('red', 'Project_Root mismatch! Global: ' .. Project_Root .. ', Arg: ' .. opts.projectroot)
+        end
+    else
+        sdk.color_print('yellow', 'No --Project_Root argument passed for comparison.')
+    end
+else
+    sdk.color_print('red', 'Project_Root global is NOT a string (nil or wrong type)')
+end
+
+progress.step('Testing Diagnostics logging')
+
+-- Demonstrate Diagnostics.Log and Diagnostics.Trace
+sdk.color_print('yellow', '--- Diagnostics Logging Examples ---')
+Diagnostics.Log('This is a standard log message from Lua.')
+sdk.color_print('yellow', '"This is a standard log message from Lua." and should appear in logs\\<ui>\\<datetme>\\lua.log')
+Diagnostics.Trace('This is a trace message from Lua.')
+sdk.color_print('yellow', '"This is a trace message from Lua." and should appear in logs\\<ui>\\<datetme>\\trace.log')
+
+-- Simulate a real error that isn't expected and log to trace
+local function risky_operation()
+    error("Something went wrong in risky_operation!")
+end
+
+local status, err = pcall(risky_operation)
+if not status then
+    sdk.color_print('red', 'Caught expected error: ' .. err)
+    Diagnostics.Trace('Error caught in Lua script: ' .. err)
+end
+
+
 -- Final progress update
-next_step('lua_feature_demo.lua::EOF')
+progress.step('lua_feature_demo.lua::EOF')
+progress.finish()
 

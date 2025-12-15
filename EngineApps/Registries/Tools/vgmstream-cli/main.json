@@ -1,0 +1,21 @@
+{
+    "r2023": {
+        "src": "https://github.com/vgmstream/vgmstream/releases/tag/r2023",
+        "linux-x64": {
+            "url": "https://github.com/vgmstream/vgmstream/releases/download/r2023/vgmstream-linux-cli.zip",
+            "sha256": ""
+        },
+        "macOS": {
+            "url": "httpss://github.com/vgmstream/vgmstream/releases/download/r2023/vgmstream-mac-cli.zip",
+            "sha256": ""
+        },
+        "win": {
+            "url": "https://github.com/vgmstream/vgmstream/releases/download/r2023/vgmstream-win.zip",
+            "sha256": ""
+        },
+        "win-x64": {
+            "url": "https://github.com/vgmstream/vgmstream/releases/download/r2023/vgmstream-win64.zip",
+            "sha256": ""
+        }
+    }
+}

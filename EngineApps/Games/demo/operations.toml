@@ -7,7 +7,7 @@ Name = "Lua Feature Showcase"
 Instructions = "Demonstrates the embedded Lua engine helpers."
 script_type = "lua"
 script = "{{Game_Root}}/scripts/lua_feature_demo.lua"
-args = ["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo", "--prompt", "prompt overide"]
+args = ["--Game_Root", "{{Game_Root}}", "--Project_Root", "{{Project_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo", "--prompt", "prompt overide"]
 [[operation.prompts]]
 type = "text"
 Name = "lua_note"

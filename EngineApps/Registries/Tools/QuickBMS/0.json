@@ -1,0 +1,16 @@
+{
+    "0.12.0": {
+        "win-x64": {
+            "url": "https://github.com/LittleBigBug/QuickBMS/releases/download/0.12.0/quickbms_win.zip",
+            "sha256": ""
+        },
+        "linux-x64": {
+            "url": "https://github.com/LittleBigBug/QuickBMS/releases/download/0.12.0/quickbms_linux.zip",
+            "sha256": ""
+        },
+        "macOS": {
+            "url": "https://github.com/LittleBigBug/QuickBMS/releases/download/0.12.0/quickbms_macosx.zip",
+            "sha256": ""
+        }
+    }
+}

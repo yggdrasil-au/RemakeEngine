@@ -1,22 +1,22 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Tmds.DBus.Protocol;
 
 using Tomlyn;
 
 namespace EngineNet.Core;
 
-//internal sealed record RunAllResult(string Game, bool Success, int TotalOperations, int SucceededOperations);
-
-internal sealed partial class Engine {
+/// <summary>
+/// 
+/// </summary>
+internal sealed partial class Engine() {
 
     /* :: :: Vars :: Start :: */
     // root path of the project
     public string                     rootPath { get {return Program.rootPath; } }
     public Core.Utils.Registries      GetRegistries { get; private set; } = new Core.Utils.Registries();
 
-    private Core.Tools.IToolResolver  _tools { get; set;} = CreateToolResolver();
+    private Core.Tools.IToolResolver  _tools { get; set; } = CreateToolResolver();
     private Core.EngineConfig         _engineConfig { get; set; } = new Core.EngineConfig();
     private Core.Utils.CommandBuilder _builder { get; set; } = new Core.Utils.CommandBuilder();
     private Core.Utils.GitTools       _git { get; set; } = new Core.Utils.GitTools(System.IO.Path.Combine(Program.rootPath, "EngineApps", "Games"));
@@ -24,20 +24,9 @@ internal sealed partial class Engine {
     private Core.ProcessRunner        _runner { get; set; } = new Core.ProcessRunner();
     /* :: :: Vars :: End :: */
     //
-    /* :: :: Constructor :: Start :: */
-    // Constructor
-    internal Engine() {
-        //_tools = CreateToolResolver();
-        //_engineConfig = new Core.EngineConfig();
+    /* :: :: Methods ::  :: */
 
-        //GetRegistries = new Core.Utils.Registries();
-        //_builder = new Core.Utils.CommandBuilder();
-        //_git = new Core.Utils.GitTools(System.IO.Path.Combine("EngineApps", "Games"));
-        //_scanner = new Core.Utils.ModuleScanner(GetRegistries);
-        //_runner = new Core.ProcessRunner();
-    }
-    /* :: :: Constructor :: End :: */
-
+    // Creates the tool resolver based on available config files
     private static Core.Tools.IToolResolver CreateToolResolver() {
         string[] candidates = new[] {
             System.IO.Path.Combine(Program.rootPath, "Tools.local.json"), System.IO.Path.Combine(Program.rootPath, "tools.local.json"),
@@ -47,31 +36,52 @@ internal sealed partial class Engine {
         return !string.IsNullOrEmpty(found) ? new Core.Tools.JsonToolResolver(found) : new Core.Tools.PassthroughToolResolver();
     }
 
+    /* :: :: */
+    //
+    /* :: :: */
 
-    /// <summary>
-    /// Downloads a module from a Git repo
-    /// </summary>
-    /// <param name="url"></param>
-    /// <returns></returns>
+    // Downloads a game module via Git
     internal bool DownloadModule(string url) {
         return _git.CloneModule(url);
     }
 
+    // Builds a command from operation and context
     internal List<string> BuildCommand(string currentGame, Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers) {
         return _builder.Build(currentGame, games, _engineConfig.Data, op, promptAnswers);
     }
 
+    // Executes a command via ProcessRunner
     internal bool ExecuteCommand(IList<string> commandParts, string title, EngineNet.Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, IDictionary<string, object?>? envOverrides = null, CancellationToken cancellationToken = default) {
         return _runner.Execute(commandParts, title, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, envOverrides: envOverrides, cancellationToken: cancellationToken);
     }
 
+    // Scans for game modules in registries
     internal Dictionary<string, Core.Utils.GameModuleInfo> Modules(Core.Utils.ModuleFilter _Filter) {
         return _scanner.Modules(_Filter);
     }
 
+    // Discovers built games from registries
+    internal Dictionary<string, Core.Utils.GameInfo> DiscoverBuiltGames() {
+        return GetRegistries.DiscoverBuiltGames();
+    }
+
+    // Gets the executable path for a built game
+    internal string? GetGameExecutable(string name) {
+        return DiscoverBuiltGames().TryGetValue(name, out Core.Utils.GameInfo? gi) ? gi.ExePath : null;
+    }
+
+    /* :: :: */
+    //
+    /* :: :: */
+
+    /// <summary>
+    /// Loads a list of operations from a file (JSON or TOML)
+    /// </summary>
+    /// <param name="opsFile"></param>
+    /// <returns></returns>
     internal static List<Dictionary<string, object?>>? LoadOperationsList(string opsFile) {
         try {
-
+            // Determine file type by extension
             string ext = System.IO.Path.GetExtension(opsFile);
             if (ext.Equals(".toml", System.StringComparison.OrdinalIgnoreCase)) {
                 Tomlyn.Syntax.DocumentSyntax tdoc = Tomlyn.Toml.Parse(System.IO.File.ReadAllText(opsFile));
@@ -90,8 +100,11 @@ internal sealed partial class Engine {
                         }
                     }
                 }
+                Core.Diagnostics.Trace($"[Engine.cs::LoadOperationsList()]1 loaded {list.Count} operations from ops file '{opsFile}'.");
                 return list;
             }
+
+            // JSON fallback
             using System.IO.FileStream fs = System.IO.File.OpenRead(opsFile);
             using System.Text.Json.JsonDocument jdoc = System.Text.Json.JsonDocument.Parse(fs);
             if (jdoc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array) {
@@ -103,8 +116,11 @@ internal sealed partial class Engine {
                         list.Add(map);
                     }
                 }
+                Core.Diagnostics.Trace($"[Engine.cs::LoadOperationsList()]2 loaded {list.Count} operations from ops file '{opsFile}'.");
                 return list;
             }
+
+            // Grouped format fallback
             if (jdoc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object) {
                 // Fallback: flatten grouped format into a single list (preserving group order)
                 List<Dictionary<string, object?>> flat = new List<Dictionary<string, object?>>();
@@ -119,23 +135,24 @@ internal sealed partial class Engine {
                         }
                     }
                 }
+                Core.Diagnostics.Trace($"[Engine.cs::LoadOperationsList()] flattened grouped ops file '{opsFile}' into {flat.Count} operations.");
                 return flat;
             }
+
+            // Unknown format
+            Core.Diagnostics.Log($"[Engine.cs::LoadOperationsList()] unknown ops file format: '{opsFile}'");
             return new List<Dictionary<string, object?>>();
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"[Engine.cs] err loading ops file '{opsFile}': {ex.Message}");
+            Core.Diagnostics.Bug($"[Engine.cs::LoadOperationsList()] err loading ops file '{opsFile}': {ex.Message}");
             return null;
         }
     }
 
-    internal Dictionary<string, Core.Utils.GameInfo> DiscoverBuiltGames() {
-        return GetRegistries.DiscoverBuiltGames();
-    }
-
-    internal string? GetGameExecutable(string name) {
-        return DiscoverBuiltGames().TryGetValue(name, out Core.Utils.GameInfo? gi) ? gi.ExePath : null;
-    }
-
+    /// <summary>
+    /// Gets the root path for a game by name
+    /// </summary>
+    /// <param name="name"></param>
+    /// <returns></returns>
     internal string? GetGamePath(string name) {
         // Prefer installed location first, then fall back to downloaded location
         if (DiscoverBuiltGames().TryGetValue(name, out Core.Utils.GameInfo? gi))
@@ -144,6 +161,11 @@ internal sealed partial class Engine {
         return System.IO.Directory.Exists(dir) ? dir : null;
     }
 
+    /// <summary>
+    /// Launches a game by name, using game.toml if present for rich config
+    /// </summary>
+    /// <param name="name"></param>
+    /// <returns></returns>
     internal bool LaunchGame(string name) {
         string root = GetGamePath(name) ?? rootPath;
         string gameToml = System.IO.Path.Combine(root, "game.toml");
@@ -156,7 +178,7 @@ internal sealed partial class Engine {
             ctx = ctxBuilder.Build(currentGame: name, games: games, engineConfig: _engineConfig.Data);
         }
         catch {
-            Core.Diagnostics.Bug($"[Engine.cs] err building context for game '{name}'");
+            Core.Diagnostics.Bug($"[Engine.cs::LaunchGame()] err building context for game '{name}'");
             ctx = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase) {
                 ["Game_Root"] = root, ["Project_Root"] = Program.rootPath
             };
@@ -198,13 +220,13 @@ internal sealed partial class Engine {
             }
         } catch {
             /* ignore malformed toml */
-            Core.Diagnostics.Bug($"[Engine.cs] err parsing game.toml for game '{name}'");
+            Core.Diagnostics.Bug($"[Engine.cs::LaunchGame()] err parsing game.toml for game '{name}'");
         }
 
         // if lua script exists, run it
         if (!string.IsNullOrWhiteSpace(luaScript) && System.IO.File.Exists(luaScript)) {
             try {
-                var action = new ScriptEngines.lua.LuaScriptAction(luaScript!, System.Array.Empty<string>());
+                var action = new ScriptEngines.lua.LuaScriptAction(luaScript!, System.Array.Empty<string>(), gameRoot: root, projectRoot: Program.rootPath);
                 action.ExecuteAsync(_tools).GetAwaiter().GetResult();
                 return true;
             } catch { return false; }
@@ -242,5 +264,8 @@ internal sealed partial class Engine {
             return true;
         } catch { return false; }
     }
+
+    /* :: :: */
+    //
 
 }

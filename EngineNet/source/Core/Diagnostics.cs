@@ -19,10 +19,18 @@ internal static class Diagnostics {
     private static StreamWriter? _bugWriter;   // Just Diagnostics.Bug
     private static readonly object _lock = new();
 
-    internal static void Initialize() {
+    internal static void Initialize(bool isGui, bool isTui) {
         string logDirectory = string.Empty;
         try {
             string logDir = Path.Combine(Program.rootPath, "logs");
+            if (isGui) {
+                logDir = Path.Combine(logDir, "gui");
+            } else if (isTui) {
+                logDir = Path.Combine(logDir, "tui");
+            } else {
+                logDir = Path.Combine(logDir, "cli");
+            }
+
             string logsubdir = DateTime.Now.ToString("dd_HH-mm-ss");
 
             // delete logdir if exists else create it

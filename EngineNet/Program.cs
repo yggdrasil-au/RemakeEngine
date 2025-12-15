@@ -41,8 +41,12 @@ public static class Program {
                 }
             }
 
+            bool isGui = parsedArgs.Remaining.Count == 0 || (parsedArgs.Remaining.Count == 1 && parsedArgs.Remaining[0].Equals("--gui", System.StringComparison.OrdinalIgnoreCase));
+            bool isTui = parsedArgs.Remaining.Count == 1 && parsedArgs.Remaining[0].Equals("--tui", System.StringComparison.OrdinalIgnoreCase);
+
+
             // :: Initialize the Logger
-            Core.Diagnostics.Initialize();
+            Core.Diagnostics.Initialize(isGui, isTui);
             //Core.Tools.IToolResolver tools = CreateToolResolver();
             //Core.EngineConfig engineConfig = new Core.EngineConfig();
             Core.Engine _engine = new Core.Engine();
@@ -52,14 +56,12 @@ public static class Program {
             // Logic:
             // - No remaining args -> GUI
             // - One arg "--gui" -> GUI
-            bool isGui = parsedArgs.Remaining.Count == 0 || (parsedArgs.Remaining.Count == 1 && parsedArgs.Remaining[0].Equals("--gui", System.StringComparison.OrdinalIgnoreCase));
             if (isGui) {
                 return await Interface.GUI.AvaloniaGui.RunAsync(_engine);
             }
 
             // Logic:
             // - One arg "--tui" -> TUI
-            bool isTui = parsedArgs.Remaining.Count == 1 && parsedArgs.Remaining[0].Equals("--tui", System.StringComparison.OrdinalIgnoreCase);
             if (isTui) {
                 Interface.Terminal.TUI TUI = new Interface.Terminal.TUI(_engine);
                 return await TUI.RunInteractiveMenuAsync();
