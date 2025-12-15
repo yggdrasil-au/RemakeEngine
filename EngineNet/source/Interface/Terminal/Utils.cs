@@ -40,10 +40,10 @@ internal class Utils() {
         Dictionary<string, string>? autoPromptResponses = null
     ) {
         try {
-            string? type = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant();
+            string? script_type = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant();
 
             // Use embedded handlers for engine/lua/js/bms to avoid external dependencies
-            if (type == "engine" || type == "lua" || type == "js" || type == "bms" || type == "internal") {
+            if (Core.Utils.ScriptConstants.IsSupported(script_type)) {
                 // Route in-process SDK events to our terminal renderer
                 System.Action<Dictionary<string, object?>>? prevSink = Core.Utils.EngineSdk.LocalEventSink;
                 bool prevMute = Core.Utils.EngineSdk.MuteStdoutWhenLocalSink;
@@ -71,7 +71,7 @@ internal class Utils() {
                     Core.Utils.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
                 }
             } else {
-                Core.Diagnostics.Log($"[Utils.cs::ExecuteOp()] Routing operation of type '{type}' to external command execution");
+                Core.Diagnostics.Log($"[Utils.cs::ExecuteOp()] Routing operation of type '{script_type}' to external command execution");
             }
 
             // Default: build and execute as external command (e.g., python)

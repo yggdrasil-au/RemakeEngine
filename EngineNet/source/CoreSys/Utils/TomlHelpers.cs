@@ -3,7 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Collections;
 
-namespace EngineNet.ScriptEngines.Helpers;
+namespace EngineNet.Core.Utils;
 
 /// <summary>
 /// Reusable TOML read/write utilities built on Tomlyn.

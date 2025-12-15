@@ -85,9 +85,10 @@ internal sealed partial class Engine {
                     break;
                 }
                 // embedded script engines, Moonsharp (Lua), Python (IronPython), JavaScript (Jint)
-                case "lua":
+                /*case "lua":
                 case "python":
-                case "js": {
+                case "js": {*/
+                case var t when Core.Utils.ScriptConstants.IsEmbedded(t): {
                     try {
                         // create the action with the dispatcher
                         IEnumerable<string> argsEnum = args;

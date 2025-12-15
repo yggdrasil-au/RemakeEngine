@@ -2,12 +2,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
-using Tomlyn;
-
 namespace EngineNet.Core;
 
 /// <summary>
-/// 
+/// Core Engine class providing main functionality
 /// </summary>
 internal sealed partial class Engine() {
 
@@ -15,7 +13,6 @@ internal sealed partial class Engine() {
     // root path of the project
     public string                     rootPath { get {return Program.rootPath; } }
     public Core.Utils.Registries      GetRegistries { get; private set; } = new Core.Utils.Registries();
-
     private Core.Tools.IToolResolver  _tools { get; set; } = CreateToolResolver();
     private Core.EngineConfig         _engineConfig { get; set; } = new Core.EngineConfig();
     private Core.Utils.CommandBuilder _builder { get; set; } = new Core.Utils.CommandBuilder();
@@ -84,17 +81,15 @@ internal sealed partial class Engine() {
             // Determine file type by extension
             string ext = System.IO.Path.GetExtension(opsFile);
             if (ext.Equals(".toml", System.StringComparison.OrdinalIgnoreCase)) {
-                Tomlyn.Syntax.DocumentSyntax tdoc = Tomlyn.Toml.Parse(System.IO.File.ReadAllText(opsFile));
-                Tomlyn.Model.TomlTable model = tdoc.ToModel();
+                object root = Core.Utils.TomlHelpers.ParseFileToPlainObject(opsFile);
                 List<Dictionary<string, object?>> list = new List<Dictionary<string, object?>>();
-                if (model is Tomlyn.Model.TomlTable table) {
-                    foreach (KeyValuePair<string, object> kv in table) {
-                        if (kv.Value is Tomlyn.Model.TomlTableArray arr) {
-                            foreach (Tomlyn.Model.TomlTable item in arr) {
-                                if (item is Tomlyn.Model.TomlTable tt) {
-                                    var map = Core.Utils.Operations.ToMap(tt);
-                                    map["_source_file"] = opsFile;
-                                    list.Add(map);
+                if (root is Dictionary<string, object?> table) {
+                    foreach (KeyValuePair<string, object?> kv in table) {
+                        if (kv.Value is List<object?> arr) {
+                            foreach (object? item in arr) {
+                                if (item is Dictionary<string, object?> tt) {
+                                    tt["_source_file"] = opsFile;
+                                    list.Add(tt);
                                 }
                             }
                         }

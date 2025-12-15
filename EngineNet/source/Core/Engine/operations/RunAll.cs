@@ -110,7 +110,7 @@ internal sealed partial class Engine {
                 try {
                     string? scriptType = GetScriptType(op);
                     // ensure script type is valid
-                    if (scriptType == "engine" || scriptType == "lua" || scriptType == "js" || scriptType == "python" || scriptType == "bms" || scriptType == "internal") {
+                    if (Core.Utils.ScriptConstants.IsSupported(scriptType)) {
                         ok = await RunSingleOperationAsync(gameName, games, op, promptAnswers, cancellationToken).ConfigureAwait(false);
                     } else if (string.IsNullOrEmpty(scriptType)) {
                         Core.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Skipping operation '{currentOperation}' due to null or empty script type");

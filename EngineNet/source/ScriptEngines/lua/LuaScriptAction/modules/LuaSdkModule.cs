@@ -2,6 +2,7 @@ using MoonSharp.Interpreter;
 
 using System.IO;
 using System.Collections.Generic;
+using EngineNet.Core.Utils;
 
 namespace EngineNet.ScriptEngines.lua.LuaModules;
 
@@ -443,7 +444,7 @@ internal static class LuaSdkModule {
                     Core.Utils.EngineSdk.Error($"Access denied: toml_read_file path is outside allowed areas ('{path}')");
                     return DynValue.Nil;
                 }
-                object obj = Helpers.TomlHelpers.ParseFileToPlainObject(path);
+                object obj = TomlHelpers.ParseFileToPlainObject(path);
                 return Utils.LuaUtilities.ToDynValue(GetScriptFromTable(LuaEnvObj.sdk), obj);
             } catch (System.Exception ex) {
                 Core.Utils.EngineSdk.Error($"TOML read failed: {ex.Message}");
@@ -459,7 +460,7 @@ internal static class LuaSdkModule {
                     return;
                 }
                 object? obj = Utils.LuaUtilities.FromDynValue(value);
-                Helpers.TomlHelpers.WriteTomlFile(path, obj);
+                TomlHelpers.WriteTomlFile(path, obj);
             } catch (System.Exception ex) {
                 Core.Utils.EngineSdk.Error($"TOML write failed: {ex.Message}");
             }
