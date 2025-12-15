@@ -593,6 +593,11 @@ else
     sdk.color_print('red', 'Project_Root global is NOT a string (nil or wrong type)')
 end
 
+if type(script_dir) == 'string' then
+    sdk.color_print('green', 'script_dir global is set: ' .. script_dir)
+end
+
+
 progress.step('Testing Diagnostics logging')
 
 -- Demonstrate Diagnostics.Log and Diagnostics.Trace

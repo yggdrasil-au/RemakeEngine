@@ -22,27 +22,6 @@ Options:
 ]])
 end
 
-
-local function script_dir()
-    if Game_Root then return Game_Root end
-
-    if type(debug) ~= 'table' then return '.' end
-
-    Diagnostics.Trace('Determining script directory')
-    -- Obtain debug info for current function
-    local info = debug.getinfo(1, 'S')
-    Diagnostics.Trace('Debug info source: ' .. tostring(info and info.source or '<nil>'))
-    -- Extract source path and sanitize
-    local source = info and info.source or ''
-    Diagnostics.Trace('Raw source path: ' .. source)
-    -- Remove leading '@' if present
-    if source:sub(1,1) == '@' then source = source:sub(2) end
-    Diagnostics.Trace('Sanitized source path: ' .. source)
-    -- Extract directory portion
-    return source:match('(.+)[/\\][^/\\]+$') or '.'
-end
-
-
 local function parse_args(list)
     local opts = { group = 'placeholders', index = 1, type_hint = 'auto', sets = {} }
     local i = 1
@@ -186,8 +165,7 @@ local function main()
     -- Handle help request
     if opts.help then usage(); return 0 end
 
-
-    local base = script_dir()
+    local base = script_dir
     local cfg_path = opts.config_path or (base .. '/config.toml')
 
     -- Read existing document; if it fails, abort rather than creating a new one implicitly

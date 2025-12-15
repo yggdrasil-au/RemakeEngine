@@ -88,6 +88,9 @@ internal sealed partial class LuaScriptAction : ScriptEngines.Helpers.IAction {
         // removed os.execute for better alternatives via sdk.exec/run_process etc
         //safeOs["execute"]
 
+        // os.exit - allow script to call it without error, but do nothing
+        LuaEnvObj.os["exit"] = (System.Action<int?>)(code => { });
+
         LuaEnvObj.LuaScript.Globals["os"] = LuaEnvObj.os;
     }
 
@@ -261,6 +264,11 @@ internal sealed partial class LuaScriptAction : ScriptEngines.Helpers.IAction {
         Core.Diagnostics.Log($"[LuaScriptAction.cs::SetupCoreFunctions()] Set Game_Root to '{_gameRoot}'");
         LuaEnvObj.LuaScript.Globals["Project_Root"] = _projectRoot;
         Core.Diagnostics.Log($"[LuaScriptAction.cs::SetupCoreFunctions()] Set Project_Root to '{_projectRoot}'");
+
+        // script_dir constant - directory containing the executing script
+        string scriptDir = System.IO.Path.GetDirectoryName(_scriptPath)?.Replace("\\", "/") ?? "";
+        LuaEnvObj.LuaScript.Globals["script_dir"] = scriptDir;
+
 
 
         // :: start :: methods for emitting engineSDK events from Lua scripts ::
