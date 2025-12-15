@@ -13,6 +13,11 @@ internal partial class CLI {
         _engine = engine;
     }
 
+    /// <summary>
+    /// Run the CLI
+    /// </summary>
+    /// <param name="args"></param>
+    /// <returns></returns>
     internal async System.Threading.Tasks.Task<int> RunAsync(string[] args) {
         try {
             // Strip global flags that Program.cs already handled, like --root PATH
@@ -32,7 +37,9 @@ internal partial class CLI {
                 args = list.ToArray();
             }
 
+            // Check for inline operation invocation
             if (IsInlineOperationInvocation(args)) {
+                // Run operation directly from command-line args
                 return RunInlineOperation(args);
             }
 
@@ -59,41 +66,53 @@ internal partial class CLI {
         }
     }
 
+    /// <summary>
+    /// Run an operation based on command-line arguments.
+    /// </summary>
+    /// <param name="args"></param>
+    /// <returns></returns>
     internal int RunInlineOperation(string[] args) {
+        // Parse inline operation options
         InlineOperationOptions options;
-        try {
-            options = InlineOperationOptions.Parse(args);
-        } catch (System.ArgumentException ex) {
-            System.Console.Error.WriteLine($"options ERROR: {ex.Message}");
-            return 2;
-        }
 
+        options = InlineOperationOptions.Parse(args);
+
+        // Validate required options
         if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot)) {
-            System.Console.Error.WriteLine("ERROR: --game_module/--game (or --game-root) is required for inline execution.");
+            Core.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) is required for inline execution.");
             return 2;
         }
 
+        // Validate script option
         if (string.IsNullOrWhiteSpace(options.Script) && !options.OperationFields.ContainsKey("script")) {
-            System.Console.Error.WriteLine("ERROR: --script must be provided for inline execution.");
+            Core.Diagnostics.Log("ERROR: --script must be provided for inline execution.");
             return 2;
         }
 
+        // Find game modules
         Dictionary<string, Core.Utils.GameModuleInfo> games = _engine.Modules(Core.Utils.ModuleFilter.All);
         if (!TryResolveInlineGame(options, games, out string? gameName)) {
-            System.Console.Error.WriteLine("ERROR: Unable to resolve the specified game/module.");
+            Core.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
             return 1;
         }
 
+        // Build operation dictionary
         Dictionary<string, object?> op = options.BuildOperation();
         if (!op.TryGetValue("script", out object? scriptObj) || scriptObj is null || string.IsNullOrWhiteSpace(scriptObj.ToString())) {
-            System.Console.Error.WriteLine("ERROR: Inline operation is missing a script path or identifier.");
+            Core.Diagnostics.Log("ERROR: Inline operation is missing a script path or identifier.");
             return 2;
         }
 
+        // Execute the operation
         bool ok = new Utils().ExecuteOp(_engine, gameName!, games, op, options.PromptAnswers, options.AutoPromptResponses);
         return ok ? 0 : 1;
     }
 
+    /// <summary>
+    /// Determine if the command-line arguments indicate an inline operation invocation.
+    /// </summary>
+    /// <param name="args"></param>
+    /// <returns></returns>
     internal static bool IsInlineOperationInvocation(string[] args) {
         bool sawGame = false;
         bool sawScript = false;
@@ -105,10 +124,12 @@ internal partial class CLI {
 
             string key = NormalizeOptionKey(GetOptionKey(token));
             if (key is "game" or "game_module" or "module" or "gameid" or "game_name" or "game_root") {
+                // Indicate that a game/module was specified
                 sawGame = true;
             }
 
             if (key == "script") {
+                // Indicate that a script was specified
                 sawScript = true;
             }
         }
@@ -116,6 +137,9 @@ internal partial class CLI {
         return sawGame && sawScript;
     }
 
+    /// <summary>
+    /// Options for inline operation execution.
+    /// </summary>
     internal class InlineOperationOptions {
         internal string? GameIdentifier {
             get; private set;
@@ -142,6 +166,12 @@ internal partial class CLI {
         private readonly List<string> _args = new();
         private bool _argsOverride;
 
+        /// <summary>
+        /// Parse command-line arguments into inline operation options.
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentException"></exception>
         internal static InlineOperationOptions Parse(string[] args) {
             InlineOperationOptions options = new InlineOperationOptions();
 
@@ -270,6 +300,10 @@ internal partial class CLI {
             return options;
         }
 
+        /// <summary>
+        /// Build the operation dictionary from the parsed options.
+        /// </summary>
+        /// <returns></returns>
         internal Dictionary<string, object?> BuildOperation() {
             Dictionary<string, object?> op = new Dictionary<string, object?>(OperationFields, System.StringComparer.OrdinalIgnoreCase);
 

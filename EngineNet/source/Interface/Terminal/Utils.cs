@@ -21,7 +21,24 @@ internal class Utils() {
     private static int _progressPanelTop;
     private static int _progressLastLines;
 
-    internal bool ExecuteOp(Core.Engine _engine, string game, Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games, Dictionary<string, object?> op, Dictionary<string, object?> answers, Dictionary<string, string>? autoPromptResponses = null) {
+    /// <summary>
+    /// Execute a single operation in the terminal interface, handling events and output appropriately.
+    /// </summary>
+    /// <param name="_engine"></param>
+    /// <param name="game"></param>
+    /// <param name="games"></param>
+    /// <param name="op"></param>
+    /// <param name="answers"></param>
+    /// <param name="autoPromptResponses"></param>
+    /// <returns></returns>
+    internal bool ExecuteOp(
+        Core.Engine _engine,
+        string game,
+        Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
+        Dictionary<string, object?> op,
+        Dictionary<string, object?> answers,
+        Dictionary<string, string>? autoPromptResponses = null
+    ) {
         try {
             string? type = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant();
 

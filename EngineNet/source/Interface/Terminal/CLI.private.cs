@@ -28,21 +28,25 @@ internal partial class CLI {
 
     private int ListOps(string game) {
         try {
+            // Find the game module
             Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.Modules(Core.Utils.ModuleFilter.All);
             if (!modules.TryGetValue(game, out Core.Utils.GameModuleInfo? mod)) {
                 System.Console.WriteLine($"Game '{game}' not found.");
                 return 1;
             }
+            // Load operations list
             string? opsFile = mod.OpsFile;
             if (string.IsNullOrWhiteSpace(opsFile) || !System.IO.File.Exists(opsFile)) {
                 throw new System.ArgumentException($"Game '{game}' missing ops_file.");
             }
+            // Load and validate operations
             List<Dictionary<string, object?>>? doc = Core.Engine.LoadOperationsList(opsFile);
             if (doc is null || doc.Count == 0) {
                 System.Console.WriteLine($"No operations found for game '{game}'.");
                 Core.Diagnostics.Log($"No operations found in ops_file '{opsFile}' for game '{game}'.");
                 return 0;
             }
+            // Print operations
             System.Console.WriteLine($"Operations for game '{game}':");
             foreach (Dictionary<string, object?> op in doc) {
                 if (op.TryGetValue("name", out object? nameObj) && nameObj is string name) {
