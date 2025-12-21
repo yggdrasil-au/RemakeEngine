@@ -104,12 +104,8 @@ public static class Program {
 
     // Creates the tool resolver based on available config files
     private static Core.Tools.IToolResolver CreateToolResolver(string root) {
-        string[] candidates = new[] {
-            System.IO.Path.Combine(root, "Tools.local.json"), System.IO.Path.Combine(root, "tools.local.json"),
-            System.IO.Path.Combine(root, "EngineApps", "Registries", "Tools", "Main.json"), System.IO.Path.Combine(root, "EngineApps", "Registries", "Tools", "main.json"),
-        };
-        string? found = candidates.FirstOrDefault(System.IO.File.Exists);
-        return !string.IsNullOrEmpty(found) ? new Core.Tools.JsonToolResolver(found) : new Core.Tools.PassthroughToolResolver();
+        // Use JsonToolResolver which now handles dynamic reloading and fallback
+        return new Core.Tools.JsonToolResolver(root);
     }
 
     // Simple container for parsed results

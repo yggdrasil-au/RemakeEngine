@@ -42,7 +42,6 @@ local function parse_args(list)
     return opts
 end
 
-
 local function as_string(v)
     local t = type(v)
     if t == 'string' then return v
@@ -51,7 +50,6 @@ local function as_string(v)
     elseif v == nil then return 'nil' end
     return '<' .. t .. '>'
 end
-
 
 local function convert_value(raw, hint)
     hint = (hint or 'auto'):lower()
@@ -172,7 +170,6 @@ local function main()
     local doc = sdk.toml_read_file(cfg_path)
     if not doc or type(doc) ~= 'table' then
         error('Failed to read existing config.toml at ' .. cfg_path .. '; refusing to overwrite.')
-        Diagnostics.Trace('Failed to read existing config.toml at ' .. cfg_path .. '; refusing to overwrite.')
     end
 
     if opts.list or (not opts.group and not opts.key and not opts.value) then

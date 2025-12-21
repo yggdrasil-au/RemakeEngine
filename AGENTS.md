@@ -12,6 +12,8 @@ read [Style.md](Style.md)
 
 ## CONTRIBUTING
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and workflows.
+when writing code, always add documentation and update existing relevant comments and documentation.
+
 
 ## main Readme
 See [README.md](README.md) for an overview of the Remake Engine project.

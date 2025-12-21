@@ -356,6 +356,30 @@ internal static class LuaSdkModule {
             }
         });
 
+        /// <summary>
+        /// Lists files and directories in a given path.
+        /// Returns a table of strings (names only, not full paths).
+        /// Does not include "." or "..".
+        /// </summary>
+        LuaEnvObj.sdk["list_dir"] = (System.Func<string, Table>)((path) => {
+            if (!LuaSecurity.EnsurePathAllowedWithPrompt(path)) {
+                return new Table(LuaEnvObj.LuaScript);
+            }
+            try {
+                if (!System.IO.Directory.Exists(path)) {
+                    return new Table(LuaEnvObj.LuaScript);
+                }
+                Table list = new Table(LuaEnvObj.LuaScript);
+                string[] entries = System.IO.Directory.GetFileSystemEntries(path);
+                foreach (string entry in entries) {
+                    list.Append(DynValue.NewString(System.IO.Path.GetFileName(entry)));
+                }
+                return list;
+            } catch {
+                return new Table(LuaEnvObj.LuaScript);
+            }
+        });
+
         LuaEnvObj.sdk["md5"] = (System.Func<string, string>)(text => {
             try {
                 byte[] data = System.Security.Cryptography.MD5.HashData(System.Text.Encoding.UTF8.GetBytes(text ?? string.Empty));

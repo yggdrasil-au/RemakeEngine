@@ -147,7 +147,6 @@ internal static class MediaConverter {
                         errorList.Add((System.IO.Path.GetFileName(src), msg ?? "unknown error"));
 #if DEBUG
                         Core.Diagnostics.Log($"Conversion failed for file {src}: {msg}");
-                        System.Environment.Exit(1);
 #endif
                     }
                     System.Threading.Interlocked.Increment(ref processed);
@@ -177,6 +176,7 @@ internal static class MediaConverter {
                 foreach ((string file, string msg) in errorList) {
                     Utils.EngineSdk.PrintLine($" Fail - File: {file}\n    Reason: {msg}", System.ConsoleColor.Red);
                 }
+                return false;
             }
 
             return true;
