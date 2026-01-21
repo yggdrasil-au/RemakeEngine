@@ -1,10 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<!-- Default TFMs for CI and most dev machines (no Apple workloads required) -->
-		<TargetFrameworks>
-			<!-- net9.0; -->
-			net10.0;
-		</TargetFrameworks>
+		<TargetFramework>net10.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<OutputType>Exe</OutputType>
 		<LangVersion>latest</LangVersion>
@@ -13,22 +10,22 @@
 	<ItemGroup>
 		<!-- Script runtimes -->
 		<PackageReference Include="MoonSharp" Version="2.0.0" />
-		<PackageReference Include="SharpCompress" Version="0.42.0" />
+		<PackageReference Include="SharpCompress" Version="1.0.0" />
 		<PackageReference Include="IronPython" Version="3.4.2" />
-		<PackageReference Include="Jint" Version="4.4.2" />
+		<PackageReference Include="Jint" Version="4.5.0" />
 
 		<!-- TOML -->
 		<PackageReference Include="Tomlyn" Version="0.19.0" />
 
 		<!-- GUI (Avalonia) -->
-		<PackageReference Include="Avalonia" Version="11.3.9" />
-		<PackageReference Include="Avalonia.Desktop" Version="11.3.9" />
-		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.9" />
-        <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.9" />
+		<PackageReference Include="Avalonia" Version="11.3.11" />
+		<PackageReference Include="Avalonia.Desktop" Version="11.3.11" />
+		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.11" />
+        <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.11" />
 		<PackageReference Include="ReactiveUI.Avalonia" Version="14.7.1" />
 
 		<!-- Other -->
-		<PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.11" />
+		<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.2" />
 	</ItemGroup>
 
 	<ItemGroup>

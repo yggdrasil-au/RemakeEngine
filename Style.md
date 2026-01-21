@@ -1,6 +1,15 @@
 C# Code Style
 
 
+Types:
+use language keywords for types instead of Class type names.
+```C#
+int myNumber = 5;
+string myString = "Hello, World!";
+bool isActive = true;
+```
+
+
 Namespaces: Use file-scoped namespaces, with exeptions when using partial classes.
 
 ```C#
@@ -12,10 +21,6 @@ namespace EngineNet.ScriptEngines.Helpers;
 namespace EngineNet.Core;
 internal sealed partial class Engine {
 ```
-
-when a partial class gets too large, split it into components based on visibility (public, internal, private, etc.)
-eg: file RunSingleAsync.private.cs contains only private methods of Engine class and is the sister file to RunSingleAsync.cs which contains public and internal methods of Engine class.
-the file is itself a seperate component of the main Engine class, seperated based on its purpose (operations) and visibility (private), as operations handling logic is very large.
 
 
 Bracing: Use K&R-style bracing, where the opening brace ({) is placed on the same line as the type, method, or control structure declaration.
