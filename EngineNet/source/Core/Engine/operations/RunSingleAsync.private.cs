@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace EngineNet.Core;
 
-internal sealed partial class Engine {
+internal sealed partial class Enginey {
 
     // used by run single operation to execute engine operations of type "engine"
 
@@ -16,7 +16,18 @@ internal sealed partial class Engine {
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     /// <exception cref="KeyNotFoundException"></exception>
-    private async System.Threading.Tasks.Task<bool> ExecuteEngineOperationAsync(string currentGame, Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, System.Threading.CancellationToken cancellationToken = default) {
+    internal async System.Threading.Tasks.Task<bool> ExecuteEngineOperationAsync(
+        string currentGame,
+        Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
+        IDictionary<string, object?> op,
+        IDictionary<string, object?> promptAnswers,
+        string RootPath,
+        Core.EngineConfig EngineConfig,
+        Core.Tools.IToolResolver ToolResolver,
+        Core.Abstractions.IGitService GitService,
+        Core.Abstractions.IGameRegistry GameRegistry,
+        System.Threading.CancellationToken cancellationToken = default
+    ) {
         if (!op.TryGetValue("script", out object? s) || s is null) {
             Core.Diagnostics.Log("[Engine.private.cs :: OperationExecution()] Missing 'script' value in engine operation");
             return false;
@@ -82,7 +93,7 @@ internal sealed partial class Engine {
     /// <param name="op"></param>
     /// <param name="ops"></param>
     /// <returns></returns>
-    private static bool TryGetOnSuccessOperations(
+    internal static bool TryGetOnSuccessOperations(
         IDictionary<string, object?> op,
         out List<Dictionary<string, object?>>? ops
     ) {

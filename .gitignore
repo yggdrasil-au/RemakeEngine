@@ -96,7 +96,12 @@ EngineApps/Games/SimpsonsHitAndRun/
 
 logs/
 EngineApps/Games/demo/config.toml
+EngineApps/Games/demo/Files/engine/txd-extract-demo/**/*.dds
 EngineBuild/
 
 # incomplete unit test project
 Unit.Tests/
+
+
+{{Project_Root}}/
+{{Game_Root}}/

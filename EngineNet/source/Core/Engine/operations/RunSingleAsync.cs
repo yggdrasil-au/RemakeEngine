@@ -48,7 +48,7 @@ internal sealed partial class Engine {
                         Core.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Executing engine operation {title} ({action})");
                         Core.Utils.EngineSdk.PrintLine(message: $"\n>>> Engine operation: {title}");
                         // delegate engine type handling to ExecuteEngineOperationAsync
-                        result = await ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, cancellationToken);
+                        result = await Enginey.ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, RootPath, EngineConfig, ToolResolver, GitService, GameRegistry, cancellationToken);
                     } catch (System.Exception ex) {
                         Core.Utils.EngineSdk.PrintLine($"engine ERROR: {ex.Message}");
                         result = false;
@@ -89,12 +89,32 @@ internal sealed partial class Engine {
                     }
                     break;
                 }
-                // embedded script engines, Moonsharp (Lua), Python (IronPython), JavaScript (Jint)
-                case "lua":
-                case "python":
-                case "js": {
-                    // not supported
-                    Core.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] '{scriptType}' script type not yet supported");
+                // for running embedded script types (lua, js, python)
+                case var t when Core.Utils.ScriptConstants.IsEmbedded(t): {
+                    try {
+                        // create the action with the dispatcher
+                        IEnumerable<string> argsEnum = args;
+                        ScriptEngines.Helpers.IAction? act = ScriptEngines.Helpers.EmbeddedActionDispatcher.TryCreate(
+                            scriptType: scriptType,
+                            scriptPath: scriptPath,
+                            args: argsEnum,
+                            currentGame: currentGame,
+                            games: games,
+                            rootPath: RootPath
+                        );
+                        // null act means unsupported script type
+                        if (act is null) {
+                            result = false;
+                            Core.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Unsupported embedded script type '{scriptType}'");
+                            break;
+                        }
+                        // execute the action
+                        await act.ExecuteAsync(ToolResolver, cancellationToken);
+                        result = true;
+                    } catch (System.Exception ex) {
+                        Core.Utils.EngineSdk.PrintLine($"{scriptType} engine ERROR: {ex.Message}");
+                        result = false;
+                    }
                     break;
                 }
                 default: {
@@ -110,7 +130,7 @@ internal sealed partial class Engine {
         }
 
         // If the main operation succeeded, run any nested [[operation.onsuccess]] steps
-        if (result && TryGetOnSuccessOperations(op, out List<Dictionary<string, object?>>? followUps) && followUps is not null) {
+        if (result && Enginey.TryGetOnSuccessOperations(op, out List<Dictionary<string, object?>>? followUps) && followUps is not null) {
             foreach (Dictionary<string, object?> childOp in followUps) {
                 if (cancellationToken.IsCancellationRequested) break;
                 bool ok = await RunSingleOperationAsync(currentGame, games, childOp, promptAnswers, cancellationToken);

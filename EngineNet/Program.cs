@@ -48,15 +48,17 @@ public static class Program {
             Core.Diagnostics.Initialize(isGui, isTui);
 
             // :: Setup Services
-            Core.Tools.IToolResolver tools = new Core.Tools.JsonToolResolver();
-            Core.EngineConfig engineConfig = new Core.EngineConfig();
+            var tools = new Core.Tools.JsonToolResolver();
+            var engineConfig = new Core.EngineConfig();
 
-            Core.Abstractions.IGameRegistry gameRegistry = new Core.Services.GameRegistry();
+            var gameRegistry = new Core.Services.GameRegistry();
 
-            Core.Abstractions.IGameLauncher _gameLauncher = new Core.Services.GameLauncher(gameRegistry, tools, engineConfig, rootPath);
-            Core.Abstractions.IOperationsLoader _opsLoader = new Core.Services.OperationsLoader();
-            Core.Abstractions.IGitService _gitService = new Core.Services.GitService();
-            Core.Abstractions.ICommandService _commandService = new Core.Services.CommandService();
+            var _gameLauncher = new Core.Services.GameLauncher(gameRegistry, tools, engineConfig, rootPath);
+            var _opsLoader = new Core.Services.OperationsLoader();
+            var _gitService = new Core.Services.GitService();
+            var _commandService = new Core.Services.CommandService();
+
+            var enginey = new EngineNet.Core.Enginey();
 
             Core.Engine _engine = new Core.Engine(
                 rootPath: rootPath,
@@ -66,7 +68,8 @@ public static class Program {
                 gitService: _gitService,
                 commandService: _commandService,
                 toolResolver: tools,
-                engineConfig: engineConfig
+                engineConfig: engineConfig,
+                enginey: enginey
             );
 
             // 3. Interface selection based on "Remaining Args" (args with --root removed)
