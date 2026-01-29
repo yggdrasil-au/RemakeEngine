@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace EngineNet.ScriptEngines.lua.LuaModules;
@@ -26,6 +27,7 @@ internal static class LuaSecurity {
             }
             return full;
         } catch {
+            Core.Diagnostics.Bug("DetermineApprovalRoot: Failed to determine root for path: " + path);
             return path;
         }
     }
@@ -74,7 +76,10 @@ internal static class LuaSecurity {
                  executable.EndsWith(resolvedPath, System.StringComparison.OrdinalIgnoreCase))) {
                 return true;
             }
-        } catch { /* Tool resolution may fail, continue with other checks */ }
+        } catch (Exception ex) {
+            Core.Diagnostics.Trace("[LuaSecurity.cs::IsApprovedExecutable()] Tool resolution failed for: " + exeName + " with exception: " + ex);
+            /* Tool resolution may fail, continue with other checks */
+        }
 
         // Approved RemakeEngine tools (case-insensitive)
         HashSet<string> approvedTools = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase) {
@@ -202,9 +207,9 @@ internal static class LuaSecurity {
                     }
                     check = System.IO.Path.GetDirectoryName(check);
                 }
-            } catch {
+            } catch (Exception ex) {
                 /* ignore */
-                Core.Diagnostics.Bug("IsAllowedPath: Failed to resolve symlink for path: " + fullPath);
+                Core.Diagnostics.Bug("IsAllowedPath: Failed to resolve symlink for path: " + fullPath + " with exception: " + ex);
             }
 
             // Deny access to sensitive system directories
@@ -233,7 +238,8 @@ internal static class LuaSecurity {
             }
 
             return false; // Default deny for unrecognized absolute paths
-        } catch {
+        } catch (Exception ex) {
+            Core.Diagnostics.Bug("IsAllowedPath: Failed to check path: " + path + " with exception: " + ex);
             return false; // Path parsing errors = deny
         }
     }

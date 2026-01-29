@@ -44,27 +44,27 @@ public static class Program {
             bool isGui = parsedArgs.Remaining.Count == 0 || (parsedArgs.Remaining.Count == 1 && parsedArgs.Remaining[0].Equals("--gui", System.StringComparison.OrdinalIgnoreCase));
             bool isTui = parsedArgs.Remaining.Count == 1 && parsedArgs.Remaining[0].Equals("--tui", System.StringComparison.OrdinalIgnoreCase);
 
-
             // :: Initialize the Logger
             Core.Diagnostics.Initialize(isGui, isTui);
-            
+
             // :: Setup Services
-            Core.Tools.IToolResolver tools = CreateToolResolver(rootPath);
+            Core.Tools.IToolResolver tools = new Core.Tools.JsonToolResolver();
             Core.EngineConfig engineConfig = new Core.EngineConfig();
-            
-            Core.Abstractions.IGameRegistry gameRegistry = new Core.Services.GameRegistry(rootPath);
-            Core.Abstractions.IGameLauncher gameLauncher = new Core.Services.GameLauncher(gameRegistry, tools, engineConfig, rootPath);
-            Core.Abstractions.IOperationsLoader opsLoader = new Core.Services.OperationsLoader();
-            Core.Abstractions.IGitService gitService = new Core.Services.GitService(rootPath);
-            Core.Abstractions.ICommandService commandService = new Core.Services.CommandService();
+
+            Core.Abstractions.IGameRegistry gameRegistry = new Core.Services.GameRegistry();
+
+            Core.Abstractions.IGameLauncher _gameLauncher = new Core.Services.GameLauncher(gameRegistry, tools, engineConfig, rootPath);
+            Core.Abstractions.IOperationsLoader _opsLoader = new Core.Services.OperationsLoader();
+            Core.Abstractions.IGitService _gitService = new Core.Services.GitService();
+            Core.Abstractions.ICommandService _commandService = new Core.Services.CommandService();
 
             Core.Engine _engine = new Core.Engine(
                 rootPath: rootPath,
                 gameRegistry: gameRegistry,
-                gameLauncher: gameLauncher,
-                operationsLoader: opsLoader,
-                gitService: gitService,
-                commandService: commandService,
+                gameLauncher: _gameLauncher,
+                operationsLoader: _opsLoader,
+                gitService: _gitService,
+                commandService: _commandService,
                 toolResolver: tools,
                 engineConfig: engineConfig
             );
@@ -75,7 +75,7 @@ public static class Program {
             // - No remaining args -> GUI
             // - One arg "--gui" -> GUI
             if (isGui) {
-                return await Interface.GUI.AvaloniaGui.RunAsync(_engine);
+                return await Interface.GUI.AvaloniaGui.RunAsync(_engine); // ;; gui flow step1 ;;
             }
 
             // Logic:
@@ -101,12 +101,6 @@ public static class Program {
     /* :: :: Main :: END :: */
     // //
     /* :: :: Methods :: START :: */
-
-    // Creates the tool resolver based on available config files
-    private static Core.Tools.IToolResolver CreateToolResolver(string root) {
-        // Use JsonToolResolver which now handles dynamic reloading and fallback
-        return new Core.Tools.JsonToolResolver(root);
-    }
 
     // Simple container for parsed results
     private class ParsedArgs {

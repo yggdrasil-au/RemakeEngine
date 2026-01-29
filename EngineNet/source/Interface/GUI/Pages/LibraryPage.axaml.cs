@@ -106,7 +106,7 @@ public partial class LibraryPage:UserControl {
 
             var modules = _engine.Modules(Core.Utils.ModuleFilter.Installed);
 #if DEBUG
-        Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] Found {modules.Count} modules.");
+            Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] Found {modules.Count} modules.");
             // list all modules
             foreach (var kv in modules) {
                 var m = kv.Value;

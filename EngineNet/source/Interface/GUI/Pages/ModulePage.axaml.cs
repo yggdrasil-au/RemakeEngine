@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
 
@@ -8,7 +9,7 @@ using System.Diagnostics;
 
 namespace EngineNet.Interface.GUI.Pages;
 
-internal sealed partial class ModulePage:UserControl {
+internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     /* :: :: Vars :: START :: */
     private readonly Core.Engine? _engine;
@@ -366,8 +367,14 @@ internal sealed partial class ModulePage:UserControl {
         public override string? ReadLine() { return _provider(); }
     }
 
-    private event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
-    private void Raise(string name) => PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName: name));
+    private event PropertyChangedEventHandler? _propertyChanged;
+
+    event PropertyChangedEventHandler? INotifyPropertyChanged.PropertyChanged {
+        add => _propertyChanged += value;
+        remove => _propertyChanged -= value;
+    }
+
+    private void Raise(string name) => _propertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName: name));
 
     private sealed class Cmd:System.Windows.Input.ICommand {
         private readonly System.Func<object?, System.Threading.Tasks.Task> _run;

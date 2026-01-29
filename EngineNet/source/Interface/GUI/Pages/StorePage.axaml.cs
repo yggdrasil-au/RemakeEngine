@@ -10,7 +10,7 @@ using Avalonia.Controls;
 
 namespace EngineNet.Interface.GUI.Pages;
 
-public partial class StorePage:UserControl {
+public partial class StorePage:UserControl, INotifyPropertyChanged {
 
     /* :: :: Vars :: START :: */
     // //
@@ -278,8 +278,14 @@ public partial class StorePage:UserControl {
         }
     }
 
-    private event PropertyChangedEventHandler? PropertyChanged;
-    private void Raise(string name) => PropertyChanged?.Invoke(this, e: new PropertyChangedEventArgs(name));
+    private event PropertyChangedEventHandler? _propertyChanged;
+
+    event PropertyChangedEventHandler? INotifyPropertyChanged.PropertyChanged {
+        add => _propertyChanged += value;
+        remove => _propertyChanged -= value;
+    }
+
+    private void Raise(string name) => _propertyChanged?.Invoke(this, e: new PropertyChangedEventArgs(name));
 
     private sealed class Cmd(System.Func<object?, Task> run):System.Windows.Input.ICommand {
         private readonly Func<object?, Task> _run = run;

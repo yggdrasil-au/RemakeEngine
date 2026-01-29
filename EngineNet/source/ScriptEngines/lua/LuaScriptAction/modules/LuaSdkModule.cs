@@ -3,6 +3,7 @@ using MoonSharp.Interpreter;
 using System.IO;
 using System.Collections.Generic;
 using EngineNet.Core.Utils;
+using System;
 
 namespace EngineNet.ScriptEngines.lua.LuaModules;
 
@@ -90,7 +91,8 @@ internal static class LuaSdkModule {
                 }
                 Helpers.ConfigHelpers.ValidateSourceDir(dir);
                 return true;
-            } catch {
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("validate_source_dir failed with exception: " + ex);
                 return false;
             }
         });
@@ -107,7 +109,8 @@ internal static class LuaSdkModule {
                 bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
                 Helpers.ConfigHelpers.CopyDirectory(src, dst, ow);
                 return true;
-            } catch {
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("copy_dir failed with exception: " + ex);
                 return false;
             }
         });
@@ -122,7 +125,8 @@ internal static class LuaSdkModule {
                 bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
                 Helpers.ConfigHelpers.MoveDirectory(src, dst, ow);
                 return true;
-            } catch {
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("move_dir failed with exception: " + ex);
                 return false;
             }
         });
@@ -143,7 +147,8 @@ internal static class LuaSdkModule {
                 }
                 List<string> list = Utils.LuaUtilities.TableToStringList(names);
                 return Helpers.ConfigHelpers.HasAllSubdirs(baseDir, list);
-            } catch {
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("has_all_subdirs failed with exception: " + ex);
                 return false;
             }
         });
@@ -156,7 +161,8 @@ internal static class LuaSdkModule {
                 }
                 System.IO.Directory.CreateDirectory(path);
                 return true;
-            } catch {
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("ensure_dir failed with exception: " + ex);
                 return false;
             }
         });
@@ -181,7 +187,8 @@ internal static class LuaSdkModule {
                 }
 
                 return true;
-            } catch {
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("is_writable failed with exception: " + ex);
                 return false;
             }
         });
@@ -197,7 +204,8 @@ internal static class LuaSdkModule {
                     System.IO.Directory.Delete(path, true);
                 }
                 return true;
-            } catch {
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("remove_dir failed with exception: " + ex);
                 return false;
             }
         });
@@ -213,7 +221,8 @@ internal static class LuaSdkModule {
                     System.IO.File.Delete(path);
                 }
                 return true;
-            } catch {
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("remove_file failed with exception: " + ex);
                 return false;
             }
         });
@@ -228,7 +237,8 @@ internal static class LuaSdkModule {
                 bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
                 System.IO.File.Copy(src, dst, ow);
                 return true;
-            } catch {
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("copy_file failed with exception: " + ex);
                 return false;
             }
         });
@@ -248,7 +258,8 @@ internal static class LuaSdkModule {
                     return true;
                 }
                 return false;
-            } catch {
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("rename_file failed with exception: " + ex);
                 return false;
             }
         });
@@ -284,17 +295,19 @@ internal static class LuaSdkModule {
                     if (Utils.LuaFileSystemUtils.IsSymlink(destFull) || System.IO.File.Exists(destFull)) {
                         System.IO.File.Delete(destFull);
                     }
-                } catch {
-                    Core.Diagnostics.Bug("Failed to delete existing file or link: " + destFull);
+                } catch (Exception ex) {
+                    Core.Diagnostics.luaInternalCatch("Failed to delete existing file or link: " + destFull + " with exception: " + ex);
                     /* ignore */
                 }
                 try {
                     Helpers.HardLink.Create(srcFull, destFull);
                     return true;
-                } catch {
+                } catch (Exception ex) {
+                    Core.Diagnostics.luaInternalCatch("Failed to create hardlink from " + srcFull + " to " + destFull + " with exception: " + ex);
                     return false;
                 }
-            } catch {
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("create_hardlink failed with exception: " + ex);
                 return false;
             }
         });
@@ -308,7 +321,8 @@ internal static class LuaSdkModule {
                 using System.IO.FileStream fs = System.IO.File.OpenRead(path);
                 byte[] hash = System.Security.Cryptography.SHA1.HashData(fs);
                 return System.Convert.ToHexString(hash).ToLowerInvariant();
-            } catch {
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("sha1_file failed with exception: " + ex);
                 return null;
             }
         });
@@ -325,7 +339,8 @@ internal static class LuaSdkModule {
             try {
                 System.IO.Directory.CreateDirectory(path);
                 return true;
-            } catch {
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("mkdir failed with exception: " + ex);
                 return false;
             }
         });
@@ -351,7 +366,8 @@ internal static class LuaSdkModule {
                     return DynValue.NewTable(attrs);
                 }
                 return DynValue.Nil;
-            } catch {
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("attributes failed with exception: " + ex);
                 return DynValue.Nil;
             }
         });
@@ -375,7 +391,8 @@ internal static class LuaSdkModule {
                     list.Append(DynValue.NewString(System.IO.Path.GetFileName(entry)));
                 }
                 return list;
-            } catch {
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("list_dir failed with exception: " + ex);
                 return new Table(LuaEnvObj.LuaScript);
             }
         });
@@ -384,7 +401,8 @@ internal static class LuaSdkModule {
             try {
                 byte[] data = System.Security.Cryptography.MD5.HashData(System.Text.Encoding.UTF8.GetBytes(text ?? string.Empty));
                 return System.Convert.ToHexString(data).ToLowerInvariant();
-            } catch {
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("md5 failed with exception: " + ex);
                 return string.Empty;
             }
         });
@@ -396,9 +414,9 @@ internal static class LuaSdkModule {
 
             try {
                 System.Threading.Thread.Sleep(System.TimeSpan.FromSeconds(seconds));
-            }  catch {
-            Core.Diagnostics.Bug($"Error .....'");
-        }
+            }  catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("sleep failed with exception: " + ex);
+            }
         });
     }
 
@@ -421,7 +439,8 @@ internal static class LuaSdkModule {
                 Core.Utils.EngineSdk.Error($"Unsupported archive format '{ext}'. Use 7z tool from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" for other formats.");
                 return false;
             } catch (System.Exception ex) {
-                Core.Utils.EngineSdk.Error($"Archive extraction failed: {ex.Message}");
+                Core.Utils.EngineSdk.Error($"Archive extraction failed: {ex.Message}"); // output directly to UI, consider returning error to lua instead
+                Core.Diagnostics.luaInternalCatch("extract_archive failed with exception: " + ex);
                 return false;
             }
         });
@@ -454,6 +473,7 @@ internal static class LuaSdkModule {
                 return false;
             } catch (System.Exception ex) {
                 Core.Utils.EngineSdk.Error($"Archive creation failed: {ex.Message}");
+                Core.Diagnostics.luaInternalCatch("create_archive failed with exception: " + ex);
                 return false;
             }
         });
@@ -472,6 +492,7 @@ internal static class LuaSdkModule {
                 return Utils.LuaUtilities.ToDynValue(GetScriptFromTable(LuaEnvObj.sdk), obj);
             } catch (System.Exception ex) {
                 Core.Utils.EngineSdk.Error($"TOML read failed: {ex.Message}");
+                Core.Diagnostics.luaInternalCatch("toml_read_file failed with exception: " + ex);
                 return DynValue.Nil;
             }
         });
@@ -487,6 +508,7 @@ internal static class LuaSdkModule {
                 TomlHelpers.WriteTomlFile(path, obj);
             } catch (System.Exception ex) {
                 Core.Utils.EngineSdk.Error($"TOML write failed: {ex.Message}");
+                Core.Diagnostics.luaInternalCatch("toml_write_file failed with exception: " + ex);
             }
         });
     }
@@ -592,7 +614,8 @@ internal static class LuaSdkModule {
             try {
                 using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(json);
                 return Utils.LuaUtilities.JsonElementToDynValue(LuaEnvObj.LuaScript, doc.RootElement);
-            } catch {
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("dkjson.decode failed with exception: " + ex);
                 return DynValue.Nil; // caller will treat as error
             }
         });

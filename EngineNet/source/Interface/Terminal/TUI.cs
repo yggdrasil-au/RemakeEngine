@@ -1,7 +1,5 @@
 
-using System.Linq;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace EngineNet.Interface.Terminal;
 
@@ -13,9 +11,19 @@ internal partial class TUI {
         _engine = engine;
     }
 
+    /* :: :: Constructor, Var :: END :: */
+    // //
+    /* :: :: Methods :: START :: */
+
+    /// <summary>
+    /// Run the interactive terminal user interface menu
+    /// - allows selecting a game and operations to run
+    /// - runs initialization operations automatically once per game selection
+    /// </summary>
+    /// <returns></returns>
     internal async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync() {
         try {
-            // 1) Pick a game
+            // get all modules that exist on disk
             Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.Modules(Core.Utils.ModuleFilter.Installed);
 
             // Allow managing modules from the game selection menu
@@ -23,12 +31,16 @@ internal partial class TUI {
             while (true) {
                 System.Console.Clear();
                 System.Console.WriteLine("Select a game:");
+
                 List<string> gameMenu = new List<string>();
                 List<string> gameKeyMap = new List<string>();
                 List<Core.Utils.GameModuleInfo> internalModules = new List<Core.Utils.GameModuleInfo>();
 
+                // Build menu with states
+                // foreach module, display '<Name> [state1, state2, state3]'
                 foreach (KeyValuePair<string, Core.Utils.GameModuleInfo> kv in modules) {
                     Core.Utils.GameModuleInfo m = kv.Value;
+                    // Skip internal modules; add them after game modules below separator
                     if (m.IsInternal) {
                         internalModules.Add(m);
                         continue;
@@ -37,40 +49,50 @@ internal partial class TUI {
                     gameMenu.Add(display);
                     gameKeyMap.Add(m.Name);
                 }
-                gameMenu.Add("---------------");
+                gameMenu.Add("---------------"); // separator before internal modules
 
+                // Add internal modules after game modules
                 foreach (Core.Utils.GameModuleInfo m in internalModules) {
                     gameMenu.Add(m.Name);
                     gameKeyMap.Add(m.Name);
                 }
 
                 gameMenu.Add("Exit");
+                // Prompt for selection
                 int gidx = SelectFromMenu(gameMenu, highlightSeparators: true);
                 if (gidx < 0 || gameMenu[gidx] == "Exit") {
                     return 0;
                 }
 
+                // Get selected game name
                 string gsel = gameMenu[gidx];
 
                 // Map selection index to actual module key
                 if (gidx >= 0 && gidx < gameKeyMap.Count) {
                     gameName = gameKeyMap[gidx];
+                    Core.Diagnostics.Trace($"[TUI::RunInteractiveMenuAsync()] Selected game: {gameName}");
                 } else {
-                    // Fallback: treat selection as raw name (legacy)
+                    // Fallback: treat selection as raw name
                     gameName = gsel;
+                    Core.Diagnostics.Trace($"[TUI::RunInteractiveMenuAsync()] Warning: could not map selected index {gidx} to module key; using raw selection '{gsel}'");
                 }
-                break;
+                break; // exit game selection loop
             }
 
             // 2) Load operations list and render menu
-            if (!modules.TryGetValue(gameName, out Core.Utils.GameModuleInfo? moduleInfo) || moduleInfo is not Core.Utils.GameModuleInfo info) {
-                    Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game not found.");
+
+            Core.Utils.GameModuleInfo? info = null;
+            // check the module exists in modules dictionary
+            if (!modules.TryGetValue(gameName, out var moduleInfo) || (info = moduleInfo) is null) {
+                Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game not found.");
                 return 1;
             }
+            // load operations list from ops_file
             if (info.OpsFile is null) {
-                    Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game is missing ops_file.");
+                Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game is missing ops_file.");
                 return 1;
             }
+            // get all operations for the selected game
             List<Dictionary<string, object?>>? allOps = _engine.LoadOperationsList(info.OpsFile);
             if (allOps is null) {
                 Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Failed to load operations list.");
@@ -80,6 +102,7 @@ internal partial class TUI {
                 return 1;
             }
 
+            // separate init operations from regular ones
             List<Dictionary<string, object?>> initOps = allOps.FindAll(op => op.TryGetValue(key: "init", out object? i) && i is bool b && b);
             List<Dictionary<string, object?>> regularOps = allOps.FindAll(op => !op.ContainsKey(key: "init") || !(op[key: "init"] is bool bb && bb));
 
@@ -102,34 +125,27 @@ internal partial class TUI {
                 System.Console.ReadKey(intercept: true);
             }
 
+            // operations menu
             while (true) {
                 System.Console.Clear();
                 System.Console.WriteLine(value: $"--- Operations for: {gameName}");
                 List<string> menu = new List<string>();
                 menu.Add(item: "Run All");
                 menu.Add(item: "---------------");
+                // list regular operations
+                // for each operation, display its "Name" entry if exists, or just display 'unnamed'
                 foreach (Dictionary<string, object?> op in regularOps) {
                     string name;
-
                     // First choice: explicit "Name" entry if it's a non-empty string
                     if (op.TryGetValue(key: "Name", out object? n) &&
                         n is string s &&
                         !string.IsNullOrWhiteSpace(s)) {
                         name = s;
                     } else {
-                        // Fallback: derive from "script" filename, or "(unnamed)"
-                        string? scriptPath = null;
-
-                        if (op.TryGetValue(key: "script", out object? sc)) {
-                            scriptPath = sc?.ToString();
-                        }
-
-                        name = System.IO.Path.GetFileName(
-                            string.IsNullOrWhiteSpace(scriptPath) ? "(unnamed)" : scriptPath
-                        );
+                        name = "(unnamed)";
                     }
 
-                    menu.Add(name);
+                    menu.Add(item: name);
                 }
                 menu.Add(item: "---------------");
                 menu.Add(item: "Change Game");

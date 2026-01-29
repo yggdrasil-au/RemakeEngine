@@ -6,8 +6,8 @@ namespace EngineNet.Core.Services;
 public class GitService : IGitService {
     private readonly GitTools _gitTools;
 
-    public GitService(string rootPath) {
-        _gitTools = new GitTools(System.IO.Path.Combine(rootPath, "EngineApps", "Games"));
+    public GitService() {
+        _gitTools = new GitTools();
     }
 
     public bool CloneModule(string url) {

@@ -5,11 +5,11 @@ namespace EngineNet.Core;
 
 /// <summary>
 /// Executes external processes while streaming output and handling structured
-
+/// events. Lines prefixed with the SDK event marker
 /// are parsed as JSON event payloads and forwarded to <c>onEvent</c>.
 /// Supports interactive prompts by invoking <c>stdinProvider</c> when a prompt event is received.
 /// </summary>
-internal sealed class ProcessRunner {
+internal sealed class ProcessRunner() {
     /// <summary>
     /// Callback to receive a single line of output from the child process.
     /// </summary>
@@ -44,7 +44,8 @@ internal sealed class ProcessRunner {
         EventHandler? onEvent = null,
         StdinProvider? stdinProvider = null,
         IDictionary<string, object?>? envOverrides = null,
-        System.Threading.CancellationToken cancellationToken = default) {
+        System.Threading.CancellationToken cancellationToken = default
+    ) {
         if (commandParts is null || commandParts.Count < 1) {
             onOutput?.Invoke($"Operation '{opTitle}' has no executable specified. Skipping.", "stderr");
             return false;
@@ -331,4 +332,6 @@ internal sealed class ProcessRunner {
         Core.Diagnostics.Log($"[ProcessRunner.cs::IsApprovedExecutable()] Blocked unrecognized executable: {executable}");
         return false;
     }
+
 }
+

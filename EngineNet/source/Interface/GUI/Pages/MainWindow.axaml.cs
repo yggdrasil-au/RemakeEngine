@@ -40,7 +40,6 @@ public partial class MainWindow:Window {
 
     private void ShowStore() {
         if (_engine is null) {
-
             return;
         }
         ContentHost.Content = new Pages.StorePage(_engine);

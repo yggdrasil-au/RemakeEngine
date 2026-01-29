@@ -298,10 +298,11 @@ internal sealed class ModuleScanner {
     }
 
     /// <summary>
-    /// Tiny helper so we don't re-enumerate too much / keep lambdas inline.
-    /// Creates a lazy iterator with the predicate.
+    /// Yields only those GameModuleInfo instances from <paramref name="src"/>
+    /// that satisfy the predicate <paramref name="pred"/>.
     /// </summary>
     private static IEnumerable<GameModuleInfo> Only(IEnumerable<GameModuleInfo> src, Func<GameModuleInfo, bool> pred) {
+        // foreach game module info in source, yield return if predicate matches
         foreach (GameModuleInfo m in src) {
             if (pred(m)) {
                 yield return m;

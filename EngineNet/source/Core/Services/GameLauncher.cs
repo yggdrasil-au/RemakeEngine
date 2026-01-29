@@ -6,12 +6,26 @@ using EngineNet.Core.Utils;
 
 namespace EngineNet.Core.Services;
 
+/// <summary>
+/// Service responsible for launching games.
+/// It resolves game metadata, execution paths, and handles different launch types
+/// such as direct executables, Lua scripts, or Godot project files.
+/// </summary>
 public class GameLauncher : IGameLauncher {
     private readonly IGameRegistry _gameRegistry;
     private readonly IToolResolver _toolResolver;
     private readonly EngineConfig _config;
     private readonly string _rootPath;
 
+    /* :: :: Constructors :: START :: */
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GameLauncher"/> class.
+    /// </summary>
+    /// <param name="gameRegistry">The registry to look up game paths and executables.</param>
+    /// <param name="toolResolver">The tool resolver for finding external tools (e.g., Godot).</param>
+    /// <param name="config">The global engine configuration.</param>
+    /// <param name="rootPath">The base path for the engine project.</param>
     internal GameLauncher(IGameRegistry gameRegistry, IToolResolver toolResolver, EngineConfig config, string rootPath) {
         _gameRegistry = gameRegistry;
         _toolResolver = toolResolver;
@@ -19,6 +33,15 @@ public class GameLauncher : IGameLauncher {
         _rootPath = rootPath;
     }
 
+    /* :: :: Constructors :: END :: */
+    // //
+    /* :: :: Methods :: START :: */
+
+    /// <summary>
+    /// Asynchronously launches a game by its specific module name.
+    /// </summary>
+    /// <param name="name">The unique identifier of the game module to launch.</param>
+    /// <returns>A task that represents the asynchronous launch operation, returning <c>true</c> if the launch was successful; otherwise, <c>false</c>.</returns>
     public async Task<bool> LaunchGameAsync(string name) {
         string root = _gameRegistry.GetGamePath(name) ?? _rootPath;
         string gameToml = System.IO.Path.Combine(root, "game.toml");
@@ -79,9 +102,9 @@ public class GameLauncher : IGameLauncher {
         // if lua script exists, run it
         if (!string.IsNullOrWhiteSpace(luaScript) && System.IO.File.Exists(luaScript)) {
             try {
-                var action = new ScriptEngines.lua.LuaScriptAction(luaScript!, System.Array.Empty<string>(), gameRoot: root, projectRoot: _rootPath);
+                ScriptEngines.lua.LuaScriptAction action = new ScriptEngines.lua.LuaScriptAction(scriptPath: luaScript!, args: System.Array.Empty<string>(), gameRoot: root, projectRoot: _rootPath);
                 // Note: LuaScriptAction.ExecuteAsync is async, so we await it
-                await action.ExecuteAsync(_toolResolver);
+                await action.ExecuteAsync(tools: _toolResolver);
                 return true;
             } catch { return false; }
         }
@@ -118,4 +141,6 @@ public class GameLauncher : IGameLauncher {
             return true;
         } catch { return false; }
     }
+
+    /* :: :: Methods :: END :: */
 }

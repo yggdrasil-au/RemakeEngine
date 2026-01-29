@@ -3,7 +3,6 @@ using System.Linq;
 
 namespace EngineNet.Core;
 
-
 internal sealed partial class Engine {
 
     // used to run a single op by both runallasync and direct operation execution in the GUI/TUI
@@ -33,9 +32,15 @@ internal sealed partial class Engine {
         string scriptPath = parts[1];
         string[] args = parts.Skip(2).ToArray();
 
+        if (scriptType is null) {
+            Core.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Missing script_type for operation with script '{scriptPath}'");
+            return false;
+        }
+
         bool result = false;
         try {
             switch (scriptType) {
+                case Utils.ScriptConstants.TypeInternal:
                 case "engine": {
                     try {
                         string? action = op.TryGetValue("script", out object? s) ? s?.ToString() : null;
@@ -85,46 +90,21 @@ internal sealed partial class Engine {
                     break;
                 }
                 // embedded script engines, Moonsharp (Lua), Python (IronPython), JavaScript (Jint)
-                /*case "lua":
+                case "lua":
                 case "python":
-                case "js": {*/
-                case var t when Core.Utils.ScriptConstants.IsEmbedded(t): {
-                    try {
-                        // create the action with the dispatcher
-                        IEnumerable<string> argsEnum = args;
-                        ScriptEngines.Helpers.IAction? act = ScriptEngines.Helpers.EmbeddedActionDispatcher.TryCreate(
-                            scriptType: scriptType,
-                            scriptPath: scriptPath,
-                            args: argsEnum,
-                            currentGame: currentGame,
-                            games: games,
-                            rootPath: RootPath
-                        );
-                        // null act means unsupported script type
-                        if (act is null) {
-                            result = false;
-                            Core.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Unsupported embedded script type '{scriptType}'");
-                            break;
-                        }
-                        // execute the action
-                        await act.ExecuteAsync(ToolResolver, cancellationToken);
-                        result = true;
-                    } catch (System.Exception ex) {
-                        Core.Utils.EngineSdk.PrintLine($"{scriptType} engine ERROR: {ex.Message}");
-                        result = false;
-                    }
+                case "js": {
+                    // not supported
+                    Core.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] '{scriptType}' script type not yet supported");
                     break;
                 }
                 default: {
                     // not supported
-                    scriptType ??= "null";
                     Core.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Unsupported script type '{scriptType}'");
                     break;
                 }
             }
         } catch (System.Exception ex) {
             Core.Diagnostics.Bug($"[RunSingleAsync.cs::RunSingleOperationAsync()] err running single op: {ex.Message}");
-
             Core.Utils.EngineSdk.PrintLine($"operation ERROR: {ex.Message}");
             result = false;
         }

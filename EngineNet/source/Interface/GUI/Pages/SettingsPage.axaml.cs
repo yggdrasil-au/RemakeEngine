@@ -42,8 +42,14 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
     //
     // ** :: :: Methods :: START :: **/
 
-    internal event PropertyChangedEventHandler? PropertyChanged;
-    private void Raise(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    private event PropertyChangedEventHandler? _propertyChanged;
+
+    event PropertyChangedEventHandler? INotifyPropertyChanged.PropertyChanged {
+        add => _propertyChanged += value;
+        remove => _propertyChanged -= value;
+    }
+
+    private void Raise(string name) => _propertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
     private sealed class Cmd:System.Windows.Input.ICommand {
         private readonly Func<object?, Task> _run;

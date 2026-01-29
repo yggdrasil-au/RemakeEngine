@@ -36,14 +36,22 @@ internal partial class TUI {
         }
     }
 
+    /// <summary>
+    /// Presents an interactive menu to the user to select from a list of items.
+    /// </summary>
+    /// <param name="items"></param>
+    /// <param name="highlightSeparators"></param>
+    /// <returns></returns>
     private static int SelectFromMenu(IList<string> items, bool highlightSeparators = false) {
         try {
+            // no items
             if (items.Count == 0) {
                 return -1;
             }
 
+            // if interactive menu is not possible, fall back to numbered input selection
             if (!CanUseInteractiveMenu(items.Count)) {
-                return SelectFromMenuFallback(items, highlightSeparators);
+                return SelectFromNumberedMenu(items, highlightSeparators);
             }
 
             int index = 0;
@@ -56,7 +64,7 @@ internal partial class TUI {
                     System.Console.SetCursorPosition(0, renderTop);
                 } catch (System.ArgumentOutOfRangeException) {
                     System.Console.CursorVisible = true;
-                    return SelectFromMenuFallback(items, highlightSeparators);
+                    return SelectFromNumberedMenu(items, highlightSeparators);
                 }
 
                 for (int i = 0; i < items.Count; i++) {
@@ -103,7 +111,13 @@ internal partial class TUI {
         }
     }
 
-    private static int SelectFromMenuFallback(IList<string> items, bool highlightSeparators) {
+    /// <summary>
+    /// menu selection using numbered input
+    /// </summary>
+    /// <param name="items"></param>
+    /// <param name="highlightSeparators"></param>
+    /// <returns></returns>
+    private static int SelectFromNumberedMenu(IList<string> items, bool highlightSeparators) {
         try {
             List<int> selectable = new();
 

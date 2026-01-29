@@ -41,7 +41,7 @@
                 <StackPanel Spacing="12">
                     <TextBlock Text="{Binding PromptTitle}" FontWeight="Bold" FontSize="16" Foreground="White"/>
                     <TextBlock Text="{Binding PromptMessage}" TextWrapping="Wrap" Foreground="#D0D0D0"/>
-                    
+
                     <TextBox Text="{Binding PromptValue}" IsVisible="{Binding IsTextPrompt}" />
 
                     <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">

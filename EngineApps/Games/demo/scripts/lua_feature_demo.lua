@@ -15,10 +15,10 @@ local function parse_args(list)
     while i <= #list do
         local key = list[i]
         if (key == '--Game_Root' or key == '--module') and list[i + 1] then
-            opts.module = list[i + 1]
+            opts.module = list[i + 1] -- this argument is nolonger needed when global Game_Root was added
             i = i + 2
         elseif key == '--Project_Root' and list[i + 1] then
-            opts.projectroot = list[i + 1]
+            opts.projectroot = list[i + 1] -- this argument is nolonger needed when global Project_Root was added
             i = i + 2
         elseif key == '--scratch' and list[i + 1] then
             opts.scratch = list[i + 1]

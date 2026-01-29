@@ -1,6 +1,9 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System;
+
+using EngineNet.Core;
 
 namespace EngineNet.Core.Tools;
 
@@ -13,42 +16,50 @@ namespace EngineNet.Core.Tools;
 /// </summary>
 internal sealed class JsonToolResolver:IToolResolver {
     private readonly Dictionary<string, string> _tools = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+    // //
     private readonly string[] _candidates;
     private string? _loadedFile;
     private System.DateTime _lastWriteTime;
 
-    internal JsonToolResolver(string rootPath) {
+    internal JsonToolResolver() {
         _candidates = new[] {
-            System.IO.Path.Combine(rootPath, "Tools.local.json"),
-            System.IO.Path.Combine(rootPath, "tools.local.json"),
-            System.IO.Path.Combine(rootPath, "EngineApps", "Registries", "Tools", "Main.json"),
-            System.IO.Path.Combine(rootPath, "EngineApps", "Registries", "Tools", "main.json")
+            System.IO.Path.Combine(Program.rootPath, "Tools.local.json"), // local cache of installed tools
+            System.IO.Path.Combine(Program.rootPath, "tools.local.json"),
+            System.IO.Path.Combine(Program.rootPath, "EngineApps", "Registries", "Tools", "Main.json"), // local registry of supported tools
+            System.IO.Path.Combine(Program.rootPath, "EngineApps", "Registries", "Tools", "main.json")
         };
         Load();
     }
 
+    /// <summary>
+    /// Loads or reloads the tool definitions from the highest-priority JSON file.
+    /// </summary>
     private void Load() {
         string? found = _candidates.FirstOrDefault(System.IO.File.Exists);
-        
+
         // If no file found, clear tools and return
         if (found == null) {
+            Core.Diagnostics.Trace("No tool definition file found.");
             if (_loadedFile != null) {
                 _tools.Clear();
                 _loadedFile = null;
+                Core.Diagnostics.Trace("Cleared loaded tools.");
             }
+            Core.Diagnostics.Trace("No tools loaded.");
             return;
         }
 
         // If we found a file, check if it's different from loaded or newer
         bool isNewFile = !string.Equals(found, _loadedFile, System.StringComparison.OrdinalIgnoreCase);
         System.DateTime writeTime = System.IO.File.GetLastWriteTimeUtc(found);
-        
+
+        // If it's new or updated, reload
         if (isNewFile || writeTime > _lastWriteTime) {
             // Only clear if switching files or reloading
             _tools.Clear();
             _loadedFile = found;
             _lastWriteTime = writeTime;
-            
+
             try {
                 string _baseDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(found)) ?? System.IO.Directory.GetCurrentDirectory();
                 using System.IO.FileStream stream = System.IO.File.OpenRead(found);

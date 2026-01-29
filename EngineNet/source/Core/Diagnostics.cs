@@ -195,6 +195,33 @@ internal static class Diagnostics {
         }
     }
 
+    /// <summary>
+    /// Like the Bug method but specifically for logging exceptions from C# invoked by Lua scripts.
+    /// eg when a Lua script calls a C# function that throws an exception, this method can be used to log that exception from C# into lua.log and trace.log.
+    /// </summary>
+    /// <param name="ex"></param>
+    internal static void luaInternalCatch(string ex) {
+        if (Diagnostics._bugWriter == null) return;
+
+        lock (Diagnostics._lock) {
+            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+
+            // Format the header
+            string header = $"[{timestamp}] [LUA_BUG] Caught exception from Lua-invoked C# code.";
+
+            // 1. Write to specific exception.log
+            Diagnostics._bugWriter.WriteLine(header);
+            Diagnostics._bugWriter.WriteLine($"[{timestamp}] [STACK] {ex}");
+#if DEBUG
+            // 2. Write to master trace.log in Debug builds
+            if (Diagnostics._traceWriter != null) {
+                Diagnostics._traceWriter.WriteLine(header);
+                Diagnostics._traceWriter.WriteLine($"[{timestamp}] [STACK] {ex}");
+            }
+#endif
+        }
+    }
+
     internal static void Close() {
         _debugWriter?.Close();
         _bugWriter?.Close();

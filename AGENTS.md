@@ -14,6 +14,8 @@ read [Style.md](Style.md)
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and workflows.
 when writing code, always add documentation and update existing relevant comments and documentation.
 
+# Lua in Remake Engine C#
+when exposing new lua globals/globally accessible components, update the lua '.luarc.json' file at the root of the project to include the new components for code completion and linting.
 
 ## main Readme
 See [README.md](README.md) for an overview of the Remake Engine project.

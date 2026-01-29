@@ -1,5 +1,7 @@
 
 
+using System;
+
 namespace EngineNet.ScriptEngines.lua.LuaModules.Utils;
 
 /// <summary>
@@ -17,7 +19,8 @@ internal static class LuaFileSystemUtils {
         try {
             System.IO.FileSystemInfo info = GetInfo(path);
             return info.Exists ? true : info.LinkTarget != null;
-        } catch {
+        } catch (Exception ex) {
+            Core.Diagnostics.luaInternalCatch("path_exists_including_links failed for path: " + path + " with exception: " + ex);
             return false;
         }
     }
@@ -26,7 +29,8 @@ internal static class LuaFileSystemUtils {
         try {
             System.IO.FileSystemInfo info = GetInfo(path);
             return info.LinkTarget != null || info.Attributes.HasFlag(System.IO.FileAttributes.ReparsePoint);
-        } catch {
+        } catch (Exception ex) {
+            Core.Diagnostics.luaInternalCatch("is_symlink failed for path: " + path + " with exception: " + ex);
             return false;
         }
     }
@@ -47,7 +51,8 @@ internal static class LuaFileSystemUtils {
             }
 
             return true;
-        } catch {
+        } catch (Exception ex) {
+            Core.Diagnostics.luaInternalCatch("create_symlink failed with exception: " + ex);
             return false;
         }
     }
@@ -55,7 +60,8 @@ internal static class LuaFileSystemUtils {
     internal static string? RealPath(string path) {
         try {
             return System.IO.Path.GetFullPath(path);
-        } catch {
+        } catch (Exception ex) {
+            Core.Diagnostics.luaInternalCatch("real_path failed for path: " + path + " with exception: " + ex);
             return null;
         }
     }
@@ -64,7 +70,8 @@ internal static class LuaFileSystemUtils {
         try {
             System.IO.FileSystemInfo info = GetInfo(path);
             return info.LinkTarget;
-        } catch {
+        } catch (Exception ex) {
+            Core.Diagnostics.luaInternalCatch("read_link failed for path: " + path + " with exception: " + ex);
             return null;
         }
     }

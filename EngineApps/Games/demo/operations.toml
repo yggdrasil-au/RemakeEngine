@@ -26,7 +26,7 @@ run-all = false
 Name = "Download Tools"
 Instructions = "Uses the engine downloader to retrieve optional demo tooling."
 script_type = "engine"
-script = "download_tools"
+script = "download-tools"
 tools_manifest = "{{Game_Root}}/Tools.toml"
 
 [[operation]]

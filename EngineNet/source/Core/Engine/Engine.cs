@@ -1,7 +1,5 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
-using EngineNet.Core.Abstractions;
 
 namespace EngineNet.Core;
 
@@ -12,13 +10,13 @@ internal sealed partial class Engine {
 
     /* :: :: Vars :: Start :: */
     public string RootPath { get; }
-    
+
     // Services exposed to partial classes
-    internal IGameRegistry GameRegistry { get; }
-    internal IGameLauncher GameLauncher { get; }
-    internal IOperationsLoader OperationsLoader { get; }
-    internal IGitService GitService { get; }
-    internal ICommandService CommandService { get; }
+    internal Core.Abstractions.IGameRegistry GameRegistry { get; }
+    internal Core.Abstractions.IGameLauncher GameLauncher { get; }
+    internal Core.Abstractions.IOperationsLoader OperationsLoader { get; }
+    internal Core.Abstractions.IGitService GitService { get; }
+    internal Core.Abstractions.ICommandService CommandService { get; }
     internal Core.Tools.IToolResolver ToolResolver { get; }
     internal Core.EngineConfig EngineConfig { get; }
 
@@ -26,11 +24,11 @@ internal sealed partial class Engine {
 
     internal Engine(
         string rootPath,
-        IGameRegistry gameRegistry,
-        IGameLauncher gameLauncher,
-        IOperationsLoader operationsLoader,
-        IGitService gitService,
-        ICommandService commandService,
+        Core.Abstractions.IGameRegistry gameRegistry,
+        Core.Abstractions.IGameLauncher gameLauncher,
+        Core.Abstractions.IOperationsLoader operationsLoader,
+        Core.Abstractions.IGitService gitService,
+        Core.Abstractions.ICommandService commandService,
         Core.Tools.IToolResolver toolResolver,
         Core.EngineConfig engineConfig
     ) {
@@ -64,6 +62,12 @@ internal sealed partial class Engine {
     }
 
     // Scans for game modules in registries
+    /// <summary>
+    /// returns a dictionary of game modules filtered by the provided filter
+    /// with the name as the key and the GameModuleInfo as the value
+    /// </summary>
+    /// <param name="_Filter"></param>
+    /// <returns></returns>
     internal Dictionary<string, Core.Utils.GameModuleInfo> Modules(Core.Utils.ModuleFilter _Filter) {
         return GameRegistry.GetModules(_Filter);
     }

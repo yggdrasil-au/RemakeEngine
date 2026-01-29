@@ -1,3 +1,4 @@
+using System;
 using MoonSharp.Interpreter;
 
 namespace EngineNet.ScriptEngines.lua;
@@ -166,7 +167,10 @@ internal sealed partial class LuaScriptAction : ScriptEngines.Helpers.IAction {
                                 }
                             }
                             return null;
-                        } catch { return null; }
+                        } catch (Exception ex) {
+                            Core.Diagnostics.luaInternalCatch("io.read failed with exception: " + ex);
+                            return null;
+                        }
                     });
 
                     // Implement file:seek() for binary file navigation
@@ -182,7 +186,10 @@ internal sealed partial class LuaScriptAction : ScriptEngines.Helpers.IAction {
                             };
 
                             return fs.Seek(offset.Value, origin);
-                        } catch { return null; }
+                        } catch(Exception ex) {
+                            Core.Diagnostics.luaInternalCatch("io.seek failed with exception: " + ex);
+                            return null;
+                        }
                     });
 
                     LuaEnvObj.fileHandle["write"] = (System.Action<string>)((content) => {
@@ -198,26 +205,31 @@ internal sealed partial class LuaScriptAction : ScriptEngines.Helpers.IAction {
                                 writer.Write(content);
                                 writer.Flush();
                             }
-                        } catch {
-                            Core.Diagnostics.Bug("io.write failed");
+                        } catch (Exception ex) {
+                            Core.Diagnostics.luaInternalCatch("io.write failed with exception: " + ex);
                             /* ignore */
                         }
                     });
                     LuaEnvObj.fileHandle["close"] = (System.Action)(() => {
-                        try { fs?.Dispose(); } catch {
-                            Core.Diagnostics.Bug("io.close failed");
+                        try {
+                            fs?.Dispose();
+                        } catch (Exception ex) {
+                            Core.Diagnostics.luaInternalCatch("io.close failed with exception: " + ex);
                             /* ignore */
                         }
                     });
                     LuaEnvObj.fileHandle["flush"] = (System.Action)(() => {
-                        try { fs?.Flush(); } catch {
-                            Core.Diagnostics.Bug("io.flush failed");
+                        try {
+                            fs?.Flush();
+                        } catch (Exception ex) {
+                            Core.Diagnostics.luaInternalCatch("io.flush failed with exception: " + ex);
                             /* ignore */
                         }
                     });
                     return DynValue.NewTable(LuaEnvObj.fileHandle);
                 }
-            } catch {
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("io.open failed with exception: " + ex);
                 return DynValue.Nil;
             }
             return DynValue.Nil;

@@ -9,15 +9,7 @@ namespace EngineNet.Core.Utils;
 /// Constructs command-line invocations from an operation definition and context.
 /// Responsible for resolving placeholders and mapping prompts/answers to CLI args.
 /// </summary>
-internal sealed class CommandBuilder {
-
-    /// <summary>
-    /// Initializes a new instance of <see cref="CommandBuilder"/>.
-    /// </summary>
-    /// <param name="rootPath">Working root of the engine; may be used for relative resolution.</param>
-    internal CommandBuilder() {
-        //
-    }
+internal sealed class CommandBuilder() {
 
     /// <summary>
     /// Build a process invocation for the given operation.
@@ -35,7 +27,8 @@ internal sealed class CommandBuilder {
         Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
         IDictionary<string, object?> engineConfig,
         IDictionary<string, object?> op,
-        IDictionary<string, object?> promptAnswers) {
+        IDictionary<string, object?> promptAnswers
+    ) {
         if (string.IsNullOrWhiteSpace(currentGame)) {
             throw new System.ArgumentException(message: "No game has been loaded.", nameof(currentGame));
         }

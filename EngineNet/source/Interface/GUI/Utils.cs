@@ -24,7 +24,8 @@ internal static class Utils {
         string moduleName,
         string operationName,
         System.Func<Core.ProcessRunner.OutputHandler, Core.ProcessRunner.EventHandler, Core.ProcessRunner.StdinProvider, Task<TResult>> executor,
-        IDictionary<string, string>? autoPromptResponses = null) {
+        IDictionary<string, string>? autoPromptResponses = null
+    ) {
 
         OperationOutputService outputService = OperationOutputService.Instance;
         outputService.StartOperation(operationName, moduleName);

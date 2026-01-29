@@ -36,7 +36,7 @@ internal static class AvaloniaGui {
 
             // 2) Build the app and start the desktop lifetime.
             //    This call blocks until the window closes / lifetime ends.
-            BuildAvaloniaApp().StartWithClassicDesktopLifetime(System.Array.Empty<string>());
+            BuildAvaloniaApp().StartWithClassicDesktopLifetime(System.Array.Empty<string>());  // ;; gui flow step3 ;;
 
             // 3) If we reached here without exceptions, return success.
             return 0;
@@ -58,6 +58,7 @@ internal static class AvaloniaGui {
     /// </remarks>
     internal static AppBuilder BuildAvaloniaApp() {
         // Configure the application type, detect platform backends, and enable tracing.
+        // takes the app.axaml.cs 'App' class as the application root.
         return AppBuilder.Configure<App>().UsePlatformDetect().LogToTrace();
     }
 }
