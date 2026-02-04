@@ -1,50 +1,5 @@
 # Engine TODO List
 
-
-# update tools downloader
-currently it can only have one version of each tool downloaded/defined
-it should be updated to allow multiple versions of each tool to be downloaded and managed
-allowing each module to define which version of a tool it needs to use
-when a module script calls a tool it should search for the version defined in the module first
-if not found it should not use any other version and instead return an error
-this will allow modules to use different versions of tools without conflict
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## Interfaces:
 
 ### TUI:
@@ -71,6 +26,8 @@ blender convert is dependent on extract and txd operations completing first, txd
 
 * :: FEATURE :: add {{placeholder}} resolution for any operation field in operations.toml including Name..., ensure it reloads after every user or script action
 
+
+some features may require elevated privleges to run, like symlinks on windows, consider adding an option to launch a script with elevated privileges if the operation requires it, or at least add support for operation flag to request elevated privileges and display a warning if the engine is not running with them, this would be useful for operations that require admin rights to run successfully like symlink creation on windows.
 
 
 ### FileHandlers:

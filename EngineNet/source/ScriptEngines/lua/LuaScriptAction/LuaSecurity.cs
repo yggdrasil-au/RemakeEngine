@@ -128,15 +128,15 @@ internal static class LuaSecurity {
     /// </summary>
     internal static bool IsAllowedPath(string path) {
         if (string.IsNullOrWhiteSpace(path)) {
-            Core.Diagnostics.Trace("[LuaSecurity.cs::IsAllowedPath()] Denying access to empty or whitespace path");
+            //Core.Diagnostics.Trace("[LuaSecurity.cs::IsAllowedPath()] Denying access to empty or whitespace path");
             return false;
         }
 
         try {
             string fullPath = System.IO.Path.GetFullPath(path);
             string normalizedPath = fullPath.Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant();
-            Core.Diagnostics.Trace($"[LuaSecurity.cs::IsAllowedPath()] Checking path '{fullPath}'");
-            Core.Diagnostics.Trace($"[LuaSecurity.cs::IsAllowedPath()] Normalized path '{normalizedPath}'");
+            //Core.Diagnostics.Trace($"[LuaSecurity.cs::IsAllowedPath()] Checking path '{fullPath}'");
+            //Core.Diagnostics.Trace($"[LuaSecurity.cs::IsAllowedPath()] Normalized path '{normalizedPath}'");
 
             // First, allow any user-approved roots for this session
             foreach (string approved in UserApprovedRoots) {
@@ -151,8 +151,8 @@ internal static class LuaSecurity {
                 ? currentDir
                 : EngineNet.Program.rootPath.Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant();
 
-            Core.Diagnostics.Trace($"[LuaSecurity.cs::IsAllowedPath()] Current directory '{currentDir}'");
-            Core.Diagnostics.Trace($"[LuaSecurity.cs::IsAllowedPath()] Project root '{projectRoot}'");
+            //Core.Diagnostics.Trace($"[LuaSecurity.cs::IsAllowedPath()] Current directory '{currentDir}'");
+            //Core.Diagnostics.Trace($"[LuaSecurity.cs::IsAllowedPath()] Project root '{projectRoot}'");
 
             // Allowed path patterns (case-insensitive)
             string[] allowedPatterns = {
@@ -171,7 +171,7 @@ internal static class LuaSecurity {
             // Allow if path starts with any allowed pattern
             foreach (string allowedPattern in allowedPatterns) {
                 if (normalizedPath.StartsWith(allowedPattern, System.StringComparison.OrdinalIgnoreCase)) {
-                    Core.Diagnostics.Trace($"[LuaSecurity.cs::IsAllowedPath()] Path '{normalizedPath}' starts with allowed pattern '{allowedPattern}'");
+                    //Core.Diagnostics.Trace($"[LuaSecurity.cs::IsAllowedPath()] Path '{normalizedPath}' starts with allowed pattern '{allowedPattern}'");
                     return true;
                 } else {
                     Core.Diagnostics.Trace($"[LuaSecurity.cs::IsAllowedPath()] Path '{normalizedPath}' does not start with allowed pattern '{allowedPattern}'");

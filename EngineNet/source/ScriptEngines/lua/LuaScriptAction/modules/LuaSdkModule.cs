@@ -243,6 +243,38 @@ internal static class LuaSdkModule {
             }
         });
 
+        LuaEnvObj.sdk["write_file"] = (System.Func<string, string, bool>)((path, content) => {
+            try {
+                if (!LuaSecurity.EnsurePathAllowedWithPrompt(path)) {
+                    return false;
+                }
+                string? parent = System.IO.Path.GetDirectoryName(path);
+                if (!string.IsNullOrEmpty(parent)) {
+                    System.IO.Directory.CreateDirectory(parent);
+                }
+                System.IO.File.WriteAllText(path, content ?? string.Empty);
+                return true;
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("write_file failed with exception: " + ex);
+                return false;
+            }
+        });
+
+        LuaEnvObj.sdk["read_file"] = (System.Func<string, string?>)(path => {
+            try {
+                if (!LuaSecurity.EnsurePathAllowedWithPrompt(path)) {
+                    return null;
+                }
+                if (!System.IO.File.Exists(path)) {
+                    return null;
+                }
+                return System.IO.File.ReadAllText(path);
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("read_file failed with exception: " + ex);
+                return null;
+            }
+        });
+
         LuaEnvObj.sdk["rename_file"] = (System.Func<string, string, bool>)((oldPath, newPath) => {
             try {
                 // Security: Validate or prompt-approve paths

@@ -1,6 +1,9 @@
 
 
 using System;
+using System.Runtime.InteropServices;
+using System.Security.Principal;
+using Microsoft.Win32;
 
 namespace EngineNet.ScriptEngines.lua.LuaModules.Utils;
 
@@ -37,6 +40,13 @@ internal static class LuaFileSystemUtils {
 
     internal static bool CreateSymlink(string source, string destination, bool isDirectory) {
         try {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                if (!ValidateWindowsSymlinkSupport(out string errorMessage)) {
+                    Core.UI.EngineSdk.Error($"[Symlink] Requirement Not Met: {errorMessage}");
+                    return false;
+                }
+            }
+
             string destFull = System.IO.Path.GetFullPath(destination);
             string srcFull = System.IO.Path.GetFullPath(source);
             string? parent = System.IO.Path.GetDirectoryName(destFull);
@@ -52,9 +62,33 @@ internal static class LuaFileSystemUtils {
 
             return true;
         } catch (Exception ex) {
+            Core.UI.EngineSdk.Error("create_symlink failed: " + ex.Message);
             Core.Diagnostics.luaInternalCatch("create_symlink failed with exception: " + ex);
             return false;
         }
+    }
+
+    private static bool ValidateWindowsSymlinkSupport(out string message) {
+        message = string.Empty;
+
+        // 1. Check if running as Administrator
+        using (WindowsIdentity identity = WindowsIdentity.GetCurrent()) {
+            WindowsPrincipal principal = new WindowsPrincipal(identity);
+            if (principal.IsInRole(WindowsBuiltInRole.Administrator)) return true;
+        }
+
+        // 2. Check for Developer Mode if not Admin
+        try {
+            using (var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock")) {
+                if (key?.GetValue("AllowDevelopmentSettings") is int value && value > 0) {
+                    return true;
+                }
+            }
+        } catch { /* Ignore registry read errors */ }
+
+        message = "Symbolic links require 'Developer Mode' to be enabled in Windows Settings or the process to be 'Run as Administrator'. " +
+                  "Please enable Developer Mode in 'Settings > System > For developers' (or 'Update & Security > For developers' on older Windows).";
+        return false;
     }
 
     internal static string? RealPath(string path) {

@@ -177,16 +177,19 @@ local symlink_target = test_file1
 local symlink_path = scratch_root .. '/symlink_test/test_symlink'
 
 local symlink_success = sdk.create_symlink(symlink_target, symlink_path, false)
-sdk.color_print('green', 'Symlink creation result: ' .. tostring(symlink_success))
 
 if symlink_success then
+    sdk.color_print('green', '✓ Symlink creation successful')
     local is_symlink = sdk.is_symlink(symlink_path)
     local real_path = sdk.realpath(symlink_path)
     local link_target = sdk.readlink(symlink_path)
 
-    sdk.color_print('yellow', 'Is symlink: ' .. tostring(is_symlink))
-    sdk.color_print('yellow', 'Real path: ' .. tostring(real_path))
-    sdk.color_print('yellow', 'Link target: ' .. tostring(link_target))
+    sdk.color_print('yellow', '   | Is symlink: ' .. tostring(is_symlink))
+    sdk.color_print('yellow', '   | Real path: ' .. tostring(real_path))
+    sdk.color_print('yellow', '   | Link target: ' .. tostring(link_target))
+else
+    sdk.color_print('red', '✖ Symlink creation failed')
+    sdk.color_print('yellow', '  Note: On Windows, symlinks require Developer Mode or Admin privileges.')
 end
 
 progress.step('Testing MD5 and sleep functions')
