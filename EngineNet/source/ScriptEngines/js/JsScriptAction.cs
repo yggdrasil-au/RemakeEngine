@@ -32,11 +32,15 @@ internal sealed partial class JsScriptAction:EngineNet.ScriptEngines.Helpers.IAc
         // object to hold all exposed tables
         JsWorld JSEnvObj = new JsWorld(js_engine);
 
-        // Setup safer Lua environment, overrides IO table and OS table for sandboxing
-        //SetupSafeLuaEnvironment(LuaEnvObj);
+        // Setup safer environment
+        SetupSafeJSEnvironment(JSEnvObj);
+
+        // Load versions from current game module context
+        var moduleVersions = LoadModuleToolVersions();
+        var contextualTools = new ContextualToolResolver(tools, moduleVersions);
 
         // Expose core functions, SDK and modules and any shims
-        SetupCoreFunctions(JSEnvObj, tools);
+        SetupCoreFunctions(JSEnvObj, contextualTools);
 
         // Register UserData types
         //UserData.RegisterType<Core.UI.EngineSdk.PanelProgress>();

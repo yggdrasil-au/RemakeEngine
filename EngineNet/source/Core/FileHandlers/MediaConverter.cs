@@ -55,11 +55,8 @@ internal static class MediaConverter {
             Options opt = Parse(args);
 
             // Resolve executables using the tool resolver
-            if (string.Equals(opt.Mode, ToolFfmpeg, System.StringComparison.OrdinalIgnoreCase)) {
-                opt.FfmpegPath = opt.FfmpegPath ?? toolResolver.ResolveToolPath(ToolFfmpeg);
-            } else if (string.Equals(opt.Mode, ToolVgmstream, System.StringComparison.OrdinalIgnoreCase)) {
-                opt.VgmstreamCli = opt.VgmstreamCli ?? toolResolver.ResolveToolPath(VgmstreamCliName);
-            }
+            opt.FfmpegPath = opt.FfmpegPath ?? toolResolver.ResolveToolPath(ToolFfmpeg);
+            opt.VgmstreamCli = opt.VgmstreamCli ?? toolResolver.ResolveToolPath(VgmstreamCliName);
 
             // check if current required tool exist
             if (string.Equals(opt.Mode, ToolFfmpeg, System.StringComparison.OrdinalIgnoreCase)) {
@@ -72,6 +69,12 @@ internal static class MediaConverter {
                 if (!System.IO.File.Exists(opt.VgmstreamCli!)) {
                     WriteError($"vgmstream-cli executable not found: {opt.VgmstreamCli}");
                     WriteError($"Please ensure vgmstream-cli is installed. You can download it using the 'Download Required Tools' operation.");
+                    return false;
+                }
+                // If using vgmstream with Godot mode, we also need ffmpeg
+                if (opt.GodotCompatible && (string.IsNullOrEmpty(opt.FfmpegPath) || !System.IO.File.Exists(opt.FfmpegPath))) {
+                    WriteError($"ffmpeg executable not found: {opt.FfmpegPath ?? "null"}");
+                    WriteError($"vgmstream with --godot-compatible requires ffmpeg for post-processing. Please ensure ffmpeg is installed.");
                     return false;
                 }
             }
@@ -113,7 +116,8 @@ internal static class MediaConverter {
                 snapshot: () => (System.Threading.Volatile.Read(ref processed), System.Threading.Volatile.Read(ref success), System.Threading.Volatile.Read(ref skipped), System.Threading.Volatile.Read(ref errors)),
                 activeSnapshot: () => s_active.Values.ToList(), // This now returns List<SdkConsoleProgress.ActiveProcess>
                 label: "Converting Files",
-                token: progressCts.Token);
+                token: progressCts.Token
+            );
             System.Threading.Tasks.Parallel.ForEach(allFiles, po, src => {
                 try {
                     string rel = System.IO.Path.GetRelativePath(opt.Source, src);
@@ -258,7 +262,7 @@ internal static class MediaConverter {
                                 return (false, msg1);
                             }
 
-                            string ff = opt.FfmpegPath ?? Which(ToolFfmpeg) ?? Which("ffmpeg.exe") ?? ToolFfmpeg;
+                            string ff = opt.FfmpegPath ?? ToolFfmpeg;
                             int? channels = TryReadWavChannels(tmpWav);
                             if (channels == 4) {
                                 string basePath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(destPath)!, System.IO.Path.GetFileNameWithoutExtension(destPath));
@@ -347,14 +351,14 @@ internal static class MediaConverter {
                 StartedUtc = System.DateTime.UtcNow
             };
         } catch{
-                        Core.Diagnostics.Bug("Failed to register active process for media conversion");
+            Core.Diagnostics.Bug("Failed to register active process for media conversion");
             /* ignore */
         }
     }
 
     private static void UnregisterActive() {
         try { s_active.TryRemove(System.Threading.Thread.CurrentThread.ManagedThreadId, out _); } catch {
-                        Core.Diagnostics.Bug("Failed to unregister active process for media conversion");
+            Core.Diagnostics.Bug("Failed to unregister active process for media conversion");
             /* ignore */
         }
     }
@@ -455,7 +459,10 @@ internal static class MediaConverter {
                     fs.Position++;
                 }
             }
-        } catch { /* ignore parse errors */ }
+        } catch {
+            Core.Diagnostics.Bug("Failed to read WAV channels from file: " + path);
+            /* ignore parse errors */
+        }
         return null;
     }
 
@@ -523,6 +530,7 @@ internal static class MediaConverter {
                     o.Debug = true;
                     break;
                 default:
+                    Core.Diagnostics.Trace($"[MediaConverter] Unknown argument: {a}");
                     // ignore unknowns for forward-compat
                     break;
             }

@@ -8,54 +8,42 @@ using EngineNet.Core;
 namespace EngineNet.Core.ExternalTools;
 
 /// <summary>
-/// Loads tool paths from JSON. Supports either:
-///  - { "ffmpeg": "C:/path/ffmpeg.exe", ... }
-///  - { "ffmpeg": { "exe": "./Tools/ffmpeg/bin/ffmpeg.exe", ... }, ... }
-/// Unknown shapes are ignored. Relative paths resolve relative to the JSON file.
-/// Automatically reloads if the file changes or a higher-priority file appears.
+/// Loads tool paths from JSON. Supports modular registry aggregation and version-aware resolution.
+/// Prioritizes Tools.local.json for persistent installations.
 /// </summary>
 internal sealed class JsonToolResolver:IToolResolver {
-    private readonly Dictionary<string, string> _tools = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
-    // //
+    // ToolName -> Version -> ExePath
+    private readonly Dictionary<string, Dictionary<string, string>> _tools = new Dictionary<string, Dictionary<string, string>>(System.StringComparer.OrdinalIgnoreCase);
+    
     private readonly string[] _candidates;
     private string? _loadedFile;
     private System.DateTime _lastWriteTime;
 
-    public static readonly string ToolsFilePath = System.IO.Path.Combine(Program.rootPath, "EngineApps", "Registries", "Tools", "Main.json");
-
     internal JsonToolResolver() {
         _candidates = new[] {
             System.IO.Path.Combine(Program.rootPath, "Tools.local.json"),
-            ToolsFilePath,
         };
         Load();
     }
 
     /// <summary>
-    /// Loads or reloads the tool definitions from the highest-priority JSON file.
+    /// Loads or reloads the tool definitions from the local tracking file.
     /// </summary>
     private void Load() {
         string? found = _candidates.FirstOrDefault(System.IO.File.Exists);
 
-        // If no file found, clear tools and return
         if (found == null) {
-            Core.Diagnostics.Trace("No tool definition file found.");
             if (_loadedFile != null) {
                 _tools.Clear();
                 _loadedFile = null;
-                Core.Diagnostics.Trace("Cleared loaded tools.");
             }
-            Core.Diagnostics.Trace("No tools loaded.");
             return;
         }
 
-        // If we found a file, check if it's different from loaded or newer
         bool isNewFile = !string.Equals(found, _loadedFile, System.StringComparison.OrdinalIgnoreCase);
         System.DateTime writeTime = System.IO.File.GetLastWriteTimeUtc(found);
 
-        // If it's new or updated, reload
         if (isNewFile || writeTime > _lastWriteTime) {
-            // Only clear if switching files or reloading
             _tools.Clear();
             _loadedFile = found;
             _lastWriteTime = writeTime;
@@ -64,54 +52,89 @@ internal sealed class JsonToolResolver:IToolResolver {
                 string _baseDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(found)) ?? System.IO.Directory.GetCurrentDirectory();
                 using System.IO.FileStream stream = System.IO.File.OpenRead(found);
                 using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(stream);
+                
                 if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object) {
-                    foreach (System.Text.Json.JsonProperty prop in doc.RootElement.EnumerateObject()) {
-                        string? path = ExtractPath(prop.Value);
-                        if (!string.IsNullOrWhiteSpace(path)) {
-                            string resolved = path!;
-                            if (!System.IO.Path.IsPathRooted(resolved)) {
-                                resolved = System.IO.Path.GetFullPath(System.IO.Path.Combine(_baseDir, resolved));
+                    foreach (System.Text.Json.JsonProperty toolProp in doc.RootElement.EnumerateObject()) {
+                        string toolName = toolProp.Name;
+                        var versions = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+
+                        if (toolProp.Value.ValueKind == System.Text.Json.JsonValueKind.Object) {
+                            // Check if this is the new versioned structure or the old flat structure
+                            bool isVersioned = false;
+                            foreach (System.Text.Json.JsonProperty vProp in toolProp.Value.EnumerateObject()) {
+                                // If sub-key is an object and contains an 'exe' or 'version', it's likely versioned
+                                if (vProp.Value.ValueKind == System.Text.Json.JsonValueKind.Object) {
+                                    string? path = ExtractPath(vProp.Value);
+                                    if (path != null) {
+                                        versions[vProp.Name] = ResolvePath(_baseDir, path);
+                                        isVersioned = true;
+                                    }
+                                }
                             }
 
-                            _tools[prop.Name] = resolved;
+                            if (!isVersioned) {
+                                // Fallback to old flat structure: { "ToolName": { "exe": "...", "version": "..." } }
+                                string? path = ExtractPath(toolProp.Value);
+                                if (path != null) {
+                                    string version = "1.0.0";
+                                    if (toolProp.Value.TryGetProperty("version", out System.Text.Json.JsonElement v) && v.ValueKind == System.Text.Json.JsonValueKind.String) {
+                                        version = v.GetString() ?? "1.0.0";
+                                    }
+                                    versions[version] = ResolvePath(_baseDir, path);
+                                }
+                            }
+                        } else if (toolProp.Value.ValueKind == System.Text.Json.JsonValueKind.String) {
+                            // legacy simple mapping: { "ToolName": "path/to/exe" }
+                            versions["1.0.0"] = ResolvePath(_baseDir, toolProp.Value.GetString() ?? string.Empty);
+                        }
+
+                        if (versions.Count > 0) {
+                            _tools[toolName] = versions;
                         }
                     }
                 }
             } catch (System.Exception ex) {
-                Core.Diagnostics.Log($"Error loading tools from {found}: {ex.Message}");
+                Core.Diagnostics.Log($"[JsonToolResolver] Error loading tools from {found}: {ex.Message}");
             }
         }
     }
 
-    private static string? ExtractPath(System.Text.Json.JsonElement value) {
-        switch (value.ValueKind) {
-            case System.Text.Json.JsonValueKind.String:
-                return value.GetString();
-            case System.Text.Json.JsonValueKind.Object:
-                if (value.TryGetProperty("exe", out System.Text.Json.JsonElement exe) && exe.ValueKind == System.Text.Json.JsonValueKind.String) {
-                    return exe.GetString();
-                }
-
-                if (value.TryGetProperty("path", out System.Text.Json.JsonElement path) && path.ValueKind == System.Text.Json.JsonValueKind.String) {
-                    return path.GetString();
-                }
-
-                if (value.TryGetProperty("command", out System.Text.Json.JsonElement cmd) && cmd.ValueKind == System.Text.Json.JsonValueKind.String) {
-                    return cmd.GetString();
-                }
-
-                return null;
-            default:
-                return null;
+    private static string ResolvePath(string baseDir, string path) {
+        if (string.IsNullOrWhiteSpace(path)) return string.Empty;
+        if (!System.IO.Path.IsPathRooted(path)) {
+            return System.IO.Path.GetFullPath(System.IO.Path.Combine(baseDir, path));
         }
+        return path;
     }
 
-    public string ResolveToolPath(string toolId) {
-        Load(); // Check for updates
-        if (_tools.TryGetValue(toolId, out string? path)) {
-            return path;
+    private static string? ExtractPath(System.Text.Json.JsonElement value) {
+        if (value.ValueKind == System.Text.Json.JsonValueKind.String) return value.GetString();
+        if (value.ValueKind != System.Text.Json.JsonValueKind.Object) return null;
+
+        string[] possibleKeys = { "exe", "path", "command" };
+        foreach (var key in possibleKeys) {
+            if (value.TryGetProperty(key, out System.Text.Json.JsonElement elem) && elem.ValueKind == System.Text.Json.JsonValueKind.String) {
+                return elem.GetString();
+            }
         }
-        // Fallback to PATH lookup by returning the id
+        return null;
+    }
+
+    public string ResolveToolPath(string toolId, string? version = null) {
+        Load();
+        
+        if (_tools.TryGetValue(toolId, out var versions)) {
+            if (version != null && versions.TryGetValue(version, out string? path)) {
+                return path;
+            }
+            
+            // If no version specified or not found, try to find the "latest"
+            // For now, just pick the last one available (which should be latest if added chronologically)
+            if (versions.Count > 0) {
+                return versions.Values.Last();
+            }
+        }
+        
         return toolId;
     }
 }

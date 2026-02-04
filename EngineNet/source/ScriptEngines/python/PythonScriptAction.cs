@@ -26,6 +26,9 @@ internal sealed partial class PythonScriptAction : Helpers.IAction {
 
         bool ok = false;
         try {
+            var moduleVersions = LoadModuleToolVersions();
+            var contextualTools = new ContextualToolResolver(tools, moduleVersions);
+
             await System.Threading.Tasks.Task.Run(() => {
                 var engine = Python.CreateEngine();
                 var scope = engine.CreateScope();
@@ -34,7 +37,7 @@ internal sealed partial class PythonScriptAction : Helpers.IAction {
                 scope.SetVariable("argv", _args);
 
                 // Expose tool resolver
-                scope.SetVariable("tool", (System.Func<string, string>)tools.ResolveToolPath);
+                scope.SetVariable("tool", (System.Func<string, string?, string>)((id, ver) => contextualTools.ResolveToolPath(id, ver)));
 
                 engine.ExecuteFile(_scriptPath, scope);
             }, cancellationToken);

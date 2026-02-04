@@ -42,8 +42,22 @@ internal sealed class ToolMetadataProvider {
                         if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Object) {
                             string? exe = null;
                             string? version = null;
-                            if (prop.Value.TryGetProperty("exe", out System.Text.Json.JsonElement exeEl) && exeEl.ValueKind == System.Text.Json.JsonValueKind.String) {
-                                exe = ResolveRelative(jsonPath!, exeEl.GetString());
+
+                            // check if this is versioned structure: { "tool": { "1.0": { "exe": "..." } } }
+                            // we just take the first version for now if not specified
+                            foreach (var vProp in prop.Value.EnumerateObject()) {
+                                if (vProp.Value.ValueKind == System.Text.Json.JsonValueKind.Object) {
+                                    if (vProp.Value.TryGetProperty("exe", out System.Text.Json.JsonElement exeEl) && exeEl.ValueKind == System.Text.Json.JsonValueKind.String) {
+                                        exe = ResolveRelative(jsonPath!, exeEl.GetString());
+                                        version = vProp.Name;
+                                        return (exe, version);
+                                    }
+                                }
+                            }
+
+                            // fallback to { exe, version } format
+                            if (prop.Value.TryGetProperty("exe", out System.Text.Json.JsonElement exeEl2) && exeEl2.ValueKind == System.Text.Json.JsonValueKind.String) {
+                                exe = ResolveRelative(jsonPath!, exeEl2.GetString());
                             }
                             if (prop.Value.TryGetProperty("version", out System.Text.Json.JsonElement verEl) && verEl.ValueKind == System.Text.Json.JsonValueKind.String) {
                                 version = verEl.GetString();

@@ -35,8 +35,12 @@ internal sealed partial class LuaScriptAction : Helpers.IAction {
         // Setup safer Lua environment, overrides IO table and OS table for sandboxing
         SetupSafeLuaEnvironment(LuaEnvObj);
 
+        // Load versions from current game module context
+        var moduleVersions = LoadModuleToolVersions();
+        var contextualTools = new ContextualToolResolver(tools, moduleVersions);
+
         // Expose core functions, SDK and modules and any shims
-        SetupCoreFunctions(LuaEnvObj, tools);
+        SetupCoreFunctions(LuaEnvObj, contextualTools);
 
         // Register UserData types
         UserData.RegisterType<Core.UI.EngineSdk.PanelProgress>();

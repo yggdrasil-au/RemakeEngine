@@ -10,7 +10,8 @@ internal sealed class PassthroughToolResolver:IToolResolver {
     /// Returns <paramref name="toolId"/> unchanged.
     /// </summary>
     /// <param name="toolId">Logical identifier of the tool, typically also its executable name.</param>
+    /// <param name="version">Ignored in this implementation.</param>
     /// <returns>The original <paramref name="toolId"/>.</returns>
-    public string ResolveToolPath(string toolId) => toolId;
+    public string ResolveToolPath(string toolId, string? version = null) => toolId;
 }
 

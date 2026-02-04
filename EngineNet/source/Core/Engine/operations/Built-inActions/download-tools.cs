@@ -58,8 +58,6 @@ public partial class InternalOperations {
         cfgDict0["project_path"] = RootPath;
         string resolvedManifest = Core.Utils.Placeholders.Resolve(manifest!, ctx)?.ToString() ?? manifest!;
 
-        string central = JsonToolResolver.ToolsFilePath;
-
         bool force = false;
         if (promptAnswers.TryGetValue("force download", out object? fd) && fd is bool b1) {
             force = b1;
@@ -69,7 +67,7 @@ public partial class InternalOperations {
             force = b2;
         }
 
-        ExternalTools.ToolsDownloader dl = new ExternalTools.ToolsDownloader(RootPath, central);
+        ExternalTools.ToolsDownloader dl = new ExternalTools.ToolsDownloader(RootPath, "");
         await dl.ProcessAsync(resolvedManifest, force, ctx);
         return true;
     }

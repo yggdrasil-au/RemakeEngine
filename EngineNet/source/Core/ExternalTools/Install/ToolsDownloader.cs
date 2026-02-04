@@ -23,37 +23,25 @@ internal sealed class ToolsDownloader {
             throw new System.IO.FileNotFoundException("Tools manifest not found", moduleTomlPath);
         }
 
-        if (!System.IO.File.Exists(_centralRepoJsonPath)) {
-            // Attempt remote fallback to fetch "EngineApps", "Registries", "Tools", "Main.json" from the engine repo
-            try {
-                System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(_centralRepoJsonPath)) ?? _rootPath);
-            }  catch {
-            Core.Diagnostics.Bug($"[ToolsDownloader] Could not create directory for central tools registry: {_centralRepoJsonPath}");
-        }
-
-            RemoteFallbacks.EnsureRepoFile(JsonToolResolver.ToolsFilePath, _centralRepoJsonPath);
-        }
-        if (!System.IO.File.Exists(_centralRepoJsonPath)) {
-            throw new System.IO.FileNotFoundException("Central tools registry not found", _centralRepoJsonPath);
-        }
-
         string platform = GetPlatformIdentifier();
         Info($"Platform: {platform}");
         List<Dictionary<string, object?>> toolsList = SimpleToml.ReadTools(moduleTomlPath);
         Info($"Found {toolsList.Count} tool entries.");
 
-        Dictionary<string, object?> central;
-        using (System.IO.FileStream fs = System.IO.File.OpenRead(_centralRepoJsonPath)) {
-            central = await System.Text.Json.JsonSerializer.DeserializeAsync<Dictionary<string, object?>>(fs, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new Dictionary<string, object?>();
-        }
+        // Aggregate registry from modular blocks
+        Dictionary<string, object?> central = InternalToolRegistry.Assemble();
 
-        // Lockfile at root Tools folder
-        //var toolsDir = System.IO.Path.Combine(_rootPath, "Tools");
-        //System.IO.Directory.CreateDirectory(toolsDir);
+        // Lockfile at root Tools folder (Tools.local.json)
         string lockPath = System.IO.Path.Combine(_rootPath, "Tools.local.json");
-        Dictionary<string, object?> lockData = System.IO.File.Exists(lockPath)
-            ? System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(System.IO.File.ReadAllText(lockPath)) ?? new()
-            : new Dictionary<string, object?>();
+        Dictionary<string, object?> lockData = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        if (System.IO.File.Exists(lockPath)) {
+            try {
+                using var doc = System.Text.Json.JsonDocument.Parse(System.IO.File.ReadAllText(lockPath));
+                lockData = ConvertToDeepDictionary(doc.RootElement);
+            } catch (Exception ex) {
+                Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
+            }
+        }
 
         using System.Net.Http.HttpClient http = new System.Net.Http.HttpClient();
         http.DefaultRequestHeaders.UserAgent.ParseAdd("GameOpsTool/2.0");
@@ -67,7 +55,27 @@ internal sealed class ToolsDownloader {
 
             Info("");
             Title($"Processing: {toolName} {version}");
-            if (!TryLookupPlatform(central, toolName!, version!, platform, out string? url, out string? sha256, out System.Text.Json.JsonElement platformData)) {
+
+            // Check if version is already fully installed
+            if (!force && lockData.TryGetValue(toolName!, out object? existingToolObj)) {
+                object? existingVerObj = GetProperty(existingToolObj, version!);
+                if (existingVerObj != null) {
+                    string? existingExe = GetStringProperty(existingVerObj, "exe");
+                    string? existingInstallPath = GetStringProperty(existingVerObj, "install_path");
+
+                    bool existsFully = !string.IsNullOrWhiteSpace(existingInstallPath) && System.IO.Directory.Exists(existingInstallPath);
+                    if (existsFully && !string.IsNullOrWhiteSpace(existingExe)) {
+                        existsFully = System.IO.File.Exists(existingExe);
+                    }
+
+                    if (existsFully) {
+                        Info($"{toolName} {version} is already installed and exists fully. Skipping.");
+                        continue;
+                    }
+                }
+            }
+
+            if (!TryLookupPlatform(central, toolName!, version!, platform, out string? url, out string? sha256, out object? platformData)) {
                 Error($"Not in registry for platform '{platform}'.");
                 continue;
             }
@@ -166,16 +174,23 @@ internal sealed class ToolsDownloader {
                 }
             }
 
-            // Update lockfile entry
-            lockData[toolName!] = new Dictionary<string, object?> {
+            // Update lockfile entry (supports multiple versions per tool)
+            if (!lockData.TryGetValue(toolName!, out object? toolObj) || toolObj is not Dictionary<string, object?> toolVersions) {
+                toolVersions = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                lockData[toolName!] = toolVersions;
+            }
+
+            toolVersions[version!] = new Dictionary<string, object?> {
                 ["version"] = version,
                 ["platform"] = platform,
-                ["install_path"] = string.IsNullOrWhiteSpace(unpackDest) ? System.IO.Path.GetDirectoryName(archivePath) : System.IO.Path.GetFullPath(System.IO.Path.Combine(_rootPath, unpackDest!)),
+                ["install_path"] = string.IsNullOrWhiteSpace(unpackDest) 
+                    ? System.IO.Path.GetFullPath(downloadDir) 
+                    : System.IO.Path.GetFullPath(System.IO.Path.Combine(_rootPath, unpackDest!)),
                 ["exe"] = exePath,
                 ["sha256"] = sha256,
                 ["source_url"] = url
             };
-            Info($"Lockfile updated for {toolName}.");
+            Info($"Lockfile updated for {toolName} {version}.");
         }
 
         await System.IO.File.WriteAllTextAsync(lockPath, System.Text.Json.JsonSerializer.Serialize(lockData, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
@@ -241,51 +256,92 @@ internal sealed class ToolsDownloader {
         string platform,
         out string url,
         out string sha256,
-        out System.Text.Json.JsonElement platformData) {
+        out object? platformData) {
         url = string.Empty;
         sha256 = string.Empty;
-        platformData = default;
-        if (!central.TryGetValue(tool, out object? toolObj) || toolObj is not System.Text.Json.JsonElement toolElem || toolElem.ValueKind != System.Text.Json.JsonValueKind.Object) {
-            return false;
+        platformData = null;
+
+        if (!central.TryGetValue(tool, out object? toolObj)) return false;
+
+        object? verObj = GetProperty(toolObj, version);
+        if (verObj == null) return false;
+
+        // exact platform or prefix match
+        object? platObj = GetProperty(verObj, platform);
+        if (platObj != null) {
+            url = GetStringProperty(platObj, "url") ?? string.Empty;
+            sha256 = GetStringProperty(platObj, "sha256") ?? string.Empty;
+            if (!string.IsNullOrEmpty(url)) {
+                platformData = platObj;
+                return true;
+            }
         }
 
-        if (!toolElem.TryGetProperty(version, out System.Text.Json.JsonElement verElem) || verElem.ValueKind != System.Text.Json.JsonValueKind.Object) {
-            return false;
-        }
-        // exact platform or prefix match
-        if (verElem.TryGetProperty(platform, out System.Text.Json.JsonElement platElem) && platElem.ValueKind == System.Text.Json.JsonValueKind.Object) {
-            if (platElem.TryGetProperty("url", out System.Text.Json.JsonElement u) && u.ValueKind == System.Text.Json.JsonValueKind.String) {
-                url = u.GetString() ?? string.Empty;
-            }
-            if (platElem.TryGetProperty("sha256", out System.Text.Json.JsonElement s) && s.ValueKind == System.Text.Json.JsonValueKind.String) {
-                sha256 = s.GetString() ?? string.Empty;
-            }
+        // Prefix match
+        var properties = GetProperties(verObj);
+        foreach (var prop in properties) {
+            if (!prop.Key.StartsWith(platform, StringComparison.OrdinalIgnoreCase)) continue;
+
+            url = GetStringProperty(prop.Value, "url") ?? string.Empty;
+            sha256 = GetStringProperty(prop.Value, "sha256") ?? string.Empty;
             if (!string.IsNullOrEmpty(url)) {
-                platformData = platElem;
-                return true;
-            }
-            return false;
-        }
-        foreach (System.Text.Json.JsonProperty prop in verElem.EnumerateObject()) {
-            if (!prop.Name.StartsWith(platform, System.StringComparison.OrdinalIgnoreCase)) {
-                continue;
-            }
-            System.Text.Json.JsonElement val = prop.Value;
-            if (val.ValueKind != System.Text.Json.JsonValueKind.Object) {
-                continue;
-            }
-            if (val.TryGetProperty("url", out System.Text.Json.JsonElement u2) && u2.ValueKind == System.Text.Json.JsonValueKind.String) {
-                url = u2.GetString() ?? string.Empty;
-            }
-            if (val.TryGetProperty("sha256", out System.Text.Json.JsonElement s2) && s2.ValueKind == System.Text.Json.JsonValueKind.String) {
-                sha256 = s2.GetString() ?? string.Empty;
-            }
-            if (!string.IsNullOrEmpty(url)) {
-                platformData = val;
+                platformData = prop.Value;
                 return true;
             }
         }
+
         return false;
+    }
+
+    private static object? GetProperty(object? obj, string key) {
+        if (obj is System.Text.Json.JsonElement elem && elem.ValueKind == System.Text.Json.JsonValueKind.Object) {
+            if (elem.TryGetProperty(key, out System.Text.Json.JsonElement val)) return val;
+        } else if (obj is IDictionary<string, object?> dict) {
+            if (dict.TryGetValue(key, out object? val)) return val;
+        }
+        return null;
+    }
+
+    private static string? GetStringProperty(object? obj, string key) {
+        object? val = GetProperty(obj, key);
+        if (val is System.Text.Json.JsonElement elem && elem.ValueKind == System.Text.Json.JsonValueKind.String) return elem.GetString();
+        return val?.ToString();
+    }
+
+    private static IEnumerable<KeyValuePair<string, object?>> GetProperties(object? obj) {
+        if (obj is System.Text.Json.JsonElement elem && elem.ValueKind == System.Text.Json.JsonValueKind.Object) {
+            foreach (var prop in elem.EnumerateObject()) yield return new KeyValuePair<string, object?>(prop.Name, prop.Value);
+        } else if (obj is IDictionary<string, object?> dict) {
+            foreach (var kvp in dict) yield return kvp;
+        }
+    }
+
+    private static Dictionary<string, object?> ConvertToDeepDictionary(System.Text.Json.JsonElement element) {
+        var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var property in element.EnumerateObject()) {
+            dict[property.Name] = ConvertValue(property.Value);
+        }
+        return dict;
+    }
+
+    private static object? ConvertValue(System.Text.Json.JsonElement element) {
+        return element.ValueKind switch {
+            System.Text.Json.JsonValueKind.Object => ConvertToDeepDictionary(element),
+            System.Text.Json.JsonValueKind.Array => ConvertArray(element),
+            System.Text.Json.JsonValueKind.String => element.GetString(),
+            System.Text.Json.JsonValueKind.Number => element.TryGetDecimal(out decimal d) ? d : element.GetDouble(),
+            System.Text.Json.JsonValueKind.True => true,
+            System.Text.Json.JsonValueKind.False => false,
+            _ => null
+        };
+    }
+
+    private static List<object?> ConvertArray(System.Text.Json.JsonElement element) {
+        var list = new List<object?>();
+        foreach (var item in element.EnumerateArray()) {
+            list.Add(ConvertValue(item));
+        }
+        return list;
     }
 
     private static bool VerifySha256(string filePath, string expected) {
@@ -323,27 +379,22 @@ internal sealed class ToolsDownloader {
         throw new NotSupportedException($"Archive format not supported for auto-unpack: {ext}");
     }
 
-    private static string? FindExe(string root, string toolName, System.Text.Json.JsonElement platformData) {
+    private static string? FindExe(string root, string toolName, object? platformData) {
         // First, check if exe_name is specified in the platform data
-        if (platformData.ValueKind == System.Text.Json.JsonValueKind.Object &&
-            platformData.TryGetProperty("exe_name", out System.Text.Json.JsonElement exeNameElem) &&
-            exeNameElem.ValueKind == System.Text.Json.JsonValueKind.String) {
+        string? exeName = GetStringProperty(platformData, "exe_name");
+        if (!string.IsNullOrWhiteSpace(exeName)) {
+            string exePath = System.IO.Path.Combine(root, exeName);
+            if (System.IO.File.Exists(exePath)) {
+                return exePath;
+            }
 
-            string? exeName = exeNameElem.GetString();
-            if (!string.IsNullOrWhiteSpace(exeName)) {
-                string exePath = System.IO.Path.Combine(root, exeName);
-                if (System.IO.File.Exists(exePath)) {
-                    return exePath;
+            // Also try searching recursively if not found at root
+            try {
+                foreach (string file in System.IO.Directory.EnumerateFiles(root, exeName, System.IO.SearchOption.AllDirectories)) {
+                    return file;
                 }
-
-                // Also try searching recursively if not found at root
-                try {
-                    foreach (string file in System.IO.Directory.EnumerateFiles(root, exeName, System.IO.SearchOption.AllDirectories)) {
-                        return file;
-                    }
-                } catch {
-                    Core.Diagnostics.Bug($"[ToolsDownloader] Could not search for exe in: {root}");
-                }
+            } catch {
+                Core.Diagnostics.Bug($"[ToolsDownloader] Could not search for exe in: {root}");
             }
         }
 

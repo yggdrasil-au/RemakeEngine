@@ -35,6 +35,39 @@ internal sealed partial class LuaScriptAction : ScriptEngines.Helpers.IAction {
 
     // :: helpers for SetupSafeLuaEnvironment()
     /// <summary>
+    /// Wrapper for IToolResolver that injects module-specific tool versions
+    /// </summary>
+    private class ContextualToolResolver : Core.ExternalTools.IToolResolver {
+        private readonly Core.ExternalTools.IToolResolver _base;
+        private readonly Dictionary<string, string> _contextVersions;
+        public ContextualToolResolver(Core.ExternalTools.IToolResolver baseResolver, Dictionary<string, string> contextVersions) {
+            _base = baseResolver;
+            _contextVersions = contextVersions;
+        }
+        public string ResolveToolPath(string toolId, string? version = null) {
+            if (version == null && _contextVersions.TryGetValue(toolId, out var v)) {
+                version = v;
+            }
+            return _base.ResolveToolPath(toolId, version);
+        }
+    }
+
+    private Dictionary<string, string> LoadModuleToolVersions() {
+        var versions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        string toolsTomlPath = System.IO.Path.Combine(_gameRoot, "Tools.toml");
+        if (System.IO.File.Exists(toolsTomlPath)) {
+            var toolsList = Core.ExternalTools.SimpleToml.ReadTools(toolsTomlPath);
+            foreach (var tool in toolsList) {
+                if (tool.TryGetValue("name", out object? name) && name is not null &&
+                    tool.TryGetValue("version", out object? version) && version is not null) {
+                    versions[name.ToString()!] = version.ToString()!;
+                }
+            }
+        }
+        return versions;
+    }
+
+    /// <summary>
     /// Replace the lua built-in os table with a sandboxed version
     /// </summary>
     /// <param name="lua"></param>
@@ -243,8 +276,8 @@ internal sealed partial class LuaScriptAction : ScriptEngines.Helpers.IAction {
         LuaEnvObj.LuaScript.Globals["sqlite"] = LuaModules.LuaSqliteModule.CreateSqliteModule(LuaEnvObj);
 
         // Expose a function to resolve tool path
-        LuaEnvObj.LuaScript.Globals["tool"] = (System.Func<string, string>)tools.ResolveToolPath;
-        LuaEnvObj.LuaScript.Globals["ResolveToolPath"] = (System.Func<string, string>)tools.ResolveToolPath; // more internally accurate name
+        LuaEnvObj.LuaScript.Globals["tool"] = (System.Func<string, string?, string>)((id, ver) => tools.ResolveToolPath(id, ver));
+        LuaEnvObj.LuaScript.Globals["ResolveToolPath"] = (System.Func<string, string?, string>)((id, ver) => tools.ResolveToolPath(id, ver)); // more internally accurate name
 
         // Expose script arguments as argv array and argc count
         Table argvTable = new Table(LuaEnvObj.LuaScript);
