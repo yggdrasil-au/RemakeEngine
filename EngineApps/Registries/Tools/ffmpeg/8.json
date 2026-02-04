@@ -1,7 +1,8 @@
 {
-    "8.0.1": {
+    "8.0": {
         "win-x64": {
-
+            "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.0-latest-win64-gpl-8.0.zip",
+            "sha256": "E2C7A006CFCB7FBB2D9E7D3E8F351F712561ACD89FE04E110A072E54576AE104"
         }
     }
 }

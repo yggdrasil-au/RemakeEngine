@@ -61,7 +61,6 @@ public partial class InternalOperations {
             // create if missing
             Core.Diagnostics.Trace($"Config file does not exist at {configPath}, creating new.");
             System.IO.File.Create(configPath).Close();
-            return false;
         }
 
         try {

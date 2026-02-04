@@ -6,7 +6,7 @@
             "sha256": ""
         },
         "macOS": {
-            "url": "httpss://github.com/vgmstream/vgmstream/releases/download/r2023/vgmstream-mac-cli.zip",
+            "url": "https://github.com/vgmstream/vgmstream/releases/download/r2023/vgmstream-mac-cli.zip",
             "sha256": ""
         },
         "win": {
