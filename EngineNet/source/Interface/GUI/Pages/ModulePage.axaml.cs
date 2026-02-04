@@ -13,7 +13,7 @@ namespace EngineNet.Interface.GUI.Pages;
 internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     /* :: :: Vars :: START :: */
-    private readonly Core.Engine? _engine;
+    private readonly Core.Engine.Engine? _engine;
     private readonly string _moduleName = string.Empty;
 
     internal string ModuleName { get; private set; } = string.Empty;
@@ -56,7 +56,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         Button_OpenFolder_Click = new Cmd(_ => System.Threading.Tasks.Task.CompletedTask);
     }
 
-    internal ModulePage(Core.Engine engine, string moduleName) {
+    internal ModulePage(Core.Engine.Engine engine, string moduleName) {
         _engine = engine;
         _moduleName = moduleName;
         ModuleName = moduleName;
@@ -239,7 +239,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                             _engine.GitService,
                             _engine.GameRegistry,
                             _engine.CommandService,
-                            _engine.Enginey, CancellationToken.None
+                            _engine.OperationExecution, CancellationToken.None
                         );
                         return ok;
                     } finally {

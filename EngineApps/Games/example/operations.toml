@@ -9,24 +9,3 @@ script_type = "lua"
 script = "{{Game_Root}}/scripts/example.lua"
 args = []
 
-[[operations]]
-run-all = true
-Name = "Download from Git URL"
-id = "engine_download_git"
-description = "Clone a game repository from a Git URL."
-script = "download_module_git"
-script_type = "internal"
-prompts = [
-    { Name = "url", type = "text", message = "Enter Git URL" }
-]
-
-[[operations]]
-run-all = true
-Name = "Download from Registry"
-id = "engine_download_registry"
-description = "Clone a game repository from the known registry list."
-script = "download_module_registry"
-script_type = "internal"
-prompts = [
-    { Name = "url", type = "text", message = "Enter Registry URL or Name" }
-]

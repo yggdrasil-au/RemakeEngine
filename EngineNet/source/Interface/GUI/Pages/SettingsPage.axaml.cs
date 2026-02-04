@@ -10,7 +10,7 @@ namespace EngineNet.Interface.GUI.Pages;
 public partial class SettingsPage:UserControl, INotifyPropertyChanged {
     //
     /** :: :: Vars :: START :: **/
-    private readonly Core.Engine? _engine;
+    private readonly Core.Engine.Engine? _engine;
     private string ProjectRoot { get; set; } = String.Empty;
     private string Status { get; set; } = String.Empty;
 
@@ -30,7 +30,7 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
         DataContext = this;
     }
 
-    internal SettingsPage(Core.Engine engine) {
+    internal SettingsPage(Core.Engine.Engine engine) {
         _engine = engine;
         ProjectRoot = _engine.RootPath;
 

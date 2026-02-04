@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Setup
-- Build: `dotnet build RemakeEngine.sln -c Debug`
+- Build: `dotnet build RemakeEngine.slnx -c Debug`
 - Run tests: `dotnet test Unit.Tests\EngineNet.Tests.csproj -c Debug --no-build --logger "trx;LogFileName=test_results.trx"`
 
 ignore any failing tests for now
@@ -19,6 +19,10 @@ when exposing new lua globals/globally accessible components, update the lua '.l
 
 ## main Readme
 See [README.md](README.md) for an overview of the Remake Engine project.
+
+# Dotnet
+when making changes to dotnet projects read the .csproj files to understand dependencies, project structure and dotnet configurations.
+
 
 ## submodules
 sub modules are created manually, as the modules should usually be downloaded by the engine itself, but for development purposes, you can write this file.

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 
-namespace EngineNet.Core;
-internal partial class OperationExecution {
+namespace EngineNet.Core.Engine.operations.Built_inActions;
+public partial class InternalOperations {
 
     internal async System.Threading.Tasks.Task<bool> DownloadTools(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath,  EngineConfig EngineConfig) {
         // Expect a 'tools_manifest' value (path), or fallback to first arg
@@ -32,12 +32,12 @@ internal partial class OperationExecution {
         // Ensure RemakeEngine dictionary exists
         if (!ctx.TryGetValue("RemakeEngine", out object? re0) || re0 is not IDictionary<string, object?> reDict0) {
             ctx["RemakeEngine"] = reDict0 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
-            Core.Diagnostics.Log("[Engine.private.cs :: OperationExecution()]] Created RemakeEngine dictionary in placeholders context");
+            Core.Diagnostics.Log("[Engine.private.cs :: Operations()]] Created RemakeEngine dictionary in placeholders context");
         }
         // Ensure Config dictionary exists
         if (!reDict0.TryGetValue("Config", out object? cfg0) || cfg0 is not IDictionary<string, object?> cfgDict0) {
             reDict0["Config"] = cfgDict0 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
-            Core.Diagnostics.Log("[Engine.private.cs :: OperationExecution()]] Created RemakeEngine.Config dictionary in placeholders context");
+            Core.Diagnostics.Log("[Engine.private.cs :: Operations()]] Created RemakeEngine.Config dictionary in placeholders context");
         }
         // Merge module placeholders from config.toml
         try {

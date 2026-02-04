@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 
-namespace EngineNet.Core;
-internal partial class OperationExecution {
+namespace EngineNet.Core.Engine.operations.Built_inActions;
+public partial class InternalOperations {
 
     internal bool DownloadModuleRegistry(IDictionary<string, object?> promptAnswers, Abstractions.IGitService GitService, Abstractions.IGameRegistry GameRegistry) {
 
@@ -11,6 +11,7 @@ internal partial class OperationExecution {
         }
         if (string.IsNullOrWhiteSpace(input)) {
             Core.UI.EngineSdk.Error("No input provided.");
+            Core.Diagnostics.Trace("[Engine.private.cs :: InternalOperations()]] download_module_registry: no input provided");
             return false;
         }
 

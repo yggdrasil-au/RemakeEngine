@@ -16,7 +16,7 @@ internal partial class BuildingPage:UserControl {
 
     internal BuildingPage() : this(null) { }
 
-    internal BuildingPage(Core.Engine? engine) {
+    internal BuildingPage(Core.Engine.Engine? engine) {
         Button_ClearOutput_Click = new Cmd(async _ => await Service.ClearAsync());
 
         InitializeComponent();

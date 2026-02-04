@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 
-namespace EngineNet.Core;
-internal partial class OperationExecution {
+namespace EngineNet.Core.Engine.operations.Built_inActions;
+public partial class InternalOperations {
 
     internal bool validate_files(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath,  EngineConfig EngineConfig) {
         Dictionary<string, object?> ctx = new Dictionary<string, object?>(EngineConfig.Data, System.StringComparer.OrdinalIgnoreCase);

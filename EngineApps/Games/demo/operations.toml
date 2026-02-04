@@ -1,155 +1,181 @@
 
 
 [[operation]]
-#init = true
-run-all = true
-Name = "Lua Feature Showcase"
-Instructions = "Demonstrates the embedded Lua engine helpers."
-script_type = "lua"
-script = "{{Game_Root}}/scripts/lua_feature_demo.lua"
-args = ["--Game_Root", "{{Game_Root}}", "--Project_Root", "{{Project_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo", "--prompt", "prompt overide"]
+	#init = true
+	run-all = true
+	Name = "Lua Feature Showcase"
+	Instructions = "Demonstrates the embedded Lua engine helpers."
+	script_type = "lua"
+	script = "{{Game_Root}}/scripts/lua_feature_demo.lua"
+	args = ["--Game_Root", "{{Game_Root}}", "--Project_Root", "{{Project_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo", "--prompt", "prompt overide"]
 [[operation.prompts]]
-type = "text"
-Name = "lua_note"
-message = "Optional note to record in the Lua demo log"
-cli_arg_prefix = "--note"
+	type = "text"
+	Name = "lua_note"
+	message = "Optional note to record in the Lua demo log"
+	cli_arg_prefix = "--note"
 [[operation.onsuccess]]
-Name = "set isRenamed placeholder"
-script_type = "lua"
-script = "{{Game_Root}}/config.lua"
-args = ["--group", "demo", "--key", "demo", "--value", "complete", "--type", "string"]
+	Name = "set isRenamed placeholder"
+	script_type = "lua"
+	script = "{{Game_Root}}/config.lua"
+	args = ["--group", "demo", "--key", "demo", "--value", "complete", "--type", "string"]
 
 
 [[operation]]
-run-all = false
-Name = "JavaScript Feature Showcase"
-Instructions = "Runs the JavaScript engine demo covering progress, sqlite, and helpers."
-script_type = "js"
-script = "{{Game_Root}}/scripts/js_feature_demo.js"
-args = ["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/js-demo"]
+	run-all = false
+	Name = "JavaScript Feature Showcase"
+	Instructions = "Runs the JavaScript engine demo covering progress, sqlite, and helpers."
+	script_type = "js"
+	script = "{{Game_Root}}/scripts/js_feature_demo.js"
+	args = ["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/js-demo"]
 [[operation.prompts]]
-type = "confirm"
-Name = "js_extra_artifacts"
-message = "Include extra JavaScript demo artifacts?"
-default = true
-cli_arg = "--with-extra"
+	type = "confirm"
+	Name = "js_extra_artifacts"
+	message = "Include extra JavaScript demo artifacts?"
+	default = true
+	cli_arg = "--with-extra"
 [[operation.prompts]]
-type = "text"
-Name = "js_note"
-message = "Message to log from the JavaScript demo"
-default = "Hello from the JavaScript demo"
-cli_arg_prefix = "--note"
+	type = "text"
+	Name = "js_note"
+	message = "Message to log from the JavaScript demo"
+	default = "Hello from the JavaScript demo"
+	cli_arg_prefix = "--note"
 
 
 [[operation]]
-run-all = false
-Name = "Python Placeholder"
-script_type = "python"
-script = "{{Game_Root}}/scripts/python_demo.py"
-args = []
+	run-all = false
+	Name = "Python Placeholder"
+	script_type = "python"
+	script = "{{Game_Root}}/scripts/python_demo.py"
+	args = []
 
 
 [[operation]]
-run-all = false
-Name = "Download Tools"
-Instructions = "Uses the engine downloader to retrieve optional demo tooling."
-script_type = "engine"
-script = "download-tools"
-tools_manifest = "{{Game_Root}}/Tools.toml"
+	run-all = false
+	Name = "Download Tools"
+	Instructions = "Uses the engine downloader to retrieve optional demo tooling."
+	script_type = "engine"
+	script = "download-tools"
+	tools_manifest = "{{Game_Root}}/Tools.toml"
 
 [[operation]]
-id = 3
-Name = "Rename folders in specified directory, not recursive"
-run-all = true
-depends-on = []
-script_type = "engine"
-script = "rename-folders"
-args = ["{{Game_Root}}/Files/engine/rename-folders-demo", "--map-db-file", "{{Game_Root}}/config/RenameMap.db"]
+	id = 3
+	Name = "Rename folders in specified directory, not recursive"
+	run-all = true
+	depends-on = []
+	script_type = "engine"
+	script = "rename-folders"
+	args = ["{{Game_Root}}/Files/engine/rename-folders-demo", "--map-db-file", "{{Game_Root}}/config/RenameMap.db"]
 
 [[operation]]
-id = 6
-Name = "execute any QuickBMS script, eg (.zip -> extracted files)"
-run-all = true
-depends-on = []
-script_type = "bms"
-script = "{{Game_Root}}/scripts/zip.bms"
-input = "{{Game_Root}}/Files/bms/extract-demo"
-output = "{{Game_Root}}/Files/bms/TMP/extract-demo"
-extension = ".zip"
+	id = 6
+	Name = "execute any QuickBMS script, eg (.zip -> extracted files)"
+	run-all = true
+	depends-on = []
+	script_type = "bms"
+	script = "{{Game_Root}}/scripts/zip.bms"
+	input = "{{Game_Root}}/Files/bms/extract-demo"
+	output = "{{Game_Root}}/Files/bms/TMP/extract-demo"
+	extension = ".zip"
 
 [[operation]]
-id = 8
-Name = "Extract Textures (.txd -> .dds)"
-run-all = true
-depends-on = []
-script_type = "engine"
-script = "format-extract"
-format = "txd"
-args = ["{{Game_Root}}/Files/engine/txd-extract-demo"]
+	id = 8
+	Name = "Extract Textures (.txd -> .dds)"
+	run-all = true
+	depends-on = []
+	script_type = "engine"
+	script = "format-extract"
+	format = "txd"
+	args = ["{{Game_Root}}/Files/engine/txd-extract-demo"]
 
 [[operation]]
-id = 9
-Name = "Convert Textures (.dds -> .png)"
-run-all = true
-depends-on = []
-script_type = "engine"
-script = "format-convert"
-tool = "ImageMagick"
-args = [
-	"--source", "{{Game_Root}}/Files/engine/txd-extract-demo",
-	"--target", "{{Game_Root}}/Files/TMP/engine/txd-extract-demo",
-	"--input-ext", ".dds",
-	"--output-ext", ".png"
-]
+	id = 9
+	Name = "Convert Textures (.dds -> .png)"
+	run-all = true
+	depends-on = []
+	script_type = "engine"
+	script = "format-convert"
+	tool = "ImageMagick"
+	args = [
+		"--source", "{{Game_Root}}/Files/engine/txd-extract-demo",
+		"--target", "{{Game_Root}}/Files/TMP/engine/txd-extract-demo",
+		"--input-ext", ".dds",
+		"--output-ext", ".png"
+	]
 
 ## convert videos into a usable format for godot
 [[operation]]
-id = 12
-Name = "Convert Videos (.mp4 -> .ogv)"
-run-all = true
-depends-on = []
-script_type = "engine"
-script = "format-convert"
-tool = "ffmpeg"
-args = [
-	"-m", "ffmpeg",
-	"--type", "video",
-	"-s", "{{Game_Root}}/Files/engine/format-convert-demo",
-	"-t", "{{Game_Root}}/Files/engine/format-convert-demo/TMP",
-	"-i", ".mp4",
-	"-o", ".ogv"
-]
+	id = 12
+	Name = "Convert Videos (.mp4 -> .ogv)"
+	run-all = true
+	depends-on = []
+	script_type = "engine"
+	script = "format-convert"
+	tool = "ffmpeg"
+	args = [
+		"-m", "ffmpeg",
+		"--type", "video",
+		"-s", "{{Game_Root}}/Files/engine/format-convert-demo",
+		"-t", "{{Game_Root}}/Files/engine/format-convert-demo/TMP",
+		"-i", ".mp4",
+		"-o", ".ogv"
+	]
 
 [[operation]]
-id = 13
-Name = "Convert Audio (.mp3 -> .wav)"
-run-all = true
-depends-on = [0]
-script_type = "engine"
-script = "format-convert"
-tool = "vgmstream"
-args = [
-	"-m", "vgmstream",
-	"--type", "audio",
-	"-s", "{{Game_Root}}/Files/engine/format-convert-demo",
-	"-t", "{{Game_Root}}/Files/engine/format-convert-demo/TMP",
-	"-i", ".mp3",
-	"-o", ".wav"
-]
-
-## NOT IMPLEMENTED, DEMO INPUT FILES NEED TO BE MANUALLY CREATED FIRST ##
+	id = 13
+	Name = "Convert Audio (.mp3 -> .wav)"
+	run-all = true
+	depends-on = [0]
+	script_type = "engine"
+	script = "format-convert"
+	tool = "vgmstream"
+	args = [
+		"-m", "vgmstream",
+		"--type", "audio",
+		"-s", "{{Game_Root}}/Files/engine/format-convert-demo",
+		"-t", "{{Game_Root}}/Files/engine/format-convert-demo/TMP",
+		"-i", ".mp3",
+		"-o", ".wav"
+	]
 
 [[operation]]
-id = 1
-Name = "Validate Files and Folders"
-run-all = false
-depends-on = []
-script_type = "engine"
-script = "validate-files"
-db = "{{Game_Root}}/config/db.db"
-args = [
-	"{{Game_Root}}/Files/engine/validate-files-demo",
-	"--tables", "table1:column1,table2:column2",
-	"--required-dirs", "folder1||folder1.2,folder2||folder2.2",
-]
+	id = 1
+	Name = "Validate Files and Folders"
+	run-all = false
+	depends-on = []
+	script_type = "engine"
+	script = "validate-files"
+	db = "{{Game_Root}}/config/db.db"
+	args = [
+		"{{Game_Root}}/Files/engine/validate-files-demo",
+		"--tables", "table1:column1,table2:column2",
+		"--required-dirs", "folder1||folder1.2,folder2||folder2.2",
+	]
+
+#
+# these are Internal operations that cannot be used directly as they exist solely to provide internal engine functionality
+# eg, gitDownload will appear in the engine UI allowing for downloading registered modules or arbitrary git repos, for safety this cannot be invoked directly
+# to make UI simpler and easier to dev for GUI,TUI,CLI these internal ops are built using the same standard operations format as 'internal' operations
+#
+
+[[operations]]
+	run-all = true
+	Name = "Download from Git URL"
+	id = "engine_download_git"
+	description = "Clone a game repository from a Git URL."
+	script = "download_module_git"
+	script_type = "internal"
+	prompts = [
+		{ Name = "url", type = "text", message = "Enter Git URL" }
+	]
+
+[[operations]]
+	run-all = true
+	Name = "Download from Registry"
+	id = "engine_download_registry"
+	description = "Clone a game repository from the known registry list."
+	script = "download_module_registry"
+	script_type = "internal"
+	prompts = [
+		{ Name = "url", type = "text", message = "Enter Registry URL or Name" }
+	]
 

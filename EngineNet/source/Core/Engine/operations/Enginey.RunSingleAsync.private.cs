@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 
-namespace EngineNet.Core;
+namespace EngineNet.Core.Engine;
 
-internal sealed class Enginey {
+internal sealed class OperationExecution {
 
     // used by run single operation to execute engine operations of type "engine"
 
@@ -29,10 +29,10 @@ internal sealed class Enginey {
         System.Threading.CancellationToken cancellationToken = default
     ) {
         if (!op.TryGetValue("script", out object? s) || s is null) {
-            Core.Diagnostics.Log("[Engine.private.cs :: OperationExecution()] Missing 'script' value in engine operation");
+            Core.Diagnostics.Log("[Engine.private.cs :: Operations()] Missing 'script' value in engine operation");
             return false;
         } else {
-            Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] engine operation script: {s}");
+            Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] engine operation script: {s}");
         }
 
         // ensure internal ops are from allowed dirs
@@ -56,31 +56,31 @@ internal sealed class Enginey {
         // Determine action
         string? action = s.ToString()?.ToLowerInvariant();
 
-        Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] Executing engine action: {action}");
+        Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] Executing engine action: {action}");
         switch (action) {
             case "download_module_git": {
-                return new OperationExecution().DownloadModuleGit(promptAnswers, GitService);
+                return new EngineNet.Core.Engine.operations.Built_inActions.InternalOperations().DownloadModuleGit(promptAnswers, GitService);
             }
             case "download_module_registry": {
-                return new OperationExecution().DownloadModuleRegistry(promptAnswers, GitService, GameRegistry);
+                return new EngineNet.Core.Engine.operations.Built_inActions.InternalOperations().DownloadModuleRegistry(promptAnswers, GitService, GameRegistry);
             }
             case "download-tools": {
-                return await new OperationExecution().DownloadTools(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
+                return await new EngineNet.Core.Engine.operations.Built_inActions.InternalOperations().DownloadTools(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
             }
             case "format-extract": {
-                return new OperationExecution().format_extract(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
+                return new EngineNet.Core.Engine.operations.Built_inActions.InternalOperations().format_extract(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
             }
             case "format-convert": {
-                return new OperationExecution().format_convert(op, promptAnswers, currentGame, games, RootPath, EngineConfig, ToolResolver);
+                return new EngineNet.Core.Engine.operations.Built_inActions.InternalOperations().format_convert(op, promptAnswers, currentGame, games, RootPath, EngineConfig, ToolResolver);
             }
             case "validate-files": {
-                return new OperationExecution().validate_files(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
+                return new EngineNet.Core.Engine.operations.Built_inActions.InternalOperations().validate_files(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
             }
             case "rename-folders": {
-                return new OperationExecution().rename_folders(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
+                return new EngineNet.Core.Engine.operations.Built_inActions.InternalOperations().rename_folders(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
             }
             default: {
-                Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] Unknown engine action: {action}");
+                Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] Unknown engine action: {action}");
                 return false;
             }
         }

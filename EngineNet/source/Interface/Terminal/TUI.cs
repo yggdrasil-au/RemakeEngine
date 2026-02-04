@@ -1,13 +1,14 @@
 
 using System.Collections.Generic;
+using Microsoft.VisualBasic;
 
 namespace EngineNet.Interface.Terminal;
 
 internal partial class TUI {
 
     /* :: :: Constructor, Var :: START :: */
-    private readonly Core.Engine _engine;
-    internal TUI(Core.Engine engine) {
+    private readonly Core.Engine.Engine _engine;
+    internal TUI(Core.Engine.Engine engine) {
         _engine = engine;
     }
 
@@ -21,17 +22,27 @@ internal partial class TUI {
     /// - runs initialization operations automatically once per game selection
     /// </summary>
     /// <returns></returns>
-    internal async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync() {
+    internal async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync(string? msg = null) {
         try {
             // get all modules that exist on disk
             Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.Modules(Core.Utils.ModuleFilter.Installed);
             // get internal modules
             Dictionary<string, Core.Utils.GameModuleInfo> internalModules = _engine.Modules(Core.Utils.ModuleFilter.Internal);
 
+            // Create a combined dictionary for lookup and execution
+            Dictionary<string, Core.Utils.GameModuleInfo> allAvailableModules = new(modules);
+            foreach (var kv in internalModules) {
+                // Internal modules overwrite installed if there's a name collision
+                allAvailableModules[kv.Key] = kv.Value;
+            }
+
             // Allow managing modules from the game selection menu
             string gameName;
             while (true) {
-                System.Console.Clear();
+                SafeClear();
+                if (msg is not null) {
+                    System.Console.WriteLine(msg);
+                }
                 System.Console.WriteLine("Select a game:");
 
                 List<string> gameMenu = new List<string>();
@@ -52,6 +63,7 @@ internal partial class TUI {
                     gameKeyMap.Add(m.Name);
                 }
                 gameMenu.Add("---------------"); // separator before internal modules
+                gameKeyMap.Add("---"); // placeholder for separator
 
                 // Add internal modules after game modules
                 foreach (Core.Utils.GameModuleInfo m in internalModules.Values) {
@@ -60,6 +72,7 @@ internal partial class TUI {
                 }
 
                 gameMenu.Add("Exit");
+                gameKeyMap.Add("Exit"); // align with Exit index
                 // Prompt for selection
                 int gidx = SelectFromMenu(gameMenu, highlightSeparators: true);
                 if (gidx < 0 || gameMenu[gidx] == "Exit") {
@@ -84,22 +97,25 @@ internal partial class TUI {
             // 2) Load operations list and render menu
 
             Core.Utils.GameModuleInfo? info = null;
-            // check the module exists in modules dictionary
-            if (!modules.TryGetValue(gameName, out var moduleInfo) || (info = moduleInfo) is null) {
+            // check the module exists in combined modules dictionary
+            if (!allAvailableModules.TryGetValue(gameName, out var moduleInfo) || (info = moduleInfo) is null) {
                 Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game not found.");
-                return 1;
+                // return to menu selection
+                //return 1;
+                return await RunInteractiveMenuAsync("Selected game not found. Please choose again.");
             }
             // load operations list from ops_file
             if (info.OpsFile is null) {
                 Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game is missing ops_file.");
-                return 1;
+                //return 1;
+                return await RunInteractiveMenuAsync("Selected game is missing operations file. Please choose again.");
             }
             // get all operations for the selected game
             List<Dictionary<string, object?>>? allOps = _engine.LoadOperationsList(info.OpsFile);
             if (allOps is null) {
                 Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Failed to load operations list.");
                 System.Console.WriteLine($"Failed to load operations file for '{gameName}'.\nPress any key to exit...");
-                System.Console.ReadKey(true);
+                SafeReadKey(true);
                 Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Exiting due to failed ops load.");
                 return 1;
             }
@@ -108,32 +124,46 @@ internal partial class TUI {
             List<Dictionary<string, object?>> initOps = allOps.FindAll(op => op.TryGetValue(key: "init", out object? i) && i is bool b && b);
             List<Dictionary<string, object?>> regularOps = allOps.FindAll(op => !op.ContainsKey(key: "init") || !(op[key: "init"] is bool bb && bb));
 
+            // Check if any operation has run-all enabled
+            bool hasRunAll = allOps.Any(op =>
+                (op.TryGetValue("run-all", out object? ra1) && ra1 is bool b1 && b1) ||
+                (op.TryGetValue("run_all", out object? ra2) && ra2 is bool b2 && b2)
+            );
+
             // Auto-run init operations once when a game is selected
             if (initOps.Count > 0) {
-                System.Console.Clear();
+                SafeClear();
                 System.Console.WriteLine(value: $"Running {initOps.Count} initialization operation(s) for {gameName}\n");
                 bool okAllInit = true;
                 foreach (Dictionary<string, object?> op in initOps) {
                     Dictionary<string, object?> answers = new Dictionary<string, object?>();
                     // Initialization runs non-interactively; use defaults when provided
                     CollectAnswersForOperation(op, answers, defaultsOnly: true);
-                    bool ok = new Utils().ExecuteOp(_engine, gameName, modules, op, answers);
+                    bool ok = new Utils().ExecuteOp(_engine, gameName, allAvailableModules, op, answers);
                     okAllInit &= ok;
                 }
                 //didRunInit = true;
                 System.Console.WriteLine(okAllInit
                     ? "Initialization completed successfully. Press any key to continue..."
                     : "One or more init operations failed. Press any key to continue...");
-                System.Console.ReadKey(intercept: true);
+                SafeReadKey(intercept: true);
             }
 
             // operations menu
             while (true) {
-                System.Console.Clear();
+                SafeClear();
                 System.Console.WriteLine(value: $"--- Operations for: {gameName}");
                 List<string> menu = new List<string>();
-                menu.Add(item: "Run All");
-                menu.Add(item: "---------------");
+                
+                // Show "Run All" only for non-internal modules and if there are operations with run-all flags
+                bool showRunAll = !info.IsInternal && hasRunAll;
+                int opStartIndex = 0;
+                if (showRunAll) {
+                    menu.Add(item: "Run All");
+                    menu.Add(item: "---------------");
+                    opStartIndex = 2;
+                }
+
                 // list regular operations
                 // for each operation, display its "Name" entry if exists, or just display 'unnamed'
                 foreach (Dictionary<string, object?> op in regularOps) {
@@ -169,15 +199,15 @@ internal partial class TUI {
                 }
                 if (selection == "Run All") {
                     try {
-                        System.Console.Clear();
+                        SafeClear();
                         System.Console.WriteLine($"Running operations for {gameName}...\n");
 
-                        Core.RunAllResult result = await _engine.RunAllAsync(gameName, onOutput: Utils.OnOutput, onEvent: Utils.OnEvent, stdinProvider: null);
+                        Core.Engine.RunAllResult result = await _engine.RunAllAsync(gameName, onOutput: Utils.OnOutput, onEvent: Utils.OnEvent, stdinProvider: null);
 
                         System.Console.WriteLine(result.Success
                             ? $"Completed successfully. ({result.SucceededOperations}/{result.TotalOperations} operations succeeded). Press any key to continue..."
                             : $"One or more operations failed. ({result.SucceededOperations}/{result.TotalOperations} operations succeeded). Press any key to continue...");
-                        System.Console.ReadKey(true);
+                        SafeReadKey(true);
                         continue;
                     } catch (System.Exception ex) {
                         Core.Diagnostics.Bug($"[TUI::RunAll()] Error during Run All: {ex.Message}");
@@ -186,23 +216,23 @@ internal partial class TUI {
                 }
 
                 // Otherwise, run a single operation (by index within regular ops)
-                int opIndex = idx - 2; // skip first two menu items
+                int opIndex = idx - opStartIndex;
                 if (opIndex >= 0 && opIndex < regularOps.Count) {
                     Dictionary<string, object?> op = regularOps[opIndex];
                     Dictionary<string, object?> answers = new Dictionary<string, object?>();
                     // For manual single-op run, prompt interactively
                     CollectAnswersForOperation(op, answers, defaultsOnly: false);
-                    System.Console.Clear();
+                    SafeClear();
                     System.Console.WriteLine($"Running: {selection}\n");
-                    bool ok = new Utils().ExecuteOp(_engine, gameName, modules, op, answers);
+                    bool ok = new Utils().ExecuteOp(_engine, gameName, allAvailableModules, op, answers);
                     System.Console.WriteLine(ok ? "Completed successfully. Press any key to continue..." : "Operation failed. Press any key to continue...");
-                    System.Console.ReadKey(true);
+                    SafeReadKey(true);
                 }
             }
         } catch (System.Exception ex) {
             Core.Diagnostics.Bug($"[TUI::RunInteractiveMenuAsync()] Error: {ex}");
             System.Console.WriteLine($"Error: {ex.Message}\nPress any key to exit...");
-            System.Console.ReadKey(true);
+            SafeReadKey(true);
             return -1;
         }
     }

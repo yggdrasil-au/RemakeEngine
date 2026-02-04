@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Threading;
 
-namespace EngineNet.Core;
+namespace EngineNet.Core.Engine;
 
 /// <summary>
 /// Core Engine class providing main functionality
@@ -19,8 +19,8 @@ internal sealed partial class Engine {
     internal Core.Abstractions.ICommandService CommandService { get; }
     internal Core.ExternalTools.IToolResolver ToolResolver { get; }
     internal Core.EngineConfig EngineConfig { get; }
-    internal Core.Enginey Enginey { get; }
-    internal Core.Engino Engino { get; }
+    internal Core.Engine.OperationExecution OperationExecution { get; }
+    internal Core.Engine.Engino Engino { get; }
 
     /* :: :: Vars :: End :: */
 
@@ -33,8 +33,8 @@ internal sealed partial class Engine {
         Core.Abstractions.ICommandService commandService,
         Core.ExternalTools.IToolResolver toolResolver,
         Core.EngineConfig engineConfig,
-        Core.Enginey enginey,
-        Core.Engino engino
+        Core.Engine.OperationExecution operationExecution,
+        Core.Engine.Engino engino
     ) {
         RootPath = rootPath;
         GameRegistry = gameRegistry;
@@ -44,7 +44,7 @@ internal sealed partial class Engine {
         CommandService = commandService;
         ToolResolver = toolResolver;
         EngineConfig = engineConfig;
-        Enginey = enginey;
+        OperationExecution = operationExecution;
         Engino = engino;
     }
 

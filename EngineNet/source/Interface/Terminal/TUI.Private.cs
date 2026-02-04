@@ -7,6 +7,52 @@ namespace EngineNet.Interface.Terminal;
 
 internal partial class TUI {
 
+    /// <summary>
+    /// Safely clears the console if it is not redirected and supported.
+    /// </summary>
+    private static void SafeClear() {
+        try {
+            if (!System.Console.IsOutputRedirected) {
+                System.Console.Clear();
+            }
+        } catch (System.Exception e) {
+            Core.Diagnostics.Bug($"[TUI.private.cs::SafeClear()] Error clearing console: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Safely reads a key from the console if it is not redirected.
+    /// Returns an empty ConsoleKeyInfo if redirection is detected or on error.
+    /// </summary>
+    /// <param name="intercept">Whether to intercept the key</param>
+    /// <returns></returns>
+    private static System.ConsoleKeyInfo SafeReadKey(bool intercept = false) {
+        try {
+            if (!System.Console.IsInputRedirected) {
+                return System.Console.ReadKey(intercept);
+            }
+        } catch (System.Exception e) {
+            Core.Diagnostics.Bug($"[TUI.private.cs::SafeReadKey()] Error reading key: {e.Message}");
+            // ignore
+        }
+        return new System.ConsoleKeyInfo('\0', 0, false, false, false);
+    }
+
+    /// <summary>
+    /// Safely sets the cursor visibility if not redirected.
+    /// </summary>
+    /// <param name="visible"></param>
+    private static void SafeSetCursorVisible(bool visible) {
+        try {
+            if (!System.Console.IsOutputRedirected) {
+                System.Console.CursorVisible = visible;
+            }
+        } catch (System.Exception e) {
+            Core.Diagnostics.Bug($"[TUI.private.cs::SafeSetCursorVisible()] Error setting cursor visibility: {e.Message}");
+            // ignore
+        }
+    }
+
     private static bool CanUseInteractiveMenu(int itemCount) {
         try {
             if (System.Console.IsOutputRedirected || System.Console.IsInputRedirected) {
@@ -58,12 +104,12 @@ internal partial class TUI {
             int renderTop = System.Console.CursorTop;
 
             while (true) {
-                System.Console.CursorVisible = false;
+                SafeSetCursorVisible(false);
 
                 try {
                     System.Console.SetCursorPosition(0, renderTop);
                 } catch (System.ArgumentOutOfRangeException) {
-                    System.Console.CursorVisible = true;
+                    SafeSetCursorVisible(true);
                     return SelectFromNumberedMenu(items, highlightSeparators);
                 }
 
@@ -85,7 +131,7 @@ internal partial class TUI {
                     }
                 }
 
-                System.ConsoleKeyInfo keyInfo = System.Console.ReadKey(true);
+                System.ConsoleKeyInfo keyInfo = SafeReadKey(true);
                 switch (keyInfo.Key) {
                     case System.ConsoleKey.DownArrow:
                         do {
@@ -98,10 +144,10 @@ internal partial class TUI {
                         } while (items[index] == "---------------");
                         break;
                     case System.ConsoleKey.Escape:
-                        System.Console.CursorVisible = true;
+                        SafeSetCursorVisible(true);
                         return -1;
                     case System.ConsoleKey.Enter:
-                        System.Console.CursorVisible = true;
+                        SafeSetCursorVisible(true);
                         return index;
                 }
             }

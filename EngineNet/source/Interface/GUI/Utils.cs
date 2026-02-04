@@ -20,7 +20,7 @@ internal static class Utils {
     /// <param name="executor">Callback that runs the actual engine work.</param>
     /// <param name="autoPromptResponses">Optional automatic prompt answers.</param>
     internal static async Task<TResult> ExecuteEngineOperationAsync<TResult>(
-        Core.Engine engine,
+        Core.Engine.Engine engine,
         string moduleName,
         string operationName,
         System.Func<Core.ProcessRunner.OutputHandler, Core.ProcessRunner.EventHandler, Core.ProcessRunner.StdinProvider, Task<TResult>> executor,

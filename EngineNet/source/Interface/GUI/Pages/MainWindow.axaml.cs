@@ -5,7 +5,7 @@ namespace EngineNet.Interface.GUI.Pages;
 
 public partial class MainWindow:Window {
     /* :: :: Vars :: START :: */
-    private readonly Core.Engine? _engine;
+    private readonly Core.Engine.Engine? _engine;
 
     /* :: :: Vars :: END :: */
     // //
@@ -21,7 +21,7 @@ public partial class MainWindow:Window {
     /// <summary>
     /// Main constructor
     /// </summary>
-    internal MainWindow(Core.Engine engine) {
+    internal MainWindow(Core.Engine.Engine engine) {
         _engine = engine;
         DataContext = this;
         InitializeComponent();

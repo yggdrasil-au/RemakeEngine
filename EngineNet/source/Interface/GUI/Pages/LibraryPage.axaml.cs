@@ -14,7 +14,7 @@ public partial class LibraryPage:UserControl {
 
     /* :: :: Vars :: START :: */
     // //
-    private readonly Core.Engine? _engine;
+    private readonly Core.Engine.Engine? _engine;
 
     private ObservableCollection<Row> Items {
         get;
@@ -69,7 +69,7 @@ public partial class LibraryPage:UserControl {
     /// Constructs the LibraryPage with the given OperationsEngine.
     /// </summary>
     /// <param name="engine"></param>
-    internal LibraryPage(Core.Engine engine) {
+    internal LibraryPage(Core.Engine.Engine engine) {
         try {
             _engine = engine;
             InitializeComponent();

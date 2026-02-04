@@ -14,7 +14,7 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
 
     /* :: :: Vars :: START :: */
     // //
-    private readonly Core.Engine? _engine;
+    private readonly Core.Engine.Engine? _engine;
 
     internal ObservableCollection<StoreItem> Items {
         get;
@@ -73,7 +73,7 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
     /// Constructs the StorePage with the given OperationsEngine.
     /// </summary>
     /// <param name="engine"></param>
-    internal StorePage(Core.Engine engine) {
+    internal StorePage(Core.Engine.Engine engine) {
         _engine = engine;
         DataContext = this;
         InitializeComponent();

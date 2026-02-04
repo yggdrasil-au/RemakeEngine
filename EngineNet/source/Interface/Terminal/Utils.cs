@@ -33,7 +33,7 @@ internal class Utils() {
     /// <param name="autoPromptResponses"></param>
     /// <returns></returns>
     internal bool ExecuteOp(
-        Core.Engine _engine,
+        Core.Engine.Engine _engine,
         string game,
         Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
         Dictionary<string, object?> op,
@@ -71,7 +71,7 @@ internal class Utils() {
                         _engine.GitService,
                         _engine.GameRegistry,
                         _engine.CommandService,
-                        _engine.Enginey, CancellationToken.None
+                        _engine.OperationExecution, CancellationToken.None
                     ).GetAwaiter().GetResult();
                 } finally {
                     // Restore previous auto-prompt responses

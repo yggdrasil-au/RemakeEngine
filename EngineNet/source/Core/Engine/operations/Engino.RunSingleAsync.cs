@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace EngineNet.Core;
+namespace EngineNet.Core.Engine;
 
-internal sealed partial class Engino {
+internal sealed class Engino {
 
     // used to run a single op by both runallasync and direct operation execution in the GUI/TUI
 
@@ -27,7 +27,7 @@ internal sealed partial class Engino {
         Core.Abstractions.IGitService GitService,
         Core.Abstractions.IGameRegistry GameRegistry,
         Core.Abstractions.ICommandService CommandService,
-        Enginey Enginey,
+        OperationExecution OperationExecution,
         System.Threading.CancellationToken cancellationToken = default
     ) {
         string? scriptType = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant();
@@ -55,7 +55,7 @@ internal sealed partial class Engino {
                         Core.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Executing engine operation {title} ({action})");
                         Core.UI.EngineSdk.PrintLine(message: $"\n>>> Engine operation: {title}");
                         // delegate engine type handling to ExecuteEngineOperationAsync
-                        result = await Enginey.ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, RootPath, EngineConfig, ToolResolver, GitService, GameRegistry, cancellationToken);
+                        result = await OperationExecution.ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, RootPath, EngineConfig, ToolResolver, GitService, GameRegistry, cancellationToken);
                     } catch (System.Exception ex) {
                         Core.UI.EngineSdk.PrintLine($"engine ERROR: {ex.Message}");
                         result = false;
@@ -137,10 +137,10 @@ internal sealed partial class Engino {
         }
 
         // If the main operation succeeded, run any nested [[operation.onsuccess]] steps
-        if (result && Enginey.TryGetOnSuccessOperations(op, out List<Dictionary<string, object?>>? followUps) && followUps is not null) {
+        if (result && OperationExecution.TryGetOnSuccessOperations(op, out List<Dictionary<string, object?>>? followUps) && followUps is not null) {
             foreach (Dictionary<string, object?> childOp in followUps) {
                 if (cancellationToken.IsCancellationRequested) break;
-                bool ok = await RunSingleOperationAsync(currentGame, games, childOp, promptAnswers, RootPath, EngineConfig, ToolResolver, GitService, GameRegistry, CommandService, Enginey, cancellationToken);
+                bool ok = await RunSingleOperationAsync(currentGame, games, childOp, promptAnswers, RootPath, EngineConfig, ToolResolver, GitService, GameRegistry, CommandService, OperationExecution, cancellationToken);
                 if (!ok) {
                     result = false; // propagate failure from any onsuccess step
                 }

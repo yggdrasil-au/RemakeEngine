@@ -8,8 +8,8 @@ namespace EngineNet.Interface.Terminal;
 internal partial class CLI {
 
     /* :: :: Constructor, Var :: START :: */
-    private readonly Core.Engine _engine;
-    internal CLI(Core.Engine engine) {
+    private readonly Core.Engine.Engine _engine;
+    internal CLI(Core.Engine.Engine engine) {
         _engine = engine;
     }
 
@@ -20,30 +20,16 @@ internal partial class CLI {
     /// <returns></returns>
     internal int Run(string[] args) {
         try {
-            // Strip global flags that Program.cs already handled, like --root PATH
-            if (args.Length > 0) {
-                List<string> list = new List<string>(args);
-                for (int i = 0; i < list.Count;) {
-                    if (list[i] == "--root") {
-                        list.RemoveAt(i);
-                        if (i < list.Count) {
-                            list.RemoveAt(i); // remove path following --root
-                        }
-
-                        continue;
-                    }
-                    i++;
-                }
-                args = list.ToArray();
-            }
 
             // Check for inline operation invocation
             if (IsInlineOperationInvocation(args)) {
+                Core.Diagnostics.Trace("Detected inline operation invocation.");
                 // Run operation directly from command-line args
                 return RunInlineOperation(args);
             }
 
             string cmd = args[0].ToLowerInvariant();
+            Core.Diagnostics.Trace($"CLI Command: {cmd}");
             switch (cmd) {
                 case "help":
                 case "-h":

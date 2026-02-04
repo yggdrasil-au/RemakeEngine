@@ -62,6 +62,7 @@ internal partial class CLI {
     }
 
     private static void PrintHelp() {
+        Core.Diagnostics.Trace("Displaying CLI help.");
         System.Console.WriteLine(@"RemakeEngine
         TUI Usage:
             engine --tui (to launch terminal ui menu)

@@ -1,6 +1,10 @@
 using System.Linq;
 using System.Collections.Generic;
+
 using Avalonia;
+
+using EngineNet.Core;
+using EngineNet.Core.UI;
 
 // Allow 'internal' access for tests
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo(assemblyName: "EngineNet.Tests")]
@@ -22,6 +26,12 @@ public static class Program {
     [STAThread]
     internal static async System.Threading.Tasks.Task<int> Main(string[] args) {
         try {
+            // Try to attach to the parent console (CMD/PowerShell) so stdout works.
+            bool hasConsole = false;
+            if (System.OperatingSystem.IsWindows()) {
+                hasConsole = ConsoleHelper.AttachConsole(ConsoleHelper.ATTACH_PARENT_PROCESS);
+            }
+
             // 1. Parse Args to separate the Root path from the Mode flags
             var parsedArgs = ParseArguments(args);
 
@@ -44,9 +54,19 @@ public static class Program {
 
             bool isGui = parsedArgs.Remaining.Count == 0 || (parsedArgs.Remaining.Count == 1 && parsedArgs.Remaining[0].Equals("--gui", System.StringComparison.OrdinalIgnoreCase));
             bool isTui = parsedArgs.Remaining.Count == 1 && parsedArgs.Remaining[0].Equals("--tui", System.StringComparison.OrdinalIgnoreCase);
+            bool isCli = !isGui && !isTui;
 
             // :: Initialize the Logger
             Core.Diagnostics.Initialize(isGui, isTui);
+
+            Core.Diagnostics.Trace($"Starting EngineNet in {(isGui ? "GUI" : isTui ? "TUI" : "CLI")} mode. Root Path: {rootPath}");
+
+            // If user requested TUI/CLI but we failed to attach (e.g. shortcut double-click),
+            // we must manually allocate a new console window or they will see nothing.
+            if ((isTui || isCli) && !hasConsole && System.OperatingSystem.IsWindows()) {
+                ConsoleHelper.AllocConsole();
+                Core.Diagnostics.Trace("Allocated new console window for TUI/CLI mode.");
+            }
 
             // :: Setup Services
             var tools = new Core.ExternalTools.JsonToolResolver();
@@ -59,10 +79,10 @@ public static class Program {
             var _gitService = new Core.Services.GitService();
             var _commandService = new Core.Services.CommandService();
 
-            var enginey = new EngineNet.Core.Enginey();
-            var Engino = new EngineNet.Core.Engino();
+            var operationExecution = new Core.Engine.OperationExecution();
+            var Engino = new Core.Engine.Engino();
 
-            Core.Engine _engine = new Core.Engine(
+            Core.Engine.Engine _engine = new Core.Engine.Engine(
                 rootPath: rootPath,
                 gameRegistry: gameRegistry,
                 gameLauncher: _gameLauncher,
@@ -71,7 +91,7 @@ public static class Program {
                 commandService: _commandService,
                 toolResolver: tools,
                 engineConfig: engineConfig,
-                enginey: enginey,
+                operationExecution: operationExecution,
                 engino: Engino
             );
 
@@ -81,26 +101,38 @@ public static class Program {
             // - No remaining args -> GUI
             // - One arg "--gui" -> GUI
             if (isGui) {
+                Core.Diagnostics.Trace("Launching GUI Interface...");
                 return Interface.GUI.AvaloniaGui.Run(_engine); // ;; gui flow step1 ;;
             }
 
             // Logic:
             // - One arg "--tui" -> TUI
             if (isTui) {
+                Core.Diagnostics.Trace("Launching TUI Interface...");
                 Interface.Terminal.TUI TUI = new Interface.Terminal.TUI(_engine);
                 return await TUI.RunInteractiveMenuAsync();
             }
 
             // Logic:
             // - Anything else -> CLI (Pass original args so CLI can parse specific commands like 'build', 'run', etc.)
-            Interface.Terminal.CLI CLI = new Interface.Terminal.CLI(_engine);
-            return CLI.Run(args);
+            if (isCli) {
+                Core.Diagnostics.Trace("Launching CLI Interface...");
+                Interface.Terminal.CLI CLI = new Interface.Terminal.CLI(_engine);
+                return CLI.Run(args);
+            }
+            EngineSdk.Error("No valid interface mode selected.");
+            Core.Diagnostics.Bug("No valid interface mode selected.");
+            return 1;
         } catch (System.Exception ex) {
             Core.Diagnostics.Bug("Critical Engine Failure in Main", ex);
             Core.Diagnostics.Log($"Engine Error: {ex}");
             return 1;
         } finally {
             Core.Diagnostics.Close();
+            // :: Detach console on exit
+            if (System.OperatingSystem.IsWindows()) {
+                ConsoleHelper.FreeConsole();
+            }
         }
     }
 
@@ -162,6 +194,23 @@ public static class Program {
             Core.Diagnostics.Bug($"Error finding project root: {e.Message}");
         }
         return string.Empty;
+    }
+
+    // Add this class inside the EngineNet namespace or Program.cs
+    internal static class ConsoleHelper {
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        internal static extern bool AllocConsole();
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        internal static extern bool AttachConsole(int dwProcessId);
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        internal static extern bool FreeConsole();
+
+        internal const int ATTACH_PARENT_PROCESS = -1;
     }
 
     /* :: :: Methods :: END :: */

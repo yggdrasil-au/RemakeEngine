@@ -14,7 +14,7 @@ internal static class AvaloniaGui {
     /// Stored temporarily so the App (and its view models) can access it
     /// during initialization.
     /// </summary>
-    internal static Core.Engine Engine {
+    internal static Core.Engine.Engine Engine {
         get; private set;
     } = null!; // Initialized in Run()
 
@@ -28,7 +28,7 @@ internal static class AvaloniaGui {
     /// <returns>
     /// 0 on normal shutdown; 1 if an exception is caught during startup/run.
     /// </returns>
-    internal static int Run(Core.Engine engine) {
+    internal static int Run(Core.Engine.Engine engine) {
         try {
             // 1) Stash the engine so App.OnFrameworkInitializationCompleted (or similar)
             //    can pull it to compose view models.
