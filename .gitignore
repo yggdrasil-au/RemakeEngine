@@ -23,8 +23,8 @@ obj/
 ############################
 # Tools
 ############################
-EngineApps/**/Tools/
-/Tools/**
+EngineApps/Games/**/Tools/
+Tools/**
 Tools.local.json
 
 ############################
