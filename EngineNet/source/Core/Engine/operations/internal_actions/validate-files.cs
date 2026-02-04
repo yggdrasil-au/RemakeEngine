@@ -28,7 +28,7 @@ internal partial class OperationExecution {
         try {
             string cfgPath = System.IO.Path.Combine(gameRoot4, "config.toml");
             if (!string.IsNullOrWhiteSpace(gameRoot4) && System.IO.File.Exists(cfgPath)) {
-                Dictionary<string, object?> fromToml = Core.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                Dictionary<string, object?> fromToml = Core.ExternalTools.SimpleToml.ReadPlaceholdersFile(cfgPath);
                 foreach (KeyValuePair<string, object?> kv in fromToml) {
                     if (!ctx.ContainsKey(kv.Key)) {
                         ctx[kv.Key] = kv.Value;
@@ -74,11 +74,11 @@ internal partial class OperationExecution {
         }
 
         if (argsValidate.Count < 2) {
-            Core.Utils.EngineSdk.PrintLine("validate-files requires a database path and base directory.");
+            Core.UI.EngineSdk.PrintLine("validate-files requires a database path and base directory.");
             return false;
         }
 
-        Core.Utils.EngineSdk.PrintLine("\n>>> Built-in file validation");
+        Core.UI.EngineSdk.PrintLine("\n>>> Built-in file validation");
         bool okValidate = FileHandlers.FileValidator.Run(argsValidate);
         return okValidate;
     }

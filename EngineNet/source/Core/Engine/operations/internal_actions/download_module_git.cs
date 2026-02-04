@@ -9,7 +9,7 @@ internal partial class OperationExecution {
             url = u?.ToString();
         }
         if (string.IsNullOrWhiteSpace(url)) {
-            Core.Utils.EngineSdk.Error("No URL provided.");
+            Core.UI.EngineSdk.Error("No URL provided.");
             Core.Diagnostics.Trace("[Engine.private.cs :: OperationExecution()]] download_module_git: no url provided");
             return false;
         }

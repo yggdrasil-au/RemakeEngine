@@ -23,6 +23,7 @@ obj/
 ############################
 # Tools
 ############################
+EngineApps/**/Tools/
 /Tools/**
 Tools.local.json
 
@@ -101,7 +102,3 @@ EngineBuild/
 
 # incomplete unit test project
 Unit.Tests/
-
-
-{{Project_Root}}/
-{{Game_Root}}/

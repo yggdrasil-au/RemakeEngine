@@ -1,6 +1,49 @@
 # Engine TODO List
 
 
+# update tools downloader
+currently it can only have one version of each tool downloaded/defined
+it should be updated to allow multiple versions of each tool to be downloaded and managed
+allowing each module to define which version of a tool it needs to use
+when a module script calls a tool it should search for the version defined in the module first
+if not found it should not use any other version and instead return an error
+this will allow modules to use different versions of tools without conflict
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## Interfaces:
 

@@ -69,12 +69,12 @@ internal sealed partial class Engine {
             System.Console.SetIn(new StdinRedirectReader(stdinProvider));
         }
 
-        System.Action<Dictionary<string, object?>>? previousSink = Core.Utils.EngineSdk.LocalEventSink;
-        bool previousMute = Core.Utils.EngineSdk.MuteStdoutWhenLocalSink;
+        System.Action<Dictionary<string, object?>>? previousSink = Core.UI.EngineSdk.LocalEventSink;
+        bool previousMute = Core.UI.EngineSdk.MuteStdoutWhenLocalSink;
         string currentOperation = string.Empty;
         Core.Utils.SdkEventScope? sdkScope = null;
         if (onEvent is not null) {
-            Core.Utils.EngineSdk.LocalEventSink = evt => {
+            Core.UI.EngineSdk.LocalEventSink = evt => {
                 Dictionary<string, object?> payload = CloneEvent(evt);
                 payload["game"] = gameName;
                 if (!string.IsNullOrEmpty(currentOperation)) {
@@ -82,8 +82,8 @@ internal sealed partial class Engine {
                 }
                 onEvent(payload);
             };
-            Core.Utils.EngineSdk.MuteStdoutWhenLocalSink = true;
-            sdkScope = new Core.Utils.SdkEventScope(sink: Core.Utils.EngineSdk.LocalEventSink, muteStdout: true, autoPromptResponses: null);
+            Core.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
+            sdkScope = new Core.Utils.SdkEventScope(sink: Core.UI.EngineSdk.LocalEventSink, muteStdout: true, autoPromptResponses: null);
         }
 
         bool overallSuccess = true;
@@ -111,7 +111,7 @@ internal sealed partial class Engine {
                     string? scriptType = GetScriptType(op);
                     // ensure script type is valid
                     if (Core.Utils.ScriptConstants.IsSupported(scriptType)) {
-                        ok = await RunSingleOperationAsync(gameName, games, op, promptAnswers, cancellationToken).ConfigureAwait(false);
+                        ok = await Engino.RunSingleOperationAsync(gameName, games, op, promptAnswers, RootPath, EngineConfig, ToolResolver, GitService, GameRegistry, CommandService, Enginey, cancellationToken).ConfigureAwait(false);
                     } else if (string.IsNullOrEmpty(scriptType)) {
                         Core.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Skipping operation '{currentOperation}' due to null or empty script type");
                         overallSuccess = false;
@@ -164,7 +164,7 @@ internal sealed partial class Engine {
             }
         } finally {
             if (sdkScope is not null) { sdkScope.Dispose(); }
-            if (onEvent is not null) { Core.Utils.EngineSdk.LocalEventSink = previousSink; Core.Utils.EngineSdk.MuteStdoutWhenLocalSink = previousMute; }
+            if (onEvent is not null) { Core.UI.EngineSdk.LocalEventSink = previousSink; Core.UI.EngineSdk.MuteStdoutWhenLocalSink = previousMute; }
 
             if (previousReader is not null) {
                 System.Console.SetIn(previousReader);

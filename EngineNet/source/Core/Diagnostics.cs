@@ -16,6 +16,7 @@ internal static class Diagnostics {
     // These writers exist in all builds so logging always works
     private static StreamWriter? _debugWriter; // Just Diagnostics.Log / Info
     private static StreamWriter? _luaLogWriter; // Just Diagnostics.LuaLog
+    private static StreamWriter? _jsLogWriter; // Just Diagnostics.JsLog
     private static StreamWriter? _bugWriter;   // Just Diagnostics.Bug
     private static readonly object _lock = new();
 
@@ -66,6 +67,7 @@ internal static class Diagnostics {
             string tracePath = Path.Combine(logDirectory, "trace.log");
             string debugPath = Path.Combine(logDirectory, "debug.log");
             string luaLogPath = Path.Combine(logDirectory, "lua.log");
+            string jsLogPath = Path.Combine(logDirectory, "js.log");
             string bugPath = Path.Combine(logDirectory, "exception.log");
 
             // 3. Open Streams (Shared access allowed)
@@ -82,6 +84,10 @@ internal static class Diagnostics {
             // Lua Log Writer (all builds)
             var fsLuaLog = new FileStream(luaLogPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
             _luaLogWriter = new StreamWriter(fsLuaLog) { AutoFlush = true };
+
+            // JS Log Writer (all builds)
+            var fsJsLog = new FileStream(jsLogPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+            _jsLogWriter = new StreamWriter(fsJsLog) { AutoFlush = true };
 
             // Bug Writer (all builds)
             var fsBug = new FileStream(bugPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
@@ -222,10 +228,39 @@ internal static class Diagnostics {
         }
     }
 
+    /// <summary>
+    /// Like the Bug method but specifically for logging exceptions from C# invoked by JS scripts.
+    /// eg when a JS script calls a C# function that throws an exception, this method can be used to log that exception from C# into js.log and trace.log.
+    /// </summary>
+    /// <param name="ex"></param>
+    internal static void JsInternalCatch(string ex) {
+        if (Diagnostics._bugWriter == null) return;
+
+        lock (Diagnostics._lock) {
+            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+
+            // Format the header
+            string header = $"[{timestamp}] [JS_BUG] Caught exception from JS-invoked C# code.";
+
+            // 1. Write to specific exception.log
+            Diagnostics._bugWriter.WriteLine(header);
+            Diagnostics._bugWriter.WriteLine($"[{timestamp}] [STACK] {ex}");
+#if DEBUG
+            // 2. Write to master trace.log in Debug builds
+            if (Diagnostics._traceWriter != null) {
+                Diagnostics._traceWriter.WriteLine(header);
+                Diagnostics._traceWriter.WriteLine($"[{timestamp}] [STACK] {ex}");
+            }
+#endif
+        }
+    }
+
+
     internal static void Close() {
         _debugWriter?.Close();
         _bugWriter?.Close();
         _luaLogWriter?.Close();
+        _jsLogWriter?.Close();
 #if DEBUG
         _traceWriter?.Close();
         System.Diagnostics.Trace.Listeners.Clear();
@@ -280,4 +315,47 @@ internal static class Diagnostics {
         }
     }
 
+    // JS Logger, exactly like LuaLogger but for JS scripts
+    internal static class JsLogger {
+        /// <summary>
+        /// Like the Log method but specifically for logging messages from JS scripts, using the Global Diagnostics.Log function.
+        /// </summary>
+        /// <param name="message"></param>
+        internal static void JsLog(string message) {
+            if (Diagnostics._jsLogWriter == null) return;
+
+            lock (Diagnostics._lock) {
+                string timestamp = DateTime.Now.ToString("HH:mm:ss");
+                string formattedMsg = $"[{timestamp}] [JS_LOG] {message}";
+
+                // 1. Write to specific js.log
+                Diagnostics._jsLogWriter.WriteLine(formattedMsg);
+
+#if DEBUG
+                // 2. Write to master trace.log in Debug builds
+                if (Diagnostics._traceWriter != null) {
+                    Diagnostics._traceWriter.WriteLine(formattedMsg);
+                }
+#endif
+            }
+        }
+
+        internal static void JsTrace(string message) {
+#if DEBUG
+            if (Diagnostics._traceWriter == null) return;
+
+            lock (Diagnostics._lock) {
+                string timestamp = DateTime.Now.ToString("HH:mm:ss");
+                string formattedMsg = $"[{timestamp}] [JS_TRACE] {message}";
+                // Write to trace.log in Debug builds
+                Diagnostics._traceWriter.WriteLine(formattedMsg);
+            }
+#else
+            // use js.log
+            JsLog(message);
+#endif
+        }
+    }
 }
+
+

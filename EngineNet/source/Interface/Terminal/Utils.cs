@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text.Json;
+using System.Threading;
 
 namespace EngineNet.Interface.Terminal;
 
@@ -45,30 +46,42 @@ internal class Utils() {
             // Use embedded handlers for engine/lua/js/bms to avoid external dependencies
             if (Core.Utils.ScriptConstants.IsSupported(script_type)) {
                 // Route in-process SDK events to our terminal renderer
-                System.Action<Dictionary<string, object?>>? prevSink = Core.Utils.EngineSdk.LocalEventSink;
-                bool prevMute = Core.Utils.EngineSdk.MuteStdoutWhenLocalSink;
-                Dictionary<string, string> prevAutoResponses = new(Core.Utils.EngineSdk.AutoPromptResponses);
+                System.Action<Dictionary<string, object?>>? prevSink = Core.UI.EngineSdk.LocalEventSink;
+                bool prevMute = Core.UI.EngineSdk.MuteStdoutWhenLocalSink;
+                Dictionary<string, string> prevAutoResponses = new(Core.UI.EngineSdk.AutoPromptResponses);
                 try {
                     // Set auto-prompt responses if provided
                     if (autoPromptResponses != null && autoPromptResponses.Count > 0) {
-                        Core.Utils.EngineSdk.AutoPromptResponses.Clear();
+                        Core.UI.EngineSdk.AutoPromptResponses.Clear();
                         foreach (KeyValuePair<string, string> kv in autoPromptResponses) {
-                            Core.Utils.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
+                            Core.UI.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
                         }
                     }
 
-                    Core.Utils.EngineSdk.LocalEventSink = OnEvent;
-                    Core.Utils.EngineSdk.MuteStdoutWhenLocalSink = true;
-                    return _engine.RunSingleOperationAsync(game, games, op, answers).GetAwaiter().GetResult();
+                    Core.UI.EngineSdk.LocalEventSink = OnEvent;
+                    Core.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
+                    return _engine.Engino.RunSingleOperationAsync(
+                        game,
+                        games,
+                        op,
+                        answers,
+                        _engine.RootPath,
+                        _engine.EngineConfig,
+                        _engine.ToolResolver,
+                        _engine.GitService,
+                        _engine.GameRegistry,
+                        _engine.CommandService,
+                        _engine.Enginey, CancellationToken.None
+                    ).GetAwaiter().GetResult();
                 } finally {
                     // Restore previous auto-prompt responses
-                    Core.Utils.EngineSdk.AutoPromptResponses.Clear();
+                    Core.UI.EngineSdk.AutoPromptResponses.Clear();
                     foreach (KeyValuePair<string, string> kv in prevAutoResponses) {
-                        Core.Utils.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
+                        Core.UI.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
                     }
 
-                    Core.Utils.EngineSdk.LocalEventSink = prevSink;
-                    Core.Utils.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
+                    Core.UI.EngineSdk.LocalEventSink = prevSink;
+                    Core.UI.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
                 }
             } else {
                 Core.Diagnostics.Log($"[Utils.cs::ExecuteOp()] Routing operation of type '{script_type}' to external command execution");

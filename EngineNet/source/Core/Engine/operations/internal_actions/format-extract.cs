@@ -33,7 +33,7 @@ internal partial class OperationExecution {
         try {
             string cfgPath = System.IO.Path.Combine(gameRoot2, "config.toml");
             if (!string.IsNullOrWhiteSpace(gameRoot2) && System.IO.File.Exists(cfgPath)) {
-                Dictionary<string, object?> fromToml = Core.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                Dictionary<string, object?> fromToml = Core.ExternalTools.SimpleToml.ReadPlaceholdersFile(cfgPath);
                 foreach (KeyValuePair<string, object?> kv in fromToml) {
                     if (!ctx.ContainsKey(kv.Key)) {
                         ctx[kv.Key] = kv.Value;
@@ -60,17 +60,17 @@ internal partial class OperationExecution {
         // If format is TXD, use built-in extractor
 
         if (string.Equals(format, "txd", System.StringComparison.OrdinalIgnoreCase)) {
-            Core.Utils.EngineSdk.PrintLine("\n>>> Built-in TXD extraction");
+            Core.UI.EngineSdk.PrintLine("\n>>> Built-in TXD extraction");
             bool okTxd = FileHandlers.TxdExtractor.Main.Run(args);
             return okTxd;
         } else if (string.IsNullOrWhiteSpace(format)) {
             // Auto-detect format - default to TXD for now
-            Core.Utils.EngineSdk.PrintLine("\n>>> Built-in TXD extraction (auto-detected)");
+            Core.UI.EngineSdk.PrintLine("\n>>> Built-in TXD extraction (auto-detected)");
             bool okTxd = FileHandlers.TxdExtractor.Main.Run(args);
             return okTxd;
         } else {
-            Core.Utils.EngineSdk.PrintLine($"ERROR: format-extract does not support format '{format}'");
-            Core.Utils.EngineSdk.PrintLine("Supported formats: txd (default)");
+            Core.UI.EngineSdk.PrintLine($"ERROR: format-extract does not support format '{format}'");
+            Core.UI.EngineSdk.PrintLine("Supported formats: txd (default)");
             return false;
         }
     }

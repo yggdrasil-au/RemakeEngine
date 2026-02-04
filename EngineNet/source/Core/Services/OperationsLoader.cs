@@ -10,7 +10,7 @@ public class OperationsLoader : IOperationsLoader {
             // Determine file type by extension
             string ext = System.IO.Path.GetExtension(opsFile);
             if (ext.Equals(".toml", System.StringComparison.OrdinalIgnoreCase)) {
-                object root = TomlHelpers.ParseFileToPlainObject(opsFile);
+                object root = Core.Serialization.Toml.TomlHelpers.ParseFileToPlainObject(opsFile);
                 List<Dictionary<string, object?>> list = new List<Dictionary<string, object?>>();
                 if (root is Dictionary<string, object?> table) {
                     foreach (KeyValuePair<string, object?> kv in table) {

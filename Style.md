@@ -73,17 +73,6 @@ When parameter lists or arguments span multiple lines, place the opening parenth
 ```
 
 
-Named Arguments: use named arguments.
-```C#
-return new ScriptEngines.lua.LuaScriptAction(scriptPath: scriptPath, args: args);
-```
-
-
-Type Declarations: Always use explicit type declarations never var or dynamic unless absolutely necessary.
-```C#
-Dictionary<string, Core.Utils.GameModuleInfo> games = new Dictionary<string, Core.Utils.GameModuleInfo>();
-```
-
 
 Code Structure: Use formatted block comments to delineate major sections within a file.
 ```C#

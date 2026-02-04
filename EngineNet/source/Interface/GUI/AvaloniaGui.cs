@@ -28,7 +28,7 @@ internal static class AvaloniaGui {
     /// <returns>
     /// 0 on normal shutdown; 1 if an exception is caught during startup/run.
     /// </returns>
-    internal static async System.Threading.Tasks.Task<int> RunAsync(Core.Engine engine) {
+    internal static int Run(Core.Engine engine) {
         try {
             // 1) Stash the engine so App.OnFrameworkInitializationCompleted (or similar)
             //    can pull it to compose view models.

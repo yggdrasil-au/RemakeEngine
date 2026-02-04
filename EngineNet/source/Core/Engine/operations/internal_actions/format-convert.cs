@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace EngineNet.Core;
 internal partial class OperationExecution {
-    internal bool format_convert(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath,  EngineConfig EngineConfig, Tools.IToolResolver ToolResolver) {
+    internal bool format_convert(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath,  EngineConfig EngineConfig, ExternalTools.IToolResolver ToolResolver) {
         Core.Diagnostics.Log("[Engine.private.cs :: OperationExecution()]] format-convert");
         // Determine tool - check both 'tool' field and '-m'/'--mode' in args
         string? tool = op.TryGetValue("tool", out object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
@@ -82,7 +82,7 @@ internal partial class OperationExecution {
         try {
             string cfgPath = System.IO.Path.Combine(gameRoot3, "config.toml");
             if (!string.IsNullOrWhiteSpace(gameRoot3) && System.IO.File.Exists(cfgPath)) {
-                Dictionary<string, object?> fromToml = Core.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                Dictionary<string, object?> fromToml = Core.ExternalTools.SimpleToml.ReadPlaceholdersFile(cfgPath);
                 foreach (KeyValuePair<string, object?> kv in fromToml) {
                     if (!ctx.ContainsKey(kv.Key)) {
                         ctx[kv.Key] = kv.Value;
@@ -109,21 +109,21 @@ internal partial class OperationExecution {
 
         if (string.Equals(tool, "ffmpeg", System.StringComparison.OrdinalIgnoreCase) || string.Equals(tool, "vgmstream", System.StringComparison.OrdinalIgnoreCase)) {
             // attempt built-in media conversion (ffmpeg/vgmstream) using the same CLI args
-            Core.Utils.EngineSdk.PrintLine("\n>>> Built-in media conversion");
+            Core.UI.EngineSdk.PrintLine("\n>>> Built-in media conversion");
             Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] format-convert: running media conversion with args: {string.Join(' ', args)}");
             bool okMedia = FileHandlers.MediaConverter.Run(ToolResolver, args);
             return okMedia;
         } else if (string.Equals(tool, "ImageMagick", System.StringComparison.OrdinalIgnoreCase)) {
             // attempt image conversion (ImageMagick) using the CLI args
-            Core.Utils.EngineSdk.PrintLine("\n>>> Built-in image conversion");
+            Core.UI.EngineSdk.PrintLine("\n>>> Built-in image conversion");
             Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] format-convert: running image conversion with args: {string.Join(' ', args)}");
             bool okImage = FileHandlers.ImageMagickConverter.Run(ToolResolver, args);
             return okImage;
         } else {
             Core.Diagnostics.Log($"[Engine.private.cs :: OperationExecution()]] format-convert: unknown tool '{tool}'");
-            Core.Utils.EngineSdk.PrintLine($"ERROR: format-convert requires a valid tool. Found: '{tool ?? "(null)"}'");
-            Core.Utils.EngineSdk.PrintLine("Supported tools: ffmpeg, vgmstream, ImageMagick");
-            Core.Utils.EngineSdk.PrintLine("Specify tool with --tool parameter or -m/--mode in args.");
+            Core.UI.EngineSdk.PrintLine($"ERROR: format-convert requires a valid tool. Found: '{tool ?? "(null)"}'");
+            Core.UI.EngineSdk.PrintLine("Supported tools: ffmpeg, vgmstream, ImageMagick");
+            Core.UI.EngineSdk.PrintLine("Specify tool with --tool parameter or -m/--mode in args.");
             return false;
         }
     }

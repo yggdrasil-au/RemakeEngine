@@ -11,7 +11,7 @@ namespace EngineNet.ScriptEngines.lua.LuaModules;
 /// SDK module providing file operations, archive handling, and system utilities for Lua scripts.
 /// </summary>
 internal static class LuaSdkModule {
-    internal static Table CreateSdkModule(LuaWorld LuaEnvObj, Core.Tools.IToolResolver tools) {
+    internal static Table CreateSdkModule(LuaWorld LuaEnvObj, Core.ExternalTools.IToolResolver tools) {
         // Color/colour print functionality
         AddColorPrintFunctions(LuaEnvObj);
 
@@ -74,7 +74,7 @@ internal static class LuaSdkModule {
                     newline = nl.Boolean;
                 }
             }
-            Core.Utils.EngineSdk.Print(message, color, newline);
+            Core.UI.EngineSdk.Print(message, color, newline);
             return DynValue.Nil;
         });
         LuaEnvObj.sdk["color_print"] = DynValue.NewCallback(colorPrintFunc);
@@ -86,7 +86,7 @@ internal static class LuaSdkModule {
             try {
                 // Security: Validate path is within allowed areas
                 if (!LuaSecurity.IsAllowedPath(dir)) {
-                    Core.Utils.EngineSdk.Error($"Access denied: validate_source_dir path is outside allowed areas ('{dir}')");
+                    Core.UI.EngineSdk.Error($"Access denied: validate_source_dir path is outside allowed areas ('{dir}')");
                     return false;
                 }
                 Helpers.ConfigHelpers.ValidateSourceDir(dir);
@@ -103,7 +103,7 @@ internal static class LuaSdkModule {
             try {
                 // Security: Validate paths
                 if (!LuaSecurity.IsAllowedPath(src) || !LuaSecurity.IsAllowedPath(dst)) {
-                    Core.Utils.EngineSdk.Error($"Access denied: copy_dir src or dst is outside allowed areas (src='{src}', dst='{dst}')");
+                    Core.UI.EngineSdk.Error($"Access denied: copy_dir src or dst is outside allowed areas (src='{src}', dst='{dst}')");
                     return false;
                 }
                 bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
@@ -119,7 +119,7 @@ internal static class LuaSdkModule {
             try {
                 // Security: Validate paths
                 if (!LuaSecurity.IsAllowedPath(src) || !LuaSecurity.IsAllowedPath(dst)) {
-                    Core.Utils.EngineSdk.Error($"Access denied: move_dir src or dst is outside allowed areas (src='{src}', dst='{dst}')");
+                    Core.UI.EngineSdk.Error($"Access denied: move_dir src or dst is outside allowed areas (src='{src}', dst='{dst}')");
                     return false;
                 }
                 bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
@@ -133,7 +133,7 @@ internal static class LuaSdkModule {
 
         LuaEnvObj.sdk["find_subdir"] = (System.Func<string, string, string?>)((baseDir, name) => {
             if (!LuaSecurity.IsAllowedPath(baseDir)) {
-                Core.Utils.EngineSdk.Error($"Access denied: find_subdir baseDir is outside allowed areas ('{baseDir}')");
+                Core.UI.EngineSdk.Error($"Access denied: find_subdir baseDir is outside allowed areas ('{baseDir}')");
                 return null;
             }
             return Helpers.ConfigHelpers.FindSubdir(baseDir, name);
@@ -142,7 +142,7 @@ internal static class LuaSdkModule {
         LuaEnvObj.sdk["has_all_subdirs"] = (System.Func<string, Table, bool>)((baseDir, names) => {
             try {
                 if (!LuaSecurity.IsAllowedPath(baseDir)) {
-                    Core.Utils.EngineSdk.Error($"Access denied: has_all_subdirs baseDir is outside allowed areas ('{baseDir}')");
+                    Core.UI.EngineSdk.Error($"Access denied: has_all_subdirs baseDir is outside allowed areas ('{baseDir}')");
                     return false;
                 }
                 List<string> list = Utils.LuaUtilities.TableToStringList(names);
@@ -156,7 +156,7 @@ internal static class LuaSdkModule {
         LuaEnvObj.sdk["ensure_dir"] = (System.Func<string, bool>)(path => {
             try {
                 if (!LuaSecurity.IsAllowedPath(path)) {
-                    Core.Utils.EngineSdk.Error($"Access denied: ensure_dir path is outside allowed areas ('{path}')");
+                    Core.UI.EngineSdk.Error($"Access denied: ensure_dir path is outside allowed areas ('{path}')");
                     return false;
                 }
                 System.IO.Directory.CreateDirectory(path);
@@ -197,7 +197,7 @@ internal static class LuaSdkModule {
             try {
                 // Security: Validate path prior to deletion
                 if (!LuaSecurity.IsAllowedPath(path)) {
-                    Core.Utils.EngineSdk.Error($"Access denied: remove_dir path is outside allowed areas ('{path}')");
+                    Core.UI.EngineSdk.Error($"Access denied: remove_dir path is outside allowed areas ('{path}')");
                     return false;
                 }
                 if (System.IO.Directory.Exists(path)) {
@@ -214,7 +214,7 @@ internal static class LuaSdkModule {
             try {
                 // Security: Validate path prior to deletion
                 if (!LuaSecurity.IsAllowedPath(path)) {
-                    Core.Utils.EngineSdk.Error($"Access denied: remove_file path is outside allowed areas ('{path}')");
+                    Core.UI.EngineSdk.Error($"Access denied: remove_file path is outside allowed areas ('{path}')");
                     return false;
                 }
                 if (Utils.LuaFileSystemUtils.IsSymlink(path) || System.IO.File.Exists(path)) {
@@ -266,7 +266,7 @@ internal static class LuaSdkModule {
 
         LuaEnvObj.sdk["create_symlink"] = (System.Func<string, string, bool, bool>)((src, dst, isDir) => {
             if (!LuaSecurity.IsAllowedPath(src) || !LuaSecurity.IsAllowedPath(dst)) {
-                Core.Utils.EngineSdk.Error($"Access denied: create_symlink src or dst outside allowed areas (src='{src}', dst='{dst}')");
+                Core.UI.EngineSdk.Error($"Access denied: create_symlink src or dst outside allowed areas (src='{src}', dst='{dst}')");
                 return false;
             }
             return Utils.LuaFileSystemUtils.CreateSymlink(src, dst, isDir);
@@ -426,7 +426,7 @@ internal static class LuaSdkModule {
             try {
                 // Security: Validate paths are within allowed workspace areas
                 if (!LuaSecurity.IsAllowedPath(archivePath) || !LuaSecurity.IsAllowedPath(destDir)) {
-                    Core.Utils.EngineSdk.Error($"Access denied: Archive operations restricted to workspace areas. Attempted: {archivePath} -> {destDir}");
+                    Core.UI.EngineSdk.Error($"Access denied: Archive operations restricted to workspace areas. Attempted: {archivePath} -> {destDir}");
                     return false;
                 }
 
@@ -436,10 +436,10 @@ internal static class LuaSdkModule {
                     return true;
                 }
                 // For other formats, suggest using approved tools
-                Core.Utils.EngineSdk.Error($"Unsupported archive format '{ext}'. Use 7z tool from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" for other formats.");
+                Core.UI.EngineSdk.Error($"Unsupported archive format '{ext}'. Use 7z tool from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" for other formats.");
                 return false;
             } catch (System.Exception ex) {
-                Core.Utils.EngineSdk.Error($"Archive extraction failed: {ex.Message}"); // output directly to UI, consider returning error to lua instead
+                Core.UI.EngineSdk.Error($"Archive extraction failed: {ex.Message}"); // output directly to UI, consider returning error to lua instead
                 Core.Diagnostics.luaInternalCatch("extract_archive failed with exception: " + ex);
                 return false;
             }
@@ -449,7 +449,7 @@ internal static class LuaSdkModule {
             try {
                 // Security: Validate paths are within allowed workspace areas
                 if (!LuaSecurity.IsAllowedPath(srcPath) || !LuaSecurity.IsAllowedPath(archivePath)) {
-                    Core.Utils.EngineSdk.Error($"Access denied: Archive operations restricted to workspace areas. Attempted: {srcPath} -> {archivePath}");
+                    Core.UI.EngineSdk.Error($"Access denied: Archive operations restricted to workspace areas. Attempted: {srcPath} -> {archivePath}");
                     return false;
                 }
 
@@ -469,10 +469,10 @@ internal static class LuaSdkModule {
                     return true;
                 }
                 // For other formats, suggest using approved tools
-                Core.Utils.EngineSdk.Error($"Unsupported archive type '{type}'. Use 7z tool from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" for other formats.");
+                Core.UI.EngineSdk.Error($"Unsupported archive type '{type}'. Use 7z tool from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" for other formats.");
                 return false;
             } catch (System.Exception ex) {
-                Core.Utils.EngineSdk.Error($"Archive creation failed: {ex.Message}");
+                Core.UI.EngineSdk.Error($"Archive creation failed: {ex.Message}");
                 Core.Diagnostics.luaInternalCatch("create_archive failed with exception: " + ex);
                 return false;
             }
@@ -485,13 +485,13 @@ internal static class LuaSdkModule {
             try {
                 // Security: Validate path is within allowed areas
                 if (!LuaSecurity.IsAllowedPath(path)) {
-                    Core.Utils.EngineSdk.Error($"Access denied: toml_read_file path is outside allowed areas ('{path}')");
+                    Core.UI.EngineSdk.Error($"Access denied: toml_read_file path is outside allowed areas ('{path}')");
                     return DynValue.Nil;
                 }
-                object obj = TomlHelpers.ParseFileToPlainObject(path);
+                object obj = Core.Serialization.Toml.TomlHelpers.ParseFileToPlainObject(path);
                 return Utils.LuaUtilities.ToDynValue(GetScriptFromTable(LuaEnvObj.sdk), obj);
             } catch (System.Exception ex) {
-                Core.Utils.EngineSdk.Error($"TOML read failed: {ex.Message}");
+                Core.UI.EngineSdk.Error($"TOML read failed: {ex.Message}");
                 Core.Diagnostics.luaInternalCatch("toml_read_file failed with exception: " + ex);
                 return DynValue.Nil;
             }
@@ -501,13 +501,13 @@ internal static class LuaSdkModule {
             try {
                 // Security: Validate path is within allowed areas
                 if (!LuaSecurity.IsAllowedPath(path)) {
-                    Core.Utils.EngineSdk.Error($"Access denied: toml_write_file path is outside allowed areas ('{path}')");
+                    Core.UI.EngineSdk.Error($"Access denied: toml_write_file path is outside allowed areas ('{path}')");
                     return;
                 }
                 object? obj = Utils.LuaUtilities.FromDynValue(value);
-                TomlHelpers.WriteTomlFile(path, obj);
+                Core.Serialization.Toml.TomlHelpers.WriteTomlFile(path, obj);
             } catch (System.Exception ex) {
-                Core.Utils.EngineSdk.Error($"TOML write failed: {ex.Message}");
+                Core.UI.EngineSdk.Error($"TOML write failed: {ex.Message}");
                 Core.Diagnostics.luaInternalCatch("toml_write_file failed with exception: " + ex);
             }
         });

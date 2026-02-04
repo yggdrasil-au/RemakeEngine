@@ -57,7 +57,7 @@ internal static class LuaProcessExecution {
     private static bool ValidateArgPaths(IEnumerable<string> args, string? cwd) {
         if (!string.IsNullOrEmpty(cwd)) {
             if (!LuaSecurity.IsAllowedPath(cwd!)) {
-                Core.Utils.EngineSdk.Error($"Access denied: working directory outside allowed areas ('{cwd}')");
+                Core.UI.EngineSdk.Error($"Access denied: working directory outside allowed areas ('{cwd}')");
                 return false;
             }
         }
@@ -71,14 +71,14 @@ internal static class LuaProcessExecution {
             candidate = candidate.Trim('"', '\'', ' ');
             if (!LooksLikePath(candidate)) continue;
             if (!LuaSecurity.IsAllowedPath(candidate)) {
-                Core.Utils.EngineSdk.Error($"Access denied: process argument references path outside allowed areas ('{candidate}')");
+                Core.UI.EngineSdk.Error($"Access denied: process argument references path outside allowed areas ('{candidate}')");
                 return false;
             }
         }
         return true;
     }
 
-    internal static void AddProcessExecution(LuaWorld LuaEnvObj, Core.Tools.IToolResolver tools) {
+    internal static void AddProcessExecution(LuaWorld LuaEnvObj, Core.ExternalTools.IToolResolver tools) {
         // exec(args[, options]) -> { success=bool, exit_code=int }
         // options: { cwd=string, env=table, new_terminal=bool, keep_open=bool, title=string, wait=bool }
         LuaEnvObj.sdk["exec"] = DynValue.NewCallback((ctx, args) => {
@@ -186,7 +186,7 @@ internal static class LuaProcessExecution {
         });
     }
 
-    private static DynValue SpawnProcess(Script lua, Table commandArgs, Table? options, Core.Tools.IToolResolver tools) {
+    private static DynValue SpawnProcess(Script lua, Table commandArgs, Table? options, Core.ExternalTools.IToolResolver tools) {
         List<string> parts = LuaUtilities.TableToStringList(commandArgs);
         if (parts.Count == 0) throw new ScriptRuntimeException("spawn_process requires at least one argument (executable path)");
         if (!LuaSecurity.IsApprovedExecutable(parts[0], tools)) throw new ScriptRuntimeException($"Executable '{parts[0]}' is not approved");
@@ -620,7 +620,7 @@ internal static class LuaProcessExecution {
                 // Map stderr to red for visibility
                 string? color = stream == "stderr" ? "red" : null;
                 if (!silentRun) {
-                    Core.Utils.EngineSdk.Print(line, color, true);
+                    Core.UI.EngineSdk.Print(line, color, true);
                     Core.Diagnostics.Log($"[ProcessRunner][{stream}] {line}");
             }
                 },

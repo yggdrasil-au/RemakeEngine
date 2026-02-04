@@ -1,25 +1,9 @@
 using System;
+
 using MoonSharp.Interpreter;
 
 namespace EngineNet.ScriptEngines.lua;
 
-/// <summary>
-/// Executes a Lua script using the embedded MoonSharp interpreter.
-///
-/// Exposed Lua globals for module authors:
-/// - tool(name): resolve a registered tool to an absolute path.
-/// - argv: string array of arguments passed to the script.
-/// - emit(event, data?): send a structured engine event. `data` is an optional table.
-///   Example: emit("warning", { message = "Heads up" })
-/// - warn(message): shorthand for emit("warning", { message = message })
-/// - error(message): shorthand for emit("error", { message = message })
-/// - prompt(message, id?, secret?): prompts the user; returns the entered string.
-///   Example: local answer = prompt("Continue? (y/n)", "confirm1", false)
-/// - progress(total, id?, label?): creates a progress handle; returns an object with Update(inc?)
-///   Example: local p = progress(100, "extract", "Extracting files"); p:Update(5)
-///
-/// All helpers wrap RemakeEngine.Utils.EngineSdk for consistent engine integration.
-/// </summary>
 internal sealed partial class LuaScriptAction : ScriptEngines.Helpers.IAction {
     private readonly string _scriptPath;
     private readonly string[] _args;
@@ -235,7 +219,7 @@ internal sealed partial class LuaScriptAction : ScriptEngines.Helpers.IAction {
             return DynValue.Nil;
         });
         // Wrap io.write to EngineSdk.Print
-        LuaEnvObj.io["write"] = (System.Action<string>)((content) => Core.Utils.EngineSdk.Print(content));
+        LuaEnvObj.io["write"] = (System.Action<string>)((content) => Core.UI.EngineSdk.Print(content));
         //safeIo["flush"] = // removed for now, maybe add later as an event that can be optionally handled by active UI System
         //safeIo["read"] =  // removed for now,
 
@@ -252,7 +236,7 @@ internal sealed partial class LuaScriptAction : ScriptEngines.Helpers.IAction {
     /// </summary>
     /// <param name="lua"></param>
     /// <param name="tools"></param>
-    private void SetupCoreFunctions(LuaWorld LuaEnvObj, Core.Tools.IToolResolver tools) {
+    private void SetupCoreFunctions(LuaWorld LuaEnvObj, Core.ExternalTools.IToolResolver tools) {
 
         // Setup SDK and modules
         LuaEnvObj.LuaScript.Globals["sdk"] = LuaModules.LuaSdkModule.CreateSdkModule(LuaEnvObj, tools);
@@ -286,37 +270,37 @@ internal sealed partial class LuaScriptAction : ScriptEngines.Helpers.IAction {
         // :: start :: methods for emitting engineSDK events from Lua scripts ::
 
         // basic outputs for warning and error events
-        LuaEnvObj.LuaScript.Globals["warn"] = (System.Action<string>)Core.Utils.EngineSdk.Warn;
-        LuaEnvObj.LuaScript.Globals["error"] = (System.Action<string>)Core.Utils.EngineSdk.Error;
+        LuaEnvObj.LuaScript.Globals["warn"] = (System.Action<string>)Core.UI.EngineSdk.Warn;
+        LuaEnvObj.LuaScript.Globals["error"] = (System.Action<string>)Core.UI.EngineSdk.Error;
 
         // emits the prompt query to the engine/ui and returns the user input
         LuaEnvObj.LuaScript.Globals["prompt"] = (System.Func<DynValue, DynValue, DynValue, string>)((message, id, secret) => {
             string msg = message.Type == DataType.String ? message.String : message.ToPrintString();
             string pid = id.Type == DataType.Nil || id.Type == DataType.Void ? "q1" : id.Type == DataType.String ? id.String : id.ToPrintString();
             bool sec = secret.Type == DataType.Boolean && secret.Boolean;
-            return Core.Utils.EngineSdk.Prompt(msg, pid, sec);
+            return Core.UI.EngineSdk.Prompt(msg, pid, sec);
         });
         LuaEnvObj.LuaScript.Globals["color_prompt"] = (System.Func<DynValue, DynValue, DynValue, DynValue, string>)((message, color, id, secret) => {
             string msg = message.Type == DataType.String ? message.String : message.ToPrintString();
             string col = color.Type == DataType.String ? color.String : color.ToPrintString();
             string pid = id.Type == DataType.Nil || id.Type == DataType.Void ? "q1" : id.Type == DataType.String ? id.String : id.ToPrintString();
             bool sec = secret.Type == DataType.Boolean && secret.Boolean;
-            return Core.Utils.EngineSdk.color_prompt(msg, col, pid, sec);
+            return Core.UI.EngineSdk.color_prompt(msg, col, pid, sec);
         });
         LuaEnvObj.LuaScript.Globals["colour_prompt"] = LuaEnvObj.LuaScript.Globals["color_prompt"]; // (Correct) AU spelling
 
         // :: Progress System ::
-        Core.Utils.EngineSdk.ScriptProgress? activeScriptProgress = null;
+        Core.UI.EngineSdk.ScriptProgress? activeScriptProgress = null;
 
-        // progress.new(total, id, label) -> Core.Utils.EngineSdk.PanelProgress userdata
-        LuaEnvObj.progress["new"] = (System.Func<int, string?, string?, Core.Utils.EngineSdk.PanelProgress>)((total, id, label) => {
+        // progress.new(total, id, label) -> Core.UI.EngineSdk.PanelProgress userdata
+        LuaEnvObj.progress["new"] = (System.Func<int, string?, string?, Core.UI.EngineSdk.PanelProgress>)((total, id, label) => {
             string pid = string.IsNullOrEmpty(id) ? "p1" : id!;
-            return new Core.Utils.EngineSdk.PanelProgress(total, pid, label);
+            return new Core.UI.EngineSdk.PanelProgress(total, pid, label);
         });
 
-        // progress.start(total, label) -> Core.Utils.EngineSdk.ScriptProgress userdata
-        LuaEnvObj.progress["start"] = (System.Func<int, string?, Core.Utils.EngineSdk.ScriptProgress>)((total, label) => {
-            activeScriptProgress = new Core.Utils.EngineSdk.ScriptProgress(total, "s1", label);
+        // progress.start(total, label) -> Core.UI.EngineSdk.ScriptProgress userdata
+        LuaEnvObj.progress["start"] = (System.Func<int, string?, Core.UI.EngineSdk.ScriptProgress>)((total, label) => {
+            activeScriptProgress = new Core.UI.EngineSdk.ScriptProgress(total, "s1", label);
             return activeScriptProgress;
         });
 
@@ -325,7 +309,7 @@ internal sealed partial class LuaScriptAction : ScriptEngines.Helpers.IAction {
             if (activeScriptProgress != null) {
                 activeScriptProgress.Update(1, label);
                 if (!string.IsNullOrEmpty(label)) {
-                    Core.Utils.EngineSdk.PrintLine($"[Step {activeScriptProgress.Current}/{activeScriptProgress.Total}] {label}", System.ConsoleColor.Magenta);
+                    Core.UI.EngineSdk.PrintLine($"[Step {activeScriptProgress.Current}/{activeScriptProgress.Total}] {label}", System.ConsoleColor.Magenta);
                 }
             }
         });
@@ -346,12 +330,12 @@ internal sealed partial class LuaScriptAction : ScriptEngines.Helpers.IAction {
 
         LuaEnvObj.LuaScript.Globals["progress"] = LuaEnvObj.progress;
 
-        // script_progress(total, id?, label?) -> Core.Utils.EngineSdk.ScriptProgress userdata
+        // script_progress(total, id?, label?) -> Core.UI.EngineSdk.ScriptProgress userdata
         // Usage: local s = script_progress(5, 'setup', 'Initialization'); s:Update()
         /*
-        LuaEnvObj.LuaScript.Globals["script_progress"] = (System.Func<int, string?, string?, Core.Utils.EngineSdk.ScriptProgress>)((total, id, label) => {
+        LuaEnvObj.LuaScript.Globals["script_progress"] = (System.Func<int, string?, string?, Core.UI.EngineSdk.ScriptProgress>)((total, id, label) => {
             string pid = string.IsNullOrEmpty(id) ? "s1" : id!;
-            return new Core.Utils.EngineSdk.ScriptProgress(total, pid, label);
+            return new Core.UI.EngineSdk.ScriptProgress(total, pid, label);
         });
         */
 

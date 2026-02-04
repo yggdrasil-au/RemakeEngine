@@ -8,4 +8,8 @@ namespace EngineNet.ScriptEngines;
 internal sealed partial class PythonScriptAction : Helpers.IAction {
     private readonly string _scriptPath;
     private readonly string[] _args;
+    private readonly string _gameRoot;
+    private readonly string _projectRoot;
+
+
 }

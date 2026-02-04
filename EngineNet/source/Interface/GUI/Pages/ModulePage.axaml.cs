@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 using System.Diagnostics;
+using System.Threading;
 
 namespace EngineNet.Interface.GUI.Pages;
 
@@ -221,13 +222,25 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 moduleName: ModuleName,
                 operationName: row.Name,
                 executor: async (onOutput, onEvent, stdin) => {
-                    Core.Utils.EngineSdk.LocalEventSink = e => onEvent(e);
-                    Core.Utils.EngineSdk.MuteStdoutWhenLocalSink = true;
+                    Core.UI.EngineSdk.LocalEventSink = e => onEvent(e);
+                    Core.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
 
                     System.IO.TextReader previous = System.Console.In;
                     try {
                         System.Console.SetIn(new GuiStdinRedirectReader(provider: stdin));
-                        bool ok = await _engine.RunSingleOperationAsync(currentGame: ModuleName, games: games, op: row.Op, promptAnswers: answers);
+                        bool ok = await _engine.Engino.RunSingleOperationAsync(
+                            currentGame: ModuleName,
+                            games,
+                            op: row.Op,
+                            answers,
+                            _engine.RootPath,
+                            _engine.EngineConfig,
+                            _engine.ToolResolver,
+                            _engine.GitService,
+                            _engine.GameRegistry,
+                            _engine.CommandService,
+                            _engine.Enginey, CancellationToken.None
+                        );
                         return ok;
                     } finally {
                         try {

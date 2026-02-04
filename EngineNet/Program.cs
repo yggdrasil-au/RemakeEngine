@@ -19,6 +19,7 @@ public static class Program {
     // //
     /* :: :: Main :: START :: */
 
+    [STAThread]
     internal static async System.Threading.Tasks.Task<int> Main(string[] args) {
         try {
             // 1. Parse Args to separate the Root path from the Mode flags
@@ -48,7 +49,7 @@ public static class Program {
             Core.Diagnostics.Initialize(isGui, isTui);
 
             // :: Setup Services
-            var tools = new Core.Tools.JsonToolResolver();
+            var tools = new Core.ExternalTools.JsonToolResolver();
             var engineConfig = new Core.EngineConfig();
 
             var gameRegistry = new Core.Services.GameRegistry();
@@ -59,6 +60,7 @@ public static class Program {
             var _commandService = new Core.Services.CommandService();
 
             var enginey = new EngineNet.Core.Enginey();
+            var Engino = new EngineNet.Core.Engino();
 
             Core.Engine _engine = new Core.Engine(
                 rootPath: rootPath,
@@ -69,7 +71,8 @@ public static class Program {
                 commandService: _commandService,
                 toolResolver: tools,
                 engineConfig: engineConfig,
-                enginey: enginey
+                enginey: enginey,
+                engino: Engino
             );
 
             // 3. Interface selection based on "Remaining Args" (args with --root removed)
@@ -78,7 +81,7 @@ public static class Program {
             // - No remaining args -> GUI
             // - One arg "--gui" -> GUI
             if (isGui) {
-                return await Interface.GUI.AvaloniaGui.RunAsync(_engine); // ;; gui flow step1 ;;
+                return Interface.GUI.AvaloniaGui.Run(_engine); // ;; gui flow step1 ;;
             }
 
             // Logic:
@@ -91,7 +94,7 @@ public static class Program {
             // Logic:
             // - Anything else -> CLI (Pass original args so CLI can parse specific commands like 'build', 'run', etc.)
             Interface.Terminal.CLI CLI = new Interface.Terminal.CLI(_engine);
-            return await CLI.RunAsync(args);
+            return CLI.Run(args);
         } catch (System.Exception ex) {
             Core.Diagnostics.Bug("Critical Engine Failure in Main", ex);
             Core.Diagnostics.Log($"Engine Error: {ex}");

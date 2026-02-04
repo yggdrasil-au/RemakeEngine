@@ -43,7 +43,7 @@ internal partial class OperationExecution {
         try {
             string cfgPath = System.IO.Path.Combine(gameRoot, "config.toml");
             if (!string.IsNullOrWhiteSpace(gameRoot) && System.IO.File.Exists(cfgPath)) {
-                Dictionary<string, object?> fromToml = Core.Tools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                Dictionary<string, object?> fromToml = Core.ExternalTools.SimpleToml.ReadPlaceholdersFile(cfgPath);
                 foreach (KeyValuePair<string, object?> kv in fromToml) {
                     if (!ctx.ContainsKey(kv.Key)) {
                         ctx[kv.Key] = kv.Value;
@@ -66,8 +66,8 @@ internal partial class OperationExecution {
             force = b2;
         }
 
-        Tools.ToolsDownloader dl = new Tools.ToolsDownloader(RootPath, central);
-        await dl.ProcessAsync(resolvedManifest, force);
+        ExternalTools.ToolsDownloader dl = new ExternalTools.ToolsDownloader(RootPath, central);
+        await dl.ProcessAsync(resolvedManifest, force, ctx);
         return true;
     }
 }

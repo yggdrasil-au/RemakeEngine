@@ -10,7 +10,7 @@ internal partial class OperationExecution {
             input = u?.ToString();
         }
         if (string.IsNullOrWhiteSpace(input)) {
-            Core.Utils.EngineSdk.Error("No input provided.");
+            Core.UI.EngineSdk.Error("No input provided.");
             return false;
         }
 
@@ -24,7 +24,7 @@ internal partial class OperationExecution {
         }
 
         if (string.IsNullOrWhiteSpace(url)) {
-            Core.Utils.EngineSdk.Error($"Could not resolve URL for '{input}'.");
+            Core.UI.EngineSdk.Error($"Could not resolve URL for '{input}'.");
             return false;
         }
 

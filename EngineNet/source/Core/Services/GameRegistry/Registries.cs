@@ -1,10 +1,14 @@
-
 using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
+using Tomlyn.Model;
+
+using EngineNet.Core.Serialization.Json;
 
 namespace EngineNet.Core.Utils;
 
 internal sealed partial class Registries {
-    internal void RefreshModules() => _modules = EngineConfig.LoadJsonFile(_modulesRegistryPath);
+    internal void RefreshModules() => _modules = Core.Serialization.Json.JsonHelpers.LoadJsonFile(_modulesRegistryPath);
 
     internal IReadOnlyDictionary<string, object?> GetRegisteredModules() {
         return _modules.TryGetValue("modules", out object? m) && m is Dictionary<string, object?> dict ? dict : new Dictionary<string, object?>();

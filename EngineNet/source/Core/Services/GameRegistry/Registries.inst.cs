@@ -1,6 +1,8 @@
 
 using System.Collections.Generic;
-using EngineNet.Core.Tools;
+
+using EngineNet.Core.ExternalTools;
+using EngineNet.Core.Serialization.Json;
 
 namespace EngineNet.Core.Utils;
 
@@ -22,12 +24,12 @@ internal sealed partial class Registries {
 
         // If modules registry JSON is missing, try to download from GitHub repo
         if (!System.IO.File.Exists(modulesRel)) {
-            RemoteFallbacks.EnsureRepoFile(Module_registry, modulesRel);
+            Core.ExternalTools.RemoteFallbacks.EnsureRepoFile(Module_registry, modulesRel);
         }
 
         _gamesRegistryPath = gamesRel;
         _modulesRegistryPath = modulesRel;
-        _modules = EngineConfig.LoadJsonFile(_modulesRegistryPath);
+        _modules = Core.Serialization.Json.JsonHelpers.LoadJsonFile(_modulesRegistryPath);
     }
 
 

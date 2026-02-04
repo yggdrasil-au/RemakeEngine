@@ -18,7 +18,7 @@ internal partial class CLI {
     /// </summary>
     /// <param name="args"></param>
     /// <returns></returns>
-    internal async System.Threading.Tasks.Task<int> RunAsync(string[] args) {
+    internal int Run(string[] args) {
         try {
             // Strip global flags that Program.cs already handled, like --root PATH
             if (args.Length > 0) {

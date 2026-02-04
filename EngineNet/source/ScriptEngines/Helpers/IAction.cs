@@ -9,5 +9,5 @@ internal interface IAction {
     /// </summary>
     /// <param name="tools">Resolver for locating external tools.</param>
     /// <param name="cancellationToken">Optional cancellation token.</param>
-    System.Threading.Tasks.Task ExecuteAsync(Core.Tools.IToolResolver tools, System.Threading.CancellationToken cancellationToken = default);
+    System.Threading.Tasks.Task ExecuteAsync(Core.ExternalTools.IToolResolver tools, System.Threading.CancellationToken cancellationToken = default);
 }

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using EngineNet.Core.Abstractions;
-using EngineNet.Core.Tools;
+using EngineNet.Core.ExternalTools;
 using EngineNet.Core.Utils;
 
 namespace EngineNet.Core.Services;

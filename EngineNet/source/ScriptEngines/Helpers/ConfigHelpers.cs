@@ -9,7 +9,7 @@ namespace EngineNet.ScriptEngines.Helpers;
 /// </summary>
 internal static class ConfigHelpers {
     private static void Write(string message, bool newline = true, string? color = null) {
-        Core.Utils.EngineSdk.Print(message ?? string.Empty, color, newline);
+        Core.UI.EngineSdk.Print(message ?? string.Empty, color, newline);
     }
 
     private static string BuildProgressBar(string label, int current, int total, int width = 30) {

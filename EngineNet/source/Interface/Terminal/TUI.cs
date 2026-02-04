@@ -25,6 +25,8 @@ internal partial class TUI {
         try {
             // get all modules that exist on disk
             Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.Modules(Core.Utils.ModuleFilter.Installed);
+            // get internal modules
+            Dictionary<string, Core.Utils.GameModuleInfo> internalModules = _engine.Modules(Core.Utils.ModuleFilter.Internal);
 
             // Allow managing modules from the game selection menu
             string gameName;
@@ -34,17 +36,17 @@ internal partial class TUI {
 
                 List<string> gameMenu = new List<string>();
                 List<string> gameKeyMap = new List<string>();
-                List<Core.Utils.GameModuleInfo> internalModules = new List<Core.Utils.GameModuleInfo>();
+                //List<Core.Utils.GameModuleInfo> internalModulesList = new List<Core.Utils.GameModuleInfo>();
 
                 // Build menu with states
                 // foreach module, display '<Name> [state1, state2, state3]'
                 foreach (KeyValuePair<string, Core.Utils.GameModuleInfo> kv in modules) {
                     Core.Utils.GameModuleInfo m = kv.Value;
-                    // Skip internal modules; add them after game modules below separator
-                    if (m.IsInternal) {
-                        internalModules.Add(m);
+                    // Skip internal modules in modules list; add them after game modules below separator
+                    /*if (m.IsInternal) {
+                        internalModulesList.Add(m);
                         continue;
-                    }
+                    }*/
                     string display = $"{m.Name}  [{m.DescribeState()}]";
                     gameMenu.Add(display);
                     gameKeyMap.Add(m.Name);
@@ -52,7 +54,7 @@ internal partial class TUI {
                 gameMenu.Add("---------------"); // separator before internal modules
 
                 // Add internal modules after game modules
-                foreach (Core.Utils.GameModuleInfo m in internalModules) {
+                foreach (Core.Utils.GameModuleInfo m in internalModules.Values) {
                     gameMenu.Add(m.Name);
                     gameKeyMap.Add(m.Name);
                 }

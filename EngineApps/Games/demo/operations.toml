@@ -20,6 +20,34 @@ script = "{{Game_Root}}/config.lua"
 args = ["--group", "demo", "--key", "demo", "--value", "complete", "--type", "string"]
 
 
+[[operation]]
+run-all = false
+Name = "JavaScript Feature Showcase"
+Instructions = "Runs the JavaScript engine demo covering progress, sqlite, and helpers."
+script_type = "js"
+script = "{{Game_Root}}/scripts/js_feature_demo.js"
+args = ["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/js-demo"]
+[[operation.prompts]]
+type = "confirm"
+Name = "js_extra_artifacts"
+message = "Include extra JavaScript demo artifacts?"
+default = true
+cli_arg = "--with-extra"
+[[operation.prompts]]
+type = "text"
+Name = "js_note"
+message = "Message to log from the JavaScript demo"
+default = "Hello from the JavaScript demo"
+cli_arg_prefix = "--note"
+
+
+[[operation]]
+run-all = false
+Name = "Python Placeholder"
+script_type = "python"
+script = "{{Game_Root}}/scripts/python_demo.py"
+args = []
+
 
 [[operation]]
 run-all = false
@@ -125,33 +153,3 @@ args = [
 	"--required-dirs", "folder1||folder1.2,folder2||folder2.2",
 ]
 
-
-[[operation]]
-run-all = false
-Name = "JavaScript Feature Showcase"
-Instructions = "Runs the JavaScript engine demo covering progress, sqlite, and helpers."
-script_type = "js"
-script = "{{Game_Root}}/scripts/js_feature_demo.js"
-args = ["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/js-demo"]
-
-[[operation.prompts]]
-type = "confirm"
-Name = "js_extra_artifacts"
-message = "Include extra JavaScript demo artifacts?"
-default = true
-cli_arg = "--with-extra"
-
-[[operation.prompts]]
-type = "text"
-Name = "js_note"
-message = "Message to log from the JavaScript demo"
-default = "Hello from the JavaScript demo"
-cli_arg_prefix = "--note"
-
-
-[[operation]]
-run-all = false
-Name = "Python Placeholder (Not implemented)"
-script_type = "python"
-script = "{{Game_Root}}/scripts/python_demo.py"
-args = []

@@ -40,7 +40,7 @@ internal static class LuaSecurity {
         string root = DetermineApprovalRoot(path);
         string msg = $"Permission requested: Allow this script to access external path '\"{root}\"'?";
 
-        bool allowed = Core.Utils.EngineSdk.Confirm(msg, "ext_path_access", false);
+        bool allowed = Core.UI.EngineSdk.Confirm(msg, "ext_path_access", false);
 
         if (allowed) {
             try {
@@ -52,14 +52,14 @@ internal static class LuaSecurity {
             }
             return true;
         }
-        Core.Utils.EngineSdk.Error($"Access denied: File path '{path}' is outside allowed workspace areas");
+        Core.UI.EngineSdk.Error($"Access denied: File path '{path}' is outside allowed workspace areas");
         return false;
     }
     /// <summary>
     /// Security validation: Check if executable is approved for RemakeEngine use.
     /// Allows registered tools, common system utilities, and resolved tool paths.
     /// </summary>
-    internal static bool IsApprovedExecutable(string executable, Core.Tools.IToolResolver tools) {
+    internal static bool IsApprovedExecutable(string executable, Core.ExternalTools.IToolResolver tools) {
         if (string.IsNullOrWhiteSpace(executable)) {
             return false;
         }

@@ -17,9 +17,10 @@ internal sealed partial class Engine {
     internal Core.Abstractions.IOperationsLoader OperationsLoader { get; }
     internal Core.Abstractions.IGitService GitService { get; }
     internal Core.Abstractions.ICommandService CommandService { get; }
-    internal Core.Tools.IToolResolver ToolResolver { get; }
+    internal Core.ExternalTools.IToolResolver ToolResolver { get; }
     internal Core.EngineConfig EngineConfig { get; }
     internal Core.Enginey Enginey { get; }
+    internal Core.Engino Engino { get; }
 
     /* :: :: Vars :: End :: */
 
@@ -30,9 +31,10 @@ internal sealed partial class Engine {
         Core.Abstractions.IOperationsLoader operationsLoader,
         Core.Abstractions.IGitService gitService,
         Core.Abstractions.ICommandService commandService,
-        Core.Tools.IToolResolver toolResolver,
+        Core.ExternalTools.IToolResolver toolResolver,
         Core.EngineConfig engineConfig,
-        Core.Enginey enginey
+        Core.Enginey enginey,
+        Core.Engino engino
     ) {
         RootPath = rootPath;
         GameRegistry = gameRegistry;
@@ -43,6 +45,7 @@ internal sealed partial class Engine {
         ToolResolver = toolResolver;
         EngineConfig = engineConfig;
         Enginey = enginey;
+        Engino = engino;
     }
 
     /* :: :: */

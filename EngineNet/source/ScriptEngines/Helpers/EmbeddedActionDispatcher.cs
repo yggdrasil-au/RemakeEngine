@@ -25,9 +25,9 @@ internal static class EmbeddedActionDispatcher {
             case "lua":
                 return new ScriptEngines.lua.LuaScriptAction(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: rootPath);
             case "js":
-                return new ScriptEngines.js.JsScriptAction(scriptPath: scriptPath, args: args);
+                return new ScriptEngines.Js.JsScriptAction(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: rootPath);
             case "python": case "py":
-                return new ScriptEngines.PythonScriptAction(scriptPath: scriptPath, args: args);
+                return new ScriptEngines.PythonScriptAction(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: rootPath);
             default: {
                 Core.Diagnostics.Log($"[EmbeddedActionDispatcher.cs::TryCreate()] Unsupported embedded script type '{scriptType}'");
                 return null;
