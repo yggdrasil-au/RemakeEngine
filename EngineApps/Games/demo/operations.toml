@@ -21,7 +21,7 @@
 
 
 [[operation]]
-	run-all = false
+	run-all = true
 	Name = "JavaScript Feature Showcase"
 	Instructions = "Runs the JavaScript engine demo covering progress, sqlite, and helpers."
 	script_type = "js"
@@ -42,15 +42,15 @@
 
 
 [[operation]]
-	run-all = false
-	Name = "Python Placeholder"
+	run-all = true
+	Name = "Python"
 	script_type = "python"
 	script = "{{Game_Root}}/scripts/python_demo.py"
 	args = []
 
 
 [[operation]]
-	run-all = false
+	run-all = true
 	Name = "Download Tools"
 	Instructions = "Uses the engine downloader to retrieve optional demo tooling."
 	script_type = "engine"
@@ -176,6 +176,6 @@
 	script = "download_module_registry"
 	script_type = "internal"
 	prompts = [
-		{ Name = "url", type = "text", message = "Enter Registry URL or Name" }
+		{ Name = "url", type = "select", message = "Select module from registry", choices_provider = "registry_modules" }
 	]
 

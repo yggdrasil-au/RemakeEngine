@@ -9,6 +9,7 @@ public partial class InternalOperations {
         if (promptAnswers.TryGetValue("url", out object? u)) {
             input = u?.ToString();
         }
+
         if (string.IsNullOrWhiteSpace(input)) {
             Core.UI.EngineSdk.Error("No input provided.");
             Core.Diagnostics.Trace("[Engine.private.cs :: InternalOperations()]] download_module_registry: no input provided");

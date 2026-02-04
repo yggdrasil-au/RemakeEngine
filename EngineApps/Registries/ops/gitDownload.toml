@@ -15,6 +15,8 @@
     description = "Clone a game repository from the known registry list."
     script = "download_module_registry"
     script_type = "internal"
-    prompts = [
-        { Name = "url", type = "text", message = "Enter Registry URL or Name" }
-    ]
+    [[operations.prompts]]
+        Name = "url"
+        type = "select"
+        message = "Select module from registry"
+        choices_provider = "registry_modules"

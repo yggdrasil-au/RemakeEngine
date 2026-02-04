@@ -221,12 +221,13 @@ internal partial class TUI {
                     Dictionary<string, object?> op = regularOps[opIndex];
                     Dictionary<string, object?> answers = new Dictionary<string, object?>();
                     // For manual single-op run, prompt interactively
-                    CollectAnswersForOperation(op, answers, defaultsOnly: false);
-                    SafeClear();
-                    System.Console.WriteLine($"Running: {selection}\n");
-                    bool ok = new Utils().ExecuteOp(_engine, gameName, allAvailableModules, op, answers);
-                    System.Console.WriteLine(ok ? "Completed successfully. Press any key to continue..." : "Operation failed. Press any key to continue...");
-                    SafeReadKey(true);
+                    if (CollectAnswersForOperation(op, answers, defaultsOnly: false)) {
+                        SafeClear();
+                        System.Console.WriteLine($"Running: {selection}\n");
+                        bool ok = new Utils().ExecuteOp(_engine, gameName, allAvailableModules, op, answers);
+                        System.Console.WriteLine(ok ? "Completed successfully. Press any key to continue..." : "Operation failed. Press any key to continue...");
+                        SafeReadKey(true);
+                    }
                 }
             }
         } catch (System.Exception ex) {
