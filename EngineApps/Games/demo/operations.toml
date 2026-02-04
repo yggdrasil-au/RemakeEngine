@@ -15,8 +15,8 @@
 	cli_arg_prefix = "--note"
 [[operation.onsuccess]]
 	Name = "set isRenamed placeholder"
-	script_type = "lua"
-	script = "{{Game_Root}}/config.lua"
+	script_type = "engine"
+	script = "config"
 	args = ["--group", "demo", "--key", "demo", "--value", "complete", "--type", "string"]
 
 
@@ -155,6 +155,7 @@
 # these are Internal operations that cannot be used directly as they exist solely to provide internal engine functionality
 # eg, gitDownload will appear in the engine UI allowing for downloading registered modules or arbitrary git repos, for safety this cannot be invoked directly
 # to make UI simpler and easier to dev for GUI,TUI,CLI these internal ops are built using the same standard operations format as 'internal' operations
+# this being here demonstrates that internal operations cannot be used as standard operations, you should see an error if you try to run these directly here
 #
 
 [[operations]]

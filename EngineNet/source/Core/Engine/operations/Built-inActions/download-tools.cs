@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using EngineNet.Core.ExternalTools;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 public partial class InternalOperations {
@@ -56,7 +57,9 @@ public partial class InternalOperations {
         cfgDict0["module_path"] = gameRoot;
         cfgDict0["project_path"] = RootPath;
         string resolvedManifest = Core.Utils.Placeholders.Resolve(manifest!, ctx)?.ToString() ?? manifest!;
-        string central = System.IO.Path.Combine(RootPath, "EngineApps", "Registries", "Tools", "Main.json");
+
+        string central = JsonToolResolver.ToolsFilePath;
+
         bool force = false;
         if (promptAnswers.TryGetValue("force download", out object? fd) && fd is bool b1) {
             force = b1;

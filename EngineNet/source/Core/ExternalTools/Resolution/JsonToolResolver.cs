@@ -21,12 +21,12 @@ internal sealed class JsonToolResolver:IToolResolver {
     private string? _loadedFile;
     private System.DateTime _lastWriteTime;
 
+    public static readonly string ToolsFilePath = System.IO.Path.Combine(Program.rootPath, "EngineApps", "Registries", "Tools", "Main.json");
+
     internal JsonToolResolver() {
         _candidates = new[] {
-            System.IO.Path.Combine(Program.rootPath, "Tools.local.json"), // local cache of installed tools
-            System.IO.Path.Combine(Program.rootPath, "tools.local.json"),
-            System.IO.Path.Combine(Program.rootPath, "EngineApps", "Registries", "Tools", "Main.json"), // local registry of supported tools
-            System.IO.Path.Combine(Program.rootPath, "EngineApps", "Registries", "Tools", "main.json")
+            System.IO.Path.Combine(Program.rootPath, "Tools.local.json"),
+            ToolsFilePath,
         };
         Load();
     }

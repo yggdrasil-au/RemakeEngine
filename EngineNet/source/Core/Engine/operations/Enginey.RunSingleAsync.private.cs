@@ -58,26 +58,32 @@ internal sealed class OperationExecution {
 
         Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] Executing engine action: {action}");
         switch (action) {
+            // internal modules
             case "download_module_git": {
-                return new EngineNet.Core.Engine.operations.Built_inActions.InternalOperations().DownloadModuleGit(promptAnswers, GitService);
+                return new operations.Built_inActions.InternalOperations().DownloadModuleGit(promptAnswers, GitService);
             }
             case "download_module_registry": {
-                return new EngineNet.Core.Engine.operations.Built_inActions.InternalOperations().DownloadModuleRegistry(promptAnswers, GitService, GameRegistry);
+                return new operations.Built_inActions.InternalOperations().DownloadModuleRegistry(promptAnswers, GitService, GameRegistry);
+            }
+
+            // Built-in actions
+            case "config": {
+                return new operations.Built_inActions.InternalOperations().config(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
             }
             case "download-tools": {
-                return await new EngineNet.Core.Engine.operations.Built_inActions.InternalOperations().DownloadTools(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
+                return await new operations.Built_inActions.InternalOperations().DownloadTools(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
             }
             case "format-extract": {
-                return new EngineNet.Core.Engine.operations.Built_inActions.InternalOperations().format_extract(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
+                return new operations.Built_inActions.InternalOperations().format_extract(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
             }
             case "format-convert": {
-                return new EngineNet.Core.Engine.operations.Built_inActions.InternalOperations().format_convert(op, promptAnswers, currentGame, games, RootPath, EngineConfig, ToolResolver);
+                return new operations.Built_inActions.InternalOperations().format_convert(op, promptAnswers, currentGame, games, RootPath, EngineConfig, ToolResolver);
             }
             case "validate-files": {
-                return new EngineNet.Core.Engine.operations.Built_inActions.InternalOperations().validate_files(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
+                return new operations.Built_inActions.InternalOperations().validate_files(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
             }
             case "rename-folders": {
-                return new EngineNet.Core.Engine.operations.Built_inActions.InternalOperations().rename_folders(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
+                return new operations.Built_inActions.InternalOperations().rename_folders(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
             }
             default: {
                 Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] Unknown engine action: {action}");

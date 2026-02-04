@@ -447,9 +447,9 @@ local function safe_tool_resolve(tool_name)
     return success and result or 'Tool not found: ' .. tool_name
 end
 
-local common_tools = {'git', 'python', 'node', 'ffmpeg', 'blender'}
+local tools = {'QuickBMS', 'Godot', 'vgmstream-cli', 'ffmpeg', 'ImageMagick'}
 sdk.color_print('cyan', 'Tool resolution test:')
-for _, tool_name in ipairs(common_tools) do
+for _, tool_name in ipairs(tools) do
     local tool_path = safe_tool_resolve(tool_name)
     sdk.color_print('white', string.format('  %s -> %s', tool_name, tool_path))
 end

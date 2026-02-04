@@ -285,7 +285,7 @@ internal sealed class ProcessRunner() {
 
         // Approved RemakeEngine tools (case-insensitive)
         HashSet<string> approvedTools = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase) {
-            // Core RemakeEngine tools from "EngineApps", "Registries", "Tools", "Main.json"
+            // Core RemakeEngine tools from "EngineApps", "Registries", "Tools", TODO: "Main.json", resolve dynamically
             "blender", "blender.exe", "blender-launcher.exe",
             "quickbms", "quickbms.exe",
             "godot", "godot.exe",

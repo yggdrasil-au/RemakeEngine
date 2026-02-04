@@ -200,4 +200,9 @@ internal static class TomlHelpers {
             .ToDictionary(p => p.Name, p => p.GetValue(value), System.StringComparer.OrdinalIgnoreCase);
         return ConvertPlainToTomlValue(props);
     }
+
+    internal static string WriteDocument(object? data) {
+        Tomlyn.Model.TomlTable root = ConvertPlainToTomlTable(data) ?? new Tomlyn.Model.TomlTable();
+        return Tomlyn.Toml.FromModel(root);
+    }
 }

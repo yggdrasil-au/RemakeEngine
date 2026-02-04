@@ -31,7 +31,7 @@ internal sealed class ToolsDownloader {
             Core.Diagnostics.Bug($"[ToolsDownloader] Could not create directory for central tools registry: {_centralRepoJsonPath}");
         }
 
-            RemoteFallbacks.EnsureRepoFile(System.IO.Path.Combine("EngineApps", "Registries", "Tools", "Main.json"), _centralRepoJsonPath);
+            RemoteFallbacks.EnsureRepoFile(JsonToolResolver.ToolsFilePath, _centralRepoJsonPath);
         }
         if (!System.IO.File.Exists(_centralRepoJsonPath)) {
             throw new System.IO.FileNotFoundException("Central tools registry not found", _centralRepoJsonPath);

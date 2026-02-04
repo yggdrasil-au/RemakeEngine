@@ -31,6 +31,7 @@ namespace EngineNet.Core.FileHandlers;
 /// </summary>
 internal static class ImageMagickConverter {
     private const string ToolMagick = "magick";
+    private const string ImageMagickName = "ImageMagick";
 
     // Tracks currently running external conversions (for progress panel)
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, Core.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> s_active = new();
@@ -62,7 +63,7 @@ internal static class ImageMagickConverter {
             Options opt = Parse(args);
 
             // Resolve magick executable
-            opt.MagickPath ??= toolResolver.ResolveToolPath(ToolMagick);
+            opt.MagickPath ??= toolResolver.ResolveToolPath(ImageMagickName) ?? toolResolver.ResolveToolPath(ToolMagick);
             if (string.IsNullOrWhiteSpace(opt.MagickPath) || !File.Exists(opt.MagickPath!)) {
                 // Try PATH fallbacks
                 opt.MagickPath = Which("magick.exe") ?? Which("magick") ?? opt.MagickPath;
