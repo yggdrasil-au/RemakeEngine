@@ -1,5 +1,8 @@
 # RemakeEngine .gitignore (organized)
 
+## windows system files
+desktop.ini
+
 ############################
 # IDE / Editor
 ############################
