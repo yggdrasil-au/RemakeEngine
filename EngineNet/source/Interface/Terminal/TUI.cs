@@ -50,7 +50,7 @@ internal partial class TUI {
                 //List<Core.Utils.GameModuleInfo> internalModulesList = new List<Core.Utils.GameModuleInfo>();
 
                 // Build menu with states
-                // foreach module, display '<Name> [state1, state2, state3]'
+                // foreach module, display '<Name> [<isRegistered>, <isInstalled (always true here)>, <isBuilt>]'
                 foreach (KeyValuePair<string, Core.Utils.GameModuleInfo> kv in modules) {
                     Core.Utils.GameModuleInfo m = kv.Value;
                     // Skip internal modules in modules list; add them after game modules below separator
@@ -154,7 +154,13 @@ internal partial class TUI {
                 SafeClear();
                 System.Console.WriteLine(value: $"--- Operations for: {gameName}");
                 List<string> menu = new List<string>();
-                
+
+                // show a 'Play' option if isBuilt is true for the module, indicating the game is ready to run
+                if (info.IsBuilt) {
+                    menu.Add("Play");
+                    menu.Add("---------------");
+                }
+
                 // Show "Run All" only for non-internal modules and if there are operations with run-all flags
                 bool showRunAll = !info.IsInternal && hasRunAll;
                 int opStartIndex = 0;
@@ -196,6 +202,16 @@ internal partial class TUI {
                 }
                 if (selection == "Exit") {
                     return 0;
+                }
+                if (selection == "Play") {
+                    SafeClear();
+                    System.Console.WriteLine($"Launching game '{gameName}'...\n");
+                    bool launched = await _engine.GameLauncher.LaunchGameAsync(name: gameName);
+                    System.Console.WriteLine(launched
+                        ? "Game launched successfully. Press any key to continue..."
+                        : "Failed to launch game. Press any key to continue...");
+                    SafeReadKey(true);
+                    continue;
                 }
                 if (selection == "Run All") {
                     try {

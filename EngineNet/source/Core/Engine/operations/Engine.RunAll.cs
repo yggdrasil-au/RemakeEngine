@@ -4,7 +4,7 @@ namespace EngineNet.Core.Engine;
 
 internal sealed record RunAllResult(string Game, bool Success, int TotalOperations, int SucceededOperations);
 
-internal sealed partial class Engine {
+public sealed partial class Engine {
 
     // this is the meathod used to execute the run all ops by both GUI and TUI
 

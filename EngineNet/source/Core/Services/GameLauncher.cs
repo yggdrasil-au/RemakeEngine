@@ -79,20 +79,25 @@ public class GameLauncher : IGameLauncher {
                     switch (key.ToLowerInvariant()) {
                         case "exe":
                         case "executable":
-                            exePath = Placeholders.Resolve(val, ctx)?.ToString() ?? val;
+                            string resolvedExe = Placeholders.Resolve(val, ctx)?.ToString() ?? val;
+                            exePath = PathHelper.ResolveRelativePath(root, resolvedExe);
                             break;
                         case "lua":
                         case "lua_script":
                         case "script":
-                            luaScript = Placeholders.Resolve(val, ctx)?.ToString() ?? val;
+                            string resolvedLua = Placeholders.Resolve(val, ctx)?.ToString() ?? val;
+                            luaScript = PathHelper.ResolveRelativePath(root, resolvedLua);
                             break;
                         case "godot":
                         case "godot_project":
                         case "project":
-                            godotProject = Placeholders.Resolve(val, ctx)?.ToString() ?? val;
+                            string resolvedGodot = Placeholders.Resolve(val, ctx)?.ToString() ?? val;
+                            godotProject = PathHelper.ResolveRelativePath(root, resolvedGodot);
                             break;
                     }
                 }
+            } else {
+                Diagnostics.Trace($"[GameLauncher] no game.toml found for game '{name}' at expected path: {gameToml}");
             }
         } catch {
             /* ignore malformed toml */
@@ -102,11 +107,15 @@ public class GameLauncher : IGameLauncher {
         // if lua script exists, run it
         if (!string.IsNullOrWhiteSpace(luaScript) && System.IO.File.Exists(luaScript)) {
             try {
+                Core.Diagnostics.Trace($"[GameLauncher] executing lua script '{luaScript}' for game '{name}'");
                 ScriptEngines.lua.LuaScriptAction action = new ScriptEngines.lua.LuaScriptAction(scriptPath: luaScript!, args: System.Array.Empty<string>(), gameRoot: root, projectRoot: _rootPath);
                 // Note: LuaScriptAction.ExecuteAsync is async, so we await it
                 await action.ExecuteAsync(tools: _toolResolver);
                 return true;
-            } catch { return false; }
+            } catch {
+                Core.Diagnostics.Bug($"[GameLauncher] err executing lua script '{luaScript}' for game '{name}'");
+                return false;
+            }
         }
 
         // If godot project specified, invoke godot
@@ -130,7 +139,9 @@ public class GameLauncher : IGameLauncher {
         // exe path from game.toml or registry
         string? exe = exePath ?? _gameRegistry.GetGameExecutable(name);
         string work = _gameRegistry.GetGamePath(name) ?? root;
-        if (string.IsNullOrWhiteSpace(exe) || !System.IO.File.Exists(exe)) return false;
+        if (string.IsNullOrWhiteSpace(exe) || !Path.Exists(exe)) {
+            return false;
+        }
         try {
             System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
                 FileName = exe!,
@@ -139,7 +150,10 @@ public class GameLauncher : IGameLauncher {
             };
             System.Diagnostics.Process.Start(psi);
             return true;
-        } catch { return false; }
+        } catch {
+            Core.Diagnostics.Bug($"[GameLauncher] err launching exe '{exe}' for game '{name}'");
+            return false;
+        }
     }
 
     /* :: :: Methods :: END :: */

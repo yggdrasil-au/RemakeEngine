@@ -11,8 +11,8 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
     //
     /** :: :: Vars :: START :: **/
     private readonly Core.Engine.Engine? _engine;
-    private string ProjectRoot { get; set; } = String.Empty;
-    private string Status { get; set; } = String.Empty;
+    public string ProjectRoot { get; set; } = String.Empty;
+    public string Status { get; set; } = String.Empty;
 
     /** :: :: Vars :: END :: **/
     //

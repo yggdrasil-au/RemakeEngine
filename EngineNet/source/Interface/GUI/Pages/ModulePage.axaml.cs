@@ -10,65 +10,66 @@ using System.Threading;
 
 namespace EngineNet.Interface.GUI.Pages;
 
-internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
+public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     /* :: :: Vars :: START :: */
     private readonly Core.Engine.Engine? _engine;
     private readonly string _moduleName = string.Empty;
 
-    internal string ModuleName { get; private set; } = string.Empty;
-    internal string Title { get; private set; } = string.Empty;
-    internal string? GameRoot { get; private set; }
-    internal string? ExePath { get; private set; }
-    internal string? RegistryUrl { get; private set; }
+    public string ModuleName { get; private set; } = string.Empty;
+    public string Title { get; private set; } = string.Empty;
+    public string? GameRoot { get; private set; }
+    public string? ExePath { get; private set; }
+    public string? RegistryUrl { get; private set; }
 
-    internal bool IsBuilt { get; private set; }
-    internal bool IsInstalled { get; private set; }
-    internal bool IsRegistered { get; private set; }
-    internal bool IsUnverified { get; private set; }
-    internal bool IsUnbuilt { get; private set; }
+    public bool IsBuilt { get; private set; }
+    public bool IsInstalled { get; private set; }
+    public bool IsRegistered { get; private set; }
+    public bool IsUnverified { get; private set; }
+    public bool IsUnbuilt { get; private set; }
 
-    internal bool CanPlay => IsBuilt && !string.IsNullOrWhiteSpace(ExePath);
-    internal bool CanRunAll => !string.IsNullOrWhiteSpace(ModuleName);
-    internal bool CanDownload => !IsDownloaded() && !string.IsNullOrWhiteSpace(RegistryUrl);
+    public bool CanPlay => IsBuilt && !string.IsNullOrWhiteSpace(ExePath);
+    public bool CanRunAll => !string.IsNullOrWhiteSpace(ModuleName);
+    public bool CanDownload => !IsDownloaded() && !string.IsNullOrWhiteSpace(RegistryUrl);
 
-    internal Bitmap? Image { get; private set; }
+    public Bitmap? Image { get; private set; }
 
-    internal ObservableCollection<OpRow> Operations { get; } = new ObservableCollection<OpRow>();
+    public ObservableCollection<OpRow> Operations { get; } = new ObservableCollection<OpRow>();
 
-    internal System.Windows.Input.ICommand Button_Play_Click { get; }
-    internal System.Windows.Input.ICommand Button_RunAll_Click { get; }
-    internal System.Windows.Input.ICommand Button_RunOp_Click { get; }
-    internal System.Windows.Input.ICommand Button_Download_Click { get; }
-    internal System.Windows.Input.ICommand Button_OpenFolder_Click { get; }
+    public System.Windows.Input.ICommand Button_Play_Click { get; }
+    public System.Windows.Input.ICommand Button_RunAll_Click { get; }
+    public System.Windows.Input.ICommand Button_RunOp_Click { get; }
+    public System.Windows.Input.ICommand Button_Download_Click { get; }
+    public System.Windows.Input.ICommand Button_OpenFolder_Click { get; }
     /* :: :: Vars :: END :: */
     // //
     /* :: :: Constructors :: START :: */
 
     // Designer only
     public ModulePage() {
-        DataContext = this;
-        InitializeComponent();
         Button_Play_Click = new Cmd(_ => System.Threading.Tasks.Task.CompletedTask);
         Button_RunAll_Click = new Cmd(_ => System.Threading.Tasks.Task.CompletedTask);
         Button_RunOp_Click = new Cmd(_ => System.Threading.Tasks.Task.CompletedTask);
         Button_Download_Click = new Cmd(_ => System.Threading.Tasks.Task.CompletedTask);
         Button_OpenFolder_Click = new Cmd(_ => System.Threading.Tasks.Task.CompletedTask);
-    }
-
-    internal ModulePage(Core.Engine.Engine engine, string moduleName) {
-        _engine = engine;
-        _moduleName = moduleName;
-        ModuleName = moduleName;
 
         DataContext = this;
         InitializeComponent();
+    }
+
+    public ModulePage(Core.Engine.Engine engine, string moduleName) {
+        _engine = engine;
+        _moduleName = moduleName;
+        ModuleName = moduleName;
 
         Button_Play_Click = new Cmd(async _ => await PlayAsync());
         Button_RunAll_Click = new Cmd(async _ => await RunAllAsync());
         Button_RunOp_Click = new Cmd(async p => await RunOpAsync(p as OpRow));
         Button_Download_Click = new Cmd(async _ => await DownloadAsync());
         Button_OpenFolder_Click = new Cmd(async _ => await OpenFolderAsync());
+
+        DataContext = this;
+        InitializeComponent();
 
         Load();
     }
@@ -161,7 +162,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             Raise(nameof(RegistryUrl));
         } catch (System.Exception ex) {
             OperationOutputService.Instance.AddOutput(text: $"Module load failed: {ex.Message}", stream: "stderr");
-                        Core.Diagnostics.Log($"Load: {ex}");
+            Core.Diagnostics.Bug($"Load: {ex}");
         }
     }
 
@@ -182,14 +183,19 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     private async System.Threading.Tasks.Task PlayAsync() {
         try {
-            if (_engine is null) return;
-            if (string.IsNullOrWhiteSpace(ModuleName)) return;
-            _engine.LaunchGame(name: ModuleName);
+            if (_engine is null) {
+                Core.Diagnostics.Trace("PlayAsync: Engine is not initialized.");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(ModuleName)) {
+                Core.Diagnostics.Trace("PlayAsync: ModuleName is not set.");
+                return;
+            }
+            await _engine.GameLauncher.LaunchGameAsync(name: ModuleName);
         } catch (System.Exception ex) {
             OperationOutputService.Instance.AddOutput(text: $"Launch failed: {ex.Message}", stream: "stderr");
-            Core.Diagnostics.Log($"PlayAsync: {ex}");
+            Core.Diagnostics.Bug($"PlayAsync: {ex}");
         }
-        await System.Threading.Tasks.Task.CompletedTask;
     }
 
     private async System.Threading.Tasks.Task RunAllAsync() {
@@ -367,11 +373,11 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     /* :: :: Methods :: END :: */
     // //
     /* :: :: Nested Types :: START :: */
-    internal sealed class OpRow {
-        internal string Name { get; set; } = string.Empty;
-        internal string ScriptType { get; set; } = string.Empty;
-        internal string ScriptPath { get; set; } = string.Empty;
-        internal Dictionary<string, object?> Op { get; set; } = new Dictionary<string, object?>();
+    public sealed class OpRow {
+        public string Name { get; set; } = string.Empty;
+        public string ScriptType { get; set; } = string.Empty;
+        public string ScriptPath { get; set; } = string.Empty;
+        public Dictionary<string, object?> Op { get; set; } = new Dictionary<string, object?>();
     }
 
     private sealed class GuiStdinRedirectReader:System.IO.TextReader {

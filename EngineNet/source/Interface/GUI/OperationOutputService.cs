@@ -11,22 +11,22 @@ namespace EngineNet.Interface.GUI;
 /// Shared service for capturing and displaying operation output across all GUI pages.
 /// This ensures that output persists when navigating between pages.
 /// </summary>
-internal sealed class OperationOutputService : INotifyPropertyChanged {
-    internal static OperationOutputService Instance { get; } = new OperationOutputService();
+public sealed class OperationOutputService : INotifyPropertyChanged {
+    public static OperationOutputService Instance { get; } = new OperationOutputService();
 
     private readonly object _lock = new object();
 
-    internal OperationOutputService() { }
+    public OperationOutputService() { }
 
     /// <summary>
     /// Shared output lines collection. Thread-safe via Dispatcher.
     /// </summary>
-    internal ObservableCollection<OutputLine> Lines { get; } = new ObservableCollection<OutputLine>();
+    public ObservableCollection<OutputLine> Lines { get; } = new ObservableCollection<OutputLine>();
 
-    internal ObservableCollection<ActiveJob> ActiveJobs { get; } = new ObservableCollection<ActiveJob>();
+    public ObservableCollection<ActiveJob> ActiveJobs { get; } = new ObservableCollection<ActiveJob>();
 
     private string? _currentOperation;
-    internal string? CurrentOperation {
+    public string? CurrentOperation {
         get {
             lock (_lock) {
                 return _currentOperation;
@@ -43,25 +43,25 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
     }
 
     private bool _isProgressPanelActive;
-    internal bool IsProgressPanelActive {
+    public bool IsProgressPanelActive {
         get => _isProgressPanelActive;
         private set => SetField(ref _isProgressPanelActive, value);
     }
 
     private string _progressLabel = string.Empty;
-    internal string ProgressLabel {
+    public string ProgressLabel {
         get => _progressLabel;
         private set => SetField(ref _progressLabel, value);
     }
 
     private string _progressSummaryLine = string.Empty;
-    internal string ProgressSummaryLine {
+    public string ProgressSummaryLine {
         get => _progressSummaryLine;
         private set => SetField(ref _progressSummaryLine, value);
     }
 
     private double _progressPercent;
-    internal double ProgressPercent {
+    public double ProgressPercent {
         get => _progressPercent;
         private set => SetField(ref _progressPercent, value);
     }
@@ -72,19 +72,19 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
     private int _activeScriptCurrent = 0;
 
     private string _activeJobsSummary = "Active: none";
-    internal string ActiveJobsSummary {
+    public string ActiveJobsSummary {
         get => _activeJobsSummary;
         private set => SetField(ref _activeJobsSummary, value);
     }
 
     private int _activeJobCount;
-    internal int ActiveJobCount {
+    public int ActiveJobCount {
         get => _activeJobCount;
         private set => SetField(ref _activeJobCount, value);
     }
 
     private string _currentSpinner = string.Empty;
-    internal string CurrentSpinner {
+    public string CurrentSpinner {
         get => _currentSpinner;
         private set => SetField(ref _currentSpinner, value);
     }
@@ -754,31 +754,31 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
 
     // --- Prompt / Popup State ---
     private bool _isPromptActive;
-    internal bool IsPromptActive {
+    public bool IsPromptActive {
         get => _isPromptActive;
         private set => SetField(ref _isPromptActive, value);
     }
 
     private string _promptTitle = string.Empty;
-    internal string PromptTitle {
+    public string PromptTitle {
         get => _promptTitle;
         private set => SetField(ref _promptTitle, value);
     }
 
     private string _promptMessage = string.Empty;
-    internal string PromptMessage {
+    public string PromptMessage {
         get => _promptMessage;
         private set => SetField(ref _promptMessage, value);
     }
 
     private string _promptValue = string.Empty;
-    internal string PromptValue {
+    public string PromptValue {
         get => _promptValue;
         set => SetField(ref _promptValue, value);
     }
 
     private bool _isConfirmPrompt;
-    internal bool IsConfirmPrompt {
+    public bool IsConfirmPrompt {
         get => _isConfirmPrompt;
         private set {
             if (SetField(ref _isConfirmPrompt, value)) {
@@ -787,17 +787,17 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
         }
     }
 
-    internal bool IsTextPrompt => !IsConfirmPrompt;
+    public bool IsTextPrompt => !IsConfirmPrompt;
 
     private bool _isSecret;
-    internal bool IsSecret {
+    public bool IsSecret {
         get => _isSecret;
         private set => SetField(ref _isSecret, value);
     }
 
     private System.Threading.Tasks.TaskCompletionSource<string?>? _promptTcs;
 
-    internal async System.Threading.Tasks.Task<string?> RequestTextPromptAsync(string title, string message, string? defaultValue, bool secret) {
+    public async System.Threading.Tasks.Task<string?> RequestTextPromptAsync(string title, string message, string? defaultValue, bool secret) {
         return await Dispatcher.UIThread.InvokeAsync(async () => {
              PromptTitle = title;
              PromptMessage = message;
@@ -811,7 +811,7 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
         });
     }
 
-    internal async System.Threading.Tasks.Task<bool> RequestConfirmPromptAsync(string title, string message, bool defaultValue) {
+    public async System.Threading.Tasks.Task<bool> RequestConfirmPromptAsync(string title, string message, bool defaultValue) {
         return await Dispatcher.UIThread.InvokeAsync(async () => {
             PromptTitle = title;
             PromptMessage = message;
@@ -825,7 +825,7 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
         });
     }
 
-    internal void SubmitPrompt() {
+    public void SubmitPrompt() {
         IsPromptActive = false;
         if (IsConfirmPrompt) {
              _promptTcs?.TrySetResult("y");
@@ -834,7 +834,7 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
         }
     }
 
-    internal void CancelPrompt() {
+    public void CancelPrompt() {
         IsPromptActive = false;
         if (IsConfirmPrompt) {
              _promptTcs?.TrySetResult("n");
@@ -876,7 +876,7 @@ internal sealed class OperationOutputService : INotifyPropertyChanged {
 /// <summary>
 /// Represents a single line of output in the operation log.
 /// </summary>
-internal class OutputLine : INotifyPropertyChanged {
+public class OutputLine : INotifyPropertyChanged {
     private string _text = string.Empty;
     private string _color = "Gray";
 
@@ -913,7 +913,7 @@ internal class OutputLine : INotifyPropertyChanged {
     }
 }
 
-internal class ActiveJob : INotifyPropertyChanged {
+public class ActiveJob : INotifyPropertyChanged {
     private string _spinner = string.Empty;
     private string _tool = string.Empty;
     private string _file = string.Empty;

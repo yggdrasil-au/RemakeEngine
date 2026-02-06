@@ -16,14 +16,14 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
     // //
     private readonly Core.Engine.Engine? _engine;
 
-    internal ObservableCollection<StoreItem> Items {
+    public ObservableCollection<StoreItem> Items {
         get;
     } = new ObservableCollection<StoreItem>();
 
     // //
 
     private string _status = "";
-    internal string Status {
+    public string Status {
         get => _status; private set {
             _status = value;
             Raise(nameof(Status));
@@ -31,23 +31,23 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
     }
 
     private string _query = "";
-    internal string Query {
+    public string Query {
         get => _query; set {
             _query = value;
             Raise(nameof(Query));
         }
     }
 
-    internal System.Windows.Input.ICommand Button_Refresh_Click {
+    public System.Windows.Input.ICommand Button_Refresh_Click {
         get;
     }
-    internal System.Windows.Input.ICommand Button_Search_Click {
+    public System.Windows.Input.ICommand Button_Search_Click {
         get;
     }
-    internal System.Windows.Input.ICommand Button_Download_Click {
+    public System.Windows.Input.ICommand Button_Download_Click {
         get;
     }
-    internal System.Windows.Input.ICommand Button_OpenModule_Click {
+    public System.Windows.Input.ICommand Button_OpenModule_Click {
         get;
     }
 
@@ -57,14 +57,13 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
 
     // used only for previewer
     public StorePage() {
-
-        DataContext = this; // make every instance var an available binding
-        InitializeComponent();
-
         Button_Refresh_Click = new Cmd(async _ => await LoadAsync());
         Button_Search_Click = new Cmd(async _ => await LoadAsync(Query));
         Button_Download_Click = new Cmd(async item => await DownloadAsync(item as StoreItem));
         Button_OpenModule_Click = new Cmd(async item => await OpenModuleAsync(item as StoreItem));
+
+        DataContext = this; // make every instance var an available binding
+        InitializeComponent();
 
         _ = LoadAsync();
     }
@@ -73,15 +72,16 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
     /// Constructs the StorePage with the given OperationsEngine.
     /// </summary>
     /// <param name="engine"></param>
-    internal StorePage(Core.Engine.Engine engine) {
+    public StorePage(Core.Engine.Engine engine) {
         _engine = engine;
-        DataContext = this;
-        InitializeComponent();
 
         Button_Refresh_Click = new Cmd(async _ => await LoadAsync());
         Button_Search_Click = new Cmd(async _ => await LoadAsync(Query));
         Button_Download_Click = new Cmd(async item => await DownloadAsync(item as StoreItem));
         Button_OpenModule_Click = new Cmd(async item => await OpenModuleAsync(item as StoreItem));
+
+        DataContext = this;
+        InitializeComponent();
 
         _ = LoadAsync();
     }
@@ -248,32 +248,32 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
     /// <summary>
     /// Represents a store item (module from registry).
     /// </summary>
-    internal sealed class StoreItem {
-        internal string Id {
+    public sealed class StoreItem {
+        public string Id {
             get; set;
         } = "";
-        internal string Name {
+        public string Name {
             get; set;
         } = "";
-        internal string Title {
+        public string Title {
             get; set;
         } = "";
-        internal string Description {
+        public string Description {
             get; set;
         } = "";
-        internal string? Url {
+        public string? Url {
             get; set;
         }
-        internal bool IsDownloaded {
+        public bool IsDownloaded {
             get; set;
         }
-        internal bool IsInstalled {
+        public bool IsInstalled {
             get; set;
         }
-        internal bool CanDownload {
+        public bool CanDownload {
             get; set;
         }
-        internal bool CanInstall {
+        public bool CanInstall {
             get; set;
         }
     }

@@ -16,20 +16,20 @@ public partial class LibraryPage:UserControl {
     // //
     private readonly Core.Engine.Engine? _engine;
 
-    private ObservableCollection<Row> Items {
+    public ObservableCollection<Row> Items {
         get;
     } = new ObservableCollection<Row>();
 
     // //
 
-    private System.Windows.Input.ICommand? Button_Refresh_Click {
+    public System.Windows.Input.ICommand? Button_Refresh_Click {
         get;
     }
-    private System.Windows.Input.ICommand? Button_Details_Click {
+    public System.Windows.Input.ICommand? Button_Details_Click {
         get;
     }
 
-    private Row? SelectedRow {
+    public Row? SelectedRow {
         get; set;
     }
 
@@ -39,13 +39,12 @@ public partial class LibraryPage:UserControl {
 
     // used only for previewer
     public LibraryPage() {
-        InitializeComponent();
-        DataContext = this; // Set DataContext for design-time bindings
-
         // Initialize commands to prevent binding errors in the designer
         Button_Refresh_Click = new SimpleCommand(_ => { });
         Button_Details_Click = new SimpleCommand(_ => { });
-        // You'll need to fix this separately. See note below.
+
+        DataContext = this; // Set DataContext for design-time bindings
+        InitializeComponent();
 
         // Add some sample data so the previewer isn't empty
         Items.Add(item: new Row {
@@ -53,27 +52,24 @@ public partial class LibraryPage:UserControl {
             IsBuilt = true,
             PrimaryActionText = "Play",
             ExePath = string.Empty,
-            ModuleName = string.Empty
+            ModuleName = "example"
         });
         Items.Add(item: new Row {
             Title = "Another Game (Not Installed)",
             IsBuilt = false,
             PrimaryActionText = "Run All Build Operations",
             ExePath = string.Empty,
-            ModuleName = string.Empty
+            ModuleName = "another"
         });
-
     }
 
     /// <summary>
     /// Constructs the LibraryPage with the given OperationsEngine.
     /// </summary>
     /// <param name="engine"></param>
-    internal LibraryPage(Core.Engine.Engine engine) {
+    public LibraryPage(Core.Engine.Engine engine) {
         try {
             _engine = engine;
-            InitializeComponent();
-            DataContext = this;
 
             Button_Refresh_Click = new SimpleCommand(_ => Load());
 
@@ -82,6 +78,9 @@ public partial class LibraryPage:UserControl {
                     ShowDetails(r.ModuleName);
                 }
             });
+
+            DataContext = this;
+            InitializeComponent();
 
             Load();
         } catch (System.Exception ex) {
@@ -262,7 +261,7 @@ public partial class LibraryPage:UserControl {
     /// <summary>
     /// Represents a single row/item in the library list.
     /// </summary>
-    private sealed class Row {
+    public sealed class Row {
         public required string ModuleName { get; set; }
         public required string Title { get; set; }
         public required string ExePath { get; set; }

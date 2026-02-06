@@ -6,7 +6,7 @@ namespace EngineNet.Core.Engine;
 /// <summary>
 /// Core Engine class providing main functionality
 /// </summary>
-internal sealed partial class Engine {
+public sealed partial class Engine {
 
     /* :: :: Vars :: Start :: */
     public string RootPath { get; }
@@ -106,14 +106,6 @@ internal sealed partial class Engine {
     /// </summary>
     internal string? GetGamePath(string name) {
         return GameRegistry.GetGamePath(name);
-    }
-
-    /// <summary>
-    /// Launches a game by name
-    /// </summary>
-    internal bool LaunchGame(string name) {
-        // Synchronous wrapper for async method to maintain API compatibility for now
-        return GameLauncher.LaunchGameAsync(name).GetAwaiter().GetResult();
     }
 
     /* :: :: */
