@@ -2,6 +2,7 @@
 
 using System;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Security.Principal;
 using Microsoft.Win32;
 
@@ -12,7 +13,7 @@ namespace EngineNet.ScriptEngines.lua.LuaModules.Utils;
 /// Provides safe file system operations with proper security checks.
 /// </summary>
 internal static class LuaFileSystemUtils {
-    internal static bool PathExists(string path) => System.IO.Directory.Exists(path) || System.IO.File.Exists(path);
+    internal static bool PathExists(string path) => System.IO.Path.Exists(path);
 
     internal static bool PathExistsIncludingLinks(string path) {
         if (PathExists(path)) {
@@ -40,7 +41,7 @@ internal static class LuaFileSystemUtils {
 
     internal static bool CreateSymlink(string source, string destination, bool isDirectory) {
         try {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            if (OperatingSystem.IsWindows()) {
                 if (!ValidateWindowsSymlinkSupport(out string errorMessage)) {
                     Core.UI.EngineSdk.Error($"[Symlink] Requirement Not Met: {errorMessage}");
                     return false;
@@ -68,6 +69,7 @@ internal static class LuaFileSystemUtils {
         }
     }
 
+    [SupportedOSPlatform("windows")]
     private static bool ValidateWindowsSymlinkSupport(out string message) {
         message = string.Empty;
 

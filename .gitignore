@@ -89,6 +89,9 @@ devtest_**.*
 EngineApps/Games/demo/**/TMP/**
 EngineApps/Games/demo/TMP
 
+EngineApps/Games/demo/**/1old/
+EngineApps/Games/demo/**/1old/**
+
 # ignore submodules file, the games modules are managed by the app, this is here for VS code to detect them
 .gitmodules
 #EngineApps/Games/**/* ignore specific registerd games instead, to not ignore demo

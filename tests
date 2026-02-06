@@ -1,5 +1,0 @@
-to run tests
-
-dotnet build RemakeEngine.sln -c Debug
-dotnet test Unit.Tests\EngineNet.Tests.csproj -c Debug --no-build --logger "trx;LogFileName=test_results.trx"
-

@@ -11,7 +11,7 @@ $EngineNetProj = Join-Path $Root "EngineNet\EngineNet.csproj"
 $OutputRoot    = Join-Path $Root "EngineBuild"
 
 $EngineAppsRoot     = Join-Path $Root "EngineApps"
-$GamesDemoSource    = Join-Path $EngineAppsRoot "Games\Demo"        # 👈 change "Demo" if needed
+$GamesDemoSource    = Join-Path $EngineAppsRoot "Games\Demo"
 $RegistriesSource   = Join-Path $EngineAppsRoot "Registries"
 $PlaceholderSource  = Join-Path $Root "placeholder.png"
 
@@ -60,15 +60,23 @@ foreach ($t in $targets) {
         }
         New-Item -ItemType Directory -Path $finalDemoDest -Force | Out-Null
 
-        Write-Host "  - Copying Demo game from $GamesDemoSource (excluding TMP and config.toml)"
+        Write-Host "  - Copying Demo game from $GamesDemoSource (excluding TMP, config.toml, Tools, Files/TMP, and scripts/old)"
 
         Get-ChildItem -Path $GamesDemoSource |
-            Where-Object { $_.Name -ne 'TMP' -and $_.Name -ne 'config.toml' } |
+            Where-Object { $_.Name -ne 'TMP' -and $_.Name -ne 'config.toml' -and $_.Name -ne 'Tools' } |
             Copy-Item -Destination $finalDemoDest -Recurse -Force
 
+        # Remove nested exclusions from target
+        $nestedExclusions = @("Files/TMP", "scripts/old")
+        foreach ($ex in $nestedExclusions) {
+            $target = Join-Path $finalDemoDest $ex
+            if (Test-Path $target) {
+                Remove-Item $target -Recurse -Force
+            }
+        }
+
         # Result: EngineBuild/<config>/EngineApps/Games/Demo/... (no TMP/, no config.toml)
-    }
-    else {
+    } else {
         Write-Warning "Demo game source not found at $GamesDemoSource"
     }
 
@@ -77,8 +85,7 @@ foreach ($t in $targets) {
         Write-Host "  - Copying Registries from $RegistriesSource"
         Copy-Item $RegistriesSource -Destination $engineAppsDest -Recurse -Force
         # Result: EngineBuild/<config>/EngineApps/Registries/...
-    }
-    else {
+    } else {
         Write-Warning "Registries source not found at $RegistriesSource"
     }
 
@@ -87,8 +94,7 @@ foreach ($t in $targets) {
         Write-Host "  - Copying placeholder.png"
         Copy-Item $PlaceholderSource -Destination $outDir -Force
         # Result: EngineBuild/<config>/placeholder.png
-    }
-    else {
+    } else {
         Write-Warning "placeholder.png not found at $PlaceholderSource"
     }
 

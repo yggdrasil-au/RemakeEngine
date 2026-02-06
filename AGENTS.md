@@ -21,6 +21,7 @@ when exposing new lua globals/globally accessible components, update the lua '.l
 See [README.md](README.md) for an overview of the Remake Engine project.
 
 # Dotnet
+always use the latest .net 10 lts C# language features
 when making changes to dotnet projects read the .csproj files to understand dependencies, project structure and dotnet configurations.
 
 
