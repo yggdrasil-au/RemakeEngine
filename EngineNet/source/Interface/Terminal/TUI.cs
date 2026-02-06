@@ -206,10 +206,24 @@ internal partial class TUI {
                 if (selection == "Play") {
                     SafeClear();
                     System.Console.WriteLine($"Launching game '{gameName}'...\n");
-                    bool launched = await _engine.GameLauncher.LaunchGameAsync(name: gameName);
-                    System.Console.WriteLine(launched
-                        ? "Game launched successfully. Press any key to continue..."
-                        : "Failed to launch game. Press any key to continue...");
+
+                    // Route in-process SDK events (e.g. from Lua scripts) to our terminal renderer
+                    System.Action<Dictionary<string, object?>>? prevSink = Core.UI.EngineSdk.LocalEventSink;
+                    bool prevMute = Core.UI.EngineSdk.MuteStdoutWhenLocalSink;
+
+                    Core.UI.EngineSdk.LocalEventSink = Utils.OnEvent;
+                    Core.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
+
+                    try {
+                        bool launched = await _engine.GameLauncher.LaunchGameAsync(name: gameName);
+                        System.Console.WriteLine(launched
+                            ? "\nGame finished or launched successfully. Press any key to continue..."
+                            : "\nFailed to launch game. Press any key to continue...");
+                    } finally {
+                        Core.UI.EngineSdk.LocalEventSink = prevSink;
+                        Core.UI.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
+                    }
+
                     SafeReadKey(true);
                     continue;
                 }

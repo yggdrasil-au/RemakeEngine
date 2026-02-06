@@ -62,7 +62,10 @@ internal sealed partial class LuaScriptAction : Helpers.IAction {
 
         bool ok = false;
         try {
-            await System.Threading.Tasks.Task.Run(() => LuaEnvObj.LuaScript.DoString(code), cancellationToken).ConfigureAwait(false);
+            await System.Threading.Tasks.Task.Run(() => {
+                var func = LuaEnvObj.LuaScript.LoadString(code);
+                LuaEnvObj.LuaScript.Call(func, (object[])_args);
+            }, cancellationToken).ConfigureAwait(false);
             ok = true;
         } finally {
             // Always signal end; GUI will jump to 100% and close the indicator.

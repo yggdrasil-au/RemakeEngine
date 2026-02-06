@@ -182,19 +182,34 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private async System.Threading.Tasks.Task PlayAsync() {
+        if (_engine is null || string.IsNullOrWhiteSpace(ModuleName)) return;
         try {
-            if (_engine is null) {
-                Core.Diagnostics.Trace("PlayAsync: Engine is not initialized.");
-                return;
-            }
-            if (string.IsNullOrWhiteSpace(ModuleName)) {
-                Core.Diagnostics.Trace("PlayAsync: ModuleName is not set.");
-                return;
-            }
-            await _engine.GameLauncher.LaunchGameAsync(name: ModuleName);
+            await GUI.Utils.ExecuteEngineOperationAsync(
+                engine: _engine,
+                moduleName: ModuleName,
+                operationName: "Play",
+                executor: async (onOutput, onEvent, stdin) => {
+                    // Temporarily redirect engine events/output for this launch
+                    var previousSink = Core.UI.EngineSdk.LocalEventSink;
+                    var previousMute = Core.UI.EngineSdk.MuteStdoutWhenLocalSink;
+                    var previousIn = System.Console.In;
+
+                    Core.UI.EngineSdk.LocalEventSink = e => onEvent(e);
+                    Core.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
+
+                    try {
+                        System.Console.SetIn(new GuiStdinRedirectReader(provider: stdin));
+                        return await _engine.GameLauncher.LaunchGameAsync(name: ModuleName);
+                    } finally {
+                        Core.UI.EngineSdk.LocalEventSink = previousSink;
+                        Core.UI.EngineSdk.MuteStdoutWhenLocalSink = previousMute;
+                        System.Console.SetIn(previousIn);
+                    }
+                }
+            );
         } catch (System.Exception ex) {
-            OperationOutputService.Instance.AddOutput(text: $"Launch failed: {ex.Message}", stream: "stderr");
             Core.Diagnostics.Bug($"PlayAsync: {ex}");
+            OperationOutputService.Instance.AddOutput(text: $"Launch failed: {ex.Message}", stream: "stderr");
         }
     }
 
