@@ -88,21 +88,21 @@ Manifest placeholders follow `{{PlaceholderName}}` syntax and are resolved with 
 ## Repository Layout
 ```text
 RemakeEngine/
-  EngineApps/                       # Game modules and registrys
-    Games/                        # Game modules
-      demo/                     # Demo game module
+  EngineApps/                 # Game modules and registrys
+    Games/                    # Game modules
+      demo/                   # Demo game module
         operations.toml       # Sample operations manifest
         config.toml           # Sample per-module config
-    Registries/                   # Module and Tool registries
+    Registries/               # Module and Tool registries
       Modules/
       Tools/
       ops/
-  EngineNet/                        # C# core engine and CLI entry point
-  Unit.Tests/                       # Tests
-  schemas/                          # JSON schemas
-  Tools/                            # any tool downloaded by the engine
-  project.json                      # Created on demand; local machine configuration
-  RemakeEngine.sln                  # Solution file for builds and tests
+  EngineNet/                  # C# core engine and CLI entry point
+  Unit.Tests/                 # Tests
+  schemas/                    # JSON schemas
+  Tools/                      # any tool downloaded by the engine
+  project.json                # Created on demand; local machine configuration
+  RemakeEngine.sln            # Solution file for builds and tests
 ```
 
 ## Contributing
@@ -121,4 +121,5 @@ However, modules that target copyrighted games or other proprietary media must r
 See LICENSE_MODULE_TEMPLATE.md for the recommended license text.
 
 ## License & Legal
-The engine is distributed for non-commercial, educational, and archival use. You may only process assets you legally own. See [LICENCE](LICENCE) for the full terms and restrictions.
+apache-2.0 for the engine core and all code in this repository, but modules must use a custom non-commercial license if they target protected media.
+See [LICENCE](LICENCE)

@@ -60,22 +60,30 @@ foreach ($t in $targets) {
         }
         New-Item -ItemType Directory -Path $finalDemoDest -Force | Out-Null
 
-        Write-Host "  - Copying Demo game from $GamesDemoSource (excluding TMP, config.toml, Tools, Files/TMP, and scripts/old)"
+        Write-Host "  - Copying Demo game from $GamesDemoSource (respecting .gitignore)"
 
-        Get-ChildItem -Path $GamesDemoSource |
-            Where-Object { $_.Name -ne 'TMP' -and $_.Name -ne 'config.toml' -and $_.Name -ne 'Tools' } |
-            Copy-Item -Destination $finalDemoDest -Recurse -Force
+        # Use git to get all tracked and untracked files NOT in .gitignore
+        $relativeSource = "EngineApps/Games/demo"
+        $files = git ls-files --cached --others --exclude-standard "$relativeSource/"
 
-        # Remove nested exclusions from target
-        $nestedExclusions = @("Files/TMP", "scripts/old")
-        foreach ($ex in $nestedExclusions) {
-            $target = Join-Path $finalDemoDest $ex
-            if (Test-Path $target) {
-                Remove-Item $target -Recurse -Force
+        foreach ($f in $files) {
+            $srcFile = Join-Path $Root $f
+
+            # Calculate path relative to the demo folder root to place in $finalDemoDest
+            # git ls-files returns paths with forward slashes; Substring handles the slice.
+            $relWithinSource = $f.Substring($relativeSource.Length).TrimStart("/")
+            $destFile = Join-Path $finalDemoDest $relWithinSource
+
+            # Ensure target parent directory exists
+            $destDir = Split-Path $destFile
+            if (-not (Test-Path $destDir)) {
+                New-Item -ItemType Directory -Path $destDir -Force | Out-Null
             }
+
+            Copy-Item -Path $srcFile -Destination $destFile -Force
         }
 
-        # Result: EngineBuild/<config>/EngineApps/Games/Demo/... (no TMP/, no config.toml)
+        # Result: EngineBuild/<config>/EngineApps/Games/Demo/... (ignoring .gitignore paths)
     } else {
         Write-Warning "Demo game source not found at $GamesDemoSource"
     }
