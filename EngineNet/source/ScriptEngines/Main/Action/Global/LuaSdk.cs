@@ -1,0 +1,37 @@
+using MoonSharp.Interpreter;
+
+namespace EngineNet.ScriptEngines.Lua.Global;
+
+/// <summary>
+/// SDK module providing file operations, archive handling, and system utilities for Lua scripts.
+/// </summary>
+public static partial class Sdk {
+    public static Table CreateSdkModule(LuaWorld _LuaWorld, Core.ExternalTools.IToolResolver tools) {
+        // Color/colour print functionality
+        AddColorPrintFunctions(_LuaWorld);
+
+        // Configuration helpers
+        AddConfigurationHelpers(_LuaWorld);
+
+        // File system operations
+        AddFileSystemOperations(_LuaWorld);
+
+        // Archive operations
+        AddArchiveOperations(_LuaWorld);
+
+        // TOML helpers
+        AddTomlHelpers(_LuaWorld);
+
+        // Register JSON encoding/decoding functions in sdk.text.json
+        JsonModules(_LuaWorld);
+
+        // Process execution helpers
+        SdkModule.ProcessExecution.AddProcessExecution(_LuaWorld, tools);
+
+        // Expose CPU count as a numeric value for Lua scripts to choose sensible defaults
+        _LuaWorld.sdk.Set("cpu_count", DynValue.NewNumber(System.Environment.ProcessorCount));
+
+        return _LuaWorld.sdk;
+    }
+
+}

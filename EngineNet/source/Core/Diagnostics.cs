@@ -8,15 +8,21 @@ namespace EngineNet.Core;
 // Diagnostic logging utility
 internal static class Diagnostics {
 
-    // Trace writer only exists in Debug builds
+    private static readonly bool IsTraceEnabled =
 #if DEBUG
-    private static StreamWriter? _traceWriter; // Master log (Everything)
+        true;
+#else
+        false;
 #endif
+
+    // Trace writer only exists in Debug builds
+    private static StreamWriter? _traceWriter; // Master log (Everything)
 
     // These writers exist in all builds so logging always works
     private static StreamWriter? _debugWriter; // Just Diagnostics.Log / Info
     private static StreamWriter? _luaLogWriter; // Just Diagnostics.LuaLog
     private static StreamWriter? _jsLogWriter; // Just Diagnostics.JsLog
+    private static StreamWriter? _pythonLogWriter; // Just Diagnostics.PythonLog
     private static StreamWriter? _bugWriter;   // Just Diagnostics.Bug
     private static readonly object _lock = new();
 
@@ -68,14 +74,15 @@ internal static class Diagnostics {
             string debugPath = Path.Combine(logDirectory, "debug.log");
             string luaLogPath = Path.Combine(logDirectory, "lua.log");
             string jsLogPath = Path.Combine(logDirectory, "js.log");
+            string pythonLogPath = Path.Combine(logDirectory, "python.log");
             string bugPath = Path.Combine(logDirectory, "exception.log");
 
             // 3. Open Streams (Shared access allowed)
             // Trace Writer (Master) - Debug builds only
-#if DEBUG
-            var fsTrace = new FileStream(tracePath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-            _traceWriter = new StreamWriter(fsTrace) { AutoFlush = true };
-#endif
+            if (IsTraceEnabled) {
+                var fsTrace = new FileStream(tracePath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+                _traceWriter = new StreamWriter(fsTrace) { AutoFlush = true };
+            }
 
             // Debug Writer (all builds)
             var fsDebug = new FileStream(debugPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
@@ -89,16 +96,20 @@ internal static class Diagnostics {
             var fsJsLog = new FileStream(jsLogPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
             _jsLogWriter = new StreamWriter(fsJsLog) { AutoFlush = true };
 
+            // Python Log Writer (all builds)
+            var fsPythonLog = new FileStream(pythonLogPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+            _pythonLogWriter = new StreamWriter(fsPythonLog) { AutoFlush = true };
+
             // Bug Writer (all builds)
             var fsBug = new FileStream(bugPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
             _bugWriter = new StreamWriter(fsBug) { AutoFlush = true };
 
             // 4. Hook System.Diagnostics.Trace to the Master Trace Log (Debug only)
             // This ensures internal .NET traces go to trace.log when debugging
-#if DEBUG
-            System.Diagnostics.Trace.Listeners.Add(new TextWriterTraceListener(_traceWriter));
-            System.Diagnostics.Trace.AutoFlush = true;
-#endif
+            if (IsTraceEnabled && _traceWriter != null) {
+                System.Diagnostics.Trace.Listeners.Add(new TextWriterTraceListener(_traceWriter));
+                System.Diagnostics.Trace.AutoFlush = true;
+            }
 
             Log($"[System] Logging initialized at {DateTime.Now}");
 
@@ -109,12 +120,28 @@ internal static class Diagnostics {
     }
 
     /// <summary>
+    /// Helper to write to trace log if enabled
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void WriteTraceInternal(string message, string? stack = null) {
+        if (!IsTraceEnabled || _traceWriter == null) {
+            return;
+        }
+
+        _traceWriter.WriteLine(message);
+        if (stack != null) {
+            _traceWriter.WriteLine(stack);
+        }
+    }
+
+    /// <summary>
     /// Log a trace message to trace.log, only in Debug builds, use anywhere for excessively verbose tracing
     /// </summary>
     /// <param name="message"></param>
     internal static void Trace(string message) {
-#if DEBUG
-        if (_traceWriter == null) return;
+        if (!IsTraceEnabled || _traceWriter == null) {
+            return;
+        }
 
         lock (_lock) {
             string timestamp = DateTime.Now.ToString("HH:mm:ss");
@@ -122,7 +149,6 @@ internal static class Diagnostics {
             // Write to trace.log in Debug builds
             _traceWriter.WriteLine(formattedMsg);
         }
-#endif
     }
 
     /// <summary>
@@ -139,12 +165,8 @@ internal static class Diagnostics {
             // 1. Write to specific debug.log
             _debugWriter.WriteLine(formattedMsg);
 
-#if DEBUG
             // 2. Write to master trace.log in Debug builds
-            if (_traceWriter != null) {
-                _traceWriter.WriteLine(formattedMsg);
-            }
-#endif
+            WriteTraceInternal(formattedMsg);
         }
 
     }
@@ -163,12 +185,8 @@ internal static class Diagnostics {
             // 1. Write to specific debug.log
             _debugWriter.WriteLine(formattedMsg);
 
-#if DEBUG
             // 2. Write to master trace.log in Debug builds
-            if (_traceWriter != null) {
-                _traceWriter.WriteLine(formattedMsg);
-            }
-#endif
+            WriteTraceInternal(formattedMsg);
         }
     }
 
@@ -186,18 +204,14 @@ internal static class Diagnostics {
 
             // Format the header
             string header = $"[{timestamp}] [BUG] {message}";
+            string? stack = ex != null ? $"[{timestamp}] [STACK] {ex}" : null;
 
             // 1. Write to specific exception.log
             _bugWriter.WriteLine(header);
-            if (ex != null) _bugWriter.WriteLine($"[{timestamp}] [STACK] {ex}");
+            if (stack != null) _bugWriter.WriteLine(stack);
 
-#if DEBUG
             // 2. Write to master trace.log in Debug builds
-            if (_traceWriter != null) {
-                _traceWriter.WriteLine(header);
-                if (ex != null) _traceWriter.WriteLine($"[{timestamp}] [STACK] {ex}");
-            }
-#endif
+            WriteTraceInternal(header, stack);
         }
     }
 
@@ -214,17 +228,14 @@ internal static class Diagnostics {
 
             // Format the header
             string header = $"[{timestamp}] [LUA_BUG] Caught exception from Lua-invoked C# code.";
+            string stack = $"[{timestamp}] [STACK] {ex}";
 
             // 1. Write to specific exception.log
             Diagnostics._bugWriter.WriteLine(header);
-            Diagnostics._bugWriter.WriteLine($"[{timestamp}] [STACK] {ex}");
-#if DEBUG
+            Diagnostics._bugWriter.WriteLine(stack);
+
             // 2. Write to master trace.log in Debug builds
-            if (Diagnostics._traceWriter != null) {
-                Diagnostics._traceWriter.WriteLine(header);
-                Diagnostics._traceWriter.WriteLine($"[{timestamp}] [STACK] {ex}");
-            }
-#endif
+            WriteTraceInternal(header, stack);
         }
     }
 
@@ -241,17 +252,14 @@ internal static class Diagnostics {
 
             // Format the header
             string header = $"[{timestamp}] [JS_BUG] Caught exception from JS-invoked C# code.";
+            string stack = $"[{timestamp}] [STACK] {ex}";
 
             // 1. Write to specific exception.log
             Diagnostics._bugWriter.WriteLine(header);
-            Diagnostics._bugWriter.WriteLine($"[{timestamp}] [STACK] {ex}");
-#if DEBUG
+            Diagnostics._bugWriter.WriteLine(stack);
+
             // 2. Write to master trace.log in Debug builds
-            if (Diagnostics._traceWriter != null) {
-                Diagnostics._traceWriter.WriteLine(header);
-                Diagnostics._traceWriter.WriteLine($"[{timestamp}] [STACK] {ex}");
-            }
-#endif
+            WriteTraceInternal(header, stack);
         }
     }
 
@@ -261,10 +269,11 @@ internal static class Diagnostics {
         _bugWriter?.Close();
         _luaLogWriter?.Close();
         _jsLogWriter?.Close();
-#if DEBUG
-        _traceWriter?.Close();
-        System.Diagnostics.Trace.Listeners.Clear();
-#endif
+
+        if (IsTraceEnabled) {
+            _traceWriter?.Close();
+            System.Diagnostics.Trace.Listeners.Clear();
+        }
     }
 
 
@@ -285,12 +294,8 @@ internal static class Diagnostics {
                 // 1. Write to specific lua.log
                 Diagnostics._luaLogWriter.WriteLine(formattedMsg);
 
-#if DEBUG
                 // 2. Write to master trace.log in Debug builds
-                if (Diagnostics._traceWriter != null) {
-                    Diagnostics._traceWriter.WriteLine(formattedMsg);
-                }
-#endif
+                WriteTraceInternal(formattedMsg);
             }
         }
 
@@ -299,19 +304,19 @@ internal static class Diagnostics {
         /// </summary>
         /// <param name="message"></param>
         internal static void LuaTrace(string message) {
-#if DEBUG
-            if (Diagnostics._traceWriter == null) return;
+            if (IsTraceEnabled) {
+                if (Diagnostics._traceWriter == null) return;
 
-            lock (Diagnostics._lock) {
-                string timestamp = DateTime.Now.ToString("HH:mm:ss");
-                string formattedMsg = $"[{timestamp}] [LUA_TRACE] {message}";
-                // Write to trace.log in Debug builds
-                Diagnostics._traceWriter.WriteLine(formattedMsg);
+                lock (Diagnostics._lock) {
+                    string timestamp = DateTime.Now.ToString("HH:mm:ss");
+                    string formattedMsg = $"[{timestamp}] [LUA_TRACE] {message}";
+                    // Write to trace.log in Debug builds
+                    Diagnostics._traceWriter.WriteLine(formattedMsg);
+                }
+            } else {
+                // use lua.log
+                LuaLog(message);
             }
-#else
-            // use lua.log
-            LuaLog(message);
-#endif
         }
     }
 
@@ -331,29 +336,63 @@ internal static class Diagnostics {
                 // 1. Write to specific js.log
                 Diagnostics._jsLogWriter.WriteLine(formattedMsg);
 
-#if DEBUG
                 // 2. Write to master trace.log in Debug builds
-                if (Diagnostics._traceWriter != null) {
-                    Diagnostics._traceWriter.WriteLine(formattedMsg);
-                }
-#endif
+                WriteTraceInternal(formattedMsg);
             }
         }
 
         internal static void JsTrace(string message) {
-#if DEBUG
-            if (Diagnostics._traceWriter == null) return;
+            if (IsTraceEnabled) {
+                if (Diagnostics._traceWriter == null) return;
+
+                lock (Diagnostics._lock) {
+                    string timestamp = DateTime.Now.ToString("HH:mm:ss");
+                    string formattedMsg = $"[{timestamp}] [JS_TRACE] {message}";
+                    // Write to trace.log in Debug builds
+                    Diagnostics._traceWriter.WriteLine(formattedMsg);
+                }
+            } else {
+                // use js.log
+                JsLog(message);
+            }
+        }
+    }
+
+    // Python Logger, exactly like LuaLogger but for Python scripts
+    internal static class PythonLogger {
+        /// <summary>
+        /// Like the Log method but specifically for logging messages from Python scripts, using the Global Diagnostics.Log function.
+        /// </summary>
+        /// <param name="message"></param>
+        internal static void PythonLog(string message) {
+            if (Diagnostics._pythonLogWriter == null) return;
 
             lock (Diagnostics._lock) {
                 string timestamp = DateTime.Now.ToString("HH:mm:ss");
-                string formattedMsg = $"[{timestamp}] [JS_TRACE] {message}";
-                // Write to trace.log in Debug builds
-                Diagnostics._traceWriter.WriteLine(formattedMsg);
+                string formattedMsg = $"[{timestamp}] [PYTHON_LOG] {message}";
+
+                // 1. Write to specific python.log
+                Diagnostics._pythonLogWriter.WriteLine(formattedMsg);
+
+                // 2. Write to master trace.log in Debug builds
+                WriteTraceInternal(formattedMsg);
             }
-#else
-            // use js.log
-            JsLog(message);
-#endif
+        }
+
+        internal static void PythonTrace(string message) {
+            if (IsTraceEnabled) {
+                if (Diagnostics._traceWriter == null) return;
+
+                lock (Diagnostics._lock) {
+                    string timestamp = DateTime.Now.ToString("HH:mm:ss");
+                    string formattedMsg = $"[{timestamp}] [PYTHON_TRACE] {message}";
+                    // Write to trace.log in Debug builds
+                    Diagnostics._traceWriter.WriteLine(formattedMsg);
+                }
+            } else {
+                // use python.log
+                PythonLog(message);
+            }
         }
     }
 }

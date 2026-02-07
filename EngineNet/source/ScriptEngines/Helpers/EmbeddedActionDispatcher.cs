@@ -1,10 +1,9 @@
+
 namespace EngineNet.ScriptEngines.Helpers;
-
-using System.Collections.Generic;
-
 
 /// <summary>
 /// Resolves embedded actions (lua/js/bms) to IAction implementations.
+/// this should be the only way to call any embedded script action
 /// </summary>
 internal static class EmbeddedActionDispatcher {
     internal static ScriptEngines.Helpers.IAction? TryCreate(
@@ -23,11 +22,11 @@ internal static class EmbeddedActionDispatcher {
 
         switch (t) {
             case "lua":
-                return new ScriptEngines.lua.LuaScriptAction(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: rootPath);
+                return new ScriptEngines.Lua.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: rootPath);
             case "js":
-                return new ScriptEngines.Js.JsScriptAction(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: rootPath);
+                return new ScriptEngines.Js.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: rootPath);
             case "python": case "py":
-                return new ScriptEngines.PythonScriptAction(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: rootPath);
+                return new ScriptEngines.Python.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: rootPath);
             default: {
                 Core.Diagnostics.Log($"[EmbeddedActionDispatcher.cs::TryCreate()] Unsupported embedded script type '{scriptType}'");
                 return null;

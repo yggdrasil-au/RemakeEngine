@@ -62,7 +62,7 @@ public class GameLauncher : IGameLauncher {
 
         // Prefer rich config from game.toml if present
         string? exePath = null;
-        string? luaScript = null;
+        string? scriptPath = null;
         string? godotProject = null;
         try {
             if (System.IO.File.Exists(gameToml)) {
@@ -85,9 +85,9 @@ public class GameLauncher : IGameLauncher {
                         case "lua":
                         case "lua_script":
                         case "script":
-                            string resolvedLua = Placeholders.Resolve(val, ctx)?.ToString() ?? val;
-                            luaScript = PathHelper.ResolveRelativePath(root, resolvedLua);
-                            break;
+                            string resolvedScript = Placeholders.Resolve(val, ctx)?.ToString() ?? val;
+                            scriptPath = PathHelper.ResolveRelativePath(root, resolvedScript);
+                        break;
                         case "godot":
                         case "godot_project":
                         case "project":
@@ -105,15 +105,29 @@ public class GameLauncher : IGameLauncher {
         }
 
         // if lua script exists, run it
-        if (!string.IsNullOrWhiteSpace(luaScript) && System.IO.File.Exists(luaScript)) {
+        if (!string.IsNullOrWhiteSpace(scriptPath) && System.IO.File.Exists(scriptPath)) {
             try {
-                Core.Diagnostics.Trace($"[GameLauncher] executing lua script '{luaScript}' for game '{name}'");
-                ScriptEngines.lua.LuaScriptAction action = new ScriptEngines.lua.LuaScriptAction(scriptPath: luaScript!, args: System.Array.Empty<string>(), gameRoot: root, projectRoot: _rootPath);
-                // Note: LuaScriptAction.ExecuteAsync is async, so we await it
-                await action.ExecuteAsync(tools: _toolResolver);
-                return true;
-            } catch {
-                Core.Diagnostics.Bug($"[GameLauncher] err executing lua script '{luaScript}' for game '{name}'");
+                string ext = System.IO.Path.GetExtension(scriptPath).TrimStart('.').ToLowerInvariant();
+
+                // Use the dispatcher to create the correct action (Lua, JS, or Python)
+                var action = EngineNet.ScriptEngines.Helpers.EmbeddedActionDispatcher.TryCreate(
+                    scriptType: ext,
+                    scriptPath: scriptPath!,
+                    args: System.Array.Empty<string>(), // Launching a game usually implies no args, or you could parse them from toml
+                    currentGame: name,
+                    games: games,
+                    rootPath: _rootPath
+                );
+
+                if (action != null) {
+                    Core.Diagnostics.Trace($"[GameLauncher] executing {ext} script '{scriptPath}' for game '{name}'");
+                    await action.ExecuteAsync(tools: _toolResolver);
+                    return true;
+                } else {
+                    Core.Diagnostics.Log($"[GameLauncher] Unsupported script type '{ext}' in '{scriptPath}'");
+                }
+            } catch (System.Exception ex) {
+                Core.Diagnostics.Bug($"[GameLauncher] err executing script '{scriptPath}' for game '{name}': {ex.Message}");
                 return false;
             }
         }

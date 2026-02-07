@@ -155,19 +155,21 @@ internal partial class TUI {
                 System.Console.WriteLine(value: $"--- Operations for: {gameName}");
                 List<string> menu = new List<string>();
 
+                int opStartIndex = 0;
+
                 // show a 'Play' option if isBuilt is true for the module, indicating the game is ready to run
                 if (info.IsBuilt) {
                     menu.Add("Play");
                     menu.Add("---------------");
+                    opStartIndex += 2;
                 }
 
                 // Show "Run All" only for non-internal modules and if there are operations with run-all flags
                 bool showRunAll = !info.IsInternal && hasRunAll;
-                int opStartIndex = 0;
                 if (showRunAll) {
                     menu.Add(item: "Run All");
                     menu.Add(item: "---------------");
-                    opStartIndex = 2;
+                    opStartIndex += 2;
                 }
 
                 // list regular operations

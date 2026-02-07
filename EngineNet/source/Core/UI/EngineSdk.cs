@@ -300,6 +300,7 @@ public static class EngineSdk {
 
     /// <summary>
     /// Signal the start of a script run to consumers (e.g., GUI bottom panel).
+    /// should only be called in the main entry point of a script action (e.g., Lua.Main.ExecuteAsync) to indicate that a script is active.
     /// </summary>
     public static void ScriptActiveStart(string scriptPath) {
         string name = string.Empty;
@@ -315,9 +316,8 @@ public static class EngineSdk {
     }
 
     /// <summary>
-    /// Signal the end of a script run to consumers.
-    /// Always executes by lua script action when the script ends.
-    /// Triggers the GUI to jump to 100% and close the panel.
+    /// Signal the end of a script run to consumers, with success status and optional exit code.
+    /// should only be called in the main entry point of a script action (e.g., Lua.Main.ExecuteAsync) to indicate that a script has finished.
     /// </summary>
     public static void ScriptActiveEnd(bool success = true, int exitCode = 0) {
         Emit("script_active_end", new Dictionary<string, object?> {

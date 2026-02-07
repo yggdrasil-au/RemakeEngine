@@ -8,6 +8,7 @@ ignore any failing tests for now
 ignore test project build failures for now
 
 ## Use Exact Code style
+always use PascalCase
 read [Style.md](Style.md)
 
 ## CONTRIBUTING
