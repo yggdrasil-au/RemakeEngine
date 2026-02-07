@@ -38,38 +38,13 @@ internal static class Diagnostics {
                 logDir = Path.Combine(logDir, "cli");
             }
 
-            string logsubdir = DateTime.Now.ToString("dd_HH-mm-ss");
+            // 1. Cleanup old logs (keep last 24 hours)
+            CleanLogDirectory(logDir, retentionHours: 24);
 
-            // delete logdir if exists else create it
-            if (Directory.Exists(logDir)) {
-                try {
-                    Directory.Delete(logDir, true);
-                } catch {
-                    // if failed, logs may be in use by another process,
-                }
-            } else {
-                Directory.CreateDirectory(logDir);
-            }
+            // 2. Create the new log subdirectory for this session
+            logDirectory = CreateSessionLogDirectory(logDir);
 
-            logDirectory = Path.Combine(logDir, logsubdir);
-
-            // 1. Cleanup old logs
-            try {
-                // delete entire log directory on startup
-                if (Directory.Exists(logDirectory)) {
-                    Directory.Delete(logDirectory, true);
-                } else {
-                    Directory.CreateDirectory(logDirectory);
-                }
-            } catch {
-                // if failed, logs may be in use by another process,
-                // we need a new log directory
-                string newLogDirectory = logDirectory + "_" + DateTime.Now.ToString("mmss");
-                Directory.CreateDirectory(newLogDirectory);
-                logDirectory = newLogDirectory;
-            }
-
-            // 2. Define Paths
+            // 3. Define Paths
             string tracePath = Path.Combine(logDirectory, "trace.log");
             string debugPath = Path.Combine(logDirectory, "debug.log");
             string luaLogPath = Path.Combine(logDirectory, "lua.log");
@@ -77,7 +52,7 @@ internal static class Diagnostics {
             string pythonLogPath = Path.Combine(logDirectory, "python.log");
             string bugPath = Path.Combine(logDirectory, "exception.log");
 
-            // 3. Open Streams (Shared access allowed)
+            // 4. Open Streams (Shared access allowed)
             // Trace Writer (Master) - Debug builds only
             if (IsTraceEnabled) {
                 var fsTrace = new FileStream(tracePath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
@@ -104,7 +79,7 @@ internal static class Diagnostics {
             var fsBug = new FileStream(bugPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
             _bugWriter = new StreamWriter(fsBug) { AutoFlush = true };
 
-            // 4. Hook System.Diagnostics.Trace to the Master Trace Log (Debug only)
+            // 5. Hook System.Diagnostics.Trace to the Master Trace Log (Debug only)
             // This ensures internal .NET traces go to trace.log when debugging
             if (IsTraceEnabled && _traceWriter != null) {
                 System.Diagnostics.Trace.Listeners.Add(new TextWriterTraceListener(_traceWriter));
@@ -117,6 +92,61 @@ internal static class Diagnostics {
             Console.Error.WriteLine($"CRITICAL: Failed to init loggers. {ex.Message}");
             Console.WriteLine(logDirectory);
         }
+    }
+
+    /// <summary>
+    /// Ensures the log directory exists and removes subdirectories older than the retention window.
+    /// Uses LastWriteTime to avoid NTFS tunneling edge cases with CreationTime.
+    /// </summary>
+    /// <param name="logDir"></param>
+    /// <param name="retentionHours"></param>
+    private static void CleanLogDirectory(string logDir, int retentionHours) {
+        if (!Directory.Exists(logDir)) {
+            Directory.CreateDirectory(logDir);
+            return;
+        }
+
+        try {
+            DateTime threshold = DateTime.Now.AddHours(-retentionHours);
+            DirectoryInfo directoryInfo = new DirectoryInfo(logDir);
+
+            foreach (DirectoryInfo subDir in directoryInfo.GetDirectories()) {
+                if (subDir.LastWriteTime < threshold) {
+                    try {
+                        subDir.Delete(true);
+                    } catch {
+                        // Folder might be locked by another process; skip it for now.
+                    }
+                }
+            }
+        } catch {
+            // continue
+        }
+    }
+
+    /// <summary>
+    /// Creates a session log directory with collision handling and returns its path.
+    /// </summary>
+    /// <param name="logDir"></param>
+    private static string CreateSessionLogDirectory(string logDir) {
+        string logSubdir = DateTime.Now.ToString("dd-MM-HH-mm");
+        string logDirectory = Path.Combine(logDir, logSubdir);
+
+        if (!Directory.Exists(logDirectory)) {
+            Directory.CreateDirectory(logDirectory);
+            return logDirectory;
+        }
+
+        string collisionSuffix = DateTime.Now.ToString("ss");
+        string collisionDirectory = Path.Combine(logDir, $"{logSubdir}_{collisionSuffix}");
+        if (!Directory.Exists(collisionDirectory)) {
+            Directory.CreateDirectory(collisionDirectory);
+            return collisionDirectory;
+        }
+
+        string fallbackDirectory = Path.Combine(logDir, $"{logSubdir}_{collisionSuffix}_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(fallbackDirectory);
+        return fallbackDirectory;
     }
 
     /// <summary>

@@ -11,8 +11,7 @@ internal static class EmbeddedActionDispatcher {
         string scriptPath,
         IEnumerable<string> args,
         string currentGame,
-        Dictionary<string, Core.Utils.GameModuleInfo> games,
-        string rootPath
+        Dictionary<string, Core.Utils.GameModuleInfo> games
     ) {
         string t = (scriptType ?? string.Empty).ToLowerInvariant();
         string gameRoot = string.Empty;
@@ -22,11 +21,11 @@ internal static class EmbeddedActionDispatcher {
 
         switch (t) {
             case "lua":
-                return new ScriptEngines.Lua.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: rootPath);
+                return new ScriptEngines.Lua.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: Program.rootPath);
             case "js":
-                return new ScriptEngines.Js.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: rootPath);
+                return new ScriptEngines.Js.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: Program.rootPath);
             case "python": case "py":
-                return new ScriptEngines.Python.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: rootPath);
+                return new ScriptEngines.Python.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: Program.rootPath);
             default: {
                 Core.Diagnostics.Log($"[EmbeddedActionDispatcher.cs::TryCreate()] Unsupported embedded script type '{scriptType}'");
                 return null;

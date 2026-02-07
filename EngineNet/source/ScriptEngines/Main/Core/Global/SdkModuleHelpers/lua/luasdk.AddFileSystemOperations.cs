@@ -210,12 +210,13 @@ public static partial class Sdk {
             }
         });
 
-        _LuaWorld.sdk["create_symlink"] = (System.Func<string, string, bool, bool>)((source, destination, isDirectory) => {
+        _LuaWorld.sdk["create_symlink"] = (System.Func<string, string, bool, DynValue, bool>)((source, destination, isDirectory, overwrite) => {
             if (!Security.IsAllowedPath(source) || !Security.IsAllowedPath(destination)) {
                 Core.UI.EngineSdk.Error($"Access denied: create_symlink src or dst outside allowed areas (src='{source}', dst='{destination}')");
                 return false;
             }
-            return ScriptEngines.Global.SdkModule.SymLink.Create(source, destination, isDirectory);
+            bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
+            return ScriptEngines.Global.SdkModule.SymLink.Create(source, destination, isDirectory, ow);
         });
         _LuaWorld.sdk["is_symlink"] = (System.Func<string, bool>)(path => Security.IsAllowedPath(path) && ScriptEngines.Global.SdkModule.FileSystemUtils.IsSymlink(path));
         _LuaWorld.sdk["realpath"] = (System.Func<string, string?>)(path => Security.IsAllowedPath(path) ? ScriptEngines.Global.SdkModule.FileSystemUtils.RealPath(path) : null);

@@ -115,8 +115,7 @@ public class GameLauncher : IGameLauncher {
                     scriptPath: scriptPath!,
                     args: System.Array.Empty<string>(), // Launching a game usually implies no args, or you could parse them from toml
                     currentGame: name,
-                    games: games,
-                    rootPath: _rootPath
+                    games: games
                 );
 
                 if (action != null) {

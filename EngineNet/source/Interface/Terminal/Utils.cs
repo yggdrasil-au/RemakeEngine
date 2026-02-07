@@ -65,7 +65,6 @@ internal class Utils() {
                         games,
                         op,
                         answers,
-                        _engine.RootPath,
                         _engine.EngineConfig,
                         _engine.ToolResolver,
                         _engine.GitService,

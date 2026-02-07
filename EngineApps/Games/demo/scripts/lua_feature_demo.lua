@@ -106,6 +106,10 @@ local test_file1 = scratch_root .. '/test_file1.txt'
 local test_file2 = scratch_root .. '/test_file2.txt'
 local test_file_backup = scratch_root .. '/test_file_backup.txt'
 
+-- Cleanup from prior runs to keep the demo idempotent
+sdk.remove_file(test_file2)
+sdk.remove_file(test_file_backup)
+
 -- Write test content to files using the sandboxed io library
 -- This is the correct, cross-platform method for file I/O
 local file = io.open(test_file1, 'w')
@@ -134,7 +138,7 @@ sdk.color_print('white', "sdk.copy_file(src, dst, true)   -- Overwrite if exists
 sdk.color_print('white', "sdk.ensure_dir('/path/to/create')  -- Creates directory and parents")
 
 -- SDK File operations
-local copy_success = sdk.copy_file(test_file1, test_file2, false)
+local copy_success = sdk.copy_file(test_file1, test_file2, true)
 sdk.color_print('green', 'File copy result: ' .. tostring(copy_success))
 
 local backup_success = sdk.copy_file(test_file1, test_file_backup, true) -- overwrite = true
@@ -147,6 +151,10 @@ local test_source_dir = scratch_root .. '/source_dir'
 local test_dest_dir = scratch_root .. '/dest_dir'
 local test_move_dir = scratch_root .. '/move_dir'
 
+-- Cleanup from prior runs to keep the demo idempotent
+sdk.remove_dir(test_dest_dir)
+sdk.remove_dir(test_move_dir)
+
 sdk.ensure_dir(test_source_dir)
 -- Create a test file in source dir using sandboxed io
 local file2 = io.open(test_source_dir .. '/source_test.txt', 'w')
@@ -157,7 +165,7 @@ else
     sdk.color_print('red', 'Warning: Could not create source test file')
 end
 
-local copy_dir_success = sdk.copy_dir(test_source_dir, test_dest_dir, false)
+local copy_dir_success = sdk.copy_dir(test_source_dir, test_dest_dir, true)
 sdk.color_print('green', 'Directory copy result: ' .. tostring(copy_dir_success))
 
 -- Test directory validation and finding
@@ -176,7 +184,13 @@ progress.step('Testing symlink operations')
 local symlink_target = test_file1
 local symlink_path = scratch_root .. '/symlink_test/test_symlink'
 
-local symlink_success = sdk.create_symlink(symlink_target, symlink_path, false)
+-- create_symlink(source, destination, isDirectory, overwrite)
+
+-- Cleanup from prior runs to keep the demo idempotent
+sdk.remove_file(symlink_path)
+sdk.remove_dir(symlink_path)
+
+local symlink_success = sdk.create_symlink(symlink_target, symlink_path, false, true)
 
 if symlink_success then
     sdk.color_print('green', '✓ Symlink creation successful')
@@ -606,9 +620,9 @@ progress.step('Testing Diagnostics logging')
 -- Demonstrate Diagnostics.Log and Diagnostics.Trace
 sdk.color_print('yellow', '--- Diagnostics Logging Examples ---')
 Diagnostics.Log('This is a standard log message from Lua.')
-sdk.color_print('yellow', '"This is a standard log message from Lua." and should appear in logs\\<ui>\\<datetme>\\lua.log')
+sdk.color_print('yellow', '"This is a standard log message from Lua." and should appear in logs\\' .. UIMode .. '\\' .. os.date('%d-%m') .. '-<hour-minute>\\lua.log')
 Diagnostics.Trace('This is a trace message from Lua.')
-sdk.color_print('yellow', '"This is a trace message from Lua." and should appear in logs\\<ui>\\<datetme>\\trace.log')
+sdk.color_print('yellow', '"This is a trace message from Lua." and should appear in logs\\' .. UIMode .. '\\' .. os.date('%d-%m') .. '-<hour-minute>\\trace.log')
 
 
 -- Final progress update

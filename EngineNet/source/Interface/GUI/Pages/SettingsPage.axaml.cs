@@ -32,7 +32,7 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
 
     internal SettingsPage(Core.Engine.Engine engine) {
         _engine = engine;
-        ProjectRoot = _engine.RootPath;
+        ProjectRoot = Program.rootPath;
 
         InitializeComponent();
         DataContext = this;

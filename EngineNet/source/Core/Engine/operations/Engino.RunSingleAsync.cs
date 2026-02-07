@@ -21,7 +21,6 @@ internal sealed class Engino {
         Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
         IDictionary<string, object?> op,
         IDictionary<string, object?> promptAnswers,
-        string RootPath,
         Core.EngineConfig EngineConfig,
         Core.ExternalTools.IToolResolver ToolResolver,
         Core.Abstractions.IGitService GitService,
@@ -55,7 +54,7 @@ internal sealed class Engino {
                         Core.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Executing engine operation {title} ({action})");
                         Core.UI.EngineSdk.PrintLine(message: $"\n>>> Engine operation: {title}");
                         // delegate engine type handling to ExecuteEngineOperationAsync
-                        result = await OperationExecution.ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, RootPath, EngineConfig, ToolResolver, GitService, GameRegistry, cancellationToken);
+                        result = await OperationExecution.ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, EngineConfig, ToolResolver, GitService, GameRegistry, cancellationToken);
                     } catch (System.Exception ex) {
                         Core.UI.EngineSdk.PrintLine($"engine ERROR: {ex.Message}");
                         result = false;
@@ -83,7 +82,6 @@ internal sealed class Engino {
                         ScriptEngines.qbms.QuickBmsScriptAction action = new ScriptEngines.qbms.QuickBmsScriptAction(
                             scriptPath: scriptPath,
                             moduleRoot: gameRootBms,
-                            projectRoot: RootPath,
                             inputDir: resolvedInput,
                             outputDir: resolvedOutput,
                             extension: resolvedExt
@@ -106,8 +104,7 @@ internal sealed class Engino {
                             scriptPath: scriptPath,
                             args: argsEnum,
                             currentGame: currentGame,
-                            games: games,
-                            rootPath: RootPath
+                            games: games
                         );
                         // null act means unsupported script type
                         if (act is null) {
@@ -140,7 +137,7 @@ internal sealed class Engino {
         if (result && OperationExecution.TryGetOnSuccessOperations(op, out List<Dictionary<string, object?>>? followUps) && followUps is not null) {
             foreach (Dictionary<string, object?> childOp in followUps) {
                 if (cancellationToken.IsCancellationRequested) break;
-                bool ok = await RunSingleOperationAsync(currentGame, games, childOp, promptAnswers, RootPath, EngineConfig, ToolResolver, GitService, GameRegistry, CommandService, OperationExecution, cancellationToken);
+                bool ok = await RunSingleOperationAsync(currentGame, games, childOp, promptAnswers, EngineConfig, ToolResolver, GitService, GameRegistry, CommandService, OperationExecution, cancellationToken);
                 if (!ok) {
                     result = false; // propagate failure from any onsuccess step
                 }

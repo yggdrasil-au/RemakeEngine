@@ -1,92 +1,22 @@
+using System.Text;
 using MoonSharp.Interpreter;
 
 namespace EngineNet.ScriptEngines.Lua;
 
-// custom exception to signal script exit without treating it as an error
-public class ScriptExitException : Exception { }
-
-public static class SetupSafeEnvironment {
-
-    /// <summary>
-    /// setup a Lua environment with restricted access to built-in libraries for sandboxing
-    /// </summary>
-    /// <param name="_LuaWorld"></param>
-    public static void LuaEnvironment(LuaWorld _LuaWorld) {
-        // Remove dangerous standard library functions but preserve package/require system
-        _LuaWorld.LuaScript.Globals["loadfile"] = DynValue.Nil;     // Remove ability to load arbitrary files
-        _LuaWorld.LuaScript.Globals["dofile"] = DynValue.Nil;       // Remove ability to execute arbitrary files
-
-        // Remove io
-        if (_LuaWorld.LuaScript.Globals.Get("io").Type == DataType.Table) {
-            Table ioTable = _LuaWorld.LuaScript.Globals.Get("io").Table;
-            ioTable["popen"] = DynValue.Nil;        // Remove io.popen (command execution)
-        }
-
-        CreateSafeOsTable(_LuaWorld);
-
-        CreateSafeIoTable(_LuaWorld);
-    }
-
-    public static void CreateSafeOsTable(LuaWorld _LuaWorld) {
-
-        // date and time functions
-
-        _LuaWorld.os["date"] = (System.Func<string?, DynValue>)((format) => {
-            if (string.IsNullOrEmpty(format)) return DynValue.NewNumber(System.DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-            // Only allow safe date formats, no os.date("!%c", os.execute(...)) exploits
-            if (format.StartsWith("*t") || format.StartsWith("!*t")) {
-                // Return table format - safe
-                var dt = System.DateTimeOffset.Now;
-                //Table dateTable = new Table(_LuaWorld.LuaScript);
-                _LuaWorld.dateTable["year"] = dt.Year;
-                _LuaWorld.dateTable["month"] = dt.Month;
-                _LuaWorld.dateTable["day"] = dt.Day;
-                _LuaWorld.dateTable["hour"] = dt.Hour;
-                _LuaWorld.dateTable["min"] = dt.Minute;
-                _LuaWorld.dateTable["sec"] = dt.Second;
-                _LuaWorld.dateTable["wday"] = (int)dt.DayOfWeek + 1;
-                _LuaWorld.dateTable["yday"] = dt.DayOfYear;
-                return DynValue.NewTable(_LuaWorld.dateTable);
-            }
-            return DynValue.NewString(System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-        });
-        _LuaWorld.os["time"] = (System.Func<DynValue?, double>)((DynValue? timeTable) => System.DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-        _LuaWorld.os["clock"] = () => System.Environment.TickCount / 1000.0;
-
-
-        // getenv - only allow access to a specific set of safe environment variables, and return null for anything else to prevent information leaks
-        _LuaWorld.os["getenv"] = (string env) => {
-            // Only allow reading specific safe environment variables
-            string[] allowedEnvVars = { "PATH", "HOME", "USERNAME", "USER", "TEMP", "TMP", "COMPUTERNAME" };
-            foreach (string allowed in allowedEnvVars) {
-                if (string.Equals(allowed, env, System.StringComparison.OrdinalIgnoreCase)) {
-                    return System.Environment.GetEnvironmentVariable(env);
-                }
-            }
-            return null;
-        };
-        // removed os.execute for better alternatives via sdk.exec/run_process etc
-        _LuaWorld.os["execute"] = DynValue.Nil;
-
-        _LuaWorld.os["exit"] = (System.Action<int?>)(code => {
-            throw new ScriptExitException();
-        });
-
-        _LuaWorld.LuaScript.Globals["os"] = _LuaWorld.os;
-    }
-
-
-    public static void CreateSafeIoTable(LuaWorld _LuaWorld) {
+public static partial class SetupEnvironment {
+    public static void CreateIoTable(LuaWorld _LuaWorld) {
         _LuaWorld.io["open"] = (string path, string? mode) => {
             // Security: Validate file path with user approval if outside workspace
             if (!Security.EnsurePathAllowedWithPrompt(path)) {
-                return DynValue.Nil;
+                //return DynValue.Nil;
+                return DynValue.NewTuple(DynValue.Nil, DynValue.NewString("Access denied to path: " + path));
             }
 
+            System.IO.FileStream? fs = null;
+            bool registered = false;
             try {
                 mode = mode ?? "r";
                 bool binaryMode = mode.Contains("b");
-                System.IO.FileStream? fs = null;
                 if (mode.Contains("r")) {
                     fs = new System.IO.FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read);
                 } else if (mode.Contains("w")) {
@@ -96,8 +26,12 @@ public static class SetupSafeEnvironment {
                 }
 
                 if (fs != null) {
+                    _LuaWorld.RegisterDisposable(fs);
+                    registered = true;
+                    // Create a per-open handle table so concurrent files do not share state.
+                    Table InstanceHandle = new Table(_LuaWorld.LuaScript);
                     // Implement file:read() with support for both text and binary modes
-                    _LuaWorld.fileHandle["read"] = (DynValue readMode) => {
+                    InstanceHandle["read"] = (DynValue readMode) => {
                         try {
                             // Handle numeric argument: read N bytes (standard Lua behavior)
                             if (readMode.Type == DataType.Number) {
@@ -150,7 +84,7 @@ public static class SetupSafeEnvironment {
                         }
                     };
                     // Implement file:seek() for binary file navigation
-                    _LuaWorld.fileHandle["seek"] = (System.Func<string?, long?, long?>)((whence, offset) => {
+                    InstanceHandle["seek"] = (System.Func<string?, long?, long?>)((whence, offset) => {
                         try {
                             whence = whence ?? "cur";
                             offset = offset ?? 0;
@@ -167,7 +101,7 @@ public static class SetupSafeEnvironment {
                             return null;
                         }
                     });
-                    _LuaWorld.fileHandle["write"] = (string content) => {
+                    InstanceHandle["write"] = (string content) => {
                         try {
                             if (binaryMode) {
                                 // Binary mode: write raw bytes
@@ -184,38 +118,47 @@ public static class SetupSafeEnvironment {
                             Core.Diagnostics.luaInternalCatch("io.write failed with exception: " + ex);
                         }
                     };
-                    _LuaWorld.fileHandle["close"] =() => {
+                    InstanceHandle["close"] =() => {
                         try {
-                            fs?.Dispose();
+                            if (fs != null) {
+                                _LuaWorld.UnregisterDisposable(fs);
+                                fs.Dispose();
+                            }
                         } catch (Exception ex) {
                             Core.Diagnostics.luaInternalCatch("io.close failed with exception: " + ex);
                         }
                     };
-                    _LuaWorld.fileHandle["flush"] = () => {
+                    InstanceHandle["flush"] = () => {
                         try {
                             fs?.Flush();
                         } catch (Exception ex) {
                             Core.Diagnostics.luaInternalCatch("io.flush failed with exception: " + ex);
                         }
                     };
-                    return DynValue.NewTable(_LuaWorld.fileHandle);
+                    return DynValue.NewTable(InstanceHandle);
                 }
+                return DynValue.NewTuple(DynValue.Nil, DynValue.NewString("io.open failed to open path: " + path));
             } catch (Exception ex) {
+                if (fs != null && registered) {
+                    try {
+                        _LuaWorld.UnregisterDisposable(fs);
+                        fs.Dispose();
+                    } catch (Exception disposeEx) {
+                        Core.Diagnostics.luaInternalCatch("io.open cleanup failed with exception: " + disposeEx);
+                    }
+                }
                 Core.Diagnostics.luaInternalCatch("io.open failed with exception: " + ex);
-                return DynValue.Nil;
+                return DynValue.NewTuple(DynValue.Nil, DynValue.NewString("io.open failed with exception: " + ex.Message));
             }
-            return DynValue.Nil;
         };
 
         _LuaWorld.io["write"] = (string content) => Core.UI.EngineSdk.Print(content);
+
         _LuaWorld.io["flush"] = DynValue.Nil; // removed for now, maybe add later as an event that can be optionally handled by active UI System
         _LuaWorld.io["read"] = DynValue.Nil; // removed for now,
         _LuaWorld.io["popen"] = DynValue.Nil; //  io.popen removed - use sdk.exec/run_process instead
 
+        // Expose the custom io table to the Lua environment
         _LuaWorld.LuaScript.Globals["io"] = _LuaWorld.io;
     }
-    // :: end helpers for SetupSafeLuaEnvironment()
-    //
-    //
-
 }

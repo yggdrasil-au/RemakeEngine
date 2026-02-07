@@ -21,7 +21,6 @@ internal sealed class OperationExecution {
         Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
         IDictionary<string, object?> op,
         IDictionary<string, object?> promptAnswers,
-        string RootPath,
         Core.EngineConfig EngineConfig,
         Core.ExternalTools.IToolResolver ToolResolver,
         Core.Abstractions.IGitService GitService,
@@ -43,7 +42,7 @@ internal sealed class OperationExecution {
                 Core.UI.EngineSdk.Error("Internal operation blocked: Missing source file context.");
                 return false;
             }
-            string allowedDir = System.IO.Path.Combine(RootPath, "EngineApps", "Registries", "ops");
+            string allowedDir = System.IO.Path.Combine(Program.rootPath, "EngineApps", "Registries", "ops");
             string fullSource = System.IO.Path.GetFullPath(sourceFile);
             string fullAllowed = System.IO.Path.GetFullPath(allowedDir);
 
@@ -68,22 +67,22 @@ internal sealed class OperationExecution {
 
             // Built-in actions
             case "config": {
-                return new operations.Built_inActions.InternalOperations().config(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
+                return new operations.Built_inActions.InternalOperations().config(op, promptAnswers, currentGame, games, Program.rootPath, EngineConfig);
             }
             case "download-tools": {
-                return await new operations.Built_inActions.InternalOperations().DownloadTools(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
+                return await new operations.Built_inActions.InternalOperations().DownloadTools(op, promptAnswers, currentGame, games, Program.rootPath, EngineConfig);
             }
             case "format-extract": {
-                return new operations.Built_inActions.InternalOperations().format_extract(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
+                return new operations.Built_inActions.InternalOperations().format_extract(op, promptAnswers, currentGame, games, Program.rootPath, EngineConfig);
             }
             case "format-convert": {
-                return new operations.Built_inActions.InternalOperations().format_convert(op, promptAnswers, currentGame, games, RootPath, EngineConfig, ToolResolver);
+                return new operations.Built_inActions.InternalOperations().format_convert(op, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, ToolResolver);
             }
             case "validate-files": {
-                return new operations.Built_inActions.InternalOperations().validate_files(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
+                return new operations.Built_inActions.InternalOperations().validate_files(op, promptAnswers, currentGame, games, Program.rootPath, EngineConfig);
             }
             case "rename-folders": {
-                return new operations.Built_inActions.InternalOperations().rename_folders(op, promptAnswers, currentGame, games, RootPath, EngineConfig);
+                return new operations.Built_inActions.InternalOperations().rename_folders(op, promptAnswers, currentGame, games, Program.rootPath, EngineConfig);
             }
             default: {
                 Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] Unknown engine action: {action}");

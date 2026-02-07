@@ -282,8 +282,7 @@ public static class EngineSdk {
                 System.Threading.Interlocked.Exchange(ref _processed, _total);
                 EmitProgress();
             } catch {
-                                Core.Diagnostics.Bug("Failed to unregister active process for media conversion");
-                /* ignore */
+                Core.Diagnostics.Bug("Failed to unregister active process for media conversion");
             }
         }
 
@@ -326,6 +325,50 @@ public static class EngineSdk {
         });
     }
     /* :: :: Script Progress :: END :: */
+
+    // operations progress
+
+    // used to indicate start and end of a single 'operation' or a 'run-all' batch of operations
+    // similar to ScriptProgress but at a higher level
+
+    // start
+    public static void OperationActiveStart(string scriptPath) {
+        string name = string.Empty;
+        try {
+            name = System.IO.Path.GetFileName(scriptPath);
+        } catch {
+            Core.Diagnostics.Bug("EngineSdk.OperationActiveStart: failed to get file name from path.");
+        }
+        Emit("operation_active_start", new Dictionary<string, object?> {
+            ["name"] = string.IsNullOrEmpty(name) ? scriptPath : name,
+            ["path"] = scriptPath
+        });
+    }
+
+    // step
+    public static void OperationStep(string stepLabel) {
+        Emit("operation_step", new Dictionary<string, object?> {
+            ["label"] = stepLabel
+        });
+    }
+
+    // end
+    public static void OperationActiveEnd(bool success = true, int exitCode = 0) {
+        Emit("operation_active_end", new Dictionary<string, object?> {
+            ["success"] = success,
+            ["exit_code"] = exitCode
+        });
+    }
+
+
+    //
+
+
+
+    // progress indicates the 'progress' of a single lua script, managed by the script itself via PanelProgress handles.
+    //progress.start(19, 'label')
+    //progress.step('label')
+    //progress.finish()
 
     /// <summary>
     /// progress handle now backed by SdkConsoleProgress panel events.
@@ -378,11 +421,11 @@ public static class EngineSdk {
                     _cts.Cancel();
                 }
                 try { _panelTask.Wait(1000); } catch {
-                                        Core.Diagnostics.Bug("Failed to wait for panel task completion");
+                    Core.Diagnostics.Bug("Failed to wait for panel task completion");
                     /* ignore */
                 }
             } catch {
-                                Core.Diagnostics.Bug("Failed to cancel panel task");
+                Core.Diagnostics.Bug("Failed to cancel panel task");
                 /* ignore */
             }
         }
@@ -483,7 +526,7 @@ public static class EngineSdk {
                 try {
                     max = System.Math.Max(1, System.Math.Min(16, System.Environment.ProcessorCount));
                 } catch {
-                                        Core.Diagnostics.Bug("Failed to enumerate PATH directories");
+                    Core.Diagnostics.Bug("Failed to enumerate PATH directories");
                     /* ignore */
                 }
                 System.DateTime now = System.DateTime.UtcNow;

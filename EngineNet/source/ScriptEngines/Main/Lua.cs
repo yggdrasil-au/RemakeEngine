@@ -31,6 +31,8 @@ public sealed class Main : Helpers.IAction {
     //
     public async System.Threading.Tasks.Task ExecuteAsync(Core.ExternalTools.IToolResolver tools, System.Threading.CancellationToken cancellationToken = default) {
         bool ok = false;
+        int exitCode = 0;
+        LuaWorld? LuaWorld = null;
         try {
             if (!System.IO.File.Exists(_scriptPath)) {
                 throw new System.IO.FileNotFoundException("Lua script not found", _scriptPath);
@@ -44,7 +46,7 @@ public sealed class Main : Helpers.IAction {
             // create new Lua script environment with default modules, all sandboxing is done manually
             Script LuaScript = new Script(CoreModules.Preset_Default);
             // object to hold all exposed tables
-            LuaWorld LuaWorld = new LuaWorld(LuaScript, _scriptPath);
+            LuaWorld = new LuaWorld(LuaScript, _scriptPath);
 
 
 
@@ -52,7 +54,7 @@ public sealed class Main : Helpers.IAction {
             // ::
 
             // Setup safer environment
-            SetupSafeEnvironment.LuaEnvironment(LuaWorld);
+            SetupEnvironment.LuaEnvironment(LuaWorld);
 
             // Load versions from current game module context
             var moduleVersions = Helper.LoadModuleToolVersions(_gameRoot);
@@ -65,9 +67,6 @@ public sealed class Main : Helpers.IAction {
             UserData.RegisterType<Core.UI.EngineSdk.PanelProgress>();
             UserData.RegisterType<Core.UI.EngineSdk.ScriptProgress>();
             UserData.RegisterType<Global.SqliteHandle>();
-
-            Core.UI.EngineSdk.PrintLine(message: $"Running lua script '{_scriptPath}' with {_args.Length} args...", color: System.ConsoleColor.Cyan);
-            Core.UI.EngineSdk.PrintLine(message: $"input args: {string.Join(", ", _args)}", color: System.ConsoleColor.Gray);
 
             // Signal GUI that a script is active so the bottom panel can reflect activity even without progress events
             Core.UI.EngineSdk.ScriptActiveStart(scriptPath: _scriptPath);
@@ -85,16 +84,22 @@ public sealed class Main : Helpers.IAction {
                 LuaWorld.LuaScript.Call(func, (object[])_args);
             }, cancellationToken).ConfigureAwait(false);
             ok = true;
+            exitCode = 0;
 
-        } catch (ScriptExitException) {
+        } catch (ScriptExitException exitEx) {
             // Script called os.exit, treat as normal exit without error
-            ok = true;
+            exitCode = exitEx.ExitCode;
+            ok = exitEx.ExitCode == 0;
         } catch (Exception ex) {
             Diagnostics.luaInternalCatch("Lua script threw an exception: " + ex);
             Core.UI.EngineSdk.PrintLine(message: $"Lua script threw an exception: {ex}", color: System.ConsoleColor.Red);
+            exitCode = 1;
         } finally {
-            // Always signal end; GUI will jump to 100% and close the indicator.
-            Core.UI.EngineSdk.ScriptActiveEnd(success: ok, exitCode: ok ? 0 : 1);
+            if (LuaWorld != null) {
+                LuaWorld.DisposeOpenDisposables();
+            }
+
+            Core.UI.EngineSdk.ScriptActiveEnd(success: ok, exitCode: exitCode);
         }
     }
 

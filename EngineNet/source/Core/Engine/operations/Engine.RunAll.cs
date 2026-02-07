@@ -111,7 +111,7 @@ public sealed partial class Engine {
                     string? scriptType = GetScriptType(op);
                     // ensure script type is valid
                     if (Core.Utils.ScriptConstants.IsSupported(scriptType)) {
-                        ok = await Engino.RunSingleOperationAsync(gameName, games, op, promptAnswers, RootPath, EngineConfig, ToolResolver, GitService, GameRegistry, CommandService, OperationExecution, cancellationToken).ConfigureAwait(false);
+                        ok = await Engino.RunSingleOperationAsync(gameName, games, op, promptAnswers, EngineConfig, ToolResolver, GitService, GameRegistry, CommandService, OperationExecution, cancellationToken).ConfigureAwait(false);
                     } else if (string.IsNullOrEmpty(scriptType)) {
                         Core.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Skipping operation '{currentOperation}' due to null or empty script type");
                         overallSuccess = false;

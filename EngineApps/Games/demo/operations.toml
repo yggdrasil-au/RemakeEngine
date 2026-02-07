@@ -14,7 +14,7 @@
 	message = "Optional note to record in the Lua demo log"
 	cli_arg_prefix = "--note"
 [[operation.onsuccess]]
-	Name = "set isRenamed placeholder"
+	Name = "update config.toml isRenamed value"
 	script_type = "engine"
 	script = "config"
 	args = ["--group", "demo", "--key", "demo", "--value", "complete", "--type", "string"]
@@ -176,6 +176,7 @@
 	description = "Clone a game repository from the known registry list."
 	script = "download_module_registry"
 	script_type = "internal"
+	## the [[operations.prompts]] can also be written as an array of tables under prompts key:
 	prompts = [
 		{ Name = "url", type = "select", message = "Select module from registry", choices_provider = "registry_modules" }
 	]

@@ -13,6 +13,7 @@
         "Diagnostics",
         "Project_Root",
         "Game_Root",
-        "script_dir"
+        "script_dir",
+        "UIMode"
     ]
 }

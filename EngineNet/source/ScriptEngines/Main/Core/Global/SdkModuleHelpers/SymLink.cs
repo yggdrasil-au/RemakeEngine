@@ -11,10 +11,10 @@ internal static class SymLink {
     /* :: :: Methods :: START :: */
 
     /// <summary>
-    /// Creates a symbolic link.
+    /// Creates a symbolic link and optionally overwrites an existing destination.
     /// On Windows, it validates Developer Mode and SeCreateSymbolicLinkPrivilege.
     /// </summary>
-    internal static bool Create(string source, string destination, bool isDirectory) {
+    internal static bool Create(string source, string destination, bool isDirectory, bool overwrite) {
         try {
             if (OperatingSystem.IsWindows()) {
                 if (!CanCreateSymLinks()) {
@@ -31,6 +31,10 @@ internal static class SymLink {
                 System.IO.Directory.CreateDirectory(parent);
             }
 
+            if (overwrite) {
+                RemoveExistingDestination(destFull);
+            }
+
             if (isDirectory) {
                 System.IO.Directory.CreateSymbolicLink(destFull, srcFull);
             } else {
@@ -42,6 +46,20 @@ internal static class SymLink {
             Core.UI.EngineSdk.Error($"create_symlink failed: {ex.Message}");
             Core.Diagnostics.luaInternalCatch($"create_symlink failed with exception: {ex}");
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Removes an existing file, directory, or symlink at the target path.
+    /// </summary>
+    private static void RemoveExistingDestination(string destinationFullPath) {
+        if (FileSystemUtils.IsSymlink(destinationFullPath) || System.IO.File.Exists(destinationFullPath)) {
+            System.IO.File.Delete(destinationFullPath);
+            return;
+        }
+
+        if (System.IO.Directory.Exists(destinationFullPath)) {
+            System.IO.Directory.Delete(destinationFullPath, true);
         }
     }
 

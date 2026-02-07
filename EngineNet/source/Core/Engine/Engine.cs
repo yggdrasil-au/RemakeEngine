@@ -9,7 +9,6 @@ namespace EngineNet.Core.Engine;
 public sealed partial class Engine {
 
     /* :: :: Vars :: Start :: */
-    public string RootPath { get; }
 
     // Services exposed to partial classes
     internal Core.Abstractions.IGameRegistry GameRegistry { get; }
@@ -25,7 +24,6 @@ public sealed partial class Engine {
     /* :: :: Vars :: End :: */
 
     internal Engine(
-        string rootPath,
         Core.Abstractions.IGameRegistry gameRegistry,
         Core.Abstractions.IGameLauncher gameLauncher,
         Core.Abstractions.IOperationsLoader operationsLoader,
@@ -36,7 +34,6 @@ public sealed partial class Engine {
         Core.Engine.OperationExecution operationExecution,
         Core.Engine.Engino engino
     ) {
-        RootPath = rootPath;
         GameRegistry = gameRegistry;
         GameLauncher = gameLauncher;
         OperationsLoader = operationsLoader;

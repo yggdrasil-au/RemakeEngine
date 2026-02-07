@@ -65,6 +65,13 @@ public static class LuaAction {
         _LuaWorld.LuaScript.Globals["DEBUG"] = false;
 #endif
 
+        string mode = "unknown";
+        if (Program.isCli) mode = "cli";
+        else if (Program.isGui) mode = "gui";
+        else if (Program.isTui) mode = "tui";
+
+        _LuaWorld.LuaScript.Globals["UIMode"] = mode;
+
         // :: Lua Diagnostics logging ::
         _LuaWorld.DiagnosticsMethods["Log"] = (System.Action<string>)Core.Diagnostics.LuaLogger.LuaLog;
         _LuaWorld.DiagnosticsMethods["Trace"] = (System.Action<string>)Core.Diagnostics.LuaLogger.LuaTrace;

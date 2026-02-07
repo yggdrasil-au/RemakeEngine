@@ -15,6 +15,10 @@ public static class Program {
 
     public static string rootPath {get; private set;} = string.Empty;
 
+    public static bool isGui {get; private set;} = false;
+    public static bool isTui {get; private set;} = false;
+    public static bool isCli {get; private set;} = false;
+
     /* :: :: Vars :: START :: */
     public static AppBuilder BuildAvaloniaApp()  {
         return Interface.GUI.AvaloniaGui.BuildAvaloniaApp();
@@ -52,9 +56,9 @@ public static class Program {
                 }
             }
 
-            bool isGui = parsedArgs.Remaining.Count == 0 || (parsedArgs.Remaining.Count == 1 && parsedArgs.Remaining[0].Equals("--gui", System.StringComparison.OrdinalIgnoreCase));
-            bool isTui = parsedArgs.Remaining.Count == 1 && parsedArgs.Remaining[0].Equals("--tui", System.StringComparison.OrdinalIgnoreCase);
-            bool isCli = !isGui && !isTui;
+            isGui = parsedArgs.Remaining.Count == 0 || (parsedArgs.Remaining.Count == 1 && parsedArgs.Remaining[0].Equals("--gui", System.StringComparison.OrdinalIgnoreCase));
+            isTui = parsedArgs.Remaining.Count == 1 && parsedArgs.Remaining[0].Equals("--tui", System.StringComparison.OrdinalIgnoreCase);
+            isCli = !isGui && !isTui;
 
             // :: Initialize the Logger
             Core.Diagnostics.Initialize(isGui, isTui);
@@ -83,7 +87,6 @@ public static class Program {
             var Engino = new Core.Engine.Engino();
 
             Core.Engine.Engine _engine = new Core.Engine.Engine(
-                rootPath: rootPath,
                 gameRegistry: gameRegistry,
                 gameLauncher: _gameLauncher,
                 operationsLoader: _opsLoader,

@@ -6,7 +6,6 @@ namespace EngineNet.ScriptEngines.qbms;
 internal sealed class QuickBmsScriptAction : Helpers.IAction {
     private readonly string _scriptPath;   // path to .bms
     private readonly string _moduleRoot;   // Game_Root
-    private readonly string _projectRoot;  // Project root (for Tools.local.json)
     private readonly string _inputDir;
     private readonly string _outputDir;
     private readonly string? _extension;
@@ -14,13 +13,12 @@ internal sealed class QuickBmsScriptAction : Helpers.IAction {
     internal QuickBmsScriptAction(
         string scriptPath,
         string moduleRoot,
-        string projectRoot,
         string inputDir,
         string outputDir,
-        string? extension) {
+        string? extension
+        ) {
         _scriptPath = scriptPath;
         _moduleRoot = moduleRoot;
-        _projectRoot = projectRoot;
         _inputDir = inputDir;
         _outputDir = outputDir;
         _extension = string.IsNullOrWhiteSpace(extension) ? null : extension;
@@ -53,7 +51,7 @@ internal sealed class QuickBmsScriptAction : Helpers.IAction {
         } catch { /* ignore parse issues; best-effort */ }
 
         // Resolve QuickBMS exe and version via provider (Tools.local.json or resolver)
-        Core.ExternalTools.ToolMetadataProvider provider = new Core.ExternalTools.ToolMetadataProvider(projectRoot: _projectRoot, resolver: tools);
+        Core.ExternalTools.ToolMetadataProvider provider = new Core.ExternalTools.ToolMetadataProvider(projectRoot: Program.rootPath, resolver: tools);
         (string? installedExe, string? installedVersion) = provider.ResolveExeAndVersion(toolId: "QuickBMS");
 
         // Enforce required version (if declared)
