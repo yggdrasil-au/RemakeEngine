@@ -51,7 +51,7 @@ jobs:
         configuration: [Debug, Release]
     runs-on: windows-latest
     env:
-      Solution_Name: RemakeEngine.sln
+      Solution_Name: RemakeEngine.slnx
     steps:
       - name: Checkout
         uses: actions/checkout@v4

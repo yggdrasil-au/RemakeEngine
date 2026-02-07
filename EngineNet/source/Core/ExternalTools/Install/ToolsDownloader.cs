@@ -1,6 +1,7 @@
 
 using System;
 using System.IO.Compression;
+using System.Linq;
 using System.Collections.Generic;
 using SharpCompress.Archives;
 using SharpCompress.Archives.SevenZip;
@@ -18,15 +19,16 @@ internal sealed class ToolsDownloader {
     }
 
     internal async System.Threading.Tasks.Task<bool> ProcessAsync(string moduleTomlPath, bool force, IDictionary<string, object?>? context = null) {
-        WriteHeader($"Tools Downloader - manifest: {moduleTomlPath}");
+        Core.UI.EngineSdk.PrintLine(string.Empty);
+        Core.UI.EngineSdk.PrintLine($"=== Tools Downloader - manifest: {moduleTomlPath} ===", System.ConsoleColor.DarkCyan);
         if (!System.IO.File.Exists(moduleTomlPath)) {
             throw new System.IO.FileNotFoundException("Tools manifest not found", moduleTomlPath);
         }
 
         string platform = GetPlatformIdentifier();
-        Info($"Platform: {platform}");
+        Core.UI.EngineSdk.Info($"Platform: {platform}");
         List<Dictionary<string, object?>> toolsList = SimpleToml.ReadTools(moduleTomlPath);
-        Info($"Found {toolsList.Count} tool entries.");
+        Core.UI.EngineSdk.Info($"Found {toolsList.Count} tool entries.");
 
         // Aggregate registry from modular blocks
         Dictionary<string, object?> central = InternalToolRegistry.Assemble();
@@ -36,10 +38,10 @@ internal sealed class ToolsDownloader {
         Dictionary<string, object?> lockData = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
         if (System.IO.File.Exists(lockPath)) {
             try {
-                using var doc = System.Text.Json.JsonDocument.Parse(System.IO.File.ReadAllText(lockPath));
+                using var doc = System.Text.Json.JsonDocument.Parse(await System.IO.File.ReadAllTextAsync(lockPath));
                 lockData = ConvertToDeepDictionary(doc.RootElement);
             } catch (Exception ex) {
-                Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
+                Core.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
             }
         }
 
@@ -53,8 +55,8 @@ internal sealed class ToolsDownloader {
                 continue;
             }
 
-            Info("");
-            Title($"Processing: {toolName} {version}");
+            Core.UI.EngineSdk.PrintLine(string.Empty);
+            Core.UI.EngineSdk.PrintLine($"Processing: {toolName} {version}", System.ConsoleColor.Cyan);
 
             // Check if version is already fully installed
             if (!force && lockData.TryGetValue(toolName!, out object? existingToolObj)) {
@@ -69,17 +71,17 @@ internal sealed class ToolsDownloader {
                     }
 
                     if (existsFully) {
-                        Info($"{toolName} {version} is already installed and exists fully. Skipping.");
+                        Core.UI.EngineSdk.Info($"{toolName} {version} is already installed and exists fully. Skipping.");
                         continue;
                     }
                 }
             }
 
-            if (!TryLookupPlatform(central, toolName!, version!, platform, out string? url, out string? sha256, out object? platformData)) {
-                Error($"Not in registry for platform '{platform}'.");
+            if (!TryLookupPlatform(central, toolName!, version!, platform, out string? url, out string? sha256, out string? checksumSource, out object? platformData)) {
+                Core.UI.EngineSdk.PrintLine($"1 ERROR: Not in registry for platform '{platform}'.", System.ConsoleColor.Red);
                 continue;
             }
-            Info($"URL: {url}");
+            Core.UI.EngineSdk.Info($"URL: {url}");
 
             string? destination = dep.TryGetValue("destination", out object? d) ? d?.ToString() : "./TMP/Downloads";
             if (context != null && destination != null) {
@@ -98,13 +100,13 @@ internal sealed class ToolsDownloader {
             // Initial filename from URL (may be incorrect for redirects)
             string fileName = System.IO.Path.GetFileName(new System.Uri(url).AbsolutePath);
             string archivePath = System.IO.Path.Combine(downloadDir, fileName);
-            Info($"Download dir: {downloadDir}");
+            Core.UI.EngineSdk.Info($"Download dir: {downloadDir}");
 
             if (!force && System.IO.File.Exists(archivePath)) {
-                Info($"Archive: {archivePath}");
-                Info("Archive exists. Skipping download (use force to re-download).");
+                Core.UI.EngineSdk.Info($"Archive: {archivePath}");
+                Core.UI.EngineSdk.Info("Archive exists. Skipping download (use force to re-download).");
             } else {
-                Info("Downloading...");
+                Core.UI.EngineSdk.Info("Downloading...");
                 using System.Net.Http.HttpResponseMessage resp = await http.GetAsync(url, System.Net.Http.HttpCompletionOption.ResponseHeadersRead);
                 resp.EnsureSuccessStatusCode();
 
@@ -125,7 +127,7 @@ internal sealed class ToolsDownloader {
                     archivePath = System.IO.Path.Combine(downloadDir, fileName);
                 }
 
-                Info($"Archive: {archivePath}");
+                Core.UI.EngineSdk.Info($"Archive: {archivePath}");
 
                 long contentLength = resp.Content.Headers.ContentLength ?? -1;
 
@@ -138,39 +140,68 @@ internal sealed class ToolsDownloader {
                     label: $"Downloading {fileName}")) {
                     await CopyStreamWithProgressAsync(inStream, outFs, progress);
                 }
-                Info("Download complete.");
+                Core.UI.EngineSdk.Info("Download complete.");
             }
-
+            string currentChecksum = ComputeSha256(archivePath);
             if (string.IsNullOrWhiteSpace(sha256)) {
-                Warn("No checksum provided - skipping verification.");
+                Core.UI.EngineSdk.Warn("No checksum provided - skipping verification.");
+                // output the current archive checksum
+
+                Core.UI.EngineSdk.Info($"Current checksum: {currentChecksum}");
             } else {
-                Info("Verifying checksum");
-                if (!VerifySha256(archivePath, sha256)) {
-                    Error("Checksum mismatch. Skipping further steps for this tool.");
+                Core.UI.EngineSdk.Info("Verifying checksum");
+                bool checksumMatch = VerifySha256(archivePath, sha256);
+
+                if (!checksumMatch && !string.IsNullOrWhiteSpace(checksumSource)) {
+                    Core.UI.EngineSdk.Info($"Primary checksum mismatch. Checking upstream source: {checksumSource}");
+                    try {
+                        string remoteSums = await http.GetStringAsync(checksumSource);
+                        string? remoteHash = ParseUpstreamChecksum(remoteSums, fileName);
+
+                        if (!string.IsNullOrWhiteSpace(remoteHash)) {
+                            Core.UI.EngineSdk.Info($"Found upstream checksum for {fileName}: {remoteHash}");
+                            if (string.Equals(currentChecksum, remoteHash, StringComparison.OrdinalIgnoreCase)) {
+                                Core.UI.EngineSdk.Info("Upstream checksum matched. Proceeding.");
+                                checksumMatch = true;
+                                sha256 = remoteHash;
+                            } else {
+                                Core.UI.EngineSdk.Warn($"Upstream checksum mismatch. Expected {remoteHash}, got {currentChecksum}");
+                            }
+                        } else {
+                            Core.UI.EngineSdk.Warn($"Could not find entry for '{fileName}' in upstream checksums.");
+                        }
+                    } catch (Exception ex) {
+                        Core.UI.EngineSdk.Warn($"Failed to fetch/parse upstream checksums: {ex.Message}");
+                    }
+                }
+
+                if (!checksumMatch) {
+                    Core.UI.EngineSdk.PrintLine("1 ERROR: Checksum mismatch. Skipping further steps for this tool.", System.ConsoleColor.Red);
+                    Core.UI.EngineSdk.Info($"Current checksum: {currentChecksum}");
                     continue;
                 }
-                Info("Checksum OK.");
+                Core.UI.EngineSdk.Info("Checksum OK.");
             }
 
             string? exePath = null;
             if (unpack && !string.IsNullOrWhiteSpace(unpackDest)) {
                 string dest = System.IO.Path.GetFullPath(System.IO.Path.Combine(_rootPath, unpackDest!));
                 System.IO.Directory.CreateDirectory(dest);
-                Info($"Unpacking to: {dest}");
+                Core.UI.EngineSdk.Info($"Unpacking to: {dest}");
                 try {
                     ExtractArchive(archivePath, dest);
                 } catch (NotSupportedException nse) {
-                    Warn($"{nse.Message} Leaving archive as-is.");
+                    Core.UI.EngineSdk.Warn($"{nse.Message} Leaving archive as-is.");
                 } catch (Exception ex) {
-                    Error($"Failed to unpack '{archivePath}': {ex.Message}");
+                    Core.UI.EngineSdk.PrintLine($"1 ERROR: Failed to unpack '{archivePath}': {ex.Message}", System.ConsoleColor.Red);
                 }
 
                 // Try to find an exe in dest (best-effort)
                 exePath = FindExe(dest, toolName!, platformData);
                 if (!string.IsNullOrWhiteSpace(exePath)) {
-                    Info($"Detected executable: {exePath}");
+                    Core.UI.EngineSdk.Info($"Detected executable: {exePath}");
                 } else {
-                    Warn("Could not detect an executable automatically.");
+                    Core.UI.EngineSdk.Warn("Could not detect an executable automatically.");
                 }
             }
 
@@ -190,18 +221,26 @@ internal sealed class ToolsDownloader {
                 ["sha256"] = sha256,
                 ["source_url"] = url
             };
-            Info($"Lockfile updated for {toolName} {version}.");
+            Core.UI.EngineSdk.Info($"Lockfile updated for {toolName} {version}.");
         }
 
         await System.IO.File.WriteAllTextAsync(lockPath, System.Text.Json.JsonSerializer.Serialize(lockData, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
-        Info($"Lockfile written: {lockPath}");
+        Core.UI.EngineSdk.Info($"Lockfile written: {lockPath}");
         return true;
+    }
+
+    private static string ComputeSha256(string filePath) {
+        using var stream = System.IO.File.OpenRead(filePath);
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        byte[] hash = sha.ComputeHash(stream);
+        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
     }
 
     private static async System.Threading.Tasks.Task CopyStreamWithProgressAsync(
         System.IO.Stream input,
         System.IO.Stream output,
-        Core.UI.EngineSdk.PanelProgress progress) {
+        Core.UI.EngineSdk.PanelProgress progress
+    ) {
         const int BufferSize = 81920;
         byte[] buffer = new byte[BufferSize];
         int read;
@@ -210,27 +249,6 @@ internal sealed class ToolsDownloader {
             progress.Update(read);
         }
         // Completion is handled by disposing the progress handle.
-    }
-
-    private static void WriteHeader(string msg) {
-        Core.UI.EngineSdk.PrintLine(string.Empty);
-        Core.UI.EngineSdk.PrintLine($"=== {msg} ===", System.ConsoleColor.DarkCyan);
-    }
-    private static void Title(string msg) {
-        Core.UI.EngineSdk.PrintLine(msg, System.ConsoleColor.Cyan);
-    }
-    private static void Info(string msg) {
-        if (string.IsNullOrEmpty(msg)) {
-            return;
-        }
-
-        Core.UI.EngineSdk.Info(msg);
-    }
-    private static void Warn(string msg) {
-        Core.UI.EngineSdk.Warn(msg);
-    }
-    private static void Error(string msg) {
-        Core.UI.EngineSdk.PrintLine($"1 ERROR: {msg}", System.ConsoleColor.Red);
     }
 
     private static string GetPlatformIdentifier() {
@@ -256,15 +274,23 @@ internal sealed class ToolsDownloader {
         string platform,
         out string url,
         out string sha256,
+        out string? checksumSource,
         out object? platformData) {
         url = string.Empty;
         sha256 = string.Empty;
+        checksumSource = null;
         platformData = null;
 
         if (!central.TryGetValue(tool, out object? toolObj)) return false;
 
         object? verObj = GetProperty(toolObj, version);
         if (verObj == null) return false;
+
+        // Optional upstream checksums block at the version level
+        object? checksumsObj = GetProperty(verObj, "checksums");
+        if (checksumsObj != null) {
+            checksumSource = GetStringProperty(checksumsObj, "source");
+        }
 
         // exact platform or prefix match
         object? platObj = GetProperty(verObj, platform);
@@ -291,6 +317,38 @@ internal sealed class ToolsDownloader {
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Parses a checksum list and returns the SHA256 hash for the given file name when present.
+    /// </summary>
+    private static string? ParseUpstreamChecksum(string content, string fileName) {
+        if (string.IsNullOrWhiteSpace(content)) return null;
+
+        string[] lines = content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (string line in lines) {
+            string trimmed = line.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed)) continue;
+
+            string[] parts = trimmed.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2) continue;
+
+            string hash = parts[0];
+            if (hash.Length != 64) continue;
+
+            string rest = trimmed.Substring(trimmed.IndexOf(hash, StringComparison.Ordinal) + hash.Length).Trim();
+            if (rest.StartsWith("*", StringComparison.Ordinal)) {
+                rest = rest.Substring(1);
+            }
+
+            if (rest.Equals(fileName, StringComparison.OrdinalIgnoreCase)
+                || rest.EndsWith($"/{fileName}", StringComparison.OrdinalIgnoreCase)
+                || rest.EndsWith($"\\{fileName}", StringComparison.OrdinalIgnoreCase)) {
+                return hash.ToLowerInvariant();
+            }
+        }
+
+        return null;
     }
 
     private static object? GetProperty(object? obj, string key) {
@@ -379,37 +437,63 @@ internal sealed class ToolsDownloader {
         throw new NotSupportedException($"Archive format not supported for auto-unpack: {ext}");
     }
 
+    /// <summary>
+    /// Finds a likely executable path for the tool and applies Unix +x permissions when needed.
+    /// </summary>
     private static string? FindExe(string root, string toolName, object? platformData) {
-        // First, check if exe_name is specified in the platform data
         string? exeName = GetStringProperty(platformData, "exe_name");
+        string? foundPath = null;
+
         if (!string.IsNullOrWhiteSpace(exeName)) {
-            string exePath = System.IO.Path.Combine(root, exeName);
-            if (System.IO.File.Exists(exePath)) {
-                return exePath;
-            }
-
-            // Also try searching recursively if not found at root
-            try {
-                foreach (string file in System.IO.Directory.EnumerateFiles(root, exeName, System.IO.SearchOption.AllDirectories)) {
-                    return file;
-                }
-            } catch {
-                Core.Diagnostics.Bug($"[ToolsDownloader] Could not search for exe in: {root}");
-            }
+            foundPath = SearchForFile(root, exeName);
         }
 
-        // Fall back to the original logic: search for exe containing tool name
+        if (string.IsNullOrWhiteSpace(foundPath)) {
+            foundPath = SearchForFile(root, $"{toolName}.exe")
+                ?? SearchForFile(root, toolName);
+        }
+
+        if (!string.IsNullOrWhiteSpace(foundPath)) {
+            ApplyExecutablePermissions(foundPath);
+        }
+
+        return foundPath;
+    }
+
+    /// <summary>
+    /// Searches for a file by name pattern using safe recursion and best-effort matching.
+    /// </summary>
+    private static string? SearchForFile(string root, string pattern) {
         try {
-            foreach (string file in System.IO.Directory.EnumerateFiles(root, "*.exe", System.IO.SearchOption.AllDirectories)) {
-                string name = System.IO.Path.GetFileName(file).ToLowerInvariant();
-                if (name.Contains(toolName.ToLowerInvariant()) || (toolName.Equals("QuickBMS", System.StringComparison.OrdinalIgnoreCase) && name.Contains("quickbms"))) {
-                    return file;
-                }
-            }
+            var options = new System.IO.EnumerationOptions {
+                RecurseSubdirectories = true,
+                IgnoreInaccessible = true,
+                MatchCasing = System.IO.MatchCasing.CaseInsensitive,
+                MaxRecursionDepth = 5
+            };
+
+            return System.IO.Directory.EnumerateFiles(root, pattern, options).FirstOrDefault();
         } catch {
-            Core.Diagnostics.Bug($"[ToolsDownloader] Could not search for exe in: {root}");
-            // ignore
+            Core.Diagnostics.Bug($"[ToolsDownloader] Could not search for file '{pattern}' in: {root}");
+            return null;
         }
-        return null;
+    }
+
+    /// <summary>
+    /// Applies Unix executable permissions when running on non-Windows platforms.
+    /// </summary>
+    private static void ApplyExecutablePermissions(string path) {
+        if (System.OperatingSystem.IsWindows()) {
+            return;
+        }
+
+        try {
+            System.IO.UnixFileMode currentMode = System.IO.File.GetUnixFileMode(path);
+            System.IO.UnixFileMode newMode = currentMode | System.IO.UnixFileMode.UserExecute | System.IO.UnixFileMode.GroupExecute;
+            System.IO.File.SetUnixFileMode(path, newMode);
+            Core.UI.EngineSdk.Info($"Applied executable permissions to: {path}");
+        } catch (Exception ex) {
+            Core.UI.EngineSdk.Warn($"Could not set executable bit on {path}: {ex.Message}");
+        }
     }
 }
