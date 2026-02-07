@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 public partial class InternalOperations {
 
-    internal bool DownloadModuleRegistry(IDictionary<string, object?> promptAnswers, Abstractions.IGitService GitService, Abstractions.IGameRegistry GameRegistry) {
+    internal bool DownloadModuleRegistry(IDictionary<string, object?> promptAnswers, Core.Services.GitService GitService, Abstractions.IGameRegistry GameRegistry) {
 
         string? input = null;
         if (promptAnswers.TryGetValue("url", out object? u)) {

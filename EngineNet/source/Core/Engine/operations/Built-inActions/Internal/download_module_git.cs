@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 public partial class InternalOperations {
 
-    internal bool DownloadModuleGit(IDictionary<string, object?> promptAnswers, Abstractions.IGitService GitService) {
+    internal bool DownloadModuleGit(IDictionary<string, object?> promptAnswers, Core.Services.GitService GitService) {
         string? url = null;
         if (promptAnswers.TryGetValue("url", out object? u)) {
             url = u?.ToString();

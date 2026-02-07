@@ -3,7 +3,7 @@ using EngineNet.Core.Utils;
 
 namespace EngineNet.Core.Services;
 
-public class GitService : IGitService {
+public class GitService {
     private readonly GitTools _gitTools;
 
     public GitService() {

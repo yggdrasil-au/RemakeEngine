@@ -23,7 +23,7 @@ internal sealed class OperationExecution {
         IDictionary<string, object?> promptAnswers,
         Core.EngineConfig EngineConfig,
         Core.ExternalTools.IToolResolver ToolResolver,
-        Core.Abstractions.IGitService GitService,
+        Core.Services.GitService GitService,
         Core.Abstractions.IGameRegistry GameRegistry,
         System.Threading.CancellationToken cancellationToken = default
     ) {

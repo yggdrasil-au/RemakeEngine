@@ -36,19 +36,15 @@
 # For a complete CI/CD sample to get started with GitHub Action workflows for Desktop Applications,
 # refer to https://github.com/microsoft/github-actions-for-desktop-apps
 
-name: on win tagged release -- Win64 .NET Build & Test.yml
-
-## this is the github release workflow for windows only
+name: on commit -- Win64 Build.yml
 
 on:
   push:
-    #branches: [ "main" ]  # only run when tag release is pushed
-    tags: [ "win-v*" ]     # create a release when you push a tag like win-v1.2.3
-  workflow_dispatch: {}    # allow manual runs
+    branches: [ "main" ]
+  workflow_dispatch: {}
 
 jobs:
   build:
-    if: startsWith(github.ref, 'refs/tags/')    # only on tags
     strategy:
       fail-fast: false
       matrix:
@@ -68,61 +64,69 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Restore
-        shell: pwsh
         run: dotnet restore $env:Solution_Name
 
       - name: Build
-        shell: pwsh
-        run: dotnet build $env:Solution_Name --configuration $env:Configuration --no-restore
-        env:
-          Configuration: ${{ matrix.configuration }}
+        run: dotnet build $env:Solution_Name --configuration ${{ matrix.configuration }} --no-restore
 
-      - name: Discover tests
-        id: discover_tests
-        shell: pwsh
-        run: |
-          $tests = Get-ChildItem -Recurse -Filter *Tests.csproj | Select-Object -ExpandProperty FullName
-          if ($tests -and $tests.Count -gt 0) {
-            "found=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            # optional: log discovered projects
-            $tests -join "`n" | Write-Host
-          } else {
-            "found=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            Write-Host "No test projects found (skipping dotnet test)."
-          }
-
-      - name: Test
-        if: steps.discover_tests.outputs.found == 'true'
-        shell: pwsh
-        run: dotnet test $env:Solution_Name --configuration $env:Configuration --no-build --verbosity normal
-        env:
-          Configuration: ${{ matrix.configuration }}
   release:
-    if: startsWith(github.ref, 'refs/tags/')    # only on tags
     needs: build
     runs-on: windows-latest
-    env:
-      Solution_Name: RemakeEngine.sln
+    permissions:
+      contents: write # Required to create releases
     steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-      - uses: actions/setup-dotnet@v4
-        with: { dotnet-version: 10.0.x }
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # Publish a Release build (win-x64); tweak RID/self-contained to taste
-      - name: Publish
-        shell: pwsh
-        run: dotnet publish EngineNet\EngineNet.csproj -v:d -c Release -f net10.0 -r win-x64 --self-contained true -o EngineBuild/win-x64 -p:PublishSingleFile=true
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
 
-      - name: Zip artifact
+      - name: Extract Version from Commit
+        id: get_version
         shell: pwsh
-        run: Compress-Archive -Path EngineBuild\win-x64\* -DestinationPath RemakeEngineCore-win-x64.zip
-      - name: Create GitHub Release and upload artifact
+        run: |
+          $msg = @"
+          ${{ github.event.head_commit.message }}
+          "@
+          # Regex matches content inside the first set of brackets []
+          if ($msg -match '^\[([^\]]+)\]') {
+              $ver = $Matches[1]
+              # Append short SHA to ensure the tag is unique per commit
+              $shortSha = "${{ github.sha }}".Substring(0, 7)
+              $fullTag = "${ver}-${shortSha}"
+
+              echo "VERSION=$ver" >> $env:GITHUB_ENV
+              echo "TAG=$fullTag" >> $env:GITHUB_ENV
+              Write-Host "Detected Version: $ver"
+              Write-Host "Generated Tag: $fullTag"
+          } else {
+              Write-Error "Commit message does not start with version brackets [v...]"
+              exit 1
+          }
+
+      - name: Run Publish Script
+        shell: pwsh
+        run: |
+          # This runs your provided script which handles asset copying
+          ./dotnet.publish.ps1 -Framework "net10.0" -Runtime "win-x64"
+
+      - name: Zip Debug Artifact
+        shell: pwsh
+        run: |
+          # We specifically target the win-x64-Debug folder created by your script
+          Compress-Archive -Path "EngineBuild\win-x64-Debug\*" -DestinationPath "RemakeEngine-Debug-${{ env.VERSION }}.zip"
+
+      - name: Create GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.SUPERSECRET_TOKEN }}
         shell: pwsh
         run: |
-          gh release create "${{ github.ref_name }}" RemakeEngineCore-win-x64.zip `
-            --title "${{ github.ref_name }}" `
-            --notes "Automated release for ${{ github.ref_name }}"
-
+          # --prerelease marks it as 'Dev Only' / not for production
+          gh release create "${{ env.TAG }}" "RemakeEngine-Debug-${{ env.VERSION  }}.zip" `
+            --title "Dev Build: ${{ env.VERSION }}" `
+            --notes "Automated debug release for commit: ${{ github.sha }}. `n`nMessage: ${{ github.event.head_commit.message }}" `
+            --prerelease

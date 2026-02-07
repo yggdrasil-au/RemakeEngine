@@ -23,7 +23,7 @@ internal sealed class Engino {
         IDictionary<string, object?> promptAnswers,
         Core.EngineConfig EngineConfig,
         Core.ExternalTools.IToolResolver ToolResolver,
-        Core.Abstractions.IGitService GitService,
+        Core.Services.GitService GitService,
         Core.Abstractions.IGameRegistry GameRegistry,
         Core.Abstractions.ICommandService CommandService,
         OperationExecution OperationExecution,
