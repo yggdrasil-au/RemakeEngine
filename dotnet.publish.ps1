@@ -15,9 +15,30 @@ $GamesDemoSource    = Join-Path $EngineAppsRoot "Games\Demo"
 $RegistriesSource   = Join-Path $EngineAppsRoot "Registries"
 $PlaceholderSource  = Join-Path $Root "placeholder.png"
 
+# Read version from .betterGit/project.toml
+$ProjectToml = Join-Path $Root ".betterGit\project.toml"
+if (Test-Path $ProjectToml) {
+    $tomlContent = Get-Content $ProjectToml -Raw
+    $major = [regex]::Match($tomlContent, "(?m)^major\s*=\s*(\d+)").Groups[1].Value
+    $minor = [regex]::Match($tomlContent, "(?m)^minor\s*=\s*(\d+)").Groups[1].Value
+    $patch = [regex]::Match($tomlContent, "(?m)^patch\s*=\s*(\d+)").Groups[1].Value
+    $version = "$major.$minor.$patch"
+} else {
+    $version = "1.0.0"
+    Write-Warning "Could not find project.toml, defaulting to version $version"
+}
+$Icon = Join-Path $Root "icon.ico"
+
 $targets = @(
     @{ Configuration = "Release"; Output = "win-x64-Release" }
+    @{ Configuration = "Release"; Output = "win-x86-Release" }
+    @{ Configuration = "Release"; Output = "win-arm64-Release" }
+    @{ Configuration = "Release"; Output = "win-arm-Release" }
+
     @{ Configuration = "Debug";   Output = "win-x64-Debug"   }
+    @{ Configuration = "Debug";   Output = "win-x86-Debug"   }
+    @{ Configuration = "Debug";   Output = "win-arm64-Debug" }
+    @{ Configuration = "Debug";   Output = "win-arm-Debug"   }
 )
 
 foreach ($t in $targets) {
@@ -34,7 +55,11 @@ foreach ($t in $targets) {
         -r $Runtime `
         --self-contained true `
         -o $outDir `
-        -p:PublishSingleFile=true
+        -p:PublishSingleFile=true `
+        /p:ApplicationIcon="$Icon" `
+        /p:Version=$version `
+        /p:FileVersion=$version `
+        /p:AssemblyVersion=$version `
 
     if ($LASTEXITCODE -ne 0) {
         throw "dotnet publish failed for configuration $config"

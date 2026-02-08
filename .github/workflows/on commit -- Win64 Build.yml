@@ -99,9 +99,13 @@ jobs:
               $shortSha = "${{ github.sha }}".Substring(0, 7)
               $fullTag = "${ver}-${shortSha}"
 
-              echo "VERSION=$ver" >> $env:GITHUB_ENV
+              # Strip leading 'v' for the dotnet Version property
+              $cleanVer = $ver.TrimStart('v', 'V')
+
+              echo "VERSION=$cleanVer" >> $env:GITHUB_ENV
               echo "TAG=$fullTag" >> $env:GITHUB_ENV
               Write-Host "Detected Version: $ver"
+              Write-Host "Clean Version: $cleanVer"
               Write-Host "Generated Tag: $fullTag"
           } else {
               Write-Error "Commit message does not start with version brackets [v...]"
