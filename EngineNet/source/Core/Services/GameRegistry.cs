@@ -23,12 +23,10 @@ public class GameRegistry : IGameRegistry {
         _scanner = new ModuleScanner(_registries);
     }
 
-    /// <inheritdoc />
     Dictionary<string, GameModuleInfo> IGameRegistry.GetModules(ModuleFilter filter) {
         return _scanner.Modules(filter);
     }
 
-    /// <inheritdoc />
     Dictionary<string, GameInfo> IGameRegistry.GetBuiltGames() {
         return _registries.DiscoverBuiltGames();
     }

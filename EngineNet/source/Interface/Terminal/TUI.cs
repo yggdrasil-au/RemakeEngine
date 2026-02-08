@@ -120,6 +120,22 @@ internal partial class TUI {
                 return 1;
             }
 
+            HashSet<long> seenIds = new HashSet<long>();
+            HashSet<long> duplicateIds = new HashSet<long>();
+
+            foreach (var op in allOps) {
+                if (op.TryGetValue("id", out object? idObj) && idObj != null) {
+                    try {
+                        long idVal = System.Convert.ToInt64(idObj);
+                        if (!seenIds.Add(idVal)) {
+                            duplicateIds.Add(idVal);
+                        }
+                    } catch {
+                        // Ignore parse errors here, strictly checking for numeric duplicates
+                    }
+                }
+            }
+
             // separate init operations from regular ones
             List<Dictionary<string, object?>> initOps = allOps.FindAll(op => op.TryGetValue(key: "init", out object? i) && i is bool b && b);
             List<Dictionary<string, object?>> regularOps = allOps.FindAll(op => !op.ContainsKey(key: "init") || !(op[key: "init"] is bool bb && bb));
@@ -183,6 +199,21 @@ internal partial class TUI {
                         name = s;
                     } else {
                         name = "(unnamed)";
+                    }
+
+                    if (op.TryGetValue("id", out object? idObj) && idObj != null) {
+                        try {
+                            long idVal = System.Convert.ToInt64(idObj);
+                            if (duplicateIds.Contains(idVal)) {
+                                name = $"[!! DUPLICATE ID: {idVal} !!] {name}";
+                            }
+                        } catch {
+                            // If ID isn't a valid number, you might want to flag that too
+                            name = $"[!! INVALID ID !!] {name}";
+                        }
+                    } else {
+                        // Optional: Flag missing IDs if strict validation is required
+                        // name = $"[NO ID] {name}";
                     }
 
                     menu.Add(item: name);

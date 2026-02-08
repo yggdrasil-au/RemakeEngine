@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using EngineNet.Core.UI;
 
 namespace EngineNet.Core.Utils;
 
@@ -184,6 +185,7 @@ internal sealed class ModuleScanner {
             result[name] = info;
         }
 
+
         // 2. Get all "Installed" modules (must have an ops file)
         Dictionary<string, GameInfo> installed = _registries.DiscoverGames();
         foreach (KeyValuePair<string, GameInfo> kv in installed) {
@@ -235,6 +237,8 @@ internal sealed class ModuleScanner {
         foreach (GameModuleInfo info in result.Values) {
             info.IsUnverified = info.IsInstalled && !info.IsRegistered;
         }
+
+
 
         // 5. Scan Internal operations in EngineApps/Registries/ops/
         // internal ops are not game modules and should be handled separately?
