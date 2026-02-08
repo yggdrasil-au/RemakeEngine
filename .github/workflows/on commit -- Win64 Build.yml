@@ -36,4 +36,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ env.TAG }}" "${{ env.ZIP_NAME }}" --title "Dev Build: ${{ env.TAG }}" --prerelease
+          gh release create "${{ env.TAG }}" "${{ env.ZIP_NAME }}" --title "Dev Build: ${{ env.TAG }}" --notes "Automated dev build for commit ${{ github.sha }}" --prerelease
