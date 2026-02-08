@@ -77,6 +77,11 @@ public static class Helpers {
             }
         }
 
+    }
+
+    // add hashing functions like sha1_file and md5
+    public static class AddHashMethods {
+        
         public static dynamic? sha1_file(string path) {
             try {
                 if (!Security.EnsurePathAllowedWithPrompt(path)) {
@@ -100,20 +105,20 @@ public static class Helpers {
                 return string.Empty;
             }
         }
+    }
 
-        public static void Sleep(double seconds) {
-            if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds <= 0) {
-                return;
-            }
-
-            try {
-                System.Threading.Thread.Sleep(System.TimeSpan.FromSeconds(seconds));
-            }  catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("sleep failed with exception: " + ex);
-            }
+    public static void Sleep(double seconds) {
+        if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds <= 0) {
+            return;
         }
 
+        try {
+            System.Threading.Thread.Sleep(System.TimeSpan.FromSeconds(seconds));
+        }  catch (Exception ex) {
+            Core.Diagnostics.luaInternalCatch("sleep failed with exception: " + ex);
+        }
     }
+
 
     //AddArchiveOperations
     public static class AddArchiveOperations {

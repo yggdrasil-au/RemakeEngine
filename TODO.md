@@ -1,15 +1,12 @@
 # Engine TODO List
 
-## Interfaces:
 
-### TUI:
-* :: FEATURE :: add colors to tui menus, defined in the operations file
 
-### CLI:
-...
 
-### GUI:
-...
+
+
+
+
 
 ## Engine:
 ### Operations:
@@ -21,8 +18,9 @@ these three operations can run in parallel after extract archives is complete, a
 > -- Convert Videos (.vp6 -> .ogv)
 > -- Convert Audio (.snu -> .wav)
 blender convert is dependent on extract and txd operations completing first, txd is also dependent on extract completing first
-
-* :: FEATURE :: this requires modules add operation ID's to the operation config to uniquely identify each operation, ensure detection of invalid operations toml/json and if invalid for 'id's dont enable dependency/id bound features
+the audio and video conversions can run in parallel with eachother but must occur after normalisation etc
+*  this requires modules add operation ID's to the operation config to uniquely identify each operation,
+*  ensure detection of invalid operations toml/json and if invalid for 'id's dont enable dependency/id bound features
 
 * :: FEATURE :: add {{placeholder}} resolution for any operation field in operations.toml including Name..., ensure it reloads after every user or script action
 
@@ -43,8 +41,6 @@ TxdExtractor:
 
 issue: when running bms script in TSG for str extraction the entire gui freezes until the operation is complete
 
-
 * :: ISSUE ::
 the ffmpeg tool for windows must be the Btbn builds, the gyan builds dont work for the specific video conversions needed for VP6 to OGV conversion in TheSimpsonsGame-PS3 module
-
-
+ffmpeg 8.0 version currently uses the 'latest build' resulting in the hash check to fail as the latest build of 8.0 has a different hash than the previous

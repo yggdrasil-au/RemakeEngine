@@ -6,7 +6,7 @@ public static partial class Sdk {
 
     private static void AddColorPrintFunctions(LuaWorld _LuaWorld) {
         // color/colour print: accepts either (color, message[, newline]) or a table { colour=?, color=?, message=?, newline=? }
-        CallbackFunction colorPrintFunc = new CallbackFunction((ctx, args) => {
+        var colorPrintFunc = new CallbackFunction((ctx, args) => {
             string? color = null;
             string message = string.Empty;
             bool newline = true;
@@ -41,8 +41,8 @@ public static partial class Sdk {
             Core.UI.EngineSdk.Print(message, color, newline);
             return DynValue.Nil;
         });
-        _LuaWorld.sdk["color_print"] = DynValue.NewCallback(colorPrintFunc);
-        _LuaWorld.sdk["colour_print"] = DynValue.NewCallback(colorPrintFunc);
+        _LuaWorld.Sdk.Table["color_print"] = DynValue.NewCallback(colorPrintFunc);
+        _LuaWorld.Sdk.Table["colour_print"] = DynValue.NewCallback(colorPrintFunc);
     }
 
 

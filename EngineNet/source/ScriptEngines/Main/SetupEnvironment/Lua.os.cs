@@ -14,7 +14,7 @@ public static partial class SetupEnvironment {
         // date and time functions
 
         // os.date -
-        _LuaWorld.os["date"] = (System.Func<string?, DynValue>)((format) => {
+        _LuaWorld.Os["date"] = (System.Func<string?, DynValue>)((format) => {
             if (string.IsNullOrEmpty(format)) return DynValue.NewNumber(System.DateTimeOffset.UtcNow.ToUnixTimeSeconds());
 
             if (format.StartsWith("*t") || format.StartsWith("!*t")) {
@@ -39,24 +39,24 @@ public static partial class SetupEnvironment {
 
             return DynValue.NewString(System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
         });
-        _LuaWorld.os["time"] = (System.Func<DynValue?, double>)((DynValue? timeTable) => System.DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-        _LuaWorld.os["clock"] = () => System.Environment.TickCount / 1000.0;
+        _LuaWorld.Os["time"] = (System.Func<DynValue?, double>)((DynValue? timeTable) => System.DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+        _LuaWorld.Os["clock"] = () => System.Environment.TickCount / 1000.0;
 
         //
 
         // getenv - deny access to a specific set of environment variables to prevent information leaks
-        _LuaWorld.os["getenv"] = (string env) => {
+        _LuaWorld.Os["getenv"] = (string env) => {
             if (DisallowedEnv.Contains(env)) return null;
             return System.Environment.GetEnvironmentVariable(env);
         };
         // removed os.execute for better alternatives via sdk.exec/run_process etc
-        _LuaWorld.os["execute"] = DynValue.Nil;
+        _LuaWorld.Os["execute"] = DynValue.Nil;
 
-        _LuaWorld.os["exit"] = (System.Action<int?>)(code => {
+        _LuaWorld.Os["exit"] = (System.Action<int?>)(code => {
             throw new ScriptExitException(code ?? 0);
         });
 
-        _LuaWorld.LuaScript.Globals["os"] = _LuaWorld.os;
+        _LuaWorld.LuaScript.Globals["os"] = _LuaWorld.Os;
     }
 
     private static bool TryTranslateLuaDateFormat(string format, out string dotNetFormat, out bool useUtc) {

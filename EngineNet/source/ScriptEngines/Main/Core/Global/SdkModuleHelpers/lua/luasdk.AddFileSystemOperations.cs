@@ -5,7 +5,80 @@ namespace EngineNet.ScriptEngines.Lua.Global;
 public static partial class Sdk {
 
     private static void AddFileSystemOperations(LuaWorld _LuaWorld) {
-        _LuaWorld.sdk["copy_dir"] = (string src, string dst, DynValue overwrite) => {
+        _LuaWorld.Sdk.Table["find_subdir"] = (string baseDir, string name) => {
+            if (!Security.IsAllowedPath(baseDir)) {
+                Core.UI.EngineSdk.Error($"Access denied: find_subdir baseDir is outside allowed areas ('{baseDir}')");
+                return null;
+            }
+            return Helpers.ConfigHelpers.FindSubdir(baseDir, name);
+        };
+        _LuaWorld.Sdk.Table["has_all_subdirs"] = (string baseDir, Table names) => {
+            try {
+                if (!Security.IsAllowedPath(baseDir)) {
+                    Core.UI.EngineSdk.Error($"Access denied: has_all_subdirs baseDir is outside allowed areas ('{baseDir}')");
+                    return false;
+                }
+                List<string> list = Lua.Globals.Utils.TableToStringList(names);
+                return Helpers.ConfigHelpers.HasAllSubdirs(baseDir, list);
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("has_all_subdirs failed with exception: " + ex);
+                return false;
+            }
+        };
+        _LuaWorld.Sdk.Table["path_exists"] = (string path) => {
+            return Security.EnsurePathAllowedWithPrompt(path) && ScriptEngines.Global.SdkModule.FileSystemUtils.PathExists(path);
+        };
+        _LuaWorld.Sdk.Table["lexists"] = (string path) => {
+            return Security.EnsurePathAllowedWithPrompt(path) && ScriptEngines.Global.SdkModule.FileSystemUtils.PathExistsIncludingLinks(path);
+        };
+        _LuaWorld.Sdk.Table["realpath"] = (string path) => Security.IsAllowedPath(path) ? ScriptEngines.Global.SdkModule.FileSystemUtils.RealPath(path) : null;
+        _LuaWorld.Sdk.Table["attributes"] = (string path) => {
+            // Call the shared logic
+            var resultDict = ScriptEngines.Global.SdkModule.Helpers.AddFileSystemOperations.FileAttributes(path);
+
+            if (resultDict == null) {
+                return DynValue.Nil;
+            }
+
+            // Convert C# Dictionary to MoonSharp Table
+            Table table = new Table(_LuaWorld.LuaScript);
+            foreach (var kvp in resultDict) {
+                // We use DynValue.FromObject to handle the conversion of strings/doubles/longs automatically
+                table[kvp.Key] = DynValue.FromObject(_LuaWorld.LuaScript, kvp.Value);
+            }
+
+            return DynValue.NewTable(table);
+        };
+
+        _LuaWorld.Sdk.Table["mkdir"] = (string path) => {
+            if (!Security.EnsurePathAllowedWithPrompt(path)) {
+                return false;
+            }
+            try {
+                System.IO.Directory.CreateDirectory(path);
+                return true;
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("mkdir failed with exception: " + ex);
+                return false;
+            }
+        };
+        _LuaWorld.Sdk.Table["ensure_dir"] = (string path) => {
+            try {
+                if (!Security.IsAllowedPath(path)) {
+                    Core.UI.EngineSdk.Error($"Access denied: ensure_dir path is outside allowed areas ('{path}')");
+                    return false;
+                }
+                System.IO.Directory.CreateDirectory(path);
+                return true;
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("ensure_dir failed with exception: " + ex);
+                return false;
+            }
+        };
+        _LuaWorld.Sdk.Table["is_dir"] = (string path) => {
+            return Security.EnsurePathAllowedWithPrompt(path) && System.IO.Directory.Exists(path);
+        };
+        _LuaWorld.Sdk.Table["copy_dir"] = (string src, string dst, DynValue overwrite) => {
             try {
                 // Security: Validate paths
                 if (!Security.IsAllowedPath(src) || !Security.IsAllowedPath(dst)) {
@@ -20,8 +93,7 @@ public static partial class Sdk {
                 return false;
             }
         };
-
-        _LuaWorld.sdk["move_dir"] = (string src, string dst, DynValue overwrite) => {
+        _LuaWorld.Sdk.Table["move_dir"] = (string src, string dst, DynValue overwrite) => {
             try {
                 // Security: Validate paths
                 if (!Security.IsAllowedPath(src) || !Security.IsAllowedPath(dst)) {
@@ -36,57 +108,130 @@ public static partial class Sdk {
                 return false;
             }
         };
-
-        _LuaWorld.sdk["find_subdir"] = (string baseDir, string name) => {
-            if (!Security.IsAllowedPath(baseDir)) {
-                Core.UI.EngineSdk.Error($"Access denied: find_subdir baseDir is outside allowed areas ('{baseDir}')");
-                return null;
-            }
-            return Helpers.ConfigHelpers.FindSubdir(baseDir, name);
-        };
-
-        _LuaWorld.sdk["has_all_subdirs"] = (string baseDir, Table names) => {
+        _LuaWorld.Sdk.Table["remove_dir"] = (string path) => {
             try {
-                if (!Security.IsAllowedPath(baseDir)) {
-                    Core.UI.EngineSdk.Error($"Access denied: has_all_subdirs baseDir is outside allowed areas ('{baseDir}')");
-                    return false;
-                }
-                List<string> list = Lua.Globals.Utils.TableToStringList(names);
-                return Helpers.ConfigHelpers.HasAllSubdirs(baseDir, list);
-            } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("has_all_subdirs failed with exception: " + ex);
-                return false;
-            }
-        };
-
-        _LuaWorld.sdk["ensure_dir"] = (string path) => {
-            try {
+                // Security: Validate path prior to deletion
                 if (!Security.IsAllowedPath(path)) {
-                    Core.UI.EngineSdk.Error($"Access denied: ensure_dir path is outside allowed areas ('{path}')");
+                    Core.UI.EngineSdk.Error($"Access denied: remove_dir path is outside allowed areas ('{path}')");
                     return false;
                 }
-                System.IO.Directory.CreateDirectory(path);
+                if (System.IO.Directory.Exists(path)) {
+                    System.IO.Directory.Delete(path, true);
+                }
                 return true;
             } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("ensure_dir failed with exception: " + ex);
+                Core.Diagnostics.luaInternalCatch("remove_dir failed with exception: " + ex);
+                return false;
+            }
+        };
+        _LuaWorld.Sdk.Table["currentdir"] = () => {
+            // old, get current directory of process, not caller script file
+            return System.IO.Directory.GetCurrentDirectory();
+        };
+        _LuaWorld.Sdk.Table["current_dir"] = () => {
+            // new, get current directory of caller script file
+            // get current directory of caller script file
+            return System.IO.Path.GetDirectoryName(_LuaWorld.LuaScriptPath);
+        };
+        _LuaWorld.Sdk.Table["list_dir"] = (string path) => {
+            Table table = new Table(_LuaWorld.LuaScript);
+            List<string>? resultList = ScriptEngines.Global.SdkModule.Helpers.AddFileSystemOperations.List_Dir(path);
+            if (resultList == null) {
+                return table;
+            }
+            // Convert the List<string> into the Lua Table
+            foreach (string name in resultList) {
+                table.Append(DynValue.NewString(name));
+            }
+            return table;
+        };
+
+        _LuaWorld.Sdk.Table["is_file"] = (string path) => {
+            return Security.EnsurePathAllowedWithPrompt(path) && System.IO.File.Exists(path);
+        };
+        _LuaWorld.Sdk.Table["remove_file"] = (string path) => {
+            try {
+                // Security: Validate path prior to deletion
+                if (!Security.IsAllowedPath(path)) {
+                    Core.UI.EngineSdk.Error($"Access denied: remove_file path is outside allowed areas ('{path}')");
+                    return false;
+                }
+                if (ScriptEngines.Global.SdkModule.FileSystemUtils.IsSymlink(path) || System.IO.File.Exists(path)) {
+                    System.IO.File.Delete(path);
+                }
+                return true;
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("remove_file failed with exception: " + ex);
+                return false;
+            }
+        };
+        _LuaWorld.Sdk.Table["copy_file"] = (string src, string dst, DynValue overwrite) => {
+            try {
+                // Security: Validate or prompt-approve paths
+                if (!Security.EnsurePathAllowedWithPrompt(src) || !Security.EnsurePathAllowedWithPrompt(dst)) {
+                    return false;
+                }
+
+                bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
+                System.IO.File.Copy(src, dst, ow);
+                return true;
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("copy_file failed with exception: " + ex);
+                return false;
+            }
+        };
+        _LuaWorld.Sdk.Table["write_file"] = (string path, string content) => {
+            try {
+                if (!Security.EnsurePathAllowedWithPrompt(path)) {
+                    return false;
+                }
+                string? parent = System.IO.Path.GetDirectoryName(path);
+                if (!string.IsNullOrEmpty(parent)) {
+                    System.IO.Directory.CreateDirectory(parent);
+                }
+                System.IO.File.WriteAllText(path, content ?? string.Empty);
+                return true;
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("write_file failed with exception: " + ex);
+                return false;
+            }
+        };
+        _LuaWorld.Sdk.Table["read_file"] = (string path) => {
+            try {
+                if (!Security.EnsurePathAllowedWithPrompt(path)) {
+                    return null;
+                }
+                if (!System.IO.File.Exists(path)) {
+                    return null;
+                }
+                return System.IO.File.ReadAllText(path);
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("read_file failed with exception: " + ex);
+                return null;
+            }
+        };
+        _LuaWorld.Sdk.Table["rename_file"] = (string oldPath, string newPath) => {
+            try {
+                // Security: Validate or prompt-approve paths
+                if (!Security.EnsurePathAllowedWithPrompt(oldPath) || !Security.EnsurePathAllowedWithPrompt(newPath)) {
+                    return false;
+                }
+
+                if (System.IO.File.Exists(oldPath)) {
+                    System.IO.File.Move(oldPath, newPath);
+                    return true;
+                } else if (System.IO.Directory.Exists(oldPath)) {
+                    System.IO.Directory.Move(oldPath, newPath);
+                    return true;
+                }
+                return false;
+            } catch (Exception ex) {
+                Core.Diagnostics.luaInternalCatch("rename_file failed with exception: " + ex);
                 return false;
             }
         };
 
-        _LuaWorld.sdk["path_exists"] = (string path) => {
-            return Security.EnsurePathAllowedWithPrompt(path) && ScriptEngines.Global.SdkModule.FileSystemUtils.PathExists(path);
-        };
-        _LuaWorld.sdk["lexists"] = (string path) => {
-            return Security.EnsurePathAllowedWithPrompt(path) && ScriptEngines.Global.SdkModule.FileSystemUtils.PathExistsIncludingLinks(path);
-        };
-        _LuaWorld.sdk["is_dir"] = (string path) => {
-            return Security.EnsurePathAllowedWithPrompt(path) && System.IO.Directory.Exists(path);
-        };
-        _LuaWorld.sdk["is_file"] = (string path) => {
-            return Security.EnsurePathAllowedWithPrompt(path) && System.IO.File.Exists(path);
-        };
-
-        _LuaWorld.sdk["is_writable"] = (string path) => {
+        _LuaWorld.Sdk.Table["is_writable"] = (string path) => {
             try {
                 if (!Security.IsAllowedPath(path)) {
                     return false;
@@ -107,123 +252,9 @@ public static partial class Sdk {
             }
         };
 
-        _LuaWorld.sdk["remove_dir"] = (string path) => {
-            try {
-                // Security: Validate path prior to deletion
-                if (!Security.IsAllowedPath(path)) {
-                    Core.UI.EngineSdk.Error($"Access denied: remove_dir path is outside allowed areas ('{path}')");
-                    return false;
-                }
-                if (System.IO.Directory.Exists(path)) {
-                    System.IO.Directory.Delete(path, true);
-                }
-                return true;
-            } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("remove_dir failed with exception: " + ex);
-                return false;
-            }
-        };
-
-        _LuaWorld.sdk["remove_file"] = (System.Func<string, bool>)(path => {
-            try {
-                // Security: Validate path prior to deletion
-                if (!Security.IsAllowedPath(path)) {
-                    Core.UI.EngineSdk.Error($"Access denied: remove_file path is outside allowed areas ('{path}')");
-                    return false;
-                }
-                if (ScriptEngines.Global.SdkModule.FileSystemUtils.IsSymlink(path) || System.IO.File.Exists(path)) {
-                    System.IO.File.Delete(path);
-                }
-                return true;
-            } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("remove_file failed with exception: " + ex);
-                return false;
-            }
-        });
-
-        _LuaWorld.sdk["copy_file"] = (System.Func<string, string, DynValue, bool>)((src, dst, overwrite) => {
-            try {
-                // Security: Validate or prompt-approve paths
-                if (!Security.EnsurePathAllowedWithPrompt(src) || !Security.EnsurePathAllowedWithPrompt(dst)) {
-                    return false;
-                }
-
-                bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
-                System.IO.File.Copy(src, dst, ow);
-                return true;
-            } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("copy_file failed with exception: " + ex);
-                return false;
-            }
-        });
-
-        _LuaWorld.sdk["write_file"] = (System.Func<string, string, bool>)((path, content) => {
-            try {
-                if (!Security.EnsurePathAllowedWithPrompt(path)) {
-                    return false;
-                }
-                string? parent = System.IO.Path.GetDirectoryName(path);
-                if (!string.IsNullOrEmpty(parent)) {
-                    System.IO.Directory.CreateDirectory(parent);
-                }
-                System.IO.File.WriteAllText(path, content ?? string.Empty);
-                return true;
-            } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("write_file failed with exception: " + ex);
-                return false;
-            }
-        });
-
-        _LuaWorld.sdk["read_file"] = (System.Func<string, string?>)(path => {
-            try {
-                if (!Security.EnsurePathAllowedWithPrompt(path)) {
-                    return null;
-                }
-                if (!System.IO.File.Exists(path)) {
-                    return null;
-                }
-                return System.IO.File.ReadAllText(path);
-            } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("read_file failed with exception: " + ex);
-                return null;
-            }
-        });
-
-        _LuaWorld.sdk["rename_file"] = (System.Func<string, string, bool>)((oldPath, newPath) => {
-            try {
-                // Security: Validate or prompt-approve paths
-                if (!Security.EnsurePathAllowedWithPrompt(oldPath) || !Security.EnsurePathAllowedWithPrompt(newPath)) {
-                    return false;
-                }
-
-                if (System.IO.File.Exists(oldPath)) {
-                    System.IO.File.Move(oldPath, newPath);
-                    return true;
-                } else if (System.IO.Directory.Exists(oldPath)) {
-                    System.IO.Directory.Move(oldPath, newPath);
-                    return true;
-                }
-                return false;
-            } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("rename_file failed with exception: " + ex);
-                return false;
-            }
-        });
-
-        _LuaWorld.sdk["create_symlink"] = (System.Func<string, string, bool, DynValue, bool>)((source, destination, isDirectory, overwrite) => {
-            if (!Security.IsAllowedPath(source) || !Security.IsAllowedPath(destination)) {
-                Core.UI.EngineSdk.Error($"Access denied: create_symlink src or dst outside allowed areas (src='{source}', dst='{destination}')");
-                return false;
-            }
-            bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
-            return ScriptEngines.Global.SdkModule.SymLink.Create(source, destination, isDirectory, ow);
-        });
-        _LuaWorld.sdk["is_symlink"] = (System.Func<string, bool>)(path => Security.IsAllowedPath(path) && ScriptEngines.Global.SdkModule.FileSystemUtils.IsSymlink(path));
-        _LuaWorld.sdk["realpath"] = (System.Func<string, string?>)(path => Security.IsAllowedPath(path) ? ScriptEngines.Global.SdkModule.FileSystemUtils.RealPath(path) : null);
-        _LuaWorld.sdk["readlink"] = (System.Func<string, string?>)(path => Security.IsAllowedPath(path) ? ScriptEngines.Global.SdkModule.FileSystemUtils.ReadLink(path) : null);
-
+        _LuaWorld.Sdk.Table["is_symlink"] = (string path) => Security.IsAllowedPath(path) && ScriptEngines.Global.SdkModule.FileSystemUtils.IsSymlink(path);
         // Create hardlink (files only)
-        _LuaWorld.sdk["create_hardlink"] = (System.Func<string, string, bool>)((src, dst) => {
+        _LuaWorld.Sdk.Table["create_hardlink"] = (string src, string dst) => {
             try {
                 if (!Security.EnsurePathAllowedWithPrompt(src) || !Security.EnsurePathAllowedWithPrompt(dst)) {
                     return false;
@@ -257,76 +288,17 @@ public static partial class Sdk {
                 Core.Diagnostics.luaInternalCatch("create_hardlink failed with exception: " + ex);
                 return false;
             }
-        });
-
-        // old, get current directory of process, not caller script file
-        _LuaWorld.sdk["currentdir"] = () => {
-            return System.IO.Directory.GetCurrentDirectory();
         };
-        // new, get current directory of caller script file
-        _LuaWorld.sdk["current_dir"] = () => {
-            // get current directory of caller script file
-            return System.IO.Path.GetDirectoryName(_LuaWorld.LuaScriptPath);
-        };
-
-        _LuaWorld.sdk["mkdir"] = (System.Func<string, bool>)(path => {
-            if (!Security.EnsurePathAllowedWithPrompt(path)) {
+        _LuaWorld.Sdk.Table["create_symlink"] = (string source, string destination, bool isDirectory, DynValue overwrite) => {
+            if (!Security.IsAllowedPath(source) || !Security.IsAllowedPath(destination)) {
+                Core.UI.EngineSdk.Error($"Access denied: create_symlink src or dst outside allowed areas (src='{source}', dst='{destination}')");
                 return false;
             }
-            try {
-                System.IO.Directory.CreateDirectory(path);
-                return true;
-            } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("mkdir failed with exception: " + ex);
-                return false;
-            }
-        });
-
-        _LuaWorld.sdk["attributes"] = (string path) => {
-            // Call the shared logic
-            var resultDict = ScriptEngines.Global.SdkModule.Helpers.AddFileSystemOperations.FileAttributes(path);
-
-            if (resultDict == null) {
-                return DynValue.Nil;
-            }
-
-            // Convert C# Dictionary to MoonSharp Table
-            Table table = new Table(_LuaWorld.LuaScript);
-            foreach (var kvp in resultDict) {
-                // We use DynValue.FromObject to handle the conversion of strings/doubles/longs automatically
-                table[kvp.Key] = DynValue.FromObject(_LuaWorld.LuaScript, kvp.Value);
-            }
-
-            return DynValue.NewTable(table);
+            bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
+            return ScriptEngines.Global.SdkModule.SymLink.Create(source, destination, isDirectory, ow);
         };
+        _LuaWorld.Sdk.Table["readlink"] = (string path) => Security.IsAllowedPath(path) ? ScriptEngines.Global.SdkModule.FileSystemUtils.ReadLink(path) : null;
 
-        // Lists files and directories in a given path. Returns a table of strings (names only, not full paths).
-        _LuaWorld.sdk["list_dir"] = (string path) => {
-            Table table = new Table(_LuaWorld.LuaScript);
-            List<string>? resultList = ScriptEngines.Global.SdkModule.Helpers.AddFileSystemOperations.List_Dir(path);
-            if (resultList == null) {
-                return table;
-            }
-            // Convert the List<string> into the Lua Table
-            foreach (string name in resultList) {
-                table.Append(DynValue.NewString(name));
-            }
-            return table;
-        };
-
-
-        // SHA1 hash of a file (lowercase hex)
-        _LuaWorld.sdk["sha1_file"] = (System.Func<string, string?>)(path => {
-            return ScriptEngines.Global.SdkModule.Helpers.AddFileSystemOperations.sha1_file(path);
-        });
-
-        _LuaWorld.sdk["md5"] = (string text) => {
-            return ScriptEngines.Global.SdkModule.Helpers.AddFileSystemOperations.Md5Hash(text);
-        };
-
-        _LuaWorld.sdk["sleep"] = (double seconds) => {
-            ScriptEngines.Global.SdkModule.Helpers.AddFileSystemOperations.Sleep(seconds);
-        };
     }
 
 }

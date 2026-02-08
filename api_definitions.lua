@@ -9,12 +9,14 @@
 local FileHandle = {}
 
 --- Reads from the file.
----@param format? "n"|"*n"|"a"|"*a"|"l"|"*l"|number The format to read (number of bytes, "*a" for all, "*l" for line).
----@return string|number|nil content The read content, or nil on EOF.
+--- Note: This implementation requires a format parameter; supported values are
+--- a byte count (number), "*a"/"*all" (read all), and "*l"/"*line" (read line).
+---@param format number|"*a"|"*all"|"*l"|"*line" The read mode.
+---@return string|nil content The read content, or nil on EOF.
 function FileHandle:read(format) end
 
 --- Writes content to the file.
----@param content string|number The content to write.
+---@param content string The content to write.
 function FileHandle:write(content) end
 
 --- Seeks to a position in the file.
@@ -32,16 +34,32 @@ function FileHandle:close() end
 
 --- Represents a progress bar displayed in the side panel.
 ---@class PanelProgress
+---@field Current integer The current step count.
+---@field Total integer The total number of steps.
+---@field Id string The progress id.
+---@field Label string|nil The progress label.
 local PanelProgress = {}
+
+--- Updates the progress bar.
+---@param increment? integer The number of steps to advance (default 1).
+function PanelProgress:Update(increment) end
+
+--- Marks the progress as complete and closes the panel.
+function PanelProgress:Complete() end
+
+--- Disposes the progress handle (same as Complete()).
+function PanelProgress:Dispose() end
 
 --- Represents a progress bar for the currently running script.
 ---@class ScriptProgress
 ---@field Current integer The current step count.
 ---@field Total integer The total number of steps.
+---@field Id string The progress id.
+---@field Label string|nil The progress label.
 local ScriptProgress = {}
 
 --- Updates the progress bar.
----@param increment integer The number of steps to advance.
+---@param increment? integer The number of steps to advance (default 1).
 ---@param label? string Optional text to display on the progress bar.
 function ScriptProgress:Update(increment, label) end
 
@@ -53,36 +71,57 @@ function ScriptProgress:SetTotal(newTotal) end
 function ScriptProgress:Complete() end
 
 
+--- SQLite Database Module.
+---@class SqliteModule
+sqlite = {}
+
+--- Opens a SQLite database.
+--- Path must be within allowed workspace areas.
+---@param path string The path to the database file.
+---@return SqliteHandle handle The database connection handle.
+function sqlite.open(path) end
+
+
 --- Represents an active SQLite database connection.
 ---@class SqliteHandle
 local SqliteHandle = {}
 
 --- Executes a non-query SQL statement (INSERT, UPDATE, DELETE).
----@param sql string The SQL statement.
----@param params? table<string, any> Optional parameters for the query.
+---@overload fun(self: SqliteHandle, sql: string, params?: table<string, any>): integer
+---@overload fun(sql: string, params?: table<string, any>): integer
 ---@return integer affected_rows The number of rows affected.
-function SqliteHandle:exec(sql, params) end
+function SqliteHandle.exec(...) end
 
 --- Executes a query and returns the results.
----@param sql string The SQL query.
----@param params? table<string, any> Optional parameters.
+---@overload fun(self: SqliteHandle, sql: string, params?: table<string, any>): table<integer, table<string, any>>
+---@overload fun(sql: string, params?: table<string, any>): table<integer, table<string, any>>
 ---@return table<integer, table<string, any>> results A list of rows (tables).
-function SqliteHandle:query(sql, params) end
+function SqliteHandle.query(...) end
 
 --- Begins a transaction.
-function SqliteHandle:begin() end
+---@overload fun(self: SqliteHandle)
+---@overload fun()
+function SqliteHandle.begin(...) end
 
 --- Commits the current transaction.
-function SqliteHandle:commit() end
+---@overload fun(self: SqliteHandle)
+---@overload fun()
+function SqliteHandle.commit(...) end
 
 --- Rolls back the current transaction.
-function SqliteHandle:rollback() end
+---@overload fun(self: SqliteHandle)
+---@overload fun()
+function SqliteHandle.rollback(...) end
 
 --- Closes the database connection.
-function SqliteHandle:close() end
+---@overload fun(self: SqliteHandle)
+---@overload fun()
+function SqliteHandle.close(...) end
 
 --- Alias for close().
-function SqliteHandle:dispose() end
+---@overload fun(self: SqliteHandle)
+---@overload fun()
+function SqliteHandle.dispose(...) end
 
 
 -- =============================================================================
@@ -122,12 +161,15 @@ io.flush = nil
 ---@class OS_Lib
 local os = {}
 
---- Returns a string or a table containing date and time.
----@param format? string Format string (e.g., "%Y-%m-%d"). If "*t" or "!*t", returns a table.
----@return string|osdate The formatted date string or table.
+--- Returns date/time data.
+--- If format is nil/empty, returns the current Unix timestamp (seconds).
+--- If format is "*t" or "!*t", returns a table (local time unless "!" is used).
+---@param format? string Format string (e.g., "%Y-%m-%d").
+---@return string|number|osdate value Formatted date string, unix time, or table.
 function os.date(format) end
 
 --- Returns the current time (Unix timestamp).
+--- Note: The optional table argument is currently ignored.
 ---@param table? osdate Optional table to convert to time.
 ---@return number seconds
 function os.time(table) end
@@ -211,6 +253,11 @@ local SpawnResult = {}
 ---@field stderr_delta string The new standard error since the last check.
 local ProcessStatus = {}
 
+--- Options for sdk.text.json.encode.
+---@class JsonEncodeOptions
+---@field indent? boolean If true, pretty-prints JSON.
+local JsonEncodeOptions = {}
+
 -- =============================================================================
 -- 3. SDK Modules
 -- =============================================================================
@@ -218,8 +265,258 @@ local ProcessStatus = {}
 ---@class SDK
 ---@field IO IO_Lib Access to IO functions (same as global 'io').
 ---@field cpu_count integer The number of logical processors available.
----@field ResolveToolPath fun(id: string, ver?: string): string Resolves external tool paths.
+---@field text SdkText JSON/text helpers.
 sdk = {}
+
+--- Prints colored text to the engine console/UI.
+--- Accepts either (color, message[, newline]) or a table { color/colour, message, newline }.
+---@param color string|table
+---@param message? string
+---@param newline? boolean
+function sdk.color_print(color, message, newline) end
+
+--- Alias for sdk.color_print (AU/UK spelling).
+---@param color string|table
+---@param message? string
+---@param newline? boolean
+function sdk.colour_print(color, message, newline) end
+
+--- Validates a module directory structure.
+---@param dir string
+---@return boolean ok
+function sdk.validate_source_dir(dir) end
+
+--- Extracts an archive to the destination directory.
+---@param archive_path string
+---@param dest_dir string
+---@return boolean ok
+function sdk.extract_archive(archive_path, dest_dir) end
+
+--- Creates an archive from the source path.
+---@param src_path string
+---@param archive_path string
+---@param type string Archive type (e.g., "zip").
+---@return boolean ok
+function sdk.create_archive(src_path, archive_path, type) end
+
+--- Ensures a directory exists (creates parents as needed).
+---@param path string
+---@return boolean ok
+function sdk.ensure_dir(path) end
+
+--- Copies a directory recursively.
+---@param src string
+---@param dst string
+---@param overwrite boolean
+---@return boolean ok
+function sdk.copy_dir(src, dst, overwrite) end
+
+--- Moves a directory.
+---@param src string
+---@param dst string
+---@param overwrite boolean
+---@return boolean ok
+function sdk.move_dir(src, dst, overwrite) end
+
+--- Copies a file.
+---@param src string
+---@param dst string
+---@param overwrite boolean
+---@return boolean ok
+function sdk.copy_file(src, dst, overwrite) end
+
+--- Writes text to a file (creates parent dirs as needed).
+---@param path string
+---@param content string
+---@return boolean ok
+function sdk.write_file(path, content) end
+
+--- Reads a file to string.
+---@param path string
+---@return string|nil content
+function sdk.read_file(path) end
+
+--- Renames or moves a file or directory.
+---@param old_path string
+---@param new_path string
+---@return boolean ok
+function sdk.rename_file(old_path, new_path) end
+
+--- Removes a directory recursively.
+---@param path string
+---@return boolean ok
+function sdk.remove_dir(path) end
+
+--- Removes a file (or symlink).
+---@param path string
+---@return boolean ok
+function sdk.remove_file(path) end
+
+--- Creates a symlink.
+---@param source string
+---@param destination string
+---@param is_directory boolean
+---@param overwrite? boolean
+---@return boolean ok
+function sdk.create_symlink(source, destination, is_directory, overwrite) end
+
+--- Creates a hardlink (files only).
+---@param source string
+---@param destination string
+---@return boolean ok
+function sdk.create_hardlink(source, destination) end
+
+--- Checks whether a path exists.
+---@param path string
+---@return boolean ok
+function sdk.path_exists(path) end
+
+--- Checks whether a path exists (including symlinks).
+---@param path string
+---@return boolean ok
+function sdk.lexists(path) end
+
+--- Checks whether a path is a directory.
+---@param path string
+---@return boolean ok
+function sdk.is_dir(path) end
+
+--- Checks whether a path is a file.
+---@param path string
+---@return boolean ok
+function sdk.is_file(path) end
+
+--- Checks whether a directory is writable.
+---@param path string
+---@return boolean ok
+function sdk.is_writable(path) end
+
+--- Returns whether the path is a symlink.
+---@param path string
+---@return boolean ok
+function sdk.is_symlink(path) end
+
+--- Resolves a path to its real path.
+---@param path string
+---@return string|nil real_path
+function sdk.realpath(path) end
+
+--- Reads a symlink target.
+---@param path string
+---@return string|nil target
+function sdk.readlink(path) end
+
+--- Finds a subdirectory by name.
+---@param base_dir string
+---@param name string
+---@return string|nil found_path
+function sdk.find_subdir(base_dir, name) end
+
+--- Checks whether all named subdirs exist under base_dir.
+---@param base_dir string
+---@param names table<integer, string>
+---@return boolean ok
+function sdk.has_all_subdirs(base_dir, names) end
+
+--- Gets the current process directory.
+---@return string path
+function sdk.currentdir() end
+
+--- Gets the directory of the current script file.
+---@return string|nil path
+function sdk.current_dir() end
+
+--- Creates a directory.
+---@param path string
+---@return boolean ok
+function sdk.mkdir(path) end
+
+--- Returns file attributes (mode, size, etc.).
+---@param path string
+---@return table|nil attributes
+function sdk.attributes(path) end
+
+--- Lists entries in a directory (names only).
+---@param path string
+---@return table<integer, string> entries
+function sdk.list_dir(path) end
+
+--- Computes SHA1 hash of a file (lowercase hex).
+---@param path string
+---@return string|nil hash
+function sdk.sha1_file(path) end
+
+--- Computes MD5 hash of a string (lowercase hex).
+---@param text string
+---@return string hash
+function sdk.md5(text) end
+
+--- Sleeps for a number of seconds.
+---@param seconds number
+function sdk.sleep(seconds) end
+
+--- Reads a TOML file into a Lua table.
+---@param path string
+---@return table|nil data
+function sdk.toml_read_file(path) end
+
+--- Writes a Lua table to a TOML file.
+---@param path string
+---@param value table
+function sdk.toml_write_file(path, value) end
+
+--- TOML helpers in sdk.text.toml.
+---@class SdkTextToml
+---@field read_file fun(path: string): table|nil
+---@field write_file fun(path: string, value: table)
+local SdkTextToml = {}
+
+--- JSON helpers in sdk.text.json.
+---@class SdkTextJson
+---@field encode fun(value: any, opts?: JsonEncodeOptions): string
+---@field decode fun(json: string): any
+local SdkTextJson = {}
+
+--- Encodes a Lua value to JSON.
+---@param value any
+---@param opts? JsonEncodeOptions
+---@return string json
+function SdkTextJson.encode(value, opts) end
+
+--- Decodes JSON into Lua values.
+---@param json string
+---@return any value
+function SdkTextJson.decode(json) end
+
+---@class SdkText
+---@field json SdkTextJson
+---@field toml SdkTextToml
+local SdkText = {}
+
+sdk.text = {}
+sdk.text.json = {}
+sdk.text.toml = {}
+
+--- Encodes a Lua value to JSON.
+---@param value any
+---@param opts? JsonEncodeOptions
+---@return string json
+function sdk.text.json.encode(value, opts) end
+
+--- Decodes JSON into Lua values.
+---@param json string
+---@return any value
+function sdk.text.json.decode(json) end
+
+--- Reads a TOML file into a Lua table.
+---@param path string
+---@return table|nil data
+function sdk.text.toml.read_file(path) end
+
+--- Writes a Lua table to a TOML file.
+---@param path string
+---@param value table
+function sdk.text.toml.write_file(path, value) end
 
 --- Executes a process and streams output to the engine console in real-time.
 --- Security: The executable must be in the approved tools list (use 'tool()' to resolve).
@@ -228,7 +525,7 @@ sdk = {}
 ---@return ExecResult result The execution result.
 function sdk.exec(args, options) end
 
---- Executes a process like sdk.exec, but suppresses the output to the engine console.
+--- Executes a process like sdk.exec, but suppresses output to the engine console.
 ---@param args string[] A table of strings containing the command and arguments.
 ---@param options? ExecOptions Configuration options.
 ---@return ExecResult result The execution result.
@@ -264,16 +561,6 @@ function sdk.wait_process(pid, timeout_ms) end
 ---@return boolean success True if closed successfully.
 function sdk.close_process(pid) end
 
-
---- SQLite Database Module.
----@class SqliteModule
-sqlite = {}
-
---- Opens a SQLite database.
---- Path must be within allowed workspace areas.
----@param path string The path to the database file.
----@return SqliteHandle handle The database connection handle.
-function sqlite.open(path) end
 
 
 -- =============================================================================
@@ -322,6 +609,21 @@ function color_prompt(message, color, id, secret) end
 ---@param secret? boolean
 ---@return string
 function colour_prompt(message, color, id, secret) end
+
+--- Diagnostics helpers.
+---@class Diagnostics
+---@field Log fun(message: string)
+---@field Trace fun(message: string)
+Diagnostics = {}
+
+--- Progress helpers for the current script.
+---@class Progress
+---@field new fun(total: integer, id?: string, label?: string): PanelProgress
+---@field start fun(total: integer, label?: string): ScriptProgress
+---@field step fun(label?: string)
+---@field add_steps fun(count: integer)
+---@field finish fun()
+progress = {}
 
 
 -- =============================================================================

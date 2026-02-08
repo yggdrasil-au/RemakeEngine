@@ -26,12 +26,19 @@ public static partial class Sdk {
         JsonModules(_LuaWorld);
 
         // Process execution helpers
-        SdkModule.ProcessExecution.AddProcessExecution(_LuaWorld, tools);
+        AddProcessExecution(_LuaWorld, tools);
 
-        // Expose CPU count as a numeric value for Lua scripts to choose sensible defaults
-        _LuaWorld.sdk.Set("cpu_count", DynValue.NewNumber(System.Environment.ProcessorCount));
+        // Hashing functions
+        AddHashMethods(_LuaWorld);
 
-        return _LuaWorld.sdk;
+        _LuaWorld.Sdk.Table["sleep"] = (double seconds) => {
+            ScriptEngines.Global.SdkModule.Helpers.Sleep(seconds);
+        };
+
+        // Expose CPU count
+        _LuaWorld.LuaScript.Globals["cpu_count"] = DynValue.NewNumber(System.Environment.ProcessorCount);
+
+        return _LuaWorld.Sdk.Table;
     }
 
 }

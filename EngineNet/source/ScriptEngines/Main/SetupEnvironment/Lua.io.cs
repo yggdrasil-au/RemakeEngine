@@ -5,7 +5,7 @@ namespace EngineNet.ScriptEngines.Lua;
 
 public static partial class SetupEnvironment {
     public static void CreateIoTable(LuaWorld _LuaWorld) {
-        _LuaWorld.io["open"] = (string path, string? mode) => {
+        _LuaWorld.Sdk.IO["open"] = (string path, string? mode) => {
             // Security: Validate file path with user approval if outside workspace
             if (!Security.EnsurePathAllowedWithPrompt(path)) {
                 //return DynValue.Nil;
@@ -152,13 +152,13 @@ public static partial class SetupEnvironment {
             }
         };
 
-        _LuaWorld.io["write"] = (string content) => Core.UI.EngineSdk.Print(content);
+        _LuaWorld.Sdk.IO["write"] = (string content) => Core.UI.EngineSdk.Print(content);
 
-        _LuaWorld.io["flush"] = DynValue.Nil; // removed for now, maybe add later as an event that can be optionally handled by active UI System
-        _LuaWorld.io["read"] = DynValue.Nil; // removed for now,
-        _LuaWorld.io["popen"] = DynValue.Nil; //  io.popen removed - use sdk.exec/run_process instead
+        _LuaWorld.Sdk.IO["flush"] = DynValue.Nil; // removed for now, maybe add later as an event that can be optionally handled by active UI System
+        _LuaWorld.Sdk.IO["read"] = DynValue.Nil; // removed for now,
+        _LuaWorld.Sdk.IO["popen"] = DynValue.Nil; //  io.popen removed - use sdk.exec/run_process instead
 
         // Expose the custom io table to the Lua environment
-        _LuaWorld.LuaScript.Globals["io"] = _LuaWorld.io;
+        _LuaWorld.LuaScript.Globals["io"] = _LuaWorld.Sdk.IO;
     }
 }

@@ -9,15 +9,10 @@ public static partial class Sdk {
     /// <param name="_LuaWorld"></param>
     /// <exception cref="ScriptRuntimeException"></exception>
     private static void JsonModules(LuaWorld _LuaWorld) {
-        // Create the table structure: sdk.text.json
-        Table textTable = new Table(_LuaWorld.LuaScript);
-        Table jsonTable = new Table(_LuaWorld.LuaScript);
-
-        _LuaWorld.sdk["text"] = textTable;
-        textTable["json"] = jsonTable;
+        // Use the shared text table created in LuaWorld: sdk.text.json
 
         // sdk.text.json.encode(value, opts)
-        jsonTable["encode"] = (System.Func<DynValue, DynValue, string>)((val, opts) => {
+        _LuaWorld.Sdk.Text.Json["encode"] = (System.Func<DynValue, DynValue, string>)((val, opts) => {
             bool indent = false;
             if (opts.Type == DataType.Table) {
                 DynValue indentVal = opts.Table.Get("indent");
@@ -29,7 +24,7 @@ public static partial class Sdk {
         });
 
         // sdk.text.json.decode(string)
-        jsonTable["decode"] = (System.Func<string, DynValue>)((json) => {
+        _LuaWorld.Sdk.Text.Json["decode"] = (System.Func<string, DynValue>)((json) => {
             try {
                 using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(json);
                 return Lua.Globals.Utils.JsonElementToDynValue(_LuaWorld.LuaScript, doc.RootElement);

@@ -242,6 +242,14 @@ if loaded_toml and loaded_toml.demo then
     sdk.color_print('green', 'TOML loaded successfully - demo name: ' .. tostring(loaded_toml.demo.name))
 end
 
+sdk.text.toml.write_file(scratch_root .. '/test_config_alt.toml', test_config) -- alternative path to same functions
+sdk.color_print('green', 'TOML file written to: ' .. scratch_root .. '/test_config_alt.toml')
+
+local loaded_toml_alt = sdk.text.toml.read_file(scratch_root .. '/test_config_alt.toml')
+if loaded_toml_alt and loaded_toml_alt.demo then
+    sdk.color_print('green', 'TOML loaded successfully (alt) - demo version: ' .. tostring(loaded_toml_alt.demo.version))
+end
+
 progress.step('Testing process execution (run_process)')
 
 -- SDK Process execution - run_process (safer, captures output)
