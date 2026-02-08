@@ -1,0 +1,57 @@
+name: Global Release -- Win, Linux, Mac
+
+on:
+  push:
+    tags: [ "v*", "win-v*" ] # Handles both tag styles
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build ${{ matrix.rid }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: macos-latest
+            rid: osx-arm64
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with: { dotnet-version: 10.0.x }
+
+      - name: Run Unified Publish
+        shell: pwsh
+        run: ./dotnet.publish.ps1 -Runtime "${{ matrix.rid }}" -ConfigFilter "Release"
+
+      - name: Package and Checksum
+        shell: pwsh
+        run: |
+          $zipName = "EngineNet-${{ matrix.rid }}-${{ github.ref_name }}.zip"
+          $shaName = "$zipName.sha256"
+
+          # Compress output folder created by script
+          Compress-Archive -Path "EngineBuild/${{ matrix.rid }}-Release/*" -DestinationPath $zipName
+
+          # Generate SHA256
+          $hash = (Get-FileHash -Path $zipName -Algorithm SHA256).Hash.ToLower()
+          "$hash  $zipName" | Out-File -FilePath $shaName -Encoding ascii
+
+          "ZIP_PATH=$zipName" >> $env:GITHUB_ENV
+          "SHA_PATH=$shaName" >> $env:GITHUB_ENV
+
+      - name: Upload to Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.ref_name }}" "${{ env.ZIP_PATH }}" "${{ env.SHA_PATH }}" --clobber

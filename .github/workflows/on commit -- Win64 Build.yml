@@ -1,41 +1,3 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-# This workflow will build, test, sign and package a WPF or Windows Forms desktop application
-# built on .NET Core.
-# To learn how to migrate your existing application to .NET Core,
-# refer to https://docs.microsoft.com/en-us/dotnet/desktop-wpf/migration/convert-project-from-net-framework
-#
-# To configure this workflow:
-#
-# 1. Configure environment variables
-# GitHub sets default environment variables for every workflow run.
-# Replace the variables relative to your project in the "env" section below.
-#
-# 2. Signing
-# Generate a signing certificate in the Windows Application
-# Packaging Project or add an existing signing certificate to the project.
-# Next, use PowerShell to encode the .pfx file using Base64 encoding
-# by running the following Powershell script to generate the output string:
-#
-# $pfx_cert = Get-Content '.\SigningCertificate.pfx' -Encoding Byte
-# [System.Convert]::ToBase64String($pfx_cert) | Out-File 'SigningCertificate_Encoded.txt'
-#
-# Open the output file, SigningCertificate_Encoded.txt, and copy the
-# string inside. Then, add the string to the repo as a GitHub secret
-# and name it "Base64_Encoded_Pfx."
-# For more information on how to configure your signing certificate for
-# this workflow, refer to https://github.com/microsoft/github-actions-for-desktop-apps#signing
-#
-# Finally, add the signing certificate password to the repo as a secret and name it "Pfx_Key".
-# See "Build the Windows Application Packaging project" below to see how the secret is used.
-#
-# For more information on GitHub Actions, refer to https://github.com/features/actions
-# For a complete CI/CD sample to get started with GitHub Action workflows for Desktop Applications,
-# refer to https://github.com/microsoft/github-actions-for-desktop-apps
-
 name: on commit -- Win64 Build.yml
 
 on:
@@ -44,93 +6,34 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        configuration: [Debug, Release]
-    runs-on: windows-latest
-    env:
-      Solution_Name: RemakeEngine.slnx
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
-
-      - name: Restore
-        run: dotnet restore $env:Solution_Name
-
-      - name: Build
-        run: dotnet build $env:Solution_Name --configuration ${{ matrix.configuration }} --no-restore
-
-  release:
-    needs: build
+  build_dev:
     runs-on: windows-latest
     permissions:
-      contents: write # Required to create releases
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        with: { fetch-depth: 0 }
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
-
-      - name: Extract Version from Commit
-        id: get_version
-        shell: pwsh
-        run: |
-          $msg = @"
-          ${{ github.event.head_commit.message }}
-          "@
-          # Regex matches content inside the first set of brackets []
-          if ($msg -match '^\[([^\]]+)\]') {
-              $ver = $Matches[1]
-              # Append short SHA to ensure the tag is unique per commit
-              $shortSha = "${{ github.sha }}".Substring(0, 7)
-              $fullTag = "${ver}-${shortSha}"
-
-              # Strip leading 'v' for the dotnet Version property
-              $cleanVer = $ver.TrimStart('v', 'V')
-
-              echo "VERSION=$cleanVer" >> $env:GITHUB_ENV
-              echo "TAG=$fullTag" >> $env:GITHUB_ENV
-              Write-Host "Detected Version: $ver"
-              Write-Host "Clean Version: $cleanVer"
-              Write-Host "Generated Tag: $fullTag"
-          } else {
-              Write-Error "Commit message does not start with version brackets [v...]"
-              exit 1
-          }
+        with: { dotnet-version: 10.0.x }
 
       - name: Run Publish Script
         shell: pwsh
-        run: |
-          # This runs your provided script which handles asset copying
-          ./dotnet.publish.ps1 -Framework "net10.0" -Runtime "win-x64"
+        run: ./dotnet.publish.ps1 -Runtime "win-x64" -ConfigFilter "Debug"
 
-      - name: Zip Debug Artifact
+      - name: Package Dev Build
         shell: pwsh
         run: |
-          # We specifically target the win-x64-Debug folder created by your script
-          Compress-Archive -Path "EngineBuild\win-x64-Debug\*" -DestinationPath "RemakeEngine-Debug-${{ env.VERSION }}.zip"
+          $shortSha = "${{ github.sha }}".Substring(0, 7)
+          $zipName = "RemakeEngine-Dev-$shortSha.zip"
+          Compress-Archive -Path "EngineBuild/win-x64-Debug/*" -DestinationPath $zipName
+          "ZIP_NAME=$zipName" >> $env:GITHUB_ENV
+          "TAG=dev-$shortSha" >> $env:GITHUB_ENV
 
       - name: Create GitHub Release
         env:
-          GITHUB_TOKEN: ${{ secrets.SUPERSECRET_TOKEN }}
-        shell: pwsh
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # --prerelease marks it as 'Dev Only' / not for production
-          gh release create "${{ env.TAG }}" "RemakeEngine-Debug-${{ env.VERSION  }}.zip" `
-            --title "Dev Build: ${{ env.VERSION }}" `
-            --notes "Automated debug release for commit: ${{ github.sha }}. `n`nMessage: ${{ github.event.head_commit.message }}" `
-            --prerelease
+          gh release create "${{ env.TAG }}" "${{ env.ZIP_NAME }}" --title "Dev Build: ${{ env.TAG }}" --prerelease
