@@ -14,6 +14,7 @@ public sealed partial class Engine {
     internal Core.Abstractions.IGameRegistry GameRegistry { get; }
     internal Core.Abstractions.IGameLauncher GameLauncher { get; }
     internal Core.Abstractions.IOperationsLoader OperationsLoader { get; }
+    internal Core.Services.OperationsService OperationsService { get; }
     internal Core.Services.GitService GitService { get; }
     internal Core.Abstractions.ICommandService CommandService { get; }
     internal Core.ExternalTools.IToolResolver ToolResolver { get; }
@@ -27,6 +28,7 @@ public sealed partial class Engine {
         Core.Abstractions.IGameRegistry gameRegistry,
         Core.Abstractions.IGameLauncher gameLauncher,
         Core.Abstractions.IOperationsLoader operationsLoader,
+        Core.Services.OperationsService operationsService,
         Core.Services.GitService gitService,
         Core.Abstractions.ICommandService commandService,
         Core.ExternalTools.IToolResolver toolResolver,
@@ -37,6 +39,7 @@ public sealed partial class Engine {
         GameRegistry = gameRegistry;
         GameLauncher = gameLauncher;
         OperationsLoader = operationsLoader;
+        OperationsService = operationsService;
         GitService = gitService;
         CommandService = commandService;
         ToolResolver = toolResolver;

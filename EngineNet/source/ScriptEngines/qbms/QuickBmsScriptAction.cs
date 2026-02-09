@@ -50,18 +50,18 @@ internal sealed class QuickBmsScriptAction : Helpers.IAction {
             }
         } catch { /* ignore parse issues; best-effort */ }
 
-        // Resolve QuickBMS exe and version via provider (Tools.local.json or resolver)
+        // Resolve QuickBMS exe and version via provider (tool lockfile or resolver)
         Core.ExternalTools.ToolMetadataProvider provider = new Core.ExternalTools.ToolMetadataProvider(projectRoot: Program.rootPath, resolver: tools);
         (string? installedExe, string? installedVersion) = provider.ResolveExeAndVersion(toolId: "QuickBMS");
 
         // Enforce required version (if declared)
         if (!string.IsNullOrWhiteSpace(requiredVersion)) {
             if (string.IsNullOrWhiteSpace(installedVersion) || !string.Equals(installedVersion, requiredVersion, System.StringComparison.OrdinalIgnoreCase)) {
-                throw new System.InvalidOperationException($"Missing QuickBMS {requiredVersion} - please run the 'Download Tools' operation. Tools.local.json shows '{installedVersion ?? "<not installed>"}'.");
+                throw new System.InvalidOperationException($"Missing QuickBMS {requiredVersion} - please run the 'Download Tools' operation. {Core.ExternalTools.ToolLockfile.ToolLockfileName} shows '{installedVersion ?? "<not installed>"}'.");
             }
         }
 
-        // Resolve exe path (prefer Tools.local.json; fallback to tool resolver)
+        // Resolve exe path (prefer tool lockfile; fallback to tool resolver)
         string resolvedExe = installedExe ?? tools.ResolveToolPath(toolId: "QuickBMS");
         if (string.IsNullOrWhiteSpace(resolvedExe) || !System.IO.File.Exists(resolvedExe)) {
             throw new System.IO.FileNotFoundException("QuickBMS is not installed or could not be resolved. Run the 'Download Tools' operation.", resolvedExe);

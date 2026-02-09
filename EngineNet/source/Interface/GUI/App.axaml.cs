@@ -9,7 +9,7 @@ public partial class App:Application {
 
     public override void OnFrameworkInitializationCompleted() {
         if (ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop) {
-            desktop.MainWindow = new Pages.MainWindow(AvaloniaGui.Engine) {};
+            desktop.MainWindow = new Pages.MainWindow() {};
         }
 
         base.OnFrameworkInitializationCompleted();

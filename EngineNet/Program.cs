@@ -82,6 +82,7 @@ public static class Program {
             var _opsLoader = new Core.Services.OperationsLoader();
             var _gitService = new Core.Services.GitService();
             var _commandService = new Core.Services.CommandService();
+            var _operationsService = new Core.Services.OperationsService(_opsLoader, gameRegistry);
 
             var operationExecution = new Core.Engine.OperationExecution();
             var Engino = new Core.Engine.Engino();
@@ -90,6 +91,7 @@ public static class Program {
                 gameRegistry: gameRegistry,
                 gameLauncher: _gameLauncher,
                 operationsLoader: _opsLoader,
+                operationsService: _operationsService,
                 gitService: _gitService,
                 commandService: _commandService,
                 toolResolver: tools,

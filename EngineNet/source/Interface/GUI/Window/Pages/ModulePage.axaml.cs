@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
+using System.Linq;
 
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
@@ -13,7 +14,6 @@ namespace EngineNet.Interface.GUI.Pages;
 public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     /* :: :: Vars :: START :: */
-    private readonly Core.Engine.Engine? _engine;
     private readonly string _moduleName = string.Empty;
 
     public string ModuleName { get; private set; } = string.Empty;
@@ -45,22 +45,23 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     // //
     /* :: :: Constructors :: START :: */
 
-    // Designer only
     public ModulePage() {
-        Button_Play_Click = new Cmd(_ => System.Threading.Tasks.Task.CompletedTask);
-        Button_RunAll_Click = new Cmd(_ => System.Threading.Tasks.Task.CompletedTask);
-        Button_RunOp_Click = new Cmd(_ => System.Threading.Tasks.Task.CompletedTask);
-        Button_Download_Click = new Cmd(_ => System.Threading.Tasks.Task.CompletedTask);
-        Button_OpenFolder_Click = new Cmd(_ => System.Threading.Tasks.Task.CompletedTask);
+        ModuleName = this._moduleName = "demo";
+
+        Button_Play_Click = new Cmd(async _ => await PlayAsync());
+        Button_RunAll_Click = new Cmd(async _ => await RunAllAsync());
+        Button_RunOp_Click = new Cmd(async p => await RunOpAsync(p as OpRow));
+        Button_Download_Click = new Cmd(async _ => await DownloadAsync());
+        Button_OpenFolder_Click = new Cmd(async _ => await OpenFolderAsync());
 
         DataContext = this;
         InitializeComponent();
+
+        Load();
     }
 
-    public ModulePage(Core.Engine.Engine engine, string moduleName) {
-        _engine = engine;
-        _moduleName = moduleName;
-        ModuleName = moduleName;
+    public ModulePage(string moduleName) {
+        ModuleName = this._moduleName = moduleName;
 
         Button_Play_Click = new Cmd(async _ => await PlayAsync());
         Button_RunAll_Click = new Cmd(async _ => await RunAllAsync());
@@ -80,7 +81,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     private void Load() {
         try {
-            if (_engine is null) {
+            if (AvaloniaGui.Engine is null) {
                 throw new InvalidOperationException(message: "Engine is not initialized.");
             }
 
@@ -88,7 +89,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             Operations.Clear();
 
             // Gather module info from multiple sources
-            Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.Modules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Utils.GameModuleInfo> modules = AvaloniaGui.Engine.Modules(Core.Utils.ModuleFilter.All);
             Core.Utils.GameModuleInfo? m = modules.TryGetValue(_moduleName, out Core.Utils.GameModuleInfo? mm) ? mm : null;
             if (m is not null) {
                 Title = string.IsNullOrWhiteSpace(m.Title) ? m.Name : m.Title!;
@@ -106,7 +107,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             }
 
             // Registry info (URL)
-            IReadOnlyDictionary<string, object?> regs = _engine.GameRegistry.GetRegisteredModules();
+            IReadOnlyDictionary<string, object?> regs = AvaloniaGui.Engine.GameRegistry.GetRegisteredModules();
             if (regs.TryGetValue(_moduleName, out object? regObj) && regObj is IDictionary<string, object?> reg) {
                 RegistryUrl = reg.TryGetValue(key: "url", value: out object? u) ? u?.ToString() : null;
                 if (string.IsNullOrWhiteSpace(Title)) {
@@ -117,7 +118,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
             // Load operations if ops_file exists
             string? opsFile = null;
-            Dictionary<string, Core.Utils.GameModuleInfo> games = _engine.Modules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Utils.GameModuleInfo> games = AvaloniaGui.Engine.Modules(Core.Utils.ModuleFilter.All);
             if (games.TryGetValue(_moduleName, out Core.Utils.GameModuleInfo? gameInfo)) {
                 opsFile = gameInfo.OpsFile;
                 if (string.IsNullOrWhiteSpace(ExePath)) {
@@ -132,16 +133,29 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             }
 
             if (!string.IsNullOrWhiteSpace(opsFile) && System.IO.File.Exists(path: opsFile)) {
-                List<Dictionary<string, object?>>? allOps = _engine.LoadOperationsList(opsFile);
-                if (allOps is null) {
-                    Core.Diagnostics.Log($"Load: Failed to load operations list for module {_moduleName} from ops file '{opsFile}'.");
+                Core.Services.OperationsService.PreparedOperations preparedOps = AvaloniaGui.Engine.OperationsService.LoadAndPrepare(opsFile);
+                if (!preparedOps.IsLoaded) {
+                    Core.Diagnostics.Log($"Load: Failed to load operations list for module {_moduleName} from ops file '{opsFile}'. {preparedOps.ErrorMessage}");
                     return;
                 }
-                foreach (Dictionary<string, object?> op in allOps) {
-                    string name = op.TryGetValue(key: "name", value: out object? n) ? n?.ToString() ?? "" : "";
-                    string scriptType = (op.TryGetValue(key: "script_type", value: out object? st) ? st?.ToString() : null) ?? "python";
-                    string scriptPath = op.TryGetValue(key: "script", value: out object? sp) ? sp?.ToString() ?? "" : "";
-                    Operations.Add(item: new OpRow { Name = string.IsNullOrWhiteSpace(name) ? scriptPath : name, ScriptType = scriptType, ScriptPath = scriptPath, Op = op });
+
+                if (preparedOps.Warnings.Count > 0) {
+                    foreach (string warning in preparedOps.Warnings) {
+                        Core.Diagnostics.Log($"[ModulePage::Load()] Warning: {warning}");
+                        OperationOutputService.Instance.AddOutput($"Validation: {warning}", "stderr");
+                    }
+                }
+
+                foreach (Core.Services.OperationsService.PreparedOperation op in preparedOps.RegularOperations) {
+                    string scriptType = string.IsNullOrWhiteSpace(op.ScriptType) ? "python" : op.ScriptType;
+                    string scriptPath = op.ScriptPath ?? string.Empty;
+                    string displayName = op.DisplayName;
+                    if (op.HasDuplicateId) {
+                        displayName = $"[dup-id] {displayName}";
+                    } else if (op.HasInvalidId) {
+                        displayName = $"[invalid-id] {displayName}";
+                    }
+                    Operations.Add(item: new OpRow { Name = displayName, ScriptType = scriptType, ScriptPath = scriptPath, Op = op.Operation });
                 }
             } else {
                 Core.Diagnostics.Log($"Load: Ops file not found for module {_moduleName} at path '{opsFile}'.");
@@ -167,7 +181,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private Bitmap? ResolveCoverBitmap(string? gameRoot) {
-        if (_engine == null) {
+        if (AvaloniaGui.Engine == null) {
             return null;
         }
         string? icon = string.IsNullOrWhiteSpace(gameRoot) ? null : System.IO.Path.Combine(path1: gameRoot!, path2: "icon.png");
@@ -182,10 +196,10 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private async System.Threading.Tasks.Task PlayAsync() {
-        if (_engine is null || string.IsNullOrWhiteSpace(ModuleName)) return;
+        if (AvaloniaGui.Engine is null || string.IsNullOrWhiteSpace(ModuleName)) return;
         try {
             await GUI.Utils.ExecuteEngineOperationAsync(
-                engine: _engine,
+                engine: AvaloniaGui.Engine,
                 moduleName: ModuleName,
                 operationName: "Play",
                 executor: async (onOutput, onEvent, stdin) => {
@@ -199,7 +213,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
                     try {
                         System.Console.SetIn(new GuiStdinRedirectReader(provider: stdin));
-                        return await _engine.GameLauncher.LaunchGameAsync(name: ModuleName);
+                        return await AvaloniaGui.Engine.GameLauncher.LaunchGameAsync(name: ModuleName);
                     } finally {
                         Core.UI.EngineSdk.LocalEventSink = previousSink;
                         Core.UI.EngineSdk.MuteStdoutWhenLocalSink = previousMute;
@@ -214,13 +228,13 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private async System.Threading.Tasks.Task RunAllAsync() {
-        if (_engine is null || string.IsNullOrWhiteSpace(ModuleName)) return;
+        if (AvaloniaGui.Engine is null || string.IsNullOrWhiteSpace(ModuleName)) return;
         try {
             await GUI.Utils.ExecuteEngineOperationAsync(
-                engine: _engine,
+                engine: AvaloniaGui.Engine,
                 moduleName: ModuleName,
                 operationName: "Run All",
-                executor: (onOutput, onEvent, stdin) => _engine.RunAllAsync(gameName: ModuleName, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdin)
+                executor: (onOutput, onEvent, stdin) => AvaloniaGui.Engine.RunAllAsync(gameName: ModuleName, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdin)
             );
             Load();
         } catch (System.Exception ex) {
@@ -230,16 +244,16 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private async System.Threading.Tasks.Task RunOpAsync(OpRow? row) {
-        if (row is null || _engine is null) return;
+        if (row is null || AvaloniaGui.Engine is null) return;
         try {
-            Dictionary<string, Core.Utils.GameModuleInfo> games = _engine.Modules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Utils.GameModuleInfo> games = AvaloniaGui.Engine.Modules(Core.Utils.ModuleFilter.All);
 
             Dictionary<string, object?> answers = new Dictionary<string, object?>();
             await CollectAnswersForOperationAsync(op: row.Op, answers: answers);
 
             // Use embedded execution path (Engine handles engine/lua/js/bms in-process)
             await GUI.Utils.ExecuteEngineOperationAsync(
-                engine: _engine,
+                engine: AvaloniaGui.Engine,
                 moduleName: ModuleName,
                 operationName: row.Name,
                 executor: async (onOutput, onEvent, stdin) => {
@@ -249,17 +263,17 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                     System.IO.TextReader previous = System.Console.In;
                     try {
                         System.Console.SetIn(new GuiStdinRedirectReader(provider: stdin));
-                        bool ok = await _engine.Engino.RunSingleOperationAsync(
+                        bool ok = await AvaloniaGui.Engine.Engino.RunSingleOperationAsync(
                             currentGame: ModuleName,
                             games,
                             op: row.Op,
                             answers,
-                            _engine.EngineConfig,
-                            _engine.ToolResolver,
-                            _engine.GitService,
-                            _engine.GameRegistry,
-                            _engine.CommandService,
-                            _engine.OperationExecution, CancellationToken.None
+                            AvaloniaGui.Engine.EngineConfig,
+                            AvaloniaGui.Engine.ToolResolver,
+                            AvaloniaGui.Engine.GitService,
+                            AvaloniaGui.Engine.GameRegistry,
+                            AvaloniaGui.Engine.CommandService,
+                            AvaloniaGui.Engine.OperationExecution, CancellationToken.None
                         );
                         return ok;
                     } finally {
@@ -279,16 +293,16 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private async System.Threading.Tasks.Task DownloadAsync() {
-        if (_engine is null) return;
+        if (AvaloniaGui.Engine is null) return;
         if (string.IsNullOrWhiteSpace(RegistryUrl)) return;
         try {
             await GUI.Utils.ExecuteEngineOperationAsync(
-                engine: _engine,
+                engine: AvaloniaGui.Engine,
                 moduleName: ModuleName,
                 operationName: $"Download {ModuleName}",
                 executor: async (onOutput, onEvent, stdin) => {
                     onEvent(new Dictionary<string, object?> { ["event"] = "start", ["name"] = ModuleName, ["url"] = RegistryUrl });
-                    bool result = await System.Threading.Tasks.Task.Run(function: () => _engine.DownloadModule(RegistryUrl!));
+                    bool result = await System.Threading.Tasks.Task.Run(function: () => AvaloniaGui.Engine.DownloadModule(RegistryUrl!));
                     onOutput(result ? $"Download complete for {ModuleName}." : $"Download failed for {ModuleName}.", result ? "stdout" : "stderr");
                     onEvent(new Dictionary<string, object?> { ["event"] = "end", ["success"] = result, ["name"] = ModuleName });
                     return result;
@@ -303,8 +317,8 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     private async System.Threading.Tasks.Task OpenFolderAsync() {
         try {
-            if (_engine is null) return;
-            string? path = _engine.GetGamePath(name: ModuleName);
+            if (AvaloniaGui.Engine is null) return;
+            string? path = AvaloniaGui.Engine.GetGamePath(name: ModuleName);
             if (string.IsNullOrWhiteSpace(path) || !System.IO.Directory.Exists(path: path)) {
                 return;
             }
@@ -327,61 +341,89 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private bool IsDownloaded() {
-        if (_engine is null) return false;
+        if (AvaloniaGui.Engine is null) return false;
         string path = System.IO.Path.Combine(path1: Program.rootPath, path2: System.IO.Path.Combine("EngineApps", "Games", _moduleName));
         return System.IO.Directory.Exists(path: path);
     }
 
     private async System.Threading.Tasks.Task CollectAnswersForOperationAsync(Dictionary<string, object?> op, Dictionary<string, object?> answers) {
-        if (!op.TryGetValue(key: "prompts", value: out object? promptsObj) || promptsObj is not IList<object?> prompts) {
+        if (AvaloniaGui.Engine is null) {
             return;
         }
 
-        foreach (object? p in prompts) {
-            if (p is not Dictionary<string, object?> prompt) continue;
-
-            string? name = prompt.TryGetValue(key: "Name", value: out object? n) ? n?.ToString() : null;
-            string? type = prompt.TryGetValue(key: "type", value: out object? tt) ? tt?.ToString() : null;
-            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(type)) continue;
-
-            // honor condition if present
-            if (prompt.TryGetValue(key: "condition", value: out object? cond) && cond is string condName) {
-                if (!answers.TryGetValue(key: condName, value: out object? condVal) || condVal is not bool cb || !cb) {
-                    answers[name] = type == "checkbox" ? new List<object?>() : null;
-                    continue;
-                }
-            }
-
-            switch (type) {
+        Core.Services.OperationsService.PromptHandler handler = async request => {
+            switch (request.Type) {
                 case "confirm": {
-                    bool def = prompt.TryGetValue(key: "default", value: out object? dv) && dv is bool db && db;
-                    bool res = await OperationOutputService.Instance.RequestConfirmPromptAsync(title: name, message: name, defaultValue: def);
-                    answers[name] = res;
-                    break;
+                    bool defVal = request.DefaultValue is bool b && b;
+                    bool res = await OperationOutputService.Instance.RequestConfirmPromptAsync(
+                        title: request.Title,
+                        message: request.Title,
+                        defaultValue: defVal
+                    );
+                    return Core.Services.OperationsService.PromptResponse.FromValue(res);
+                }
+                case "select": {
+                    string hint = request.Choices.Count > 0
+                        ? $"Choices: {string.Join(", ", request.Choices.Select(choice => choice.Label))}"
+                        : "No choices provided";
+                    string? v = await OperationOutputService.Instance.RequestTextPromptAsync(
+                        title: request.Title,
+                        message: hint,
+                        defaultValue: request.DefaultValue?.ToString(),
+                        secret: request.IsSecret
+                    );
+                    if (string.IsNullOrWhiteSpace(v)) {
+                        return request.DefaultValue is not null
+                            ? Core.Services.OperationsService.PromptResponse.UseDefaultValue()
+                            : Core.Services.OperationsService.PromptResponse.FromValue(string.Empty);
+                    }
+                    return Core.Services.OperationsService.PromptResponse.FromValue(v);
                 }
                 case "checkbox": {
-                    // Fallback to comma-separated input prompt
-                    string? hint = prompt.TryGetValue(key: "hint", value: out object? h) ? h?.ToString() : null;
-                    string msg = string.IsNullOrWhiteSpace(hint) ? "Enter comma-separated values" : hint!;
-                    string? v = await OperationOutputService.Instance.RequestTextPromptAsync(title: name, message: msg, defaultValue: null, secret: false);
-                    List<object?> list = new List<object?>();
-                    if (!string.IsNullOrWhiteSpace(v)) {
-                        string[] parts = v.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);
-                        foreach (string s in parts) list.Add(s);
+                    string hint = request.Choices.Count > 0
+                        ? $"Enter comma-separated values (Choices: {string.Join(", ", request.Choices.Select(choice => choice.Label))})"
+                        : "Enter comma-separated values";
+                    string? v = await OperationOutputService.Instance.RequestTextPromptAsync(
+                        title: request.Title,
+                        message: hint,
+                        defaultValue: null,
+                        secret: request.IsSecret
+                    );
+
+                    if (string.IsNullOrWhiteSpace(v)) {
+                        if (request.DefaultValue is IList<object?>) {
+                            return Core.Services.OperationsService.PromptResponse.UseDefaultValue();
+                        }
+                        return Core.Services.OperationsService.PromptResponse.FromValue(new List<object?>());
                     }
-                    answers[name] = list;
-                    break;
+
+                    List<object?> list = new List<object?>();
+                    string[] parts = v.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);
+                    foreach (string s in parts) {
+                        list.Add(s);
+                    }
+                    return Core.Services.OperationsService.PromptResponse.FromValue(list);
                 }
                 case "text":
                 default: {
-                    string label = prompt.TryGetValue(key: "message", value: out object? msgObj) ? msgObj?.ToString() ?? name : name;
-                    string? def = prompt.TryGetValue(key: "default", value: out object? d) ? d?.ToString() : null;
-                    string? v = await OperationOutputService.Instance.RequestTextPromptAsync(title: name, message: label, defaultValue: def, secret: false);
-                    answers[name] = string.IsNullOrEmpty(v) ? def : v;
-                    break;
+                    string? def = request.DefaultValue?.ToString();
+                    string? v = await OperationOutputService.Instance.RequestTextPromptAsync(
+                        title: request.Title,
+                        message: request.Title,
+                        defaultValue: def,
+                        secret: request.IsSecret
+                    );
+                    if (string.IsNullOrWhiteSpace(v)) {
+                        return request.DefaultValue is not null
+                            ? Core.Services.OperationsService.PromptResponse.UseDefaultValue()
+                            : Core.Services.OperationsService.PromptResponse.FromValue(string.Empty);
+                    }
+                    return Core.Services.OperationsService.PromptResponse.FromValue(v);
                 }
             }
-        }
+        };
+
+        await AvaloniaGui.Engine.OperationsService.CollectAnswersAsync(op, answers, handler);
     }
 
     /* :: :: Methods :: END :: */

@@ -33,8 +33,8 @@ internal sealed class ToolsDownloader {
         // Aggregate registry from modular blocks
         Dictionary<string, object?> central = InternalToolRegistry.Assemble();
 
-        // Lockfile at root Tools folder (Tools.local.json)
-        string lockPath = System.IO.Path.Combine(_rootPath, "Tools.local.json");
+        // Lockfile at root Tools folder (centralized name)
+        string lockPath = ToolLockfile.GetPath(_rootPath);
         Dictionary<string, object?> lockData = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
         if (System.IO.File.Exists(lockPath)) {
             try {

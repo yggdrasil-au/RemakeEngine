@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Provides metadata for tools (executable path and optional version) by
-/// consulting Tools.local.json when available, and falling back to IToolResolver.
+/// consulting <see cref="ToolLockfile.ToolLockfileName"/> when available, and falling back to IToolResolver.
 /// </summary>
 internal sealed class ToolMetadataProvider {
     private readonly string _projectRoot;
@@ -16,18 +16,11 @@ internal sealed class ToolMetadataProvider {
     }
 
     internal (string? exe, string? version) ResolveExeAndVersion(string toolId) {
-        string[] candidates = new[] {
-            System.IO.Path.Combine(_projectRoot, "Tools.local.json"),
-            System.IO.Path.Combine(_projectRoot, "tools.local.json"),
-        };
-        string? jsonPath = null;
-        foreach (string c in candidates) {
-            if (System.IO.File.Exists(c)) { jsonPath = c; break; }
-        }
+        string jsonPath = ToolLockfile.GetPath(_projectRoot);
 
-        if (!string.IsNullOrWhiteSpace(jsonPath)) {
+        if (System.IO.File.Exists(jsonPath)) {
             try {
-                using System.IO.FileStream fs = System.IO.File.OpenRead(jsonPath!);
+            using System.IO.FileStream fs = System.IO.File.OpenRead(jsonPath);
                 using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(fs);
                 if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object) {
                     foreach (System.Text.Json.JsonProperty prop in doc.RootElement.EnumerateObject()) {

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,12 +17,32 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
 
     private readonly object _lock = new object();
 
-    public OperationOutputService() { }
+    public OperationOutputService() {
+        Lines.CollectionChanged += OnLinesCollectionChanged;
+    }
 
     /// <summary>
     /// Shared output lines collection. Thread-safe via Dispatcher.
     /// </summary>
     public ObservableCollection<OutputLine> Lines { get; } = new ObservableCollection<OutputLine>();
+
+    private readonly HashSet<OutputLine> _trackedLines = new HashSet<OutputLine>();
+    private string _fullLogText = string.Empty;
+    private bool _isFullLogDirty = true;
+
+    /// <summary>
+    /// Combined output text for log selection and clipboard copy.
+    /// </summary>
+    public string FullLogText {
+        get {
+            if (_isFullLogDirty) {
+                _fullLogText = BuildFullLogText();
+                _isFullLogDirty = false;
+            }
+
+            return _fullLogText;
+        }
+    }
 
     public ObservableCollection<ActiveJob> ActiveJobs { get; } = new ObservableCollection<ActiveJob>();
 
@@ -186,6 +207,61 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
         if (removed > 0 && _progressPanelInsertIndex >= 0) {
             _progressPanelInsertIndex = System.Math.Max(0, _progressPanelInsertIndex - removed);
         }
+    }
+
+    private void OnLinesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {
+        if (e.Action == NotifyCollectionChangedAction.Reset) {
+            foreach (OutputLine line in _trackedLines) {
+                line.PropertyChanged -= OnLinePropertyChanged;
+            }
+            _trackedLines.Clear();
+            MarkFullLogDirty();
+            return;
+        }
+
+        if (e.OldItems != null) {
+            foreach (object? item in e.OldItems) {
+                if (item is OutputLine line && _trackedLines.Remove(line)) {
+                    line.PropertyChanged -= OnLinePropertyChanged;
+                }
+            }
+        }
+
+        if (e.NewItems != null) {
+            foreach (object? item in e.NewItems) {
+                if (item is OutputLine line && _trackedLines.Add(line)) {
+                    line.PropertyChanged += OnLinePropertyChanged;
+                }
+            }
+        }
+
+        MarkFullLogDirty();
+    }
+
+    private void OnLinePropertyChanged(object? sender, PropertyChangedEventArgs e) {
+        if (e.PropertyName == nameof(OutputLine.Text)) {
+            MarkFullLogDirty();
+        }
+    }
+
+    private void MarkFullLogDirty() {
+        _isFullLogDirty = true;
+        OnPropertyChanged(nameof(FullLogText));
+    }
+
+    private string BuildFullLogText() {
+        if (Lines.Count == 0) {
+            return string.Empty;
+        }
+
+        System.Text.StringBuilder builder = new System.Text.StringBuilder(_currentChars + Lines.Count);
+        for (int i = 0; i < Lines.Count; i++) {
+            if (i > 0) {
+                builder.Append('\n');
+            }
+            builder.Append(Lines[i].Text);
+        }
+        return builder.ToString();
     }
 
     /// <summary>

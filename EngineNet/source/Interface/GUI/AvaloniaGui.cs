@@ -16,7 +16,7 @@ internal static class AvaloniaGui {
     /// </summary>
     internal static Core.Engine.Engine Engine {
         get; private set;
-    } = null!; // Initialized in Run()
+    } = init(); // Initialized in Run()
 
     /// <summary>
     /// Launches the Avalonia desktop application with the provided engine.
@@ -50,6 +50,44 @@ internal static class AvaloniaGui {
             System.Console.Error.WriteLine(value: $"GUI error: {ex.Message}");
             return 1;
         }
+    }
+
+
+    /// <summary>
+    /// initialise the engine when the not run via program, for avalonia previewer, this is not used in normal flow, but allows the previewer to operate like the gui normally
+    /// </summary>
+    /// <returns></returns>
+    private static Core.Engine.Engine init() {
+        if (Engine == null) {
+            var tools = new Core.ExternalTools.JsonToolResolver();
+            var engineConfig = new Core.EngineConfig();
+
+            var gameRegistry = new Core.Services.GameRegistry();
+
+            var _gameLauncher = new Core.Services.GameLauncher(gameRegistry, tools, engineConfig, Program.rootPath);
+            var _opsLoader = new Core.Services.OperationsLoader();
+            var _gitService = new Core.Services.GitService();
+            var _commandService = new Core.Services.CommandService();
+            var _operationsService = new Core.Services.OperationsService(_opsLoader, gameRegistry);
+
+            var operationExecution = new Core.Engine.OperationExecution();
+            var Engino = new Core.Engine.Engino();
+
+            Core.Engine.Engine _engine = new Core.Engine.Engine(
+                gameRegistry: gameRegistry,
+                gameLauncher: _gameLauncher,
+                operationsLoader: _opsLoader,
+                operationsService: _operationsService,
+                gitService: _gitService,
+                commandService: _commandService,
+                toolResolver: tools,
+                engineConfig: engineConfig,
+                operationExecution: operationExecution,
+                engino: Engino
+            );
+            return _engine;
+        }
+        return Engine;
     }
 
     /// <summary>

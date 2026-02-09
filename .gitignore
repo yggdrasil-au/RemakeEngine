@@ -28,7 +28,7 @@ obj/
 ############################
 EngineApps/Games/**/Tools/
 Tools/**
-Tools.local.json
+Tools.installed.json
 
 ############################
 # Documentation (external repos)

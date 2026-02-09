@@ -1,5 +1,6 @@
 
 using System.Linq;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -303,155 +304,96 @@ internal partial class TUI {
 
     private bool CollectAnswersForOperation(Dictionary<string, object?> op, Dictionary<string, object?> answers, bool defaultsOnly) {
         try {
-            if (!op.TryGetValue("prompts", out object? promptsObj) || promptsObj is not IList<object?> prompts) {
-                return true;
+            if (_engine is null) {
+                return false;
             }
 
-            // Helper to set an empty value based on prompt type
-            static object? EmptyForType(string t) => t switch {
-                "confirm" => false,
-                "checkbox" => new List<object?>(),
-                "select" => null,
-                _ => null
-            };
-
-            if (defaultsOnly) {
-                // In defaultsOnly mode, we don't prompt. Apply defaults while respecting conditions.
-                foreach (object? p in prompts) {
-                    if (p is not Dictionary<string, object?> prompt) {
-                        continue;
-                    }
-
-                    string name = prompt.TryGetValue("Name", out object? n) ? n?.ToString() ?? "" : (prompt.TryGetValue("name", out object? n2) ? n2?.ToString() ?? "" : "");
-                    string type = prompt.TryGetValue("type", out object? t) ? t?.ToString() ?? "" : (prompt.TryGetValue("Type", out object? t2) ? t2?.ToString() ?? "" : "");
-                    if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(type)) {
-                        continue;
-                    }
-
-                    // Evaluate condition if present using current 'answers' state
-                    if (prompt.TryGetValue("condition", out object? condObj) && condObj is string condName) {
-                        if (!answers.TryGetValue(condName, out object? condVal)) {
-                            // If condition value not yet present, attempt to seed from its default (if a matching prompt exists earlier or later)
-                            // Find the prompt with Name == condName and use its default if any
-                            foreach (object? q in prompts) {
-                                if (q is Dictionary<string, object?> qp && (qp.TryGetValue("Name", out object? qn) ? qn?.ToString() : (qp.TryGetValue("name", out object? qn2) ? qn2?.ToString() : null)) == condName) {
-                                    if (!answers.ContainsKey(condName) && qp.TryGetValue("default", out object? cd)) {
-                                        answers[condName] = cd;
-                                    }
-
-                                    break;
-                                }
-                            }
-                        }
-                        if (!answers.TryGetValue(condName, out object? cv) || cv is not bool cb || !cb) {
-                            // Condition is false -> set empty value and skip
-                            answers[name] = EmptyForType(type);
-                            continue;
-                        }
-                    }
-
-                    answers[name] = prompt.TryGetValue("default", out object? defVal) ? defVal : EmptyForType(type);
-                }
-                return true;
-            }
-
-            // Interactive mode: walk prompts in order, honoring conditions
-            foreach (object? p in prompts) {
-                if (p is not Dictionary<string, object?> prompt) {
-                    continue;
-                }
-
-                string? name = prompt.TryGetValue("Name", out object? n) ? n?.ToString() : (prompt.TryGetValue("name", out object? n2) ? n2?.ToString() : null);
-                string? type = prompt.TryGetValue("type", out object? tt) ? tt?.ToString() : (prompt.TryGetValue("Type", out object? tt2) ? tt2?.ToString() : null);
-                if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(type)) {
-                    continue;
-                }
-
-                // Prefer 'message' or 'Message' or 'prompt' for the display label
-                string displayLabel = "unnamed";
-                if (prompt.TryGetValue("message", out object? m) && m != null) displayLabel = m.ToString()!;
-                else if (prompt.TryGetValue("Message", out object? m2) && m2 != null) displayLabel = m2.ToString()!;
-                else if (prompt.TryGetValue("prompt", out object? m3) && m3 != null) displayLabel = m3.ToString()!;
-                else if (!string.IsNullOrEmpty(name)) displayLabel = name;
-
-                // If there's a condition and it's false, skip asking and assign an empty value
-                if (prompt.TryGetValue("condition", out object? cond) && cond is string condName && (!answers.TryGetValue(condName, out object? condVal) || condVal is not bool b || !b)) {
-                    answers[name] = EmptyForType(type);
-                    continue;
-                }
-
-                switch (type) {
+            Core.Services.OperationsService.PromptHandler handler = request => {
+                switch (request.Type) {
                     case "select": {
-                        List<string> choicesList = new();
-                        HashSet<int>? disabled = null;
-
-                        if (prompt.TryGetValue("choices_provider", out object? providerObj) && providerObj?.ToString() == "registry_modules") {
-                            var result = GetRegistryModulesChoices();
-                            choicesList = result.choices;
-                            disabled = result.disabled;
-                        } else if (prompt.TryGetValue("choices", out object? chObj) && chObj is IList<object?> chList) {
-                            choicesList = chList.Select(x => x?.ToString() ?? "").ToList();
-                        }
+                        List<string> choicesList = request.Choices.Select(choice => choice.Label).ToList();
+                        HashSet<int> disabled = request.Choices
+                            .Select((choice, index) => new { choice.IsDisabled, index })
+                            .Where(entry => entry.IsDisabled)
+                            .Select(entry => entry.index)
+                            .ToHashSet();
 
                         if (choicesList.Count == 0) {
-                            System.Console.WriteLine($"No choices available for {displayLabel}.");
-                            answers[name] = null;
-                            break;
+                            System.Console.WriteLine($"No choices available for {request.Title}.");
+                            if (request.DefaultValue is not null) {
+                                return Task.FromResult(Core.Services.OperationsService.PromptResponse.UseDefaultValue());
+                            }
+                            return Task.FromResult(Core.Services.OperationsService.PromptResponse.FromValue(null));
                         }
 
-                        System.Console.WriteLine($"{displayLabel}:");
+                        System.Console.WriteLine($"{request.Title}:");
                         int selIdx = SelectFromMenu(choicesList, highlightSeparators: false, disabledIndices: disabled);
-                        if (selIdx < 0) return false; // Cancelled via Escape
-                        answers[name] = choicesList[selIdx];
-                        break;
+                        if (selIdx < 0) {
+                            return Task.FromResult(Core.Services.OperationsService.PromptResponse.Cancelled());
+                        }
+                        return Task.FromResult(Core.Services.OperationsService.PromptResponse.FromValue(choicesList[selIdx]));
                     }
                     case "confirm": {
-                        // Show default hint when available
-                        string defHint = prompt.TryGetValue("default", out object? dv) && dv is bool db ? (db ? "Y" : "N") : "N";
-                        System.Console.Write($"{displayLabel} [y/N] (default {defHint}): ");
+                        bool defVal = request.DefaultValue is bool b && b;
+                        string defHint = defVal ? "Y" : "N";
+                        System.Console.Write($"{request.Title} [y/N] (default {defHint}): ");
                         string? c = ReadLineWithCancel(out bool cancelled);
-                        if (cancelled) return false;
+                        if (cancelled) {
+                            return Task.FromResult(Core.Services.OperationsService.PromptResponse.Cancelled());
+                        }
 
-                        bool val = c != null && c.Trim().Length > 0
-                            ? c.Trim().StartsWith("y", System.StringComparison.OrdinalIgnoreCase)
-                            : (prompt.TryGetValue("default", out object? d) && d is bool bd && bd);
-                        answers[name] = val;
-                        break;
+                        if (string.IsNullOrWhiteSpace(c)) {
+                            return Task.FromResult(Core.Services.OperationsService.PromptResponse.UseDefaultValue());
+                        }
+
+                        bool val = c.Trim().StartsWith("y", System.StringComparison.OrdinalIgnoreCase);
+                        return Task.FromResult(Core.Services.OperationsService.PromptResponse.FromValue(val));
                     }
-
                     case "checkbox": {
-                        // Present choices if available
-                        if (prompt.TryGetValue("choices", out object? ch) && ch is IList<object?> choices && choices.Count > 0) {
-                            System.Console.WriteLine($"{displayLabel} - choose one or more (comma-separated). Choices: {string.Join(", ", choices.Select(x => x?.ToString()))}");
+                        if (request.Choices.Count > 0) {
+                            System.Console.WriteLine($"{request.Title} - choose one or more (comma-separated). Choices: {string.Join(", ", request.Choices.Select(x => x.Label))}");
                         } else {
-                            System.Console.WriteLine($"{displayLabel} (comma-separated values): ");
+                            System.Console.WriteLine($"{request.Title} (comma-separated values): ");
                         }
+
                         string? line = ReadLineWithCancel(out bool cancelled);
-                        if (cancelled) return false;
-
-                        line ??= string.Empty;
-                        List<object?> selected = line.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries).Cast<object?>().ToList();
-                        // If user entered nothing, fall back to default if provided
-                        if (selected.Count == 0 && prompt.TryGetValue("default", out object? def) && def is IList<object?> defList) {
-                            selected = defList.Select(x => x).ToList();
+                        if (cancelled) {
+                            return Task.FromResult(Core.Services.OperationsService.PromptResponse.Cancelled());
                         }
 
-                        answers[name] = selected;
-                        break;
-                    }
+                        if (string.IsNullOrWhiteSpace(line)) {
+                            if (request.DefaultValue is IList<object?>) {
+                                return Task.FromResult(Core.Services.OperationsService.PromptResponse.UseDefaultValue());
+                            }
+                            return Task.FromResult(Core.Services.OperationsService.PromptResponse.FromValue(new List<object?>()));
+                        }
 
+                        List<object?> selected = line.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries).Cast<object?>().ToList();
+                        return Task.FromResult(Core.Services.OperationsService.PromptResponse.FromValue(selected));
+                    }
                     case "text":
                     default: {
-                        System.Console.Write($"{displayLabel}: ");
+                        System.Console.Write($"{request.Title}: ");
                         string? v = ReadLineWithCancel(out bool cancelled);
-                        if (cancelled) return false;
+                        if (cancelled) {
+                            return Task.FromResult(Core.Services.OperationsService.PromptResponse.Cancelled());
+                        }
 
-                        answers[name] = string.IsNullOrEmpty(v) && prompt.TryGetValue("default", out object? defVal) ? defVal : v;
-                        break;
+                        if (string.IsNullOrWhiteSpace(v)) {
+                            if (request.DefaultValue is not null) {
+                                return Task.FromResult(Core.Services.OperationsService.PromptResponse.UseDefaultValue());
+                            }
+                            return Task.FromResult(Core.Services.OperationsService.PromptResponse.FromValue(string.Empty));
+                        }
+
+                        return Task.FromResult(Core.Services.OperationsService.PromptResponse.FromValue(v));
                     }
                 }
-            }
-            return true;
+            };
+
+            return _engine.OperationsService.CollectAnswersAsync(op, answers, handler, defaultsOnly)
+                .GetAwaiter()
+                .GetResult();
         } catch (System.Exception ex) {
             Core.Diagnostics.Bug($"[TUI.private.cs::PromptUser()] Error during interactive prompts: {ex.Message}");
             return false;

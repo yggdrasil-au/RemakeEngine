@@ -110,52 +110,32 @@ internal partial class TUI {
                 //return 1;
                 return await RunInteractiveMenuAsync("Selected game is missing operations file. Please choose again.");
             }
-            // get all operations for the selected game
-            List<Dictionary<string, object?>>? allOps = _engine.LoadOperationsList(info.OpsFile);
-            if (allOps is null) {
-                Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Failed to load operations list.");
-                System.Console.WriteLine($"Failed to load operations file for '{gameName}'.\nPress any key to exit...");
+            Core.Services.OperationsService.PreparedOperations preparedOps = _engine.OperationsService.LoadAndPrepare(info.OpsFile);
+            if (!preparedOps.IsLoaded) {
+                string message = preparedOps.ErrorMessage ?? "Failed to load operations list.";
+                Core.Diagnostics.Log($"[TUI::RunInteractiveMenuAsync()] {message}");
+                System.Console.WriteLine($"{message} Press any key to exit...");
                 SafeReadKey(true);
                 Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Exiting due to failed ops load.");
                 return 1;
             }
 
-            HashSet<long> seenIds = new HashSet<long>();
-            HashSet<long> duplicateIds = new HashSet<long>();
-
-            foreach (var op in allOps) {
-                if (op.TryGetValue("id", out object? idObj) && idObj != null) {
-                    try {
-                        long idVal = System.Convert.ToInt64(idObj);
-                        if (!seenIds.Add(idVal)) {
-                            duplicateIds.Add(idVal);
-                        }
-                    } catch {
-                        // Ignore parse errors here, strictly checking for numeric duplicates
-                    }
+            if (preparedOps.Warnings.Count > 0) {
+                foreach (string warning in preparedOps.Warnings) {
+                    Core.Diagnostics.Log($"[TUI::RunInteractiveMenuAsync()] Warning: {warning}");
                 }
             }
 
-            // separate init operations from regular ones
-            List<Dictionary<string, object?>> initOps = allOps.FindAll(op => op.TryGetValue(key: "init", out object? i) && i is bool b && b);
-            List<Dictionary<string, object?>> regularOps = allOps.FindAll(op => !op.ContainsKey(key: "init") || !(op[key: "init"] is bool bb && bb));
-
-            // Check if any operation has run-all enabled
-            bool hasRunAll = allOps.Any(op =>
-                (op.TryGetValue("run-all", out object? ra1) && ra1 is bool b1 && b1) ||
-                (op.TryGetValue("run_all", out object? ra2) && ra2 is bool b2 && b2)
-            );
-
             // Auto-run init operations once when a game is selected
-            if (initOps.Count > 0) {
+            if (preparedOps.InitOperations.Count > 0) {
                 SafeClear();
-                System.Console.WriteLine(value: $"Running {initOps.Count} initialization operation(s) for {gameName}\n");
+                System.Console.WriteLine(value: $"Running {preparedOps.InitOperations.Count} initialization operation(s) for {gameName}\n");
                 bool okAllInit = true;
-                foreach (Dictionary<string, object?> op in initOps) {
+                foreach (Core.Services.OperationsService.PreparedOperation op in preparedOps.InitOperations) {
                     Dictionary<string, object?> answers = new Dictionary<string, object?>();
                     // Initialization runs non-interactively; use defaults when provided
-                    CollectAnswersForOperation(op, answers, defaultsOnly: true);
-                    bool ok = new Utils().ExecuteOp(_engine, gameName, allAvailableModules, op, answers);
+                    CollectAnswersForOperation(op.Operation, answers, defaultsOnly: true);
+                    bool ok = new Utils().ExecuteOp(_engine, gameName, allAvailableModules, op.Operation, answers);
                     okAllInit &= ok;
                 }
                 //didRunInit = true;
@@ -181,7 +161,7 @@ internal partial class TUI {
                 }
 
                 // Show "Run All" only for non-internal modules and if there are operations with run-all flags
-                bool showRunAll = !info.IsInternal && hasRunAll;
+                bool showRunAll = !info.IsInternal && preparedOps.HasRunAll;
                 if (showRunAll) {
                     menu.Add(item: "Run All");
                     menu.Add(item: "---------------");
@@ -190,30 +170,12 @@ internal partial class TUI {
 
                 // list regular operations
                 // for each operation, display its "Name" entry if exists, or just display 'unnamed'
-                foreach (Dictionary<string, object?> op in regularOps) {
-                    string name;
-                    // First choice: explicit "Name" entry if it's a non-empty string
-                    if (op.TryGetValue(key: "Name", out object? n) &&
-                        n is string s &&
-                        !string.IsNullOrWhiteSpace(s)) {
-                        name = s;
-                    } else {
-                        name = "(unnamed)";
-                    }
-
-                    if (op.TryGetValue("id", out object? idObj) && idObj != null) {
-                        try {
-                            long idVal = System.Convert.ToInt64(idObj);
-                            if (duplicateIds.Contains(idVal)) {
-                                name = $"[!! DUPLICATE ID: {idVal} !!] {name}";
-                            }
-                        } catch {
-                            // If ID isn't a valid number, you might want to flag that too
-                            name = $"[!! INVALID ID !!] {name}";
-                        }
-                    } else {
-                        // Optional: Flag missing IDs if strict validation is required
-                        // name = $"[NO ID] {name}";
+                foreach (Core.Services.OperationsService.PreparedOperation op in preparedOps.RegularOperations) {
+                    string name = op.DisplayName;
+                    if (op.HasDuplicateId) {
+                        name = $"[dup-id] {name}";
+                    } else if (op.HasInvalidId) {
+                        name = $"[invalid-id] {name}";
                     }
 
                     menu.Add(item: name);
@@ -280,8 +242,8 @@ internal partial class TUI {
 
                 // Otherwise, run a single operation (by index within regular ops)
                 int opIndex = idx - opStartIndex;
-                if (opIndex >= 0 && opIndex < regularOps.Count) {
-                    Dictionary<string, object?> op = regularOps[opIndex];
+                if (opIndex >= 0 && opIndex < preparedOps.RegularOperations.Count) {
+                    Dictionary<string, object?> op = preparedOps.RegularOperations[opIndex].Operation;
                     Dictionary<string, object?> answers = new Dictionary<string, object?>();
                     // For manual single-op run, prompt interactively
                     if (CollectAnswersForOperation(op, answers, defaultsOnly: false)) {

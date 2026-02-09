@@ -1,6 +1,6 @@
 [[operations]]
     Name = "Download from Git URL"
-    id = "engine_download_git"
+    id = "1"
     description = "Clone a game repository from a Git URL."
     script = "download_module_git"
     script_type = "internal"
@@ -11,7 +11,7 @@
 
 [[operations]]
     Name = "Download from Registry"
-    id = "engine_download_registry"
+    id = "2"
     description = "Clone a game repository from the known registry list."
     script = "download_module_registry"
     script_type = "internal"

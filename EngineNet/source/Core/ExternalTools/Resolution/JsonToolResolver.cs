@@ -9,20 +9,18 @@ namespace EngineNet.Core.ExternalTools;
 
 /// <summary>
 /// Loads tool paths from JSON. Supports modular registry aggregation and version-aware resolution.
-/// Prioritizes Tools.local.json for persistent installations.
+/// Prioritizes <see cref="ToolLockfile.ToolLockfileName"/> for persistent installations.
 /// </summary>
 internal sealed class JsonToolResolver:IToolResolver {
     // ToolName -> Version -> ExePath
     private readonly Dictionary<string, Dictionary<string, string>> _tools = new Dictionary<string, Dictionary<string, string>>(System.StringComparer.OrdinalIgnoreCase);
-    
-    private readonly string[] _candidates;
+
+    private readonly string _lockfilePath;
     private string? _loadedFile;
     private System.DateTime _lastWriteTime;
 
     internal JsonToolResolver() {
-        _candidates = new[] {
-            System.IO.Path.Combine(Program.rootPath, "Tools.local.json"),
-        };
+        _lockfilePath = ToolLockfile.GetPath(Program.rootPath);
         Load();
     }
 
@@ -30,7 +28,7 @@ internal sealed class JsonToolResolver:IToolResolver {
     /// Loads or reloads the tool definitions from the local tracking file.
     /// </summary>
     private void Load() {
-        string? found = _candidates.FirstOrDefault(System.IO.File.Exists);
+        string? found = System.IO.File.Exists(_lockfilePath) ? _lockfilePath : null;
 
         if (found == null) {
             if (_loadedFile != null) {
@@ -52,7 +50,7 @@ internal sealed class JsonToolResolver:IToolResolver {
                 string _baseDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(found)) ?? System.IO.Directory.GetCurrentDirectory();
                 using System.IO.FileStream stream = System.IO.File.OpenRead(found);
                 using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(stream);
-                
+
                 if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object) {
                     foreach (System.Text.Json.JsonProperty toolProp in doc.RootElement.EnumerateObject()) {
                         string toolName = toolProp.Name;
@@ -122,19 +120,19 @@ internal sealed class JsonToolResolver:IToolResolver {
 
     public string ResolveToolPath(string toolId, string? version = null) {
         Load();
-        
+
         if (_tools.TryGetValue(toolId, out var versions)) {
             if (version != null && versions.TryGetValue(version, out string? path)) {
                 return path;
             }
-            
+
             // If no version specified or not found, try to find the "latest"
             // For now, just pick the last one available (which should be latest if added chronologically)
             if (versions.Count > 0) {
                 return versions.Values.Last();
             }
         }
-        
+
         return toolId;
     }
 }

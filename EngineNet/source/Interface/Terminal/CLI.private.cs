@@ -40,18 +40,40 @@ internal partial class CLI {
                 throw new System.ArgumentException($"Game '{game}' missing ops_file.");
             }
             // Load and validate operations
-            List<Dictionary<string, object?>>? doc = _engine.LoadOperationsList(opsFile);
-            if (doc is null || doc.Count == 0) {
+            Core.Services.OperationsService.PreparedOperations preparedOps = _engine.OperationsService.LoadAndPrepare(opsFile);
+            if (!preparedOps.IsLoaded) {
+                System.Console.WriteLine(preparedOps.ErrorMessage ?? "Failed to load operations.");
+                return 1;
+            }
+
+            if (preparedOps.InitOperations.Count == 0 && preparedOps.RegularOperations.Count == 0) {
                 System.Console.WriteLine($"No operations found for game '{game}'.");
                 Core.Diagnostics.Log($"No operations found in ops_file '{opsFile}' for game '{game}'.");
                 return 0;
             }
+
+            if (preparedOps.Warnings.Count > 0) {
+                foreach (string warning in preparedOps.Warnings) {
+                    Core.Diagnostics.Log($"[CLI::ListOps()] Warning: {warning}");
+                }
+                System.Console.ForegroundColor = System.ConsoleColor.Yellow;
+                System.Console.WriteLine("Validation Warnings:");
+                foreach (string warning in preparedOps.Warnings) {
+                    System.Console.WriteLine($"  • {warning}");
+                }
+                System.Console.ResetColor();
+                System.Console.WriteLine();
+            }
+
             // Print operations
             System.Console.WriteLine($"Operations for game '{game}':");
-            foreach (Dictionary<string, object?> op in doc) {
-                if (op.TryGetValue("name", out object? nameObj) && nameObj is string name) {
-                    System.Console.WriteLine($"- {name}");
-                }
+            foreach (Core.Services.OperationsService.PreparedOperation op in preparedOps.InitOperations) {
+                string prefix = op.HasDuplicateId ? "[dup-id] " : op.HasInvalidId ? "[invalid-id] " : string.Empty;
+                System.Console.WriteLine($"- [init] {prefix}{op.DisplayName}");
+            }
+            foreach (Core.Services.OperationsService.PreparedOperation op in preparedOps.RegularOperations) {
+                string prefix = op.HasDuplicateId ? "[dup-id] " : op.HasInvalidId ? "[invalid-id] " : string.Empty;
+                System.Console.WriteLine($"- {prefix}{op.DisplayName}");
             }
 
             return 0;
