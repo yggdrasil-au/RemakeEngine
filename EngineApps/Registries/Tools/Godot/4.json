@@ -26,7 +26,8 @@
         },
         "win-x64": {
             "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_win64.exe.zip",
-            "sha256": "303206071cb8be502cfa5b1e2b37b848c280347c03f78dcc2eb8a630857f7d10"
+            "sha256": "303206071cb8be502cfa5b1e2b37b848c280347c03f78dcc2eb8a630857f7d10",
+            "exe_name": "Godot_v4.5-stable_win64.exe"
         },
         "win-arm64": {
             "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_windows_arm64.exe.zip",
@@ -64,7 +65,8 @@
         },
         "win-x64": {
             "url": "https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_win64.exe.zip",
-            "sha256": "5c9177625c0dca18c92ba6328203c7b5a9596c85ef9d7c968396f0272d8f10d9"
+            "sha256": "5c9177625c0dca18c92ba6328203c7b5a9596c85ef9d7c968396f0272d8f10d9",
+            "exe_name": "Godot_v4.6-stable_win64.exe"
         },
         "win-arm64": {
             "url": "https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_windows_arm64.exe.zip",

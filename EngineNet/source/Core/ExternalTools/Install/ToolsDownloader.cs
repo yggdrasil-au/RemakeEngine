@@ -450,7 +450,10 @@ internal sealed class ToolsDownloader {
 
         if (string.IsNullOrWhiteSpace(foundPath)) {
             foundPath = SearchForFile(root, $"{toolName}.exe")
-                ?? SearchForFile(root, toolName);
+                ?? SearchForFile(root, toolName)
+                ?? SearchForFile(root, $"{toolName}*.exe") // Fallback for versioned executables like Godot
+                ?? SearchForFile(root, $"*{toolName}*.exe")
+                ?? SearchForFile(root, $"*{toolName}*");
         }
 
         if (!string.IsNullOrWhiteSpace(foundPath)) {

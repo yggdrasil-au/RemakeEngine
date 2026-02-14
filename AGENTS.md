@@ -38,18 +38,18 @@ This is the main game module used to develop the engine, it is also a real proje
 ```
 This is the documentation repository for the Remake Engine.
 ```
-[submodule "RemakeEngineDocs"]
+[submodule "RemakeEngineDocs"
     path = RemakeEngineDocs
     url = https://github.com/yggdrasil-au/RemakeEngineDocs.git
 ```
 
 Always test Engine functionality with the demo game module "demo" when making changes to the engine, using the cli direct operation execution commands
 ```pwsh
-dotnet run -c Release --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo\" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua" --args '["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo", "--prompt", "prompt overide", "--note", "This is a note from the prompt"]'
+dotnet run -c Release --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo\" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua" --args '"--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo", "--prompt", "prompt overide", "--note", "This is a note from the prompt"'
 ```
 or
 ```pwsh
-dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo\" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua" --args '["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo", "--prompt", "prompt overide", "--note", "This is a note from the prompt"]'
+dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo\" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua" --args '"--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo", "--prompt", "prompt overide", "--note", "This is a note from the prompt"'
 ```
 when adding new new features, or changing existing features update the lua script to demonstrate the feature in the demo game module located at `{{Game_Root}}/scripts/lua_feature_demo.lua`
 

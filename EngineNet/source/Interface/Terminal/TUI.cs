@@ -1,6 +1,6 @@
 
 using System.Collections.Generic;
-using Microsoft.VisualBasic;
+using System.Diagnostics;
 
 namespace EngineNet.Interface.Terminal;
 
@@ -20,6 +20,7 @@ internal partial class TUI {
     /// Run the interactive terminal user interface menu
     /// - allows selecting a game and operations to run
     /// - runs initialization operations automatically once per game selection
+    /// - appends completion time summaries after operations
     /// </summary>
     /// <returns></returns>
     internal async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync(string? msg = null) {
@@ -130,6 +131,7 @@ internal partial class TUI {
             if (preparedOps.InitOperations.Count > 0) {
                 SafeClear();
                 System.Console.WriteLine(value: $"Running {preparedOps.InitOperations.Count} initialization operation(s) for {gameName}\n");
+                Stopwatch initStopwatch = Stopwatch.StartNew();
                 bool okAllInit = true;
                 foreach (Core.Services.OperationsService.PreparedOperation op in preparedOps.InitOperations) {
                     Dictionary<string, object?> answers = new Dictionary<string, object?>();
@@ -138,10 +140,12 @@ internal partial class TUI {
                     bool ok = new Utils().ExecuteOp(_engine, gameName, allAvailableModules, op.Operation, answers);
                     okAllInit &= ok;
                 }
+                initStopwatch.Stop();
                 //didRunInit = true;
+                Core.Diagnostics.Trace($"[TUI::RunInteractiveMenuAsync()] Completed init operations for {gameName} in {FormatElapsed(initStopwatch.Elapsed)}. Success: {okAllInit}");
                 System.Console.WriteLine(okAllInit
-                    ? "Initialization completed successfully. Press any key to continue..."
-                    : "One or more init operations failed. Press any key to continue...");
+                    ? $"Initialization completed successfully. Time: {FormatElapsed(initStopwatch.Elapsed)}. Press any key to continue..."
+                    : $"One or more init operations failed. Time: {FormatElapsed(initStopwatch.Elapsed)}. Press any key to continue...");
                 SafeReadKey(intercept: true);
             }
 
@@ -227,11 +231,13 @@ internal partial class TUI {
                         SafeClear();
                         System.Console.WriteLine($"Running operations for {gameName}...\n");
 
+                        Stopwatch runAllStopwatch = Stopwatch.StartNew();
                         Core.Engine.RunAllResult result = await _engine.RunAllAsync(gameName, onOutput: Utils.OnOutput, onEvent: Utils.OnEvent, stdinProvider: null);
+                        runAllStopwatch.Stop();
 
                         System.Console.WriteLine(result.Success
-                            ? $"Completed successfully. ({result.SucceededOperations}/{result.TotalOperations} operations succeeded). Press any key to continue..."
-                            : $"One or more operations failed. ({result.SucceededOperations}/{result.TotalOperations} operations succeeded). Press any key to continue...");
+                            ? $"Completed successfully. ({result.SucceededOperations}/{result.TotalOperations} operations succeeded). Time: {FormatElapsed(runAllStopwatch.Elapsed)}. Press any key to continue..."
+                            : $"One or more operations failed. ({result.SucceededOperations}/{result.TotalOperations} operations succeeded). Time: {FormatElapsed(runAllStopwatch.Elapsed)}. Press any key to continue...");
                         SafeReadKey(true);
                         continue;
                     } catch (System.Exception ex) {
@@ -249,8 +255,12 @@ internal partial class TUI {
                     if (CollectAnswersForOperation(op, answers, defaultsOnly: false)) {
                         SafeClear();
                         System.Console.WriteLine($"Running: {selection}\n");
+                        Stopwatch opStopwatch = Stopwatch.StartNew();
                         bool ok = new Utils().ExecuteOp(_engine, gameName, allAvailableModules, op, answers);
-                        System.Console.WriteLine(ok ? "Completed successfully. Press any key to continue..." : "Operation failed. Press any key to continue...");
+                        opStopwatch.Stop();
+                        System.Console.WriteLine(ok
+                            ? $"Completed successfully. Time: {FormatElapsed(opStopwatch.Elapsed)}. Press any key to continue..."
+                            : $"Operation failed. Time: {FormatElapsed(opStopwatch.Elapsed)}. Press any key to continue...");
                         SafeReadKey(true);
                     }
                 }

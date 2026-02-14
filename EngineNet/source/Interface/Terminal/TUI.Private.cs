@@ -9,6 +9,21 @@ namespace EngineNet.Interface.Terminal;
 internal partial class TUI {
 
     /// <summary>
+    /// Formats elapsed time for completion summaries.
+    /// </summary>
+    private static string FormatElapsed(System.TimeSpan elapsed) {
+        if (elapsed.TotalSeconds < 60) {
+            return $"{elapsed.TotalSeconds:0.0}s";
+        }
+
+        if (elapsed.TotalMinutes < 60) {
+            return $"{elapsed.Minutes}m {elapsed.Seconds:D2}s";
+        }
+
+        return $"{(int)elapsed.TotalHours}h {elapsed.Minutes:D2}m {elapsed.Seconds:D2}s";
+    }
+
+    /// <summary>
     /// Safely clears the console if it is not redirected and supported.
     /// </summary>
     private static void SafeClear() {

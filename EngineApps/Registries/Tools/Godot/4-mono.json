@@ -2,7 +2,8 @@
     "4.4.1-stable-mono": {
         "win-x64-mono": {
             "url": "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_mono_win64.zip",
-            "sha256": ""
+            "sha256": "",
+            "exe_name": "Godot_v4.4.1-stable_mono_win64_console.exe"
         },
         "linux-x64-mono": {
             "url": "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_mono_linux_x86_64.zip",
@@ -40,7 +41,8 @@
         },
         "win-x64": {
             "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_mono_win64.zip",
-            "sha256": "52aa126adbf1b9ddb7eeccdd1bd9889588d8e6b52ba492c2cf8dddab37186a1f"
+            "sha256": "52aa126adbf1b9ddb7eeccdd1bd9889588d8e6b52ba492c2cf8dddab37186a1f",
+            "exe_name": "Godot_v4.5-stable_mono_win64_console.exe"
         },
         "win-arm64": {
             "url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_mono_windows_arm64.zip",
@@ -74,7 +76,8 @@
         },
         "win-x64": {
             "url": "https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_mono_win64.zip",
-            "sha256": "0fb7695215317eb42f6ed6b348905e180eaf4b61369d5e8597a3cc1468cfda61"
+            "sha256": "0fb7695215317eb42f6ed6b348905e180eaf4b61369d5e8597a3cc1468cfda61",
+            "exe_name": "Godot_v4.6-stable_mono_win64_console.exe"
         },
         "win-arm64": {
             "url": "https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_mono_windows_arm64.zip",
