@@ -21,6 +21,12 @@ internal class Utils() {
     private static readonly object s_consoleLock = new();
     private static int _progressPanelTop;
     private static int _progressLastLines;
+    private static readonly List<Dictionary<string, object?>> s_printCache = new();
+
+    private static bool IsPrintType(string? typ) {
+        if (typ == null) return false;
+        return typ == "print" || typ == "warning" || typ == "error" || typ.StartsWith("run-all-");
+    }
 
     /// <summary>
     /// Execute a single operation in the terminal interface, handling events and output appropriately.
@@ -108,10 +114,12 @@ internal class Utils() {
     }
 
     private static void WriteColored(string message, System.ConsoleColor color) {
-        System.ConsoleColor prev = System.Console.ForegroundColor;
-        System.Console.ForegroundColor = color;
-        System.Console.WriteLine(message);
-        System.Console.ForegroundColor = prev;
+        lock (s_consoleLock) {
+            System.ConsoleColor prev = System.Console.ForegroundColor;
+            System.Console.ForegroundColor = color;
+            System.Console.WriteLine(message);
+            System.Console.ForegroundColor = prev;
+        }
     }
 
     private static System.ConsoleColor MapColor(string? name) {
@@ -171,135 +179,143 @@ internal class Utils() {
     }
 
     internal static void OnOutput(string line, string stream) {
-        System.ConsoleColor prev = System.Console.ForegroundColor;
-        try {
-            System.Console.ForegroundColor = stream == "stderr" ? System.ConsoleColor.Red : System.ConsoleColor.Gray;
-            System.Console.WriteLine(line);
-        } finally { System.Console.ForegroundColor = prev; }
+        OnEvent(new Dictionary<string, object?> {
+            ["event"] = "print",
+            ["message"] = line,
+            ["color"] = stream == "stderr" ? "red" : "gray"
+        });
     }
 
     // --- Handlers to bridge SDK events <-> CLI ---
     private static string _lastPrompt = "Input required";
 
     internal static void OnEvent(Dictionary<string, object?> evt) {
-        LogEvent(evt);
-        if (!evt.TryGetValue("event", out object? typObj)) {
-            return;
-        }
+        lock (s_consoleLock) {
+            LogEvent(evt);
+            if (!evt.TryGetValue("event", out object? typObj)) {
+                return;
+            }
 
-        string? typ = typObj?.ToString();
-        System.ConsoleColor prev = System.Console.ForegroundColor;
+            string? typ = typObj?.ToString();
 
-        switch (typ) {
-            case "print":
-                string msg = evt.TryGetValue("message", out object? m) ? m?.ToString() ?? string.Empty : string.Empty;
-                string colorName = evt.TryGetValue("color", out object? c) ? c?.ToString() ?? string.Empty : string.Empty;
-                bool newline = true;
-                try {
-                    if (evt.TryGetValue("newline", out object? nl) && nl is not null) {
-                        newline = System.Convert.ToBoolean(nl);
-                    }
-                } catch { newline = true; }
-                prev = System.Console.ForegroundColor;
-                try {
-                    System.Console.ForegroundColor = MapColor(colorName);
-                    if (newline) {
-                        System.Console.WriteLine(msg);
-                    } else {
-                        System.Console.Write(msg);
-                    }
-                } finally { System.Console.ForegroundColor = prev; }
-                break;
+            if (_progressLastLines > 0 && IsPrintType(typ)) {
+                s_printCache.Add(CloneForLogging(evt));
+                return;
+            }
 
-            case "color_prompt":
-                string promptMsg = evt.TryGetValue("message", out object? pm) ? pm?.ToString() ?? "Input required" : "Input required";
-                string? promptColorName = evt.TryGetValue("color", out object? pc) ? pc?.ToString() : "cyan";
-                _lastPrompt = promptMsg;
-                prev = System.Console.ForegroundColor;
-                try {
-                    System.Console.ForegroundColor = MapColor(promptColorName);
-                    System.Console.WriteLine($"? {_lastPrompt}");
-                } finally { System.Console.ForegroundColor = prev; }
-                break;
+            System.ConsoleColor prev = System.Console.ForegroundColor;
 
-            case "prompt":
-                _lastPrompt = evt.TryGetValue("message", out object? mm) ? mm?.ToString() ?? "Input required" : "Input required";
-                prev = System.Console.ForegroundColor;
-                System.Console.ForegroundColor = System.ConsoleColor.Cyan;
-                System.Console.WriteLine($"? {_lastPrompt}");
-                System.Console.ForegroundColor = prev;
-                break;
-
-            case "confirm":
-                string confirmMsg = evt.TryGetValue("message", out object? cm) ? cm?.ToString() ?? "Confirm?" : "Confirm?";
-                bool def = evt.TryGetValue("default", out object? d) && d is bool db && db;
-                _lastPrompt = confirmMsg;
-                prev = System.Console.ForegroundColor;
-                System.Console.ForegroundColor = System.ConsoleColor.Cyan;
-                System.Console.WriteLine($"? {confirmMsg} [{(def ? "Y/n" : "y/N")}]");
-                System.Console.ForegroundColor = prev;
-                break;
-
-            case "warning":
-                WriteColored($"⚠ {evt.GetValueOrDefault("message", "")}", System.ConsoleColor.Yellow);
-                break;
-
-            case "error":
-                WriteColored($"✖ {evt.GetValueOrDefault("message", "")}", System.ConsoleColor.Red);
-                break;
-
-            case "progress_panel_start":
-                int reserve = 12; // default
-                if (evt.TryGetValue("reserve", out object? r) && r is System.IConvertible rc) {
+            switch (typ) {
+                case "print":
+                    string msg = evt.TryGetValue("message", out object? m) ? m?.ToString() ?? string.Empty : string.Empty;
+                    string colorName = evt.TryGetValue("color", out object? c) ? c?.ToString() ?? string.Empty : string.Empty;
+                    bool newline = true;
                     try {
-                        reserve = rc.ToInt32(null);
-                    } catch {
-                        Core.Diagnostics.Bug("[Utils.cs::OnEvent()] Failed to convert reserve value");
-                        /* ignore */
+                        if (evt.TryGetValue("newline", out object? nl) && nl is not null) {
+                            newline = System.Convert.ToBoolean(nl);
+                        }
+                    } catch { newline = true; }
+                    prev = System.Console.ForegroundColor;
+                    try {
+                        System.Console.ForegroundColor = MapColor(colorName);
+                        if (newline) {
+                            System.Console.WriteLine(msg);
+                        } else {
+                            System.Console.Write(msg);
+                        }
+                    } finally { System.Console.ForegroundColor = prev; }
+                    break;
+
+                case "color_prompt":
+                    string promptMsg = evt.TryGetValue("message", out object? pm) ? pm?.ToString() ?? "Input required" : "Input required";
+                    string? promptColorName = evt.TryGetValue("color", out object? pc) ? pc?.ToString() : "cyan";
+                    _lastPrompt = promptMsg;
+                    prev = System.Console.ForegroundColor;
+                    try {
+                        System.Console.ForegroundColor = MapColor(promptColorName);
+                        System.Console.WriteLine($"? {_lastPrompt}");
+                    } finally { System.Console.ForegroundColor = prev; }
+                    break;
+
+                case "prompt":
+                    _lastPrompt = evt.TryGetValue("message", out object? mm) ? mm?.ToString() ?? "Input required" : "Input required";
+                    prev = System.Console.ForegroundColor;
+                    System.Console.ForegroundColor = System.ConsoleColor.Cyan;
+                    System.Console.WriteLine($"? {_lastPrompt}");
+                    System.Console.ForegroundColor = prev;
+                    break;
+
+                case "confirm":
+                    string confirmMsg = evt.TryGetValue("message", out object? cm) ? cm?.ToString() ?? "Confirm?" : "Confirm?";
+                    bool def = evt.TryGetValue("default", out object? d) && d is bool db && db;
+                    _lastPrompt = confirmMsg;
+                    prev = System.Console.ForegroundColor;
+                    System.Console.ForegroundColor = System.ConsoleColor.Cyan;
+                    System.Console.WriteLine($"? {confirmMsg} [{(def ? "Y/n" : "y/N")}]");
+                    System.Console.ForegroundColor = prev;
+                    break;
+
+                case "warning":
+                    WriteColored($"⚠ {evt.GetValueOrDefault("message", "")}", System.ConsoleColor.Yellow);
+                    break;
+
+                case "error":
+                    WriteColored($"✖ {evt.GetValueOrDefault("message", "")}", System.ConsoleColor.Red);
+                    break;
+
+                case "progress_panel_start":
+                    int reserve = 12; // default
+                    if (evt.TryGetValue("reserve", out object? r) && r is System.IConvertible rc) {
+                        try {
+                            reserve = rc.ToInt32(null);
+                        } catch {
+                            Core.Diagnostics.Bug("[Utils.cs::OnEvent()] Failed to convert reserve value");
+                            /* ignore */
+                        }
                     }
+                    HandleProgressPanelStart(reserve);
+                    break;
+
+                case "progress_panel":
+                    // We have received a progress panel update
+                    // Re-render it in the TUI
+                    HandleProgressPanel(evt);
+                    break;
+
+                case "progress_panel_end":
+                    // The panel is finished, release the console
+                    HandleProgressPanelEnd();
+                    break;
+
+                case "script_active_start":
+                case "script_progress":
+                case "script_active_end":
+                    // Placeholder: Script stage progress is a GUI-only indicator for now.
+                    // Not implemented in the TUI until it supports richer UI composition.
+                    // Intentionally do nothing here.
+                    break;
+
+                case "run-all-op-end":
+                case "run-all-complete": {
+                    WriteColored($"✔ Operation completed via run-all: {evt.GetValueOrDefault("name", "Unnamed")}", System.ConsoleColor.Green);
+                    System.Console.WriteLine(""); // newline for separation
+                    break;
                 }
-                HandleProgressPanelStart(reserve);
-                break;
 
-            case "progress_panel":
-                // We have received a progress panel update
-                // Re-render it in the TUI
-                HandleProgressPanel(evt);
-                break;
+                case "run-all-op-start":
+                case "run-all-start": {
+                    WriteColored($"✔ Operation started via run-all: {evt.GetValueOrDefault("name", "Unnamed")}", System.ConsoleColor.Green);
+                    break;
+                }
 
-            case "progress_panel_end":
-                // The panel is finished, release the console
-                HandleProgressPanelEnd();
-                break;
-
-            case "script_active_start":
-            case "script_progress":
-            case "script_active_end":
-                // Placeholder: Script stage progress is a GUI-only indicator for now.
-                // Not implemented in the TUI until it supports richer UI composition.
-                // Intentionally do nothing here.
-                break;
-
-            case "run-all-op-end":
-            case "run-all-complete": {
-                WriteColored($"✔ Operation completed via run-all: {evt.GetValueOrDefault("name", "Unnamed")}", System.ConsoleColor.Green);
-                System.Console.WriteLine(""); // newline for separation
-                break;
-            }
-
-            case "run-all-op-start":
-            case "run-all-start": {
-                WriteColored($"✔ Operation started via run-all: {evt.GetValueOrDefault("name", "Unnamed")}", System.ConsoleColor.Green);
-                break;
-            }
-
-            default:
-                // Unknown event type, throw error, all events must be known
-                WriteColored($"✖ Unknown event type: {typ}", System.ConsoleColor.Red);
+                default:
+                    // Unknown event type, throw error, all events must be known
+                    WriteColored($"✖ Unknown event type: {typ}", System.ConsoleColor.Red);
 #if DEBUG
-                Trace.TraceError($"[Utils.cs::OnEvent()] Unknown event type received in Terminal Utils: {typ}");
+                    Trace.TraceError($"[Utils.cs::OnEvent()] Unknown event type received in Terminal Utils: {typ}");
 #endif
-                break;
+                    break;
+            }
         }
     }
 
@@ -454,18 +470,28 @@ internal class Utils() {
 
     internal static void HandleProgressPanelEnd() {
         // Leave the last rendered panel visible and move cursor just after it
-        try {
-            lock (s_consoleLock) {
+        lock (s_consoleLock) {
+            try {
                 int target = _progressPanelTop + _progressLastLines;
                 try { System.Console.SetCursorPosition(0, target); } catch { /* ignore */ }
                 System.Console.WriteLine();
+            } catch {
+                try { System.Console.WriteLine(); } catch { /* ignore */ }
             }
-        } catch {
-            try { System.Console.WriteLine(); } catch { /* ignore */ }
+
+            // Keep panel content intact; reset tracking so future panels reserve new space
+            _progressLastLines = 0;
+            _progressPanelTop = 0;
+
+            // Process cached print events after resetting progress state
+            if (s_printCache.Count > 0) {
+                var cached = s_printCache.ToList();
+                s_printCache.Clear();
+                foreach (var cachedEvt in cached) {
+                    OnEvent(cachedEvt);
+                }
+            }
         }
-        // Keep panel content intact; reset tracking so future panels reserve new space
-        _progressLastLines = 0;
-        _progressPanelTop = 0;
     }
 
     internal static void HandleProgressPanel(IReadOnlyDictionary<string, object?> payload) {
