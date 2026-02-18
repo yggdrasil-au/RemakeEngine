@@ -403,7 +403,8 @@ public static class EngineSdk {
                 },
                 activeSnapshot: () => new List<SdkConsoleProgress.ActiveProcess>(),
                 label: _label,
-                token: _cts.Token
+                token: _cts.Token,
+                id: Id
             );
         }
 
@@ -459,10 +460,11 @@ public static class EngineSdk {
             System.Func<(long processed, int ok, int skip, int err)> snapshot,
             System.Func<List<ActiveProcess>> activeSnapshot,
             string label,
-            System.Threading.CancellationToken token) {
+            System.Threading.CancellationToken token,
+            string id = "p1") {
             return System.Threading.Tasks.Task.Run(() => {
                 // Signal the TUI to prepare for the panel
-                EmitPanelStart();
+                EmitPanelStart(id);
 
                 int spinnerIndex = 0;
                 char[] spinner = new[] { '|', '/', '-', '\\' };
@@ -472,6 +474,7 @@ public static class EngineSdk {
 
                     // Build the data payload
                     Dictionary<string, object?> data = BuildPanelData(total, s, actives, spinner[spinnerIndex % spinner.Length], label);
+                    data["id"] = id;
 
                     // Emit the event
                     Emit("progress_panel", data);
@@ -484,14 +487,15 @@ public static class EngineSdk {
                 (long processed, int ok, int skip, int err) finalS = snapshot();
                 List<ActiveProcess> finalAct = activeSnapshot();
                 Dictionary<string, object?> finalData = BuildPanelData(total, finalS, finalAct, ' ', label);
+                finalData["id"] = id;
                 Emit("progress_panel", finalData);
 
                 // Signal the TUI that the panel is done
-                EmitPanelEnd();
+                EmitPanelEnd(id);
             });
         }
 
-        private static void EmitPanelStart() {
+        private static void EmitPanelStart(string id) {
             int procs = 8;
             try { procs = System.Math.Max(1, System.Math.Min(16, System.Environment.ProcessorCount)); } catch {
                                 Core.Diagnostics.Bug("Failed to enumerate PATH directories");
@@ -499,11 +503,11 @@ public static class EngineSdk {
             }
             // 1 (progress) + 1 (header/none) + procs (active job lines) + 1 (overflow)
             int reserve = 1 + 1 + procs + 1;
-            Emit("progress_panel_start", new Dictionary<string, object?> { ["reserve"] = reserve });
+            Emit("progress_panel_start", new Dictionary<string, object?> { ["reserve"] = reserve, ["id"] = id });
         }
 
-        private static void EmitPanelEnd() {
-            Emit("progress_panel_end");
+        private static void EmitPanelEnd(string id) {
+            Emit("progress_panel_end", new Dictionary<string, object?> { ["id"] = id });
         }
 
         private static Dictionary<string, object?> BuildPanelData(long total, (long processed, int ok, int skip, int err) s, List<ActiveProcess> actives, char spinner, string label) {

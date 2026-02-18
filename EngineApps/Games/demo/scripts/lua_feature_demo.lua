@@ -76,9 +76,6 @@ sdk.color_print('cyan', '--- Running PanelProgress Demo (Visual Progress Bar) --
 local demo_p = progress.new(100, 'demo-idx', 'Simulating background asset indexing...')
 for i = 1, 100 do
     demo_p:Update(1)
-    if i % 25 == 0 then
-        sdk.color_print('gray', 'Indexing progress: ' .. i .. '%')
-    end
     sdk.sleep(0.02) -- Smooth progress
 end
 demo_p:Complete()

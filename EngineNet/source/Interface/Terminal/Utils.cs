@@ -19,14 +19,10 @@ internal class Utils() {
     };
 
     private static readonly object s_consoleLock = new();
-    private static int _progressPanelTop;
-    private static int _progressLastLines;
-    private static readonly List<Dictionary<string, object?>> s_printCache = new();
 
-    private static bool IsPrintType(string? typ) {
-        if (typ == null) return false;
-        return typ == "print" || typ == "warning" || typ == "error" || typ.StartsWith("run-all-");
-    }
+    private static int s_activePanels = 0;
+    private static readonly Dictionary<string, List<string>> s_panelStatus = new();
+    private static bool s_rendererInitializedByEvent = false;
 
     /// <summary>
     /// Execute a single operation in the terminal interface, handling events and output appropriately.
@@ -113,15 +109,6 @@ internal class Utils() {
         }
     }
 
-    private static void WriteColored(string message, System.ConsoleColor color) {
-        lock (s_consoleLock) {
-            System.ConsoleColor prev = System.Console.ForegroundColor;
-            System.Console.ForegroundColor = color;
-            System.Console.WriteLine(message);
-            System.Console.ForegroundColor = prev;
-        }
-    }
-
     private static System.ConsoleColor MapColor(string? name) {
         if (string.IsNullOrWhiteSpace(name)) {
             return System.ConsoleColor.Gray;
@@ -170,12 +157,7 @@ internal class Utils() {
     }
 
     private static string? StdinProvider() {
-        try {
-            System.Console.Write("> ");
-            return System.Console.ReadLine();
-        } catch {
-            return string.Empty;
-        }
+        return TuiRenderer.ReadLineCustom("Input >", false);
     }
 
     internal static void OnOutput(string line, string stream) {
@@ -187,136 +169,109 @@ internal class Utils() {
     }
 
     // --- Handlers to bridge SDK events <-> CLI ---
-    private static string _lastPrompt = "Input required";
 
     internal static void OnEvent(Dictionary<string, object?> evt) {
-        lock (s_consoleLock) {
-            LogEvent(evt);
-            if (!evt.TryGetValue("event", out object? typObj)) {
-                return;
+        // TuiRenderer handles locking internally
+        LogEvent(evt);
+        if (!evt.TryGetValue("event", out object? typObj)) return;
+
+        string? typ = typObj?.ToString();
+
+        switch (typ) {
+            case "print":
+                string msg = evt.TryGetValue("message", out object? m) ? m?.ToString() ?? "" : "";
+                string colorName = evt.TryGetValue("color", out object? c) ? c?.ToString() ?? "gray" : "gray";
+                TuiRenderer.Log(msg, MapColor(colorName));
+                break;
+
+            case "warning":
+                TuiRenderer.Log($"[WARN] {evt.GetValueOrDefault("message", "")}", ConsoleColor.Yellow);
+                break;
+
+            case "error":
+                TuiRenderer.Log($"[ERR] {evt.GetValueOrDefault("message", "")}", ConsoleColor.Red);
+                break;
+
+            case "prompt":
+            case "color_prompt": {
+                string pMsg = evt.TryGetValue("message", out object? pm) ? pm?.ToString() ?? "Input required" : "Input required";
+                TuiRenderer.Log($"? {pMsg}", ConsoleColor.Cyan);
+                break;
             }
 
-            string? typ = typObj?.ToString();
-
-            if (_progressLastLines > 0 && IsPrintType(typ)) {
-                s_printCache.Add(CloneForLogging(evt));
-                return;
+            case "confirm": {
+                string cMsg = evt.TryGetValue("message", out object? cm) ? cm?.ToString() ?? "Confirm?" : "Confirm?";
+                bool def = evt.TryGetValue("default", out object? d) && d is bool db && db;
+                TuiRenderer.Log($"? {cMsg} [{(def ? "y/N" : "Y/n")}]", ConsoleColor.Cyan);
+                break;
+            }
+            
+            case "progress_panel_start": {
+                lock (s_consoleLock) {
+                    s_activePanels++;
+                    if (!TuiRenderer.IsActive) {
+                        TuiRenderer.Initialize();
+                        s_rendererInitializedByEvent = true;
+                    }
+                }
+                break;
             }
 
-            System.ConsoleColor prev = System.Console.ForegroundColor;
+            case "progress_panel": {
+                string id = evt.TryGetValue("id", out object? idObj) ? idObj?.ToString() ?? "p1" : "p1";
+                List<string> lines = BuildTuiProgressLines(evt);
+                lock (s_consoleLock) {
+                    s_panelStatus[id] = lines;
+                    UpdateTuiStatus();
+                }
+                break;
+            }
 
-            switch (typ) {
-                case "print":
-                    string msg = evt.TryGetValue("message", out object? m) ? m?.ToString() ?? string.Empty : string.Empty;
-                    string colorName = evt.TryGetValue("color", out object? c) ? c?.ToString() ?? string.Empty : string.Empty;
-                    bool newline = true;
-                    try {
-                        if (evt.TryGetValue("newline", out object? nl) && nl is not null) {
-                            newline = System.Convert.ToBoolean(nl);
-                        }
-                    } catch { newline = true; }
-                    prev = System.Console.ForegroundColor;
-                    try {
-                        System.Console.ForegroundColor = MapColor(colorName);
-                        if (newline) {
-                            System.Console.WriteLine(msg);
-                        } else {
-                            System.Console.Write(msg);
-                        }
-                    } finally { System.Console.ForegroundColor = prev; }
-                    break;
+            case "progress_panel_end": {
+                string id = evt.TryGetValue("id", out object? idObj) ? idObj?.ToString() ?? "p1" : "p1";
+                lock (s_consoleLock) {
+                    if (s_panelStatus.TryGetValue(id, out var lastLines) && lastLines.Count > 0) {
+                        // Log the FIRST line (the progress bar) to the log area so it sticks in history
+                        TuiRenderer.Log(lastLines[0], ConsoleColor.Cyan);
+                    }
 
-                case "color_prompt":
-                    string promptMsg = evt.TryGetValue("message", out object? pm) ? pm?.ToString() ?? "Input required" : "Input required";
-                    string? promptColorName = evt.TryGetValue("color", out object? pc) ? pc?.ToString() : "cyan";
-                    _lastPrompt = promptMsg;
-                    prev = System.Console.ForegroundColor;
-                    try {
-                        System.Console.ForegroundColor = MapColor(promptColorName);
-                        System.Console.WriteLine($"? {_lastPrompt}");
-                    } finally { System.Console.ForegroundColor = prev; }
-                    break;
+                    s_activePanels--;
+                    s_panelStatus.Remove(id);
+                    UpdateTuiStatus();
 
-                case "prompt":
-                    _lastPrompt = evt.TryGetValue("message", out object? mm) ? mm?.ToString() ?? "Input required" : "Input required";
-                    prev = System.Console.ForegroundColor;
-                    System.Console.ForegroundColor = System.ConsoleColor.Cyan;
-                    System.Console.WriteLine($"? {_lastPrompt}");
-                    System.Console.ForegroundColor = prev;
-                    break;
-
-                case "confirm":
-                    string confirmMsg = evt.TryGetValue("message", out object? cm) ? cm?.ToString() ?? "Confirm?" : "Confirm?";
-                    bool def = evt.TryGetValue("default", out object? d) && d is bool db && db;
-                    _lastPrompt = confirmMsg;
-                    prev = System.Console.ForegroundColor;
-                    System.Console.ForegroundColor = System.ConsoleColor.Cyan;
-                    System.Console.WriteLine($"? {confirmMsg} [{(def ? "Y/n" : "y/N")}]");
-                    System.Console.ForegroundColor = prev;
-                    break;
-
-                case "warning":
-                    WriteColored($"⚠ {evt.GetValueOrDefault("message", "")}", System.ConsoleColor.Yellow);
-                    break;
-
-                case "error":
-                    WriteColored($"✖ {evt.GetValueOrDefault("message", "")}", System.ConsoleColor.Red);
-                    break;
-
-                case "progress_panel_start":
-                    int reserve = 12; // default
-                    if (evt.TryGetValue("reserve", out object? r) && r is System.IConvertible rc) {
-                        try {
-                            reserve = rc.ToInt32(null);
-                        } catch {
-                            Core.Diagnostics.Bug("[Utils.cs::OnEvent()] Failed to convert reserve value");
-                            /* ignore */
+                    if (s_activePanels <= 0) {
+                        s_activePanels = 0; // clamp
+                        if (s_rendererInitializedByEvent) {
+                            TuiRenderer.Shutdown();
+                            s_rendererInitializedByEvent = false;
                         }
                     }
-                    HandleProgressPanelStart(reserve);
-                    break;
-
-                case "progress_panel":
-                    // We have received a progress panel update
-                    // Re-render it in the TUI
-                    HandleProgressPanel(evt);
-                    break;
-
-                case "progress_panel_end":
-                    // The panel is finished, release the console
-                    HandleProgressPanelEnd();
-                    break;
-
-                case "script_active_start":
-                case "script_progress":
-                case "script_active_end":
-                    // Placeholder: Script stage progress is a GUI-only indicator for now.
-                    // Not implemented in the TUI until it supports richer UI composition.
-                    // Intentionally do nothing here.
-                    break;
-
-                case "run-all-op-end":
-                case "run-all-complete": {
-                    WriteColored($"✔ Operation completed via run-all: {evt.GetValueOrDefault("name", "Unnamed")}", System.ConsoleColor.Green);
-                    System.Console.WriteLine(""); // newline for separation
-                    break;
                 }
-
-                case "run-all-op-start":
-                case "run-all-start": {
-                    WriteColored($"✔ Operation started via run-all: {evt.GetValueOrDefault("name", "Unnamed")}", System.ConsoleColor.Green);
-                    break;
-                }
-
-                default:
-                    // Unknown event type, throw error, all events must be known
-                    WriteColored($"✖ Unknown event type: {typ}", System.ConsoleColor.Red);
-#if DEBUG
-                    Trace.TraceError($"[Utils.cs::OnEvent()] Unknown event type received in Terminal Utils: {typ}");
-#endif
-                    break;
+                break;
             }
+
+            case "run-all-op-end":
+            case "run-all-complete":
+                TuiRenderer.Log($"✔ Operation completed via run-all: {evt.GetValueOrDefault("name", "Unnamed")}", ConsoleColor.Green);
+                break;
+
+            case "run-all-op-start":
+            case "run-all-start":
+                TuiRenderer.Log($"✔ Operation started via run-all: {evt.GetValueOrDefault("name", "Unnamed")}", ConsoleColor.Green);
+                break;
+
+            default:
+                // Log unknown events to debug
+                break;
         }
+    }
+
+    private static void UpdateTuiStatus() {
+        var allLines = new List<string>();
+        foreach (var panelLines in s_panelStatus.Values) {
+            allLines.AddRange(panelLines);
+        }
+        TuiRenderer.UpdateStatus(allLines);
     }
 
     private static void LogEvent(IReadOnlyDictionary<string, object?> evt) {
@@ -435,73 +390,6 @@ internal class Utils() {
         return value.ToString();
     }
 
-    internal static void HandleProgressPanelStart(int reserve) {
-        _progressPanelTop = 0;
-        _progressLastLines = 0;
-        try {
-            lock (s_consoleLock) {
-                int width;
-                int height;
-                try { width = System.Math.Max(20, System.Console.BufferWidth - 1); } catch { width = 120; }
-                try { height = System.Math.Max(10, System.Console.BufferHeight); } catch { height = 50; }
-
-                // Establish the top of the panel at current cursor row, clamped
-                int curTop;
-                try { curTop = System.Console.CursorTop; } catch { curTop = 0; }
-                _progressPanelTop = curTop;
-
-                // Compute the actual reserve we can fit
-                int available = System.Math.Max(1, height - _progressPanelTop - 1);
-                int actualReserve = System.Math.Max(1, System.Math.Min(reserve, available));
-
-                // Reserve rows by ensuring the cursor moves down enough
-                for (int i = 0; i < actualReserve; i++) {
-                    System.Console.WriteLine();
-                }
-
-                // Reset cursor to top of panel
-                try { System.Console.SetCursorPosition(0, _progressPanelTop); } catch { /* ignore */ }
-                _progressLastLines = actualReserve;
-            }
-        } catch {
-            // Fall back silently; drawing will use safe defaults
-        }
-    }
-
-    internal static void HandleProgressPanelEnd() {
-        // Leave the last rendered panel visible and move cursor just after it
-        lock (s_consoleLock) {
-            try {
-                int target = _progressPanelTop + _progressLastLines;
-                try { System.Console.SetCursorPosition(0, target); } catch { /* ignore */ }
-                System.Console.WriteLine();
-            } catch {
-                try { System.Console.WriteLine(); } catch { /* ignore */ }
-            }
-
-            // Keep panel content intact; reset tracking so future panels reserve new space
-            _progressLastLines = 0;
-            _progressPanelTop = 0;
-
-            // Process cached print events after resetting progress state
-            if (s_printCache.Count > 0) {
-                var cached = s_printCache.ToList();
-                s_printCache.Clear();
-                foreach (var cachedEvt in cached) {
-                    OnEvent(cachedEvt);
-                }
-            }
-        }
-    }
-
-    internal static void HandleProgressPanel(IReadOnlyDictionary<string, object?> payload) {
-        // This is the core rendering logic, adapted for the TUI
-        // It reads from the event payload and builds/draws the lines
-
-        List<string> lines = BuildTuiProgressLines(payload);
-        DrawTuiProgressPanel(lines, ref _progressPanelTop, ref _progressLastLines);
-    }
-
     private static List<string> BuildTuiProgressLines(IReadOnlyDictionary<string, object?> payload) {
         var lines = new List<string>(10);
 
@@ -539,7 +427,9 @@ internal class Utils() {
             bar.Append(' ');
             bar.Append('[');
             for (int i = 0; i < width; i++) {
-                bar.Append(i < filled ? '#' : '-');
+                if (i < filled - 1) bar.Append('=');
+                else if (i == filled - 1) bar.Append('>');
+                else bar.Append(' ');
             }
             bar.Append(']');
             bar.Append(' ');
@@ -588,41 +478,5 @@ internal class Utils() {
             }
         }
         return lines;
-    }
-
-    private static void DrawTuiProgressPanel(IReadOnlyList<string> lines, ref int panelTop, ref int lastLines) {
-        lock (s_consoleLock) {
-            try {
-                int width; try { width = System.Math.Max(20, System.Console.BufferWidth - 1); } catch { width = 120; }
-                int height; try { height = System.Math.Max(10, System.Console.BufferHeight); } catch { height = 50; }
-
-                int maxLines = System.Math.Max(lastLines, lines.Count);
-                // Clamp panelTop into visible area if terminal resized
-                if (panelTop + maxLines >= height) {
-                    panelTop = System.Math.Max(0, height - maxLines - 1);
-                }
-
-                // Write each row in-place without newlines to avoid growing the buffer
-                for (int i = 0; i < maxLines; i++) {
-                    try { System.Console.SetCursorPosition(0, panelTop + i); } catch { /* ignore */ }
-                    if (i < lines.Count) {
-                        string line = lines[i];
-                        if (line.Length > width) line = line.Substring(0, width);
-                        System.Console.Write(line.PadRight(width));
-                    } else {
-                        System.Console.Write(new string(' ', width));
-                    }
-                }
-
-                lastLines = lines.Count;
-                try { System.Console.SetCursorPosition(0, panelTop + lastLines); } catch { /* ignore */ }
-            } catch {
-                try {
-                    // Fallback for non-interactive console
-                    string first = (lines.Count > 0 ? lines[0] : string.Empty);
-                    System.Console.Write("\r" + first);
-                } catch { /* ignore */ }
-            }
-        }
     }
 }

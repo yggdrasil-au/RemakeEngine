@@ -334,28 +334,42 @@ internal partial class TUI {
                             .ToHashSet();
 
                         if (choicesList.Count == 0) {
-                            System.Console.WriteLine($"No choices available for {request.Title}.");
+                            TuiRenderer.Log($"No choices available for {request.Title}.", ConsoleColor.Yellow);
                             if (request.DefaultValue is not null) {
                                 return Task.FromResult(Core.Services.OperationsService.PromptResponse.UseDefaultValue());
                             }
                             return Task.FromResult(Core.Services.OperationsService.PromptResponse.FromValue(null));
                         }
 
-                        System.Console.WriteLine($"{request.Title}:");
-                        int selIdx = SelectFromMenu(choicesList, highlightSeparators: false, disabledIndices: disabled);
-                        if (selIdx < 0) {
+                        // For Select types, we'll use TuiRenderer.Log to list options and ReadLineCustom for input
+                        // as standard menus might break the layout. 
+                        // Alternatively, we can still use SelectFromMenu if we are careful.
+                        // Let's stick to the prompt style for now to be safe.
+                        TuiRenderer.Log($"{request.Title}:", ConsoleColor.Cyan);
+                        for (int i = 0; i < choicesList.Count; i++) {
+                            TuiRenderer.Log($"{i + 1}. {choicesList[i]}{(disabled.Contains(i) ? " (Disabled)" : "")}");
+                        }
+
+                        string input = TuiRenderer.ReadLineCustom("Selection # >", false);
+                        if (string.IsNullOrWhiteSpace(input)) {
                             return Task.FromResult(Core.Services.OperationsService.PromptResponse.Cancelled());
                         }
-                        return Task.FromResult(Core.Services.OperationsService.PromptResponse.FromValue(choicesList[selIdx]));
+
+                        if (int.TryParse(input, out int choiceIdx) && choiceIdx >= 1 && choiceIdx <= choicesList.Count) {
+                            int actualIdx = choiceIdx - 1;
+                            if (disabled.Contains(actualIdx)) {
+                                TuiRenderer.Log("Selected item is disabled.", ConsoleColor.Red);
+                                return Task.FromResult(Core.Services.OperationsService.PromptResponse.Cancelled());
+                            }
+                            return Task.FromResult(Core.Services.OperationsService.PromptResponse.FromValue(choicesList[actualIdx]));
+                        }
+                        
+                        return Task.FromResult(Core.Services.OperationsService.PromptResponse.Cancelled());
                     }
                     case "confirm": {
                         bool defVal = request.DefaultValue is bool b && b;
                         string defHint = defVal ? "Y" : "N";
-                        System.Console.Write($"{request.Title} [y/N] (default {defHint}): ");
-                        string? c = ReadLineWithCancel(out bool cancelled);
-                        if (cancelled) {
-                            return Task.FromResult(Core.Services.OperationsService.PromptResponse.Cancelled());
-                        }
+                        string c = TuiRenderer.ReadLineCustom($"{request.Title} [y/N] (default {defHint}) >", false);
 
                         if (string.IsNullOrWhiteSpace(c)) {
                             return Task.FromResult(Core.Services.OperationsService.PromptResponse.UseDefaultValue());
@@ -366,15 +380,15 @@ internal partial class TUI {
                     }
                     case "checkbox": {
                         if (request.Choices.Count > 0) {
-                            System.Console.WriteLine($"{request.Title} - choose one or more (comma-separated). Choices: {string.Join(", ", request.Choices.Select(x => x.Label))}");
+                            TuiRenderer.Log($"{request.Title} - choose one or more (comma-separated).", ConsoleColor.Cyan);
+                            for (int i = 0; i < request.Choices.Count; i++) {
+                                TuiRenderer.Log($"{i + 1}. {request.Choices[i].Label}");
+                            }
                         } else {
-                            System.Console.WriteLine($"{request.Title} (comma-separated values): ");
+                            TuiRenderer.Log($"{request.Title} (comma-separated values): ", ConsoleColor.Cyan);
                         }
 
-                        string? line = ReadLineWithCancel(out bool cancelled);
-                        if (cancelled) {
-                            return Task.FromResult(Core.Services.OperationsService.PromptResponse.Cancelled());
-                        }
+                        string line = TuiRenderer.ReadLineCustom("Values >", false);
 
                         if (string.IsNullOrWhiteSpace(line)) {
                             if (request.DefaultValue is IList<object?>) {
@@ -388,11 +402,7 @@ internal partial class TUI {
                     }
                     case "text":
                     default: {
-                        System.Console.Write($"{request.Title}: ");
-                        string? v = ReadLineWithCancel(out bool cancelled);
-                        if (cancelled) {
-                            return Task.FromResult(Core.Services.OperationsService.PromptResponse.Cancelled());
-                        }
+                        string v = TuiRenderer.ReadLineCustom($"{request.Title} >", false);
 
                         if (string.IsNullOrWhiteSpace(v)) {
                             if (request.DefaultValue is not null) {

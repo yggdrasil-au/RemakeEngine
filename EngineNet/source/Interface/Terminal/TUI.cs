@@ -228,21 +228,39 @@ internal partial class TUI {
                 }
                 if (selection == "Run All") {
                     try {
-                        SafeClear();
-                        System.Console.WriteLine($"Running operations for {gameName}...\n");
+                        // 1. Initialize Advanced UI
+                        TuiRenderer.Initialize();
+                        TuiRenderer.Log($"Running operations for {gameName}...", ConsoleColor.Cyan);
 
                         Stopwatch runAllStopwatch = Stopwatch.StartNew();
-                        Core.Engine.RunAllResult result = await _engine.RunAllAsync(gameName, onOutput: Utils.OnOutput, onEvent: Utils.OnEvent, stdinProvider: null);
+
+                        // 2. Pass our custom StdinProvider that works with the Renderer
+                        Core.ProcessRunner.StdinProvider rendererInput = () => TuiRenderer.ReadLineCustom("Input >", false);
+
+                        Core.Engine.RunAllResult result = await _engine.RunAllAsync(
+                            gameName,
+                            onOutput: Utils.OnOutput, // Make sure OnOutput calls OnEvent -> TuiRenderer
+                            onEvent: Utils.OnEvent,
+                            stdinProvider: rendererInput
+                        );
                         runAllStopwatch.Stop();
 
-                        System.Console.WriteLine(result.Success
-                            ? $"Completed successfully. ({result.SucceededOperations}/{result.TotalOperations} operations succeeded). Time: {FormatElapsed(runAllStopwatch.Elapsed)}. Press any key to continue..."
-                            : $"One or more operations failed. ({result.SucceededOperations}/{result.TotalOperations} operations succeeded). Time: {FormatElapsed(runAllStopwatch.Elapsed)}. Press any key to continue...");
-                        SafeReadKey(true);
+                        TuiRenderer.Log(result.Success ? "Completed successfully." : "One or more operations failed.",
+                                        result.Success ? ConsoleColor.Green : ConsoleColor.Red);
+
+                        TuiRenderer.Log($"({result.SucceededOperations}/{result.TotalOperations} operations succeeded). Time: {FormatElapsed(runAllStopwatch.Elapsed)}.", ConsoleColor.White);
+                        TuiRenderer.Log("Press any key to continue...", ConsoleColor.White);
+                        Console.ReadKey(true);
+
                         continue;
                     } catch (System.Exception ex) {
+                        TuiRenderer.Log($"Error: {ex.Message}", ConsoleColor.Red);
                         Core.Diagnostics.Bug($"[TUI::RunAll()] Error during Run All: {ex.Message}");
-                        System.Console.WriteLine($"Error during Run All: {ex.Message}");
+                        Console.ReadKey(true);
+                        continue;
+                    } finally {
+                        // 3. Return to standard menu mode
+                        TuiRenderer.Shutdown();
                     }
                 }
 
@@ -251,17 +269,30 @@ internal partial class TUI {
                 if (opIndex >= 0 && opIndex < preparedOps.RegularOperations.Count) {
                     Dictionary<string, object?> op = preparedOps.RegularOperations[opIndex].Operation;
                     Dictionary<string, object?> answers = new Dictionary<string, object?>();
-                    // For manual single-op run, prompt interactively
-                    if (CollectAnswersForOperation(op, answers, defaultsOnly: false)) {
-                        SafeClear();
-                        System.Console.WriteLine($"Running: {selection}\n");
-                        Stopwatch opStopwatch = Stopwatch.StartNew();
-                        bool ok = new Utils().ExecuteOp(_engine, gameName, allAvailableModules, op, answers);
-                        opStopwatch.Stop();
-                        System.Console.WriteLine(ok
-                            ? $"Completed successfully. Time: {FormatElapsed(opStopwatch.Elapsed)}. Press any key to continue..."
-                            : $"Operation failed. Time: {FormatElapsed(opStopwatch.Elapsed)}. Press any key to continue...");
-                        SafeReadKey(true);
+
+                    // Initialize Renderer for interactive prompts and execution
+                    TuiRenderer.Initialize();
+                    try {
+                        // For manual single-op run, prompt interactively
+                        if (CollectAnswersForOperation(op, answers, defaultsOnly: false)) {
+                            TuiRenderer.Log($"Running: {selection}\n", ConsoleColor.Cyan);
+                            Stopwatch opStopwatch = Stopwatch.StartNew();
+                            bool ok = new Utils().ExecuteOp(_engine, gameName, allAvailableModules, op, answers);
+                            opStopwatch.Stop();
+
+                            TuiRenderer.Log(ok
+                                ? $"Completed successfully. Time: {FormatElapsed(opStopwatch.Elapsed)}."
+                                : $"Operation failed. Time: {FormatElapsed(opStopwatch.Elapsed)}.",
+                                ok ? ConsoleColor.Green : ConsoleColor.Red);
+
+                            TuiRenderer.Log("Press any key to continue...", ConsoleColor.White);
+                            Console.ReadKey(true);
+                        }
+                    } catch (System.Exception ex) {
+                        TuiRenderer.Log($"Error: {ex.Message}", ConsoleColor.Red);
+                        Console.ReadKey(true);
+                    } finally {
+                        TuiRenderer.Shutdown();
                     }
                 }
             }
