@@ -10,25 +10,44 @@ namespace EngineNet.ScriptEngines;
 internal static class Security {
     private static readonly HashSet<string> UserApprovedRoots = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
 
+    private static string CleanPathPrefix(string path) {
+        if (string.IsNullOrWhiteSpace(path)) return path;
+        // Strip Win32 long path prefix if present (\\?\ and \\?\UNC\)
+        if (path.StartsWith(@"\\?\", StringComparison.Ordinal)) {
+            if (path.StartsWith(@"\\?\UNC\", StringComparison.OrdinalIgnoreCase)) {
+                return @"\\" + path.Substring(8);
+            }
+            return path.Substring(4);
+        }
+        return path;
+    }
+
     private static string NormalizeLowerFullPath(string path) {
-        string fullPath = System.IO.Path.GetFullPath(path);
-        return fullPath.Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(path)) return string.Empty;
+        try {
+            string fullPath = System.IO.Path.GetFullPath(path);
+            return CleanPathPrefix(fullPath).Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant();
+        } catch {
+            return CleanPathPrefix(path).Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant();
+        }
     }
 
     private static string DetermineApprovalRoot(string path) {
         try {
             string full = System.IO.Path.GetFullPath(path);
+            string? rootResult = full;
             if (System.IO.Directory.Exists(full)) {
-                return new System.IO.DirectoryInfo(full).FullName;
+                rootResult = new System.IO.DirectoryInfo(full).FullName;
+            } else {
+                string? dir = System.IO.Path.GetDirectoryName(full);
+                if (!string.IsNullOrWhiteSpace(dir)) {
+                    rootResult = new System.IO.DirectoryInfo(dir).FullName;
+                }
             }
-            string? dir = System.IO.Path.GetDirectoryName(full);
-            if (!string.IsNullOrWhiteSpace(dir)) {
-                return new System.IO.DirectoryInfo(dir).FullName;
-            }
-            return full;
+            return CleanPathPrefix(rootResult ?? full);
         } catch {
             Core.Diagnostics.Bug("DetermineApprovalRoot: Failed to determine root for path: " + path);
-            return path;
+            return CleanPathPrefix(path);
         }
     }
 
@@ -133,8 +152,8 @@ internal static class Security {
         }
 
         try {
+            string normalizedPath = NormalizeLowerFullPath(path);
             string fullPath = System.IO.Path.GetFullPath(path);
-            string normalizedPath = fullPath.Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant();
             //Core.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Checking path '{fullPath}'");
             //Core.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Normalized path '{normalizedPath}'");
 
@@ -146,10 +165,10 @@ internal static class Security {
             }
 
             // Get current working directory and common workspace patterns
-            string currentDir = System.IO.Directory.GetCurrentDirectory().Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant();
+            string currentDir = NormalizeLowerFullPath(System.IO.Directory.GetCurrentDirectory());
             string projectRoot = string.IsNullOrWhiteSpace(EngineNet.Program.rootPath)
                 ? currentDir
-                : EngineNet.Program.rootPath.Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant();
+                : NormalizeLowerFullPath(EngineNet.Program.rootPath);
 
             //Core.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Current directory '{currentDir}'");
             //Core.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Project root '{projectRoot}'");
@@ -162,7 +181,7 @@ internal static class Security {
                 projectRoot,
 
                 // project directories
-                System.IO.Path.Combine(projectRoot, "EngineApps"),
+                System.IO.Path.Combine(projectRoot, "engineapps"),
                 System.IO.Path.Combine(projectRoot, "gamefiles"),
                 System.IO.Path.Combine(projectRoot, "tools"),
                 System.IO.Path.Combine(projectRoot, "tmp"),
@@ -196,7 +215,7 @@ internal static class Security {
                             }
 
                             string resolvedFullPath = targetPath + suffix;
-                            string normalizedResolved = resolvedFullPath.Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant();
+                            string normalizedResolved = NormalizeLowerFullPath(resolvedFullPath);
 
                             foreach (string allowedPattern in allowedPatterns) {
                                 if (normalizedResolved.StartsWith(allowedPattern, System.StringComparison.OrdinalIgnoreCase)) {
@@ -221,7 +240,7 @@ internal static class Security {
                 "/etc/", "/bin/", "/sbin/", "/usr/bin/", "/usr/sbin/",
                 "/sys/", "/proc/", "/dev/",
                 // Explicitly deny access to Registries to prevent tampering
-                System.IO.Path.Combine(projectRoot, "EngineApps", "Registries").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant()
+                System.IO.Path.Combine(projectRoot, "engineapps", "registries").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant()
             };
 
             foreach (string forbiddenPattern in forbiddenPatterns) {

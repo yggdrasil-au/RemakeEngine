@@ -4,7 +4,10 @@
 
 
 
-
+when the tools downloader reads a toml line it reads the comment on that line so this:
+version = "4.5.4" # it is possible to use 4.5.4 but this auto disables the 'auto_smooth' feature in the blender 'preinstanced import' addon as its no longer supported in 4.1+
+will be read as version = "4.5.4 # it is possible to use 4.5.4 but this auto disables the 'auto_smooth' feature in the blender 'preinstanced import' addon as its no longer supported in 4.1+"
+preventing it from working
 
 
 

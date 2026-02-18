@@ -71,6 +71,35 @@ sdk.color_print('white', "p:Update()  -- Increment by 1 (default)")
 sdk.color_print('white', "progress.start(10, 'My Stage') -- Start script progress")
 sdk.color_print('white', "progress.step('Next step description') -- Move to next stage")
 
+-- Real demo of PanelProgress
+sdk.color_print('cyan', '--- Running PanelProgress Demo (Visual Progress Bar) ---')
+local demo_p = progress.new(100, 'demo-idx', 'Simulating background asset indexing...')
+for i = 1, 100 do
+    demo_p:Update(1)
+    if i % 25 == 0 then
+        sdk.color_print('gray', 'Indexing progress: ' .. i .. '%')
+    end
+    sdk.sleep(0.02) -- Smooth progress
+end
+demo_p:Complete()
+
+-- Concurrent panels demo
+sdk.color_print('cyan', '--- Concurrent PanelProgress Demo ---')
+local task1 = progress.new(50, 'worker-1', 'CPU Intensive Task')
+local task2 = progress.new(50, 'worker-2', 'Network Download Simulation')
+
+for i = 1, 50 do
+    task1:Update(1)
+    if i % 2 == 0 then
+        task2:Update(2)
+    end
+    sdk.sleep(0.04)
+end
+task1:Complete()
+task2:Complete()
+
+sdk.color_print('green', 'PanelProgress demonstrations complete.')
+
 progress.step('Creating directory structure')
 
 -- SDK Directory operations
