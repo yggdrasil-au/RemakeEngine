@@ -19,6 +19,8 @@ public static class TuiRenderer {
     private static int _statusHeight = 8; // Reserved lines at bottom for progress
     private static int _width;
     private static int _height;
+    private static int _scrollOffset = 0;
+    private static readonly int _maxBufferSize = 10000; // Hold up to 10k lines per operation
 
     // State
     private static readonly LinkedList<LogEntry> _logBuffer = new();
@@ -41,9 +43,16 @@ public static class TuiRenderer {
             _width = 80;
             _height = 24;
         }
-        _isActive = true;
+
+        lock (_lock) {
+            _logBuffer.Clear(); // Drop history from previous operations
+            _scrollOffset = 0;
+            _isActive = true;
+        }
+
         Console.Clear();
         RenderFull();
+        StartBackgroundInputListener(); // Start listening for scroll keys
     }
 
     public static void Shutdown() {
@@ -52,35 +61,94 @@ public static class TuiRenderer {
 
         Console.Clear();
         Console.SetCursorPosition(0, 0);
+
+        // Completely remove the standard Console.WriteLine loop that dumped history!
         lock (_lock) {
-            foreach (var entry in _logBuffer) {
-                Console.ForegroundColor = entry.Color;
-                Console.WriteLine(entry.Message);
-            }
+            _logBuffer.Clear(); // Clear memory
+            _scrollOffset = 0;
         }
         Console.ResetColor();
+    }
+
+    private static void StartBackgroundInputListener() {
+        System.Threading.Tasks.Task.Run(() => {
+            while (_isActive) {
+                // Only capture keys here if ReadLineCustom isn't active to prevent stealing typing input
+                if (!_isInputActive) {
+                    try {
+                        if (Console.KeyAvailable) {
+                            var key = Console.ReadKey(true);
+                            HandleScrollInput(key);
+                        }
+                    } catch { /* Handle potential console access issues */ }
+                }
+                System.Threading.Thread.Sleep(20); // Prevent CPU thrashing
+            }
+        });
+    }
+
+    private static void HandleScrollInput(ConsoleKeyInfo key) {
+        lock (_lock) {
+            int logAreaHeight = _height - _statusHeight - 1;
+            int maxScroll = Math.Max(0, _logBuffer.Count - logAreaHeight);
+
+            switch (key.Key) {
+                case ConsoleKey.UpArrow:
+                    _scrollOffset++;
+                    break;
+                case ConsoleKey.DownArrow:
+                    _scrollOffset--;
+                    break;
+                case ConsoleKey.PageUp:
+                    _scrollOffset += logAreaHeight;
+                    break;
+                case ConsoleKey.PageDown:
+                    _scrollOffset -= logAreaHeight;
+                    break;
+                case ConsoleKey.End:
+                    _scrollOffset = 0;
+                    break;
+                case ConsoleKey.Home:
+                    _scrollOffset = maxScroll;
+                    break;
+            }
+
+            // Clamp scroll offset
+            _scrollOffset = Math.Clamp(_scrollOffset, 0, maxScroll);
+        }
+        RenderLogs();
     }
 
     /// <summary>
     /// Adds a line to the scrolling log area.
     /// </summary>
     public static void Log(string message, ConsoleColor color = ConsoleColor.Gray) {
+        // Write to our dedicated DEBUG log file
+        Core.Diagnostics.TuiLog(message);
+
         if (!_isActive) {
             // Fallback if renderer isn't active
             Console.ForegroundColor = color;
             Console.WriteLine(message);
             Console.ResetColor();
+            return;
         }
 
         lock (_lock) {
             // Split newlines to handle multi-line messages correctly
             foreach (var line in message.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)) {
                 _logBuffer.AddLast(new LogEntry { Message = line, Color = color });
+
+                // If the user is actively scrolled up, push the offset up so the view stays pinned
+                if (_scrollOffset > 0) {
+                    _scrollOffset++; 
+                }
             }
 
-            // Keep buffer reasonable size (e.g., 500 lines)
-            while (_logBuffer.Count > 500) {
+            // Keep buffer reasonable size (e.g., 10k lines)
+            while (_logBuffer.Count > _maxBufferSize) {
                 _logBuffer.RemoveFirst();
+                if (_scrollOffset > 0) _scrollOffset--; // Adjust offset if we trim the top
             }
 
             if (_isActive) {
@@ -123,10 +191,16 @@ public static class TuiRenderer {
         if (logAreaHeight <= 0) return;
 
         // Calculate how many logs fit
-        // We iterate backwards from the end of the buffer
+        // We iterate backwards from the end of the buffer, skipping by _scrollOffset
         var node = _logBuffer.Last;
         var linesToDraw = new List<LogEntry>();
 
+        // Skip the number of lines determined by _scrollOffset
+        for (int i = 0; i < _scrollOffset && node != null; i++) {
+            node = node.Previous;
+        }
+
+        // Collect the lines to display
         while (node != null && linesToDraw.Count < logAreaHeight) {
             linesToDraw.Add(node.Value);
             node = node.Previous;
@@ -147,6 +221,14 @@ public static class TuiRenderer {
                     Console.Write(new string(' ', _width));
                 }
             }
+
+            // Draw a subtle indicator if scrolled up
+            if (_scrollOffset > 0 && logAreaHeight > 0) {
+                Console.SetCursorPosition(_width - 15, 0);
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.Write($"[↑ SCROLLED]".PadRight(15));
+            }
+
         } catch { /* Resize race condition ignore */ }
     }
 
@@ -225,6 +307,15 @@ public static class TuiRenderer {
         while (true) {
             var key = Console.ReadKey(true);
 
+            // Check for scroll keys first
+            if (key.Key == ConsoleKey.UpArrow || key.Key == ConsoleKey.DownArrow || 
+                key.Key == ConsoleKey.PageUp || key.Key == ConsoleKey.PageDown ||
+                key.Key == ConsoleKey.Home || key.Key == ConsoleKey.End) {
+                
+                HandleScrollInput(key);
+                continue; // Skip adding to input buffer
+            }
+
             if (key.Key == ConsoleKey.Enter) {
                 break;
             } else if (key.Key == ConsoleKey.Backspace) {
@@ -242,6 +333,7 @@ public static class TuiRenderer {
         lock (_lock) {
             _isInputActive = false;
             _inputBuffer = "";
+            _scrollOffset = 0; // Snap back to bottom on submit
         }
         // Echo input to log
         Log($"{label} {input}", ConsoleColor.Cyan);

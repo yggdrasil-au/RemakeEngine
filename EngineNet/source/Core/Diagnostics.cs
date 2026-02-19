@@ -24,6 +24,7 @@ internal static class Diagnostics {
     private static StreamWriter? _jsLogWriter; // Just Diagnostics.JsLog
     private static StreamWriter? _pythonLogWriter; // Just Diagnostics.PythonLog
     private static StreamWriter? _bugWriter;   // Just Diagnostics.Bug
+    private static StreamWriter? _tuiLogWriter; // Scrollback history
     private static readonly object _lock = new();
 
     internal static void Initialize(bool isGui, bool isTui) {
@@ -51,6 +52,7 @@ internal static class Diagnostics {
             string jsLogPath = Path.Combine(logDirectory, "js.log");
             string pythonLogPath = Path.Combine(logDirectory, "python.log");
             string bugPath = Path.Combine(logDirectory, "exception.log");
+            string tuiLogPath = Path.Combine(logDirectory, "tui_history.log");
 
             // 4. Open Streams (Shared access allowed)
             // Trace Writer (Master) - Debug builds only
@@ -78,6 +80,13 @@ internal static class Diagnostics {
             // Bug Writer (all builds)
             var fsBug = new FileStream(bugPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
             _bugWriter = new StreamWriter(fsBug) { AutoFlush = true };
+
+#if DEBUG
+            if (isTui) {
+                var fsTui = new FileStream(tuiLogPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+                _tuiLogWriter = new StreamWriter(fsTui) { AutoFlush = true };
+            }
+#endif
 
             // 5. Hook System.Diagnostics.Trace to the Master Trace Log (Debug only)
             // This ensures internal .NET traces go to trace.log when debugging
@@ -162,6 +171,23 @@ internal static class Diagnostics {
         if (stack != null) {
             _traceWriter.WriteLine(stack);
         }
+    }
+
+    /// <summary>
+    /// Logs a message to the TUI scrollback history file.
+    /// Only active in TUI mode and Debug builds.
+    /// </summary>
+    /// <param name="message"></param>
+    internal static void TuiLog(string message) {
+#if DEBUG
+        if (_tuiLogWriter == null) return;
+        lock (_lock) {
+            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+            // Strip out newlines for clean logging
+            string cleanMsg = message.Replace("\r", "").Replace("\n", " ");
+            _tuiLogWriter.WriteLine($"[{timestamp}] {cleanMsg}");
+        }
+#endif
     }
 
     /// <summary>

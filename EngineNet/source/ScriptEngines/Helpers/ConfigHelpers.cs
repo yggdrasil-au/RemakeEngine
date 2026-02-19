@@ -46,7 +46,7 @@ internal static class ConfigHelpers {
     /// If <paramref name="overwrite"/> is false and destination exists, throws.
     /// Writes progress updates to the engine System.Console.
     /// </summary>
-    internal static void CopyDirectory(string sourceDir, string destDir, bool overwrite = false) {
+    internal static void CopyDirectory(string sourceDir, string destDir, bool overwrite = false, string? progressLabel = null) {
         if (string.IsNullOrWhiteSpace(sourceDir)) {
             throw new System.ArgumentException("sourceDir is empty");
         }
@@ -84,6 +84,10 @@ internal static class ConfigHelpers {
         System.DateTime lastUpdate = System.DateTime.UtcNow;
         int lastPercent = -1;
 
+        Core.UI.EngineSdk.ScriptProgress? progress = total > 0
+            ? new Core.UI.EngineSdk.ScriptProgress(total, id: "fs_copy", label: progressLabel ?? $"Copying {total} files...")
+            : null;
+
         // Write initial line
         if (total > 0) {
             Write($"Copying {total} files from '{srcRoot}' to '{dstRoot}'...");
@@ -97,6 +101,7 @@ internal static class ConfigHelpers {
             System.IO.File.Copy(file, target, overwrite: true);
 
             current++;
+            progress?.Update(1);
 
             // Throttle updates: on percent change or every 100ms
             int percent = total > 0 ? (int)System.Math.Floor((current * 100.0) / total) : 100;
@@ -111,6 +116,7 @@ internal static class ConfigHelpers {
 
         // Finish line
         if (total > 0) {
+            progress?.Complete();
             Write(string.Empty, newline: true);
         }
     }
@@ -139,7 +145,7 @@ internal static class ConfigHelpers {
             }
             // We'll merge by copy then delete source
             Write($"Merging '{sourceDir}' into existing '{destDir}'...");
-            CopyDirectory(sourceDir, destDir, overwrite: true);
+            CopyDirectory(sourceDir, destDir, overwrite: true, progressLabel: $"Merging {sourceDir} to {destDir}...");
             Write("Deleting source after merge...");
             System.IO.Directory.Delete(sourceDir, recursive: true);
             Write("Move complete.");
@@ -153,7 +159,7 @@ internal static class ConfigHelpers {
         } catch {
             // Fallback to copy+delete for cross-device moves
             Write("Fast move not available; falling back to copy...", newline: true);
-            CopyDirectory(sourceDir, destDir, overwrite: true);
+            CopyDirectory(sourceDir, destDir, overwrite: true, progressLabel: $"Moving {sourceDir} to {destDir}...");
             Write("Deleting source after copy...", newline: true);
             System.IO.Directory.Delete(sourceDir, recursive: true);
             Write("Move complete.");
