@@ -43,6 +43,7 @@ internal static class ImageMagickConverter {
         internal string OutputExt = string.Empty;
 
         internal bool Overwrite = false;
+        internal bool Replace = false;
         internal int? Workers = null;
         internal bool Verbose = false;
         internal bool Debug = false;
@@ -135,6 +136,9 @@ internal static class ImageMagickConverter {
                     var (ok, msg) = ConvertOne(src, dest, opt);
                     if (ok) {
                         Interlocked.Increment(ref success);
+                        if (opt.Replace) {
+                            TryDelete(src);
+                        }
                     } else {
                         Interlocked.Increment(ref errors);
                         errorList.Add((Path.GetFileName(src), msg ?? "unknown error"));
@@ -367,6 +371,9 @@ internal static class ImageMagickConverter {
                     break;
                 case "--overwrite":
                     o.Overwrite = true;
+                    break;
+                case "--replace":
+                    o.Replace = true;
                     break;
                 case "-w":
                 case "--workers":

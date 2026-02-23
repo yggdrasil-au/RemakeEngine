@@ -1,0 +1,59 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build RemakeEngine solution",
+			"type": "shell",
+			"command": "dotnet build RemakeEngine.sln",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Build RemakeEngine solution",
+			"type": "shell",
+			"command": "dotnet build RemakeEngine.sln",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Build RemakeEngine solution",
+			"type": "shell",
+			"command": "dotnet build RemakeEngine.sln",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Build RemakeEngine solution",
+			"type": "shell",
+			"command": "dotnet build RemakeEngine.sln",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Build RemakeEngine solution",
+			"type": "shell",
+			"command": "dotnet build RemakeEngine.sln",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Build RemakeEngine solution",
+			"type": "shell",
+			"command": "dotnet build RemakeEngine.sln",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Build RemakeEngine solution",
+			"type": "shell",
+			"command": "dotnet build RemakeEngine.sln",
+			"isBackground": false,
+			"group": "build"
+		}
+	]
+}

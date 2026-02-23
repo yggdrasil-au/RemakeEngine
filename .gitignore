@@ -6,7 +6,7 @@ desktop.ini
 ############################
 # IDE / Editor
 ############################
-.vscode/
+#.vscode/
 .VSCodeCounter/
 
 .history/

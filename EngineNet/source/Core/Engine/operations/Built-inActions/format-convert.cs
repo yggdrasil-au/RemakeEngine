@@ -32,27 +32,6 @@ public partial class InternalOperations {
                     }
                 }
 
-                // If still no tool, try to infer from arguments pattern
-                if (string.IsNullOrWhiteSpace(tool)) {
-                    bool hasSource = false;
-                    bool hasInputExt = false;
-                    bool hasOutputExt = false;
-                    bool hasType = false;
-
-                    foreach (object? a in argsList) {
-                        string arg = a?.ToString() ?? string.Empty;
-                        if (arg == "--source" || arg == "-s") hasSource = true;
-                        if (arg == "--input-ext" || arg == "-i") hasInputExt = true;
-                        if (arg == "--output-ext" || arg == "-o") hasOutputExt = true;
-                        if (arg == "--type") hasType = true;
-                    }
-
-                    // If has --source, --input-ext, --output-ext but no --type, likely ImageMagick
-                    if (hasSource && hasInputExt && hasOutputExt && !hasType) {
-                        tool = "imagemagick";
-                        Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: inferred tool from args pattern: '{tool}'");
-                    }
-                }
             }
         }
         Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: final tool = '{tool}'");

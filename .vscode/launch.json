@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "C#: EngineNet TUI",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Build RemakeEngine solution",
+            // Point directly to the DLL found in your build logs
+            "program": "${workspaceFolder}/EngineNet/bin/Debug/net10.0/EngineNet.dll",
+            "args": ["--tui"],
+            "cwd": "${workspaceFolder}/EngineNet",
+            // THIS is the key fix for Console.Clear() and TUI apps
+            "console": "integratedTerminal",
+            "stopAtEntry": false
+        }
+    ]
+}

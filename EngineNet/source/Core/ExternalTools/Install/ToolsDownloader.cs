@@ -188,8 +188,9 @@ internal sealed class ToolsDownloader {
                 string dest = System.IO.Path.GetFullPath(System.IO.Path.Combine(_rootPath, unpackDest!));
                 System.IO.Directory.CreateDirectory(dest);
                 Core.UI.EngineSdk.Info($"Unpacking to: {dest}");
+                List<string>? extractedFiles = null;
                 try {
-                    ExtractArchive(archivePath, dest);
+                    extractedFiles = ExtractArchive(archivePath, dest);
                 } catch (NotSupportedException nse) {
                     Core.UI.EngineSdk.Warn($"{nse.Message} Leaving archive as-is.");
                 } catch (Exception ex) {
@@ -197,7 +198,12 @@ internal sealed class ToolsDownloader {
                 }
 
                 // Try to find an exe in dest (best-effort)
-                exePath = FindExe(dest, toolName!, platformData);
+                if (extractedFiles != null && extractedFiles.Count > 0) {
+                    exePath = FindExe(extractedFiles, toolName!, platformData);
+                } else {
+                    exePath = FindExe(dest, toolName!, platformData);
+                }
+                
                 if (!string.IsNullOrWhiteSpace(exePath)) {
                     Core.UI.EngineSdk.Info($"Detected executable: {exePath}");
                 } else {
@@ -413,16 +419,31 @@ internal sealed class ToolsDownloader {
         return string.Equals(got, expected, System.StringComparison.OrdinalIgnoreCase);
     }
 
-    private static void ExtractArchive(string archivePath, string destination) {
+    private static List<string> ExtractArchive(string archivePath, string destination) {
         string ext = System.IO.Path.GetExtension(archivePath).ToLowerInvariant();
+        List<string> extractedFiles = new List<string>();
 
         if (ext == ".zip") {
+            using var archive = ZipFile.OpenRead(archivePath);
+            foreach (var entry in archive.Entries) {
+                if (!string.IsNullOrEmpty(entry.Name)) {
+                    extractedFiles.Add(System.IO.Path.GetFullPath(System.IO.Path.Combine(destination, entry.FullName)));
+                }
+            }
             ZipFile.ExtractToDirectory(archivePath, destination, overwriteFiles: true);
-            return;
+            return extractedFiles;
         }
 
         if (ext == ".7z") {
             using var archive = SevenZipArchive.Open(archivePath);
+            foreach (var entry in archive.Entries) {
+                if (!entry.IsDirectory) {
+                    if (string.IsNullOrWhiteSpace(entry.Key)) {
+                        continue;
+                    }
+                    extractedFiles.Add(System.IO.Path.GetFullPath(System.IO.Path.Combine(destination, entry.Key)));
+                }
+            }
             // Extract with full paths and overwrite if present
             var opts = new ExtractionOptions
             {
@@ -430,7 +451,7 @@ internal sealed class ToolsDownloader {
                 Overwrite = true
             };
             archive.WriteToDirectory(destination, opts);
-            return;
+            return extractedFiles;
         }
 
         // Add more formats later if desired (e.g., .tar, .tar.gz via SharpCompress)
@@ -463,6 +484,29 @@ internal sealed class ToolsDownloader {
         return foundPath;
     }
 
+    private static string? FindExe(List<string> files, string toolName, object? platformData) {
+        string? exeName = GetStringProperty(platformData, "exe_name");
+        string? foundPath = null;
+
+        if (!string.IsNullOrWhiteSpace(exeName)) {
+            foundPath = SearchForFile(files, exeName);
+        }
+
+        if (string.IsNullOrWhiteSpace(foundPath)) {
+            foundPath = SearchForFile(files, $"{toolName}.exe")
+                ?? SearchForFile(files, toolName)
+                ?? SearchForFile(files, $"{toolName}*.exe") // Fallback for versioned executables like Godot
+                ?? SearchForFile(files, $"*{toolName}*.exe")
+                ?? SearchForFile(files, $"*{toolName}*");
+        }
+
+        if (!string.IsNullOrWhiteSpace(foundPath)) {
+            ApplyExecutablePermissions(foundPath);
+        }
+
+        return foundPath;
+    }
+
     /// <summary>
     /// Searches for a file by name pattern using safe recursion and best-effort matching.
     /// </summary>
@@ -478,6 +522,15 @@ internal sealed class ToolsDownloader {
             return System.IO.Directory.EnumerateFiles(root, pattern, options).FirstOrDefault();
         } catch {
             Core.Diagnostics.Bug($"[ToolsDownloader] Could not search for file '{pattern}' in: {root}");
+            return null;
+        }
+    }
+
+    private static string? SearchForFile(List<string> files, string pattern) {
+        try {
+            return files.FirstOrDefault(f => System.IO.Enumeration.FileSystemName.MatchesSimpleExpression(pattern, System.IO.Path.GetFileName(f), ignoreCase: true));
+        } catch {
+            Core.Diagnostics.Bug($"[ToolsDownloader] Could not search for file '{pattern}' in extracted files list");
             return null;
         }
     }

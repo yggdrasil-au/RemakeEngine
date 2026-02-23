@@ -1,0 +1,22 @@
+[MESSAGES CONTROL]
+
+# C0103: invalid-name - Disabled to allow PascalCase as per project style
+# W0604: global-at-module-level - Disabled as requested
+# E0401: import-error - Effectively changed to warning by disabling error reporting
+disable=
+    C0301,
+    C0103,
+    W0604,
+    W0603,
+    W0107,
+    E0401,
+    R0902
+
+[REPORTS]
+output-format=colorized
+score=no
+
+[TYPECHECK]
+ignored-modules=bpy,bmesh,mathutils,bpy.props,bpy_extras,gpu
+generated-members=bpy.*,bmesh.*,mathutils.*
+
