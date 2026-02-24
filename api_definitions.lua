@@ -1,3 +1,5 @@
+---@diagnostic disable: missing-fields
+---@diagnostic disable: duplicate-doc-field
 ---@meta
 
 -- =============================================================================
@@ -649,6 +651,10 @@ Project_Root = ""
 --- The directory containing the currently executing script.
 ---@type string
 script_dir = ""
+
+--- The number of logical processors available.
+---@type integer
+cpu_count = 1
 
 --- True if the engine is running in Debug mode.
 ---@type boolean

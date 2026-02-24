@@ -56,13 +56,15 @@ This is the documentation repository for the Remake Engine.
     url = https://github.com/yggdrasil-au/RemakeEngineDocs.git
 ```
 
-Always test Engine functionality with the demo game module "demo" when making changes to the engine, using the cli direct operation execution commands
+Always test Engine functionality with the demo game module "demo" when making changes to the C# engine, using the cli direct operation execution commands
 ```pwsh
-dotnet run -c Release --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua" --args '["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo"]' --note "extended_demo_run"
+dotnet run -c Release --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua" --args '"--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo"' --note "extended_demo_run"
 ```
 or
 ```pwsh
-dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua" --args '["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo"]' --note "extended_demo_run"
+dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua" --args '"--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo"' --note "extended_demo_run"
 ```
 when adding new new features, or changing existing features update the lua script to demonstrate the feature in the demo game module located at `{{Game_Root}}/scripts/lua_feature_demo.lua`
+
+however when making changes to a lua script the user should test the changes manually, it is however possible to execute the lua scripts using the engine cli commands contructed based on the operations.toml for that game module
 

@@ -35,8 +35,10 @@ public static partial class Sdk {
             ScriptEngines.Global.SdkModule.Helpers.Sleep(seconds);
         };
 
-        // Expose CPU count
-        _LuaWorld.LuaScript.Globals["cpu_count"] = DynValue.NewNumber(System.Environment.ProcessorCount);
+        // Expose CPU count both globally and as a member of the sdk table
+        var cpuCount = DynValue.NewNumber(System.Environment.ProcessorCount);
+        _LuaWorld.LuaScript.Globals["cpu_count"] = cpuCount;
+        _LuaWorld.Sdk.Table["cpu_count"] = cpuCount;
 
         return _LuaWorld.Sdk.Table;
     }

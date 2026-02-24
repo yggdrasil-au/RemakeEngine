@@ -288,12 +288,15 @@ internal static class QuickBmsExtractor {
             return;
         }
 
-        ConsoleColor colour = stream == "stderr" ? ConsoleColor.Red : ConsoleColor.DarkGray;
+        //ConsoleColor colour = stream == "stderr" ? ConsoleColor.Red : ConsoleColor.DarkGray;
+        ConsoleColor colour = stream == "stderr" ? ConsoleColor.Gray : ConsoleColor.DarkGray;
+        // todo
         // due to large output volumes, only forward stderr in DEBUG builds, use Progress Bar in release
-#if DEBUG
+        // tui has been improved, this shouldnt be an issue, GUI may still freeze.. untested
+//#if DEBUG
         // this will make stderr red, but for somereason quickbms often outputs to it so outputs may be mixed
         Write(colour, "[quickbms] " + line);
-#endif
+//#endif
     }
 
     private static void WriteInfo(string message) => Write(System.ConsoleColor.Cyan, message);

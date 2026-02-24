@@ -9,18 +9,6 @@ internal static class ConfigHelpers {
         Core.UI.EngineSdk.Print(message ?? string.Empty, color, newline);
     }
 
-    private static string BuildProgressBar(string label, int current, int total, int width = 30) {
-        if (total <= 0) {
-            return $"{label}: [" + new string('.', width) + "] 100%";
-        }
-        double ratio = current / (double)total;
-        if (ratio < 0) ratio = 0; if (ratio > 1) ratio = 1;
-        int filled = (int)System.Math.Round(ratio * width);
-        string bar = new string('=', System.Math.Max(0, filled - 1)) + (filled > 0 ? ">" : "") + new string('.', System.Math.Max(0, width - filled));
-        int percent = (int)System.Math.Round(ratio * 100);
-        return $"{label}: [{bar}] {current}/{total} ({percent}%)";
-    }
-
     /// <summary>
     /// Validates that a source directory exists and is accessible.
     /// Throws if invalid.
@@ -81,11 +69,9 @@ internal static class ConfigHelpers {
         List<string> files = System.IO.Directory.EnumerateFiles(srcRoot, "*", System.IO.SearchOption.AllDirectories).ToList();
         int total = files.Count;
         int current = 0;
-        System.DateTime lastUpdate = System.DateTime.UtcNow;
-        int lastPercent = -1;
 
-        Core.UI.EngineSdk.ScriptProgress? progress = total > 0
-            ? new Core.UI.EngineSdk.ScriptProgress(total, id: "fs_copy", label: progressLabel ?? $"Copying {total} files...")
+        using Core.UI.EngineSdk.PanelProgress? progress = total > 0
+            ? new Core.UI.EngineSdk.PanelProgress(total, id: "fs_copy", label: progressLabel ?? $"Copying {total} files...")
             : null;
 
         // Write initial line
@@ -102,22 +88,11 @@ internal static class ConfigHelpers {
 
             current++;
             progress?.Update(1);
-
-            // Throttle updates: on percent change or every 100ms
-            int percent = total > 0 ? (int)System.Math.Floor((current * 100.0) / total) : 100;
-            System.DateTime now = System.DateTime.UtcNow;
-            if (percent != lastPercent || (now - lastUpdate).TotalMilliseconds >= 100 || current == total) {
-                string line = "\r" + BuildProgressBar("Copying", current, total);
-                Write(line, newline: false);
-                lastPercent = percent;
-                lastUpdate = now;
-            }
         }
 
         // Finish line
         if (total > 0) {
             progress?.Complete();
-            Write(string.Empty, newline: true);
         }
     }
 
