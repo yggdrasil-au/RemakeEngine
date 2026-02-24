@@ -11,6 +11,19 @@ ignore test project build failures for now
 always use PascalCase
 read [Style.md](Style.md)
 
+when writing lua code never create a useless wrapper around sdk functions, a wraper that calls a single sdk function without adding any value is not useful and should be avoided, for example:
+-- redundant wrapper, avoid
+```lua
+local function path_exists(path)
+    return sdk.path_exists(path)
+end
+
+--- Return true when path is a file.
+local function is_file(path)
+    return sdk.is_file(path)
+end
+```
+
 ## CONTRIBUTING
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and workflows.
 when writing code, always add documentation and update existing relevant comments and documentation.
