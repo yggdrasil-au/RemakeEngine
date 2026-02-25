@@ -1,4 +1,5 @@
 using MoonSharp.Interpreter;
+using System.Linq;
 
 
 namespace EngineNet.ScriptEngines.Lua;
@@ -25,6 +26,30 @@ public static class LuaAction {
         // Setup SDK and modules
         _LuaWorld.LuaScript.Globals["sdk"] = Global.Sdk.CreateSdkModule(_LuaWorld, _tools);
         _LuaWorld.LuaScript.Globals["sqlite"] = Global.Sqlite.CreateSqliteModule(_LuaWorld);
+
+        // Global path join (soft join, always uses forward slashes)
+        _LuaWorld.LuaScript.Globals["join"] = (System.Func<ScriptExecutionContext, CallbackArguments, DynValue>)((context, args) => {
+            var parts = Enumerable.Range(0, args.Count)
+                .Select(i => args[i])
+                .Where(v => v.Type != DataType.Nil && v.Type != DataType.Void)
+                .Select(v => v.Type == DataType.String ? v.String : v.ToPrintString())
+                .Where(s => !string.IsNullOrEmpty(s))
+                .Select(s => s.Replace("\\", "/"))
+                .ToList();
+
+            if (parts.Count == 0) return DynValue.NewString("");
+
+            var sb = new System.Text.StringBuilder();
+            for (int i = 0; i < parts.Count; i++) {
+                var p = parts[i];
+                if (i > 0) {
+                    p = p.TrimStart('/');
+                    if (sb.Length > 0 && sb[^1] != '/') sb.Append('/');
+                }
+                sb.Append(p);
+            }
+            return DynValue.NewString(sb.ToString());
+        });
 
         // Expose a function to resolve external tool path
         _LuaWorld.LuaScript.Globals["ResolveToolPath"] = (string id, string?ver) => _tools.ResolveToolPath(id, ver);

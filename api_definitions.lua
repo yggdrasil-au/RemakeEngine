@@ -676,3 +676,17 @@ UIMode = "unknown"
 ---@field isdst boolean
 
 
+-- =============================================================================
+-- 6. Global Helper Functions
+-- =============================================================================
+
+--- Joins multiple path segments into a single path using forward slashes.
+--- This performs a "soft" join where leading slashes on subsequent parts are ignored
+--- (they are treated as relative segments) to ensure concatenation.
+--- Example: join("a", "/b", "c") -> "a/b/c"
+---@param ... string|number Path segments to join.
+---@return string The joined path.
+function join(...) end
+
+
+

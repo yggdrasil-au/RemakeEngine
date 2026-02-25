@@ -11,6 +11,7 @@ disable=
     W0718,
     W0107,
     E0401,
+    E0402,
     R0902
 
 [REPORTS]

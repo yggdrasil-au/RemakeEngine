@@ -97,6 +97,16 @@ task2:Complete()
 
 sdk.color_print('green', 'PanelProgress demonstrations complete.')
 
+
+--- Global Path Joining (New Engine API) ---
+sdk.color_print('yellow', '--- Global Path Joining ---')
+local demo_path = join(Game_Root, 'TMP', 'lua-demo-comprehensive', 'test.txt')
+sdk.color_print('cyan', 'Standard join: ' .. demo_path)
+
+local soft_join_path = join('C:/Base/', '/SubDir', '\\File.dat')
+sdk.color_print('cyan', 'Soft join (concatenates absolute segments): ' .. soft_join_path)
+
+
 progress.step('Creating directory structure')
 
 -- SDK Directory operations
