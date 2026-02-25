@@ -157,6 +157,13 @@ public static partial class Sdk {
                     return false;
                 }
                 if (ScriptEngines.Global.SdkModule.FileSystemUtils.IsSymlink(path) || System.IO.File.Exists(path)) {
+                    // Clear read-only if present
+                    if (System.IO.File.Exists(path)) {
+                        System.IO.FileAttributes attributes = System.IO.File.GetAttributes(path);
+                        if ((attributes & System.IO.FileAttributes.ReadOnly) == System.IO.FileAttributes.ReadOnly) {
+                            System.IO.File.SetAttributes(path, attributes & ~System.IO.FileAttributes.ReadOnly);
+                        }
+                    }
                     System.IO.File.Delete(path);
                 }
                 return true;
@@ -173,6 +180,12 @@ public static partial class Sdk {
                 }
 
                 bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
+                if (ow && System.IO.File.Exists(dst)) {
+                    System.IO.FileAttributes attributes = System.IO.File.GetAttributes(dst);
+                    if ((attributes & System.IO.FileAttributes.ReadOnly) == System.IO.FileAttributes.ReadOnly) {
+                        System.IO.File.SetAttributes(dst, attributes & ~System.IO.FileAttributes.ReadOnly);
+                    }
+                }
                 System.IO.File.Copy(src, dst, ow);
                 return true;
             } catch (Exception ex) {
