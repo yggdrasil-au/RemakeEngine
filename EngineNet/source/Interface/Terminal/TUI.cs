@@ -191,7 +191,8 @@ internal partial class TUI {
                 System.Console.WriteLine(value: "? Select an operation: (Use arrow keys)");
                 int idx = SelectFromMenu(menu, highlightSeparators: true);
                 if (idx < 0) {
-                    return 0; // canceled
+                    // if idx < 0 (eg. Pressed Escape), return to the game selection menu
+                    return await RunInteractiveMenuAsync();
                 }
 
                 string selection = menu[idx];

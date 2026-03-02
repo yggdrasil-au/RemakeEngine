@@ -6,7 +6,12 @@
         <OutputType>WinExe</OutputType>
         <LangVersion>latest</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
+        <StartupObject>EngineNet.Program</StartupObject>
+        <ApplicationIcon>icon.ico</ApplicationIcon>
     </PropertyGroup>
+    <ItemGroup>
+      <Content Include="icon.ico" />
+    </ItemGroup>
 
     <ItemGroup>
         <!-- Script runtimes -->

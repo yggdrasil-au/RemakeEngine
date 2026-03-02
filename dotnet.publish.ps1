@@ -13,7 +13,7 @@ param(
 $Root = Split-Path -Parent $PSCommandPath
 $EngineNetProj = (Join-Path $Root (Join-Path "EngineNet" "EngineNet.csproj"))
 $OutputRoot    = Join-Path $Root "EngineBuild"
-$Icon          = Join-Path $Root "icon.ico"
+$Icon          = Join-Path $Root (Join-Path "EngineNet" "icon.ico")
 
 # 1. Version Extraction
 $ProjectToml = (Join-Path $Root (Join-Path ".betterGit" "project.toml"))
