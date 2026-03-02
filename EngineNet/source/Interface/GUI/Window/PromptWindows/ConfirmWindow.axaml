@@ -5,12 +5,19 @@
     Width="360" Height="150"
     WindowStartupLocation="CenterOwner"
     CanResize="False">
-    <DockPanel Margin="8">
+    <Grid Margin="8" RowDefinitions="*,Auto,Auto">
         <TextBlock
             x:Name="Question"
-            DockPanel.Dock="Top"
+            Grid.Row="0"
             TextWrapping="Wrap"/>
+        <CheckBox
+            x:Name="DontAskAgainCheck"
+            Grid.Row="1"
+            Content="Don't ask again"
+            IsVisible="False"
+            Margin="0,8,0,0"/>
         <StackPanel
+            Grid.Row="2"
             Orientation="Horizontal"
             HorizontalAlignment="Right"
             Margin="0,8,0,0">
@@ -21,5 +28,5 @@
                 Content="No" Width="80"
                 Click="OnNo"/>
         </StackPanel>
-    </DockPanel>
+    </Grid>
 </Window>

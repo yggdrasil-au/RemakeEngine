@@ -887,8 +887,8 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
         });
     }
 
-    public async System.Threading.Tasks.Task<bool> RequestConfirmPromptAsync(string title, string message, bool defaultValue) {
-        return await Dispatcher.UIThread.InvokeAsync(async () => {
+    public async System.Threading.Tasks.Task<bool?> RequestConfirmPromptAsync(string title, string message, bool defaultValue) {
+        return await Dispatcher.UIThread.InvokeAsync<bool?>(async () => {
             PromptTitle = title;
             PromptMessage = message;
             IsConfirmPrompt = true;
@@ -897,7 +897,9 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
 
             _promptTcs = new System.Threading.Tasks.TaskCompletionSource<string?>();
             string? res = await _promptTcs.Task;
-            return res == "y";
+            if (res == "y") return true;
+            if (res == "n") return false;
+            return null;
         });
     }
 
@@ -910,13 +912,14 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
         }
     }
 
+    public void SubmitNoPrompt() {
+        IsPromptActive = false;
+        _promptTcs?.TrySetResult("n");
+    }
+
     public void CancelPrompt() {
         IsPromptActive = false;
-        if (IsConfirmPrompt) {
-             _promptTcs?.TrySetResult("n");
-        } else {
-             _promptTcs?.TrySetResult(null);
-        }
+        _promptTcs?.TrySetResult(null);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

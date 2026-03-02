@@ -83,5 +83,7 @@ public partial class MainWindow:Window {
 
     // prompt handlers
     private void OnPromptSubmit(object? s, RoutedEventArgs e) => OperationOutputService.Instance.SubmitPrompt();
+    private void OnPromptYes(object? s, RoutedEventArgs e) => OperationOutputService.Instance.SubmitPrompt();
+    private void OnPromptNo(object? s, RoutedEventArgs e) => OperationOutputService.Instance.SubmitNoPrompt();
     private void OnPromptCancel(object? s, RoutedEventArgs e) => OperationOutputService.Instance.CancelPrompt();
 }

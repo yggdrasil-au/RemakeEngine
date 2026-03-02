@@ -49,7 +49,9 @@
 
                     <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
                         <Button Content="Cancel" Click="OnPromptCancel" />
-                        <Button Content="OK" Click="OnPromptSubmit" IsDefault="True"/>
+                        <Button Content="No" Click="OnPromptNo" IsVisible="{Binding IsConfirmPrompt}" />
+                        <Button Content="Yes" Click="OnPromptYes" IsVisible="{Binding IsConfirmPrompt}" IsDefault="True"/>
+                        <Button Content="OK" Click="OnPromptSubmit" IsVisible="{Binding IsTextPrompt}" IsDefault="True"/>
                     </StackPanel>
                 </StackPanel>
             </Border>

@@ -83,8 +83,8 @@ internal static class Utils {
                     try {
                         string title = !string.IsNullOrWhiteSpace(promptId) ? promptId : "Input Required";
                         if (promptType == "confirm") {
-                            bool res = await OperationOutputService.Instance.RequestConfirmPromptAsync(title, promptMessage ?? "Confirm?", promptDefault);
-                            response = res ? "y" : "n";
+                            bool? res = await OperationOutputService.Instance.RequestConfirmPromptAsync(title, promptMessage ?? "Confirm?", promptDefault);
+                            response = res.HasValue ? (res.Value ? "y" : "n") : string.Empty;
                         } else {
                             response = await OperationOutputService.Instance.RequestTextPromptAsync(title, promptMessage ?? "Enter value", defaultValue: null, promptSecret);
                         }

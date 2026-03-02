@@ -16,6 +16,25 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     /* :: :: Vars :: START :: */
     private readonly string _moduleName = string.Empty;
 
+    private readonly List<Core.Services.OperationsService.PreparedOperation> _initOperations = new();
+
+    private class SessionState {
+        public bool HasNavigatedOnce { get; set; } = false;
+        public bool DontAskAgain { get; set; } = false;
+        public bool AutoRunInit { get; set; } = false;
+    }
+    private static readonly Dictionary<string, SessionState> _moduleStates = new();
+
+    private SessionState CurrentState {
+        get {
+            if (!_moduleStates.TryGetValue(_moduleName, out var state)) {
+                state = new SessionState();
+                _moduleStates[_moduleName] = state;
+            }
+            return state;
+        }
+    }
+
     public string ModuleName { get; private set; } = string.Empty;
     public string Title { get; private set; } = string.Empty;
     public string? GameRoot { get; private set; }
@@ -28,8 +47,10 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     public bool IsUnverified { get; private set; }
     public bool IsUnbuilt { get; private set; }
 
-    public bool CanPlay => IsBuilt && !string.IsNullOrWhiteSpace(ExePath);
-    public bool CanRunAll => !string.IsNullOrWhiteSpace(ModuleName) && !IsRunning;
+    public bool IsExecutionEnabled { get; private set; } = true;
+
+    public bool CanPlay => IsBuilt && !string.IsNullOrWhiteSpace(ExePath) && IsExecutionEnabled;
+    public bool CanRunAll => !string.IsNullOrWhiteSpace(ModuleName) && !IsRunning && IsExecutionEnabled;
     public bool CanStop => IsRunning;
     public bool CanDownload => !IsDownloaded() && !string.IsNullOrWhiteSpace(RegistryUrl);
 
@@ -63,6 +84,8 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         DataContext = this;
         InitializeComponent();
 
+        this.Loaded += OnLoaded;
+
         Load();
     }
 
@@ -79,12 +102,66 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         DataContext = this;
         InitializeComponent();
 
+        this.Loaded += OnLoaded;
+
         Load();
     }
 
     /* :: :: Constructors :: END :: */
     // //
     /* :: :: Methods :: START :: */
+
+    private async void OnLoaded(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e) {
+        if (_initOperations.Count == 0 || AvaloniaGui.Engine is null) {
+            IsExecutionEnabled = true;
+            Raise(nameof(CanPlay));
+            Raise(nameof(CanRunAll));
+            return;
+        }
+
+        SessionState state = CurrentState;
+
+        if (state.DontAskAgain) {
+            //if (state.AutoRunInit) {
+            //    await ExecuteInitOperationsAsync();
+            //} else {
+            // dont re-run init ops,
+                IsExecutionEnabled = true; // explicitly opted out forever, allow run
+                Raise(nameof(CanPlay));
+                Raise(nameof(CanRunAll));
+            //}
+            return;
+        }
+
+        bool isFirstPrompt = !state.HasNavigatedOnce;
+        state.HasNavigatedOnce = true;
+
+        IsExecutionEnabled = false;
+        Raise(nameof(CanPlay));
+        Raise(nameof(CanRunAll));
+
+        string msg = isFirstPrompt
+            ? $"The module '{_moduleName}' has {_initOperations.Count} initialization operations. Would you like to run them now? If you choose 'No', execution options will be disabled."
+            : $"The module '{_moduleName}' still has unrun initialization operations. Would you like to run them?";
+
+        (bool Result, bool DontAskAgain) response = await PromptHelpers.ConfirmWithOptOutAsync(
+            "Initialization Operations", msg, defaultValue: true);
+
+        if (response.DontAskAgain) {
+            state.DontAskAgain = true;
+            state.AutoRunInit = response.Result;
+        }
+
+        if (response.Result) {
+            await ExecuteInitOperationsAsync();
+            IsExecutionEnabled = true;
+        } else {
+            IsExecutionEnabled = !isFirstPrompt; // On first prompt 'no' disables, on re-prompts it enables all
+        }
+
+        Raise(nameof(CanPlay));
+        Raise(nameof(CanRunAll));
+    }
 
     private void Load() {
         try {
@@ -94,6 +171,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
             // Clear ops
             Operations.Clear();
+            _initOperations.Clear();
 
             // Gather module info from multiple sources
             Dictionary<string, Core.Utils.GameModuleInfo> modules = AvaloniaGui.Engine.Modules(Core.Utils.ModuleFilter.All);
@@ -110,7 +188,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 Image = ResolveCoverBitmap(gameRoot: GameRoot);
             } else {
                 Title = _moduleName;
-                Image = ResolveCoverBitmap(gameRoot: null);
+                Image = ResolveCoverBitmap(gameRoot: Program.rootPath);
             }
 
             // Registry info (URL)
@@ -152,6 +230,8 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                         OperationOutputService.Instance.AddOutput($"Validation: {warning}", "stderr");
                     }
                 }
+
+                _initOperations.AddRange(preparedOps.InitOperations);
 
                 foreach (Core.Services.OperationsService.PreparedOperation op in preparedOps.RegularOperations) {
                     string scriptType = string.IsNullOrWhiteSpace(op.ScriptType) ? "python" : op.ScriptType;
@@ -202,6 +282,73 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         }
     }
 
+    private async System.Threading.Tasks.Task ExecuteInitOperationsAsync() {
+        if (_initOperations.Count == 0 || AvaloniaGui.Engine is null) return;
+
+        IsRunning = true;
+        _cts = new CancellationTokenSource();
+        Raise(nameof(CanRunAll));
+        Raise(nameof(CanStop));
+
+        try {
+            Dictionary<string, Core.Utils.GameModuleInfo> games = AvaloniaGui.Engine.Modules(Core.Utils.ModuleFilter.All);
+
+            await GUI.Utils.ExecuteEngineOperationAsync(
+                engine: AvaloniaGui.Engine,
+                moduleName: ModuleName,
+                operationName: "Initialization Ops",
+                executor: async (onOutput, onEvent, stdin) => {
+                    Core.UI.EngineSdk.LocalEventSink = e => onEvent(e);
+                    Core.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
+
+                    System.IO.TextReader previous = System.Console.In;
+                    try {
+                        System.Console.SetIn(new GuiStdinRedirectReader(provider: stdin));
+                        bool okAllInit = true;
+                        foreach (var op in _initOperations) {
+                            Dictionary<string, object?> answers = new Dictionary<string, object?>();
+                            await CollectAnswersForOperationAsync(op: op.Operation, answers: answers, defaultsOnly: true);
+
+                            bool ok = await AvaloniaGui.Engine.Engino.RunSingleOperationAsync(
+                                currentGame: ModuleName,
+                                games,
+                                op: op.Operation,
+                                answers,
+                                AvaloniaGui.Engine.EngineConfig,
+                                AvaloniaGui.Engine.ToolResolver,
+                                AvaloniaGui.Engine.GitService,
+                                AvaloniaGui.Engine.GameRegistry,
+                                AvaloniaGui.Engine.CommandService,
+                                AvaloniaGui.Engine.OperationExecution,
+                                cancellationToken: _cts.Token
+                            );
+                            okAllInit &= ok;
+                        }
+                        return okAllInit;
+                    } finally {
+                        try {
+                            System.Console.SetIn(new System.IO.StreamReader(System.Console.OpenStandardInput()));
+                        } catch (Exception ex) {
+                            System.Console.SetIn(previous);
+                            Core.Diagnostics.Bug($"ExecuteInitOperationsAsync: Failed to restore Console.In. {ex}");
+                        }
+                    }
+                }
+            );
+        } catch (System.OperationCanceledException) {
+            OperationOutputService.Instance.AddOutput(text: "Init operations cancelled by user.", stream: "stderr");
+        } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"ExecuteInitOperationsAsync: {ex}");
+            OperationOutputService.Instance.AddOutput(text: $"Init operations failed: {ex.Message}", stream: "stderr");
+        } finally {
+            IsRunning = false;
+            _cts?.Dispose();
+            _cts = null;
+            Raise(nameof(CanRunAll));
+            Raise(nameof(CanStop));
+        }
+    }
+
     private async System.Threading.Tasks.Task PlayAsync() {
         if (AvaloniaGui.Engine is null || string.IsNullOrWhiteSpace(ModuleName)) return;
         try {
@@ -236,12 +383,12 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     private async System.Threading.Tasks.Task RunAllAsync() {
         if (AvaloniaGui.Engine is null || string.IsNullOrWhiteSpace(ModuleName)) return;
-        
+
         IsRunning = true;
         _cts = new CancellationTokenSource();
         Raise(nameof(CanRunAll));
         Raise(nameof(CanStop));
-        
+
         try {
             await GUI.Utils.ExecuteEngineOperationAsync(
                 engine: AvaloniaGui.Engine,
@@ -273,12 +420,12 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     private async System.Threading.Tasks.Task RunOpAsync(OpRow? row) {
         if (row is null || AvaloniaGui.Engine is null) return;
-        
+
         IsRunning = true;
         _cts = new CancellationTokenSource();
         Raise(nameof(CanRunAll));
         Raise(nameof(CanStop));
-        
+
         try {
             Dictionary<string, Core.Utils.GameModuleInfo> games = AvaloniaGui.Engine.Modules(Core.Utils.ModuleFilter.All);
 
@@ -390,7 +537,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         return System.IO.Directory.Exists(path: path);
     }
 
-    private async System.Threading.Tasks.Task CollectAnswersForOperationAsync(Dictionary<string, object?> op, Dictionary<string, object?> answers) {
+    private async System.Threading.Tasks.Task CollectAnswersForOperationAsync(Dictionary<string, object?> op, Dictionary<string, object?> answers, bool defaultsOnly = false) {
         if (AvaloniaGui.Engine is null) {
             return;
         }
@@ -399,12 +546,15 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             switch (request.Type) {
                 case "confirm": {
                     bool defVal = request.DefaultValue is bool b && b;
-                    bool res = await OperationOutputService.Instance.RequestConfirmPromptAsync(
+                    bool? res = await OperationOutputService.Instance.RequestConfirmPromptAsync(
                         title: request.Title,
                         message: request.Title,
                         defaultValue: defVal
                     );
-                    return Core.Services.OperationsService.PromptResponse.FromValue(res);
+                    if (res == null) {
+                        return Core.Services.OperationsService.PromptResponse.Cancelled();
+                    }
+                    return Core.Services.OperationsService.PromptResponse.FromValue(res.Value);
                 }
                 case "select": {
                     string hint = request.Choices.Count > 0
@@ -467,7 +617,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             }
         };
 
-        await AvaloniaGui.Engine.OperationsService.CollectAnswersAsync(op, answers, handler);
+        await AvaloniaGui.Engine.OperationsService.CollectAnswersAsync(op, answers, handler, defaultsOnly);
     }
 
     /* :: :: Methods :: END :: */

@@ -29,4 +29,12 @@ internal static class PromptHelpers {
         return result;
     }
 
+    internal static async System.Threading.Tasks.Task<(bool Result, bool DontAskAgain)> ConfirmWithOptOutAsync(string title, string message, bool defaultValue = false) {
+        Window? window = TryGetMainWindow();
+        if (window is null) return (defaultValue, false);
+        Pages.PromptWindows.ConfirmWindow dlg = new Pages.PromptWindows.ConfirmWindow(title, message);
+        dlg.EnableOptOut();
+        return await dlg.ShowWithOptOutAsync(window);
+    }
+
 }

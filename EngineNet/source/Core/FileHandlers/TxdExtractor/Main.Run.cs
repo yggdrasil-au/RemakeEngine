@@ -19,7 +19,7 @@ internal static partial class Main {
             // Assemble file list and set up progress tracking
             List<string> files = EnumerateTxdFiles(options.InputPath);
             int processed = 0, ok = 0, skip = 0, err = 0;
-            
+
             // --- CHANGED ---
             Core.UI.EngineSdk.SdkConsoleProgress.ActiveProcess? currentJob = null;
             using System.Threading.CancellationTokenSource cts = new();
