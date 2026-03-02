@@ -180,6 +180,33 @@ sdk.color_print('green', 'File copy result: ' .. tostring(copy_success))
 local backup_success = sdk.copy_file(test_file1, test_file_backup, true) -- overwrite = true
 sdk.color_print('green', 'File backup result: ' .. tostring(backup_success))
 
+sdk.color_print('yellow', '--- Improved Rename & Writable Checks ---')
+local rename_test_file = scratch_root .. '/rename_test.txt'
+local rename_dest_file = scratch_root .. '/rename_dest.txt'
+local rename_test_dir = scratch_root .. '/rename_test_dir'
+local rename_dest_dir = scratch_root .. '/rename_dest_dir'
+
+-- Cleanup
+sdk.remove_file(rename_test_file)
+sdk.remove_file(rename_dest_file)
+sdk.remove_dir(rename_test_dir)
+sdk.remove_dir(rename_dest_dir)
+
+-- Test File Rename
+sdk.write_file(rename_test_file, "Rename test content")
+local file_writable_before = sdk.is_writable(rename_test_file)
+local rename_file_ok = sdk.rename_file(rename_test_file, rename_dest_file, true)
+local file_exists_after = sdk.path_exists(rename_dest_file)
+sdk.color_print('green', string.format('File rename: %s (Writable before: %s, Exists after: %s)', tostring(rename_file_ok), tostring(file_writable_before), tostring(file_exists_after)))
+
+-- Test Directory Rename
+sdk.ensure_dir(rename_test_dir)
+sdk.write_file(rename_test_dir .. "/dir_content.txt", "Inside dir")
+local dir_writable_before = sdk.is_writable(rename_test_dir)
+local rename_dir_ok = sdk.rename_file(rename_test_dir, rename_dest_dir, true)
+local dir_exists_after = sdk.path_exists(rename_dest_dir)
+sdk.color_print('green', string.format('Dir rename: %s (Writable before: %s, Exists after: %s)', tostring(rename_dir_ok), tostring(dir_writable_before), tostring(dir_exists_after)))
+
 progress.step('Testing directory operations')
 
 -- SDK Directory operations

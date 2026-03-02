@@ -31,6 +31,60 @@ public static partial class Sdk {
         _LuaWorld.Sdk.Table["lexists"] = (string path) => {
             return Security.EnsurePathAllowedWithPrompt(path) && ScriptEngines.Global.SdkModule.FileSystemUtils.PathExistsIncludingLinks(path);
         };
+        _LuaWorld.Sdk.Table["absolute_path"] = (string path) => {
+            if (string.IsNullOrEmpty(path)) return path;
+
+            // 1. Try realpath first (handles symlinks etc)
+            string? resolved = null;
+            if (Security.IsAllowedPath(path)) {
+                resolved = ScriptEngines.Global.SdkModule.FileSystemUtils.RealPath(path);
+            }
+
+            string result = path;
+            if (!string.IsNullOrEmpty(resolved)) {
+                result = resolved;
+            } else {
+                // 2. Check if absolute using is_absolute logic
+                bool isAbsolute = false;
+                bool isWindows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows);
+
+                if (isWindows) {
+                    // Windows drive: C:\
+                    if (path.Length >= 3 && char.IsLetter(path[0]) && path[1] == ':' && (path[2] == '/' || path[2] == '\\')) isAbsolute = true;
+                    // Windows UNC: \\host
+                    else if (path.Length >= 2 && path[0] == '\\' && path[1] == '\\') isAbsolute = true;
+                    // Windows root: \
+                    else if (path.Length >= 1 && path[0] == '\\') isAbsolute = true;
+                    // Unix-style root on Windows: /
+                    else if (path.Length >= 1 && path[0] == '/') isAbsolute = true;
+                } else {
+                    // Unix root: /
+                    if (path.Length >= 1 && path[0] == '/') isAbsolute = true;
+                }
+
+                if (!isAbsolute) {
+                    string cwd = System.IO.Directory.GetCurrentDirectory();
+                    result = System.IO.Path.Combine(cwd, path);
+                }
+            }
+
+            // 3. Normalize
+            char sep = System.IO.Path.DirectorySeparatorChar;
+            if (sep == '\\') {
+                result = result.Replace('/', '\\');
+            } else {
+                result = result.Replace('\\', '/');
+            }
+
+            // 4. Windows Long Path Support (\\\\?\\ prefix)
+            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)) {
+                if (result.Length > 255 && result.Length >= 2 && char.IsLetter(result[0]) && result[1] == ':' && !result.StartsWith(@"\\?\")) {
+                    result = @"\\?\" + result;
+                }
+            }
+
+            return result;
+        };
         _LuaWorld.Sdk.Table["realpath"] = (string path) => Security.IsAllowedPath(path) ? ScriptEngines.Global.SdkModule.FileSystemUtils.RealPath(path) : null;
         _LuaWorld.Sdk.Table["attributes"] = (string path) => {
             // Call the shared logic
@@ -149,6 +203,23 @@ public static partial class Sdk {
         _LuaWorld.Sdk.Table["is_file"] = (string path) => {
             return Security.EnsurePathAllowedWithPrompt(path) && System.IO.File.Exists(path);
         };
+        _LuaWorld.Sdk.Table["is_absolute"] = (string path) => {
+            if (string.IsNullOrEmpty(path)) return false;
+
+            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)) {
+                // Windows drive: ^%a:[/\\]
+                if (path.Length >= 3 && char.IsLetter(path[0]) && path[1] == ':' && (path[2] == '/' || path[2] == '\\')) return true;
+                // Windows UNC: ^\\\\
+                if (path.Length >= 2 && path[0] == '\\' && path[1] == '\\') return true;
+                // Unix root / or Windows root \
+                if (path.Length >= 1 && (path[0] == '/' || path[0] == '\\')) return true;
+            } else {
+                // Unix root /
+                if (path.Length >= 1 && path[0] == '/') return true;
+            }
+
+            return false;
+        };
         _LuaWorld.Sdk.Table["remove_file"] = (string path) => {
             try {
                 // Security: Validate path prior to deletion
@@ -223,7 +294,7 @@ public static partial class Sdk {
                 return null;
             }
         };
-        _LuaWorld.Sdk.Table["rename_file"] = (string oldPath, string newPath) => {
+        _LuaWorld.Sdk.Table["rename_file"] = (string oldPath, string newPath, bool overwrite = false) => {
             try {
                 // Security: Validate or prompt-approve paths
                 if (!Security.EnsurePathAllowedWithPrompt(oldPath) || !Security.EnsurePathAllowedWithPrompt(newPath)) {
@@ -231,10 +302,20 @@ public static partial class Sdk {
                 }
 
                 if (System.IO.File.Exists(oldPath)) {
-                    System.IO.File.Move(oldPath, newPath);
+                    if (System.IO.File.Exists(newPath)) {
+                        if (!overwrite) return false;
+                        System.IO.File.Delete(newPath);
+                    }
+                    try {
+                        System.IO.File.Move(oldPath, newPath, overwrite);
+                    } catch {
+                        // Fallback for cross-volume moves (or older .NET targets)
+                        System.IO.File.Copy(oldPath, newPath, overwrite);
+                        System.IO.File.Delete(oldPath);
+                    }
                     return true;
                 } else if (System.IO.Directory.Exists(oldPath)) {
-                    System.IO.Directory.Move(oldPath, newPath);
+                    Helpers.ConfigHelpers.MoveDirectory(oldPath, newPath, overwrite);
                     return true;
                 }
                 return false;
@@ -249,18 +330,35 @@ public static partial class Sdk {
                 if (!Security.IsAllowedPath(path)) {
                     return false;
                 }
+
+                // If it's a file, check file attributes and try to open for writing
+                if (File.Exists(path)) {
+                    try {
+                        FileInfo fi = new FileInfo(path);
+                        if (fi.IsReadOnly) return false;
+                        using (FileStream fs = File.Open(path, FileMode.Open, FileAccess.Write, FileShare.ReadWrite)) {
+                            return true;
+                        }
+                    } catch {
+                        return false;
+                    }
+                }
+
                 if (!Directory.Exists(path))
                     return false;
 
-                string testFile = Path.Combine(path, Path.GetRandomFileName());
+                // For directories, try to create a temp file
+                string testFile = Path.Combine(path, Path.GetRandomFileName() + ".tmp");
 
-                // Create a zero-byte file and delete it immediately when closed
-                using (File.Create(testFile, 1, FileOptions.DeleteOnClose)) {
+                try {
+                    // Create a zero-byte file and delete it immediately when closed
+                    using (File.Create(testFile, 1, FileOptions.DeleteOnClose)) {
+                        return true;
+                    }
+                } catch {
+                    return false;
                 }
-
-                return true;
-            } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("is_writable failed with exception: " + ex);
+            } catch {
                 return false;
             }
         };

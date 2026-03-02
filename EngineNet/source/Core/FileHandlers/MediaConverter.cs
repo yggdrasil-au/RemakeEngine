@@ -26,6 +26,7 @@ internal static class MediaConverter {
         internal string InputExt = string.Empty;            // eg .vp6, .snu
         internal string OutputExt = string.Empty;           // eg .ogv, .wav
         internal bool Overwrite = false;
+        internal bool Replace = false;
         internal bool GodotCompatible = false;
         internal string? FfmpegPath;                        // ffmpeg/ffmpeg.exe
         internal string? VgmstreamCli;                      // vgmstream-cli/vgmstream-cli.exe
@@ -146,6 +147,9 @@ internal static class MediaConverter {
                     (bool ok, string? msg) = ConvertOne(src, dest, opt);
                     if (ok) {
                         System.Threading.Interlocked.Increment(ref success);
+                        if (opt.Replace) {
+                            TryDelete(src);
+                        }
                     } else {
                         System.Threading.Interlocked.Increment(ref errors);
                         errorList.Add((System.IO.Path.GetFileName(src), msg ?? "unknown error"));
@@ -395,7 +399,11 @@ internal static class MediaConverter {
 
             p.WaitForExit();
 
-            if (p.ExitCode == 0) {
+            int exitCode = p.ExitCode;
+            // Explicitly dispose to release file handles
+            p.Dispose();
+
+            if (exitCode == 0) {
                 return (true, null);
             }
 
@@ -405,10 +413,10 @@ internal static class MediaConverter {
                     err = outBuf?.ToString() ?? string.Empty;
                 }
 
-                string msg = string.IsNullOrWhiteSpace(err) ? $"exit code {p.ExitCode}" : err.Trim();
+                string msg = string.IsNullOrWhiteSpace(err) ? $"exit code {exitCode}" : err.Trim();
                 return (false, msg);
             }
-            return (false, $"exit code {p.ExitCode}");
+            return (false, $"exit code {exitCode}");
         } catch (System.Exception ex) {
             return (false, ex.Message);
         }
@@ -499,6 +507,9 @@ internal static class MediaConverter {
                     break;
                 case "--overwrite":
                     o.Overwrite = true;
+                    break;
+                case "--replace":
+                    o.Replace = true;
                     break;
                 case "--godot-compatible":
                     o.GodotCompatible = true;
@@ -597,5 +608,15 @@ internal static class MediaConverter {
             return;
         }
         Core.UI.EngineSdk.Info(msg);
+    }
+
+    private static void TryDelete(string path) {
+        try {
+            if (!string.IsNullOrWhiteSpace(path) && System.IO.File.Exists(path)) {
+                System.IO.File.Delete(path);
+            }
+        } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"[MediaConverter] Failed to delete source file after conversion: {path}. Error: {ex.Message}");
+        }
     }
 }

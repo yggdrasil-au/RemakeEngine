@@ -94,9 +94,15 @@ internal sealed class ProcessRunner() {
         System.Diagnostics.DataReceivedEventHandler outHandler = (_, e) => { if (e.Data != null) { q.Add(("stdout", e.Data)); } };
         System.Diagnostics.DataReceivedEventHandler errHandler = (_, e) => { if (e.Data != null) { q.Add(("stderr", e.Data)); } };
 
+        using var job = System.OperatingSystem.IsWindows() ? new Utils.JobObject() : null;
+
         try {
             if (!proc.Start()) {
                 throw new System.InvalidOperationException("Failed to start process");
+            }
+
+            if (job != null) {
+                job.AddProcess(proc);
             }
 
             proc.OutputDataReceived += outHandler;

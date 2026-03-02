@@ -339,10 +339,12 @@ function sdk.write_file(path, content) end
 function sdk.read_file(path) end
 
 --- Renames or moves a file or directory.
+--- Supports cross-volume moves and merging directories.
 ---@param old_path string
 ---@param new_path string
+---@param overwrite? boolean
 ---@return boolean ok
-function sdk.rename_file(old_path, new_path) end
+function sdk.rename_file(old_path, new_path, overwrite) end
 
 --- Removes a directory recursively.
 ---@param path string
@@ -388,7 +390,17 @@ function sdk.is_dir(path) end
 ---@return boolean ok
 function sdk.is_file(path) end
 
---- Checks whether a directory is writable.
+--- Checks whether a path is an absolute path.
+---@param path string
+---@return boolean ok
+function sdk.is_absolute(path) end
+
+--- Resolves a path to its absolute path with long path support on Windows.
+---@param path string
+---@return string|nil absolute_path
+function sdk.absolute_path(path) end
+
+--- Checks whether a file or directory is writable.
 ---@param path string
 ---@return boolean ok
 function sdk.is_writable(path) end
@@ -611,6 +623,18 @@ function color_prompt(message, color, id, secret) end
 ---@param secret? boolean
 ---@return string
 function colour_prompt(message, color, id, secret) end
+
+--- Loads and executes a Lua file relative to the current script's directory.
+--- If the path does not end in '.lua', it is appended automatically.
+---@param path string The relative or absolute path to the Lua file.
+---@return any result The value returned by the executed Lua script (if any).
+function import(path) end
+
+--- Loads and executes a Lua file. In RemakeEngine, this is an alias for 'import'
+--- and resolves paths relative to 'script_dir'.
+---@param path string The relative or absolute path to the Lua file.
+---@return any result The value returned by the executed Lua script (if any).
+function require(path) end
 
 --- Diagnostics helpers.
 ---@class Diagnostics

@@ -73,6 +73,31 @@ public static class LuaAction {
         string scriptDir = System.IO.Path.GetDirectoryName(_scriptPath)?.Replace("\\", "/") ?? "";
         _LuaWorld.LuaScript.Globals["script_dir"] = scriptDir;
 
+
+        // Global 'import' function to load and execute Lua files relative to script_dir
+        _LuaWorld.LuaScript.Globals["import"] = (System.Func<ScriptExecutionContext, string, DynValue>)((context, path) => {
+            string absolutePath = System.IO.Path.IsPathRooted(path)
+                ? path
+                : System.IO.Path.Combine(scriptDir, path);
+
+            if (!absolutePath.EndsWith(".lua", StringComparison.OrdinalIgnoreCase)) {
+                absolutePath += ".lua";
+            }
+
+            if (!System.IO.File.Exists(absolutePath)) {
+                throw new ScriptRuntimeException($"import error: file not found '{absolutePath}'");
+            }
+
+            try {
+                return _LuaWorld.LuaScript.DoFile(absolutePath);
+            } catch (Exception ex) {
+                throw new ScriptRuntimeException($"import error in '{absolutePath}': {ex.Message}");
+            }
+        });
+
+        // Custom 'require' implementation that matches the 'import' behavior
+        _LuaWorld.LuaScript.Globals["require"] = _LuaWorld.LuaScript.Globals["import"];
+
         // :: start :: methods for emitting engineSDK events from Lua scripts ::
         events(_LuaWorld);
 
