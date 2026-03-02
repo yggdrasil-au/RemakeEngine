@@ -29,6 +29,12 @@ public static class Program {
 
     [STAThread]
     internal static async System.Threading.Tasks.Task<int> Main(string[] args) {
+        using var cts = new System.Threading.CancellationTokenSource();
+        System.Console.CancelKeyPress += (s, e) => {
+            e.Cancel = true;
+            cts.Cancel();
+            Core.Diagnostics.Log("Global Cancellation Requested (Ctrl+C)");
+        };
         try {
             // Try to attach to the parent console (CMD/PowerShell) so stdout works.
             bool hasConsole = false;
@@ -115,7 +121,7 @@ public static class Program {
             if (isTui) {
                 Core.Diagnostics.Trace("Launching TUI Interface...");
                 Interface.Terminal.TUI TUI = new Interface.Terminal.TUI(_engine);
-                return await TUI.RunInteractiveMenuAsync();
+                return await TUI.RunInteractiveMenuAsync(cts.Token);
             }
 
             // Logic:
@@ -123,7 +129,7 @@ public static class Program {
             if (isCli) {
                 Core.Diagnostics.Trace("Launching CLI Interface...");
                 Interface.Terminal.CLI CLI = new Interface.Terminal.CLI(_engine);
-                return CLI.Run(args);
+                return await CLI.RunAsync(args, cts.Token);
             }
             EngineSdk.Error("No valid interface mode selected.");
             Core.Diagnostics.Bug("No valid interface mode selected.");

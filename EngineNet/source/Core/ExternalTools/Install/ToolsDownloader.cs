@@ -18,7 +18,7 @@ internal sealed class ToolsDownloader {
         _centralRepoJsonPath = centralRepoJsonPath;
     }
 
-    internal async System.Threading.Tasks.Task<bool> ProcessAsync(string moduleTomlPath, bool force, IDictionary<string, object?>? context = null) {
+    internal async System.Threading.Tasks.Task<bool> ProcessAsync(string moduleTomlPath, bool force, IDictionary<string, object?>? context = null, System.Threading.CancellationToken cancellationToken = default) {
         Core.UI.EngineSdk.PrintLine(string.Empty);
         Core.UI.EngineSdk.PrintLine($"=== Tools Downloader - manifest: {moduleTomlPath} ===", System.ConsoleColor.DarkCyan);
         if (!System.IO.File.Exists(moduleTomlPath)) {

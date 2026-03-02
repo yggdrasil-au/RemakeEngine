@@ -34,13 +34,14 @@ internal class Utils() {
     /// <param name="answers"></param>
     /// <param name="autoPromptResponses"></param>
     /// <returns></returns>
-    internal bool ExecuteOp(
+    internal async System.Threading.Tasks.Task<bool> ExecuteOpAsync(
         Core.Engine.Engine _engine,
         string game,
         Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
         Dictionary<string, object?> op,
         Dictionary<string, object?> answers,
-        Dictionary<string, string>? autoPromptResponses = null
+        Dictionary<string, string>? autoPromptResponses = null,
+        System.Threading.CancellationToken cancellationToken = default
     ) {
         try {
             string? script_type = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant();
@@ -62,7 +63,7 @@ internal class Utils() {
 
                     Core.UI.EngineSdk.LocalEventSink = OnEvent;
                     Core.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
-                    return _engine.Engino.RunSingleOperationAsync(
+                    return await _engine.Engino.RunSingleOperationAsync(
                         game,
                         games,
                         op,
@@ -72,8 +73,9 @@ internal class Utils() {
                         _engine.GitService,
                         _engine.GameRegistry,
                         _engine.CommandService,
-                        _engine.OperationExecution, CancellationToken.None
-                    ).GetAwaiter().GetResult();
+                        _engine.OperationExecution,
+                        cancellationToken: cancellationToken
+                    );
                 } finally {
                     // Restore previous auto-prompt responses
                     Core.UI.EngineSdk.AutoPromptResponses.Clear();

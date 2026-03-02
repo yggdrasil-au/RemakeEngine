@@ -29,8 +29,12 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     public bool IsUnbuilt { get; private set; }
 
     public bool CanPlay => IsBuilt && !string.IsNullOrWhiteSpace(ExePath);
-    public bool CanRunAll => !string.IsNullOrWhiteSpace(ModuleName);
+    public bool CanRunAll => !string.IsNullOrWhiteSpace(ModuleName) && !IsRunning;
+    public bool CanStop => IsRunning;
     public bool CanDownload => !IsDownloaded() && !string.IsNullOrWhiteSpace(RegistryUrl);
+
+    public bool IsRunning { get; private set; }
+    private CancellationTokenSource? _cts;
 
     public Bitmap? Image { get; private set; }
 
@@ -38,6 +42,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     public System.Windows.Input.ICommand Button_Play_Click { get; }
     public System.Windows.Input.ICommand Button_RunAll_Click { get; }
+    public System.Windows.Input.ICommand Button_Stop_Click { get; }
     public System.Windows.Input.ICommand Button_RunOp_Click { get; }
     public System.Windows.Input.ICommand Button_Download_Click { get; }
     public System.Windows.Input.ICommand Button_OpenFolder_Click { get; }
@@ -50,6 +55,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
         Button_Play_Click = new Cmd(async _ => await PlayAsync());
         Button_RunAll_Click = new Cmd(async _ => await RunAllAsync());
+        Button_Stop_Click = new Cmd(async _ => Stop());
         Button_RunOp_Click = new Cmd(async p => await RunOpAsync(p as OpRow));
         Button_Download_Click = new Cmd(async _ => await DownloadAsync());
         Button_OpenFolder_Click = new Cmd(async _ => await OpenFolderAsync());
@@ -65,6 +71,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
         Button_Play_Click = new Cmd(async _ => await PlayAsync());
         Button_RunAll_Click = new Cmd(async _ => await RunAllAsync());
+        Button_Stop_Click = new Cmd(async _ => Stop());
         Button_RunOp_Click = new Cmd(async p => await RunOpAsync(p as OpRow));
         Button_Download_Click = new Cmd(async _ => await DownloadAsync());
         Button_OpenFolder_Click = new Cmd(async _ => await OpenFolderAsync());
@@ -229,22 +236,49 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     private async System.Threading.Tasks.Task RunAllAsync() {
         if (AvaloniaGui.Engine is null || string.IsNullOrWhiteSpace(ModuleName)) return;
+        
+        IsRunning = true;
+        _cts = new CancellationTokenSource();
+        Raise(nameof(CanRunAll));
+        Raise(nameof(CanStop));
+        
         try {
             await GUI.Utils.ExecuteEngineOperationAsync(
                 engine: AvaloniaGui.Engine,
                 moduleName: ModuleName,
                 operationName: "Run All",
-                executor: (onOutput, onEvent, stdin) => AvaloniaGui.Engine.RunAllAsync(gameName: ModuleName, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdin)
+                executor: async (onOutput, onEvent, stdin) => {
+                    var res = await AvaloniaGui.Engine.RunAllAsync(gameName: ModuleName, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdin, cancellationToken: _cts.Token);
+                    return res.Success;
+                }
             );
             Load();
+        } catch (System.OperationCanceledException) {
+            OperationOutputService.Instance.AddOutput(text: "Operation cancelled by user.", stream: "stderr");
         } catch (System.Exception ex) {
             Core.Diagnostics.Bug($"RunAllAsync: {ex}");
             OperationOutputService.Instance.AddOutput(text: $"Run All failed: {ex.Message}", stream: "stderr");
+        } finally {
+            IsRunning = false;
+            _cts?.Dispose();
+            _cts = null;
+            Raise(nameof(CanRunAll));
+            Raise(nameof(CanStop));
         }
+    }
+
+    private void Stop() {
+        _cts?.Cancel();
     }
 
     private async System.Threading.Tasks.Task RunOpAsync(OpRow? row) {
         if (row is null || AvaloniaGui.Engine is null) return;
+        
+        IsRunning = true;
+        _cts = new CancellationTokenSource();
+        Raise(nameof(CanRunAll));
+        Raise(nameof(CanStop));
+        
         try {
             Dictionary<string, Core.Utils.GameModuleInfo> games = AvaloniaGui.Engine.Modules(Core.Utils.ModuleFilter.All);
 
@@ -273,22 +307,32 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                             AvaloniaGui.Engine.GitService,
                             AvaloniaGui.Engine.GameRegistry,
                             AvaloniaGui.Engine.CommandService,
-                            AvaloniaGui.Engine.OperationExecution, CancellationToken.None
+                            AvaloniaGui.Engine.OperationExecution,
+                            cancellationToken: _cts.Token
                         );
                         return ok;
                     } finally {
                         try {
                             System.Console.SetIn(new System.IO.StreamReader(System.Console.OpenStandardInput()));
                         } catch (Exception ex) {
-                            System.Console.SetIn(previous);                            Core.Diagnostics.Bug($"RunOpAsync: Failed to restore Console.In. {ex}");
+                            System.Console.SetIn(previous);
+                            Core.Diagnostics.Bug($"RunOpAsync: Failed to restore Console.In. {ex}");
                         }
                     }
                 }
             );
             Load();
+        } catch (System.OperationCanceledException) {
+            OperationOutputService.Instance.AddOutput(text: "Operation cancelled by user.", stream: "stderr");
         } catch (System.Exception ex) {
             Core.Diagnostics.Bug($"RunOpAsync: {ex}");
             OperationOutputService.Instance.AddOutput(text: $"Operation failed: {ex.Message}", stream: "stderr");
+        } finally {
+            IsRunning = false;
+            _cts?.Dispose();
+            _cts = null;
+            Raise(nameof(CanRunAll));
+            Raise(nameof(CanStop));
         }
     }
 

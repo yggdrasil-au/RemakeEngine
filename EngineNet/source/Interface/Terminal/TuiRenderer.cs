@@ -28,14 +28,16 @@ public static class TuiRenderer {
     private static string _inputBuffer = "";
     private static string _promptLabel = "";
     private static bool _isInputActive = false;
+    private static System.Threading.CancellationTokenSource? _cts = null;
 
     private struct LogEntry {
         public string Message;
         public ConsoleColor Color;
     }
 
-    public static void Initialize() {
+    public static void Initialize(System.Threading.CancellationTokenSource? cts = null) {
         if (_isActive) return;
+        _cts = cts;
         try {
             _width = Console.WindowWidth;
             _height = Console.WindowHeight;
@@ -58,6 +60,7 @@ public static class TuiRenderer {
     public static void Shutdown() {
         if (!_isActive) return;
         _isActive = false;
+        _cts = null;
 
         Console.Clear();
         Console.SetCursorPosition(0, 0);
@@ -88,6 +91,11 @@ public static class TuiRenderer {
     }
 
     private static void HandleScrollInput(ConsoleKeyInfo key) {
+        if (key.Key == ConsoleKey.Escape && _cts != null && !_cts.IsCancellationRequested) {
+            PromptCancellation();
+            return;
+        }
+
         lock (_lock) {
             int logAreaHeight = _height - _statusHeight - 1;
             int maxScroll = Math.Max(0, _logBuffer.Count - logAreaHeight);
@@ -338,5 +346,76 @@ public static class TuiRenderer {
         // Echo input to log
         Log($"{label} {input}", ConsoleColor.Cyan);
         return input.ToString();
+    }
+
+    /// <summary>
+    /// Wait for the user to press a key before continuing.
+    /// Responds to navigation keys for scrolling without returning.
+    /// Returns true when a non-navigation key is pressed.
+    /// </summary>
+    public static void WaitForKey() {
+        if (!_isActive) {
+            Console.ReadKey(true);
+            return;
+        }
+
+        lock (_lock) {
+            _isInputActive = true;
+        }
+
+        try {
+            while (_isActive) {
+                if (Console.KeyAvailable) {
+                    var key = Console.ReadKey(true);
+                    if (IsNavigationKey(key.Key)) {
+                        HandleScrollInput(key);
+                    } else {
+                        // Any non-navigation key exits
+                        break;
+                    }
+                }
+                System.Threading.Thread.Sleep(10);
+            }
+        } finally {
+            lock (_lock) {
+                _isInputActive = false;
+            }
+        }
+    }
+
+    private static bool IsNavigationKey(ConsoleKey key) {
+        return key switch {
+            ConsoleKey.UpArrow => true,
+            ConsoleKey.DownArrow => true,
+            ConsoleKey.PageUp => true,
+            ConsoleKey.PageDown => true,
+            ConsoleKey.Home => true,
+            ConsoleKey.End => true,
+            _ => false
+        };
+    }
+
+    private static void PromptCancellation() {
+        if (_cts == null || _cts.IsCancellationRequested) return;
+
+        lock (_lock) {
+            _isInputActive = true;
+            _inputBuffer = "Are you sure you want to cancel? (y/n): ";
+            RenderInputLine();
+        }
+
+        ConsoleKeyInfo ki = Console.ReadKey(true);
+        if (ki.Key == ConsoleKey.Y) {
+            _cts?.Cancel();
+            Log("Cancelling operation...", ConsoleColor.Yellow);
+        } else {
+            Log("Resuming...", ConsoleColor.Cyan);
+        }
+
+        lock (_lock) {
+            _isInputActive = false;
+            _inputBuffer = "";
+            RenderInputLine();
+        }
     }
 }

@@ -18,14 +18,14 @@ internal partial class CLI {
     /// </summary>
     /// <param name="args"></param>
     /// <returns></returns>
-    internal int Run(string[] args) {
+    internal async System.Threading.Tasks.Task<int> RunAsync(string[] args, System.Threading.CancellationToken cancellationToken = default) {
         try {
 
             // Check for inline operation invocation
             if (IsInlineOperationInvocation(args)) {
                 Core.Diagnostics.Trace("Detected inline operation invocation.");
                 // Run operation directly from command-line args
-                return RunInlineOperation(args);
+                return await RunInlineOperationAsync(args, cancellationToken);
             }
 
             string cmd = args[0].ToLowerInvariant();
@@ -45,6 +45,9 @@ internal partial class CLI {
                     PrintHelp();
                     return 2;
             }
+        } catch (System.OperationCanceledException) {
+             System.Console.WriteLine("\nOperation cancelled by user.");
+             return 1;
         } catch (System.Exception ex) {
             Core.Diagnostics.Bug($"CLI Error: {ex}");
             System.Console.WriteLine($"Error: {ex.Message}");
@@ -57,7 +60,7 @@ internal partial class CLI {
     /// </summary>
     /// <param name="args"></param>
     /// <returns></returns>
-    internal int RunInlineOperation(string[] args) {
+    internal async System.Threading.Tasks.Task<int> RunInlineOperationAsync(string[] args, System.Threading.CancellationToken cancellationToken = default) {
         // Parse inline operation options
         InlineOperationOptions options;
 
@@ -90,7 +93,7 @@ internal partial class CLI {
         }
 
         // Execute the operation
-        bool ok = new Utils().ExecuteOp(_engine, gameName!, games, op, options.PromptAnswers, options.AutoPromptResponses);
+        bool ok = await new Utils().ExecuteOpAsync(_engine, gameName!, games, op, options.PromptAnswers, options.AutoPromptResponses, cancellationToken);
         return ok ? 0 : 1;
     }
 

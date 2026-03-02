@@ -50,8 +50,9 @@ internal static class MediaConverter {
     /// CLI-style arguments. Required: --mode ffmpeg|vgmstream, --type audio|video, --source DIR, --target DIR,
     /// --input-ext .ext, --output-ext .ext. Optional: --overwrite,
     /// --workers N, --godot, --verbose, --debug, codec/quality options.</param>
+    /// <param name="cancellationToken">Cancellation token to abort the conversion.</param>
     /// <returns>True if all files were processed successfully; false otherwise.</returns>
-    internal static bool Run(ExternalTools.IToolResolver toolResolver, IList<string> args) {
+    internal static bool Run(ExternalTools.IToolResolver toolResolver, IList<string> args, System.Threading.CancellationToken cancellationToken = default) {
         try {
             Options opt = Parse(args);
 
@@ -110,8 +111,11 @@ internal static class MediaConverter {
             int processed = 0;
             System.Collections.Concurrent.ConcurrentBag<(string file, string message)> errorList = new System.Collections.Concurrent.ConcurrentBag<(string file, string message)>();
 
-            System.Threading.Tasks.ParallelOptions po = new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = opt.Workers ?? 1 };
-            using System.Threading.CancellationTokenSource progressCts = new System.Threading.CancellationTokenSource();
+            System.Threading.Tasks.ParallelOptions po = new System.Threading.Tasks.ParallelOptions { 
+                MaxDegreeOfParallelism = opt.Workers ?? 1,
+                CancellationToken = cancellationToken
+            };
+            using System.Threading.CancellationTokenSource progressCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             System.Threading.Tasks.Task progressTask = Core.UI.EngineSdk.SdkConsoleProgress.StartPanel(
                 total: allFiles.Count,
                 snapshot: () => (System.Threading.Volatile.Read(ref processed), System.Threading.Volatile.Read(ref success), System.Threading.Volatile.Read(ref skipped), System.Threading.Volatile.Read(ref errors)),
@@ -119,52 +123,58 @@ internal static class MediaConverter {
                 label: "Converting Files",
                 token: progressCts.Token
             );
-            System.Threading.Tasks.Parallel.ForEach(allFiles, po, src => {
-                try {
-                    string rel = System.IO.Path.GetRelativePath(opt.Source, src);
-                    string dest = System.IO.Path.ChangeExtension(System.IO.Path.Combine(opt.Target, rel), opt.OutputExt);
-                    System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(dest)!);
 
-                    // Pre-skip if destination exists and not overwriting
-                    if (!opt.Overwrite) {
-                        if (opt.GodotCompatible && string.Equals(opt.Type, TypeAudio, System.StringComparison.OrdinalIgnoreCase)) {
-                            // In Godot mode we may produce two files (quad split) or a single file
-                            string basePath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(dest)!, System.IO.Path.GetFileNameWithoutExtension(dest));
-                            string outFront = basePath + "_front" + opt.OutputExt;
-                            string outRear = basePath + "_rear" + opt.OutputExt;
-                            if ((System.IO.File.Exists(outFront) && System.IO.File.Exists(outRear)) || System.IO.File.Exists(dest)) {
+            try {
+                System.Threading.Tasks.Parallel.ForEach(allFiles, po, src => {
+                    try {
+                        string rel = System.IO.Path.GetRelativePath(opt.Source, src);
+                        string dest = System.IO.Path.ChangeExtension(System.IO.Path.Combine(opt.Target, rel), opt.OutputExt);
+                        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(dest)!);
+
+                        // Pre-skip if destination exists and not overwriting
+                        if (!opt.Overwrite) {
+                            if (opt.GodotCompatible && string.Equals(opt.Type, TypeAudio, System.StringComparison.OrdinalIgnoreCase)) {
+                                // In Godot mode we may produce two files (quad split) or a single file
+                                string basePath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(dest)!, System.IO.Path.GetFileNameWithoutExtension(dest));
+                                string outFront = basePath + "_front" + opt.OutputExt;
+                                string outRear = basePath + "_rear" + opt.OutputExt;
+                                if ((System.IO.File.Exists(outFront) && System.IO.File.Exists(outRear)) || System.IO.File.Exists(dest)) {
+                                    System.Threading.Interlocked.Increment(ref skipped);
+                                    System.Threading.Interlocked.Increment(ref processed);
+                                    return;
+                                }
+                            } else if (System.IO.File.Exists(dest)) {
                                 System.Threading.Interlocked.Increment(ref skipped);
                                 System.Threading.Interlocked.Increment(ref processed);
                                 return;
                             }
-                        } else if (System.IO.File.Exists(dest)) {
-                            System.Threading.Interlocked.Increment(ref skipped);
-                            System.Threading.Interlocked.Increment(ref processed);
-                            return;
                         }
-                    }
 
-                    (bool ok, string? msg) = ConvertOne(src, dest, opt);
-                    if (ok) {
-                        System.Threading.Interlocked.Increment(ref success);
-                        if (opt.Replace) {
-                            TryDelete(src);
+                        (bool ok, string? msg) = ConvertOne(src, dest, opt, cancellationToken);
+                        if (ok) {
+                            System.Threading.Interlocked.Increment(ref success);
+                            if (opt.Replace) {
+                                TryDelete(src);
+                            }
+                        } else {
+                            System.Threading.Interlocked.Increment(ref errors);
+                            errorList.Add((System.IO.Path.GetFileName(src), msg ?? "unknown error"));
+    #if DEBUG
+                            Core.Diagnostics.Log($"Conversion failed for file {src}: {msg}");
+    #endif
                         }
-                    } else {
+                    } catch (System.Exception ex) {
                         System.Threading.Interlocked.Increment(ref errors);
-                        errorList.Add((System.IO.Path.GetFileName(src), msg ?? "unknown error"));
-#if DEBUG
-                        Core.Diagnostics.Log($"Conversion failed for file {src}: {msg}");
-#endif
+                        errorList.Add((System.IO.Path.GetFileName(src), ex.Message));
+                        Core.Diagnostics.Bug($"Conversion error for file {src}: {ex.Message}");
+                    } finally {
+                        System.Threading.Interlocked.Increment(ref processed);
                     }
-                    System.Threading.Interlocked.Increment(ref processed);
-                } catch (System.Exception ex) {
-                    System.Threading.Interlocked.Increment(ref errors);
-                    errorList.Add((System.IO.Path.GetFileName(src), ex.Message));
-                    System.Threading.Interlocked.Increment(ref processed);
-                    Core.Diagnostics.Bug($"Conversion error for file {src}: {ex.Message}");
-                }
-            });
+                });
+            } catch (System.OperationCanceledException) {
+                WriteWarn("\nConversion cancelled by user.");
+            }
+
             progressCts.Cancel();
             try {
                 progressTask.Wait();
@@ -196,7 +206,7 @@ internal static class MediaConverter {
     }
 
 
-    private static (bool ok, string? message) ConvertOne(string srcPath, string destPath, Options opt) {
+    private static (bool ok, string? message) ConvertOne(string srcPath, string destPath, Options opt, System.Threading.CancellationToken cancellationToken = default) {
         try {
             // Build external commands
             if (string.Equals(opt.Mode, ToolFfmpeg, System.StringComparison.OrdinalIgnoreCase)) {
@@ -211,7 +221,7 @@ internal static class MediaConverter {
                         destPath
                     };
                     RegisterActive("ffmpeg", srcPath);
-                    try { return Exec(ff, args, opt.Debug); }
+                    try { return Exec(ff, args, opt.Debug, cancellationToken); }
                     finally { UnregisterActive(); }
                 } else if (string.Equals(opt.Type, TypeAudio, System.StringComparison.OrdinalIgnoreCase)) {
                     if (opt.GodotCompatible) {
@@ -234,7 +244,7 @@ internal static class MediaConverter {
                         args.AddRange(BuildAudioCodecArgs(opt.OutputExt, opt.AudioCodec, opt.AudioQuality));
                         args.Add(outRear);
                         RegisterActive("ffmpeg", srcPath);
-                        try { return Exec(ff, args, opt.Debug); }
+                        try { return Exec(ff, args, opt.Debug, cancellationToken); }
                         finally { UnregisterActive(); }
                     } else {
                         List<string> args = new List<string> {
@@ -245,7 +255,7 @@ internal static class MediaConverter {
                         args.AddRange(BuildAudioCodecArgs(opt.OutputExt, opt.AudioCodec, opt.AudioQuality));
                         args.Add(destPath);
                         RegisterActive("ffmpeg", srcPath);
-                        try { return Exec(ff, args, opt.Debug); }
+                        try { return Exec(ff, args, opt.Debug, cancellationToken); }
                         finally { UnregisterActive(); }
                     }
                 } else {
@@ -260,7 +270,7 @@ internal static class MediaConverter {
                         try {
                             List<string> a1 = new List<string> { "-o", tmpWav, srcPath };
                             RegisterActive("vgmstream", srcPath);
-                            (bool ok1, string? msg1) = Exec(vg, a1, opt.Debug);
+                            (bool ok1, string? msg1) = Exec(vg, a1, opt.Debug, cancellationToken);
                             UnregisterActive();
                             if (!ok1) {
                                 return (false, msg1);
@@ -288,7 +298,7 @@ internal static class MediaConverter {
                                 a2.AddRange(BuildAudioCodecArgs(opt.OutputExt, opt.AudioCodec, opt.AudioQuality));
                                 a2.Add(outRear);
                                 RegisterActive("ffmpeg", System.IO.Path.GetFileName(tmpWav));
-                                (bool ok2, string? msg2) = Exec(ff, a2, opt.Debug);
+                                (bool ok2, string? msg2) = Exec(ff, a2, opt.Debug, cancellationToken);
                                 UnregisterActive();
                                 if (!ok2) {
                                     return (false, msg2);
@@ -304,7 +314,7 @@ internal static class MediaConverter {
                                 a2.AddRange(BuildAudioCodecArgs(opt.OutputExt, opt.AudioCodec, opt.AudioQuality));
                                 a2.Add(destPath);
                                 RegisterActive("ffmpeg", System.IO.Path.GetFileName(tmpWav));
-                                (bool ok2, string? msg2) = Exec(ff, a2, opt.Debug);
+                                (bool ok2, string? msg2) = Exec(ff, a2, opt.Debug, cancellationToken);
                                 UnregisterActive();
                                 if (!ok2) {
                                     return (false, msg2);
@@ -325,7 +335,7 @@ internal static class MediaConverter {
                     } else {
                         List<string> a = new List<string> { "-o", destPath, srcPath };
                         RegisterActive("vgmstream", srcPath);
-                        try { return Exec(vg, a, opt.Debug); }
+                        try { return Exec(vg, a, opt.Debug, cancellationToken); }
                         finally { UnregisterActive(); }
                     }
                 } else {
@@ -367,7 +377,7 @@ internal static class MediaConverter {
         }
     }
 
-    private static (bool ok, string? message) Exec(string fileName, IList<string> arguments, bool passthroughOutput) {
+    private static (bool ok, string? message) Exec(string fileName, IList<string> arguments, bool passthroughOutput, System.Threading.CancellationToken cancellationToken = default) {
         try {
             using System.Diagnostics.Process p = new System.Diagnostics.Process();
             p.StartInfo.FileName = fileName;
@@ -380,10 +390,16 @@ internal static class MediaConverter {
             p.StartInfo.RedirectStandardError = !passthroughOutput;
             p.StartInfo.RedirectStandardOutput = !passthroughOutput;
             try { p.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8; } catch { /* non-critical: default encoding is fine */ }
-            try { p.StartInfo.StandardOutputEncoding = System.Text.Encoding.UTF8; } catch { /* non-critical: default encoding is fine */ }
+            try { p.StartInfo.StandardOutputEncoding = System.Text.Encoding.UTF8; } catch { /* non-critical */ }
+
+            using var job = System.OperatingSystem.IsWindows() ? new Utils.JobObject() : null;
 
             if (!p.Start()) {
                 return (false, "failed to start process");
+            }
+
+            if (job != null) {
+                job.AddProcess(p);
             }
 
             System.Text.StringBuilder? errBuf = null;
@@ -391,13 +407,19 @@ internal static class MediaConverter {
             if (!passthroughOutput) {
                 errBuf = new System.Text.StringBuilder(8 * 1024);
                 outBuf = new System.Text.StringBuilder(8 * 1024);
-                p.ErrorDataReceived += (_, e) => { if (e.Data != null) { lock (errBuf!) { errBuf!.AppendLine(e.Data); } } };
-                p.OutputDataReceived += (_, e) => { if (e.Data != null) { lock (outBuf!) { outBuf!.AppendLine(e.Data); } } };
-                try { p.BeginErrorReadLine(); } catch { /* non-critical: process may not support async read in some hosts */ }
-                try { p.BeginOutputReadLine(); } catch { /* non-critical */ }
+                p.OutputDataReceived += (_, e) => { if (e.Data != null) { lock (outBuf!) { outBuf!.Append(e.Data); } } };
+                p.ErrorDataReceived += (_, e) => { if (e.Data != null) { lock (errBuf!) { errBuf!.Append(e.Data); } } };
+                p.BeginOutputReadLine();
+                p.BeginErrorReadLine();
             }
 
-            p.WaitForExit();
+            while (!p.HasExited) {
+                if (cancellationToken.IsCancellationRequested) {
+                    try { p.Kill(true); } catch { }
+                    return (false, "cancelled by user");
+                }
+                System.Threading.Thread.Sleep(100);
+            }
 
             int exitCode = p.ExitCode;
             // Explicitly dispose to release file handles

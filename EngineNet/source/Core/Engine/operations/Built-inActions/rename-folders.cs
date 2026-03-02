@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 public partial class InternalOperations {
 
-    internal bool rename_folders(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath,  EngineConfig EngineConfig) {
+    internal bool rename_folders(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath,  EngineConfig EngineConfig, System.Threading.CancellationToken cancellationToken = default) {
         Dictionary<string, object?> ctx = new Dictionary<string, object?>(EngineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
         if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobj3)) {
             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");

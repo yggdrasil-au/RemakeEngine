@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 public partial class InternalOperations {
-    internal bool format_convert(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath,  EngineConfig EngineConfig, ExternalTools.IToolResolver ToolResolver) {
+    internal bool format_convert(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath,  EngineConfig EngineConfig, ExternalTools.IToolResolver ToolResolver, System.Threading.CancellationToken cancellationToken = default) {
         Core.Diagnostics.Log("[Engine.private.cs :: Operations()]] format-convert");
         // Determine tool - check both 'tool' field and '-m'/'--mode' in args
         string? tool = op.TryGetValue("tool", out object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
@@ -90,13 +90,13 @@ public partial class InternalOperations {
             // attempt built-in media conversion (ffmpeg/vgmstream) using the same CLI args
             Core.UI.EngineSdk.PrintLine("\n>>> Built-in media conversion");
             Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: running media conversion with args: {string.Join(' ', args)}");
-            bool okMedia = FileHandlers.MediaConverter.Run(ToolResolver, args);
+            bool okMedia = FileHandlers.MediaConverter.Run(ToolResolver, args, cancellationToken);
             return okMedia;
         } else if (string.Equals(tool, "ImageMagick", System.StringComparison.OrdinalIgnoreCase)) {
             // attempt image conversion (ImageMagick) using the CLI args
             Core.UI.EngineSdk.PrintLine("\n>>> Built-in image conversion");
             Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: running image conversion with args: {string.Join(' ', args)}");
-            bool okImage = FileHandlers.ImageMagickConverter.Run(ToolResolver, args);
+            bool okImage = FileHandlers.ImageMagickConverter.Run(ToolResolver, args, cancellationToken);
             return okImage;
         } else {
             Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: unknown tool '{tool}'");

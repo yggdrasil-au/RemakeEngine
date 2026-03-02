@@ -23,7 +23,7 @@ internal partial class TUI {
     /// - appends completion time summaries after operations
     /// </summary>
     /// <returns></returns>
-    internal async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync(string? msg = null) {
+    internal async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync(System.Threading.CancellationToken cancellationToken = default, string? msg = null) {
         try {
             // get all modules that exist on disk
             Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.Modules(Core.Utils.ModuleFilter.Installed);
@@ -103,13 +103,13 @@ internal partial class TUI {
                 Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game not found.");
                 // return to menu selection
                 //return 1;
-                return await RunInteractiveMenuAsync("Selected game not found. Please choose again.");
+                return await RunInteractiveMenuAsync(msg: "Selected game not found. Please choose again.");
             }
             // load operations list from ops_file
             if (info.OpsFile is null) {
                 Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game is missing ops_file.");
                 //return 1;
-                return await RunInteractiveMenuAsync("Selected game is missing operations file. Please choose again.");
+                return await RunInteractiveMenuAsync(msg: "Selected game is missing operations file. Please choose again.");
             }
             Core.Services.OperationsService.PreparedOperations preparedOps = _engine.OperationsService.LoadAndPrepare(info.OpsFile);
             if (!preparedOps.IsLoaded) {
@@ -137,7 +137,7 @@ internal partial class TUI {
                     Dictionary<string, object?> answers = new Dictionary<string, object?>();
                     // Initialization runs non-interactively; use defaults when provided
                     CollectAnswersForOperation(op.Operation, answers, defaultsOnly: true);
-                    bool ok = new Utils().ExecuteOp(_engine, gameName, allAvailableModules, op.Operation, answers);
+                    bool ok = await new Utils().ExecuteOpAsync(_engine, gameName, allAvailableModules, op.Operation, answers);
                     okAllInit &= ok;
                 }
                 initStopwatch.Stop();
@@ -227,9 +227,10 @@ internal partial class TUI {
                     continue;
                 }
                 if (selection == "Run All") {
+                    using var runAllCts = new System.Threading.CancellationTokenSource();
                     try {
                         // 1. Initialize Advanced UI
-                        TuiRenderer.Initialize();
+                        TuiRenderer.Initialize(runAllCts);
                         TuiRenderer.Log($"Running operations for {gameName}...", ConsoleColor.Cyan);
 
                         Stopwatch runAllStopwatch = Stopwatch.StartNew();
@@ -241,7 +242,8 @@ internal partial class TUI {
                             gameName,
                             onOutput: Utils.OnOutput, // Make sure OnOutput calls OnEvent -> TuiRenderer
                             onEvent: Utils.OnEvent,
-                            stdinProvider: rendererInput
+                            stdinProvider: rendererInput,
+                            cancellationToken: runAllCts.Token
                         );
                         runAllStopwatch.Stop();
 
@@ -250,13 +252,13 @@ internal partial class TUI {
 
                         TuiRenderer.Log($"({result.SucceededOperations}/{result.TotalOperations} operations succeeded). Time: {FormatElapsed(runAllStopwatch.Elapsed)}.", ConsoleColor.White);
                         TuiRenderer.Log("Press any key to continue...", ConsoleColor.White);
-                        Console.ReadKey(true);
+                        TuiRenderer.WaitForKey();
 
                         continue;
                     } catch (System.Exception ex) {
                         TuiRenderer.Log($"Error: {ex.Message}", ConsoleColor.Red);
                         Core.Diagnostics.Bug($"[TUI::RunAll()] Error during Run All: {ex.Message}");
-                        Console.ReadKey(true);
+                        TuiRenderer.WaitForKey();
                         continue;
                     } finally {
                         // 3. Return to standard menu mode
@@ -277,7 +279,7 @@ internal partial class TUI {
                         if (CollectAnswersForOperation(op, answers, defaultsOnly: false)) {
                             TuiRenderer.Log($"Running: {selection}\n", ConsoleColor.Cyan);
                             Stopwatch opStopwatch = Stopwatch.StartNew();
-                            bool ok = new Utils().ExecuteOp(_engine, gameName, allAvailableModules, op, answers);
+                            bool ok = await new Utils().ExecuteOpAsync(_engine, gameName, allAvailableModules, op, answers);
                             opStopwatch.Stop();
 
                             TuiRenderer.Log(ok
@@ -286,11 +288,11 @@ internal partial class TUI {
                                 ok ? ConsoleColor.Green : ConsoleColor.Red);
 
                             TuiRenderer.Log("Press any key to continue...", ConsoleColor.White);
-                            Console.ReadKey(true);
+                            TuiRenderer.WaitForKey();
                         }
                     } catch (System.Exception ex) {
                         TuiRenderer.Log($"Error: {ex.Message}", ConsoleColor.Red);
-                        Console.ReadKey(true);
+                        TuiRenderer.WaitForKey();
                     } finally {
                         TuiRenderer.Shutdown();
                     }

@@ -4,7 +4,7 @@ using EngineNet.Core.ExternalTools;
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 public partial class InternalOperations {
 
-    internal async System.Threading.Tasks.Task<bool> DownloadTools(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath,  EngineConfig EngineConfig) {
+    internal async System.Threading.Tasks.Task<bool> DownloadTools(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath,  EngineConfig EngineConfig, System.Threading.CancellationToken cancellationToken = default) {
         // Expect a 'tools_manifest' value (path), or fallback to first arg
         string? manifest = null;
         if (op.TryGetValue("tools_manifest", out object? tm) && tm is not null) {
@@ -68,7 +68,7 @@ public partial class InternalOperations {
         }
 
         ExternalTools.ToolsDownloader dl = new ExternalTools.ToolsDownloader(RootPath, "");
-        await dl.ProcessAsync(resolvedManifest, force, ctx);
+        await dl.ProcessAsync(resolvedManifest, force, ctx, cancellationToken);
         return true;
     }
 }

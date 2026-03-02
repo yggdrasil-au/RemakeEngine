@@ -59,7 +59,7 @@ internal static class ImageMagickConverter {
         internal List<string> ExtraArgs = new();
     }
 
-    internal static bool Run(ExternalTools.IToolResolver toolResolver, IList<string> args) {
+    internal static bool Run(ExternalTools.IToolResolver toolResolver, IList<string> args, System.Threading.CancellationToken cancellationToken = default) {
         try {
             Options opt = Parse(args);
 
@@ -90,17 +90,14 @@ internal static class ImageMagickConverter {
                 .Where(p => p.EndsWith(opt.InputExt, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            // Core.UI.EngineSdk.Start("image_magick_convert"); // <-- REPLACED
-            Core.UI.EngineSdk.Info($"--- Starting ImageMagick Conversion ---"); // <-- CHANGED
+            Core.UI.EngineSdk.Info($"--- Starting ImageMagick Conversion ---");
             Core.UI.EngineSdk.Info($"Using executable: {opt.MagickPath}");
             if (allFiles.Count == 0) {
                 Core.UI.EngineSdk.Warn($"No '{opt.InputExt}' files found in {opt.Source}.");
-                // Core.UI.EngineSdk.End(success: true); // <-- REPLACED
                 return true;
             }
 
-            Core.UI.EngineSdk.Info($"Found {allFiles.Count} file(s) to process with {opt.Workers} workers."); // <-- CHANGED
-            // var progress = new Core.UI.EngineSdk.Progress(total: allFiles.Count, id: "im1", label: "Converting Images"); // <-- REPLACED
+            Core.UI.EngineSdk.Info($"Found {allFiles.Count} file(s) to process with {opt.Workers} workers.");
 
             int success = 0;
             int skipped = 0;
@@ -108,10 +105,13 @@ internal static class ImageMagickConverter {
             int processed = 0;
             var errorList = new System.Collections.Concurrent.ConcurrentBag<(string file, string message)>();
 
-            var po = new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = opt.Workers ?? 1 };
+            var po = new System.Threading.Tasks.ParallelOptions { 
+                MaxDegreeOfParallelism = opt.Workers ?? 1,
+                CancellationToken = cancellationToken
+            };
 
             // --- ADDED PROGRESS PANEL (from MediaConverter) ---
-            using System.Threading.CancellationTokenSource progressCts = new System.Threading.CancellationTokenSource();
+            using System.Threading.CancellationTokenSource progressCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             System.Threading.Tasks.Task progressTask = Core.UI.EngineSdk.SdkConsoleProgress.StartPanel(
                 total: allFiles.Count,
                 snapshot: () => (System.Threading.Volatile.Read(ref processed), System.Threading.Volatile.Read(ref success), System.Threading.Volatile.Read(ref skipped), System.Threading.Volatile.Read(ref errors)),
@@ -120,37 +120,39 @@ internal static class ImageMagickConverter {
                 token: progressCts.Token);
             // --- END ADD ---
 
-            System.Threading.Tasks.Parallel.ForEach(allFiles, po, src => {
-                try {
-                    string rel = Path.GetRelativePath(opt.Source, src);
-                    string dest = Path.ChangeExtension(Path.Combine(opt.Target, rel), opt.OutputExt);
-                    Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+            try {
+                System.Threading.Tasks.Parallel.ForEach(allFiles, po, src => {
+                    try {
+                        string rel = Path.GetRelativePath(opt.Source, src);
+                        string dest = Path.ChangeExtension(Path.Combine(opt.Target, rel), opt.OutputExt);
+                        Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
 
-                    if (!opt.Overwrite && File.Exists(dest)) {
-                        Interlocked.Increment(ref skipped);
-                        // progress.Update(); // <-- REPLACED
-                        Interlocked.Increment(ref processed);
-                        return;
-                    }
-
-                    var (ok, msg) = ConvertOne(src, dest, opt);
-                    if (ok) {
-                        Interlocked.Increment(ref success);
-                        if (opt.Replace) {
-                            TryDelete(src);
+                        if (!opt.Overwrite && File.Exists(dest)) {
+                            Interlocked.Increment(ref skipped);
+                            Interlocked.Increment(ref processed);
+                            return;
                         }
-                    } else {
+
+                        var (ok, msg) = ConvertOne(src, dest, opt, cancellationToken);
+                        if (ok) {
+                            Interlocked.Increment(ref success);
+                            if (opt.Replace) {
+                                TryDelete(src);
+                            }
+                        } else {
+                            Interlocked.Increment(ref errors);
+                            errorList.Add((Path.GetFileName(src), msg ?? "unknown error"));
+                        }
+                    } catch (Exception ex) {
                         Interlocked.Increment(ref errors);
-                        errorList.Add((Path.GetFileName(src), msg ?? "unknown error"));
+                        errorList.Add((Path.GetFileName(src), ex.Message));
+                    } finally {
+                        Interlocked.Increment(ref processed);
                     }
-                } catch (Exception ex) {
-                    Interlocked.Increment(ref errors);
-                    errorList.Add((Path.GetFileName(src), ex.Message));
-                } finally {
-                    // progress.Update(); // <-- REPLACED
-                    Interlocked.Increment(ref processed);
-                }
-            });
+                });
+            } catch (OperationCanceledException) {
+                Core.UI.EngineSdk.Warn("\nConversion cancelled by user.");
+            }
 
             // --- ADDED PROGRESS STOP (from MediaConverter) ---
             progressCts.Cancel();
@@ -163,32 +165,29 @@ internal static class ImageMagickConverter {
 
 
             // Final summary
-            Core.UI.EngineSdk.Info("\n--- Conversion Completed ---"); // <-- CHANGED
-            Core.UI.EngineSdk.Info($"Success: {success} | Skipped: {skipped} | Errors: {errors}"); // <-- CHANGED
+            Core.UI.EngineSdk.Info("\n--- Conversion Completed ---");
+            Core.UI.EngineSdk.Info($"Success: {success} | Skipped: {skipped} | Errors: {errors}");
             if (!errorList.IsEmpty) {
                 Core.UI.EngineSdk.Error("\nEncountered the following errors:");
                 foreach (var (file, msg) in errorList) {
-                    // Core.UI.EngineSdk.Warn($"Fail - File: {file}\n  Reason: {msg}"); // <-- REPLACED
-                    Core.UI.EngineSdk.Error($" Fail - File: {file}\n    Reason: {msg}"); // <-- CHANGED
+                    Core.UI.EngineSdk.Error($" Fail - File: {file}\n    Reason: {msg}");
                 }
             }
 
-            // Core.UI.EngineSdk.End(success: errors == 0); // <-- REPLACED
             return errors == 0;
         } catch (Exception ex) {
             Core.UI.EngineSdk.Error($"ImageMagick conversion failed: {ex.Message}");
-            // Core.UI.EngineSdk.End(success: false, exitCode: 1); // <-- REPLACED
             return false;
         }
     }
 
-    private static (bool ok, string? message) ConvertOne(string srcPath, string destPath, Options opt) {
+    private static (bool ok, string? message) ConvertOne(string srcPath, string destPath, Options opt, System.Threading.CancellationToken cancellationToken = default) {
         try {
             // Build: magick [global opts] input [ops...] output
             var a = new List<string>();
 
             // Input
-            a.Add(ToLongPath(srcPath)); // <-- CHANGED
+            a.Add(ToLongPath(srcPath));
 
             // Common safe default
             if (opt.AutoOrient) {
@@ -213,12 +212,12 @@ internal static class ImageMagickConverter {
             }
 
             // Destination
-            a.Add(ToLongPath(destPath)); // <-- CHANGED
+            a.Add(ToLongPath(destPath));
 
             // Run
             RegisterActive(ToolMagick, srcPath);
             try {
-                var (ok, msg) = Exec(opt.MagickPath!, a, opt.Debug);
+                var (ok, msg) = Exec(opt.MagickPath!, a, opt.Debug, cancellationToken);
                 if (!ok) {
                     // best-effort cleanup
                     TryDelete(destPath);
@@ -256,10 +255,10 @@ internal static class ImageMagickConverter {
         }
     }
 
-    private static (bool ok, string? message) Exec(string fileName, IList<string> arguments, bool passthroughOutput) {
+    private static (bool ok, string? message) Exec(string fileName, IList<string> arguments, bool passthroughOutput, System.Threading.CancellationToken cancellationToken = default) {
         try {
             using var p = new System.Diagnostics.Process();
-            p.StartInfo.FileName = ToLongPath(fileName); // <-- CHANGED
+            p.StartInfo.FileName = ToLongPath(fileName);
 
             // ImageMagick can be invoked as:
             //  magick.exe [ {option} | {image} ... ] {output_image}
@@ -274,8 +273,14 @@ internal static class ImageMagickConverter {
             try { p.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8; } catch { }
             try { p.StartInfo.StandardOutputEncoding = System.Text.Encoding.UTF8; } catch { }
 
+            using var job = System.OperatingSystem.IsWindows() ? new Utils.JobObject() : null;
+
             if (!p.Start()) {
                 return (false, "failed to start process");
+            }
+
+            if (job != null) {
+                job.AddProcess(p);
             }
 
             System.Text.StringBuilder? errBuf = null;
@@ -289,7 +294,13 @@ internal static class ImageMagickConverter {
                 try { p.BeginOutputReadLine(); } catch { }
             }
 
-            p.WaitForExit();
+            while (!p.HasExited) {
+                if (cancellationToken.IsCancellationRequested) {
+                    try { p.Kill(true); } catch { }
+                    return (false, "cancelled by user");
+                }
+                System.Threading.Thread.Sleep(100);
+            }
 
             if (p.ExitCode == 0) {
                 return (true, null);

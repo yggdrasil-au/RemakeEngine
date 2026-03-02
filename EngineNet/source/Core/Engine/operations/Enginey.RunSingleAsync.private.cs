@@ -94,19 +94,19 @@ internal sealed class OperationExecution {
                 return new operations.Built_inActions.InternalOperations().config(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig);
             }
             case "download-tools": {
-                return await new operations.Built_inActions.InternalOperations().DownloadTools(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig);
+                return await new operations.Built_inActions.InternalOperations().DownloadTools(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, cancellationToken);
             }
             case "format-extract": {
-                return new operations.Built_inActions.InternalOperations().format_extract(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig);
+                return new operations.Built_inActions.InternalOperations().format_extract(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, cancellationToken);
             }
             case "format-convert": {
-                return new operations.Built_inActions.InternalOperations().format_convert(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, ToolResolver);
+                return new operations.Built_inActions.InternalOperations().format_convert(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, ToolResolver, cancellationToken);
             }
             case "validate-files": {
-                return new operations.Built_inActions.InternalOperations().validate_files(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig);
+                return new operations.Built_inActions.InternalOperations().validate_files(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, cancellationToken);
             }
             case "rename-folders": {
-                return new operations.Built_inActions.InternalOperations().rename_folders(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig);
+                return new operations.Built_inActions.InternalOperations().rename_folders(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, cancellationToken);
             }
             default: {
                 Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] Unknown engine action: {action}");
