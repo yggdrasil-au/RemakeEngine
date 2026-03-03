@@ -12,6 +12,7 @@ desktop.ini
 .history/
 **/.history/**
 
+.idea/
 .vs/
 
 EngineNet.Tests/TestResults/**

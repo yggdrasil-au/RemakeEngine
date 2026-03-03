@@ -103,7 +103,7 @@ internal static class Utils {
 
         System.Action<Dictionary<string, object?>> sink = evt => { CapturePrompt(evt); outputService.HandleEvent(evt); };
         using (new Core.Utils.SdkEventScope(sink: sink, muteStdout: true, autoPromptResponses: autoPromptResponses)) {
-            return await executor(outputHandler, eventHandler, stdinProvider).ConfigureAwait(false);
+            return await Task.Run(() => executor(outputHandler, eventHandler, stdinProvider)).ConfigureAwait(false);
         }
     }
 }

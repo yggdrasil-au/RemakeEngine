@@ -142,6 +142,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     private const int MaxLines = 5000;
     private const int MaxChars = 200_000;
     private int _currentChars = 0;
+    private bool _flushTimerRequested = false;
 
     /// <summary>
     /// Add a raw output line (buffered + throttled for UI responsiveness).
@@ -163,12 +164,19 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
 
     private void EnsureFlushTimer() {
         lock (_flushLock) {
-            if (_flushTimer is null) {
-                _flushTimer = new DispatcherTimer() { Interval = System.TimeSpan.FromMilliseconds(33) };
-                _flushTimer.Tick += FlushPending;
-                _flushTimer.Start();
-            } else if (!_flushTimer.IsEnabled) {
-                _flushTimer.Start();
+            if (!_flushTimerRequested) {
+                _flushTimerRequested = true;
+                global::Avalonia.Threading.Dispatcher.UIThread.Post(() => {
+                    lock (_flushLock) {
+                        if (_flushTimer is null) {
+                            _flushTimer = new DispatcherTimer() { Interval = System.TimeSpan.FromMilliseconds(33) };
+                            _flushTimer.Tick += FlushPending;
+                        }
+                        if (!_flushTimer.IsEnabled) {
+                            _flushTimer.Start();
+                        }
+                    }
+                });
             }
         }
     }
@@ -183,7 +191,10 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
         }
         TrimIfNeeded();
         if (_pendingLines.IsEmpty && processed == 0) {
-            lock (_flushLock) { _flushTimer?.Stop(); }
+            lock (_flushLock) { 
+                _flushTimer?.Stop(); 
+                _flushTimerRequested = false;
+            }
         }
     }
 
