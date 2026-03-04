@@ -16,7 +16,6 @@ public class GameRegistry : IGameRegistry {
     /// <summary>
     /// Initializes a new instance of the <see cref="GameRegistry"/> class.
     /// </summary>
-    /// <param name="rootPath">The root path of the engine, used for resolving game and module locations.</param>
     public GameRegistry() {
         //_rootPath = rootPath;
         _registries = new Registries();

@@ -5,6 +5,7 @@ using Avalonia;
 
 using EngineNet.Core;
 using EngineNet.Core.UI;
+using System;
 
 // Allow 'internal' access for tests
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo(assemblyName: "EngineNet.Tests")]
@@ -26,7 +27,6 @@ public static class Program {
     /* :: :: Vars :: END :: */
     // //
     /* :: :: Main :: START :: */
-
     [STAThread]
     internal static async System.Threading.Tasks.Task<int> Main(string[] args) {
         using var cts = new System.Threading.CancellationTokenSource();
@@ -91,7 +91,7 @@ public static class Program {
             var _operationsService = new Core.Services.OperationsService(_opsLoader, gameRegistry);
 
             var operationExecution = new Core.Engine.OperationExecution();
-            var Engino = new Core.Engine.Engino();
+            var _engino = new Core.Engine.Engino();
 
             Core.Engine.Engine _engine = new Core.Engine.Engine(
                 gameRegistry: gameRegistry,
@@ -103,7 +103,7 @@ public static class Program {
                 toolResolver: tools,
                 engineConfig: engineConfig,
                 operationExecution: operationExecution,
-                engino: Engino
+                engino: _engino
             );
 
             // 3. Interface selection based on "Remaining Args" (args with --root removed)

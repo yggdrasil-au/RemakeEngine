@@ -64,6 +64,8 @@ If you are planning a release, coordinate the tag with maintainers so secrets (S
 - [ ] `dotnet build RemakeEngine.sln`
 - [ ] `dotnet test RemakeEngine.sln`
 - [ ] Behavioural changes covered by automated tests
+- [ ] JSON schemas in [schemas/](schemas/) updated to match any C# parsing changes
+- [ ] Documentation ([operations.toml.md](schemas/operations.toml.md)) refreshed for new features
 - [ ] Docs, manifests, or sample data refreshed when required
 - [ ] No unintentional breaking changes; include migration notes when needed
 

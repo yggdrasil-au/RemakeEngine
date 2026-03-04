@@ -19,7 +19,7 @@ internal partial class ConfirmWindow:Window {
     }
 
     internal void EnableOptOut() {
-        this.FindControl<CheckBox>("DontAskAgainCheck")!.IsVisible = true;
+        this.FindControl<Avalonia.Controls.CheckBox>("DontAskAgainCheck")!.IsVisible = true;
     }
 
     private void OnYes(object? sender, Avalonia.Interactivity.RoutedEventArgs e) {
@@ -37,7 +37,7 @@ internal partial class ConfirmWindow:Window {
 
     internal async System.Threading.Tasks.Task<(bool Result, bool DontAskAgain)> ShowWithOptOutAsync(Window owner) {
         bool result = await ShowDialog<bool>(owner);
-        bool dontAskAgain = this.FindControl<CheckBox>("DontAskAgainCheck")?.IsChecked ?? false;
+        bool dontAskAgain = this.FindControl<Avalonia.Controls.CheckBox>("DontAskAgainCheck")?.IsChecked ?? false;
         return (result, dontAskAgain);
     }
 }

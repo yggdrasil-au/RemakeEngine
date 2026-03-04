@@ -9,8 +9,9 @@
         <StartupObject>EngineNet.Program</StartupObject>
         <ApplicationIcon>icon.ico</ApplicationIcon>
     </PropertyGroup>
+
     <ItemGroup>
-      <Content Include="icon.ico" />
+        <Content Include="icon.ico" />
     </ItemGroup>
 
     <ItemGroup>
@@ -18,21 +19,21 @@
         <PackageReference Include="MoonSharp" Version="2.0.0" />
         <PackageReference Include="SharpCompress" Version="1.0.0" />
         <PackageReference Include="IronPython" Version="3.4.2" />
-        <PackageReference Include="Jint" Version="4.5.0" />
+        <PackageReference Include="Jint" Version="4.6.1" />
 
         <!-- TOML -->
         <PackageReference Include="Tomlyn" Version="0.20.0" />
 
         <!-- GUI (Avalonia) -->
-        <PackageReference Include="Avalonia" Version="11.3.11" />
-        <PackageReference Include="Avalonia.Desktop" Version="11.3.11" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.11" />
-        <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.11" />
+        <PackageReference Include="Avalonia" Version="11.3.12" />
+        <PackageReference Include="Avalonia.Desktop" Version="11.3.12" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.12" />
+        <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.12" />
         <PackageReference Include="Avalonia.AvaloniaEdit" Version="11.4.1" />
         <PackageReference Include="ReactiveUI.Avalonia" Version="14.7.1" />
 
         <!-- Other -->
-        <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.2" />
+        <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.3" />
     </ItemGroup>
 
 </Project>
