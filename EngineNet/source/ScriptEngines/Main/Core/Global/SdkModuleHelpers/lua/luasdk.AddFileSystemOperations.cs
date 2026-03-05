@@ -21,7 +21,7 @@ public static partial class Sdk {
                 List<string> list = Lua.Globals.Utils.TableToStringList(names);
                 return Helpers.ConfigHelpers.HasAllSubdirs(baseDir, list);
             } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("has_all_subdirs failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("has_all_subdirs failed with exception: " + ex);
                 return false;
             }
         };
@@ -112,7 +112,7 @@ public static partial class Sdk {
                 System.IO.Directory.CreateDirectory(path);
                 return true;
             } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("mkdir failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("mkdir failed with exception: " + ex);
                 return false;
             }
         };
@@ -125,7 +125,7 @@ public static partial class Sdk {
                 System.IO.Directory.CreateDirectory(path);
                 return true;
             } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("ensure_dir failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("ensure_dir failed with exception: " + ex);
                 return false;
             }
         };
@@ -143,7 +143,7 @@ public static partial class Sdk {
                 Helpers.ConfigHelpers.CopyDirectory(src, dst, ow);
                 return true;
             } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("copy_dir failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("copy_dir failed with exception: " + ex);
                 return false;
             }
         };
@@ -158,7 +158,7 @@ public static partial class Sdk {
                 Helpers.ConfigHelpers.MoveDirectory(src, dst, ow);
                 return true;
             } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("move_dir failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("move_dir failed with exception: " + ex);
                 return false;
             }
         };
@@ -174,7 +174,7 @@ public static partial class Sdk {
                 }
                 return true;
             } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("remove_dir failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("remove_dir failed with exception: " + ex);
                 return false;
             }
         };
@@ -239,7 +239,7 @@ public static partial class Sdk {
                 }
                 return true;
             } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("remove_file failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("remove_file failed with exception: " + ex);
                 return false;
             }
         };
@@ -260,7 +260,7 @@ public static partial class Sdk {
                 System.IO.File.Copy(src, dst, ow);
                 return true;
             } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("copy_file failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("copy_file failed with exception: " + ex);
                 return false;
             }
         };
@@ -276,7 +276,7 @@ public static partial class Sdk {
                 System.IO.File.WriteAllText(path, content ?? string.Empty);
                 return true;
             } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("write_file failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("write_file failed with exception: " + ex);
                 return false;
             }
         };
@@ -290,7 +290,7 @@ public static partial class Sdk {
                 }
                 return System.IO.File.ReadAllText(path);
             } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("read_file failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("read_file failed with exception: " + ex);
                 return null;
             }
         };
@@ -320,7 +320,7 @@ public static partial class Sdk {
                 }
                 return false;
             } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("rename_file failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("rename_file failed with exception: " + ex);
                 return false;
             }
         };
@@ -385,18 +385,18 @@ public static partial class Sdk {
                         System.IO.File.Delete(destFull);
                     }
                 } catch (Exception ex) {
-                    Core.Diagnostics.luaInternalCatch("Failed to delete existing file or link: " + destFull + " with exception: " + ex);
+                    Core.Diagnostics.LuaInternalCatch("Failed to delete existing file or link: " + destFull + " with exception: " + ex);
                     /* ignore */
                 }
                 try {
                     ScriptEngines.Global.SdkModule.HardLink.Create(srcFull, destFull);
                     return true;
                 } catch (Exception ex) {
-                    Core.Diagnostics.luaInternalCatch("Failed to create hardlink from " + srcFull + " to " + destFull + " with exception: " + ex);
+                    Core.Diagnostics.LuaInternalCatch("Failed to create hardlink from " + srcFull + " to " + destFull + " with exception: " + ex);
                     return false;
                 }
             } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("create_hardlink failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("create_hardlink failed with exception: " + ex);
                 return false;
             }
         };

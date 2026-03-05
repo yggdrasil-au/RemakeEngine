@@ -72,5 +72,13 @@
 
     "search.exclude": {
     "**/.history": true
-    }
+    },
+    "Lua.codeLens.enable": true,
+    "Lua.completion.callSnippet": "Both",
+    "Lua.diagnostics.globals": [
+        "Game_Root"
+    ],
+    "Lua.doc.regengine": "lua",
+    "Lua.hint.arrayIndex": "Enable",
+    "Lua.runtime.version": "Lua 5.2"
 }

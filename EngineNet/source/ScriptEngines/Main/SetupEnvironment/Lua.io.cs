@@ -17,11 +17,11 @@ public static partial class SetupEnvironment {
             try {
                 mode = mode ?? "r";
                 bool binaryMode = mode.Contains("b");
-                if (mode.Contains("r")) {
+                if (mode.Contains('r')) {
                     fs = new System.IO.FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read);
-                } else if (mode.Contains("w")) {
+                } else if (mode.Contains('w')) {
                     fs = new System.IO.FileStream(path, System.IO.FileMode.Create, System.IO.FileAccess.Write);
-                } else if (mode.Contains("a")) {
+                } else if (mode.Contains('a')) {
                     fs = new System.IO.FileStream(path, System.IO.FileMode.Append, System.IO.FileAccess.Write);
                 }
 
@@ -79,7 +79,7 @@ public static partial class SetupEnvironment {
                             }
                             return null;
                         } catch (Exception ex) {
-                            Core.Diagnostics.luaInternalCatch("io.read failed with exception: " + ex);
+                            Core.Diagnostics.LuaInternalCatch("io.read failed with exception: " + ex);
                             return null;
                         }
                     };
@@ -97,7 +97,7 @@ public static partial class SetupEnvironment {
 
                             return fs.Seek(offset.Value, origin);
                         } catch(Exception ex) {
-                            Core.Diagnostics.luaInternalCatch("io.seek failed with exception: " + ex);
+                            Core.Diagnostics.LuaInternalCatch("io.seek failed with exception: " + ex);
                             return null;
                         }
                     });
@@ -115,7 +115,7 @@ public static partial class SetupEnvironment {
                                 writer.Flush();
                             }
                         } catch (Exception ex) {
-                            Core.Diagnostics.luaInternalCatch("io.write failed with exception: " + ex);
+                            Core.Diagnostics.LuaInternalCatch("io.write failed with exception: " + ex);
                         }
                     };
                     InstanceHandle["close"] =() => {
@@ -125,14 +125,14 @@ public static partial class SetupEnvironment {
                                 fs.Dispose();
                             }
                         } catch (Exception ex) {
-                            Core.Diagnostics.luaInternalCatch("io.close failed with exception: " + ex);
+                            Core.Diagnostics.LuaInternalCatch("io.close failed with exception: " + ex);
                         }
                     };
                     InstanceHandle["flush"] = () => {
                         try {
                             fs?.Flush();
                         } catch (Exception ex) {
-                            Core.Diagnostics.luaInternalCatch("io.flush failed with exception: " + ex);
+                            Core.Diagnostics.LuaInternalCatch("io.flush failed with exception: " + ex);
                         }
                     };
                     return DynValue.NewTable(InstanceHandle);
@@ -144,10 +144,10 @@ public static partial class SetupEnvironment {
                         _LuaWorld.UnregisterDisposable(fs);
                         fs.Dispose();
                     } catch (Exception disposeEx) {
-                        Core.Diagnostics.luaInternalCatch("io.open cleanup failed with exception: " + disposeEx);
+                        Core.Diagnostics.LuaInternalCatch("io.open cleanup failed with exception: " + disposeEx);
                     }
                 }
-                Core.Diagnostics.luaInternalCatch("io.open failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("io.open failed with exception: " + ex);
                 return DynValue.NewTuple(DynValue.Nil, DynValue.NewString("io.open failed with exception: " + ex.Message));
             }
         };

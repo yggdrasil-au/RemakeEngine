@@ -8,7 +8,7 @@ namespace EngineNet.Core;
 // Diagnostic logging utility
 internal static class Diagnostics {
 
-    private static readonly bool IsTraceEnabled =
+    private const bool IsTraceEnabled =
 #if DEBUG
         true;
 #else
@@ -276,7 +276,7 @@ internal static class Diagnostics {
     /// eg when a Lua script calls a C# function that throws an exception, this method can be used to log that exception from C# into lua.log and trace.log.
     /// </summary>
     /// <param name="ex"></param>
-    internal static void luaInternalCatch(string ex) {
+    internal static void LuaInternalCatch(string ex) {
         if (Diagnostics._bugWriter == null) return;
 
         lock (Diagnostics._lock) {

@@ -4,9 +4,8 @@ using MoonSharp.Interpreter;
 namespace EngineNet.ScriptEngines.Lua;
 
 // custom exception to signal script exit without treating it as an error
-public class ScriptExitException : Exception {
-    public int ExitCode { get; }
-    public ScriptExitException(int code = 0) => ExitCode = code;
+public class ScriptExitException(int exitCode = 0) : Exception {
+    public int ExitCode { get; } = exitCode;
 }
 
 public static partial class SetupEnvironment {

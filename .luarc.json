@@ -1,0 +1,11 @@
+{
+    "$schema": "https://raw.githubusercontent.com/sumneko/vscode-lua/master/setting/schema.json",
+    "Lua.runtime.version": "Lua 5.3",
+    "Lua.runtime.builtin": {
+        "basic": "disable",
+        "io": "disable",
+        "os": "disable",
+        "builtin": "disable",
+        "debug": "disable"
+    }
+}

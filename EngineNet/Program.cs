@@ -93,7 +93,7 @@ public static class Program {
             var operationExecution = new Core.Engine.OperationExecution();
             var _engino = new Core.Engine.Engino();
 
-            Core.Engine.Engine _engine = new Core.Engine.Engine(
+            var _engine = new Core.Engine.Engine(
                 gameRegistry: gameRegistry,
                 gameLauncher: _gameLauncher,
                 operationsLoader: _opsLoader,

@@ -223,7 +223,7 @@ internal partial class CLI {
                             string normalizedType = value.ToLowerInvariant();
                             options.ScriptType = normalizedType switch {
                                 "lau" => "lua",  // Common typo
-                                "js" => "javascript",
+                                "javascript" => "js",
                                 _ => value
                             };
                         }

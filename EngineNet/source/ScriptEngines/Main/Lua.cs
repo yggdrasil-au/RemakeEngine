@@ -1,13 +1,7 @@
 // lua interpreter
 using MoonSharp.Interpreter;
 
-
-using System.IO;
-using System.Collections.Generic;
-
 using EngineNet.Core;
-using EngineNet.Core.UI;
-using EngineNet.ScriptEngines.Lua;
 
 namespace EngineNet.ScriptEngines.Lua;
 
@@ -22,10 +16,10 @@ public sealed class Main : Helpers.IAction {
     private readonly string _projectRoot;
 
     public Main(string scriptPath, IEnumerable<string>? args, string gameRoot, string projectRoot) {
-        _scriptPath = scriptPath;
-        _args = args is null ? System.Array.Empty<string>() : args as string[] ?? new List<string>(args).ToArray();
-        _gameRoot = gameRoot;
-        _projectRoot = projectRoot;
+        this._scriptPath = scriptPath;
+        this._args = args is null ? System.Array.Empty<string>() : args as string[] ?? new List<string>(args).ToArray();
+        this._gameRoot = gameRoot;
+        this._projectRoot = projectRoot;
     }
 
     //
@@ -34,19 +28,19 @@ public sealed class Main : Helpers.IAction {
         int exitCode = 0;
         LuaWorld? LuaWorld = null;
         try {
-            if (!System.IO.File.Exists(_scriptPath)) {
-                throw new System.IO.FileNotFoundException("Lua script not found", _scriptPath);
+            if (!System.IO.File.Exists(this._scriptPath)) {
+                throw new System.IO.FileNotFoundException("Lua script not found", this._scriptPath);
             }
 
             // ::
             // ::
 
             // read script code
-            string code = await System.IO.File.ReadAllTextAsync(_scriptPath, cancellationToken);
+            string code = await System.IO.File.ReadAllTextAsync(this._scriptPath, cancellationToken);
             // create new Lua script environment with default modules, all sandboxing is done manually
             Script LuaScript = new Script(CoreModules.Preset_Default);
             // object to hold all exposed tables
-            LuaWorld = new LuaWorld(LuaScript, _scriptPath);
+            LuaWorld = new LuaWorld(LuaScript, this._scriptPath);
 
 
 
@@ -57,11 +51,11 @@ public sealed class Main : Helpers.IAction {
             SetupEnvironment.LuaEnvironment(LuaWorld);
 
             // Load versions from current game module context
-            var moduleVersions = Helper.LoadModuleToolVersions(_gameRoot);
+            Dictionary<string,string> moduleVersions = Helper.LoadModuleToolVersions(_gameRoot);
             var contextualTools = new ContextualToolResolver(tools, moduleVersions);
 
             // Expose core functions, SDK and modules
-            LuaAction.SetupCoreFunctions(LuaWorld, contextualTools, _args, _gameRoot, _projectRoot, _scriptPath);
+            LuaAction.SetupCoreFunctions(LuaWorld, contextualTools, this._args, this._gameRoot, this._projectRoot, this._scriptPath);
 
             // Register UserData types
             UserData.RegisterType<Core.UI.EngineSdk.PanelProgress>();
@@ -69,19 +63,22 @@ public sealed class Main : Helpers.IAction {
             UserData.RegisterType<Global.SqliteHandle>();
 
             // Signal GUI that a script is active so the bottom panel can reflect activity even without progress events
-            Core.UI.EngineSdk.ScriptActiveStart(scriptPath: _scriptPath);
+            Core.UI.EngineSdk.ScriptActiveStart(scriptPath: this._scriptPath);
 
 #if DEBUG
-            Core.UI.EngineSdk.PrintLine($"Running lua script '{_scriptPath}' with {_args.Length} args...");
-            Core.UI.EngineSdk.PrintLine($"input args: {string.Join(", ", _args)}");
+            Core.UI.EngineSdk.PrintLine($"Running lua script '{this._scriptPath}' with {this._args.Length} args...");
+            Core.UI.EngineSdk.PrintLine($"input args: {string.Join(", ", this._args)}");
 #endif
 
             // ::
             // ::
 
+            // Create a fresh object array specifically for this call
+            object[] argsForLua = new object[this._args.Length];
+            Array.Copy(this._args, argsForLua, this._args.Length);
+            
             await System.Threading.Tasks.Task.Run(() => {
-                var func = LuaWorld.LuaScript.LoadString(code);
-                LuaWorld.LuaScript.Call(func, (object[])_args);
+                LuaWorld.LuaScript.Call(LuaWorld.LuaScript.LoadString(code), argsForLua);
             }, cancellationToken).ConfigureAwait(false);
             ok = true;
             exitCode = 0;
@@ -91,13 +88,11 @@ public sealed class Main : Helpers.IAction {
             exitCode = exitEx.ExitCode;
             ok = exitEx.ExitCode == 0;
         } catch (Exception ex) {
-            Diagnostics.luaInternalCatch("Lua script threw an exception: " + ex);
+            Diagnostics.LuaInternalCatch("Lua script threw an exception: " + ex);
             Core.UI.EngineSdk.PrintLine(message: $"Lua script threw an exception: {ex}", color: System.ConsoleColor.Red);
             exitCode = 1;
         } finally {
-            if (LuaWorld != null) {
-                LuaWorld.DisposeOpenDisposables();
-            }
+            LuaWorld?.DisposeOpenDisposables();
 
             Core.UI.EngineSdk.ScriptActiveEnd(success: ok, exitCode: exitCode);
         }

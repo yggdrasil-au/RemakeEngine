@@ -9,7 +9,7 @@ public static partial class SetupEnvironment {
     /// <summary>
     /// Creates the restricted os table for the Lua environment.
     /// </summary>
-    public static void CreateOsTable(LuaWorld _LuaWorld) {
+    private static void CreateOsTable(LuaWorld _LuaWorld) {
 
         // date and time functions
 
@@ -18,8 +18,8 @@ public static partial class SetupEnvironment {
             if (string.IsNullOrEmpty(format)) return DynValue.NewNumber(System.DateTimeOffset.UtcNow.ToUnixTimeSeconds());
 
             if (format.StartsWith("*t") || format.StartsWith("!*t")) {
-                System.DateTime dt = format.StartsWith("!") ? System.DateTime.UtcNow : System.DateTime.Now;
-                Table DateTable = new Table(_LuaWorld.LuaScript);
+                System.DateTime dt = format.StartsWith('!') ? System.DateTime.UtcNow : System.DateTime.Now;
+                var DateTable = new Table(_LuaWorld.LuaScript);
                 DateTable["year"] = dt.Year;
                 DateTable["month"] = dt.Month;
                 DateTable["day"] = dt.Day;
@@ -81,7 +81,7 @@ public static partial class SetupEnvironment {
             return false;
         }
 
-        if (format.StartsWith("!")) {
+        if (format.StartsWith('!')) {
             useUtc = true;
             format = format[1..];
         }
@@ -90,7 +90,7 @@ public static partial class SetupEnvironment {
             return false;
         }
 
-        StringBuilder builder = new StringBuilder(format.Length * 2);
+        var builder = new StringBuilder(format.Length * 2);
 
         for (int i = 0; i < format.Length; i++) {
             char current = format[i];

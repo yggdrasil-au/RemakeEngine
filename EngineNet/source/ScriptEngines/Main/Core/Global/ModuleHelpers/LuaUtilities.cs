@@ -34,7 +34,7 @@ internal static class Utils {
 
         // IDictionary -> Lua table with string keys
         if (value is System.Collections.IDictionary idict) {
-            Table t = new Table(lua);
+            var t = new Table(lua);
             foreach (System.Collections.DictionaryEntry entry in idict) {
                 string key = entry.Key?.ToString() ?? string.Empty;
                 t[key] = ToDynValue(lua, entry.Value);
@@ -44,7 +44,7 @@ internal static class Utils {
 
         // IEnumerable -> Lua array-like table (1-based)
         if (value is System.Collections.IEnumerable ienum && value is not string) {
-            Table t = new Table(lua);
+            var t = new Table(lua);
             int i = 1;
             foreach (object? item in ienum) {
                 t[i++] = ToDynValue(lua, item);

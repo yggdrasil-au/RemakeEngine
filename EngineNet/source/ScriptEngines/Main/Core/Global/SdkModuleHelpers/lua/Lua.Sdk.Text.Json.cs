@@ -29,9 +29,14 @@ public static partial class Sdk {
                 using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(json);
                 return Lua.Globals.Utils.JsonElementToDynValue(_LuaWorld.LuaScript, doc.RootElement);
             } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("sdk.text.json.decode failed: " + ex);
+                Core.Diagnostics.LuaInternalCatch("sdk.text.json.decode failed: " + ex);
                 return DynValue.Nil;
             }
+        });
+
+        // sdk.text.json.isNull(val)
+        _LuaWorld.Sdk.Text.Json["isNull"] = (System.Func<DynValue, bool>)((val) => {
+            return val.Type == DataType.Nil || val.Type == DataType.Void;
         });
     }
 }

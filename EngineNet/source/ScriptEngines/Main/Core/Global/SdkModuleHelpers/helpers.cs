@@ -15,7 +15,7 @@ public static class Helpers {
             ScriptEngines.Helpers.ConfigHelpers.ValidateSourceDir(dir);
             return true;
         } catch (Exception ex) {
-            Core.Diagnostics.luaInternalCatch("validate_source_dir failed with exception: " + ex);
+            Core.Diagnostics.LuaInternalCatch("validate_source_dir failed with exception: " + ex);
             return false;
         }
     }
@@ -48,7 +48,7 @@ public static class Helpers {
 
                 return null;
             } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("FileAttributes helper failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("FileAttributes helper failed with exception: " + ex);
                 return null;
             }
         }
@@ -72,7 +72,7 @@ public static class Helpers {
 
                 return names;
             } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("list_dir helper failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("list_dir helper failed with exception: " + ex);
                 return null;
             }
         }
@@ -91,7 +91,7 @@ public static class Helpers {
                 byte[] hash = System.Security.Cryptography.SHA1.HashData(fs);
                 return System.Convert.ToHexString(hash).ToLowerInvariant();
             } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("sha1_file failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("sha1_file failed with exception: " + ex);
                 return null;
             }
         }
@@ -101,7 +101,7 @@ public static class Helpers {
                 byte[] data = System.Security.Cryptography.MD5.HashData(System.Text.Encoding.UTF8.GetBytes(text ?? string.Empty));
                 return System.Convert.ToHexString(data).ToLowerInvariant();
             } catch (Exception ex) {
-                Core.Diagnostics.luaInternalCatch("md5 failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("md5 failed with exception: " + ex);
                 return string.Empty;
             }
         }
@@ -115,7 +115,7 @@ public static class Helpers {
         try {
             System.Threading.Thread.Sleep(System.TimeSpan.FromSeconds(seconds));
         }  catch (Exception ex) {
-            Core.Diagnostics.luaInternalCatch("sleep failed with exception: " + ex);
+            Core.Diagnostics.LuaInternalCatch("sleep failed with exception: " + ex);
         }
     }
 
@@ -140,7 +140,7 @@ public static class Helpers {
                 return false;
             } catch (System.Exception ex) {
                 Core.UI.EngineSdk.Error($"Archive extraction failed: {ex.Message}"); // output directly to UI, consider returning error to lua instead
-                Core.Diagnostics.luaInternalCatch("extract_archive failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("extract_archive failed with exception: " + ex);
                 return false;
             }
         }
@@ -173,7 +173,7 @@ public static class Helpers {
                 return false;
             } catch (System.Exception ex) {
                 Core.UI.EngineSdk.Error($"Archive creation failed: {ex.Message}");
-                Core.Diagnostics.luaInternalCatch("create_archive failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("create_archive failed with exception: " + ex);
                 return false;
             }
         }
@@ -193,7 +193,7 @@ public static class Helpers {
                 return obj;
             } catch (System.Exception ex) {
                 Core.UI.EngineSdk.Error($"TOML read failed: {ex.Message}");
-                Core.Diagnostics.luaInternalCatch("toml_read_file failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("toml_read_file failed with exception: " + ex);
                 return null; //DynValue.Nil;
             }
         }
@@ -208,7 +208,7 @@ public static class Helpers {
                 Core.Serialization.Toml.TomlHelpers.WriteTomlFile(path, obj);
             } catch (System.Exception ex) {
                 Core.UI.EngineSdk.Error($"TOML write failed: {ex.Message}");
-                Core.Diagnostics.luaInternalCatch("toml_write_file failed with exception: " + ex);
+                Core.Diagnostics.LuaInternalCatch("toml_write_file failed with exception: " + ex);
             }
         }
 

@@ -1,6 +1,44 @@
----@diagnostic disable: missing-fields
----@diagnostic disable: duplicate-doc-field
+--[[
+This file contains type annotations and API definitions for the Lua scripting environment used in the engine.
+It serves as documentation and a reference for script authors, as well as enabling IDE features like autocompletion and type checking.
+
+limitations in lua language server customization of lua builtins requires .luarc.json to disable basic, io, os, and builtin libraries to allow for specific redefintions like os.date and io.open with path security checks.
+This file redefines the expected APIs for these libraries as well as the sdk and global functions.
+
+
+The file is organized into sections:
+1. Custom UserData / Object Types: Definitions for objects returned by engine APIs (e.g., FileHandle, PanelProgress).
+1a. Standard Built-in Functions: Redefinitions of core Lua functions usually provided by the 'basic' library.
+1b. MoonSharp Additions: MoonSharp specific global variables and functions.
+2. Standard Libraries (Modified): The global 'io' and 'os' libraries with modifications and removals for security and sandboxing.
+3. SDK Modules: The 'sdk' table and its submodules (e.g., sdk.text, sdk.exec).
+4. Global Functions: Utility functions provided in the global scope (e.g., import, prompt).
+5. Global Constants / Environment Variables: Predefined global variables (e.g., Game_Root, UIMode).
+6. Global Helper Functions: Additional utility functions (e.g., join()).
+7. Removed/Deprecated Functions: A list of functions that have been removed or deprecated, with explanations and alternatives.
+
+]]
+
+
 ---@meta
+
+-- Builtins
+
+---@class unknown
+---@class any
+---@class nil
+---@class boolean
+---@class true: boolean
+---@class false: boolean
+---@class number
+---@class integer: number
+---@class thread
+---@class table<K, V>: { [K]: V }
+---@class string: stringlib
+---@class userdata
+---@class lightuserdata
+---@class function
+
 
 -- =============================================================================
 -- 1. Custom UserData / Object Types
@@ -121,9 +159,178 @@ function SqliteHandle.rollback(...) end
 function SqliteHandle.close(...) end
 
 --- Alias for close().
+--- Closes the database connection.
 ---@overload fun(self: SqliteHandle)
 ---@overload fun()
 function SqliteHandle.dispose(...) end
+
+
+-- =============================================================================
+-- 1a. Standard Built-in Functions
+-- =============================================================================
+
+--- Converts the argument to a number.
+---@param e any
+---@param base? integer
+---@return number|nil
+function tonumber(e, base) end
+
+--- Returns the type of its only argument, coded as a string.
+---@param v any
+---@return "nil"|"number"|"string"|"boolean"|"table"|"function"|"thread"|"userdata"
+function type(v) end
+
+--- Receives a value of any type and converts it to a string in a human-readable format.
+---@param v any
+---@return string
+function tostring(v) end
+
+--- If t has a metamethod __pairs, calls it with t as argument and returns the first three results from the call.
+--- Otherwise, returns three values: the next function, the table t, and nil, so that the construction
+--- `for k,v in pairs(t) do body end` will iterate over all key–value pairs of table t.
+---@generic K, V
+---@param t table<K, V>
+---@return fun(table: table<K, V>, index?: K):K, V
+---@return table<K, V>
+---@return K|nil
+function pairs(t) end
+
+--- Returns three values: an iterator function, the table t, and 0, so that the construction
+--- `for i,v in ipairs(t) do body end` will iterate over the key–value pairs (1,t[1]), (2,t[2]), ..., up to the first nil value.
+---@generic V
+---@param t table<integer, V>
+---@return fun(table: table<integer, V>, index?: integer):integer, V
+---@return table<integer, V>
+---@return integer
+function ipairs(t) end
+
+--- Sets the error handler and calls function f with the given arguments.
+---@param f function
+---@param ... any
+---@return boolean success
+---@return any result_or_error
+function pcall(f, ...) end
+
+--- Calls function f with the given arguments in protected mode with a new message handler.
+---@param f function
+---@param msgh function
+---@param ... any
+---@return boolean success
+---@return any result_or_error
+function xpcall(f, msgh, ...) end
+
+--- Issues an error with the given message.
+---@param message any
+---@param level? integer
+function error(message, level) end
+
+--- Loads a chunk from the given string.
+---@param chunk string
+---@param chunkname? string
+---@param mode? "b"|"t"|"bt"
+---@param env? table
+---@return function|nil
+---@return string? error_message
+function load(chunk, chunkname, mode, env) end
+
+--- Checks whether v1 is equal to v2, without invoking any metamethod.
+---@param v1 any
+---@param v2 any
+---@return boolean
+function rawequal(v1, v2) end
+
+--- Checks whether the value of its first argument is truthy; if it is, returns all its arguments.
+--- Otherwise, raises an error; message is the error object; its default value is "assertion failed!".
+---@generic T
+---@param v T
+---@param message? any
+---@return T
+---@return any ...
+function assert(v, message, ...) end
+
+--- Gets the real value of table[index], without invoking any metamethod.
+---@param table table
+---@param index any
+---@return any
+function rawget(table, index) end
+
+--- Sets the real value of table[index] to value, without invoking any metamethod.
+---@param table table
+---@param index any
+---@param value any
+---@return table
+function rawset(table, index, value) end
+
+--- If index is a number, returns all arguments after argument number index.
+--- Otherwise, index must be the string "#", and select returns the total number of extra arguments it received.
+---@param index integer|"#"
+---@param ... any
+---@return any
+function select(index, ...) end
+
+--- Returns the current metatable of the given object.
+---@param object any
+---@return table|nil
+function getmetatable(object) end
+
+--- Sets the metatable for the given table.
+---@param table table
+---@param metatable table|nil
+---@return table
+function setmetatable(table, metatable) end
+
+--- Returns the element of t next to index.
+---@generic K, V
+---@param t table<K, V>
+---@param index? K
+---@return K|nil
+---@return V|nil
+function next(t, index) end
+
+
+-- =============================================================================
+-- 1b. MoonSharp Additions
+-- =============================================================================
+
+---@class MoonSharpInfo
+---@field version string The version of the interpreter.
+---@field luacompat string The Lua version compatibility (e.g., '5.2').
+---@field platform string The platform it is running on.
+---@field is_aot boolean True if running on AOT.
+---@field is_unity boolean True if running in Unity.
+---@field is_mono boolean True if running on Mono.
+---@field is_clr4 boolean True if running on CLR4.
+---@field is_pcl boolean True if running as a PCL.
+---@field banner string The engine banner text.
+_MOONSHARP = {}
+
+-- Global aliases for table.pack and table.unpack
+function pack(...) end
+function unpack(...) end
+
+-- Safe environment loaders
+function loadsafe(ld, source, mode, env) end
+function loadfilesafe(filename, mode, env) end
+
+-- String module additions
+function string.unicode(s, i, j) end
+function string.contains(str1, str2) end
+function string.startsWith(str1, str2) end
+function string.endsWith(str1, str2) end
+
+-- Dynamic evaluation module
+---@class DynamicModule
+dynamic = {}
+function dynamic.eval(expr) end
+function dynamic.prepare(expr) end
+
+-- MoonSharp JSON module (Internal)
+---@class MoonSharpJson
+json = {}
+function json.parse(jsonString) end
+function json.serialize(value) end
+function json.null() end
+function json.isNull(val) end
 
 
 -- =============================================================================
@@ -132,7 +339,7 @@ function SqliteHandle.dispose(...) end
 
 --- Modified IO library.
 ---@class IO_Lib
-local io = {}
+io = {}
 
 --- Opens a file in the specified mode.
 --- Note: Paths are validated against workspace security rules.
@@ -146,22 +353,9 @@ function io.open(path, mode) end
 ---@param content string
 function io.write(content) end
 
---- [Removed] Reading from stdin is not supported.
----@type nil
-io.read = nil
-
---- [Removed] Process execution via io.popen is not supported. Use sdk.run_process.
----@type nil
-io.popen = nil
-
---- [Removed/Disabled] Flush global output.
----@type nil
-io.flush = nil
-
-
 --- Restricted OS library.
 ---@class OS_Lib
-local os = {}
+os = {}
 
 --- Returns date/time data.
 --- If format is nil/empty, returns the current Unix timestamp (seconds).
@@ -185,15 +379,45 @@ function os.clock() end
 function os.exit(code) end
 
 --- Gets the value of an environment variable.
---- Note: Sensitive variables (e.g., USERNAME, TEMP) are blocked.
+--- Note: Sensitive variables (e.g., USERNAME, TEMP, Path) are blocked for security.
 ---@param varname string
 ---@return string|nil value
 function os.getenv(varname) end
 
---- [Removed] Use sdk.exec or sdk.run_process instead.
----@type nil
-os.execute = nil
 
+--- Standard String library.
+---@class String_Lib
+string = {}
+
+--- Returns a copy of the string with all uppercase letters changed to lowercase.
+---@param s string
+---@return string
+function string.lower(s) end
+
+--- Returns the substring of s that starts at i and continues until j; i and j can be negative.
+--- If j is absent, it is assumed to be -1 (the end of the string).
+---@param s string
+---@param i integer
+---@param j? integer
+---@return string
+function string.sub(s, i, j) end
+
+--- Looks for the first match of pattern in the string s.
+--- If it finds a match, then find returns the indices of s where this occurrence starts and ends.
+---@param s string
+---@param pattern string
+---@param init? integer
+---@param plain? boolean
+---@return integer|nil start, integer|nil end, ...
+function string.find(s, pattern, init, plain) end
+
+--- Returns a copy of s in which all (or the first n, if given) occurrences of the pattern have been replaced by a replacement string/table/function.
+---@param s string
+---@param pattern string
+---@param repl string|table|function
+---@param n? integer
+---@return string result, integer count
+function string.gsub(s, pattern, repl, n) end
 
 -- =============================================================================
 -- 2. Process Execution Types
@@ -277,7 +501,14 @@ sdk = {}
 ---@param newline? boolean
 function sdk.color_print(color, message, newline) end
 
+--- builtin lua print, does not print to sdk.print, and will only work in terminal output mode
+---@param ... any
+---@return nil
+function print(...) end
+
 --- Alias for sdk.color_print (AU/UK spelling).
+--- Prints colored text to the engine console/UI.
+--- Accepts either (color, message[, newline]) or a table { color/colour, message, newline }.
 ---@param color string|table
 ---@param message? string
 ---@param newline? boolean
@@ -489,6 +720,7 @@ local SdkTextToml = {}
 ---@class SdkTextJson
 ---@field encode fun(value: any, opts?: JsonEncodeOptions): string
 ---@field decode fun(json: string): any
+---@field isNull fun(val: any): boolean
 local SdkTextJson = {}
 
 --- Encodes a Lua value to JSON.
@@ -521,6 +753,11 @@ function sdk.text.json.encode(value, opts) end
 ---@param json string
 ---@return any value
 function sdk.text.json.decode(json) end
+
+--- Checks if a value is null (nil).
+---@param val any
+---@return boolean
+function sdk.text.json.isNull(val) end
 
 --- Reads a TOML file into a Lua table.
 ---@param path string
@@ -588,9 +825,10 @@ function sdk.close_process(pid) end
 function ResolveToolPath(id, version) end
 
 --- Alias for ResolveToolPath.
----@param id string
----@param version? string
----@return string path
+--- Resolves the absolute path to an external tool.
+---@param id string The tool ID (e.g., "ffmpeg").
+---@param version? string The optional tool version.
+---@return string path The resolved file path.
 function tool(id, version) end
 
 --- Prints a warning message to the host console/UI.
@@ -617,21 +855,25 @@ function prompt(message, id, secret) end
 function color_prompt(message, color, id, secret) end
 
 --- Alias for color_prompt (AU/UK spelling).
----@param message string
----@param color string
----@param id? string
----@param secret? boolean
----@return string
+--- Prompts the user for input with a colored message.
+---@param message string The question to ask.
+---@param color string The color of the prompt text.
+---@param id? string An ID for this prompt.
+---@param secret? boolean If true, hides the input.
+---@return string response
 function colour_prompt(message, color, id, secret) end
 
 --- Loads and executes a Lua file relative to the current script's directory.
+--- Like standard 'dofile', this evaluates the file every time it is called and does not cache results.
 --- If the path does not end in '.lua', it is appended automatically.
 ---@param path string The relative or absolute path to the Lua file.
 ---@return any result The value returned by the executed Lua script (if any).
 function import(path) end
 
---- Loads and executes a Lua file. In RemakeEngine, this is an alias for 'import'
---- and resolves paths relative to 'script_dir'.
+--- Alias for import.
+--- Note: In RemakeEngine, 'require' is a direct alias for 'import'. 
+--- Unlike standard Lua 'require', it does NOT cache modules in 'package.loaded' 
+--- and will re-evaluate the file on every call.
 ---@param path string The relative or absolute path to the Lua file.
 ---@return any result The value returned by the executed Lua script (if any).
 function require(path) end
@@ -659,6 +901,10 @@ progress = {}
 --- Arguments passed to the script (1-based index).
 ---@type table<integer, string>
 argv = {}
+
+--- The global environment table.
+---@type table<string, any>
+_G = {}
 
 --- The number of arguments passed to the script.
 ---@type integer
@@ -711,6 +957,78 @@ UIMode = "unknown"
 ---@param ... string|number Path segments to join.
 ---@return string The joined path.
 function join(...) end
+
+
+-- =============================================================================
+-- // removed //
+-- =============================================================================
+
+
+--- debug not included in moonsharp default preset
+---@deprecated Debug library is not available in this environment.
+function debug() end
+
+--- Removed from the global scope for security.
+---@deprecated Use import() for internal script loading.
+function loadfile() end
+
+--- Removed from the global scope for security.
+---@deprecated Use import() for internal script loading.
+function dofile(...) end
+
+--- Removed from the engine version of the IO library.
+---@deprecated Use file:read() on an open handle instead of reading from stdin.
+function io.read(...) end
+
+--- Removed from the engine version of the IO library.
+---@deprecated Use sdk.exec or sdk.run_process instead.
+function io.popen(...) end
+
+--- Removed from the engine version of the IO library.
+---@deprecated Use file:flush() on an open handle.
+function io.flush() end
+
+--- Removed from the engine version of the IO library.
+---@deprecated Default input handles are managed internally.
+function io.input(...) end
+
+--- Removed from the engine version of the IO library.
+---@deprecated Default output handles are managed internally.
+function io.output(...) end
+
+--- Removed from the engine version of the IO library.
+---@deprecated Use io.open with a valid workspace path.
+function io.tmpfile() end
+
+--- Removed from the engine version of the IO library.
+---@deprecated Use type() or check handles directly.
+function io.type(...) end
+
+--- Removed from the engine version of the IO library.
+---@deprecated Use file:read("*l") in a loop.
+function io.lines(...) end
+
+--- Removed from the engine version of the OS library for security.
+---@deprecated Use sdk.exec or sdk.run_process instead.
+function os.execute(...) end
+
+--- Removed from the engine version of the OS library.
+---@deprecated Use sdk.remove_file instead.
+function os.remove(...) end
+
+--- Removed from the engine version of the OS library.
+---@deprecated Use sdk.rename_file or sdk.move_dir instead.
+function os.rename(...) end
+
+--- Removed from the engine version of the OS library.
+---@deprecated Temporary file paths are not exposed directly.
+function os.tmpname() end
+
+--- Removed from the engine version of the OS library.
+---@deprecated Locale settings are managed by the host application.
+function os.setlocale(...) end
+
+-- // end //
 
 
 
