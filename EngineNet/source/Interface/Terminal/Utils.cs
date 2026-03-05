@@ -211,7 +211,7 @@ internal class Utils() {
             case "progress_panel_start": {
                 lock (s_consoleLock) {
                     s_activePanels++;
-                    if (!TuiRenderer.IsActive) {
+                    if (!Program.isCli && !TuiRenderer.IsActive) {
                         TuiRenderer.Initialize();
                         s_rendererInitializedByEvent = true;
                     }
@@ -224,7 +224,21 @@ internal class Utils() {
                 List<string> lines = BuildTuiProgressLines(evt);
                 lock (s_consoleLock) {
                     s_panelStatus[id] = lines;
-                    UpdateTuiStatus();
+                    if (Program.isCli) {
+                        if (lines.Count > 0) {
+                            try {
+                                int w;
+                                try { w = System.Console.WindowWidth; } catch { w = 80; }
+                                string text = lines[0];
+                                if (text.Length > w - 1) text = text.Substring(0, w - 1);
+                                System.Console.Write($"\r{text.PadRight(w - 1)}");
+                            } catch {
+                                // Silent catch to prevent crashing if console window access fails
+                            }
+                        }
+                    } else {
+                        UpdateTuiStatus();
+                    }
                 }
                 break;
             }
@@ -234,16 +248,22 @@ internal class Utils() {
                 lock (s_consoleLock) {
                     if (s_panelStatus.TryGetValue(id, out var lastLines) && lastLines.Count > 0) {
                         // Log the FIRST line (the progress bar) to the log area so it sticks in history
-                        TuiRenderer.Log(lastLines[0], ConsoleColor.Cyan);
+                        if (Program.isCli) {
+                            System.Console.WriteLine(); // Newline to clear the fixed \r line
+                        } else {
+                            TuiRenderer.Log(lastLines[0], ConsoleColor.Cyan);
+                        }
                     }
 
                     s_activePanels--;
                     s_panelStatus.Remove(id);
-                    UpdateTuiStatus();
+                    if (!Program.isCli) {
+                        UpdateTuiStatus();
+                    }
 
                     if (s_activePanels <= 0) {
                         s_activePanels = 0; // clamp
-                        if (s_rendererInitializedByEvent) {
+                        if (!Program.isCli && s_rendererInitializedByEvent) {
                             TuiRenderer.Shutdown();
                             s_rendererInitializedByEvent = false;
                         }
