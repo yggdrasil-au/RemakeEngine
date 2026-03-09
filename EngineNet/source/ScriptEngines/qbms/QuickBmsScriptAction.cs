@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace EngineNet.ScriptEngines.qbms;
 
-internal sealed class QuickBmsScriptAction : Helpers.IAction {
+public sealed class QuickBmsScriptAction : Helpers.IAction {
     private readonly string _scriptPath;   // path to .bms
     private readonly string _moduleRoot;   // Game_Root
     private readonly string _inputDir;

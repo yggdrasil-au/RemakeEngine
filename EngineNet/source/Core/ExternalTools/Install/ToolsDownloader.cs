@@ -9,7 +9,7 @@ using SharpCompress.Common;
 
 namespace EngineNet.Core.ExternalTools;
 
-internal sealed class ToolsDownloader {
+public sealed class ToolsDownloader {
     private readonly string _rootPath;
     private readonly string _centralRepoJsonPath;
 

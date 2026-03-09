@@ -2,6 +2,6 @@ using System.Threading.Tasks;
 
 namespace EngineNet.Core.Abstractions;
 
-internal interface IGameLauncher {
+public interface IGameLauncher {
     Task<bool> LaunchGameAsync(string name);
 }

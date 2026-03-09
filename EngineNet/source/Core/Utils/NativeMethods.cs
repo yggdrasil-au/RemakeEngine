@@ -27,7 +27,7 @@ internal static class NativeMethods {
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool TerminateJobObject(IntPtr hJob, uint uExitCode);
 
-    internal enum JobObjectInfoType {
+    public enum JobObjectInfoType {
         AssociateCompletionPortInformation = 7,
         BasicLimitInformation = 2,
         BasicUIRestrictions = 4,
@@ -76,7 +76,7 @@ internal static class NativeMethods {
 /// <summary>
 /// A managed wrapper for a Windows Job Object to ensure child process termination.
 /// </summary>
-internal sealed class JobObject : IDisposable {
+public sealed class JobObject : IDisposable {
     private IntPtr _handle;
     private bool _disposed;
 

@@ -3,7 +3,7 @@ using EngineNet.Core.Utils;
 
 namespace EngineNet.Core.Engine;
 
-internal sealed class OperationExecution {
+public sealed class OperationExecution {
 
     // used by run single operation to execute engine operations of type "engine"
 
@@ -17,7 +17,7 @@ internal sealed class OperationExecution {
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     /// <exception cref="KeyNotFoundException"></exception>
-    internal async System.Threading.Tasks.Task<bool> ExecuteEngineOperationAsync(
+    public async System.Threading.Tasks.Task<bool> ExecuteEngineOperationAsync(
         string currentGame,
         Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
         IDictionary<string, object?> op,
@@ -91,22 +91,22 @@ internal sealed class OperationExecution {
 
             // Built-in actions
             case "config": {
-                return new operations.Built_inActions.InternalOperations().config(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig);
+                return new operations.Built_inActions.BuiltInOperations().config(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig);
             }
             case "download-tools": {
-                return await new operations.Built_inActions.InternalOperations().DownloadTools(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, cancellationToken);
+                return await new operations.Built_inActions.BuiltInOperations().DownloadTools(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, cancellationToken);
             }
             case "format-extract": {
-                return new operations.Built_inActions.InternalOperations().format_extract(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, cancellationToken);
+                return new operations.Built_inActions.BuiltInOperations().format_extract(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, cancellationToken);
             }
             case "format-convert": {
-                return new operations.Built_inActions.InternalOperations().format_convert(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, ToolResolver, cancellationToken);
+                return new operations.Built_inActions.BuiltInOperations().format_convert(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, ToolResolver, cancellationToken);
             }
             case "validate-files": {
-                return new operations.Built_inActions.InternalOperations().validate_files(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, cancellationToken);
+                return new operations.Built_inActions.BuiltInOperations().validate_files(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, cancellationToken);
             }
             case "rename-folders": {
-                return new operations.Built_inActions.InternalOperations().rename_folders(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, cancellationToken);
+                return new operations.Built_inActions.BuiltInOperations().rename_folders(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, cancellationToken);
             }
             default: {
                 Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] Unknown engine action: {action}");
@@ -122,7 +122,7 @@ internal sealed class OperationExecution {
     /// <param name="op"></param>
     /// <param name="ops"></param>
     /// <returns></returns>
-    internal static bool TryGetOnSuccessOperations(
+    public static bool TryGetOnSuccessOperations(
         IDictionary<string, object?> op,
         out List<Dictionary<string, object?>>? ops
     ) {

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace EngineNet.Core.Engine;
 
-internal sealed record RunAllResult(string Game, bool Success, int TotalOperations, int SucceededOperations);
+public sealed record RunAllResult(string Game, bool Success, int TotalOperations, int SucceededOperations);
 
 public sealed partial class Engine {
 
@@ -21,7 +21,7 @@ public sealed partial class Engine {
     /// <exception cref="KeyNotFoundException"></exception>
     /// <exception cref="System.IO.FileNotFoundException"></exception>
     /// <exception cref="System.Exception"></exception>
-    internal async System.Threading.Tasks.Task<RunAllResult> RunAllAsync(string gameName, Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, System.Threading.CancellationToken cancellationToken = default) {
+    public async System.Threading.Tasks.Task<RunAllResult> RunAllAsync(string gameName, Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, System.Threading.CancellationToken cancellationToken = default) {
 
         Core.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Starting RunAllAsync for game '{gameName}', onOutput: {(onOutput is null ? "null" : "set")}, onEvent: {(onEvent is null ? "null" : "set")}, stdinProvider: {(stdinProvider is null ? "null" : "set")}");
 

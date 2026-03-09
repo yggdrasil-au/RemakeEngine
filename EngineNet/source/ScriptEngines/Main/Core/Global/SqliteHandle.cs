@@ -4,7 +4,7 @@ namespace EngineNet.ScriptEngines.Lua.Global;
 /// <summary>
 /// SQLite connection handle for Lua scripts.
 /// </summary>
-internal sealed class SqliteHandle:System.IDisposable {
+public sealed class SqliteHandle:System.IDisposable {
     private readonly MoonSharp.Interpreter.Script _script;
     private readonly Microsoft.Data.Sqlite.SqliteConnection _connection;
     private Microsoft.Data.Sqlite.SqliteTransaction? _transaction;

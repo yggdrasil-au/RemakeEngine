@@ -3,7 +3,7 @@ using EngineNet.Core.Utils;
 
 namespace EngineNet.Core.Abstractions;
 
-internal interface IGameRegistry {
+public interface IGameRegistry {
     Dictionary<string, GameModuleInfo> GetModules(ModuleFilter filter);
     Dictionary<string, GameInfo> GetBuiltGames();
     string? GetGameExecutable(string name);

@@ -7,7 +7,7 @@ namespace EngineNet.Core.Utils;
 /// <summary>
 /// Category / filter selector for Modules().
 /// </summary>
-internal enum ModuleFilter {
+public enum ModuleFilter {
     /// <summary>
     /// Everything we know about (installed, registered only, etc).
     /// </summary>
@@ -48,7 +48,7 @@ internal enum ModuleFilter {
 /// <summary>
 /// Scans registry and file system to produce a consistent view of modules with status flags.
 /// </summary>
-internal sealed class ModuleScanner {
+public sealed class ModuleScanner {
 
     private readonly Registries _registries;
 

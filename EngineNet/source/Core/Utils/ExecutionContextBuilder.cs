@@ -6,7 +6,7 @@ using System.Collections.Generic;
 /// Builds the placeholder/variable context used by command building and embedded actions,
 /// including module placeholders merged from config.toml.
 /// </summary>
-internal sealed class ExecutionContextBuilder {
+public sealed class ExecutionContextBuilder {
 
 
     internal ExecutionContextBuilder() {

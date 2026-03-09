@@ -3,7 +3,7 @@ namespace EngineNet.Core.Utils;
 /// <summary>
 /// Describes a discovered game/module entry in the local registry.
 /// </summary>
-internal sealed class GameInfo {
+public sealed class GameInfo {
     /// <summary>
     /// Path to the operations file (toml or json) that describes actions for this game.
     /// </summary>

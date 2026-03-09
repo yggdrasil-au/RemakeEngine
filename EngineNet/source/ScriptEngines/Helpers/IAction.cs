@@ -3,7 +3,7 @@ namespace EngineNet.ScriptEngines.Helpers;
 /// <summary>
 /// Represents a single executable step within a game module.
 /// </summary>
-internal interface IAction {
+public interface IAction {
     /// <summary>
     /// Executes the action with access to tool resolution services.
     /// </summary>

@@ -5,7 +5,7 @@ using EngineNet.Core.Serialization;
 
 namespace EngineNet.Core.Serialization.Json;
 
-internal sealed class JsonHelpers {
+public sealed class JsonHelpers {
 
     internal static Dictionary<string, object?> LoadJsonFile(string filePath) {
         try {

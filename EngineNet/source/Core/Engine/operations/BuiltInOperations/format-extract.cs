@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
-public partial class InternalOperations {
+public partial class BuiltInOperations {
 
-    internal bool format_extract(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath,  EngineConfig EngineConfig, System.Threading.CancellationToken cancellationToken = default) {
+    public bool format_extract(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath,  EngineConfig EngineConfig, System.Threading.CancellationToken cancellationToken = default) {
         // Determine input file format
         string? format = op.TryGetValue("format", out object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
 
@@ -61,12 +61,12 @@ public partial class InternalOperations {
 
         if (string.Equals(format, "txd", System.StringComparison.OrdinalIgnoreCase)) {
             Core.UI.EngineSdk.PrintLine("\n>>> Built-in TXD extraction");
-            bool okTxd = FileHandlers.TxdExtractor.Main.Run(args);
+            bool okTxd = FileHandlers.Formats.TxdExtractor.Run(args);
             return okTxd;
         } else if (string.IsNullOrWhiteSpace(format)) {
             // Auto-detect format - default to TXD for now
             Core.UI.EngineSdk.PrintLine("\n>>> Built-in TXD extraction (auto-detected)");
-            bool okTxd = FileHandlers.TxdExtractor.Main.Run(args);
+            bool okTxd = FileHandlers.Formats.TxdExtractor.Run(args);
             return okTxd;
         } else {
             Core.UI.EngineSdk.PrintLine($"ERROR: format-extract does not support format '{format}'");

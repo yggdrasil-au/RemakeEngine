@@ -9,7 +9,7 @@ namespace EngineNet.Core.Services;
 /// <summary>
 /// Provides shared operations loading, validation, and prompt-flow logic for all interfaces.
 /// </summary>
-internal sealed class OperationsService {
+public sealed class OperationsService {
 
     /* :: :: Vars :: START :: */
     private readonly IOperationsLoader _loader;
@@ -355,7 +355,7 @@ internal sealed class OperationsService {
     /// <summary>
     /// Prepared operations data for UI consumption.
     /// </summary>
-    internal sealed class PreparedOperations {
+    public sealed class PreparedOperations {
         public bool IsLoaded { get; internal set; }
         public string? ErrorMessage { get; internal set; }
         public List<PreparedOperation> InitOperations { get; } = new List<PreparedOperation>();
@@ -367,7 +367,7 @@ internal sealed class OperationsService {
     /// <summary>
     /// Represents a prepared operation with resolved metadata.
     /// </summary>
-    internal sealed class PreparedOperation {
+    public sealed class PreparedOperation {
         public Dictionary<string, object?> Operation { get; }
         public string DisplayName { get; }
         public long? OperationId { get; }
@@ -398,7 +398,7 @@ internal sealed class OperationsService {
     /// <summary>
     /// Encapsulates a prompt request for the UI.
     /// </summary>
-    internal sealed class PromptRequest {
+    public sealed class PromptRequest {
         public string Name { get; }
         public string Type { get; }
         public string Title { get; }
@@ -426,7 +426,7 @@ internal sealed class OperationsService {
     /// <summary>
     /// Represents the UI response for a prompt request.
     /// </summary>
-    internal sealed class PromptResponse {
+    public sealed class PromptResponse {
         public bool IsCancelled { get; }
         public bool UseDefault { get; }
         public object? Value { get; }
@@ -445,7 +445,7 @@ internal sealed class OperationsService {
     /// <summary>
     /// Encapsulates a selectable prompt choice.
     /// </summary>
-    internal sealed class PromptChoice {
+    public sealed class PromptChoice {
         public string Label { get; }
         public bool IsDisabled { get; }
 

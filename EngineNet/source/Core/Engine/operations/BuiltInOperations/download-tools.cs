@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using EngineNet.Core.ExternalTools;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
-public partial class InternalOperations {
+public partial class BuiltInOperations {
 
-    internal async System.Threading.Tasks.Task<bool> DownloadTools(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath,  EngineConfig EngineConfig, System.Threading.CancellationToken cancellationToken = default) {
+    public async System.Threading.Tasks.Task<bool> DownloadTools(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath,  EngineConfig EngineConfig, System.Threading.CancellationToken cancellationToken = default) {
         // Expect a 'tools_manifest' value (path), or fallback to first arg
         string? manifest = null;
         if (op.TryGetValue("tools_manifest", out object? tm) && tm is not null) {

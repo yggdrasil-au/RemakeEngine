@@ -6,7 +6,7 @@ using System.Collections.Generic;
 /// Disposable scope to set EngineSdk.LocalEventSink, MuteStdoutWhenLocalSink
 /// and optionally seed AutoPromptResponses, restoring prior values on dispose.
 /// </summary>
-internal sealed class SdkEventScope:System.IDisposable {
+public sealed class SdkEventScope:System.IDisposable {
     private readonly System.Action<Dictionary<string, object?>>? _prevSink;
     private readonly bool _prevMute;
     private readonly Dictionary<string, string> _prevAuto;

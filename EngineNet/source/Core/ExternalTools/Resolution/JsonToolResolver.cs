@@ -11,7 +11,7 @@ namespace EngineNet.Core.ExternalTools;
 /// Loads tool paths from JSON. Supports modular registry aggregation and version-aware resolution.
 /// Prioritizes <see cref="ToolLockfile.ToolLockfileName"/> for persistent installations.
 /// </summary>
-internal sealed class JsonToolResolver:IToolResolver {
+public sealed class JsonToolResolver:IToolResolver {
     // ToolName -> Version -> ExePath
     private readonly Dictionary<string, Dictionary<string, string>> _tools = new Dictionary<string, Dictionary<string, string>>(System.StringComparer.OrdinalIgnoreCase);
 

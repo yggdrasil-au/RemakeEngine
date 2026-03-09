@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
-public partial class InternalOperations {
-    internal bool format_convert(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath,  EngineConfig EngineConfig, ExternalTools.IToolResolver ToolResolver, System.Threading.CancellationToken cancellationToken = default) {
+public partial class BuiltInOperations {
+    public bool format_convert(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath,  EngineConfig EngineConfig, ExternalTools.IToolResolver ToolResolver, System.Threading.CancellationToken cancellationToken = default) {
         Core.Diagnostics.Log("[Engine.private.cs :: Operations()]] format-convert");
         // Determine tool - check both 'tool' field and '-m'/'--mode' in args
         string? tool = op.TryGetValue("tool", out object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;

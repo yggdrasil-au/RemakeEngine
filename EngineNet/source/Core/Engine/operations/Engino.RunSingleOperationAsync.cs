@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace EngineNet.Core.Engine;
 
-internal sealed class Engino {
+public sealed class Engino {
 
     // used to run a single op by both runallasync and direct operation execution in the GUI/TUI
 
@@ -16,7 +16,7 @@ internal sealed class Engino {
     /// <param name="promptAnswers"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    internal async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
+    public async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
         string currentGame,
         Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
         IDictionary<string, object?> op,

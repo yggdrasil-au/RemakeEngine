@@ -9,7 +9,7 @@ namespace EngineNet.Core.Utils;
 /// Constructs command-line invocations from an operation definition and context.
 /// Responsible for resolving placeholders and mapping prompts/answers to CLI args.
 /// </summary>
-internal sealed class CommandBuilder() {
+public sealed class CommandBuilder() {
 
     /// <summary>
     /// Build a process invocation for the given operation.
@@ -22,7 +22,7 @@ internal sealed class CommandBuilder() {
     /// <returns>A list of strings suitable for <see cref="ProcessStartInfo"/>: [exe, arg1, ...]. Empty if no script.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="currentGame"/> is empty.</exception>
     /// <exception cref="KeyNotFoundException">Thrown when the game is unknown.</exception>
-    internal List<string> Build(
+    public List<string> Build(
         string currentGame,
         Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
         IDictionary<string, object?> engineConfig,

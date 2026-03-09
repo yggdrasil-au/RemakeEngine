@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 
-namespace EngineNet.Core.FileHandlers.TxdExtractor;
+namespace EngineNet.Core.FileHandlers.Formats;
 
-internal static partial class Main {
+public static partial class TxdExtractor {
 
     private static readonly System.Text.Encoding Utf8NoBom = new System.Text.UTF8Encoding(false, false);
 
@@ -11,7 +11,7 @@ internal static partial class Main {
     /// </summary>
     /// <param name="args">CLI-style args: [input_path] [--output_dir DIR]</param>
     /// <returns>True if extraction completed successfully.</returns>
-    internal static bool Run(List<string> args) {
+    public static bool Run(List<string> args) {
         try {
             Options options = Parse(args);
             TxdExporter exporter = new();

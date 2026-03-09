@@ -9,13 +9,9 @@ using System.ComponentModel;
 using System.Collections.Generic;
 using System.Collections;
 
-namespace EngineNet.Core.FileHandlers.TxdExtractor;
+namespace EngineNet.Core.FileHandlers.Formats;
 
-internal static partial class Main {
-
-    private static void DebugLog(string message) {
-                Core.Diagnostics.Log(message);
-    }
+public static partial class TxdExtractor {
 
     private static List<string> EnumerateTxdFiles(string inputPathAbs) {
         if (!System.IO.File.Exists(inputPathAbs) && !System.IO.Directory.Exists(inputPathAbs)) {

@@ -6,7 +6,7 @@ namespace EngineNet.Core.Utils;
 /// <summary>
 /// Represents a game module and its discovery/verification status.
 /// </summary>
-internal sealed class GameModuleInfo {
+public sealed class GameModuleInfo {
     public required string Id { get; set; }
     public required string Name { get; set; }
     public required string GameRoot { get; set; }

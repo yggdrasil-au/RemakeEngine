@@ -1,6 +1,6 @@
-namespace EngineNet.Core.FileHandlers.TxdExtractor;
+namespace EngineNet.Core.FileHandlers.Formats;
 
-internal static partial class Main {
+public static partial class TxdExtractor {
 
     private static byte[] CreateDdsHeaderDxt(int width, int height, int mipMapCountFromFile, string fourcc) {
         byte[] buffer = new byte[128];

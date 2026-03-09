@@ -6,7 +6,7 @@ using System.Collections.Generic;
 /// Provides metadata for tools (executable path and optional version) by
 /// consulting <see cref="ToolLockfile.ToolLockfileName"/> when available, and falling back to IToolResolver.
 /// </summary>
-internal sealed class ToolMetadataProvider {
+public sealed class ToolMetadataProvider {
     private readonly string _projectRoot;
     private readonly IToolResolver _resolver;
 
