@@ -108,7 +108,12 @@ public partial class TUI {
                 //return 1;
                 return await RunInteractiveMenuAsync(msg: "Selected game is missing operations file. Please choose again.");
             }
-            Core.Services.OperationsService.PreparedOperations preparedOps = _engine.OperationsService.LoadAndPrepare(info.OpsFile);
+            Core.Services.OperationsService.PreparedOperations preparedOps = _engine.OperationsService.LoadAndPrepare(
+                opsFile: info.OpsFile,
+                currentGame: gameName,
+                games: allAvailableModules,
+                engineConfig: _engine.EngineConfig.Data
+            );
             if (!preparedOps.IsLoaded) {
                 string message = preparedOps.ErrorMessage ?? "Failed to load operations list.";
                 Core.Diagnostics.Log($"[TUI::RunInteractiveMenuAsync()] {message}");

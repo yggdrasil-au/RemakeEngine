@@ -32,7 +32,12 @@ public sealed class OperationsService {
     /// </summary>
     /// <param name="opsFile"></param>
     /// <returns></returns>
-    public PreparedOperations LoadAndPrepare(string opsFile) {
+    public PreparedOperations LoadAndPrepare(
+        string opsFile,
+        string? currentGame = null,
+        Dictionary<string, Core.Utils.GameModuleInfo>? games = null,
+        IDictionary<string, object?>? engineConfig = null
+    ) {
         PreparedOperations result = new PreparedOperations();
         if (string.IsNullOrWhiteSpace(opsFile) || !System.IO.File.Exists(opsFile)) {
             result.IsLoaded = false;
@@ -48,6 +53,14 @@ public sealed class OperationsService {
         }
 
         result.IsLoaded = true;
+
+        // Build context once if game info is provided
+        Dictionary<string, object?>? ctx = null;
+        if (!string.IsNullOrEmpty(currentGame) && games != null && engineConfig != null) {
+            try {
+                ctx = Core.Utils.ExecutionContextBuilder.Build(currentGame, games, engineConfig);
+            } catch { /* ignore context build failure for menu rendering */ }
+        }
 
         Dictionary<long, int> idCounts = new Dictionary<long, int>();
         HashSet<Dictionary<string, object?>> invalidIdOps = new HashSet<Dictionary<string, object?>>();
@@ -69,22 +82,30 @@ public sealed class OperationsService {
         }
 
         foreach (Dictionary<string, object?> op in allOps) {
-            bool isInit = TryGetBool(op, out bool initValue, "init") && initValue;
+            // Resolve placeholders for THIS operation for menu display
+            Dictionary<string, object?> resolvedOp = op;
+            if (ctx != null) {
+                if (Core.Utils.Placeholders.Resolve(op, ctx) is Dictionary<string, object?> resolved) {
+                    resolvedOp = resolved;
+                }
+            }
+
+            bool isInit = TryGetBool(resolvedOp, out bool initValue, "init") && initValue;
             bool hasDuplicateId = false;
             bool hasInvalidId = invalidIdOps.Contains(op);
             long? id = null;
 
-            if (TryGetLong(op, out long idValue)) {
+            if (TryGetLong(resolvedOp, out long idValue)) {
                 id = idValue;
                 hasDuplicateId = duplicateIds.Contains(idValue);
             }
 
-            string displayName = ResolveOperationDisplayName(op);
-            string? scriptPath = GetString(op, "script");
-            string? scriptType = GetString(op, "script_type", "scriptType");
+            string displayName = ResolveOperationDisplayName(resolvedOp);
+            string? scriptPath = GetString(resolvedOp, "script");
+            string? scriptType = GetString(resolvedOp, "script_type", "scriptType");
 
             PreparedOperation prepared = new PreparedOperation(
-                operation: op,
+                operation: resolvedOp,
                 displayName: displayName,
                 operationId: id,
                 hasDuplicateId: hasDuplicateId,

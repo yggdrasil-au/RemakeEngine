@@ -33,29 +33,19 @@ public sealed class CommandBuilder() {
             throw new System.ArgumentException(message: "No game has been loaded.", nameof(currentGame));
         }
 
-        // Build execution context via centralized builder
-        //ExecutionContextBuilder ctxBuilder = new ExecutionContextBuilder();
-        Dictionary<string, object?> ctx = Core.Utils.ExecutionContextBuilder.Build(
-            currentGame: currentGame,
-            games: games,
-            engineConfig: engineConfig
-        );
         string script_type = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant() ?? "python";
         if (!op.TryGetValue(key: "script", out object? scriptObj)) {
             return [];
         }
 
-        string scriptPath = Placeholders.Resolve(scriptObj, ctx)?.ToString() ?? string.Empty;
+        string scriptPath = scriptObj?.ToString() ?? string.Empty;
         List<string> parts = [script_type, scriptPath];
 
         // Accept args as any list type (e.g., List<string> from CLI or List<object?> from tests)
-        if (op.TryGetValue(key: "args", out object? argsObj) && argsObj is System.Collections.IList aList) {
-            object? resolvedObj = Placeholders.Resolve(aList, ctx);
-            if (resolvedObj is System.Collections.IList resolvedList) {
-                foreach (object? a in resolvedList) {
-                    if (a is not null) {
-                        parts.Add(a.ToString()!);
-                    }
+        if (op.TryGetValue(key: "args", out object? argsObj) && argsObj is System.Collections.IList resolvedList) {
+            foreach (object? a in resolvedList) {
+                if (a is not null) {
+                    parts.Add(a.ToString()!);
                 }
             }
         }

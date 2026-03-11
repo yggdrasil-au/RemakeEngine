@@ -33,28 +33,8 @@ public sealed class OperationExecution {
             return false;
         }
 
-        // Resolve placeholders in the operation dictionary before execution
+        // 'op' is already fully resolved from Engino.RunSingleOperationAsync!
         IDictionary<string, object?> resolvedOp = op;
-        if (!string.IsNullOrWhiteSpace(currentGame)) {
-            try {
-                //ExecutionContextBuilder ctxBuilder = new ExecutionContextBuilder();
-                Dictionary<string, object?> ctx = Core.Utils.ExecutionContextBuilder.Build(
-                    currentGame: currentGame,
-                    games: games,
-                    engineConfig: EngineConfig.Data
-                );
-                object? resolved = Placeholders.Resolve(op, ctx);
-                if (resolved is IDictionary<string, object?> resolvedDict) {
-                    resolvedOp = resolvedDict;
-                    // Update the local script variable 's' to the resolved version if available
-                    if (resolvedOp.TryGetValue("script", out object? rs) && rs is not null) {
-                        s = rs;
-                    }
-                }
-            } catch (System.Exception ex) {
-                Core.Diagnostics.Log($"[Engine.private.cs :: Operations()] Warning: Placeholder resolution failed: {ex.Message}");
-            }
-        }
 
         Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] engine operation script: {s}");
 

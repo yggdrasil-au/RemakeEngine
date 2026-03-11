@@ -218,7 +218,12 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             }
 
             if (!string.IsNullOrWhiteSpace(opsFile) && System.IO.File.Exists(path: opsFile)) {
-                Core.Services.OperationsService.PreparedOperations preparedOps = AvaloniaGui.Engine.OperationsService.LoadAndPrepare(opsFile);
+                Core.Services.OperationsService.PreparedOperations preparedOps = AvaloniaGui.Engine.OperationsService.LoadAndPrepare(
+                    opsFile: opsFile,
+                    currentGame: _moduleName,
+                    games: games,
+                    engineConfig: AvaloniaGui.Engine.EngineConfig.Data
+                );
                 if (!preparedOps.IsLoaded) {
                     Core.Diagnostics.Log($"Load: Failed to load operations list for module {_moduleName} from ops file '{opsFile}'. {preparedOps.ErrorMessage}");
                     return;

@@ -29,6 +29,14 @@ public sealed class Engino {
         OperationExecution OperationExecution,
         System.Threading.CancellationToken cancellationToken = default
     ) {
+        // 1. Build the execution context once
+        Dictionary<string, object?> ctx = Core.Utils.ExecutionContextBuilder.Build(currentGame, games, EngineConfig.Data);
+
+        // 2. Recursively resolve ALL placeholders anywhere in the operation definition
+        if (Core.Utils.Placeholders.Resolve(op, ctx) is IDictionary<string, object?> fullyResolvedOp) {
+            op = fullyResolvedOp;
+        }
+
         string? scriptType = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant();
         List<string> parts = CommandService.BuildCommand(currentGame, games, EngineConfig.Data, op, promptAnswers);
         if (parts.Count < 2) {
@@ -63,16 +71,9 @@ public sealed class Engino {
                 }
                 case "bms": {
                     try {
-                        // Build context and resolve input/output/extension placeholders
-                        //Core.Utils.ExecutionContextBuilder ctxBuilder = new Core.Utils.ExecutionContextBuilder();
-                        Dictionary<string, object?> ctx = Core.Utils.ExecutionContextBuilder.Build(currentGame: currentGame, games: games, engineConfig: EngineConfig.Data);
-
                         string inputDir = op.TryGetValue("input", out object? in0) ? in0?.ToString() ?? string.Empty : string.Empty;
                         string outputDir = op.TryGetValue("output", out object? out0) ? out0?.ToString() ?? string.Empty : string.Empty;
                         string? extension = op.TryGetValue("extension", out object? ext0) ? ext0?.ToString() : null;
-                        string resolvedInput = Core.Utils.Placeholders.Resolve(inputDir, ctx)?.ToString() ?? inputDir;
-                        string resolvedOutput = Core.Utils.Placeholders.Resolve(outputDir, ctx)?.ToString() ?? outputDir;
-                        string? resolvedExt = extension is null ? null : Core.Utils.Placeholders.Resolve(extension, ctx)?.ToString() ?? extension;
 
                         if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobjBms)) {
                             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
@@ -82,9 +83,9 @@ public sealed class Engino {
                         ScriptEngines.qbms.QuickBmsScriptAction action = new ScriptEngines.qbms.QuickBmsScriptAction(
                             scriptPath: scriptPath,
                             moduleRoot: gameRootBms,
-                            inputDir: resolvedInput,
-                            outputDir: resolvedOutput,
-                            extension: resolvedExt
+                            inputDir: inputDir,
+                            outputDir: outputDir,
+                            extension: extension
                         );
                         await action.ExecuteAsync(ToolResolver, cancellationToken);
                         result = true;

@@ -1,9 +1,11 @@
 
 
+
+
 [[operation]]
 	#init = true
 	run-all = true
-	Name = "Lua Feature Showcase"
+	Name = "Lua Feature Showcase -- {{Game_Root}}/scripts/lua_feature_demo.lua"
 	Instructions = "Demonstrates the embedded Lua engine helpers."
 	script_type = "lua"
 	script = "{{Game_Root}}/scripts/lua_feature_demo.lua"

@@ -16,10 +16,21 @@ the audio and video conversions can run in parallel with eachother but must occu
 *  this requires modules add operation ID's to the operation config to uniquely identify each operation,
 *  ensure detection of invalid operations toml/json and if invalid for 'id's dont enable dependency/id bound features
 
-* :: FEATURE :: add {{placeholder}} resolution for any operation field in operations.toml including Name..., ensure it reloads after every user or script action
 
 
 some features may require elevated privleges to run, like symlinks on windows, consider adding an option to launch a script with elevated privileges if the operation requires it, or at least add support for operation flag to request elevated privileges and display a warning if the engine is not running with them, this would be useful for operations that require admin rights to run successfully like symlink creation on windows.
+
+### CLI
+currently the cli bypasses the Operations.toml file by requiring the user to manually define all values that may already exist in the toml this is helpfull when a script or tool is not defined yet in the operations file or is needed as a one-off run but its unhelpfull when the user wants to run exactly whats defined in the op file and can result in inconsisstentcy as they may not rewrite in in cli format correctly:
+:: FEATURE :: add support for running an operation directly from a module based on name and or id number, when duplicates are found prompt user to select option from list,
+standard cli command example
+dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua" --args '"--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo"' --note "extended_demo_run"
+proposed cli command example
+dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo" --run_op "Lua Feature Showcase"
+or id
+dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo" --run_op 1
+additionally consider allowing simple module resolution by name
+dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module "demo" --run_op 1
 
 
 ### FileHandlers:
