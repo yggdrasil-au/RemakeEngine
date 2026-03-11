@@ -116,7 +116,7 @@ public static class TomlHelpers {
         if (value is null)
             return null;
 
-        // Preserve supported primitives as-is. 
+        // Preserve supported primitives as-is.
         // Lua-specific double-to-int normalization is handled at the Lua boundary in LuaUtilities.cs
         if (value is string || value is bool || value is int || value is long || value is double || value is float || value is System.DateTime || value is System.DateTimeOffset)
             return value;
@@ -177,9 +177,9 @@ public static class TomlHelpers {
     /// </summary>
     public static List<Dictionary<string, object?>> ReadTools(string path) {
         if (!System.IO.File.Exists(path)) return new List<Dictionary<string, object?>>();
-        
+
         object parsed = ParseFileToPlainObject(path);
-        if (parsed is IDictionary<string, object?> root && root.TryGetValue("tool", out object? toolsObj) 
+        if (parsed is IDictionary<string, object?> root && root.TryGetValue("tool", out object? toolsObj)
             && toolsObj is System.Collections.IEnumerable toolsList) {
             return toolsList.Cast<object>().OfType<IDictionary<string, object?>>()
                 .Select(d => d.ToDictionary(kvp => kvp.Key, kvp => kvp.Value, System.StringComparer.OrdinalIgnoreCase))
@@ -196,7 +196,7 @@ public static class TomlHelpers {
         if (!System.IO.File.Exists(path)) return result;
 
         object parsed = ParseFileToPlainObject(path);
-        if (parsed is IDictionary<string, object?> root && root.TryGetValue("placeholders", out object? placeholdersObj) 
+        if (parsed is IDictionary<string, object?> root && root.TryGetValue("placeholders", out object? placeholdersObj)
             && placeholdersObj is System.Collections.IEnumerable placeholdersList) {
             foreach (object item in placeholdersList) {
                 if (item is IDictionary<string, object?> table) {
