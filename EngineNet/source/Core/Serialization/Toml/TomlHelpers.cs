@@ -1,6 +1,4 @@
 
-using System.Linq;
-using System.Collections.Generic;
 using System.Collections;
 
 namespace EngineNet.Core.Serialization.Toml;
@@ -13,18 +11,14 @@ namespace EngineNet.Core.Serialization.Toml;
 /// - Lists of dictionaries map to arrays-of-tables
 /// - Primitives map to their TOML counterparts
 /// </summary>
-internal static class TomlHelpers {
-    internal static object ParseFileToPlainObject(string path) {
+public static class TomlHelpers {
+    public static object ParseFileToPlainObject(string path) {
         string text = System.IO.File.Exists(path) ? System.IO.File.ReadAllText(path) : string.Empty;
-        return ParseToPlainObject(text);
-    }
-
-    private static object ParseToPlainObject(string toml) {
-        Tomlyn.Model.TomlTable model = Tomlyn.Toml.ToModel(toml ?? string.Empty);
+        var model = Tomlyn.Toml.ToModel(text ?? string.Empty);
         return ConvertTomlToPlain(model);
     }
 
-    internal static void WriteTomlFile(string path, object? data) {
+    public static void WriteTomlFile(string path, object? data) {
         // Convert plain objects to Tomlyn.Model.TomlTable model and serialize
         Tomlyn.Model.TomlTable root = ConvertPlainToTomlTable(data) ?? new Tomlyn.Model.TomlTable();
         string text = Tomlyn.Toml.FromModel(root);
@@ -122,37 +116,9 @@ internal static class TomlHelpers {
         if (value is null)
             return null;
 
-        // Normalize numeric types to produce stable TOML:
-        // - If a double/float is mathematically an integer, write it as an integer (long) instead of 1.0
-        //   This is important because Lua numbers come through as doubles, but many config values are intended as ints.
-        if (value is double d) {
-            if (!double.IsNaN(d) && !double.IsInfinity(d)) {
-                double rounded = System.Math.Round(d);
-                if (System.Math.Abs(d - rounded) < 1e-9 && rounded <= long.MaxValue && rounded >= long.MinValue) {
-                    long asLong = (long)rounded;
-                    if (asLong <= int.MaxValue && asLong >= int.MinValue)
-                        return (int)asLong;
-                    return asLong;
-                }
-            }
-            return d;
-        }
-        if (value is float f) {
-            if (!float.IsNaN(f) && !float.IsInfinity(f)) {
-                double fd = f;
-                double rounded = System.Math.Round(fd);
-                if (System.Math.Abs(fd - rounded) < 1e-6 && rounded <= long.MaxValue && rounded >= long.MinValue) {
-                    long asLong = (long)rounded;
-                    if (asLong <= int.MaxValue && asLong >= int.MinValue)
-                        return (int)asLong;
-                    return asLong;
-                }
-            }
-            return f;
-        }
-
-        // Preserve other TOML-supported primitives as-is
-        if (value is string || value is bool || value is int || value is long || value is System.DateTime || value is System.DateTimeOffset)
+        // Preserve supported primitives as-is. 
+        // Lua-specific double-to-int normalization is handled at the Lua boundary in LuaUtilities.cs
+        if (value is string || value is bool || value is int || value is long || value is double || value is float || value is System.DateTime || value is System.DateTimeOffset)
             return value;
 
         if (value is Tomlyn.Model.TomlTable || value is Tomlyn.Model.TomlArray || value is Tomlyn.Model.TomlTableArray)
@@ -201,8 +167,45 @@ internal static class TomlHelpers {
         return ConvertPlainToTomlValue(props);
     }
 
-    internal static string WriteDocument(object? data) {
+    public static string WriteDocument(object? data) {
         Tomlyn.Model.TomlTable root = ConvertPlainToTomlTable(data) ?? new Tomlyn.Model.TomlTable();
         return Tomlyn.Toml.FromModel(root);
+    }
+
+    /// <summary>
+    /// Specialized helper to read the [[tool]] array of tables from module tool manifests.
+    /// </summary>
+    public static List<Dictionary<string, object?>> ReadTools(string path) {
+        if (!System.IO.File.Exists(path)) return new List<Dictionary<string, object?>>();
+        
+        object parsed = ParseFileToPlainObject(path);
+        if (parsed is IDictionary<string, object?> root && root.TryGetValue("tool", out object? toolsObj) 
+            && toolsObj is System.Collections.IEnumerable toolsList) {
+            return toolsList.Cast<object>().OfType<IDictionary<string, object?>>()
+                .Select(d => d.ToDictionary(kvp => kvp.Key, kvp => kvp.Value, System.StringComparer.OrdinalIgnoreCase))
+                .ToList();
+        }
+        return new List<Dictionary<string, object?>>();
+    }
+
+    /// <summary>
+    /// Specialized helper to read and merge [[placeholders]] blocks from config files.
+    /// </summary>
+    public static Dictionary<string, object?> ReadPlaceholdersFile(string path) {
+        var result = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+        if (!System.IO.File.Exists(path)) return result;
+
+        object parsed = ParseFileToPlainObject(path);
+        if (parsed is IDictionary<string, object?> root && root.TryGetValue("placeholders", out object? placeholdersObj) 
+            && placeholdersObj is System.Collections.IEnumerable placeholdersList) {
+            foreach (object item in placeholdersList) {
+                if (item is IDictionary<string, object?> table) {
+                    foreach (var kvp in table) {
+                        result[kvp.Key] = kvp.Value;
+                    }
+                }
+            }
+        }
+        return result;
     }
 }

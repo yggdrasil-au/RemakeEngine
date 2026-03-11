@@ -5,8 +5,8 @@ namespace EngineNet.ScriptEngines.Global.SdkModule;
 /// Cross-platform hardlink creation helper for .NET 6+.
 /// Uses CreateHardLinkW on Windows and link(2) on Unix-like systems.
 /// </summary>
-internal static class HardLink {
-    internal static void Create(string existingFile, string newLinkPath) {
+public static class HardLink {
+    public static void Create(string existingFile, string newLinkPath) {
         if (string.IsNullOrWhiteSpace(existingFile)) throw new ArgumentNullException(nameof(existingFile));
         if (string.IsNullOrWhiteSpace(newLinkPath)) throw new ArgumentNullException(nameof(newLinkPath));
 

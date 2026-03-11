@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using EngineNet.Core.ExternalTools;
+using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 public partial class BuiltInOperations {
-
     public async System.Threading.Tasks.Task<bool> DownloadTools(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath,  EngineConfig EngineConfig, System.Threading.CancellationToken cancellationToken = default) {
         // Expect a 'tools_manifest' value (path), or fallback to first arg
         string? manifest = null;
@@ -44,7 +44,7 @@ public partial class BuiltInOperations {
         try {
             string cfgPath = System.IO.Path.Combine(gameRoot, "config.toml");
             if (!string.IsNullOrWhiteSpace(gameRoot) && System.IO.File.Exists(cfgPath)) {
-                Dictionary<string, object?> fromToml = Core.ExternalTools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                Dictionary<string, object?> fromToml = TomlHelpers.ReadPlaceholdersFile(cfgPath);
                 foreach (KeyValuePair<string, object?> kv in fromToml) {
                     if (!ctx.ContainsKey(kv.Key)) {
                         ctx[kv.Key] = kv.Value;
@@ -71,4 +71,5 @@ public partial class BuiltInOperations {
         await dl.ProcessAsync(resolvedManifest, force, ctx, cancellationToken);
         return true;
     }
+
 }

@@ -1,6 +1,7 @@
 namespace EngineNet.Core.Utils;
 
 using System.Collections.Generic;
+using EngineNet.Core.Serialization.Toml;
 
 /// <summary>
 /// Builds the placeholder/variable context used by command building and embedded actions,
@@ -47,7 +48,7 @@ public sealed class ExecutionContextBuilder {
         try {
             string cfgPath = System.IO.Path.Combine(gdict.GameRoot, "config.toml");
             if (!string.IsNullOrWhiteSpace(gdict.GameRoot) && System.IO.File.Exists(cfgPath)) {
-                Dictionary<string, object?> fromToml = ExternalTools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                Dictionary<string, object?> fromToml = TomlHelpers.ReadPlaceholdersFile(cfgPath);
                 foreach (KeyValuePair<string, object?> kv in fromToml) {
                     if (!ctx.ContainsKey(kv.Key)) {
                         ctx[kv.Key] = kv.Value;

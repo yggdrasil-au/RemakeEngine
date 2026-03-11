@@ -1,5 +1,6 @@
 
 using System.Collections.Generic;
+using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 public partial class BuiltInOperations {
@@ -29,7 +30,7 @@ public partial class BuiltInOperations {
         try {
             string cfgPath = System.IO.Path.Combine(gameRoot5, "config.toml");
             if (!string.IsNullOrWhiteSpace(gameRoot5) && System.IO.File.Exists(cfgPath)) {
-                Dictionary<string, object?> fromToml = Core.ExternalTools.SimpleToml.ReadPlaceholdersFile(cfgPath);
+                Dictionary<string, object?> fromToml = TomlHelpers.ReadPlaceholdersFile(cfgPath);
                 foreach (KeyValuePair<string, object?> kv in fromToml) {
                     if (!ctx.ContainsKey(kv.Key)) {
                         ctx[kv.Key] = kv.Value;

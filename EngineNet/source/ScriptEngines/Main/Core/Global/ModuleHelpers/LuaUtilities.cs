@@ -73,11 +73,23 @@ internal static class Utils {
     internal static object? FromDynValue(DynValue v) => v.Type switch {
         DataType.Nil or DataType.Void => null,
         DataType.Boolean => v.Boolean,
-        DataType.Number => v.Number,
+        DataType.Number => NormalizeLuaNumber(v.Number),
         DataType.String => v.String,
         DataType.Table => TableToPlainObject(v.Table),
         _ => v.ToPrintString()
     };
+
+    private static object NormalizeLuaNumber(double d) {
+        if (double.IsNaN(d) || double.IsInfinity(d)) {
+            return d;
+        }
+        double rounded = System.Math.Round(d);
+        if (System.Math.Abs(d - rounded) < 1e-9 && rounded <= long.MaxValue && rounded >= long.MinValue) {
+            long asLong = (long)rounded;
+            return (asLong <= int.MaxValue && asLong >= int.MinValue) ? (int)asLong : asLong;
+        }
+        return d;
+    }
 
     internal static object TableToPlainObject(Table t) {
         // Heuristic: if all keys are consecutive 1..n numbers, treat as array

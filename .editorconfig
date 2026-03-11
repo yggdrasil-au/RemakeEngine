@@ -1,0 +1,12 @@
+root = true
+
+# C# files
+[*.cs]
+
+
+indent_size = 4
+indent_style = space
+tab_width = 4
+
+dotnet_diagnostic.IDE0002.severity = none
+dotnet_diagnostic.IDE0001.severity = none

@@ -6,10 +6,10 @@ namespace EngineNet.ScriptEngines.Global.SdkModule;
 /// File system utilities for script execution.
 /// Provides safe file system operations with proper security checks.
 /// </summary>
-internal static class FileSystemUtils {
-    internal static bool PathExists(string path) => System.IO.Path.Exists(path);
+public static class FileSystemUtils {
+    public static bool PathExists(string path) => System.IO.Path.Exists(path);
 
-    internal static bool PathExistsIncludingLinks(string path) {
+    public static bool PathExistsIncludingLinks(string path) {
         if (PathExists(path)) {
             return true;
         }
@@ -23,7 +23,7 @@ internal static class FileSystemUtils {
         }
     }
 
-    internal static bool IsSymlink(string path) {
+    public static bool IsSymlink(string path) {
         try {
             System.IO.FileSystemInfo info = GetInfo(path);
             return info.LinkTarget != null || info.Attributes.HasFlag(System.IO.FileAttributes.ReparsePoint);
@@ -33,7 +33,7 @@ internal static class FileSystemUtils {
         }
     }
 
-    internal static string? RealPath(string path) {
+    public static string? RealPath(string path) {
         try {
             return System.IO.Path.GetFullPath(path);
         } catch (Exception ex) {
@@ -42,7 +42,7 @@ internal static class FileSystemUtils {
         }
     }
 
-    internal static string? ReadLink(string path) {
+    public static string? ReadLink(string path) {
         try {
             System.IO.FileSystemInfo info = GetInfo(path);
             return info.LinkTarget;

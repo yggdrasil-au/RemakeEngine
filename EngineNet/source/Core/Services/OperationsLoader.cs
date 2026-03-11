@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Collections;
+using System.Linq;
 using EngineNet.Core.Abstractions;
 using EngineNet.Core.Utils;
 
@@ -12,13 +14,25 @@ public class OperationsLoader : IOperationsLoader {
             if (ext.Equals(".toml", System.StringComparison.OrdinalIgnoreCase)) {
                 object root = Core.Serialization.Toml.TomlHelpers.ParseFileToPlainObject(opsFile);
                 List<Dictionary<string, object?>> list = new List<Dictionary<string, object?>>();
-                if (root is Dictionary<string, object?> table) {
-                    foreach (KeyValuePair<string, object?> kv in table) {
-                        if (kv.Value is List<object?> arr) {
+
+                // root is a TomlTable (dictionary-like)
+                if (root is IDictionary table) {
+                    // Check for common keys like 'operation' or 'operations' (array of tables)
+                    // We also support arbitrary keys that contain lists of operations per schema.
+                    foreach (object keyObj in table.Keys) {
+                        string key = keyObj.ToString() ?? "";
+                        object? val = table[key];
+
+                        if (val is IEnumerable arr && val is not string) {
                             foreach (object? item in arr) {
-                                if (item is Dictionary<string, object?> tt) {
-                                    tt["_source_file"] = opsFile;
-                                    list.Add(tt);
+                                if (item is IDictionary tt) {
+                                    // Convert IDictionary to Dictionary<string, object?> for consistency
+                                    var opDict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+                                    foreach (DictionaryEntry de in tt) {
+                                        opDict[de.Key.ToString() ?? ""] = de.Value;
+                                    }
+                                    opDict["_source_file"] = opsFile;
+                                    list.Add(opDict);
                                 }
                             }
                         }

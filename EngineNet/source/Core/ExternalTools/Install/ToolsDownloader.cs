@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using SharpCompress.Archives;
 using SharpCompress.Archives.SevenZip;
 using SharpCompress.Common;
+using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.Core.ExternalTools;
 
@@ -27,7 +28,7 @@ public sealed class ToolsDownloader {
 
         string platform = GetPlatformIdentifier();
         Core.UI.EngineSdk.Info($"Platform: {platform}");
-        List<Dictionary<string, object?>> toolsList = SimpleToml.ReadTools(moduleTomlPath);
+        List<Dictionary<string, object?>> toolsList = TomlHelpers.ReadTools(moduleTomlPath);
         Core.UI.EngineSdk.Info($"Found {toolsList.Count} tool entries.");
 
         // Aggregate registry from modular blocks

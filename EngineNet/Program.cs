@@ -7,9 +7,6 @@ using EngineNet.Core;
 using EngineNet.Core.UI;
 using System;
 
-// Allow 'internal' access for tests
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo(assemblyName: "EngineNet.Tests")]
-
 namespace EngineNet;
 
 public static class Program {
@@ -28,7 +25,7 @@ public static class Program {
     // //
     /* :: :: Main :: START :: */
     [STAThread]
-    internal static async System.Threading.Tasks.Task<int> Main(string[] args) {
+    public static async System.Threading.Tasks.Task<int> Main(string[] args) {
         using var cts = new System.Threading.CancellationTokenSource();
         System.Console.CancelKeyPress += (s, e) => {
             e.Cancel = true;
@@ -207,21 +204,26 @@ public static class Program {
         return string.Empty;
     }
 
-    // Add this class inside the EngineNet namespace or Program.cs
-    internal static class ConsoleHelper {
+    /// <summary>
+    /// Helper methods for managing the console window on Windows OS.
+    /// This allows the application to attach to the parent console (if launched from CMD/PowerShell) or allocate a new console if needed (e.g. when double-clicked).
+    /// It also provides a method to free the console on exit.
+    /// This is important for ensuring that TUI/CLI modes have a visible console to interact with, while GUI mode can run without a console window.
+    /// </summary>
+    public static class ConsoleHelper {
         [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
         [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-        internal static extern bool AllocConsole();
+        public static extern bool AllocConsole();
 
         [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
         [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-        internal static extern bool AttachConsole(int dwProcessId);
+        public static extern bool AttachConsole(int dwProcessId);
 
         [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
         [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-        internal static extern bool FreeConsole();
+        public static extern bool FreeConsole();
 
-        internal const int ATTACH_PARENT_PROCESS = -1;
+        public const int ATTACH_PARENT_PROCESS = -1;
     }
 
     /* :: :: Methods :: END :: */

@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Collections.Generic;
+using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.ScriptEngines.qbms;
 
@@ -42,7 +43,7 @@ public sealed class QuickBmsScriptAction : Helpers.IAction {
         string? requiredVersion = null;
         try {
             if (System.IO.File.Exists(toolsToml)) {
-                List<Dictionary<string, object?>> toolDefs = Core.ExternalTools.SimpleToml.ReadTools(toolsToml);
+                List<Dictionary<string, object?>> toolDefs = TomlHelpers.ReadTools(toolsToml);
                 Dictionary<string, object?>? qbms = toolDefs.FirstOrDefault(t => t.TryGetValue("name", out object? n) && string.Equals(n?.ToString(), "QuickBMS", System.StringComparison.OrdinalIgnoreCase));
                 if (qbms is not null && qbms.TryGetValue("version", out object? v)) {
                     requiredVersion = v?.ToString();
