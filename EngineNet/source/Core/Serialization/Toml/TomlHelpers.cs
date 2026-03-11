@@ -14,7 +14,11 @@ namespace EngineNet.Core.Serialization.Toml;
 public static class TomlHelpers {
     public static object ParseFileToPlainObject(string path) {
         string text = System.IO.File.Exists(path) ? System.IO.File.ReadAllText(path) : string.Empty;
-        var model = Tomlyn.Toml.ToModel(text ?? string.Empty);
+        
+        // Handle empty strings explicitly to avoid deserialization exceptions
+        var model = string.IsNullOrWhiteSpace(text) 
+            ? new Tomlyn.Model.TomlTable() 
+            : Tomlyn.TomlSerializer.Deserialize<Tomlyn.Model.TomlTable>(text)!;
 
         // Convert the Tomlyn model (TomlTable/TomlArray) into standard .NET types
         // (Dictionary<string, object?> and List<object?>).
@@ -27,7 +31,7 @@ public static class TomlHelpers {
     public static void WriteTomlFile(string path, object? data) {
         // Convert plain objects to Tomlyn.Model.TomlTable model and serialize
         Tomlyn.Model.TomlTable root = ConvertPlainToTomlTable(data) ?? new Tomlyn.Model.TomlTable();
-        string text = Tomlyn.Toml.FromModel(root);
+        string text = Tomlyn.TomlSerializer.Serialize(root);
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path) ?? ".");
         System.IO.File.WriteAllText(path, text);
     }
@@ -175,7 +179,7 @@ public static class TomlHelpers {
 
     public static string WriteDocument(object? data) {
         Tomlyn.Model.TomlTable root = ConvertPlainToTomlTable(data) ?? new Tomlyn.Model.TomlTable();
-        return Tomlyn.Toml.FromModel(root);
+        return Tomlyn.TomlSerializer.Serialize(root);
     }
 
     /// <summary>

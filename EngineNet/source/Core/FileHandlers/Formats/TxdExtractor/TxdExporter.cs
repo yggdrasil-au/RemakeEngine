@@ -9,7 +9,7 @@ public static partial class TxdExtractor {
 
 
     private sealed class TxdExporter {
-        public (int totalTexturesExported, int filesProcessed, int filesWithExports) ExportPath(string inputPathAbs, string? outputDirBaseArg) {
+        public (int totalTexturesExported, int filesProcessed, int filesWithExports) ExportPath(string inputPathAbs, string? outputDirBaseArg, string outputExtension = "dds") {
             int overallTexturesExported = 0;
             int filesProcessedCount = 0;
             int filesWithExports = 0;
@@ -54,7 +54,7 @@ public static partial class TxdExtractor {
 
                 lastUsedOutputBaseForSummary = currentOutputDirBase!;
                 Log.Cyan($"\n--- Processing file: {txdFile} ---");
-                int texturesInFile = ExportTexturesFromTxd(txdFile, currentOutputDirBase!);
+                int texturesInFile = ExportTexturesFromTxd(txdFile, currentOutputDirBase!, outputExtension);
                 overallTexturesExported += texturesInFile;
                 filesProcessedCount += 1;
                 if (texturesInFile > 0) {
@@ -85,7 +85,7 @@ public static partial class TxdExtractor {
             return (overallTexturesExported, filesProcessedCount, filesWithExports);
         }
 
-    public int ExportTexturesFromTxd(string txdFilePath, string outputDirBase) {
+    public int ExportTexturesFromTxd(string txdFilePath, string outputDirBase, string outputExtension = "dds") {
             Log.Cyan($"Processing TXD file: {txdFilePath}");
             byte[] data;
             try {
@@ -122,7 +122,7 @@ public static partial class TxdExtractor {
                 }
 
                 Log.Cyan($"\n  Processing segment #{index + 1}: data starts at file offset 0x{segment.StartOffset:X}, segment length {segment.Data.Length} bytes.");
-                int texturesInSegment = new TextureSegmentProcessor().ProcessSegment(segment, outputDirBase);
+                int texturesInSegment = new TextureSegmentProcessor().ProcessSegment(segment, outputDirBase, outputExtension);
                 totalTexturesExportedFromFile += texturesInSegment;
             }
 

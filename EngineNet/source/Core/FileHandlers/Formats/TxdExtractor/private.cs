@@ -58,6 +58,27 @@ public static partial class TxdExtractor {
                     options.OutputDirectory = args[++i];
                     break;
                 }
+                case "--source": {
+                    if (i + 1 >= args.Count) {
+                        throw new TxdExportException($"Option '{current}' expects a value.");
+                    }
+
+                    options.InputPath = args[++i];
+                    break;
+                }
+                case "--output-ext": {
+                    if (i + 1 >= args.Count) {
+                        throw new TxdExportException($"Option '{current}' expects a value.");
+                    }
+
+                    string ext = args[++i].ToLowerInvariant();
+                    options.OutputExtension = ext.TrimStart('.');
+                    if (options.OutputExtension != "dds" && options.OutputExtension != "png") {
+                        throw new TxdExportException($"Unsupported output extension '{ext}'. Allowed: dds, png.");
+                    }
+
+                    break;
+                }
                 default: {
                     if (current.StartsWith('-')) {
                         throw new TxdExportException($"Unknown argument '{current}'.");

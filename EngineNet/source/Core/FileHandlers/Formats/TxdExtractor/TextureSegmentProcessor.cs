@@ -1,5 +1,8 @@
 
 using System.Collections.Generic;
+using SixLabors.ImageSharp;
+using BCnEncoder.Decoder;
+using BCnEncoder.ImageSharp;
 
 namespace EngineNet.Core.FileHandlers.Formats;
 
@@ -14,7 +17,7 @@ public static partial class TxdExtractor {
         private static readonly HashSet<byte> KnownFormatCodes = [0x52, 0x53, 0x54, 0x86, 0x02];
         private static readonly int NameSignatureLength = NameSignature.Length;
 
-        public int ProcessSegment(Segment segment, string outputDir) {
+        public int ProcessSegment(Segment segment, string outputDir, string outputExtension = "dds") {
             byte[] segmentData = segment.Data;
             int segmentOriginalStartOffset = segment.StartOffset;
             int texturesFound = 0;
@@ -154,16 +157,36 @@ public static partial class TxdExtractor {
                         }
 
                         string cleanName = SanitizeFilename(currentName.Name) ?? $"texture_at_0x{currentName.OriginalFileOffset:08X}";
-                        string ddsFile = System.IO.Path.Combine(outputDir, cleanName + ".dds");
+                        string ext = outputExtension.StartsWith(".") ? outputExtension : "." + outputExtension;
+                        string outFile = System.IO.Path.Combine(outputDir, cleanName + ext);
                         try {
-                            using System.IO.FileStream fs = System.IO.File.Create(ddsFile);
-                            fs.Write(conversion.Header, 0, conversion.Header.Length);
-                            fs.Write(conversion.Pixels, 0, conversion.Pixels.Length);
+                            if (ext.Equals(".png", StringComparison.OrdinalIgnoreCase)) {
+                                // 1. Combine Header and Pixels into a single in-memory DDS buffer
+                                byte[] ddsData = new byte[conversion.Header.Length + conversion.Pixels.Length];
+                                System.Buffer.BlockCopy(conversion.Header, 0, ddsData, 0, conversion.Header.Length);
+                                System.Buffer.BlockCopy(conversion.Pixels, 0, ddsData, conversion.Header.Length, conversion.Pixels.Length);
+
+                                // 2. Decode the DDS buffer
+                                using System.IO.MemoryStream ddsStream = new(ddsData);
+                                BcDecoder decoder = new BcDecoder();
+                                // DecodeToImageRgba32 is provided by the BCnEncoder.Net.ImageSharp extension
+                                using Image<SixLabors.ImageSharp.PixelFormats.Rgba32> image = decoder.DecodeToImageRgba32(ddsStream);
+
+                                // 3. Save as PNG
+                                image.SaveAsPng(outFile);
+                            } else {
+                                // Standard DDS Export
+                                using System.IO.FileStream fs = System.IO.File.Create(outFile);
+                                fs.Write(conversion.Header, 0, conversion.Header.Length);
+                                fs.Write(conversion.Pixels, 0, conversion.Pixels.Length);
+                            }
                         } catch (System.IO.IOException ex) {
-                            throw new TxdExportException($"          FATAL ERROR: IOError writing DDS file {ddsFile} for '{currentName.Name}': {ex.Message}");
+                            throw new TxdExportException($"          FATAL ERROR: IOError writing {ext.ToUpper()} file {outFile} for '{currentName.Name}': {ex.Message}");
+                        } catch (System.Exception ex) {
+                            throw new TxdExportException($"          FATAL ERROR: Failed to convert/save {ext.ToUpper()} for '{currentName.Name}': {ex.Message}");
                         }
 
-                        Log.Cyan($"          Successfully exported: {ddsFile} (Format: {conversion.Format}, {width}x{height})");
+                        Log.Cyan($"          Successfully exported: {outFile} (Format: {conversion.Format}, {width}x{height})");
                         texturesFound += 1;
                         currentName.MarkProcessed();
                         i = System.Math.Min(pixelDataStart + actualMipDataSize, segmentData.Length);

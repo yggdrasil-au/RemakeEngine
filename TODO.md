@@ -97,39 +97,11 @@ dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module "de
 
 ### TxdExtractor
 
-* :: ISSUE :: The extraction script must be updated to **correctly write DDS header data**.
-
-Current problem:
-
-* Many extracted DDS files contain **incorrect file size values in the header**, making them unusable in most software.
-* Some tools can still convert them, but this is only a **workaround for a broken extractor**.
-
-The extractor should generate **fully valid DDS files**.
-
----
-
 * :: FEATURE :: Add support for **exporting PNG directly from DDS** to avoid requiring external conversion tools.
 
 Possible approaches:
 
-Option 1 — Use a **C# image processing library**.
-
-Option 2 — Use an **external tool** such as ImageMagick (already registered in the engine tool registry).
-
-This would require:
-
-* Adding support for the engine to **download dependencies for its own internal use**, not just for modules.
-* Possibly introducing an internal configuration file such as:
-
-```
-Engine/tools.toml
-```
-
-alongside the proposed internal `operations.toml` used by the module downloader.
-
-Preferred solution:
-
-Because **TxdExtractor is internal C# code**, a faster and cleaner approach would be to add a NuGet dependency such as:
+Use a **C# image processing library**.
 
 ```
 SixLabors.ImageSharp

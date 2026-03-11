@@ -44,7 +44,7 @@ public static partial class TxdExtractor {
                         outputBase = System.IO.Path.Combine(baseDir, baseName + "_txd");
                     }
 
-                    int textures = exporter.ExportTexturesFromTxd(txdFile, outputBase!);
+                    int textures = exporter.ExportTexturesFromTxd(txdFile, outputBase!, options.OutputExtension);
                     if (textures > 0) {
                         System.Threading.Interlocked.Increment(ref ok);
                     } else {
