@@ -1,5 +1,4 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
+
 using EngineNet.Core.Abstractions;
 using EngineNet.Core.ExternalTools;
 using EngineNet.Core.Utils;
@@ -26,7 +25,7 @@ public class GameLauncher : IGameLauncher {
     /// <param name="toolResolver">The tool resolver for finding external tools (e.g., Godot).</param>
     /// <param name="config">The global engine configuration.</param>
     /// <param name="rootPath">The base path for the engine project.</param>
-    internal GameLauncher(IGameRegistry gameRegistry, IToolResolver toolResolver, EngineConfig config, string rootPath) {
+    public GameLauncher(IGameRegistry gameRegistry, IToolResolver toolResolver, EngineConfig config, string rootPath) {
         _gameRegistry = gameRegistry;
         _toolResolver = toolResolver;
         _config = config;
@@ -48,10 +47,10 @@ public class GameLauncher : IGameLauncher {
 
         // Build placeholder context for resolution
         Dictionary<string, GameModuleInfo> games = _gameRegistry.GetModules(ModuleFilter.All);
-        ExecutionContextBuilder ctxBuilder = new ExecutionContextBuilder();
+        //ExecutionContextBuilder ctxBuilder = new ExecutionContextBuilder();
         Dictionary<string, object?> ctx;
         try {
-            ctx = ctxBuilder.Build(currentGame: name, games: games, engineConfig: _config.Data);
+            ctx = Core.Utils.ExecutionContextBuilder.Build(currentGame: name, games: games, engineConfig: _config.Data);
         } catch {
             Diagnostics.Bug($"[GameLauncher] err building context for game '{name}'");
             ctx = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase) {

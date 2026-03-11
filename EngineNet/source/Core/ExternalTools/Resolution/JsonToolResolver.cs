@@ -19,7 +19,7 @@ public sealed class JsonToolResolver:IToolResolver {
     private string? _loadedFile;
     private System.DateTime _lastWriteTime;
 
-    internal JsonToolResolver() {
+    public JsonToolResolver() {
         _lockfilePath = ToolLockfile.GetPath(Program.rootPath);
         Load();
     }

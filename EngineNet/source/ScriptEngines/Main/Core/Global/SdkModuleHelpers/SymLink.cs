@@ -5,7 +5,7 @@ using Microsoft.Win32;
 
 namespace EngineNet.ScriptEngines.Global.SdkModule;
 
-internal static class SymLink {
+public static class SymLink {
     private const string SE_CREATE_SYMBOLIC_LINK_NAME = "SeCreateSymbolicLinkPrivilege";
 
     /* :: :: Methods :: START :: */
@@ -14,7 +14,7 @@ internal static class SymLink {
     /// Creates a symbolic link and optionally overwrites an existing destination.
     /// On Windows, it validates Developer Mode and SeCreateSymbolicLinkPrivilege.
     /// </summary>
-    internal static bool Create(string source, string destination, bool isDirectory, bool overwrite) {
+    public static bool Create(string source, string destination, bool isDirectory, bool overwrite) {
         try {
             if (OperatingSystem.IsWindows()) {
                 if (!CanCreateSymLinks()) {
@@ -67,14 +67,14 @@ internal static class SymLink {
     /// Checks if Developer Mode is enabled AND if the current user has the SeCreateSymbolicLinkPrivilege.
     /// </summary>
     [SupportedOSPlatform("windows")]
-    internal static bool CanCreateSymLinks() {
+    public static bool CanCreateSymLinks() {
         return IsDevModeEnabled() || HasSymbolicLinkPrivilege();
     }
 
     /// <summary>
     /// Returns clear, step-by-step instructions on how to fix the missing permissions.
     /// </summary>
-    internal static string GetFixInstructions() {
+    public static string GetFixInstructions() {
         return
             "[Symlink] Requirement Not Met: Symbolic Link Creation Privilege is Missing.\n" +
             "To fix this, you must add your user to the Local Security Policy:\n" +

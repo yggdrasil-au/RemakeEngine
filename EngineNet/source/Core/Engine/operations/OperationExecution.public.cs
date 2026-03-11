@@ -37,8 +37,8 @@ public sealed class OperationExecution {
         IDictionary<string, object?> resolvedOp = op;
         if (!string.IsNullOrWhiteSpace(currentGame)) {
             try {
-                ExecutionContextBuilder ctxBuilder = new ExecutionContextBuilder();
-                Dictionary<string, object?> ctx = ctxBuilder.Build(
+                //ExecutionContextBuilder ctxBuilder = new ExecutionContextBuilder();
+                Dictionary<string, object?> ctx = Core.Utils.ExecutionContextBuilder.Build(
                     currentGame: currentGame,
                     games: games,
                     engineConfig: EngineConfig.Data

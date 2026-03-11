@@ -1,14 +1,11 @@
 
-using System.Collections.Generic;
-using System.Diagnostics;
-
 namespace EngineNet.Interface.Terminal;
 
-internal partial class TUI {
+public partial class TUI {
 
     /* :: :: Constructor, Var :: START :: */
     private readonly Core.Engine.Engine _engine;
-    internal TUI(Core.Engine.Engine engine) {
+    public TUI(Core.Engine.Engine engine) {
         _engine = engine;
     }
 
@@ -23,11 +20,11 @@ internal partial class TUI {
     /// - appends completion time summaries after operations
     /// </summary>
     /// <returns></returns>
-    internal async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync(System.Threading.CancellationToken cancellationToken = default, string? msg = null) {
+    public async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync(System.Threading.CancellationToken cancellationToken = default, string? msg = null) {
         try {
             // get all modules that exist on disk
             Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.Modules(Core.Utils.ModuleFilter.Installed);
-            // get internal modules
+            // get public modules
             Dictionary<string, Core.Utils.GameModuleInfo> internalModules = _engine.Modules(Core.Utils.ModuleFilter.Internal);
 
             // Create a combined dictionary for lookup and execution
@@ -54,7 +51,7 @@ internal partial class TUI {
                 // foreach module, display '<Name> [<isRegistered>, <isInstalled (always true here)>, <isBuilt>]'
                 foreach (KeyValuePair<string, Core.Utils.GameModuleInfo> kv in modules) {
                     Core.Utils.GameModuleInfo m = kv.Value;
-                    // Skip internal modules in modules list; add them after game modules below separator
+                    // Skip public modules in modules list; add them after game modules below separator
                     /*if (m.IsInternal) {
                         internalModulesList.Add(m);
                         continue;
@@ -63,10 +60,10 @@ internal partial class TUI {
                     gameMenu.Add(display);
                     gameKeyMap.Add(m.Name);
                 }
-                gameMenu.Add("---------------"); // separator before internal modules
+                gameMenu.Add("---------------"); // separator before public modules
                 gameKeyMap.Add("---"); // placeholder for separator
 
-                // Add internal modules after game modules
+                // Add public modules after game modules
                 foreach (Core.Utils.GameModuleInfo m in internalModules.Values) {
                     gameMenu.Add(m.Name);
                     gameKeyMap.Add(m.Name);
@@ -131,7 +128,7 @@ internal partial class TUI {
             if (preparedOps.InitOperations.Count > 0) {
                 SafeClear();
                 System.Console.WriteLine(value: $"Running {preparedOps.InitOperations.Count} initialization operation(s) for {gameName}\n");
-                Stopwatch initStopwatch = Stopwatch.StartNew();
+                System.Diagnostics.Stopwatch initStopwatch = System.Diagnostics.Stopwatch.StartNew();
                 bool okAllInit = true;
                 foreach (Core.Services.OperationsService.PreparedOperation op in preparedOps.InitOperations) {
                     Dictionary<string, object?> answers = new Dictionary<string, object?>();
@@ -164,7 +161,7 @@ internal partial class TUI {
                     opStartIndex += 2;
                 }
 
-                // Show "Run All" only for non-internal modules and if there are operations with run-all flags
+                // Show "Run All" only for non-public modules and if there are operations with run-all flags
                 bool showRunAll = !info.IsInternal && preparedOps.HasRunAll;
                 if (showRunAll) {
                     menu.Add(item: "Run All");
@@ -234,7 +231,7 @@ internal partial class TUI {
                         TuiRenderer.Initialize(runAllCts);
                         TuiRenderer.Log($"Running operations for {gameName}...", ConsoleColor.Cyan);
 
-                        Stopwatch runAllStopwatch = Stopwatch.StartNew();
+                        System.Diagnostics.Stopwatch runAllStopwatch = System.Diagnostics.Stopwatch.StartNew();
 
                         // 2. Pass our custom StdinProvider that works with the Renderer
                         Core.ProcessRunner.StdinProvider rendererInput = () => TuiRenderer.ReadLineCustom("Input >", false);
@@ -279,7 +276,7 @@ internal partial class TUI {
                         // For manual single-op run, prompt interactively
                         if (CollectAnswersForOperation(op, answers, defaultsOnly: false)) {
                             TuiRenderer.Log($"Running: {selection}\n", ConsoleColor.Cyan);
-                            Stopwatch opStopwatch = Stopwatch.StartNew();
+                            System.Diagnostics.Stopwatch opStopwatch = System.Diagnostics.Stopwatch.StartNew();
                             bool ok = await new Utils().ExecuteOpAsync(_engine, gameName, allAvailableModules, op, answers);
                             opStopwatch.Stop();
 

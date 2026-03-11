@@ -18,7 +18,7 @@ public sealed class OperationsService {
     // //
     /* :: :: Constructors :: START :: */
 
-    internal OperationsService(IOperationsLoader loader, IGameRegistry gameRegistry) {
+    public OperationsService(IOperationsLoader loader, IGameRegistry gameRegistry) {
         _loader = loader;
         _gameRegistry = gameRegistry;
     }
@@ -32,7 +32,7 @@ public sealed class OperationsService {
     /// </summary>
     /// <param name="opsFile"></param>
     /// <returns></returns>
-    internal PreparedOperations LoadAndPrepare(string opsFile) {
+    public PreparedOperations LoadAndPrepare(string opsFile) {
         PreparedOperations result = new PreparedOperations();
         if (string.IsNullOrWhiteSpace(opsFile) || !System.IO.File.Exists(opsFile)) {
             result.IsLoaded = false;
@@ -113,7 +113,7 @@ public sealed class OperationsService {
     /// </summary>
     /// <param name="op"></param>
     /// <returns></returns>
-    internal static string ResolveOperationDisplayName(IDictionary<string, object?> op) {
+    public static string ResolveOperationDisplayName(IDictionary<string, object?> op) {
         string? name = GetString(op, "Name", "name");
         if (!string.IsNullOrWhiteSpace(name)) {
             return name;
@@ -140,7 +140,7 @@ public sealed class OperationsService {
     /// <param name="promptHandler"></param>
     /// <param name="defaultsOnly"></param>
     /// <returns></returns>
-    internal async Task<bool> CollectAnswersAsync(
+    public async Task<bool> CollectAnswersAsync(
         Dictionary<string, object?> op,
         Dictionary<string, object?> answers,
         PromptHandler promptHandler,
@@ -356,11 +356,11 @@ public sealed class OperationsService {
     /// Prepared operations data for UI consumption.
     /// </summary>
     public sealed class PreparedOperations {
-        public bool IsLoaded { get; internal set; }
-        public string? ErrorMessage { get; internal set; }
+        public bool IsLoaded { get; set; }
+        public string? ErrorMessage { get; set; }
         public List<PreparedOperation> InitOperations { get; } = new List<PreparedOperation>();
         public List<PreparedOperation> RegularOperations { get; } = new List<PreparedOperation>();
-        public bool HasRunAll { get; internal set; }
+        public bool HasRunAll { get; set; }
         public List<string> Warnings { get; } = new List<string>();
     }
 
@@ -376,7 +376,7 @@ public sealed class OperationsService {
         public string? ScriptPath { get; }
         public string? ScriptType { get; }
 
-        internal PreparedOperation(
+        public PreparedOperation(
             Dictionary<string, object?> operation,
             string displayName,
             long? operationId,
@@ -458,7 +458,7 @@ public sealed class OperationsService {
     /// <summary>
     /// UI prompt callback signature.
     /// </summary>
-    internal delegate Task<PromptResponse> PromptHandler(PromptRequest request);
+    public delegate Task<PromptResponse> PromptHandler(PromptRequest request);
 
     /* :: :: Nested Types :: END :: */
     // //

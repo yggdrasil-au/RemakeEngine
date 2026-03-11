@@ -7,25 +7,25 @@ namespace EngineNet.Core.Utils;
 /// <summary>
 /// Native Windows utilities for robust process management.
 /// </summary>
-internal static class NativeMethods {
+public static class NativeMethods {
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-    internal static extern IntPtr CreateJobObject(IntPtr lpJobAttributes, string? lpName);
+    public static extern IntPtr CreateJobObject(IntPtr lpJobAttributes, string? lpName);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool SetInformationJobObject(IntPtr hJob, JobObjectInfoType infoType, IntPtr lpJobObjectInfo, uint cbJobObjectInfoLength);
+    public static extern bool SetInformationJobObject(IntPtr hJob, JobObjectInfoType infoType, IntPtr lpJobObjectInfo, uint cbJobObjectInfoLength);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool AssignProcessToJobObject(IntPtr hJob, IntPtr hProcess);
+    public static extern bool AssignProcessToJobObject(IntPtr hJob, IntPtr hProcess);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool CloseHandle(IntPtr hObject);
+    public static extern bool CloseHandle(IntPtr hObject);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool TerminateJobObject(IntPtr hJob, uint uExitCode);
+    public static extern bool TerminateJobObject(IntPtr hJob, uint uExitCode);
 
     public enum JobObjectInfoType {
         AssociateCompletionPortInformation = 7,
@@ -38,7 +38,7 @@ internal static class NativeMethods {
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal struct JOBOBJECT_BASIC_LIMIT_INFORMATION {
+    public struct JOBOBJECT_BASIC_LIMIT_INFORMATION {
         public long PerProcessUserTimeLimit;
         public long PerJobUserTimeLimit;
         public uint LimitFlags;
@@ -51,7 +51,7 @@ internal static class NativeMethods {
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal struct IO_COUNTERS {
+    public struct IO_COUNTERS {
         public ulong ReadOperationCount;
         public ulong WriteOperationCount;
         public ulong OtherOperationCount;
@@ -61,7 +61,7 @@ internal static class NativeMethods {
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal struct JOBOBJECT_EXTENDED_LIMIT_INFORMATION {
+    public struct JOBOBJECT_EXTENDED_LIMIT_INFORMATION {
         public JOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimitInformation;
         public IO_COUNTERS IoCounters;
         public UIntPtr ProcessMemoryLimit;
@@ -70,7 +70,7 @@ internal static class NativeMethods {
         public UIntPtr PeakJobMemoryLimit;
     }
 
-    internal const uint JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x2000;
+    public const uint JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x2000;
 }
 
 /// <summary>

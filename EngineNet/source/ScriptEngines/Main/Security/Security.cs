@@ -7,7 +7,7 @@ namespace EngineNet.ScriptEngines;
 /// Security validation methods for script execution.
 /// Provides path validation and executable approval for RemakeEngine security.
 /// </summary>
-internal static class Security {
+public static class Security {
     private static readonly HashSet<string> UserApprovedRoots = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
 
     private static string CleanPathPrefix(string path) {
@@ -51,7 +51,7 @@ internal static class Security {
         }
     }
 
-    internal static bool EnsurePathAllowedWithPrompt(string path) {
+    public static bool EnsurePathAllowedWithPrompt(string path) {
         if (IsAllowedPath(path)) {
             return true;
         }
@@ -78,7 +78,7 @@ internal static class Security {
     /// Security validation: Check if executable is approved for RemakeEngine use.
     /// Allows registered tools, common system utilities, and resolved tool paths.
     /// </summary>
-    internal static bool IsApprovedExecutable(string executable, Core.ExternalTools.IToolResolver tools) {
+    public static bool IsApprovedExecutable(string executable, Core.ExternalTools.IToolResolver tools) {
         if (string.IsNullOrWhiteSpace(executable)) {
             return false;
         }
@@ -145,7 +145,7 @@ internal static class Security {
     /// Security validation: Check if file path is within allowed workspace areas.
     /// Prevents access to sensitive system files while allowing game asset processing.
     /// </summary>
-    internal static bool IsAllowedPath(string path) {
+    public static bool IsAllowedPath(string path) {
         if (string.IsNullOrWhiteSpace(path)) {
             //Core.Diagnostics.Trace("[Security.cs::IsAllowedPath()] Denying access to empty or whitespace path");
             return false;

@@ -34,8 +34,8 @@ public sealed class CommandBuilder() {
         }
 
         // Build execution context via centralized builder
-        ExecutionContextBuilder ctxBuilder = new ExecutionContextBuilder();
-        Dictionary<string, object?> ctx = ctxBuilder.Build(
+        //ExecutionContextBuilder ctxBuilder = new ExecutionContextBuilder();
+        Dictionary<string, object?> ctx = Core.Utils.ExecutionContextBuilder.Build(
             currentGame: currentGame,
             games: games,
             engineConfig: engineConfig

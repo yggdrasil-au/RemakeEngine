@@ -102,7 +102,7 @@ internal partial class CLI {
     /// </summary>
     /// <param name="args"></param>
     /// <returns></returns>
-    internal static bool IsInlineOperationInvocation(string[] args) {
+    public static bool IsInlineOperationInvocation(string[] args) {
         bool sawGame = false;
         bool sawScript = false;
 
@@ -161,7 +161,7 @@ internal partial class CLI {
         /// <param name="args"></param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentException"></exception>
-        internal static InlineOperationOptions Parse(string[] args) {
+        public static InlineOperationOptions Parse(string[] args) {
             InlineOperationOptions options = new InlineOperationOptions();
 
             for (int index = 0; index < args.Length; index++) {

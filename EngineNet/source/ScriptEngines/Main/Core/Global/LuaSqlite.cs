@@ -8,8 +8,8 @@ namespace EngineNet.ScriptEngines.Lua.Global;
 /// SQLite database functionality for Lua scripts.
 /// Provides secure database access with path validation.
 /// </summary>
-internal static class Sqlite {
-    internal static Table CreateSqliteModule(LuaWorld LuaEnvObj) {
+public static class Sqlite {
+    public static Table CreateSqliteModule(LuaWorld LuaEnvObj) {
 
         LuaEnvObj.SqliteModule["open"] = DynValue.NewCallback((ctx, args) => {
             if (args.Count < 1 || args[0].Type != DataType.String) {

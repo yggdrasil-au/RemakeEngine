@@ -1,13 +1,9 @@
-using System.Collections.Generic;
-using System.Text.Json;
-using EngineNet.Core;
-using EngineNet.Core.Serialization;
 
 namespace EngineNet.Core.Serialization.Json;
 
 public sealed class JsonHelpers {
 
-    internal static Dictionary<string, object?> LoadJsonFile(string filePath) {
+    public static Dictionary<string, object?> LoadJsonFile(string filePath) {
         try {
             if (System.IO.File.Exists(filePath)) {
                 using System.IO.FileStream fs = System.IO.File.OpenRead(filePath);

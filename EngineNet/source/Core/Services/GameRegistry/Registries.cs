@@ -7,14 +7,14 @@ using EngineNet.Core.Serialization.Json;
 
 namespace EngineNet.Core.Utils;
 
-internal sealed partial class Registries {
-    internal void RefreshModules() => _modules = Core.Serialization.Json.JsonHelpers.LoadJsonFile(_modulesRegistryPath);
+public sealed partial class Registries {
+    public void RefreshModules() => _modules = Core.Serialization.Json.JsonHelpers.LoadJsonFile(_modulesRegistryPath);
 
-    internal IReadOnlyDictionary<string, object?> GetRegisteredModules() {
+    public IReadOnlyDictionary<string, object?> GetRegisteredModules() {
         return _modules.TryGetValue("modules", out object? m) && m is Dictionary<string, object?> dict ? dict : new Dictionary<string, object?>();
     }
 
-    internal Dictionary<string, GameInfo> DiscoverGames() {
+    public Dictionary<string, GameInfo> DiscoverGames() {
         Dictionary<string, GameInfo> games = new Dictionary<string, GameInfo>(System.StringComparer.OrdinalIgnoreCase);
         if (!System.IO.Directory.Exists(_gamesRegistryPath)) {
             return games;
@@ -43,7 +43,7 @@ internal sealed partial class Registries {
         return games;
     }
 
-    internal Dictionary<string, GameInfo> DiscoverBuiltGames() {
+    public Dictionary<string, GameInfo> DiscoverBuiltGames() {
         Dictionary<string, GameInfo> games = new Dictionary<string, GameInfo>(System.StringComparer.OrdinalIgnoreCase);
         if (!System.IO.Directory.Exists(_gamesRegistryPath)) {
             return games;

@@ -5,7 +5,7 @@ using Avalonia.Interactivity;
 
 namespace EngineNet.Interface.GUI;
 
-internal static class PromptHelpers {
+public static class PromptHelpers {
     private static Window? TryGetMainWindow() {
         if (global::Avalonia.Application.Current?.ApplicationLifetime is global::Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime l) {
             return l.MainWindow;
@@ -14,14 +14,14 @@ internal static class PromptHelpers {
         return null;
     }
 
-    internal static async System.Threading.Tasks.Task<string?> TextAsync(string title, string message, string? defaultValue = null, bool secret = false) {
+    public static async System.Threading.Tasks.Task<string?> TextAsync(string title, string message, string? defaultValue = null, bool secret = false) {
         Window? window = TryGetMainWindow();
         if (window is null) return null;
         Pages.PromptWindows.TextPromptWindow? dlg = new Pages.PromptWindows.TextPromptWindow(title, message, defaultValue, secret);
         return await dlg.ShowAsync(window);
     }
 
-    internal static async System.Threading.Tasks.Task<bool> ConfirmAsync(string title, string message, bool defaultValue = false) {
+    public static async System.Threading.Tasks.Task<bool> ConfirmAsync(string title, string message, bool defaultValue = false) {
         Window? window = TryGetMainWindow();
         if (window is null) return defaultValue;
         Pages.PromptWindows.ConfirmWindow? dlg = new Pages.PromptWindows.ConfirmWindow(title, message);
@@ -29,7 +29,7 @@ internal static class PromptHelpers {
         return result;
     }
 
-    internal static async System.Threading.Tasks.Task<(bool Result, bool DontAskAgain)> ConfirmWithOptOutAsync(string title, string message, bool defaultValue = false) {
+    public static async System.Threading.Tasks.Task<(bool Result, bool DontAskAgain)> ConfirmWithOptOutAsync(string title, string message, bool defaultValue = false) {
         Window? window = TryGetMainWindow();
         if (window is null) return (defaultValue, false);
         Pages.PromptWindows.ConfirmWindow dlg = new Pages.PromptWindows.ConfirmWindow(title, message);

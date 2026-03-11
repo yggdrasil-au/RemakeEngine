@@ -1,23 +1,31 @@
+
+
+using EngineNet.Core.Serialization.Toml;
+
 namespace EngineNet.Core.Utils;
 
-using System.Collections.Generic;
-using EngineNet.Core.Serialization.Toml;
 
 /// <summary>
 /// Builds the placeholder/variable context used by command building and embedded actions,
 /// including module placeholders merged from config.toml.
 /// </summary>
-public sealed class ExecutionContextBuilder {
+public static class ExecutionContextBuilder {
 
-
-    internal ExecutionContextBuilder() {
-        //
-    }
-
-    internal Dictionary<string, object?> Build(
+    /// <summary>
+    /// Builds the execution context for a given game, merging engine config and module-specific placeholders.
+    /// The resulting dictionary is used for resolving placeholders in commands and operations.
+    /// </summary>
+    /// <param name="currentGame">The canonical game/module id currently selected; must be a key in <paramref name="games"/>.</param>
+    /// <param name="games">Map of games with metadata; must contain <paramref name="currentGame"/>.</param>
+    /// <param name="engineConfig">Engine configuration dictionary exposed to placeholder resolution; values are copied into the context with case-insensitive keys.</param>
+    /// <returns>A dictionary representing the execution context for the specified game, including merged placeholders from config.toml.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="currentGame"/> is empty.</exception>
+    /// <exception cref="KeyNotFoundException">Thrown when the game specified by <paramref name="currentGame"/> is not found in <paramref name="games"/>.</exception>
+    public static Dictionary<string, object?> Build(
         string currentGame,
         Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
-        IDictionary<string, object?> engineConfig) {
+        IDictionary<string, object?> engineConfig
+    ) {
         if (string.IsNullOrWhiteSpace(currentGame)) {
             throw new System.ArgumentException(message: "No game has been loaded.", paramName: nameof(currentGame));
         }
@@ -55,7 +63,10 @@ public sealed class ExecutionContextBuilder {
                     }
                 }
             }
-        } catch { /* ignore bad/missing toml */ }
+        } catch {
+            Core.Diagnostics.Bug($"[ExecutionContextBuilder] err reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Combine(gdict.GameRoot, "config.toml")}'.");
+            /* ignore bad/missing toml */
+        }
 
         return ctx;
     }

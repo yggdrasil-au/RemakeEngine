@@ -10,12 +10,12 @@ public sealed class ToolMetadataProvider {
     private readonly string _projectRoot;
     private readonly IToolResolver _resolver;
 
-    internal ToolMetadataProvider(string projectRoot, IToolResolver resolver) {
+    public ToolMetadataProvider(string projectRoot, IToolResolver resolver) {
         _projectRoot = projectRoot;
         _resolver = resolver;
     }
 
-    internal (string? exe, string? version) ResolveExeAndVersion(string toolId) {
+    public (string? exe, string? version) ResolveExeAndVersion(string toolId) {
         string jsonPath = ToolLockfile.GetPath(_projectRoot);
 
         if (System.IO.File.Exists(jsonPath)) {

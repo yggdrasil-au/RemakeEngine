@@ -15,6 +15,12 @@ public static class TomlHelpers {
     public static object ParseFileToPlainObject(string path) {
         string text = System.IO.File.Exists(path) ? System.IO.File.ReadAllText(path) : string.Empty;
         var model = Tomlyn.Toml.ToModel(text ?? string.Empty);
+
+        // Convert the Tomlyn model (TomlTable/TomlArray) into standard .NET types
+        // (Dictionary<string, object?> and List<object?>).
+        // While TomlTable implements IDictionary, returning the raw model causes type-check
+        // failures in core engine components like OperationsLoader.cs and Lua script engines
+        // which expect standard .NET collections for recursive iteration and duck-typing.
         return ConvertTomlToPlain(model);
     }
 

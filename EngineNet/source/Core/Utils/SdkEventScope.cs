@@ -11,7 +11,7 @@ public sealed class SdkEventScope:System.IDisposable {
     private readonly bool _prevMute;
     private readonly Dictionary<string, string> _prevAuto;
 
-    internal SdkEventScope(
+    public SdkEventScope(
         System.Action<Dictionary<string, object?>>? sink,
         bool muteStdout,
         IDictionary<string, string>? autoPromptResponses) {

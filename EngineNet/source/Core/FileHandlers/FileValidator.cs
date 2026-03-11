@@ -3,18 +3,18 @@ using System.Collections.Generic;
 
 namespace EngineNet.Core.FileHandlers;
 
-internal static class FileValidator {
+public static class FileValidator {
     private sealed class Options {
-        internal string DbPath = string.Empty;
-        internal string BaseFolder = string.Empty;
-        internal string? TablesSpec;
-        internal string? RequiredDirsSpec;
-        internal bool SkipRequiredDirs;
-        internal bool Debug;
+        public string DbPath = string.Empty;
+        public string BaseFolder = string.Empty;
+        public string? TablesSpec;
+        public string? RequiredDirsSpec;
+        public bool SkipRequiredDirs;
+        public bool Debug;
     }
 
     private sealed class RequiredDirGroup {
-        internal RequiredDirGroup(IReadOnlyList<string> options) {
+        public RequiredDirGroup(IReadOnlyList<string> options) {
             if (options is null || options.Count == 0) {
                 throw new System.ArgumentException("Required directory options cannot be empty.");
             }
@@ -22,7 +22,7 @@ internal static class FileValidator {
             Options = options;
         }
 
-        internal IReadOnlyList<string> Options {
+        public IReadOnlyList<string> Options {
             get;
         }
     }
@@ -33,7 +33,7 @@ internal static class FileValidator {
     /// </summary>
     /// <param name="args">CLI-style args: DB_PATH BASE_DIR [--tables spec] [--required-dirs dir1,dir2] [--no-required-dirs-check] [--debug]</param>
     /// <returns>True if all required files exist (or no rows to check); false otherwise.</returns>
-    internal static bool Run(IList<string> args) {
+    public static bool Run(IList<string> args) {
         try {
             Options options = Parse(args);
             options.DbPath = System.IO.Path.GetFullPath(options.DbPath);

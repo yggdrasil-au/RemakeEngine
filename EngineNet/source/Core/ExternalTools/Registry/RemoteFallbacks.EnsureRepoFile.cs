@@ -1,6 +1,6 @@
 namespace EngineNet.Core.ExternalTools;
 
-internal static class RemoteFallbacks {
+public static class RemoteFallbacks {
     private const string RepoOwner = "yggdrasil-au";
     private const string RepoName = "RemakeEngine";
     private static readonly string[] BranchCandidates = new[] { "main", "master" };

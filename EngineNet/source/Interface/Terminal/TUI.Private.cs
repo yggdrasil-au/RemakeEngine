@@ -6,7 +6,7 @@ using System.Diagnostics;
 
 namespace EngineNet.Interface.Terminal;
 
-internal partial class TUI {
+public partial class TUI {
 
     /// <summary>
     /// Formats elapsed time for completion summaries.

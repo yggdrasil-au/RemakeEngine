@@ -116,7 +116,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     /// <summary>
     /// Clear output and start a new operation.
     /// </summary>
-    internal void StartOperation(string operationName, string gameName) {
+    public void StartOperation(string operationName, string gameName) {
         global::Avalonia.Threading.Dispatcher.UIThread.Post(() => {
             Lines.Clear();
             ResetProgressPanelTracking();
@@ -147,7 +147,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     /// <summary>
     /// Add a raw output line (buffered + throttled for UI responsiveness).
     /// </summary>
-    internal void AddOutput(string text, string stream = "stdout") {
+    public void AddOutput(string text, string stream = "stdout") {
         OutputLine line = new OutputLine {
             Timestamp = System.DateTime.Now,
             Text = text,
@@ -278,7 +278,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     /// <summary>
     /// Handle a structured event from the engine.
     /// </summary>
-    internal void HandleEvent(Dictionary<string, object?> evt) {
+    public void HandleEvent(Dictionary<string, object?> evt) {
         if (!evt.TryGetValue("event", out object? evtTypeObj)) {
             return;
         }
@@ -804,7 +804,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     /// <summary>
     /// Clear all output.
     /// </summary>
-    internal void Clear() {
+    public void Clear() {
         global::Avalonia.Threading.Dispatcher.UIThread.Post(() => {
             Lines.Clear();
             ActiveJobs.Clear();
@@ -823,7 +823,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     /// <summary>
     /// Clear all output.
     /// </summary>
-    internal async System.Threading.Tasks.Task ClearAsync() {
+    public async System.Threading.Tasks.Task ClearAsync() {
         await global::Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => {
             Lines.Clear();
             ActiveJobs.Clear();
@@ -950,14 +950,14 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     }
 
     private sealed record ProgressPanelModel {
-        internal required string Label { get; init; }
-        internal required string Spinner { get; init; }
-        internal required double Percent { get; init; }
-        internal required string ProgressLine { get; init; }
-        internal required string ActiveSummary { get; init; }
-        internal required int ActiveTotal { get; init; }
-        internal required List<ProgressJobSnapshot> Jobs { get; init; }
-        internal required List<string> Lines { get; init; }
+        public required string Label { get; init; }
+        public required string Spinner { get; init; }
+        public required double Percent { get; init; }
+        public required string ProgressLine { get; init; }
+        public required string ActiveSummary { get; init; }
+        public required int ActiveTotal { get; init; }
+        public required List<ProgressJobSnapshot> Jobs { get; init; }
+        public required List<string> Lines { get; init; }
     }
 
     private readonly record struct ProgressJobSnapshot(string Tool, string File, string Elapsed);

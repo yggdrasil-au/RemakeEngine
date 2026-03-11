@@ -6,13 +6,13 @@ using EngineNet.Core.Serialization.Json;
 
 namespace EngineNet.Core.Utils;
 
-internal sealed partial class Registries {
+public sealed partial class Registries {
     private readonly string _gamesRegistryPath;
     private readonly string _modulesRegistryPath;
 
     private Dictionary<string, object?> _modules = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
 
-    internal Registries() {
+    public Registries() {
 
         string Module_registry = System.IO.Path.Combine("EngineApps", "Registries", "Modules", "Main.json");
 

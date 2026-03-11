@@ -4,11 +4,11 @@ namespace EngineNet.Core.FileHandlers;
 
 public static partial class FolderRenamer {
     private sealed class Options {
-        internal string TargetDirectory = string.Empty;
-        internal string? MapDbFile;
-        internal string DbTableName = "rename_mappings";
-        internal List<(string OldName, string NewName)> CliMappings { get; } = new();
-        internal string? JsonFile;
+        public string TargetDirectory = string.Empty;
+        public string? MapDbFile;
+        public string DbTableName = "rename_mappings";
+        public List<(string OldName, string NewName)> CliMappings { get; } = new();
+        public string? JsonFile;
     }
 
     private static Options Parse(IList<string> args) {

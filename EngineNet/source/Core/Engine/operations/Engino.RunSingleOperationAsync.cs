@@ -64,8 +64,8 @@ public sealed class Engino {
                 case "bms": {
                     try {
                         // Build context and resolve input/output/extension placeholders
-                        Core.Utils.ExecutionContextBuilder ctxBuilder = new Core.Utils.ExecutionContextBuilder();
-                        Dictionary<string, object?> ctx = ctxBuilder.Build(currentGame: currentGame, games: games, engineConfig: EngineConfig.Data);
+                        //Core.Utils.ExecutionContextBuilder ctxBuilder = new Core.Utils.ExecutionContextBuilder();
+                        Dictionary<string, object?> ctx = Core.Utils.ExecutionContextBuilder.Build(currentGame: currentGame, games: games, engineConfig: EngineConfig.Data);
 
                         string inputDir = op.TryGetValue("input", out object? in0) ? in0?.ToString() ?? string.Empty : string.Empty;
                         string outputDir = op.TryGetValue("output", out object? out0) ? out0?.ToString() ?? string.Empty : string.Empty;
@@ -74,7 +74,7 @@ public sealed class Engino {
                         string resolvedOutput = Core.Utils.Placeholders.Resolve(outputDir, ctx)?.ToString() ?? outputDir;
                         string? resolvedExt = extension is null ? null : Core.Utils.Placeholders.Resolve(extension, ctx)?.ToString() ?? extension;
 
-                        if (!games.TryGetValue(currentGame, out EngineNet.Core.Utils.GameModuleInfo? gobjBms)) {
+                        if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobjBms)) {
                             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                         }
                         string gameRootBms = gobjBms.GameRoot;

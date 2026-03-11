@@ -5,8 +5,8 @@ namespace EngineNet.ScriptEngines.Helpers;
 /// Resolves embedded actions (lua/js/bms) to IAction implementations.
 /// this should be the only way to call any embedded script action
 /// </summary>
-internal static class EmbeddedActionDispatcher {
-    internal static ScriptEngines.Helpers.IAction? TryCreate(
+public static class EmbeddedActionDispatcher {
+    public static ScriptEngines.Helpers.IAction? TryCreate(
         string scriptType,
         string scriptPath,
         IEnumerable<string> args,

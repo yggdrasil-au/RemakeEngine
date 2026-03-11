@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace EngineNet.Core.Utils;
 
-internal static class ScriptConstants {
+public static class ScriptConstants {
     // direct C# execution of specific methods accessable to any module
     public const string TypeEngine   = "engine";
 
@@ -27,7 +27,7 @@ internal static class ScriptConstants {
     /// <summary>
     /// Checks if the script type is one of the embedded languages (Lua, JS, Python).
     /// </summary>
-    internal static bool IsEmbedded(string? script_type) {
+    public static bool IsEmbedded(string? script_type) {
         return !string.IsNullOrWhiteSpace(script_type) && _embeddedTypes.Contains(script_type);
     }
 
@@ -44,7 +44,7 @@ internal static class ScriptConstants {
     /// <summary>
     /// Checks if the provided script type string is a valid, supported type.
     /// </summary>
-    internal static bool IsSupported(string? script_type) {
+    public static bool IsSupported(string? script_type) {
         return !string.IsNullOrWhiteSpace(script_type) && _supportedTypes.Contains(script_type);
     }
 }

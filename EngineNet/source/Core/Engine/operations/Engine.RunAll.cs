@@ -260,7 +260,7 @@ public sealed partial class Engine {
     /// </summary>
     private sealed class StdinRedirectReader:System.IO.TextReader {
         private readonly Core.ProcessRunner.StdinProvider _provider;
-        internal StdinRedirectReader(Core.ProcessRunner.StdinProvider provider) => _provider = provider;
+        public StdinRedirectReader(Core.ProcessRunner.StdinProvider provider) => _provider = provider;
         public override string? ReadLine() => _provider();
     }
 

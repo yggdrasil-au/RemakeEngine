@@ -11,20 +11,20 @@ public sealed partial class Engine {
     /* :: :: Vars :: Start :: */
 
     // Services exposed to partial classes
-    internal Core.Abstractions.IGameRegistry GameRegistry { get; }
-    internal Core.Abstractions.IGameLauncher GameLauncher { get; }
-    internal Core.Abstractions.IOperationsLoader OperationsLoader { get; }
-    internal Core.Services.OperationsService OperationsService { get; }
-    internal Core.Services.GitService GitService { get; }
-    internal Core.Abstractions.ICommandService CommandService { get; }
-    internal Core.ExternalTools.IToolResolver ToolResolver { get; }
-    internal Core.EngineConfig EngineConfig { get; }
-    internal Core.Engine.OperationExecution OperationExecution { get; }
-    internal Core.Engine.Engino Engino { get; }
+    public Core.Abstractions.IGameRegistry GameRegistry { get; }
+    public Core.Abstractions.IGameLauncher GameLauncher { get; }
+    public Core.Abstractions.IOperationsLoader OperationsLoader { get; }
+    public Core.Services.OperationsService OperationsService { get; }
+    public Core.Services.GitService GitService { get; }
+    public Core.Abstractions.ICommandService CommandService { get; }
+    public Core.ExternalTools.IToolResolver ToolResolver { get; }
+    public Core.EngineConfig EngineConfig { get; }
+    public Core.Engine.OperationExecution OperationExecution { get; }
+    public Core.Engine.Engino Engino { get; }
 
     /* :: :: Vars :: End :: */
 
-    internal Engine(
+    public Engine(
         Core.Abstractions.IGameRegistry gameRegistry,
         Core.Abstractions.IGameLauncher gameLauncher,
         Core.Abstractions.IOperationsLoader operationsLoader,
@@ -53,17 +53,17 @@ public sealed partial class Engine {
     /* :: :: */
 
     // Downloads a game module via Git
-    internal bool DownloadModule(string url) {
+    public bool DownloadModule(string url) {
         return GitService.CloneModule(url);
     }
 
     // Builds a command from operation and context
-    internal List<string> BuildCommand(string currentGame, Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers) {
+    public List<string> BuildCommand(string currentGame, Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers) {
         return CommandService.BuildCommand(currentGame, games, EngineConfig.Data, op, promptAnswers);
     }
 
     // Executes a command via ProcessRunner
-    internal bool ExecuteCommand(IList<string> commandParts, string title, EngineNet.Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, IDictionary<string, object?>? envOverrides = null, CancellationToken cancellationToken = default) {
+    public bool ExecuteCommand(IList<string> commandParts, string title, EngineNet.Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, IDictionary<string, object?>? envOverrides = null, CancellationToken cancellationToken = default) {
         return CommandService.ExecuteCommand(commandParts, title, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, envOverrides: envOverrides, cancellationToken: cancellationToken);
     }
 
@@ -74,17 +74,17 @@ public sealed partial class Engine {
     /// </summary>
     /// <param name="_Filter"></param>
     /// <returns></returns>
-    internal Dictionary<string, Core.Utils.GameModuleInfo> Modules(Core.Utils.ModuleFilter _Filter) {
+    public Dictionary<string, Core.Utils.GameModuleInfo> Modules(Core.Utils.ModuleFilter _Filter) {
         return GameRegistry.GetModules(_Filter);
     }
 
     // Discovers built games from registries
-    internal Dictionary<string, Core.Utils.GameInfo> DiscoverBuiltGames() {
+    public Dictionary<string, Core.Utils.GameInfo> DiscoverBuiltGames() {
         return GameRegistry.GetBuiltGames();
     }
 
     // Gets the executable path for a built game
-    internal string? GetGameExecutable(string name) {
+    public string? GetGameExecutable(string name) {
         return GameRegistry.GetGameExecutable(name);
     }
 
@@ -97,14 +97,14 @@ public sealed partial class Engine {
     /// </summary>
     /// <param name="opsFile"></param>
     /// <returns></returns>
-    internal List<Dictionary<string, object?>>? LoadOperationsList(string opsFile) {
+    public List<Dictionary<string, object?>>? LoadOperationsList(string opsFile) {
         return OperationsLoader.LoadOperations(opsFile);
     }
 
     /// <summary>
     /// Gets the root path for a game by name
     /// </summary>
-    internal string? GetGamePath(string name) {
+    public string? GetGamePath(string name) {
         return GameRegistry.GetGamePath(name);
     }
 

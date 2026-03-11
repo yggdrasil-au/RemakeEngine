@@ -8,7 +8,7 @@ namespace EngineNet.Interface.GUI;
 /// Provides helpers for running engine operations while piping output into the shared
 /// <see cref="OperationOutputService"/> and surfacing SDK prompts through the GUI.
 /// </summary>
-internal static class Utils {
+public static class Utils {
 
     /// <summary>
     /// Executes an engine operation while routing output, events, and prompts to the GUI services.
@@ -19,7 +19,7 @@ internal static class Utils {
     /// <param name="operationName">Friendly operation name displayed to the user.</param>
     /// <param name="executor">Callback that runs the actual engine work.</param>
     /// <param name="autoPromptResponses">Optional automatic prompt answers.</param>
-    internal static async Task<TResult> ExecuteEngineOperationAsync<TResult>(
+    public static async Task<TResult> ExecuteEngineOperationAsync<TResult>(
         Core.Engine.Engine engine,
         string moduleName,
         string operationName,

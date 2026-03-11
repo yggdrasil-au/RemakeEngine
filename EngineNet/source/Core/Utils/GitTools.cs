@@ -14,7 +14,7 @@ public sealed class GitTools() {
     /* :: :: Constructor, Var :: END :: */
     //
     /* :: :: Methods ::  :: */
-    internal bool CloneModule(string url) {
+    public bool CloneModule(string url) {
         if (string.IsNullOrWhiteSpace(url)) {
             return false;
         }

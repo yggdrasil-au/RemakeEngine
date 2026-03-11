@@ -10,7 +10,7 @@ namespace EngineNet.Interface.Terminal;
 /// <summary>
 /// Utility methods for CLI/TUI handling, can also be used by GUI if needed
 /// </summary>
-internal class Utils() {
+public class Utils() {
 
     private static readonly System.Text.Json.JsonSerializerOptions s_jsonOpts = new() {
         WriteIndented = false,
@@ -34,7 +34,7 @@ internal class Utils() {
     /// <param name="answers"></param>
     /// <param name="autoPromptResponses"></param>
     /// <returns></returns>
-    internal async System.Threading.Tasks.Task<bool> ExecuteOpAsync(
+    public async System.Threading.Tasks.Task<bool> ExecuteOpAsync(
         Core.Engine.Engine _engine,
         string game,
         Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
@@ -162,7 +162,7 @@ internal class Utils() {
         return TuiRenderer.ReadLineCustom("Input >", false);
     }
 
-    internal static void OnOutput(string line, string stream) {
+    public static void OnOutput(string line, string stream) {
         OnEvent(new Dictionary<string, object?> {
             ["event"] = "print",
             ["message"] = line,
@@ -172,7 +172,7 @@ internal class Utils() {
 
     // --- Handlers to bridge SDK events <-> CLI ---
 
-    internal static void OnEvent(Dictionary<string, object?> evt) {
+    public static void OnEvent(Dictionary<string, object?> evt) {
         // TuiRenderer handles locking internally
         LogEvent(evt);
         if (!evt.TryGetValue("event", out object? typObj)) return;

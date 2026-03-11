@@ -8,13 +8,13 @@ namespace EngineNet.Interface.GUI;
 /// Persists the host application's engine object long enough to
 /// construct view models and start the UI loop.
 /// </summary>
-internal static class AvaloniaGui {
+public static class AvaloniaGui {
     /// <summary>
     /// Engine instance provided by the host application at startup.
     /// Stored temporarily so the App (and its view models) can access it
     /// during initialization.
     /// </summary>
-    internal static Core.Engine.Engine Engine {
+    public static Core.Engine.Engine Engine {
         get; private set;
     } = init(); // Initialized in Run()
 
@@ -28,7 +28,7 @@ internal static class AvaloniaGui {
     /// <returns>
     /// 0 on normal shutdown; 1 if an exception is caught during startup/run.
     /// </returns>
-    internal static int Run(Core.Engine.Engine engine) {
+    public static int Run(Core.Engine.Engine engine) {
         try {
             // 1) Stash the engine so App.OnFrameworkInitializationCompleted (or similar)
             //    can pull it to compose view models.
@@ -97,7 +97,7 @@ internal static class AvaloniaGui {
     /// Uses platform detection for the current OS and routes Avalonia logs to trace.
     /// Customize here to add DI, theming, or platform-specific options.
     /// </remarks>
-    internal static AppBuilder BuildAvaloniaApp() {
+    public static AppBuilder BuildAvaloniaApp() {
         // Configure the application type, detect platform backends, and enable tracing.
         // takes the app.axaml.cs 'App' class as the application root.
         return AppBuilder.Configure<App>().UsePlatformDetect().LogToTrace();

@@ -8,7 +8,7 @@ namespace EngineNet.Core.Utils;
 /// Utilities to resolve string placeholders within arbitrarily nested objects.
 /// Placeholders use double braces, e.g. {{key}} or {{nested.path}}.
 /// </summary>
-internal static class Placeholders {
+public static class Placeholders {
     /// <summary>
     /// Compiled regex that finds placeholders in the form {{name}} or {{path.to.value}}.
     /// </summary>
@@ -31,7 +31,7 @@ internal static class Placeholders {
     /// - Strings have {{path}} segments replaced when found in the context.
     /// - Non-collection, non-string values are returned as-is.
     /// </returns>
-    internal static object? Resolve(object? value, IDictionary<string, object?> context) {
+    public static object? Resolve(object? value, IDictionary<string, object?> context) {
         // Nulls are returned unchanged.
         if (value is null) {
             return null;

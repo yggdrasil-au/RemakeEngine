@@ -52,7 +52,7 @@ public sealed class ModuleScanner {
 
     private readonly Registries _registries;
 
-    internal ModuleScanner(Registries registries) {
+    public ModuleScanner(Registries registries) {
         _registries = registries;
     }
 
@@ -73,7 +73,7 @@ public sealed class ModuleScanner {
     /// Why not just always return Dictionary? Because sometimes you might only care
     /// about iteration or serialization and don't want the name->info map.
     /// </summary>
-    internal Dictionary<string, GameModuleInfo> Modules(ModuleFilter filter) {
+    public Dictionary<string, GameModuleInfo> Modules(ModuleFilter filter) {
         Core.Diagnostics.Trace($"[Core :: ModuleScanner.cs::Modules()] Scanning modules with filter {filter}");
         Dictionary<string, GameModuleInfo> all = ScanAllModules();
         IEnumerable<GameModuleInfo> filtered = FilterModules(all.Values, filter);
@@ -117,7 +117,7 @@ public sealed class ModuleScanner {
     ///
     /// No extra allocations unless you want them.
     /// </summary>
-    internal T Modules<T>(ModuleFilter filter, Func<IEnumerable<GameModuleInfo>, T> selector) {
+    public T Modules<T>(ModuleFilter filter, Func<IEnumerable<GameModuleInfo>, T> selector) {
         if (selector == null){
             throw new ArgumentNullException(nameof(selector));
         }
@@ -241,14 +241,14 @@ public sealed class ModuleScanner {
 
 
         // 5. Scan Internal operations in EngineApps/Registries/ops/
-        // internal ops are not game modules and should be handled separately?
+        // public ops are not game modules and should be handled separately?
         ScanInternalOperations(result);
 
         return result;
     }
 
     /// <summary>
-    /// scans for the internal operations
+    /// scans for the public operations
     /// </summary>
     /// <param name="result"></param>
     private void ScanInternalOperations(Dictionary<string, GameModuleInfo> result) {
@@ -274,11 +274,11 @@ public sealed class ModuleScanner {
                         Url = string.Empty
                     };
                     result[name] = info;
-                    Core.Diagnostics.Trace($"[ModuleScanner.cs::ScanInternalOperations()] Found internal module: {name}");
+                    Core.Diagnostics.Trace($"[ModuleScanner.cs::ScanInternalOperations()] Found public module: {name}");
                 }
             }
         } catch (Exception ex) {
-            Core.Diagnostics.Bug($"[ModuleScanner.cs] Error scanning internal ops: {ex.Message}");
+            Core.Diagnostics.Bug($"[ModuleScanner.cs] Error scanning public ops: {ex.Message}");
         }
     }
 
