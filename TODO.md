@@ -1,51 +1,152 @@
 # Engine TODO List
 
+## Engine
 
+### Operations
 
-## Engine:
-### Operations:
+* :: FEATURE :: Add **parallel execution support** for operations based on declared dependencies.
 
-* :: FEATURE :: add parallel execution support for operations, based on operation dependencies
-eg
-these three operations can run in parallel after extract archives is complete, as the audio and video conversions have no requirements or dependencies on any previous operations including extract archives as they are not stored in archives
-> -- Convert Models (.preinstanced -> .blend)
-> -- Convert Videos (.vp6 -> .ogv)
-> -- Convert Audio (.snu -> .wav)
-blender convert is dependent on extract and txd operations completing first, txd is also dependent on extract completing first
-the audio and video conversions can run in parallel with eachother but must occur after normalisation etc
-*  this requires modules add operation ID's to the operation config to uniquely identify each operation,
-*  ensure detection of invalid operations toml/json and if invalid for 'id's dont enable dependency/id bound features
+Example workflow:
 
+After **Extract Archives** completes, the following operations can run **in parallel** because they have no dependencies on each other:
 
+> -- Convert Models (.preinstanced → .blend)
+> -- Convert Videos (.vp6 → .ogv)
+> -- Convert Audio (.snu → .wav)
 
-some features may require elevated privleges to run, like symlinks on windows, consider adding an option to launch a script with elevated privileges if the operation requires it, or at least add support for operation flag to request elevated privileges and display a warning if the engine is not running with them, this would be useful for operations that require admin rights to run successfully like symlink creation on windows.
+Additional dependency rules:
 
-### CLI
-currently the cli bypasses the Operations.toml file by requiring the user to manually define all values that may already exist in the toml this is helpfull when a script or tool is not defined yet in the operations file or is needed as a one-off run but its unhelpfull when the user wants to run exactly whats defined in the op file and can result in inconsisstentcy as they may not rewrite in in cli format correctly:
-:: FEATURE :: add support for running an operation directly from a module based on name and or id number, when duplicates are found prompt user to select option from list,
-standard cli command example
+* **Blender conversion** depends on both **Extract Archives** and **TXD extraction** completing.
+* **TXD extraction** depends on **Extract Archives** completing.
+* **Audio** and **Video** conversions can run in parallel with each other, but must occur **after normalisation** or other required preprocessing operations.
+
+Implementation requirements:
+
+* Modules must define **unique operation IDs** in the operations config (`Operations.toml` / JSON).
+* The engine should validate operation definitions and detect:
+
+  * missing IDs
+  * duplicate IDs
+  * invalid dependency references
+* If operation IDs are invalid or missing, **disable dependency-based execution features** to prevent incorrect scheduling.
+
+---
+
+Some operations may require **elevated privileges** (for example, creating symlinks on Windows).
+
+* :: FEATURE :: Add support for **operations requesting elevated privileges**.
+
+Possible behaviour:
+
+* Operations can include a flag such as:
+
+```
+requires_elevation = true
+```
+
+* If the engine is not running with administrator privileges:
+
+  * display a **clear warning**
+  * optionally offer to **restart or launch a helper script with elevation**
+
+This would allow operations requiring administrator permissions (such as **symlink creation on Windows**) to run successfully.
+
+---
+
+## CLI
+
+Currently the CLI **bypasses `Operations.toml`**, requiring the user to manually specify parameters that may already exist in the operations file.
+
+While this is useful for **one-off executions** or tools that are not yet defined in the operations file, it creates problems when the user wants to run **exactly what is defined in the configuration**, and can lead to inconsistencies if parameters are incorrectly re-entered.
+
+* :: FEATURE :: Add support for **executing operations defined in a module directly by name or ID**.
+
+Example current command:
+
+```
 dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua" --args '"--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo"' --note "extended_demo_run"
-proposed cli command example
+```
+
+Proposed simplified command (by name):
+
+```
 dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo" --run_op "Lua Feature Showcase"
-or id
+```
+
+Proposed simplified command (by ID):
+
+```
 dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo" --run_op 1
-additionally consider allowing simple module resolution by name
+```
+
+If **duplicate operation names** are found, prompt the user to select from a list.
+
+Additional improvement:
+
+* Allow **simple module resolution by name** instead of requiring the full path.
+
+Example:
+
+```
 dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module "demo" --run_op 1
+```
 
+---
 
-### FileHandlers:
+## FileHandlers
 
-TxdExtractor:
-* :: ISSUE :: the extraction script needs to be updated to correctly write dds header data, some don't have the file size written correctly
-* :: FEATURE :: add support for exporting to png format directly from dds files to not require an external tool to convert dds to png, options being to use some kind of C# lib or an external tool like ImageMagick, as its already in the engines registry for modules that need it, this would require adding an ability for the engine to download its own dependencies for its own use, not just for modules possible using a engine tools.toml file internally alongside the preposed internal operations.toml file for the module downloader menu?
+### TxdExtractor
 
+* :: ISSUE :: The extraction script must be updated to **correctly write DDS header data**.
 
+Current problem:
 
+* Many extracted DDS files contain **incorrect file size values in the header**, making them unusable in most software.
+* Some tools can still convert them, but this is only a **workaround for a broken extractor**.
 
-### Tools:
+The extractor should generate **fully valid DDS files**.
 
-issue: when running bms script in TSG for str extraction the entire gui freezes until the operation is complete
+---
+
+* :: FEATURE :: Add support for **exporting PNG directly from DDS** to avoid requiring external conversion tools.
+
+Possible approaches:
+
+Option 1 — Use a **C# image processing library**.
+
+Option 2 — Use an **external tool** such as ImageMagick (already registered in the engine tool registry).
+
+This would require:
+
+* Adding support for the engine to **download dependencies for its own internal use**, not just for modules.
+* Possibly introducing an internal configuration file such as:
+
+```
+Engine/tools.toml
+```
+
+alongside the proposed internal `operations.toml` used by the module downloader.
+
+Preferred solution:
+
+Because **TxdExtractor is internal C# code**, a faster and cleaner approach would be to add a NuGet dependency such as:
+
+```
+SixLabors.ImageSharp
+```
+
+to `EngineNet.csproj`.
+
+This would allow **pure C# in-memory conversion from DDS pixel data to PNG**, avoiding the overhead of invoking an external tool like ImageMagick.
+
+---
 
 * :: ISSUE ::
-the ffmpeg tool for windows must be the Btbn builds, the gyan builds dont work for the specific video conversions needed for VP6 to OGV conversion in TheSimpsonsGame-PS3 module
-ffmpeg 8.0 version currently uses the 'latest build' resulting in the hash check to fail as the latest build of 8.0 has a different hash than the previous
+
+For Windows builds of **ffmpeg**, the engine must use the **Btbn builds**.
+
+The **gyan builds** do not work correctly for the **VP6 → OGV conversion** required by the *The Simpsons Game (PS3)* module.
+
+Additional problem:
+
+* The **ffmpeg 8.0 tool definition currently uses "latest build"**, which causes hash verification to fail when the upstream build changes.
