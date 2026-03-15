@@ -5,6 +5,7 @@
 [[operation]]
 	#init = true
 	run-all = true
+	id = 1
 	Name = "Lua Feature Showcase -- {{Game_Root}}/scripts/lua_feature_demo.lua"
 	Instructions = "Demonstrates the embedded Lua engine helpers."
 	script_type = "lua"
@@ -24,6 +25,7 @@
 
 [[operation]]
 	run-all = true
+	id = 2
 	Name = "JavaScript Feature Showcase"
 	Instructions = "Runs the JavaScript engine demo covering progress, sqlite, and helpers."
 	script_type = "js"
@@ -45,6 +47,7 @@
 
 [[operation]]
 	run-all = true
+	id = 3
 	Name = "Python"
 	script_type = "python"
 	script = "{{Game_Root}}/scripts/python_demo.py"
@@ -53,6 +56,7 @@
 
 [[operation]]
 	run-all = true
+	id = 4
 	Name = "Download Tools"
 	Instructions = "Uses the engine downloader to retrieve optional demo tooling."
 	script_type = "engine"
@@ -60,7 +64,7 @@
 	tools_manifest = "{{Game_Root}}/Tools.toml"
 
 [[operation]]
-	id = 3
+	id = 5
 	Name = "Rename folders in specified directory, not recursive"
 	run-all = true
 	depends-on = []
@@ -80,7 +84,7 @@
 	extension = ".zip"
 
 [[operation]]
-	id = 8
+	id = 7
 	Name = "Extract Textures (.txd -> .dds)"
 	run-all = true
 	depends-on = []
@@ -90,7 +94,7 @@
 	args = ["{{Game_Root}}/Files/engine/txd-extract-demo"]
 
 [[operation]]
-	id = 9
+	id = 8
 	Name = "Convert Textures (.dds -> .png)"
 	run-all = true
 	depends-on = []
@@ -106,7 +110,7 @@
 
 ## convert videos into a usable format for godot
 [[operation]]
-	id = 12
+	id = 9
 	Name = "Convert Videos (.mp4 -> .ogv)"
 	run-all = true
 	depends-on = []
@@ -123,7 +127,7 @@
 	]
 
 [[operation]]
-	id = 13
+	id = 10
 	Name = "Convert Audio (.mp3 -> .wav)"
 	run-all = true
 	depends-on = [0]
@@ -140,7 +144,7 @@
 	]
 
 [[operation]]
-	id = 1
+	id = 11
 	Name = "Validate Files and Folders"
 	run-all = false
 	depends-on = []
@@ -161,7 +165,7 @@
 #
 
 [[operations]]
-	run-all = true
+	run-all = false
 	Name = "Download from Git URL"
 	id = "69"
 	description = "Clone a game repository from a Git URL."
@@ -172,7 +176,7 @@
 	]
 
 [[operations]]
-	run-all = true
+	run-all = false
 	Name = "Download from Registry"
 	id = "69"
 	description = "Clone a game repository from the known registry list."

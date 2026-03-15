@@ -30,11 +30,12 @@ Implementation requirements:
   * invalid dependency references
 * If operation IDs are invalid or missing, **disable dependency-based execution features** to prevent incorrect scheduling.
 
+
 ---
 
-Some operations may require **elevated privileges** (for example, creating symlinks on Windows).
-
 * :: FEATURE :: Add support for **operations requesting elevated privileges**.
+
+Some operations may require **elevated privileges** (for example, creating symlinks on Windows).
 
 Possible behaviour:
 
@@ -53,7 +54,7 @@ This would allow operations requiring administrator permissions (such as **symli
 
 ---
 
-## CLI
+### CLI
 
 Currently the CLI **bypasses `Operations.toml`**, requiring the user to manually specify parameters that may already exist in the operations file.
 
@@ -90,6 +91,11 @@ Example:
 ```
 dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module "demo" --run_op 1
 ```
+
+---
+
+### CLI
+:: FEATURE :: add run-all option to cli
 
 ---
 

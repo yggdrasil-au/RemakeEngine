@@ -42,6 +42,18 @@ public sealed partial class Engine {
         if (allOps is null) {
             throw new System.Exception($"Failed to load operations file for '{gameName}'.");
         }
+
+        // --- NEW DEPENDENCY GRAPH LOGIC ---
+        // Build the graph and print it to the trace log for debugging.
+        // It does not alter 'allOps' or affect the standard linear execution.
+        var dependencyGraph = new OperationDependencyGraph(allOps);
+        dependencyGraph.PrintGraphToTrace();
+
+        if (!dependencyGraph.IsValid) {
+            Core.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Warning: Dependency graph is invalid. See trace.log for details.");
+        }
+        // ----------------------------------
+
         List<Dictionary<string, object?>> selected = new List<Dictionary<string, object?>>();
         foreach (Dictionary<string, object?> op in allOps) {
             if (IsFlagSet(op, "init")) {
