@@ -4,6 +4,12 @@ Reimplemented from lua_feature_demo.lua to demonstrate Python script engine capa
 This is executed using the C# IronPython implementation.
 """
 
+from typing import TYPE_CHECKING
+
+# Pylance will read this, but IronPython will ignore it at runtime.
+if TYPE_CHECKING:
+    from api_definitions import *
+
 def parse_args(args):
     """
     Basic argument parsing helper to mirror the Lua demo's parse_args.
@@ -52,10 +58,6 @@ def run_demo() -> None:
     warn("This is a direct engine warning (warn)")
     error("This is a direct engine error (error)")
 
-    # Diagnostics.Log is currently not exposed in PyAction.cs but planned
-    # if 'Diagnostics' in globals():
-    #     Diagnostics.Log("This is a Diagnostics.Log message")
-
     # 3. Tool Resolution
     print("--- Tool Resolution ---")
     try:
@@ -71,19 +73,18 @@ def run_demo() -> None:
     # 4. Progress System
     print("--- Progress Tracking Examples ---")
 
-    # Progress is a dictionary/table in PyWorld.cs and exposed as a variable 'progress'
-    # Each key in the dictionary is a Func or Action
-    progress['start'](5, 'Python API Demo Execution')
+    # Progress is now an object with methods, matching the Lua implementation style.
+    progress.start(5, 'Python API Demo Execution')
 
-    progress['step']('Initializing demo components')
-    # progress['add_steps'](2)
+    progress.step('Initializing demo components')
+    # progress.add_steps(2)
 
-    progress['step']('Running PanelProgress simulations')
+    progress.step('Running PanelProgress simulations')
 
     # Panel Progress (Visual background tasks)
     print("--- Running PanelProgress Demo ---")
-    # progress['new'](total, id, label)
-    p = progress['new'](100, "py-demo-idx", "Simulating Python background task...")
+    # progress.new(total, id, label)
+    p = progress.new(100, "py-demo-idx", "Simulating Python background task...")
     for i in range(100):
         # Calling C# methods on the PanelProgress object.
         p.Update(1)
@@ -91,9 +92,9 @@ def run_demo() -> None:
 
     p.Complete() # Finish the panel task
 
-    progress['step']('Concurrent Panels Demo')
-    task1 = progress['new'](50, 'worker-1', 'Python CPU Intensive Task')
-    task2 = progress['new'](50, 'worker-2', 'Python Network Download Simulation')
+    progress.step('Concurrent Panels Demo')
+    task1 = progress.new(50, 'worker-1', 'Python CPU Intensive Task')
+    task2 = progress.new(50, 'worker-2', 'Python Network Download Simulation')
 
     for i in range(50):
         task1.Update(1)
@@ -102,32 +103,38 @@ def run_demo() -> None:
     task1.Complete()
     task2.Complete()
 
-    # 5. UPCOMING FEATURES (Commented out mapping to Lua SDK)
+    # 5. Diagnostics
+    print("--- Diagnostics ---")
+    Diagnostics.Log("This is a Diagnostics.Log message")
+    Diagnostics.Trace("This is a Diagnostics.Trace message")
+
+    # 6. UPCOMING FEATURES (Commented out mapping to Lua SDK)
     """
-    progress['step']('Testing Upcoming SDK Features (Planned)')
+    progress.step('Testing Upcoming SDK Features (Planned)')
 
     print("--- Upcoming SDK Path Joining ---")
+    # joined_path = path(Game_Root, 'Assets', 'Textures')
     # demo_path = join(Game_Root, 'TMP', 'py-demo', 'test.txt')
 
     print("--- Upcoming SDK File Operations ---")
-    # sdk['ensure_dir'](scratch_root)
+    # sdk.ensure_dir(scratch_root)
 
     print("--- Upcoming SQLite Module ---")
-    # db = sqlite['open'](scratch_root + "/test.db")
+    # db = sqlite.open(scratch_root + "/test.db")
     """
 
     # 6. User Prompts (Interactive)
     print("--- User Prompts ---")
-    print("Prompts are available but skipped for automated runs:")
-    # user_input = prompt("Enter a message for the Python demo:", "py_demo_prompt", False)
-    # print("User said: " + user_input)
+    user_input = prompt("Enter a message for the Python demo:", "py_demo_prompt", False)
+    print("User said: " + user_input)
 
-    progress['step']('Finalizing Python Demo')
-    progress['finish']()
+    progress.step('Finalizing Python Demo')
+    progress.finish()
 
     print("=== Python Demo Complete ===")
 
-if __name__ == "__main__":
-    run_demo()
+##if __name__ == "__main__":
+## __name__ is "<module>" in IronPython
 
-
+# Directly call the demo function since IronPython will execute the script top to bottom.
+run_demo()

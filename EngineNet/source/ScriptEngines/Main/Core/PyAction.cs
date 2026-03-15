@@ -1,7 +1,33 @@
 
 
 
+using IronPython.Hosting;
+
 namespace EngineNet.ScriptEngines.Python;
+
+public class PyProgressProxy {
+    internal Core.UI.EngineSdk.ScriptProgress? ActiveScriptProgress { get; set; }
+
+    public Func<int, string?, string?, Core.UI.EngineSdk.PanelProgress>? NewFunc { get; set; }
+    public Func<int, string?, Core.UI.EngineSdk.ScriptProgress>? StartFunc { get; set; }
+    public Action<string?>? StepAction { get; set; }
+    public Action<int>? AddStepsAction { get; set; }
+    public Action? FinishAction { get; set; }
+
+    public Core.UI.EngineSdk.PanelProgress @new(int total, string? id = null, string? label = null) => NewFunc!(total, id, label);
+    public Core.UI.EngineSdk.ScriptProgress start(int total, string? label = null) => StartFunc!(total, label);
+    public void step(string? label = null) => StepAction!(label);
+    public void add_steps(int count) => AddStepsAction!(count);
+    public void finish() => FinishAction!();
+}
+
+public class PyDiagnosticsProxy {
+    public Action<string>? LogAction { get; set; }
+    public Action<string>? TraceAction { get; set; }
+
+    public void Log(string message) => LogAction!(message);
+    public void Trace(string message) => TraceAction!(message);
+}
 
 public static class PyAction {
 
@@ -22,15 +48,15 @@ public static class PyAction {
         string projectRoot,
         string scriptPath
     ) {
-        // expose a print function for logging, mapped to EngineSdk.PrintLine
-        // Use a wrapper that allows IronPython to call it more reliably
-        world.PythonScope.SetVariable("print", (Action<object>)((o) => Core.UI.EngineSdk.PrintLine(o?.ToString() ?? "")));
+        world.PythonScope.SetVariable("print", (Action<object>)((o) => Core.UI.EngineSdk.PrintLine(o?.ToString() ?? "", ConsoleColor.White)));
+        world.PythonScope.SetVariable("PrintLine", (Action<string>)((message) => Core.UI.EngineSdk.PrintLine(message, ConsoleColor.White)));
+        world.PythonScope.SetVariable("PrintLineColor", (Action<string, ConsoleColor>)((message, color) => Core.UI.EngineSdk.PrintLine(message, color)));
         world.PythonScope.SetVariable("warn", (Action<string>)Core.UI.EngineSdk.Warn);
         world.PythonScope.SetVariable("error", (Action<string>)Core.UI.EngineSdk.Error);
 
         // Expose a function to resolve tool path
-        world.PythonScope.SetVariable("tool", (Func<string, string?, string>)((id, ver) => tools.ResolveToolPath(id, ver)));
-        world.PythonScope.SetVariable("ResolveToolPath", (Func<string, string?, string>)((id, ver) => tools.ResolveToolPath(id, ver)));
+        world.PythonScope.SetVariable("tool", (Func<string, string, string>)((id, ver) => tools.ResolveToolPath(id, ver)));
+        world.PythonScope.SetVariable("ResolveToolPath", (Func<string, string, string>)((id, ver) => tools.ResolveToolPath(id, ver)));
 
         // Expose script arguments as argv array and argc count
         world.PythonScope.SetVariable("argv", args);
@@ -45,11 +71,11 @@ public static class PyAction {
         world.PythonScope.SetVariable("script_dir", scriptDir);
 
         // emits the prompt query to the engine/ui and returns the user input
-        world.PythonScope.SetVariable("prompt", (Func<string, string?, bool, string>)((message, id, secret) => {
+        world.PythonScope.SetVariable("prompt", (Func<string, string, bool, string>)((message, id, secret) => {
             return Core.UI.EngineSdk.Prompt(message, id ?? "q1", secret);
         }));
 
-        world.PythonScope.SetVariable("color_prompt", (Func<string, string, string?, bool, string>)((message, color, id, secret) => {
+        world.PythonScope.SetVariable("color_prompt", (Func<string, string, string, bool, string>)((message, color, id, secret) => {
             return Core.UI.EngineSdk.color_prompt(message, color, id ?? "q1", secret);
         }));
 
@@ -57,45 +83,45 @@ public static class PyAction {
         world.PythonScope.SetVariable("colour_prompt", world.PythonScope.GetVariable("color_prompt"));
 
         // :: Progress System ::
-        Core.UI.EngineSdk.ScriptProgress? activeScriptProgress = null;
+        var progressProxy = new PyProgressProxy();
 
         // progress.new(total, id, label) -> Core.UI.EngineSdk.PanelProgress userdata
-        world.Progress["new"] = (Func<int, string?, string?, Core.UI.EngineSdk.PanelProgress>)((total, id, label) => {
+        progressProxy.NewFunc = (total, id, label) => {
             string pid = string.IsNullOrEmpty(id) ? "p1" : id!;
-            return new Core.UI.EngineSdk.PanelProgress(total, pid, label);
-        });
+            return new Core.UI.EngineSdk.PanelProgress(total, pid, label ?? "");
+        };
 
         // progress.start(total, label) -> Core.UI.EngineSdk.ScriptProgress userdata
-        world.Progress["start"] = (Func<int, string?, Core.UI.EngineSdk.ScriptProgress>)((total, label) => {
-            activeScriptProgress = new Core.UI.EngineSdk.ScriptProgress(total, "s1", label);
-            return activeScriptProgress;
-        });
+        progressProxy.StartFunc = (total, label) => {
+            progressProxy.ActiveScriptProgress = new Core.UI.EngineSdk.ScriptProgress(total, "s1", label ?? "");
+            return progressProxy.ActiveScriptProgress;
+        };
 
         // progress.step(label?)
-        world.Progress["step"] = (Action<string?>)((label) => {
-            if (activeScriptProgress != null) {
-                activeScriptProgress.Update(1, label);
+        progressProxy.StepAction = (label) => {
+            if (progressProxy.ActiveScriptProgress != null) {
+                progressProxy.ActiveScriptProgress.Update(1, label ?? "");
                 if (!string.IsNullOrEmpty(label)) {
-                    Core.UI.EngineSdk.PrintLine($"[Step {activeScriptProgress.Current}/{activeScriptProgress.Total}] {label}", ConsoleColor.Magenta);
+                    Core.UI.EngineSdk.PrintLine($"[Step {progressProxy.ActiveScriptProgress.Current}/{progressProxy.ActiveScriptProgress.Total}] {label}", ConsoleColor.Magenta);
                 }
             }
-        });
+        };
 
         // progress.add_steps(count)
-        world.Progress["add_steps"] = (Action<int>)((count) => {
-            if (activeScriptProgress != null) {
-                activeScriptProgress.SetTotal(activeScriptProgress.Total + count);
+        progressProxy.AddStepsAction = (count) => {
+            if (progressProxy.ActiveScriptProgress != null) {
+                progressProxy.ActiveScriptProgress.SetTotal(progressProxy.ActiveScriptProgress.Total + count);
             }
-        });
+        };
 
         // progress.finish()
-        world.Progress["finish"] = (Action)(() => {
-            if (activeScriptProgress != null) {
-                activeScriptProgress.Complete();
+        progressProxy.FinishAction = () => {
+            if (progressProxy.ActiveScriptProgress != null) {
+                progressProxy.ActiveScriptProgress.Complete();
             }
-        });
+        };
 
-        world.PythonScope.SetVariable("progress", world.Progress);
+        world.PythonScope.SetVariable("progress", progressProxy);
         world.PythonScope.SetVariable("sdk", world.Sdk);
 
         // :: Debugging features ::
@@ -106,9 +132,27 @@ public static class PyAction {
 #endif
 
         // :: Python Diagnostics logging ::
-        world.Diagnostics["Log"] = (Action<string>)Core.Diagnostics.PythonLogger.PythonLog;
-        world.Diagnostics["Trace"] = (Action<string>)Core.Diagnostics.PythonLogger.PythonTrace;
+        var diagnosticsProxy = new PyDiagnosticsProxy();
+        diagnosticsProxy.LogAction = (Action<string>)Core.Diagnostics.PythonLogger.PythonLog;
+        diagnosticsProxy.TraceAction = (Action<string>)Core.Diagnostics.PythonLogger.PythonTrace;
 
-        world.PythonScope.SetVariable("Diagnostics", world.Diagnostics);
+        world.PythonScope.SetVariable("Diagnostics", diagnosticsProxy);
+
+        // :: Mock Typing Module ::
+        // This allows 'from typing import ...' to work in IDEs while remaining a no-op in IronPython
+        var typingModule = world.PythonEngine.CreateModule("typing");
+        typingModule.SetVariable("TYPE_CHECKING", false);
+        typingModule.SetVariable("Any", null);
+        typingModule.SetVariable("Dict", null);
+        typingModule.SetVariable("List", null);
+        typingModule.SetVariable("Optional", null);
+        typingModule.SetVariable("Union", null);
+        typingModule.SetVariable("Callable", null);
+        typingModule.SetVariable("TypeVar", null);
+        typingModule.SetVariable("Generic", null);
+        typingModule.SetVariable("Tuple", null);
+        typingModule.SetVariable("Set", null);
+        typingModule.SetVariable("Iterable", null);
+        typingModule.SetVariable("Sequence", null);
     }
 }

@@ -104,6 +104,10 @@ def error(message: str) -> None:
     """Raise a stylized standard ERROR using the Engine SDK pipeline."""
     ...
 
+def PrintLine(message: str, color: Optional[int] = None) -> None:
+    """Directly print a line to the engine console with optional color."""
+    ...
+
 def prompt(message: str, id: str = "q1", secret: bool = False) -> str:
     """Halt the script synchronously and prompt the user directly via standard I/O streams or GUI box."""
     ...
