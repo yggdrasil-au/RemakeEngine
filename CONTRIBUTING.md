@@ -30,8 +30,8 @@ see [Style.md](Style.md)
 ### Local Build and Test
 ```pwsh
 # Restore dependencies, build, and run tests
-dotnet build RemakeEngine.sln
-dotnet test RemakeEngine.sln --nologo
+dotnet build RemakeEngine.slnx
+dotnet test RemakeEngine.slnx --nologo
 
 # Launch the interactive CLI during development
 dotnet run --project EngineNet -- --tui
@@ -44,7 +44,7 @@ Every pull request and push to `main` runs a trio of CI pipelines defined under 
 - `build.yml` repeats the Windows build with a runner-hosted Sonar scanner for redundancy and quicker iterations.
 - `SonarQubeBuild.yml` executes the SonarSource scan action on Ubuntu so that Linux analysis settings stay honest.
 
-Workflows must stay green before a change can merge. Match the CI locally by running `dotnet build RemakeEngine.sln` and `dotnet test RemakeEngine.sln --nologo`; add `--collect "XPlat Code Coverage"` when you need to debug coverage gaps.
+Workflows must stay green before a change can merge. Match the CI locally by running `dotnet build RemakeEngine.slnx` and `dotnet test RemakeEngine.slnx --nologo`; add `--collect "XPlat Code Coverage"` when you need to debug coverage gaps.
 
 ### Release Workflows
 - `on tagged release -- Win,Linux,Mac .NET Test, Build, Release.yml` triggers when you push a tag like `v2.5.0`. It runs Debug and Release builds/tests across Windows, macOS, and Linux, then publishes self-contained binaries for the main runtimes and uploads them to a GitHub Release.
@@ -61,8 +61,8 @@ If you are planning a release, coordinate the tag with maintainers so secrets (S
 4. **Submit a pull request:** Explain the intent, link to the driving module or issue, and include reproduction steps if fixing a bug. Ensure CI (build + tests + SonarCloud) is green.
 
 ### Pull Request Checklist
-- [ ] `dotnet build RemakeEngine.sln`
-- [ ] `dotnet test RemakeEngine.sln`
+- [ ] `dotnet build RemakeEngine.slnx`
+- [ ] `dotnet test RemakeEngine.slnx`
 - [ ] Behavioural changes covered by automated tests
 - [ ] JSON schemas in [schemas/](schemas/) updated to match any C# parsing changes
 - [ ] Documentation ([operations.toml.md](schemas/operations.toml.md)) refreshed for new features

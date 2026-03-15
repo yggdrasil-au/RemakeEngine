@@ -8,6 +8,7 @@ using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 using System.Diagnostics;
 using System.Threading;
+using EngineNet.Interface.GUI.Services;
 
 namespace EngineNet.Interface.GUI.Pages;
 
@@ -112,7 +113,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     /* :: :: Methods :: START :: */
 
     private async void OnLoaded(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e) {
-        if (_initOperations.Count == 0 || AvaloniaGui.Engine is null) {
+        if (_initOperations.Count == 0 || GuiBootstrapper.Engine is null) {
             IsExecutionEnabled = true;
             Raise(nameof(CanPlay));
             Raise(nameof(CanRunAll));
@@ -144,7 +145,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             ? $"The module '{_moduleName}' has {_initOperations.Count} initialization operations. Would you like to run them now? If you choose 'No', execution options will be disabled."
             : $"The module '{_moduleName}' still has unrun initialization operations. Would you like to run them?";
 
-        (bool Result, bool DontAskAgain) response = await PromptHelpers.ConfirmWithOptOutAsync(
+        (bool Result, bool DontAskAgain) response = await DialogService.ConfirmWithOptOutAsync(
             "Initialization Operations", msg, defaultValue: true);
 
         if (response.DontAskAgain) {
@@ -165,7 +166,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     private void Load() {
         try {
-            if (AvaloniaGui.Engine is null) {
+            if (GuiBootstrapper.Engine is null) {
                 throw new InvalidOperationException(message: "Engine is not initialized.");
             }
 
@@ -174,7 +175,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             _initOperations.Clear();
 
             // Gather module info from multiple sources
-            Dictionary<string, Core.Utils.GameModuleInfo> modules = AvaloniaGui.Engine.Modules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Utils.GameModuleInfo> modules = GuiBootstrapper.Engine.Modules(Core.Utils.ModuleFilter.All);
             Core.Utils.GameModuleInfo? m = modules.TryGetValue(_moduleName, out Core.Utils.GameModuleInfo? mm) ? mm : null;
             if (m is not null) {
                 Title = string.IsNullOrWhiteSpace(m.Title) ? m.Name : m.Title!;
@@ -192,7 +193,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             }
 
             // Registry info (URL)
-            IReadOnlyDictionary<string, object?> regs = AvaloniaGui.Engine.GameRegistry.GetRegisteredModules();
+            IReadOnlyDictionary<string, object?> regs = GuiBootstrapper.Engine.GameRegistry.GetRegisteredModules();
             if (regs.TryGetValue(_moduleName, out object? regObj) && regObj is IDictionary<string, object?> reg) {
                 RegistryUrl = reg.TryGetValue(key: "url", value: out object? u) ? u?.ToString() : null;
                 if (string.IsNullOrWhiteSpace(Title)) {
@@ -203,7 +204,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
             // Load operations if ops_file exists
             string? opsFile = null;
-            Dictionary<string, Core.Utils.GameModuleInfo> games = AvaloniaGui.Engine.Modules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Utils.GameModuleInfo> games = GuiBootstrapper.Engine.Modules(Core.Utils.ModuleFilter.All);
             if (games.TryGetValue(_moduleName, out Core.Utils.GameModuleInfo? gameInfo)) {
                 opsFile = gameInfo.OpsFile;
                 if (string.IsNullOrWhiteSpace(ExePath)) {
@@ -218,11 +219,11 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             }
 
             if (!string.IsNullOrWhiteSpace(opsFile) && System.IO.File.Exists(path: opsFile)) {
-                Core.Services.OperationsService.PreparedOperations preparedOps = AvaloniaGui.Engine.OperationsService.LoadAndPrepare(
+                Core.Services.OperationsService.PreparedOperations preparedOps = GuiBootstrapper.Engine.OperationsService.LoadAndPrepare(
                     opsFile: opsFile,
                     currentGame: _moduleName,
                     games: games,
-                    engineConfig: AvaloniaGui.Engine.EngineConfig.Data
+                    engineConfig: GuiBootstrapper.Engine.EngineConfig.Data
                 );
                 if (!preparedOps.IsLoaded) {
                     Core.Diagnostics.Log($"Load: Failed to load operations list for module {_moduleName} from ops file '{opsFile}'. {preparedOps.ErrorMessage}");
@@ -273,7 +274,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private Bitmap? ResolveCoverBitmap(string? gameRoot) {
-        if (AvaloniaGui.Engine == null) {
+        if (GuiBootstrapper.Engine == null) {
             return null;
         }
         string? icon = string.IsNullOrWhiteSpace(gameRoot) ? null : System.IO.Path.Combine(path1: gameRoot!, path2: "icon.png");
@@ -288,7 +289,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private async System.Threading.Tasks.Task ExecuteInitOperationsAsync() {
-        if (_initOperations.Count == 0 || AvaloniaGui.Engine is null) return;
+        if (_initOperations.Count == 0 || GuiBootstrapper.Engine is null) return;
 
         IsRunning = true;
         _cts = new CancellationTokenSource();
@@ -296,10 +297,10 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         Raise(nameof(CanStop));
 
         try {
-            Dictionary<string, Core.Utils.GameModuleInfo> games = AvaloniaGui.Engine.Modules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Utils.GameModuleInfo> games = GuiBootstrapper.Engine.Modules(Core.Utils.ModuleFilter.All);
 
-            await GUI.Utils.ExecuteEngineOperationAsync(
-                engine: AvaloniaGui.Engine,
+            await EngineOperationRunner.RunAsync(
+                engine: GuiBootstrapper.Engine,
                 moduleName: ModuleName,
                 operationName: "Initialization Ops",
                 executor: async (onOutput, onEvent, stdin) => {
@@ -314,17 +315,17 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                             Dictionary<string, object?> answers = new Dictionary<string, object?>();
                             await CollectAnswersForOperationAsync(op: op.Operation, answers: answers, defaultsOnly: true);
 
-                            bool ok = await AvaloniaGui.Engine.Engino.RunSingleOperationAsync(
+                            bool ok = await GuiBootstrapper.Engine.Engino.RunSingleOperationAsync(
                                 currentGame: ModuleName,
                                 games,
                                 op: op.Operation,
                                 answers,
-                                AvaloniaGui.Engine.EngineConfig,
-                                AvaloniaGui.Engine.ToolResolver,
-                                AvaloniaGui.Engine.GitService,
-                                AvaloniaGui.Engine.GameRegistry,
-                                AvaloniaGui.Engine.CommandService,
-                                AvaloniaGui.Engine.OperationExecution,
+                                GuiBootstrapper.Engine.EngineConfig,
+                                GuiBootstrapper.Engine.ToolResolver,
+                                GuiBootstrapper.Engine.GitService,
+                                GuiBootstrapper.Engine.GameRegistry,
+                                GuiBootstrapper.Engine.CommandService,
+                                GuiBootstrapper.Engine.OperationExecution,
                                 cancellationToken: _cts.Token
                             );
                             okAllInit &= ok;
@@ -355,10 +356,10 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private async System.Threading.Tasks.Task PlayAsync() {
-        if (AvaloniaGui.Engine is null || string.IsNullOrWhiteSpace(ModuleName)) return;
+        if (GuiBootstrapper.Engine is null || string.IsNullOrWhiteSpace(ModuleName)) return;
         try {
-            await GUI.Utils.ExecuteEngineOperationAsync(
-                engine: AvaloniaGui.Engine,
+            await EngineOperationRunner.RunAsync(
+                engine: GuiBootstrapper.Engine,
                 moduleName: ModuleName,
                 operationName: "Play",
                 executor: async (onOutput, onEvent, stdin) => {
@@ -372,7 +373,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
                     try {
                         System.Console.SetIn(new GuiStdinRedirectReader(provider: stdin));
-                        return await AvaloniaGui.Engine.GameLauncher.LaunchGameAsync(name: ModuleName);
+                        return await GuiBootstrapper.Engine.GameLauncher.LaunchGameAsync(name: ModuleName);
                     } finally {
                         Core.UI.EngineSdk.LocalEventSink = previousSink;
                         Core.UI.EngineSdk.MuteStdoutWhenLocalSink = previousMute;
@@ -387,7 +388,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private async System.Threading.Tasks.Task RunAllAsync() {
-        if (AvaloniaGui.Engine is null || string.IsNullOrWhiteSpace(ModuleName)) return;
+        if (GuiBootstrapper.Engine is null || string.IsNullOrWhiteSpace(ModuleName)) return;
 
         IsRunning = true;
         _cts = new CancellationTokenSource();
@@ -395,12 +396,12 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         Raise(nameof(CanStop));
 
         try {
-            await GUI.Utils.ExecuteEngineOperationAsync(
-                engine: AvaloniaGui.Engine,
+            await EngineOperationRunner.RunAsync(
+                engine: GuiBootstrapper.Engine,
                 moduleName: ModuleName,
                 operationName: "Run All",
                 executor: async (onOutput, onEvent, stdin) => {
-                    var res = await AvaloniaGui.Engine.RunAllAsync(gameName: ModuleName, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdin, cancellationToken: _cts.Token);
+                    var res = await GuiBootstrapper.Engine.RunAllAsync(gameName: ModuleName, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdin, cancellationToken: _cts.Token);
                     return res.Success;
                 }
             );
@@ -424,7 +425,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private async System.Threading.Tasks.Task RunOpAsync(OpRow? row) {
-        if (row is null || AvaloniaGui.Engine is null) return;
+        if (row is null || GuiBootstrapper.Engine is null) return;
 
         IsRunning = true;
         _cts = new CancellationTokenSource();
@@ -432,14 +433,14 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         Raise(nameof(CanStop));
 
         try {
-            Dictionary<string, Core.Utils.GameModuleInfo> games = AvaloniaGui.Engine.Modules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Utils.GameModuleInfo> games = GuiBootstrapper.Engine.Modules(Core.Utils.ModuleFilter.All);
 
             Dictionary<string, object?> answers = new Dictionary<string, object?>();
             await CollectAnswersForOperationAsync(op: row.Op, answers: answers);
 
             // Use embedded execution path (Engine handles engine/lua/js/bms in-process)
-            await GUI.Utils.ExecuteEngineOperationAsync(
-                engine: AvaloniaGui.Engine,
+            await EngineOperationRunner.RunAsync(
+                engine: GuiBootstrapper.Engine,
                 moduleName: ModuleName,
                 operationName: row.Name,
                 executor: async (onOutput, onEvent, stdin) => {
@@ -449,17 +450,17 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                     System.IO.TextReader previous = System.Console.In;
                     try {
                         System.Console.SetIn(new GuiStdinRedirectReader(provider: stdin));
-                        bool ok = await AvaloniaGui.Engine.Engino.RunSingleOperationAsync(
+                        bool ok = await GuiBootstrapper.Engine.Engino.RunSingleOperationAsync(
                             currentGame: ModuleName,
                             games,
                             op: row.Op,
                             answers,
-                            AvaloniaGui.Engine.EngineConfig,
-                            AvaloniaGui.Engine.ToolResolver,
-                            AvaloniaGui.Engine.GitService,
-                            AvaloniaGui.Engine.GameRegistry,
-                            AvaloniaGui.Engine.CommandService,
-                            AvaloniaGui.Engine.OperationExecution,
+                            GuiBootstrapper.Engine.EngineConfig,
+                            GuiBootstrapper.Engine.ToolResolver,
+                            GuiBootstrapper.Engine.GitService,
+                            GuiBootstrapper.Engine.GameRegistry,
+                            GuiBootstrapper.Engine.CommandService,
+                            GuiBootstrapper.Engine.OperationExecution,
                             cancellationToken: _cts.Token
                         );
                         return ok;
@@ -489,16 +490,16 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private async System.Threading.Tasks.Task DownloadAsync() {
-        if (AvaloniaGui.Engine is null) return;
+        if (GuiBootstrapper.Engine is null) return;
         if (string.IsNullOrWhiteSpace(RegistryUrl)) return;
         try {
-            await GUI.Utils.ExecuteEngineOperationAsync(
-                engine: AvaloniaGui.Engine,
+            await EngineOperationRunner.RunAsync(
+                engine: GuiBootstrapper.Engine,
                 moduleName: ModuleName,
                 operationName: $"Download {ModuleName}",
                 executor: async (onOutput, onEvent, stdin) => {
                     onEvent(new Dictionary<string, object?> { ["event"] = "start", ["name"] = ModuleName, ["url"] = RegistryUrl });
-                    bool result = await System.Threading.Tasks.Task.Run(function: () => AvaloniaGui.Engine.DownloadModule(RegistryUrl!));
+                    bool result = await System.Threading.Tasks.Task.Run(function: () => GuiBootstrapper.Engine.DownloadModule(RegistryUrl!));
                     onOutput(result ? $"Download complete for {ModuleName}." : $"Download failed for {ModuleName}.", result ? "stdout" : "stderr");
                     onEvent(new Dictionary<string, object?> { ["event"] = "end", ["success"] = result, ["name"] = ModuleName });
                     return result;
@@ -513,8 +514,8 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     private async System.Threading.Tasks.Task OpenFolderAsync() {
         try {
-            if (AvaloniaGui.Engine is null) return;
-            string? path = AvaloniaGui.Engine.GetGamePath(name: ModuleName);
+            if (GuiBootstrapper.Engine is null) return;
+            string? path = GuiBootstrapper.Engine.GetGamePath(name: ModuleName);
             if (string.IsNullOrWhiteSpace(path) || !System.IO.Directory.Exists(path: path)) {
                 return;
             }
@@ -537,13 +538,13 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private bool IsDownloaded() {
-        if (AvaloniaGui.Engine is null) return false;
+        if (GuiBootstrapper.Engine is null) return false;
         string path = System.IO.Path.Combine(path1: Program.rootPath, path2: System.IO.Path.Combine("EngineApps", "Games", _moduleName));
         return System.IO.Directory.Exists(path: path);
     }
 
     private async System.Threading.Tasks.Task CollectAnswersForOperationAsync(Dictionary<string, object?> op, Dictionary<string, object?> answers, bool defaultsOnly = false) {
-        if (AvaloniaGui.Engine is null) {
+        if (GuiBootstrapper.Engine is null) {
             return;
         }
 
@@ -622,7 +623,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             }
         };
 
-        await AvaloniaGui.Engine.OperationsService.CollectAnswersAsync(op, answers, handler, defaultsOnly);
+        await GuiBootstrapper.Engine.OperationsService.CollectAnswersAsync(op, answers, handler, defaultsOnly);
     }
 
     /* :: :: Methods :: END :: */

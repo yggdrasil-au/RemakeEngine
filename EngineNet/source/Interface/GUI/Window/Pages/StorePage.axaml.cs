@@ -6,7 +6,7 @@ using System.ComponentModel;
 using System.Collections.Generic;
 
 using Avalonia.Controls;
-
+using EngineNet.Interface.GUI.Services;
 
 namespace EngineNet.Interface.GUI.Pages;
 
@@ -85,16 +85,16 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
             Status = "Loading…";
             Items.Clear();
 
-            if (AvaloniaGui.Engine == null) {
+            if (GuiBootstrapper.Engine == null) {
                 throw new InvalidOperationException(message: "Engine is not initialized.");
             }
 
             // Get registered modules from EngineApps\Registries\Modules\Main.json
-            AvaloniaGui.Engine.GameRegistry.RefreshModules();
-            IReadOnlyDictionary<string, object?> modules = AvaloniaGui.Engine.GameRegistry.GetRegisteredModules();
+            GuiBootstrapper.Engine.GameRegistry.RefreshModules();
+            IReadOnlyDictionary<string, object?> modules = GuiBootstrapper.Engine.GameRegistry.GetRegisteredModules();
 
             // Get already downloaded games
-            Dictionary<string, Core.Utils.GameModuleInfo> downloadedGames = AvaloniaGui.Engine.Modules(Core.Utils.ModuleFilter.Installed);
+            Dictionary<string, Core.Utils.GameModuleInfo> downloadedGames = GuiBootstrapper.Engine.Modules(Core.Utils.ModuleFilter.Installed);
 
             foreach (KeyValuePair<string, object?> kv in modules) {
                 string moduleName = kv.Key;
@@ -167,7 +167,7 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
         }
 
         try {
-            if (AvaloniaGui.Engine == null) {
+            if (GuiBootstrapper.Engine == null) {
                 return;
             }
 
@@ -175,8 +175,8 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
 
             OperationOutputService.Instance.AddOutput($"Starting download for {item.Name}…", "stdout");
 
-            bool success = await GUI.Utils.ExecuteEngineOperationAsync(
-                AvaloniaGui.Engine,
+            bool success = await EngineOperationRunner.RunAsync(
+                GuiBootstrapper.Engine,
                 item.Name,
                 $"Download {item.Name}",
                 async (onOutput, onEvent, stdin) => {
@@ -186,7 +186,7 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
                         ["url"] = item.Url ?? string.Empty
                     });
 
-                    bool result = await Task.Run(() => AvaloniaGui.Engine.DownloadModule(item.Url!));
+                    bool result = await Task.Run(() => GuiBootstrapper.Engine.DownloadModule(item.Url!));
 
                     onOutput(result ? $"Download complete for {item.Name}." : $"Download failed for {item.Name}.", result ? "stdout" : "stderr");
                     onEvent(new Dictionary<string, object?> {
@@ -223,7 +223,7 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
         if (item is null) return;
         try {
             Window? w = TopLevel.GetTopLevel(this) as Window;
-            if (w is MainWindow mw && AvaloniaGui.Engine is not null) {
+            if (w is MainWindow mw && GuiBootstrapper.Engine is not null) {
                 mw.ShowLibraryFor(item.Name);
             }
         } catch { /* ignore */ }

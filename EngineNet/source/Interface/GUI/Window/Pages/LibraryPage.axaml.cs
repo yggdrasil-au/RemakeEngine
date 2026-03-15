@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
+using EngineNet.Interface.GUI.Services;
 
 namespace EngineNet.Interface.GUI.Pages;
 
@@ -68,12 +69,12 @@ public partial class LibraryPage:UserControl {
     private void Load() {
         try {
             Items.Clear(); // reset
-            if (AvaloniaGui.Engine == null) {
-                Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] Load() aborted: AvaloniaGui.Engine is null.");
+            if (GuiBootstrapper.Engine == null) {
+                Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] Load() aborted: GuiBootstrapper.Engine is null.");
                 throw new System.InvalidOperationException(message: "Engine is not initialized.");
             }
 
-            var modules = AvaloniaGui.Engine.Modules(Core.Utils.ModuleFilter.Installed);
+            var modules = GuiBootstrapper.Engine.Modules(Core.Utils.ModuleFilter.Installed);
 #if DEBUG
             Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] Found {modules.Count} modules.");
             // list all modules
@@ -140,8 +141,8 @@ public partial class LibraryPage:UserControl {
     /// <param name="gameRoot"></param>
     /// <returns>
     private Bitmap? ResolveCoverUri(string? gameRoot) {
-        if (AvaloniaGui.Engine == null) {
-            Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() aborted: AvaloniaGui.Engine is null.");
+        if (GuiBootstrapper.Engine == null) {
+            Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() aborted: GuiBootstrapper.Engine is null.");
             throw new System.InvalidOperationException(message: "Engine is not initialized.");
         }
         if (string.IsNullOrWhiteSpace(gameRoot)) {
@@ -194,7 +195,7 @@ public partial class LibraryPage:UserControl {
             ContentControl? host = this.FindControl<ContentControl>(name: "DetailsHost");
             ScrollViewer? cards = this.FindControl<ScrollViewer>(name: "CardsGrid");
             if (host is null || cards is null) return;
-            if (AvaloniaGui.Engine is null) return;
+            if (GuiBootstrapper.Engine is null) return;
             host.Content = new ModulePage(moduleName);
             host.IsVisible = true;
             cards.IsVisible = false;

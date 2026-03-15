@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using EngineNet.Interface.GUI.Services;
 
 namespace EngineNet.Interface.GUI.Pages;
 
@@ -38,7 +39,7 @@ public partial class MainWindow:Window {
     }
 
     private void ShowBuilding() {
-        if (AvaloniaGui.Engine is null) {
+        if (GuiBootstrapper.Engine is null) {
             ContentHost.Content = new Pages.BuildingPage();
             return;
         }
@@ -46,7 +47,7 @@ public partial class MainWindow:Window {
     }
 
     private void ShowSettings() {
-        if (AvaloniaGui.Engine is null) {
+        if (GuiBootstrapper.Engine is null) {
             ContentHost.Content = new Pages.SettingsPage();
             return;
         }

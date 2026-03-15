@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using EngineNet.Interface.GUI.Services;
 
 namespace EngineNet.Interface.GUI.Pages;
 

@@ -19,7 +19,7 @@ public static class Program {
 
     /* :: :: Vars :: START :: */
     public static AppBuilder BuildAvaloniaApp()  {
-        return Interface.GUI.AvaloniaGui.BuildAvaloniaApp();
+        return Interface.GUI.GuiBootstrapper.BuildAvaloniaApp();
     }
     /* :: :: Vars :: END :: */
     // //
@@ -110,7 +110,7 @@ public static class Program {
             // - One arg "--gui" -> GUI
             if (isGui) {
                 Core.Diagnostics.Trace("Launching GUI Interface...");
-                return Interface.GUI.AvaloniaGui.Run(_engine); // ;; gui flow step1 ;;
+                return Interface.GUI.GuiBootstrapper.Run(_engine); // ;; gui flow step1 ;;
             }
 
             // Logic:

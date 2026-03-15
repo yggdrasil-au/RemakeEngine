@@ -1,11 +1,8 @@
-
 using Avalonia.Controls;
-using Avalonia.Interactivity;
 
+namespace EngineNet.Interface.GUI.Services;
 
-namespace EngineNet.Interface.GUI;
-
-public static class PromptHelpers {
+public static class DialogService {
     private static Window? TryGetMainWindow() {
         if (global::Avalonia.Application.Current?.ApplicationLifetime is global::Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime l) {
             return l.MainWindow;
@@ -36,5 +33,4 @@ public static class PromptHelpers {
         dlg.EnableOptOut();
         return await dlg.ShowWithOptOutAsync(window);
     }
-
 }
