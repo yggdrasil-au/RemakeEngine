@@ -48,9 +48,9 @@
 [[operation]]
 	run-all = true
 	id = 3
-	Name = "Python"
+	Name = "Python Feature Showcase"
 	script_type = "python"
-	script = "{{Game_Root}}/scripts/python_demo.py"
+	script = "{{Game_Root}}/scripts/python_feature_demo.py"
 	args = []
 
 

@@ -23,7 +23,8 @@ public static class PyAction {
         string scriptPath
     ) {
         // expose a print function for logging, mapped to EngineSdk.PrintLine
-        world.PythonScope.SetVariable("print", (Action<string>)((message) => Core.UI.EngineSdk.PrintLine(message)));
+        // Use a wrapper that allows IronPython to call it more reliably
+        world.PythonScope.SetVariable("print", (Action<object>)((o) => Core.UI.EngineSdk.PrintLine(o?.ToString() ?? "")));
         world.PythonScope.SetVariable("warn", (Action<string>)Core.UI.EngineSdk.Warn);
         world.PythonScope.SetVariable("error", (Action<string>)Core.UI.EngineSdk.Error);
 

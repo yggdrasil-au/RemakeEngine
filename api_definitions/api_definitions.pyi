@@ -1,0 +1,286 @@
+"""
+Engine Scripting Environment Type Definitions (Python)
+This file provides autocompletion and type checking for the custom engine API.
+"""
+
+from typing import Any, Dict, List, Optional, Union
+
+# =============================================================================
+# 1. Custom Classes / Object Types
+# =============================================================================
+
+class PanelProgress:
+    """Represents a long-running background task whose progress is displayed in the lower TUI/GUI panel."""
+    Total: int
+    Current: int
+    Id: str
+    Label: Optional[str]
+
+    def Complete(self) -> None:
+        """Signal that the background task is fully complete and destroy the UI element."""
+        ...
+
+    def Dispose(self) -> None:
+        """Disposes the progress handle (same as Complete())."""
+        ...
+
+    def Update(self, increment: int = 1) -> None:
+        """Manually add to the internal processed counter."""
+        ...
+
+class ScriptProgress:
+    """Script execution specific progress model for overarching operation checkpoints."""
+    Total: int
+    Current: int
+    Id: str
+    Label: Optional[str]
+
+    def Update(self, increment: int = 1, label: Optional[str] = None) -> None:
+        """Update the overarching script progress by `increment` ticks. Emits the visual label if provided."""
+        ...
+
+    def SetTotal(self, newTotal: int) -> None:
+        """Add to the total available ticks in the script progress limit before it is considered done."""
+        ...
+
+    def Complete(self) -> None:
+        """Call to indicate script sequence is perfectly complete."""
+        ...
+
+class SqliteHandle:
+    """Represents an active SQLite database connection."""
+    def exec(self, sql: str, params: Optional[Dict[str, Any]] = None) -> int: ...
+    def query(self, sql: str, params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]: ...
+    def begin(self) -> None: ...
+    def commit(self) -> None: ...
+    def rollback(self) -> None: ...
+    def close(self) -> None: ...
+    def dispose(self) -> None: ...
+
+class sqlite:
+    """SQLite Database Module."""
+    @staticmethod
+    def open(path: str) -> SqliteHandle: ...
+
+
+# =============================================================================
+# 2. Global Variables
+# =============================================================================
+
+argv: List[str]
+"""Argument variables passed from the execution CLI/GUI."""
+
+argc: int
+"""Total list size of parsed arguments."""
+
+Game_Root: str
+"""Absolute system path pointing to the currently processing Game Module."""
+
+Project_Root: str
+"""Absolute system path pointing to the host RemakeEngine solution container root."""
+
+script_dir: str
+"""The directory that fundamentally encloses the script natively executing."""
+
+DEBUG: bool
+"""Flag denoting if the main .NET engine context is currently running within a Debug configuration block."""
+
+UIMode: str
+"""The current UI mode of the engine ('cli', 'gui', 'tui', 'unknown')."""
+
+cpu_count: int
+"""The number of logical processors available."""
+
+
+# =============================================================================
+# 3. Global Functions
+# =============================================================================
+
+def warn(message: str) -> None:
+    """Raise a stylized standard WARNING using the Engine SDK pipeline."""
+    ...
+
+def error(message: str) -> None:
+    """Raise a stylized standard ERROR using the Engine SDK pipeline."""
+    ...
+
+def prompt(message: str, id: str = "q1", secret: bool = False) -> str:
+    """Halt the script synchronously and prompt the user directly via standard I/O streams or GUI box."""
+    ...
+
+def color_prompt(message: str, color: str, id: str = "q1", secret: bool = False) -> str:
+    """Color-variated alternative of the built-in script prompter object."""
+    ...
+
+def colour_prompt(message: str, color: str, id: str = "q1", secret: bool = False) -> str:
+    """AU/UK English spelling mapping for color prompts."""
+    ...
+
+def tool(id: str, ver: Optional[str] = None) -> str:
+    """Retrieves the fully qualified path of an internally managed third-party external Tool."""
+    ...
+
+def ResolveToolPath(id: str, ver: Optional[str] = None) -> str:
+    """Duplicate of `tool`. Retrieves the fully qualified path of an internally managed third-party external Tool."""
+    ...
+
+def join(*args: Union[str, int]) -> str:
+    """Joins multiple path segments into a single path using forward slashes."""
+    ...
+
+
+# =============================================================================
+# 4. Exposed Standard Objects / Namespaces
+# =============================================================================
+
+class console:
+    """Standard output logger mapping to the engine's internal streams."""
+    @staticmethod
+    def log(message: Any) -> None: ...
+    @staticmethod
+    def warn(message: Any) -> None: ...
+    @staticmethod
+    def error(message: Any) -> None: ...
+
+class Diagnostics:
+    @staticmethod
+    def Log(message: str) -> None:
+        """Write pure core-engine logging traces dynamically."""
+        ...
+    @staticmethod
+    def Trace(message: str) -> None:
+        """Execute pure framework stack tracing routines."""
+        ...
+
+class progress:
+    @staticmethod
+    def start(total: int, label: Optional[str] = None) -> ScriptProgress: ...
+
+    @staticmethod
+    def new(total: int, id: Optional[str] = None, label: Optional[str] = None) -> PanelProgress: ...
+
+    @staticmethod
+    def step(label: Optional[str] = None) -> None: ...
+
+    @staticmethod
+    def add_steps(count: int) -> None: ...
+
+    @staticmethod
+    def finish() -> None: ...
+
+# =============================================================================
+# 5. SDK Module
+# =============================================================================
+
+class sdk:
+    cpu_count: int
+
+    @staticmethod
+    def color_print(color: Union[str, Dict[str, Any]], message: Optional[str] = None, newline: bool = True) -> None: ...
+
+    @staticmethod
+    def colour_print(color: Union[str, Dict[str, Any]], message: Optional[str] = None, newline: bool = True) -> None: ...
+
+    # --- File System Operations ---
+    @staticmethod
+    def validate_source_dir(dir: str) -> bool: ...
+    @staticmethod
+    def extract_archive(archive_path: str, dest_dir: str) -> bool: ...
+    @staticmethod
+    def create_archive(src_path: str, archive_path: str, type_: str) -> bool: ...
+    @staticmethod
+    def ensure_dir(path: str) -> bool: ...
+    @staticmethod
+    def copy_dir(src: str, dst: str, overwrite: bool) -> bool: ...
+    @staticmethod
+    def move_dir(src: str, dst: str, overwrite: bool) -> bool: ...
+    @staticmethod
+    def copy_file(src: str, dst: str, overwrite: bool) -> bool: ...
+    @staticmethod
+    def write_file(path: str, content: str) -> bool: ...
+    @staticmethod
+    def read_file(path: str) -> Optional[str]: ...
+    @staticmethod
+    def rename_file(old_path: str, new_path: str, overwrite: bool = False) -> bool: ...
+    @staticmethod
+    def remove_dir(path: str) -> bool: ...
+    @staticmethod
+    def remove_file(path: str) -> bool: ...
+    @staticmethod
+    def create_symlink(source: str, destination: str, is_directory: bool, overwrite: bool = False) -> bool: ...
+    @staticmethod
+    def create_hardlink(source: str, destination: str) -> bool: ...
+    @staticmethod
+    def path_exists(path: str) -> bool: ...
+    @staticmethod
+    def lexists(path: str) -> bool: ...
+    @staticmethod
+    def is_dir(path: str) -> bool: ...
+    @staticmethod
+    def is_file(path: str) -> bool: ...
+    @staticmethod
+    def is_absolute(path: str) -> bool: ...
+    @staticmethod
+    def absolute_path(path: str) -> Optional[str]: ...
+    @staticmethod
+    def is_writable(path: str) -> bool: ...
+    @staticmethod
+    def is_symlink(path: str) -> bool: ...
+    @staticmethod
+    def realpath(path: str) -> Optional[str]: ...
+    @staticmethod
+    def readlink(path: str) -> Optional[str]: ...
+    @staticmethod
+    def find_subdir(base_dir: str, name: str) -> Optional[str]: ...
+    @staticmethod
+    def has_all_subdirs(base_dir: str, names: List[str]) -> bool: ...
+    @staticmethod
+    def currentdir() -> str: ...
+    @staticmethod
+    def current_dir() -> Optional[str]: ...
+    @staticmethod
+    def mkdir(path: str) -> bool: ...
+    @staticmethod
+    def attributes(path: str) -> Optional[Dict[str, Any]]: ...
+    @staticmethod
+    def list_dir(path: str) -> List[str]: ...
+
+    # --- Hashing & Utilities ---
+    @staticmethod
+    def sha1_file(path: str) -> Optional[str]: ...
+    @staticmethod
+    def md5(text: str) -> str: ...
+    @staticmethod
+    def sleep(seconds: float) -> None: ...
+
+    # --- Text / Formats ---
+    class text:
+        class json:
+            @staticmethod
+            def encode(value: Any, opts: Optional[Dict[str, Any]] = None) -> str: ...
+            @staticmethod
+            def decode(json_str: str) -> Any: ...
+            @staticmethod
+            def isNull(val: Any) -> bool: ...
+
+        class toml:
+            @staticmethod
+            def read_file(path: str) -> Optional[Dict[str, Any]]: ...
+            @staticmethod
+            def write_file(path: str, value: Dict[str, Any]) -> None: ...
+
+    # --- Process Execution ---
+    @staticmethod
+    def exec(args: List[str], options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]: ...
+    @staticmethod
+    def execSilent(args: List[str], options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]: ...
+    @staticmethod
+    def run_process(args: List[str], options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]: ...
+    @staticmethod
+    def spawn_process(args: List[str], options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]: ...
+    @staticmethod
+    def poll_process(pid: int) -> Dict[str, Any]: ...
+    @staticmethod
+    def wait_process(pid: int, timeout_ms: Optional[int] = None) -> Dict[str, Any]: ...
+    @staticmethod
+    def close_process(pid: int) -> bool: ...

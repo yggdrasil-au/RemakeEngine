@@ -1,5 +1,4 @@
 {
-
     "python.analysis.diagnosticsSource": "Pyright",
     "python.analysis.enableAsyncProgram": false,
     "python.analysis.inlayHints.callArgumentNames": "all",
@@ -7,8 +6,10 @@
     "python.analysis.exclude": ["**/__pycache__", ".git", "OldModules/**", "OldRemakeRegistry/**", "Source/**", "GameFiles/**", ".VSCodeCounter/**", ".history/**", "**/node_modules", "**/.*"],
     "python.analysis.extraPaths": [
         "./Utils",
+        "./api_definitions",
         "./Tools/Blender/blender-4.0.2-windows-x64/4.0/scripts/modules"
     ],
+    "python.analysis.stubPath": "./api_definitions",
     "python-envs.defaultEnvManager": "ms-python.python:system",
     "python.languageServer": "Pylance",
     "python.analysis.diagnosticSeverityOverrides": {
@@ -16,26 +17,6 @@
         "reportShadowedImports": "none",
         "reportMissingImports": "none",
         "reportInvalidTypeForm": "none"
-    },
-
-    "sonarlint.testFilePattern": "**/tests/**,**/*test*,**/*Test*",
-    "sonarlint.output.showVerboseLogs": false,
-    "sonarlint.disableTelemetry": true,
-    "sonarlint.trace.server": "verbose",
-    "sonarlint.analyzerProperties": {
-        "connectionId": "hfdrt",
-        "organizationKey": "yggdrasil-au",
-        "token": "719a88a10e3a20effe25a01bceb6dfae25aca0a3",
-    },
-    "sonarlint.connectedMode.connections.sonarcloud": [{
-        "organizationKey": "yggdrasil-au",
-        "connectionId": "719a88a10e3a20effe25a01bceb6dfae25aca0a3",
-        "projectKey": "yggdrasil-au_RemakeEngine",
-        "region": "EU"
-    }],
-    "sonarlint.connectedMode.project": {
-        "connectionId": "yggdrasil-au",
-        "projectKey": "yggdrasil-au_RemakeEngine2"
     },
 
     "cSpell.words": [
