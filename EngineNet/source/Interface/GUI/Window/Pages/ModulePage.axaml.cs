@@ -655,7 +655,10 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         internal Cmd(System.Func<object?, System.Threading.Tasks.Task> run) { _run = run; }
         public bool CanExecute(object? parameter) => true;
         public async void Execute(object? parameter) => await _run(parameter);
-        public event System.EventHandler? CanExecuteChanged;
+        public event System.EventHandler? CanExecuteChanged {
+            add { }
+            remove { }
+        }
     }
     /* :: :: Nested Types :: END :: */
 }

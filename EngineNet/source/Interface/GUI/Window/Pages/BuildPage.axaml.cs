@@ -149,6 +149,9 @@ public partial class BuildingPage:UserControl {
         // Unused, but required by interface
         public async void Execute(object? parameter) => await _run(parameter);
         // Unused, but required by interface
-        public event System.EventHandler? CanExecuteChanged;
+        public event System.EventHandler? CanExecuteChanged {
+            add { }
+            remove { }
+        }
     }
 }

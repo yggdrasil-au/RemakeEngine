@@ -276,6 +276,9 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
         private readonly Func<object?, Task> _run = run;
         public bool CanExecute(object? p) => true;
         public async void Execute(object? p) => await _run(p);
-        public event EventHandler? CanExecuteChanged;
+        public event EventHandler? CanExecuteChanged {
+            add { }
+            remove { }
+        }
     }
 }

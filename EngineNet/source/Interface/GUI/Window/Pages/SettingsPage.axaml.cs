@@ -40,7 +40,10 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
         public Cmd(System.Func<object?, Task> run) => _run = run;
         public bool CanExecute(object? parameter) => true;
         public async void Execute(object? parameter) => await _run(parameter);
-        public event EventHandler? CanExecuteChanged;
+        public event EventHandler? CanExecuteChanged {
+            add { }
+            remove { }
+        }
     }
 
     /** :: :: Methods :: END :: **/

@@ -255,7 +255,10 @@ public partial class LibraryPage:UserControl {
         public SimpleCommand(System.Action<object?> a) => _a = a;
         public bool CanExecute(object? p) => true;
         public void Execute(object? p) => _a(p);
-        public event System.EventHandler? CanExecuteChanged;
+        public event System.EventHandler? CanExecuteChanged {
+            add { }
+            remove { }
+        }
     }
 
     /* :: :: Nested Types :: END :: */
