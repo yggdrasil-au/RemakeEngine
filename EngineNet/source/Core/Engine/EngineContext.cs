@@ -20,7 +20,6 @@ public record EngineContext(
 
 // operation context record
 public record OperationContext(
-    OperationExecution OperationExecution,
     Core.Services.OperationsService OperationsService,
     Core.Services.OperationsLoader OperationsLoader
 );

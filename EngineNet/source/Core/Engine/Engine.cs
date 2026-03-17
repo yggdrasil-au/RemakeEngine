@@ -27,14 +27,12 @@ public sealed partial class Engine {
 
         Core.EngineConfig engineConfig,
 
-        Core.Engine.OperationExecution operationExecution,
         Core.Engine.Runner runner
     ) {
         GameLauncher = gameLauncher;
         Runner = runner;
 
         OperationContext operationContext = new OperationContext(
-            operationExecution,
             operationsService,
             operationsLoader
         );

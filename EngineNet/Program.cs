@@ -202,7 +202,6 @@ public static class Program {
             var _commandService = new Core.Services.CommandService();
             var _operationsService = new Core.Services.OperationsService(_opsLoader, gameRegistry);
 
-            var operationExecution = new Core.Engine.OperationExecution();
             var Runner = new Core.Engine.Runner();
 
             Core.Engine.Engine _engine = new Core.Engine.Engine(
@@ -214,7 +213,6 @@ public static class Program {
                 commandService: _commandService,
                 toolResolver: tools,
                 engineConfig: engineConfig,
-                operationExecution: operationExecution,
                 runner: Runner
             );
             return _engine;

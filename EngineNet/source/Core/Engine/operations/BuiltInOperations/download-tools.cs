@@ -1,10 +1,16 @@
-using System.Collections.Generic;
-using EngineNet.Core.ExternalTools;
+
 using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 public partial class BuiltInOperations {
-    public async System.Threading.Tasks.Task<bool> DownloadTools(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath, EngineContext context, System.Threading.CancellationToken cancellationToken = default) {
+    public async System.Threading.Tasks.Task<bool> DownloadTools(
+        IDictionary<string, object?> op,
+        IDictionary<string, object?> promptAnswers,
+        string currentGame,
+        Dictionary<string, Core.Utils.GameModuleInfo> games,
+        EngineContext context,
+        System.Threading.CancellationToken cancellationToken = default
+    ) {
         // Expect a 'tools_manifest' value (path), or fallback to first arg
         string? manifest = null;
         if (op.TryGetValue("tools_manifest", out object? tm) && tm is not null) {
@@ -24,8 +30,8 @@ public partial class BuiltInOperations {
         // Built-in placeholders
         string gameRoot = gobj.GameRoot;
         ctx["Game_Root"] = gameRoot;
-        ctx["Project_Root"] = RootPath;
-        ctx["Registry_Root"] = System.IO.Path.Combine(RootPath, "EngineApps");
+        ctx["Project_Root"] = Program.rootPath;
+        ctx["Registry_Root"] = System.IO.Path.Combine(Program.rootPath, "EngineApps");
         ctx["Game"] = new Dictionary<string, object?> {
             ["RootPath"] = gameRoot,
             ["Name"] = currentGame,
@@ -55,7 +61,7 @@ public partial class BuiltInOperations {
             Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
         }
         cfgDict0["module_path"] = gameRoot;
-        cfgDict0["project_path"] = RootPath;
+        cfgDict0["project_path"] = Program.rootPath;
         string resolvedManifest = Core.Utils.Placeholders.Resolve(manifest!, ctx)?.ToString() ?? manifest!;
 
         bool force = false;
@@ -67,7 +73,7 @@ public partial class BuiltInOperations {
             force = b2;
         }
 
-        ExternalTools.ToolsDownloader dl = new ExternalTools.ToolsDownloader(RootPath, "");
+        ExternalTools.ToolsDownloader dl = new ExternalTools.ToolsDownloader(Program.rootPath, "");
         await dl.ProcessAsync(resolvedManifest, force, ctx, cancellationToken);
         return true;
     }

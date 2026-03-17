@@ -5,7 +5,14 @@ using EngineNet.Core.Serialization.Toml;
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 public partial class BuiltInOperations {
 
-    public bool rename_folders(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath, EngineContext context, System.Threading.CancellationToken cancellationToken = default) {
+    public bool rename_folders(
+        IDictionary<string, object?> op,
+        IDictionary<string, object?> promptAnswers,
+        string currentGame,
+        Dictionary<string, Core.Utils.GameModuleInfo> games,
+        EngineContext context,
+        System.Threading.CancellationToken cancellationToken = default
+    ) {
         Dictionary<string, object?> ctx = new Dictionary<string, object?>(context.EngineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
         if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobj3)) {
             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
@@ -13,8 +20,8 @@ public partial class BuiltInOperations {
         // Built-in placeholders
         string gameRoot5 = gobj3.GameRoot;
         ctx["Game_Root"] = gameRoot5;
-        ctx["Project_Root"] = RootPath;
-        ctx["Registry_Root"] = System.IO.Path.Combine(RootPath, "EngineApps");
+        ctx["Project_Root"] = Program.rootPath;
+        ctx["Registry_Root"] = System.IO.Path.Combine(Program.rootPath, "EngineApps");
         ctx["Game"] = new Dictionary<string, object?> {
             ["RootPath"] = gameRoot5,
             ["Name"] = currentGame,
@@ -41,7 +48,7 @@ public partial class BuiltInOperations {
             Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
         }
         cfgDict4["module_path"] = gameRoot5;
-        cfgDict4["project_path"] = RootPath;
+        cfgDict4["project_path"] = Program.rootPath;
 
         List<string> args = new List<string>();
         if (op.TryGetValue("args", out object? aobjRename) && aobjRename is System.Collections.IList aListRename) {

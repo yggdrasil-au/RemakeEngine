@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 
 namespace EngineNet.Core.Engine;
 
@@ -56,7 +54,8 @@ public sealed class Runner {
                         Core.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Executing engine operation {title} ({action})");
                         Core.UI.EngineSdk.PrintLine(message: $"\n>>> Engine operation: {title}");
                         // delegate engine type handling to ExecuteEngineOperationAsync
-                        result = await context.OperationContext.OperationExecution.ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, context, cancellationToken);
+                        var OperationExecution = new Core.Engine.OperationExecution();
+                        result = await OperationExecution.ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, context, cancellationToken);
                     } catch (System.Exception ex) {
                         Core.UI.EngineSdk.PrintLine($"engine ERROR: {ex.Message}");
                         result = false;

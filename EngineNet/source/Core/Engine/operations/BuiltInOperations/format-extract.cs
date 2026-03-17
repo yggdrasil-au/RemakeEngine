@@ -5,7 +5,14 @@ using EngineNet.Core.Serialization.Toml;
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 public partial class BuiltInOperations {
 
-    public bool format_extract(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath, EngineContext context, System.Threading.CancellationToken cancellationToken = default) {
+    public bool format_extract(
+        IDictionary<string, object?> op,
+        IDictionary<string, object?> promptAnswers,
+        string currentGame,
+        Dictionary<string, Core.Utils.GameModuleInfo> games,
+        EngineContext context,
+        System.Threading.CancellationToken cancellationToken = default
+    ) {
         // Determine input file format
         string? format = op.TryGetValue("format", out object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
 
@@ -17,8 +24,8 @@ public partial class BuiltInOperations {
         // Built-in placeholders
         string gameRoot2 = gobj.GameRoot;
         ctx["Game_Root"] = gameRoot2;
-        ctx["Project_Root"] = RootPath;
-        ctx["Registry_Root"] = System.IO.Path.Combine(RootPath, "EngineApps");
+        ctx["Project_Root"] = Program.rootPath;
+        ctx["Registry_Root"] = System.IO.Path.Combine(Program.rootPath, "EngineApps");
         ctx["Game"] = new Dictionary<string, object?> {
             ["RootPath"] = gameRoot2,
             ["Name"] = currentGame,
@@ -45,7 +52,7 @@ public partial class BuiltInOperations {
             Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
         }
         cfgDict1["module_path"] = gameRoot2;
-        cfgDict1["project_path"] = RootPath;
+        cfgDict1["project_path"] = Program.rootPath;
 
         List<string> args = new List<string>();
         if (op.TryGetValue("args", out object? aobj) && aobj is System.Collections.IList aList) {

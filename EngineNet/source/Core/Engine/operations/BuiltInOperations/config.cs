@@ -8,11 +8,8 @@ public partial class BuiltInOperations {
 
     public bool config(
         IDictionary<string, object?> op,
-        IDictionary<string, object?> promptAnswers,
         string currentGame,
-        Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
-        string RootPath,
-        EngineContext context
+        Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games
     ) {
         // Parse arguments
         var argsList = op.TryGetValue("args", out object? argsObj) && argsObj is IList<object?> list
@@ -28,7 +25,7 @@ public partial class BuiltInOperations {
                 configPath = System.IO.Path.Combine(gameInfo.GameRoot, "config.toml");
             } else {
                 // Fallback
-                configPath = System.IO.Path.Combine(RootPath, "config.toml");
+                configPath = System.IO.Path.Combine(Program.rootPath, "config.toml");
             }
         }
 

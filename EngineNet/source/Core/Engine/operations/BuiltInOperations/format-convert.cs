@@ -3,7 +3,14 @@ using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 public partial class BuiltInOperations {
-    public bool format_convert(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath, EngineContext context, System.Threading.CancellationToken cancellationToken = default) {
+    public bool format_convert(
+        IDictionary<string, object?> op,
+        IDictionary<string, object?> promptAnswers,
+        string currentGame,
+        Dictionary<string, Core.Utils.GameModuleInfo> games,
+        EngineContext context,
+        System.Threading.CancellationToken cancellationToken = default
+    ) {
         Core.Diagnostics.Log("[Engine.private.cs :: Operations()]] format-convert");
         // Determine tool - check both 'tool' field and '-m'/'--mode' in args
         string? tool = op.TryGetValue("tool", out object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
@@ -45,8 +52,8 @@ public partial class BuiltInOperations {
         // Built-in placeholders
         string gameRoot3 = gobj.GameRoot;
         ctx["Game_Root"] = gameRoot3;
-        ctx["Project_Root"] = RootPath;
-        ctx["Registry_Root"] = System.IO.Path.Combine(RootPath, "EngineApps");
+        ctx["Project_Root"] = Program.rootPath;
+        ctx["Registry_Root"] = System.IO.Path.Combine(Program.rootPath, "EngineApps");
         ctx["Game"] = new Dictionary<string, object?> {
             ["RootPath"] = gameRoot3,
             ["Name"] = currentGame,
@@ -74,7 +81,7 @@ public partial class BuiltInOperations {
         // ignore
         }
         cfgDict2["module_path"] = gameRoot3;
-        cfgDict2["project_path"] = RootPath;
+        cfgDict2["project_path"] = Program.rootPath;
 
         List<string> args = new List<string>();
         if (op.TryGetValue("args", out object? aobj) && aobj is System.Collections.IList aList) {

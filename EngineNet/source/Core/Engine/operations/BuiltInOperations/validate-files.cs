@@ -1,10 +1,16 @@
-using System.Collections.Generic;
+
 using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 public partial class BuiltInOperations {
 
-    public bool validate_files(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath, EngineContext context, System.Threading.CancellationToken cancellationToken = default) {
+    public bool validate_files(
+        IDictionary<string, object?> op,
+        IDictionary<string, object?> promptAnswers,
+        string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games,
+        EngineContext context,
+        System.Threading.CancellationToken cancellationToken = default
+    ) {
         Dictionary<string, object?> ctx = new Dictionary<string, object?>(context.EngineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
         if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobjValidate)) {
             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
@@ -12,8 +18,8 @@ public partial class BuiltInOperations {
         // Built-in placeholders
         string gameRoot4 = gobjValidate.GameRoot;
         ctx["Game_Root"] = gameRoot4;
-        ctx["Project_Root"] = RootPath;
-        ctx["Registry_Root"] = System.IO.Path.Combine(RootPath, "EngineApps");
+        ctx["Project_Root"] = Program.rootPath;
+        ctx["Registry_Root"] = System.IO.Path.Combine(Program.rootPath, "EngineApps");
         ctx["Game"] = new Dictionary<string, object?> {
             ["RootPath"] = gameRoot4,
             ["Name"] = currentGame,
@@ -40,7 +46,7 @@ public partial class BuiltInOperations {
             Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
         }
         cfgDict3["module_path"] = gameRoot4;
-        cfgDict3["project_path"] = RootPath;
+        cfgDict3["project_path"] = Program.rootPath;
 
         string? resolvedDbPath = null;
         if (op.TryGetValue("db", out object? dbObj) && dbObj is not null) {
