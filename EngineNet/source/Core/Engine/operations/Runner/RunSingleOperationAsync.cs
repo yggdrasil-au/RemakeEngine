@@ -14,7 +14,7 @@ public sealed class Runner {
     /// <param name="promptAnswers"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
+    public async System.Threading.Tasks.Task<bool> RRunSingleOperationAsync(
         string currentGame,
         Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
         IDictionary<string, object?> op,
@@ -138,7 +138,7 @@ public sealed class Runner {
         if (result && OperationExecution.TryGetOnSuccessOperations(op, out List<Dictionary<string, object?>>? followUps) && followUps is not null) {
             foreach (Dictionary<string, object?> childOp in followUps) {
                 if (cancellationToken.IsCancellationRequested) break;
-                bool ok = await RunSingleOperationAsync(currentGame, games, childOp, promptAnswers, context, cancellationToken);
+                bool ok = await RRunSingleOperationAsync(currentGame, games, childOp, promptAnswers, context, cancellationToken);
                 if (!ok) {
                     result = false; // propagate failure from any onsuccess step
                 }

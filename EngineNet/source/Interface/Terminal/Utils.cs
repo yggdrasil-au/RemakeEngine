@@ -63,7 +63,7 @@ public class Utils() {
 
                     Core.UI.EngineSdk.LocalEventSink = OnEvent;
                     Core.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
-                    return await _engine.Runner.RunSingleOperationAsync(
+                    return await _engine.RunSingleOperationAsync(
                         game,
                         games,
                         op,

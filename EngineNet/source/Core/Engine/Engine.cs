@@ -13,6 +13,8 @@ public sealed partial class Engine {
     public Core.Engine.Runner Runner { get; }
     public Core.Engine.EngineContext Context { get; }
 
+    public EngineRunAll EngineRunAll { get; }
+
     /* :: :: Vars :: End :: */
 
     public Engine(
@@ -37,6 +39,8 @@ public sealed partial class Engine {
             operationsLoader
         );
 
+        EngineRunAll = new EngineRunAll();
+
         Context = new Core.Engine.EngineContext(
             gameRegistry,
             commandService,
@@ -53,6 +57,30 @@ public sealed partial class Engine {
     /* :: :: */
     //
     /* :: :: */
+
+    // run single operation (used by GUI/TUI and RunAllAsync)
+    public async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
+        string currentGame,
+        Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
+        IDictionary<string, object?> op,
+        IDictionary<string, object?> promptAnswers,
+        EngineContext context, // ignored in favor of this.Context
+        System.Threading.CancellationToken cancellationToken = default
+    ) {
+        return await Runner.RRunSingleOperationAsync(currentGame, games, op, promptAnswers, this.Context, cancellationToken);
+    }
+
+    // run all
+    public async System.Threading.Tasks.Task<RunAllResult> RunAllAsync(
+        string gameName,
+        Core.ProcessRunner.OutputHandler? onOutput = null,
+        Core.ProcessRunner.EventHandler? onEvent = null,
+        Core.ProcessRunner.StdinProvider? stdinProvider = null,
+        System.Threading.CancellationToken cancellationToken = default
+    ) {
+        return await EngineRunAll.RunAllAsync(gameName, this, onOutput, onEvent, stdinProvider, cancellationToken);
+    }
+
 
     // Downloads a game module via Git
     public bool DownloadModule(string url) {

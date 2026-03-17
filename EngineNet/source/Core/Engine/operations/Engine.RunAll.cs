@@ -4,7 +4,7 @@ namespace EngineNet.Core.Engine;
 
 public sealed record RunAllResult(string Game, bool Success, int TotalOperations, int SucceededOperations);
 
-public sealed partial class Engine {
+public sealed class EngineRunAll {
 
     // this is the meathod used to execute the run all ops by both GUI and TUI
 
@@ -21,7 +21,14 @@ public sealed partial class Engine {
     /// <exception cref="KeyNotFoundException"></exception>
     /// <exception cref="System.IO.FileNotFoundException"></exception>
     /// <exception cref="System.Exception"></exception>
-    public async System.Threading.Tasks.Task<RunAllResult> RunAllAsync(string gameName, Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, System.Threading.CancellationToken cancellationToken = default) {
+    public async System.Threading.Tasks.Task<RunAllResult> RunAllAsync(
+        string gameName,
+        Core.Engine.Engine _engine,
+        Core.ProcessRunner.OutputHandler? onOutput = null,
+        Core.ProcessRunner.EventHandler? onEvent = null,
+        Core.ProcessRunner.StdinProvider? stdinProvider = null,
+        System.Threading.CancellationToken cancellationToken = default
+    ) {
 
         Core.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Starting RunAllAsync for game '{gameName}', onOutput: {(onOutput is null ? "null" : "set")}, onEvent: {(onEvent is null ? "null" : "set")}, stdinProvider: {(stdinProvider is null ? "null" : "set")}");
 
@@ -29,7 +36,7 @@ public sealed partial class Engine {
             throw new System.ArgumentException("Game name is required.", nameof(gameName));
         }
 
-        Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games = Modules(Core.Utils.ModuleFilter.All);
+        Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games = _engine.Modules(Core.Utils.ModuleFilter.All);
         if (!games.TryGetValue(gameName, out EngineNet.Core.Utils.GameModuleInfo? gameInfo)) {
             throw new KeyNotFoundException($"Game '{gameName}' not found.");
         }
@@ -38,7 +45,7 @@ public sealed partial class Engine {
             throw new System.IO.FileNotFoundException($"Operations file for '{gameName}' is missing.", gameInfo.OpsFile);
         }
 
-        List<Dictionary<string, object?>>? allOps = Context.OperationContext.OperationsLoader.LoadOperations(gameInfo.OpsFile);
+        List<Dictionary<string, object?>>? allOps = _engine.Context.OperationContext.OperationsLoader.LoadOperations(gameInfo.OpsFile);
         if (allOps is null) {
             throw new System.Exception($"Failed to load operations file for '{gameName}'.");
         }
@@ -123,7 +130,7 @@ public sealed partial class Engine {
                     string? scriptType = GetScriptType(op);
                     // ensure script type is valid
                     if (Core.Utils.ScriptConstants.IsSupported(scriptType)) {
-                        ok = await Runner.RunSingleOperationAsync(gameName, games, op, promptAnswers, Context, cancellationToken).ConfigureAwait(false);
+                        ok = await _engine.RunSingleOperationAsync(gameName, games, op, promptAnswers, _engine.Context, cancellationToken).ConfigureAwait(false);
                     } else if (string.IsNullOrEmpty(scriptType)) {
                         Core.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Skipping operation '{currentOperation}' due to null or empty script type");
                         overallSuccess = false;
