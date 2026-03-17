@@ -1,8 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
-using System.Collections.Generic;
-using EngineNet.Core.Utils;
 
 namespace EngineNet.ScriptEngines.qbms;
 
@@ -125,7 +120,7 @@ public static class QuickBmsExtractor {
 
         cts.Cancel();
         try { panel.Wait(); } catch {
-                        Core.Diagnostics.Bug("Failed to wait for progress panel");
+            Core.Diagnostics.Bug("Failed to wait for progress panel");
             /* ignore */
         }
 
@@ -293,10 +288,8 @@ public static class QuickBmsExtractor {
         // todo
         // due to large output volumes, only forward stderr in DEBUG builds, use Progress Bar in release
         // tui has been improved, this shouldnt be an issue, GUI may still freeze.. untested
-//#if DEBUG
         // this will make stderr red, but for somereason quickbms often outputs to it so outputs may be mixed
         Write(colour, "[quickbms] " + line);
-//#endif
     }
 
     private static void WriteInfo(string message) => Write(System.ConsoleColor.Cyan, message);

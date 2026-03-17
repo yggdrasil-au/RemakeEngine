@@ -1,17 +1,16 @@
-using System.Linq;
-using System.Collections.Generic;
+
 using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.ScriptEngines.qbms;
 
-public sealed class QuickBmsScriptAction : Helpers.IAction {
+public sealed class Main : Helpers.IAction {
     private readonly string _scriptPath;   // path to .bms
     private readonly string _moduleRoot;   // Game_Root
     private readonly string _inputDir;
     private readonly string _outputDir;
     private readonly string? _extension;
 
-    internal QuickBmsScriptAction(
+    public Main(
         string scriptPath,
         string moduleRoot,
         string inputDir,
@@ -86,4 +85,5 @@ public sealed class QuickBmsScriptAction : Helpers.IAction {
             throw new System.InvalidOperationException("QuickBMS extraction failed.");
         }
     }
+
 }

@@ -131,28 +131,6 @@ public sealed partial class Engine {
                         Core.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Skipping operation '{currentOperation}' due to unsupported script type '{scriptType}'");
                         overallSuccess = false;
                     }
-
-                    /*else {
-                        // this feature is disabled, for any non builtin script types, execute via lua
-                        // External script type
-                        List<string> command = BuildCommand(gameName, games, op, promptAnswers);
-                        if (command.Count >= 2) {
-                            Core.ProcessRunner.EventHandler? proxy = onEvent is null ? null : evt => {
-                                Dictionary<string, object?> payload = CloneEvent(evt);
-                                payload["game"] = gameName;
-                                payload["operation"] = currentOperation;
-                                onEvent(payload);
-                            };
-
-                            ok = ExecuteCommand(
-                                command,
-                                currentOperation,
-                                onOutput,
-                                proxy,
-                                stdinProvider,
-                                cancellationToken: cancellationToken);
-                        }
-                    }*/
                 } catch (System.Exception ex) {
                     overallSuccess = false;
                     EmitSequenceEvent(onEvent, evt: "run-all-op-error", gameName, extras: new Dictionary<string, object?> {
@@ -199,7 +177,6 @@ public sealed partial class Engine {
     /* :: End of RunAllAsync :: */
     //
     /* :: Helper methods for RunAllAsync :: */
-
 
     /// <summary>
     /// Clones an event dictionary.
@@ -292,7 +269,6 @@ public sealed partial class Engine {
         list.Add(op);
     }
 
-
     /// <summary>
     /// Builds default answers for prompts defined in the operation.
     /// </summary>
@@ -344,6 +320,7 @@ public sealed partial class Engine {
 
         return answers;
     }
+
     /// <summary>
     /// Gets a string value from a dictionary by key.
     /// </summary>
@@ -353,8 +330,6 @@ public sealed partial class Engine {
     private static string GetString(Dictionary<string, object?> dict, string key) {
         return dict.TryGetValue(key, out object? value) ? value?.ToString() ?? string.Empty : string.Empty;
     }
-
-
 
     /// <summary>
     /// Provides an empty value for a prompt based on its type.
@@ -366,7 +341,6 @@ public sealed partial class Engine {
         "checkbox" => new List<object?>(),
         _ => null
     };
-
 
     /// <summary>
     /// Resolves the operation name for event reporting.

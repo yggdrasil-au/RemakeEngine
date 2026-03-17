@@ -109,7 +109,7 @@ public class GameLauncher : IGameLauncher {
                 string ext = System.IO.Path.GetExtension(scriptPath).TrimStart('.').ToLowerInvariant();
 
                 // Use the dispatcher to create the correct action (Lua, JS, or Python)
-                var action = EngineNet.ScriptEngines.Helpers.EmbeddedActionDispatcher.TryCreate(
+                var action = EngineNet.ScriptEngines.ScriptActionDispatcher.EmbeddedActionDispatcher.TryCreate(
                     scriptType: ext,
                     scriptPath: scriptPath!,
                     args: System.Array.Empty<string>(), // Launching a game usually implies no args, or you could parse them from toml

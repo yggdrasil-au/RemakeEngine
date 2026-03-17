@@ -75,18 +75,25 @@ public sealed class Engino {
                         string outputDir = op.TryGetValue("output", out object? out0) ? out0?.ToString() ?? string.Empty : string.Empty;
                         string? extension = op.TryGetValue("extension", out object? ext0) ? ext0?.ToString() : null;
 
-                        if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobjBms)) {
+                        if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gameInfo)) {
                             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                         }
-                        string gameRootBms = gobjBms.GameRoot;
 
-                        ScriptEngines.qbms.QuickBmsScriptAction action = new ScriptEngines.qbms.QuickBmsScriptAction(
+                        var action = ScriptEngines.ScriptActionDispatcher.ExternalActionDispatcher.TryCreate(
+                            scriptType: scriptType,
                             scriptPath: scriptPath,
-                            moduleRoot: gameRootBms,
+                            gameRoot: gameInfo.GameRoot,
                             inputDir: inputDir,
                             outputDir: outputDir,
                             extension: extension
                         );
+
+                        if (action is null) {
+                            result = false;
+                            Core.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Unsupported external script type '{scriptType}'");
+                            break;
+                        }
+
                         await action.ExecuteAsync(ToolResolver, cancellationToken);
                         result = true;
                     } catch (System.Exception ex) {
@@ -100,7 +107,7 @@ public sealed class Engino {
                     try {
                         // create the action with the dispatcher
                         IEnumerable<string> argsEnum = args;
-                        ScriptEngines.Helpers.IAction? act = ScriptEngines.Helpers.EmbeddedActionDispatcher.TryCreate(
+                        ScriptEngines.Helpers.IAction? act = ScriptEngines.ScriptActionDispatcher.EmbeddedActionDispatcher.TryCreate(
                             scriptType: scriptType,
                             scriptPath: scriptPath,
                             args: argsEnum,

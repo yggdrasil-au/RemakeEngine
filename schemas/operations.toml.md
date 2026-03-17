@@ -13,10 +13,11 @@ Operations are defined in TOML format using `[[operation]]` array entries. Each 
 - **`Name`** (string): Display name shown in UI/TUI menus.
 - **`script_type`** (string): Script interpreter type. Options:
   - `"lua"` - Lua script execution (default)
-  - `"engine"` - Built-in engine operation
+  - `"engine"` - Built-in engine operation (no external script, implemented in C#)
   - `"bms"` - QuickBMS script
   - `"python"` - Python script
   - `"js"` - JavaScript script
+  - `"internal"` - Internal operation, like 'engine' but cannot be called by modules (used for core engine tasks)
 - **`args`** (array): Static arguments passed to the script. Supports placeholder expansion.
 - **`init`** (boolean): If `true`, runs automatically during module initialization and is hidden from UI menus. Default: `false`
 - **`run-all`** (boolean): If `true`, included in "Run All" sequences. Default: `false`

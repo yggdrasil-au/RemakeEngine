@@ -1,11 +1,6 @@
-using System.Linq;
-using System.Collections.Generic;
-
 using Avalonia;
 
-using EngineNet.Core;
 using EngineNet.Core.UI;
-using System;
 
 namespace EngineNet;
 
