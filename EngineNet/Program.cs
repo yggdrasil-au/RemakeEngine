@@ -6,6 +6,11 @@ namespace EngineNet;
 
 public static class Program {
 
+    public static Core.Engine.Engine Engine {
+        get; private set;
+    } = Program.InitialiseEngine(); // Initialized via Run or defaulted for design time
+
+
     public static string rootPath {get; private set;} = string.Empty;
 
     public static bool isGui {get; private set;} = false;
@@ -70,33 +75,7 @@ public static class Program {
                 Core.Diagnostics.Trace("Allocated new console window for TUI/CLI mode.");
             }
 
-            // :: Setup Services
-            var tools = new Core.ExternalTools.JsonToolResolver();
-            var engineConfig = new Core.EngineConfig();
-
-            var gameRegistry = new Core.Services.GameRegistry();
-
-            var _gameLauncher = new Core.Services.GameLauncher(gameRegistry, tools, engineConfig, rootPath);
-            var _opsLoader = new Core.Services.OperationsLoader();
-            var _gitService = new Core.Services.GitService();
-            var _commandService = new Core.Services.CommandService();
-            var _operationsService = new Core.Services.OperationsService(_opsLoader, gameRegistry);
-
-            var operationExecution = new Core.Engine.OperationExecution();
-            var _runner = new Core.Engine.Runner();
-
-            var _engine = new Core.Engine.Engine(
-                gameRegistry: gameRegistry,
-                gameLauncher: _gameLauncher,
-                operationsLoader: _opsLoader,
-                operationsService: _operationsService,
-                gitService: _gitService,
-                commandService: _commandService,
-                toolResolver: tools,
-                engineConfig: engineConfig,
-                operationExecution: operationExecution,
-                runner: _runner
-            );
+            var _engine = Engine;
 
             // 3. Interface selection based on "Remaining Args" (args with --root removed)
 
@@ -197,6 +176,46 @@ public static class Program {
             Core.Diagnostics.Bug($"Error finding project root: {e.Message}");
         }
         return string.Empty;
+    }
+
+
+    /// <summary>
+    /// Initialises the engine
+    /// </summary>
+    public static Core.Engine.Engine InitialiseEngine() {
+        if (Engine == null) {
+            var tools = new Core.ExternalTools.JsonToolResolver();
+            var engineConfig = new Core.EngineConfig();
+
+            var _registries = new Core.Utils.Registries();
+            var _scanner = new Core.Utils.ModuleScanner(_registries);
+
+            var gameRegistry = new Core.Services.GameRegistry(_registries, _scanner);
+
+            var _gameLauncher = new Core.Services.GameLauncher(gameRegistry, tools, engineConfig, Program.rootPath);
+            var _opsLoader = new Core.Services.OperationsLoader();
+            var _gitService = new Core.Services.GitService();
+            var _commandService = new Core.Services.CommandService();
+            var _operationsService = new Core.Services.OperationsService(_opsLoader, gameRegistry);
+
+            var operationExecution = new Core.Engine.OperationExecution();
+            var Runner = new Core.Engine.Runner();
+
+            Core.Engine.Engine _engine = new Core.Engine.Engine(
+                gameRegistry: gameRegistry,
+                gameLauncher: _gameLauncher,
+                operationsLoader: _opsLoader,
+                operationsService: _operationsService,
+                gitService: _gitService,
+                commandService: _commandService,
+                toolResolver: tools,
+                engineConfig: engineConfig,
+                operationExecution: operationExecution,
+                runner: Runner
+            );
+            return _engine;
+        }
+        return Engine;
     }
 
     /// <summary>

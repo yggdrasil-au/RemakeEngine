@@ -16,7 +16,7 @@ public static class GuiBootstrapper {
     /// </summary>
     public static Core.Engine.Engine Engine {
         get; private set;
-    } = PopulateDefaultEngine(); // Initialized via Run or defaulted for design time
+    } = Program.InitialiseEngine(); // if not set by Program.Run, force reinitialization (e.g., for Avalonia previewer)
 
     /// <summary>
     /// Launches the Avalonia desktop application with the provided engine.
@@ -50,44 +50,6 @@ public static class GuiBootstrapper {
             System.Console.Error.WriteLine(value: $"GUI error: {ex.Message}");
             return 1;
         }
-    }
-
-
-    /// <summary>
-    /// Initialises the engine when not run via program (e.g., for Avalonia previewer).
-    /// Allows the previewer to operate with a mock/default context.
-    /// </summary>
-    private static Core.Engine.Engine PopulateDefaultEngine() {
-        if (Engine == null) {
-            var tools = new Core.ExternalTools.JsonToolResolver();
-            var engineConfig = new Core.EngineConfig();
-
-            var gameRegistry = new Core.Services.GameRegistry();
-
-            var _gameLauncher = new Core.Services.GameLauncher(gameRegistry, tools, engineConfig, Program.rootPath);
-            var _opsLoader = new Core.Services.OperationsLoader();
-            var _gitService = new Core.Services.GitService();
-            var _commandService = new Core.Services.CommandService();
-            var _operationsService = new Core.Services.OperationsService(_opsLoader, gameRegistry);
-
-            var operationExecution = new Core.Engine.OperationExecution();
-            var Runner = new Core.Engine.Runner();
-
-            Core.Engine.Engine _engine = new Core.Engine.Engine(
-                gameRegistry: gameRegistry,
-                gameLauncher: _gameLauncher,
-                operationsLoader: _opsLoader,
-                operationsService: _operationsService,
-                gitService: _gitService,
-                commandService: _commandService,
-                toolResolver: tools,
-                engineConfig: engineConfig,
-                operationExecution: operationExecution,
-                runner: Runner
-            );
-            return _engine;
-        }
-        return Engine;
     }
 
     /// <summary>

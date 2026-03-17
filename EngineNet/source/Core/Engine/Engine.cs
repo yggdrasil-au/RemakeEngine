@@ -39,6 +39,7 @@ public sealed partial class Engine {
         OperationsLoader = operationsLoader;
         OperationsService = operationsService;
         Runner = runner;
+
         Context = new Core.Engine.EngineContext(
             gameRegistry,
             commandService,
@@ -84,7 +85,7 @@ public sealed partial class Engine {
 
     // Discovers built games from registries
     public Dictionary<string, Core.Utils.GameInfo> DiscoverBuiltGames() {
-        return Context.GameRegistry.GetBuiltGames();
+        return Context.GameRegistry._registries.DiscoverBuiltGames();
     }
 
     // Gets the executable path for a built game

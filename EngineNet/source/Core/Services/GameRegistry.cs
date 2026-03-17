@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-
-using EngineNet.Core.Utils;
 
 namespace EngineNet.Core.Services;
 
@@ -9,25 +6,20 @@ namespace EngineNet.Core.Services;
 /// This class is responsible for locating game modules, built games, and their associated files.
 /// </summary>
 public class GameRegistry {
-    private readonly ModuleScanner _scanner;
-    private readonly Registries _registries;
+    private readonly Core.Utils.ModuleScanner _scanner;
+    public readonly Core.Utils.Registries _registries;
     private readonly string _rootPath = Program.rootPath;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GameRegistry"/> class.
     /// </summary>
-    public GameRegistry() {
-        //_rootPath = rootPath;
-        _registries = new Registries();
-        _scanner = new ModuleScanner(_registries);
+    public GameRegistry(Core.Utils.Registries registries, Core.Utils.ModuleScanner scanner) {
+        _registries = registries;
+        _scanner = scanner;
     }
 
-    public Dictionary<string, GameModuleInfo> GetModules(ModuleFilter filter) {
+    public Dictionary<string, Core.Utils.GameModuleInfo> GetModules(Core.Utils.ModuleFilter filter) {
         return _scanner.Modules(filter);
-    }
-
-    public Dictionary<string, GameInfo> GetBuiltGames() {
-        return _registries.DiscoverBuiltGames();
     }
 
     /// <summary>
@@ -36,7 +28,7 @@ public class GameRegistry {
     /// <param name="name">The name of the game.</param>
     /// <returns>The full path to the game's executable if found; otherwise, null.</returns>
     public string? GetGameExecutable(string name) {
-        return _registries.DiscoverBuiltGames().TryGetValue(name, out GameInfo? gi) ? gi.ExePath : null;
+        return _registries.DiscoverBuiltGames().TryGetValue(name, out Core.Utils.GameInfo? gi) ? gi.ExePath : null;
     }
 
     /// <summary>
@@ -47,7 +39,7 @@ public class GameRegistry {
     /// <returns>The root directory path of the game if found; otherwise, null.</returns>
     public string? GetGamePath(string name) {
         // Prefer installed location first, then fall back to downloaded location
-        if (_registries.DiscoverBuiltGames().TryGetValue(name, out GameInfo? gi))
+        if (_registries.DiscoverBuiltGames().TryGetValue(name, out Core.Utils.GameInfo? gi))
             return gi.GameRoot;
         string dir = System.IO.Path.Combine(_rootPath, "EngineApps", "Games", name);
         return System.IO.Directory.Exists(dir) ? dir : null;
