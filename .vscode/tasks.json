@@ -4,7 +4,7 @@
 		{
 			"label": "Build RemakeEngine solution",
 			"type": "shell",
-			"command": "dotnet build RemakeEngine.sln",
+			"command": "dotnet build RemakeEngine.slnx",
 			"args": [],
 			"isBackground": false,
 			"problemMatcher": [
@@ -15,7 +15,7 @@
 		{
 			"label": "Build RemakeEngine solution",
 			"type": "shell",
-			"command": "dotnet build RemakeEngine.sln",
+			"command": "dotnet build RemakeEngine.slnx",
 			"args": [],
 			"isBackground": false,
 			"group": "build"
@@ -23,35 +23,35 @@
 		{
 			"label": "Build RemakeEngine solution",
 			"type": "shell",
-			"command": "dotnet build RemakeEngine.sln",
+			"command": "dotnet build RemakeEngine.slnx",
 			"isBackground": false,
 			"group": "build"
 		},
 		{
 			"label": "Build RemakeEngine solution",
 			"type": "shell",
-			"command": "dotnet build RemakeEngine.sln",
+			"command": "dotnet build RemakeEngine.slnx",
 			"isBackground": false,
 			"group": "build"
 		},
 		{
 			"label": "Build RemakeEngine solution",
 			"type": "shell",
-			"command": "dotnet build RemakeEngine.sln",
+			"command": "dotnet build RemakeEngine.slnx",
 			"isBackground": false,
 			"group": "build"
 		},
 		{
 			"label": "Build RemakeEngine solution",
 			"type": "shell",
-			"command": "dotnet build RemakeEngine.sln",
+			"command": "dotnet build RemakeEngine.slnx",
 			"isBackground": false,
 			"group": "build"
 		},
 		{
 			"label": "Build RemakeEngine solution",
 			"type": "shell",
-			"command": "dotnet build RemakeEngine.sln",
+			"command": "dotnet build RemakeEngine.slnx",
 			"isBackground": false,
 			"group": "build"
 		}

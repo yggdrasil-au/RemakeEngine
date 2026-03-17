@@ -28,7 +28,7 @@ public sealed class OperationExecution {
             return false;
         }
 
-        // 'op' is already fully resolved from Engino.RunSingleOperationAsync!
+        // 'op' is already fully resolved from Runner.RunSingleOperationAsync!
         IDictionary<string, object?> resolvedOp = op;
 
         Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] engine operation script: {s}");

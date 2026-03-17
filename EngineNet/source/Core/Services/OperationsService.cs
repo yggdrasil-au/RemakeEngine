@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using EngineNet.Core.Abstractions;
+
 using EngineNet.Core.Utils;
 
 namespace EngineNet.Core.Services;
@@ -12,13 +12,13 @@ namespace EngineNet.Core.Services;
 public sealed class OperationsService {
 
     /* :: :: Vars :: START :: */
-    private readonly IOperationsLoader _loader;
-    private readonly IGameRegistry _gameRegistry;
+    private readonly OperationsLoader _loader;
+    private readonly GameRegistry _gameRegistry;
     /* :: :: Vars :: END :: */
     // //
     /* :: :: Constructors :: START :: */
 
-    public OperationsService(IOperationsLoader loader, IGameRegistry gameRegistry) {
+    public OperationsService(OperationsLoader loader, GameRegistry gameRegistry) {
         _loader = loader;
         _gameRegistry = gameRegistry;
     }

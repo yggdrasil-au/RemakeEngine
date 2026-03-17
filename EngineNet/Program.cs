@@ -83,7 +83,7 @@ public static class Program {
             var _operationsService = new Core.Services.OperationsService(_opsLoader, gameRegistry);
 
             var operationExecution = new Core.Engine.OperationExecution();
-            var _engino = new Core.Engine.Engino();
+            var _runner = new Core.Engine.Runner();
 
             var _engine = new Core.Engine.Engine(
                 gameRegistry: gameRegistry,
@@ -95,7 +95,7 @@ public static class Program {
                 toolResolver: tools,
                 engineConfig: engineConfig,
                 operationExecution: operationExecution,
-                engino: _engino
+                runner: _runner
             );
 
             // 3. Interface selection based on "Remaining Args" (args with --root removed)

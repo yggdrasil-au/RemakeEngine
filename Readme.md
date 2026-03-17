@@ -24,7 +24,7 @@ git clone https://github.com/yggdrasil-au/RemakeEngine.git
 cd RemakeEngine
 
 # Build and run tests (solution-wide)
-dotnet build RemakeEngine.sln -c Debug
+dotnet build RemakeEngine.slnx -c Debug
 dotnet test Unit.Tests/EngineNet.Tests.csproj -c Debug --no-build --logger "trx;LogFileName=test_results.trx"
 ```
 
@@ -60,7 +60,7 @@ GitHub Actions workflows in `.github/workflows/` keep pull requests, SonarCloud 
 | `global-release.yml` | Tags matching `v*`, manual dispatch | Matrix builds/tests on Windows, macOS, and Linux across Debug/Release, then publishes self-contained artifacts for six runtimes and attaches them to a GitHub Release. |
 | `on commit -- Win64 Build.yml` | Tags matching `win-v*`, manual dispatch | Windows-only Debug/Release build + test followed by a packaged `win-x64` release artifact. |
 
-Run `dotnet build RemakeEngine.sln` and `dotnet test RemakeEngine.sln --nologo` locally before opening a PR so the CI checks stay green. To cut a multi-platform release, push a tag like `v2.5.0`; for a Windows-only drop use `win-v2.5.0`. The workflows create the release entry and upload the zipped outputs automatically.
+Run `dotnet build RemakeEngine.slnx` and `dotnet test RemakeEngine.slnx --nologo` locally before opening a PR so the CI checks stay green. To cut a multi-platform release, push a tag like `v2.5.0`; for a Windows-only drop use `win-v2.5.0`. The workflows create the release entry and upload the zipped outputs automatically.
 
 ## Interfaces
 * **Simple GUI (Avalonia):** intended for end-users wanting a straightforward way to run predefined operations for their games/modules, to just run all primary operations, then to launch the game after.

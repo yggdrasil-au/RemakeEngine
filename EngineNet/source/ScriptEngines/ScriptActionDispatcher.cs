@@ -5,7 +5,7 @@ namespace EngineNet.ScriptEngines;
 public sealed class ScriptActionDispatcher {
 
     // this is used by GameLauncher.cs to run game.toml if game is a script
-    // used by Engino.RunSingleOperationAsync to run embedded engine operations (lua/js/python)
+    // used by Runner.RunSingleOperationAsync to run embedded engine operations (lua/js/python)
 
     /// <summary>
     /// Resolves embedded actions (lua/js/bms) to IAction implementations.
@@ -40,7 +40,7 @@ public sealed class ScriptActionDispatcher {
         }
     }
 
-    // this is used in Engino.RunSingleOperationAsync to run external script types (like bms)
+    // this is used in Runner.RunSingleOperationAsync to run external script types (like bms)
 
     /// <summary>
     /// Resolves external actions (like bms) to IAction implementations.

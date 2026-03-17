@@ -59,7 +59,7 @@ public static class ImageMagickConverter {
         public List<string> ExtraArgs = new();
     }
 
-    public static bool Run(Abstractions.IToolResolver toolResolver, IList<string> args, System.Threading.CancellationToken cancellationToken = default) {
+    public static bool Run(EngineNet.Core.ExternalTools.JsonToolResolver toolResolver, IList<string> args, System.Threading.CancellationToken cancellationToken = default) {
         try {
             Options opt = Parse(args);
 

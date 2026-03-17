@@ -1,5 +1,4 @@
-using EngineNet.Core.Abstractions;
-using EngineNet.Core.ExternalTools;
+
 using EngineNet.Core.Services;
 
 namespace EngineNet.Core.Engine;
@@ -8,10 +7,13 @@ namespace EngineNet.Core.Engine;
 /// Encapsulates the core services required for executing engine operations.
 /// </summary>
 public record EngineContext(
-    EngineConfig EngineConfig,
-    IToolResolver ToolResolver,
+    GameRegistry GameRegistry,
+    CommandService CommandService,
+    ExternalTools.JsonToolResolver ToolResolver,
+
     GitService GitService,
-    IGameRegistry GameRegistry,
-    ICommandService CommandService,
+
+    EngineConfig EngineConfig,
+
     OperationExecution OperationExecution
 );

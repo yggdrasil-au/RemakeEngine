@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using EngineNet.Core.Abstractions;
+
 using EngineNet.Core.Utils;
 
 namespace EngineNet.Core.Services;
@@ -8,7 +8,7 @@ namespace EngineNet.Core.Services;
 /// Provides a registry for discovering and managing game information within the engine.
 /// This class is responsible for locating game modules, built games, and their associated files.
 /// </summary>
-public class GameRegistry : IGameRegistry {
+public class GameRegistry {
     private readonly ModuleScanner _scanner;
     private readonly Registries _registries;
     private readonly string _rootPath = Program.rootPath;
@@ -22,11 +22,11 @@ public class GameRegistry : IGameRegistry {
         _scanner = new ModuleScanner(_registries);
     }
 
-    Dictionary<string, GameModuleInfo> IGameRegistry.GetModules(ModuleFilter filter) {
+    public Dictionary<string, GameModuleInfo> GetModules(ModuleFilter filter) {
         return _scanner.Modules(filter);
     }
 
-    Dictionary<string, GameInfo> IGameRegistry.GetBuiltGames() {
+    public Dictionary<string, GameInfo> GetBuiltGames() {
         return _registries.DiscoverBuiltGames();
     }
 
@@ -53,13 +53,11 @@ public class GameRegistry : IGameRegistry {
         return System.IO.Directory.Exists(dir) ? dir : null;
     }
 
-    /// <inheritdoc />
-    IReadOnlyDictionary<string, object?> IGameRegistry.GetRegisteredModules() {
+    public IReadOnlyDictionary<string, object?> GetRegisteredModules() {
         return _registries.GetRegisteredModules();
     }
 
-    /// <inheritdoc />
-    void IGameRegistry.RefreshModules() {
+    public void RefreshModules() {
         _registries.RefreshModules();
     }
 }

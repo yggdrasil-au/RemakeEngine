@@ -1,18 +1,18 @@
 namespace EngineNet.Core.ExternalTools;
 
 using System.Collections.Generic;
-using EngineNet.Core.Abstractions;
+
 
 
 /// <summary>
 /// Provides metadata for tools (executable path and optional version) by
-/// consulting <see cref="ToolLockfile.ToolLockfileName"/> when available, and falling back to IToolResolver.
+/// consulting <see cref="ToolLockfile.ToolLockfileName"/> when available, and falling back to EngineNet.Core.ExternalTools.JsonToolResolver.
 /// </summary>
 public sealed class ToolMetadataProvider {
     private readonly string _projectRoot;
-    private readonly IToolResolver _resolver;
+    private readonly EngineNet.Core.ExternalTools.JsonToolResolver _resolver;
 
-    public ToolMetadataProvider(string projectRoot, IToolResolver resolver) {
+    public ToolMetadataProvider(string projectRoot, EngineNet.Core.ExternalTools.JsonToolResolver resolver) {
         _projectRoot = projectRoot;
         _resolver = resolver;
     }

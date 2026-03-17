@@ -1,5 +1,5 @@
 
-using EngineNet.Core.Abstractions;
+
 using EngineNet.Core.ExternalTools;
 using EngineNet.Core.Utils;
 
@@ -10,9 +10,9 @@ namespace EngineNet.Core.Services;
 /// It resolves game metadata, execution paths, and handles different launch types
 /// such as direct executables, Lua scripts, or Godot project files.
 /// </summary>
-public class GameLauncher : IGameLauncher {
-    private readonly IGameRegistry _gameRegistry;
-    private readonly IToolResolver _toolResolver;
+public class GameLauncher {
+    private readonly GameRegistry _gameRegistry;
+    private readonly ExternalTools.JsonToolResolver _toolResolver;
     private readonly EngineConfig _config;
     private readonly string _rootPath;
 
@@ -25,7 +25,7 @@ public class GameLauncher : IGameLauncher {
     /// <param name="toolResolver">The tool resolver for finding external tools (e.g., Godot).</param>
     /// <param name="config">The global engine configuration.</param>
     /// <param name="rootPath">The base path for the engine project.</param>
-    public GameLauncher(IGameRegistry gameRegistry, IToolResolver toolResolver, EngineConfig config, string rootPath) {
+    public GameLauncher(GameRegistry gameRegistry, ExternalTools.JsonToolResolver toolResolver, EngineConfig config, string rootPath) {
         _gameRegistry = gameRegistry;
         _toolResolver = toolResolver;
         _config = config;

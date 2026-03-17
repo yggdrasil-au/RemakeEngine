@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
-using EngineNet.Core.Abstractions;
+
 using EngineNet.Core.Utils;
 
 namespace EngineNet.Core.Services;
 
-public class OperationsLoader : IOperationsLoader {
+public class OperationsLoader {
     public List<Dictionary<string, object?>>? LoadOperations(string opsFile) {
         try {
             // Determine file type by extension

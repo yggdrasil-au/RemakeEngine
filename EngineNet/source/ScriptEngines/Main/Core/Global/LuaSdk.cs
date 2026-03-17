@@ -6,7 +6,7 @@ namespace EngineNet.ScriptEngines.Lua.Global;
 /// SDK module providing file operations, archive handling, and system utilities for Lua scripts.
 /// </summary>
 public static partial class Sdk {
-    public static Table CreateSdkModule(LuaWorld _LuaWorld, Core.Abstractions.IToolResolver tools) {
+    public static Table CreateSdkModule(LuaWorld _LuaWorld, Core.ExternalTools.JsonToolResolver tools) {
         // Color/colour print functionality
         AddColorPrintFunctions(_LuaWorld);
 

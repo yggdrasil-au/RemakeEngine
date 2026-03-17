@@ -315,7 +315,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                             Dictionary<string, object?> answers = new Dictionary<string, object?>();
                             await CollectAnswersForOperationAsync(op: op.Operation, answers: answers, defaultsOnly: true);
 
-                            bool ok = await GuiBootstrapper.Engine.Engino.RunSingleOperationAsync(
+                            bool ok = await GuiBootstrapper.Engine.Runner.RunSingleOperationAsync(
                                 currentGame: ModuleName,
                                 games,
                                 op: op.Operation,
@@ -445,7 +445,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                     System.IO.TextReader previous = System.Console.In;
                     try {
                         System.Console.SetIn(new GuiStdinRedirectReader(provider: stdin));
-                        bool ok = await GuiBootstrapper.Engine.Engino.RunSingleOperationAsync(
+                        bool ok = await GuiBootstrapper.Engine.Runner.RunSingleOperationAsync(
                             currentGame: ModuleName,
                             games,
                             op: row.Op,

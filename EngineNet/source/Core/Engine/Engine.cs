@@ -11,21 +11,21 @@ public sealed partial class Engine {
     /* :: :: Vars :: Start :: */
 
     // Services exposed to partial classes
-    public Core.Abstractions.IGameLauncher GameLauncher { get; }
-    private Core.Abstractions.IOperationsLoader OperationsLoader { get; }
+    public Core.Services.GameLauncher GameLauncher { get; }
+    private Core.Services.OperationsLoader OperationsLoader { get; }
     public Core.Services.OperationsService OperationsService { get; }
 
-    public Core.Engine.Engino Engino { get; }
+    public Core.Engine.Runner Runner { get; }
     public Core.Engine.EngineContext Context { get; }
 
     /* :: :: Vars :: End :: */
 
     public Engine(
-        Core.Abstractions.IGameRegistry gameRegistry,
-        Core.Abstractions.IGameLauncher gameLauncher,
-        Core.Abstractions.IOperationsLoader operationsLoader,
-        Core.Abstractions.ICommandService commandService,
-        Core.Abstractions.IToolResolver toolResolver,
+        Core.Services.GameRegistry gameRegistry,
+        Core.Services.GameLauncher gameLauncher,
+        Core.Services.OperationsLoader operationsLoader,
+        Core.Services.CommandService commandService,
+        Core.ExternalTools.JsonToolResolver toolResolver,
 
         Core.Services.OperationsService operationsService,
         Core.Services.GitService gitService,
@@ -33,18 +33,21 @@ public sealed partial class Engine {
         Core.EngineConfig engineConfig,
 
         Core.Engine.OperationExecution operationExecution,
-        Core.Engine.Engino engino
+        Core.Engine.Runner runner
     ) {
         GameLauncher = gameLauncher;
         OperationsLoader = operationsLoader;
         OperationsService = operationsService;
-        Engino = engino;
+        Runner = runner;
         Context = new Core.Engine.EngineContext(
-            engineConfig,
-            toolResolver,
-            gitService,
             gameRegistry,
             commandService,
+            toolResolver,
+
+            gitService,
+
+            engineConfig,
+
             operationExecution
         );
     }

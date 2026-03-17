@@ -29,7 +29,7 @@ public sealed class Main : Helpers.IAction {
     }
 
     //
-    public async System.Threading.Tasks.Task ExecuteAsync(Core.Abstractions.IToolResolver tools, System.Threading.CancellationToken cancellationToken = default) {
+    public async System.Threading.Tasks.Task ExecuteAsync(Core.ExternalTools.JsonToolResolver tools, System.Threading.CancellationToken cancellationToken = default) {
         bool ok = false;
         try {
             if (!System.IO.File.Exists(_scriptPath)) {

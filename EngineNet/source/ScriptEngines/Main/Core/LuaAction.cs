@@ -17,7 +17,7 @@ public static class LuaAction {
     /// <param name="_scriptPath"></param>
     public static void SetupCoreFunctions(
         LuaWorld _LuaWorld,
-        Core.Abstractions.IToolResolver _tools,
+        Core.ExternalTools.JsonToolResolver _tools,
         string[] _args,
         string _gameRoot,
         string _projectRoot,

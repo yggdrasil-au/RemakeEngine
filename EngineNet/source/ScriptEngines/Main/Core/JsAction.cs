@@ -16,7 +16,7 @@ public static class JsAction {
     /// <param name="_scriptPath"></param>
     public static void SetupCoreFunctions(
         JsWorld _JSWorld,
-        Core.Abstractions.IToolResolver _tools,
+        Core.ExternalTools.JsonToolResolver _tools,
         string[] _args,
         string _gameRoot,
         string _projectRoot,

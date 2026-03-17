@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace EngineNet.Core.Engine;
 
-public sealed class Engino {
+public sealed class Runner {
 
     // used to run a single op by both runallasync and direct operation execution in the GUI/TUI
 

@@ -1,5 +1,5 @@
 
-using EngineNet.Core.Abstractions;
+
 
 namespace EngineNet.Core.ExternalTools;
 
@@ -7,7 +7,7 @@ namespace EngineNet.Core.ExternalTools;
 /// Fallback tool resolver that simply returns the tool id as the path.
 /// Useful when tools are expected to be on PATH.
 /// </summary>
-public sealed class PassthroughToolResolver:IToolResolver {
+public sealed class PassthroughToolResolver {
     /// <summary>
     /// Returns <paramref name="toolId"/> unchanged.
     /// </summary>

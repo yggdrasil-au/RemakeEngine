@@ -42,7 +42,7 @@ public static class PyAction {
     /// <param name="scriptPath"></param>
     public static void SetupCoreFunctions(
         PyWorld world,
-        Core.Abstractions.IToolResolver tools,
+        Core.ExternalTools.JsonToolResolver tools,
         string[] args,
         string gameRoot,
         string projectRoot,
