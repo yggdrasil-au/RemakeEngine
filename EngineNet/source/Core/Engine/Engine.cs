@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Threading;
 
 namespace EngineNet.Core.Engine;
 
@@ -81,16 +79,6 @@ public sealed partial class Engine {
     /// <returns></returns>
     public Dictionary<string, Core.Utils.GameModuleInfo> Modules(Core.Utils.ModuleFilter _Filter) {
         return Context.GameRegistry.GetModules(_Filter);
-    }
-
-    // Discovers built games from registries
-    public Dictionary<string, Core.Utils.GameInfo> DiscoverBuiltGames() {
-        return Context.GameRegistry._registries.DiscoverBuiltGames();
-    }
-
-    // Gets the executable path for a built game
-    public string? GetGameExecutable(string name) {
-        return Context.GameRegistry.GetGameExecutable(name);
     }
 
     /* :: :: */

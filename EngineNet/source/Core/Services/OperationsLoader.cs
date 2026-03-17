@@ -1,12 +1,20 @@
-using System.Collections.Generic;
+
 using System.Collections;
-using System.Linq;
 
 using EngineNet.Core.Utils;
 
 namespace EngineNet.Core.Services;
 
 public class OperationsLoader {
+
+    /// <summary>
+    /// Loads operations from a specified file, supporting both JSON and TOML formats.
+    /// The method determines the file type based on its extension and parses it accordingly.
+    /// For JSON files, it supports both array and grouped formats. For TOML files, it looks for arrays of tables under any key.
+    /// Each loaded operation is enriched with a "_source_file" key indicating the origin file.
+    /// In case of any parsing errors, the method logs the issue and returns null.
+    /// </summary> <param name="opsFile">The path to the operations file (JSON or TOML).</param>
+    /// <returns>A list of operations represented as dictionaries, or null if an error occurs.</returns>
     public List<Dictionary<string, object?>>? LoadOperations(string opsFile) {
         try {
             // Determine file type by extension
@@ -42,7 +50,7 @@ public class OperationsLoader {
                 return list;
             }
 
-            // JSON fallback
+            // JSON
             using System.IO.FileStream fs = System.IO.File.OpenRead(opsFile);
             using System.Text.Json.JsonDocument jdoc = System.Text.Json.JsonDocument.Parse(fs);
             if (jdoc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array) {
