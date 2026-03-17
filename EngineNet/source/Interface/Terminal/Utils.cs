@@ -68,7 +68,6 @@ public class Utils() {
                         games,
                         op,
                         answers,
-                        _engine.Context,
                         cancellationToken: cancellationToken
                     );
                 } finally {

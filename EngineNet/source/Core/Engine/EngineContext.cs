@@ -21,5 +21,6 @@ public record EngineContext(
 // operation context record
 public record OperationContext(
     Core.Services.OperationsService OperationsService,
-    Core.Services.OperationsLoader OperationsLoader
+    Core.Services.OperationsLoader OperationsLoader,
+    Core.Engine.Runner Runner
 );

@@ -14,16 +14,16 @@ public sealed class Runner {
     /// <param name="promptAnswers"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public async System.Threading.Tasks.Task<bool> RRunSingleOperationAsync(
+    public async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
         string currentGame,
         Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
         IDictionary<string, object?> op,
         IDictionary<string, object?> promptAnswers,
-        EngineContext context,
+        EngineContext Context,
         System.Threading.CancellationToken cancellationToken = default
     ) {
-        // 1. Build the execution context once
-        Dictionary<string, object?> ctx = Core.Utils.ExecutionContextBuilder.Build(currentGame, games, context.EngineConfig.Data);
+        // 1. Build the execution Context once
+        Dictionary<string, object?> ctx = Core.Utils.ExecutionContextBuilder.Build(currentGame, games, Context.EngineConfig.Data);
 
         // 2. Recursively resolve ALL placeholders anywhere in the operation definition
         if (Core.Utils.Placeholders.Resolve(op, ctx) is IDictionary<string, object?> fullyResolvedOp) {
@@ -31,7 +31,7 @@ public sealed class Runner {
         }
 
         string? scriptType = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant();
-        List<string> parts = context.CommandService.BuildCommand(currentGame, games, context.EngineConfig.Data, op, promptAnswers);
+        List<string> parts = Context.CommandService.BuildCommand(currentGame, games, Context.EngineConfig.Data, op, promptAnswers);
         if (parts.Count < 2) {
             return false;
         }
@@ -47,6 +47,7 @@ public sealed class Runner {
         bool result = false;
         try {
             switch (scriptType) {
+                // for running built-in engine operations (like download-tools) or internal operations (like download_module_git)
                 case var t when Utils.ScriptConstants.IsBuiltIn(t): {
                     try {
                         string? action = op.TryGetValue("script", out object? s) ? s?.ToString() : null;
@@ -55,13 +56,14 @@ public sealed class Runner {
                         Core.UI.EngineSdk.PrintLine(message: $"\n>>> Engine operation: {title}");
                         // delegate engine type handling to ExecuteEngineOperationAsync
                         var OperationExecution = new Core.Engine.OperationExecution();
-                        result = await OperationExecution.ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, context, cancellationToken);
+                        result = await OperationExecution.ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, Context, cancellationToken);
                     } catch (System.Exception ex) {
                         Core.UI.EngineSdk.PrintLine($"engine ERROR: {ex.Message}");
                         result = false;
                     }
                     break;
                 }
+                // for running external script types (like bms)
                 case var t when Utils.ScriptConstants.IsExternal(t): {
                     try {
                         string inputDir = op.TryGetValue("input", out object? in0) ? in0?.ToString() ?? string.Empty : string.Empty;
@@ -87,7 +89,7 @@ public sealed class Runner {
                             break;
                         }
 
-                        await action.ExecuteAsync(context.ToolResolver, cancellationToken);
+                        await action.ExecuteAsync(Context.ToolResolver, cancellationToken);
                         result = true;
                     } catch (System.Exception ex) {
                         Core.UI.EngineSdk.PrintLine($"bms engine ERROR: {ex.Message}");
@@ -114,7 +116,7 @@ public sealed class Runner {
                             break;
                         }
                         // execute the action
-                        await act.ExecuteAsync(context.ToolResolver, cancellationToken);
+                        await act.ExecuteAsync(Context.ToolResolver, cancellationToken);
                         result = true;
                     } catch (System.Exception ex) {
                         Core.UI.EngineSdk.PrintLine($"{scriptType} engine ERROR: {ex.Message}");
@@ -138,7 +140,7 @@ public sealed class Runner {
         if (result && OperationExecution.TryGetOnSuccessOperations(op, out List<Dictionary<string, object?>>? followUps) && followUps is not null) {
             foreach (Dictionary<string, object?> childOp in followUps) {
                 if (cancellationToken.IsCancellationRequested) break;
-                bool ok = await RRunSingleOperationAsync(currentGame, games, childOp, promptAnswers, context, cancellationToken);
+                bool ok = await Context.OperationContext.Runner.RunSingleOperationAsync(currentGame, games, childOp, promptAnswers, Context, cancellationToken);
                 if (!ok) {
                     result = false; // propagate failure from any onsuccess step
                 }

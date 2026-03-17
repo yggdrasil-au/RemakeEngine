@@ -320,7 +320,6 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                                 games,
                                 op: op.Operation,
                                 answers,
-                                GuiBootstrapper.Engine.Context,
                                 cancellationToken: _cts.Token
                             );
                             okAllInit &= ok;
@@ -450,7 +449,6 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                             games,
                             op: row.Op,
                             answers,
-                            GuiBootstrapper.Engine.Context,
                             cancellationToken: _cts.Token
                         );
                         return ok;

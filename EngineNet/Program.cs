@@ -205,15 +205,18 @@ public static class Program {
             var Runner = new Core.Engine.Runner();
 
             Core.Engine.Engine _engine = new Core.Engine.Engine(
-                gameRegistry: gameRegistry,
-                gameLauncher: _gameLauncher,
-                operationsLoader: _opsLoader,
-                operationsService: _operationsService,
-                gitService: _gitService,
-                commandService: _commandService,
-                toolResolver: tools,
-                engineConfig: engineConfig,
-                runner: Runner
+                gameRegistry,
+                _gameLauncher,
+                _opsLoader,
+                _commandService,
+                _operationsService,
+                _gitService,
+
+                tools,
+
+                engineConfig,
+
+                Runner
             );
             return _engine;
         }

@@ -10,7 +10,6 @@ public sealed partial class Engine {
 
     // Services exposed to partial classes
     public Core.Services.GameLauncher GameLauncher { get; }
-    public Core.Engine.Runner Runner { get; }
     public Core.Engine.EngineContext Context { get; }
 
     public EngineRunAll EngineRunAll { get; }
@@ -20,23 +19,23 @@ public sealed partial class Engine {
     public Engine(
         Core.Services.GameRegistry gameRegistry,
         Core.Services.GameLauncher gameLauncher,
-        Core.Services.OperationsLoader operationsLoader,
+        Core.Services.OperationsLoader OperationsLoader,
         Core.Services.CommandService commandService,
-        Core.ExternalTools.JsonToolResolver toolResolver,
-
-        Core.Services.OperationsService operationsService,
+        Core.Services.OperationsService OperationsService,
         Core.Services.GitService gitService,
+
+        Core.ExternalTools.JsonToolResolver toolResolver,
 
         Core.EngineConfig engineConfig,
 
-        Core.Engine.Runner runner
+        Core.Engine.Runner Runner
     ) {
         GameLauncher = gameLauncher;
-        Runner = runner;
 
         OperationContext operationContext = new OperationContext(
-            operationsService,
-            operationsLoader
+            OperationsService,
+            OperationsLoader,
+            Runner
         );
 
         EngineRunAll = new EngineRunAll();
@@ -64,10 +63,9 @@ public sealed partial class Engine {
         Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
         IDictionary<string, object?> op,
         IDictionary<string, object?> promptAnswers,
-        EngineContext context, // ignored in favor of this.Context
         System.Threading.CancellationToken cancellationToken = default
     ) {
-        return await Runner.RRunSingleOperationAsync(currentGame, games, op, promptAnswers, this.Context, cancellationToken);
+        return await Context.OperationContext.Runner.RunSingleOperationAsync(currentGame, games, op, promptAnswers, this.Context, cancellationToken);
     }
 
     // run all
@@ -78,7 +76,7 @@ public sealed partial class Engine {
         Core.ProcessRunner.StdinProvider? stdinProvider = null,
         System.Threading.CancellationToken cancellationToken = default
     ) {
-        return await EngineRunAll.RunAllAsync(gameName, this, onOutput, onEvent, stdinProvider, cancellationToken);
+        return await EngineRunAll.RunAllAsync(gameName, this.Context, onOutput, onEvent, stdinProvider, cancellationToken);
     }
 
 

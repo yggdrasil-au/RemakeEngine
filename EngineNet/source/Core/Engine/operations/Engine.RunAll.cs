@@ -23,7 +23,7 @@ public sealed class EngineRunAll {
     /// <exception cref="System.Exception"></exception>
     public async System.Threading.Tasks.Task<RunAllResult> RunAllAsync(
         string gameName,
-        Core.Engine.Engine _engine,
+        Core.Engine.EngineContext Context,
         Core.ProcessRunner.OutputHandler? onOutput = null,
         Core.ProcessRunner.EventHandler? onEvent = null,
         Core.ProcessRunner.StdinProvider? stdinProvider = null,
@@ -36,7 +36,7 @@ public sealed class EngineRunAll {
             throw new System.ArgumentException("Game name is required.", nameof(gameName));
         }
 
-        Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games = _engine.Modules(Core.Utils.ModuleFilter.All);
+        Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games = Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
         if (!games.TryGetValue(gameName, out EngineNet.Core.Utils.GameModuleInfo? gameInfo)) {
             throw new KeyNotFoundException($"Game '{gameName}' not found.");
         }
@@ -45,7 +45,7 @@ public sealed class EngineRunAll {
             throw new System.IO.FileNotFoundException($"Operations file for '{gameName}' is missing.", gameInfo.OpsFile);
         }
 
-        List<Dictionary<string, object?>>? allOps = _engine.Context.OperationContext.OperationsLoader.LoadOperations(gameInfo.OpsFile);
+        List<Dictionary<string, object?>>? allOps = Context.OperationContext.OperationsLoader.LoadOperations(gameInfo.OpsFile);
         if (allOps is null) {
             throw new System.Exception($"Failed to load operations file for '{gameName}'.");
         }
@@ -130,7 +130,7 @@ public sealed class EngineRunAll {
                     string? scriptType = GetScriptType(op);
                     // ensure script type is valid
                     if (Core.Utils.ScriptConstants.IsSupported(scriptType)) {
-                        ok = await _engine.RunSingleOperationAsync(gameName, games, op, promptAnswers, _engine.Context, cancellationToken).ConfigureAwait(false);
+                        ok = await Context.OperationContext.Runner.RunSingleOperationAsync(gameName, games, op, promptAnswers, Context, cancellationToken).ConfigureAwait(false);
                     } else if (string.IsNullOrEmpty(scriptType)) {
                         Core.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Skipping operation '{currentOperation}' due to null or empty script type");
                         overallSuccess = false;
