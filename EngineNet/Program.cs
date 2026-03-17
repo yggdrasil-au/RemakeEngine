@@ -6,9 +6,9 @@ namespace EngineNet;
 
 public static class Program {
 
-    public static Core.Engine.Engine Engine {
+    public static Core.Engine.Engine? Engine {
         get; private set;
-    } = Program.InitialiseEngine(); // Initialized via Run or defaulted for design time
+    }
 
 
     public static string rootPath {get; private set;} = string.Empty;
@@ -32,6 +32,7 @@ public static class Program {
             cts.Cancel();
             Core.Diagnostics.Log("Global Cancellation Requested (Ctrl+C)");
         };
+
         try {
             // Try to attach to the parent console (CMD/PowerShell) so stdout works.
             bool hasConsole = false;
@@ -47,11 +48,11 @@ public static class Program {
                 rootPath = parsedArgs.ExplicitRoot;
             } else {
                 string foundRoot = TryFindProjectRoot(System.IO.Directory.GetCurrentDirectory());
-                if (foundRoot != string.Empty) {
+                if (!string.IsNullOrEmpty(foundRoot)) {
                     rootPath = foundRoot;
                 } else {
                     foundRoot = TryFindProjectRoot(System.AppContext.BaseDirectory);
-                    if (foundRoot != string.Empty) {
+                    if (!string.IsNullOrEmpty(foundRoot)) {
                         rootPath = foundRoot;
                     } else {
                         rootPath = System.IO.Directory.GetCurrentDirectory();
@@ -59,8 +60,8 @@ public static class Program {
                 }
             }
 
-            isGui = parsedArgs.Remaining.Count == 0 || (parsedArgs.Remaining.Count == 1 && parsedArgs.Remaining[0].Equals("--gui", System.StringComparison.OrdinalIgnoreCase));
-            isTui = parsedArgs.Remaining.Count == 1 && parsedArgs.Remaining[0].Equals("--tui", System.StringComparison.OrdinalIgnoreCase);
+            isTui = parsedArgs.Remaining.Any(arg => arg.Equals("--tui", System.StringComparison.OrdinalIgnoreCase));
+            isGui = !isTui && (parsedArgs.Remaining.Count == 0 || parsedArgs.Remaining.Any(arg => arg.Equals("--gui", System.StringComparison.OrdinalIgnoreCase)));
             isCli = !isGui && !isTui;
 
             // :: Initialize the Logger
@@ -75,7 +76,9 @@ public static class Program {
                 Core.Diagnostics.Trace("Allocated new console window for TUI/CLI mode.");
             }
 
-            var _engine = Engine;
+            if (Engine == null) {
+                Engine = InitialiseEngine();
+            }
 
             // 3. Interface selection based on "Remaining Args" (args with --root removed)
 
@@ -84,14 +87,14 @@ public static class Program {
             // - One arg "--gui" -> GUI
             if (isGui) {
                 Core.Diagnostics.Trace("Launching GUI Interface...");
-                return Interface.GUI.GuiBootstrapper.Run(_engine); // ;; gui flow step1 ;;
+                return Interface.GUI.GuiBootstrapper.Run(Engine); // ;; gui flow step1 ;;
             }
 
             // Logic:
             // - One arg "--tui" -> TUI
             if (isTui) {
                 Core.Diagnostics.Trace("Launching TUI Interface...");
-                Interface.Terminal.TUI TUI = new Interface.Terminal.TUI(_engine);
+                Interface.Terminal.TUI TUI = new Interface.Terminal.TUI(Engine);
                 return await TUI.RunInteractiveMenuAsync(cts.Token);
             }
 
@@ -99,7 +102,7 @@ public static class Program {
             // - Anything else -> CLI (Pass original args so CLI can parse specific commands like 'build', 'run', etc.)
             if (isCli) {
                 Core.Diagnostics.Trace("Launching CLI Interface...");
-                Interface.Terminal.CLI CLI = new Interface.Terminal.CLI(_engine);
+                Interface.Terminal.CLI CLI = new Interface.Terminal.CLI(Engine);
                 return await CLI.RunAsync(args, cts.Token);
             }
             EngineSdk.Error("No valid interface mode selected.");
@@ -108,6 +111,7 @@ public static class Program {
         } catch (System.Exception ex) {
             Core.Diagnostics.Bug("Critical Engine Failure in Main", ex);
             Core.Diagnostics.Log($"Engine Error: {ex}");
+            System.Console.Error.WriteLine($"Critical Engine Failure: {ex.Message}");
             return 1;
         } finally {
             Core.Diagnostics.Close();

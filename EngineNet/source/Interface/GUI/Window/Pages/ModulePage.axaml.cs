@@ -219,7 +219,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             }
 
             if (!string.IsNullOrWhiteSpace(opsFile) && System.IO.File.Exists(path: opsFile)) {
-                Core.Services.OperationsService.PreparedOperations preparedOps = GuiBootstrapper.Engine.OperationsService.LoadAndPrepare(
+                Core.Services.OperationsService.PreparedOperations preparedOps = GuiBootstrapper.Engine.Context.OperationContext.OperationsService.LoadAndPrepare(
                     opsFile: opsFile,
                     currentGame: _moduleName,
                     games: games,
@@ -613,7 +613,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             }
         };
 
-        await GuiBootstrapper.Engine.OperationsService.CollectAnswersAsync(op, answers, handler, defaultsOnly);
+        await GuiBootstrapper.Engine.Context.OperationContext.OperationsService.CollectAnswersAsync(op, answers, handler, defaultsOnly);
     }
 
     /* :: :: Methods :: END :: */

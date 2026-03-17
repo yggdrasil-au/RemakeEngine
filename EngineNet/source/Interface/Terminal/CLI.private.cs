@@ -40,7 +40,7 @@ internal partial class CLI {
                 throw new System.ArgumentException($"Game '{game}' missing ops_file.");
             }
             // Load and validate operations
-            Core.Services.OperationsService.PreparedOperations preparedOps = _engine.OperationsService.LoadAndPrepare(opsFile);
+            Core.Services.OperationsService.PreparedOperations preparedOps = _engine.Context.OperationContext.OperationsService.LoadAndPrepare(opsFile);
             if (!preparedOps.IsLoaded) {
                 System.Console.WriteLine(preparedOps.ErrorMessage ?? "Failed to load operations.");
                 return 1;

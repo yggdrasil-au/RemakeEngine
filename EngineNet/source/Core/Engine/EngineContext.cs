@@ -15,5 +15,12 @@ public record EngineContext(
 
     EngineConfig EngineConfig,
 
-    OperationExecution OperationExecution
+    OperationContext OperationContext
+);
+
+// operation context record
+public record OperationContext(
+    OperationExecution OperationExecution,
+    Core.Services.OperationsService OperationsService,
+    Core.Services.OperationsLoader OperationsLoader
 );

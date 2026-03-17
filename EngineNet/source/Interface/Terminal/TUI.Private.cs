@@ -416,7 +416,7 @@ public partial class TUI {
                 }
             };
 
-            return _engine.OperationsService.CollectAnswersAsync(op, answers, handler, defaultsOnly)
+            return _engine.Context.OperationContext.OperationsService.CollectAnswersAsync(op, answers, handler, defaultsOnly)
                 .GetAwaiter()
                 .GetResult();
         } catch (System.Exception ex) {

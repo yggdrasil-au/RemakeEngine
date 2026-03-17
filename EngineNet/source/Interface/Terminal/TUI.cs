@@ -108,7 +108,7 @@ public partial class TUI {
                 //return 1;
                 return await RunInteractiveMenuAsync(msg: "Selected game is missing operations file. Please choose again.");
             }
-            Core.Services.OperationsService.PreparedOperations preparedOps = _engine.OperationsService.LoadAndPrepare(
+            Core.Services.OperationsService.PreparedOperations preparedOps = _engine.Context.OperationContext.OperationsService.LoadAndPrepare(
                 opsFile: info.OpsFile,
                 currentGame: gameName,
                 games: allAvailableModules,

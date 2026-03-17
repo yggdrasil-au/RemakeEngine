@@ -38,7 +38,7 @@ public sealed partial class Engine {
             throw new System.IO.FileNotFoundException($"Operations file for '{gameName}' is missing.", gameInfo.OpsFile);
         }
 
-        List<Dictionary<string, object?>>? allOps = LoadOperationsList(gameInfo.OpsFile);
+        List<Dictionary<string, object?>>? allOps = Context.OperationContext.OperationsLoader.LoadOperations(gameInfo.OpsFile);
         if (allOps is null) {
             throw new System.Exception($"Failed to load operations file for '{gameName}'.");
         }

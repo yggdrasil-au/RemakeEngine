@@ -10,9 +10,6 @@ public sealed partial class Engine {
 
     // Services exposed to partial classes
     public Core.Services.GameLauncher GameLauncher { get; }
-    private Core.Services.OperationsLoader OperationsLoader { get; }
-    public Core.Services.OperationsService OperationsService { get; }
-
     public Core.Engine.Runner Runner { get; }
     public Core.Engine.EngineContext Context { get; }
 
@@ -34,9 +31,13 @@ public sealed partial class Engine {
         Core.Engine.Runner runner
     ) {
         GameLauncher = gameLauncher;
-        OperationsLoader = operationsLoader;
-        OperationsService = operationsService;
         Runner = runner;
+
+        OperationContext operationContext = new OperationContext(
+            operationExecution,
+            operationsService,
+            operationsLoader
+        );
 
         Context = new Core.Engine.EngineContext(
             gameRegistry,
@@ -47,7 +48,7 @@ public sealed partial class Engine {
 
             engineConfig,
 
-            operationExecution
+            operationContext
         );
     }
 
@@ -84,15 +85,6 @@ public sealed partial class Engine {
     /* :: :: */
     //
     /* :: :: */
-
-    /// <summary>
-    /// Loads a list of operations from a file (JSON or TOML)
-    /// </summary>
-    /// <param name="opsFile"></param>
-    /// <returns></returns>
-    public List<Dictionary<string, object?>>? LoadOperationsList(string opsFile) {
-        return OperationsLoader.LoadOperations(opsFile);
-    }
 
     /// <summary>
     /// Gets the root path for a game by name
