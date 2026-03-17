@@ -54,8 +54,7 @@ public sealed class Engino {
         bool result = false;
         try {
             switch (scriptType) {
-                case Utils.ScriptConstants.TypeInternal:
-                case "engine": {
+                case var t when Utils.ScriptConstants.IsBuiltIn(t): {
                     try {
                         string? action = op.TryGetValue("script", out object? s) ? s?.ToString() : null;
                         string? title = op.TryGetValue("Name", out object? n) ? n?.ToString() ?? action : action;
@@ -69,7 +68,7 @@ public sealed class Engino {
                     }
                     break;
                 }
-                case "bms": {
+                case var t when Utils.ScriptConstants.IsExternal(t): {
                     try {
                         string inputDir = op.TryGetValue("input", out object? in0) ? in0?.ToString() ?? string.Empty : string.Empty;
                         string outputDir = op.TryGetValue("output", out object? out0) ? out0?.ToString() ?? string.Empty : string.Empty;

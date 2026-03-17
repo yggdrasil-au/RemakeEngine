@@ -24,11 +24,38 @@ public static class ScriptConstants {
         TypePython
     };
 
+    // define the "External" group (Languages handled by ExternalActionDispatcher)
+    private static readonly HashSet<string> _externalTypes = new(System.StringComparer.OrdinalIgnoreCase) {
+        TypeBms
+    };
+
+    // define the "Internal" group (Operations handled directly in code, not via script dispatchers)
+    private static readonly HashSet<string> _internalTypes = new(System.StringComparer.OrdinalIgnoreCase) {
+        TypeInternal,
+        TypeEngine
+    };
+
     /// <summary>
     /// Checks if the script type is one of the embedded languages (Lua, JS, Python).
     /// </summary>
+    /// <param name="script_type"></param>
+    /// <returns></returns>
     public static bool IsEmbedded(string? script_type) {
         return !string.IsNullOrWhiteSpace(script_type) && _embeddedTypes.Contains(script_type);
+    }
+
+    /// <summary>
+    /// Checks if the script type is one of the external languages (like BMS).
+    /// </summary>
+    /// <param name="script_type"></param>
+    /// <returns></returns>
+    public static bool IsExternal(string? script_type) {
+        return !string.IsNullOrWhiteSpace(script_type) && _externalTypes.Contains(script_type);
+    }
+
+    // is BuiltInOperation, internal or engine
+    public static bool IsBuiltIn(string? script_type) {
+        return !string.IsNullOrWhiteSpace(script_type) && _internalTypes.Contains(script_type);
     }
 
     // 2. Create a hashed set for fast, case-insensitive lookups
