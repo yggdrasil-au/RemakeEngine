@@ -24,11 +24,14 @@ public sealed partial class Engine {
         Core.Abstractions.IGameRegistry gameRegistry,
         Core.Abstractions.IGameLauncher gameLauncher,
         Core.Abstractions.IOperationsLoader operationsLoader,
+        Core.Abstractions.ICommandService commandService,
+        Core.Abstractions.IToolResolver toolResolver,
+
         Core.Services.OperationsService operationsService,
         Core.Services.GitService gitService,
-        Core.Abstractions.ICommandService commandService,
-        Core.ExternalTools.IToolResolver toolResolver,
+
         Core.EngineConfig engineConfig,
+
         Core.Engine.OperationExecution operationExecution,
         Core.Engine.Engino engino
     ) {

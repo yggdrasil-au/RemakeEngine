@@ -265,7 +265,7 @@ public static class ProcessExecution {
         return ExecInCurrentTerminal(lua, parts, cwd, env, silentRun);
     }
 
-    public static DynValue SpawnProcess(Script lua, Table commandArgs, Table? options, Core.ExternalTools.IToolResolver tools) {
+    public static DynValue SpawnProcess(Script lua, Table commandArgs, Table? options, Core.Abstractions.IToolResolver tools) {
         List<string> parts = Lua.Globals.Utils.TableToStringList(commandArgs);
         if (parts.Count == 0) throw new ScriptRuntimeException("spawn_process requires at least one argument (executable path)");
         if (!EngineNet.ScriptEngines.Security.IsApprovedExecutable(parts[0], tools)) throw new ScriptRuntimeException($"Executable '{parts[0]}' is not approved");

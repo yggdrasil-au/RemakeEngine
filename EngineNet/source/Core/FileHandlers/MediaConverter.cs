@@ -52,7 +52,7 @@ public static class MediaConverter {
     /// --workers N, --godot, --verbose, --debug, codec/quality options.</param>
     /// <param name="cancellationToken">Cancellation token to abort the conversion.</param>
     /// <returns>True if all files were processed successfully; false otherwise.</returns>
-    public static bool Run(ExternalTools.IToolResolver toolResolver, IList<string> args, System.Threading.CancellationToken cancellationToken = default) {
+    public static bool Run(Abstractions.IToolResolver toolResolver, IList<string> args, System.Threading.CancellationToken cancellationToken = default) {
         try {
             Options opt = Parse(args);
 

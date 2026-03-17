@@ -78,7 +78,7 @@ public static class Security {
     /// Security validation: Check if executable is approved for RemakeEngine use.
     /// Allows registered tools, common system utilities, and resolved tool paths.
     /// </summary>
-    public static bool IsApprovedExecutable(string executable, Core.ExternalTools.IToolResolver tools) {
+    public static bool IsApprovedExecutable(string executable, Core.Abstractions.IToolResolver tools) {
         if (string.IsNullOrWhiteSpace(executable)) {
             return false;
         }

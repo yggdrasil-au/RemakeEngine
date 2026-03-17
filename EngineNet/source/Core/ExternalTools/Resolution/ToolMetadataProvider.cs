@@ -1,6 +1,8 @@
 namespace EngineNet.Core.ExternalTools;
 
 using System.Collections.Generic;
+using EngineNet.Core.Abstractions;
+
 
 /// <summary>
 /// Provides metadata for tools (executable path and optional version) by

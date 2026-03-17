@@ -1,5 +1,5 @@
 
-namespace EngineNet.Core.ExternalTools;
+namespace EngineNet.Core.Abstractions;
 
 /// <summary>
 /// Provides paths to external command-line tools required by actions.

@@ -4,10 +4,10 @@ namespace EngineNet.ScriptEngines;
 /// <summary>
 /// Wrapper for IToolResolver that injects module-specific tool versions
 /// </summary>
-public class ContextualToolResolver : Core.ExternalTools.IToolResolver {
-    public readonly Core.ExternalTools.IToolResolver _base;
+public class ContextualToolResolver : Core.Abstractions.IToolResolver {
+    public readonly Core.Abstractions.IToolResolver _base;
     public readonly Dictionary<string, string> _contextVersions;
-    public ContextualToolResolver(Core.ExternalTools.IToolResolver baseResolver, Dictionary<string, string> contextVersions) {
+    public ContextualToolResolver(Core.Abstractions.IToolResolver baseResolver, Dictionary<string, string> contextVersions) {
         _base = baseResolver;
         _contextVersions = contextVersions;
     }
