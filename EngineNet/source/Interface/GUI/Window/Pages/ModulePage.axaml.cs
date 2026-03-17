@@ -193,7 +193,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             }
 
             // Registry info (URL)
-            IReadOnlyDictionary<string, object?> regs = GuiBootstrapper.Engine.GameRegistry.GetRegisteredModules();
+            IReadOnlyDictionary<string, object?> regs = GuiBootstrapper.Engine.Context.GameRegistry.GetRegisteredModules();
             if (regs.TryGetValue(_moduleName, out object? regObj) && regObj is IDictionary<string, object?> reg) {
                 RegistryUrl = reg.TryGetValue(key: "url", value: out object? u) ? u?.ToString() : null;
                 if (string.IsNullOrWhiteSpace(Title)) {
@@ -223,7 +223,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                     opsFile: opsFile,
                     currentGame: _moduleName,
                     games: games,
-                    engineConfig: GuiBootstrapper.Engine.EngineConfig.Data
+                    engineConfig: GuiBootstrapper.Engine.Context.EngineConfig.Data
                 );
                 if (!preparedOps.IsLoaded) {
                     Core.Diagnostics.Log($"Load: Failed to load operations list for module {_moduleName} from ops file '{opsFile}'. {preparedOps.ErrorMessage}");
@@ -320,12 +320,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                                 games,
                                 op: op.Operation,
                                 answers,
-                                GuiBootstrapper.Engine.EngineConfig,
-                                GuiBootstrapper.Engine.ToolResolver,
-                                GuiBootstrapper.Engine.GitService,
-                                GuiBootstrapper.Engine.GameRegistry,
-                                GuiBootstrapper.Engine.CommandService,
-                                GuiBootstrapper.Engine.OperationExecution,
+                                GuiBootstrapper.Engine.Context,
                                 cancellationToken: _cts.Token
                             );
                             okAllInit &= ok;
@@ -455,12 +450,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                             games,
                             op: row.Op,
                             answers,
-                            GuiBootstrapper.Engine.EngineConfig,
-                            GuiBootstrapper.Engine.ToolResolver,
-                            GuiBootstrapper.Engine.GitService,
-                            GuiBootstrapper.Engine.GameRegistry,
-                            GuiBootstrapper.Engine.CommandService,
-                            GuiBootstrapper.Engine.OperationExecution,
+                            GuiBootstrapper.Engine.Context,
                             cancellationToken: _cts.Token
                         );
                         return ok;

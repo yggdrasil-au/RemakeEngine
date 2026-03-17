@@ -5,12 +5,12 @@ using EngineNet.Core.Serialization.Toml;
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 public partial class BuiltInOperations {
 
-    public bool format_extract(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath,  EngineConfig EngineConfig, System.Threading.CancellationToken cancellationToken = default) {
+    public bool format_extract(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath, EngineContext context, System.Threading.CancellationToken cancellationToken = default) {
         // Determine input file format
         string? format = op.TryGetValue("format", out object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
 
         // Resolve args (used for both TXD and media conversions)
-        Dictionary<string, object?> ctx = new Dictionary<string, object?>(EngineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object?> ctx = new Dictionary<string, object?>(context.EngineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
         if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobj)) {
             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
         }

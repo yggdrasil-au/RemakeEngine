@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 public partial class InternalOperations {
 
-    public bool DownloadModuleRegistry(IDictionary<string, object?> promptAnswers, Core.Services.GitService GitService, Abstractions.IGameRegistry GameRegistry) {
+    public bool DownloadModuleRegistry(IDictionary<string, object?> promptAnswers, EngineContext context) {
 
         string? input = null;
         if (promptAnswers.TryGetValue("url", out object? u)) {
@@ -16,7 +16,7 @@ public partial class InternalOperations {
             return false;
         }
 
-        var knownModules = GameRegistry.GetRegisteredModules();
+        var knownModules = context.GameRegistry.GetRegisteredModules();
         string? url = input;
 
         if (knownModules.TryGetValue(input!, out object? modObj) && modObj is Dictionary<string, object?> modData) {
@@ -30,6 +30,6 @@ public partial class InternalOperations {
             return false;
         }
 
-        return GitService.CloneModule(url);
+        return context.GitService.CloneModule(url);
     }
 }

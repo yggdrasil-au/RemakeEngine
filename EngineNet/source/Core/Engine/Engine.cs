@@ -11,16 +11,12 @@ public sealed partial class Engine {
     /* :: :: Vars :: Start :: */
 
     // Services exposed to partial classes
-    public Core.Abstractions.IGameRegistry GameRegistry { get; }
     public Core.Abstractions.IGameLauncher GameLauncher { get; }
-    public Core.Abstractions.IOperationsLoader OperationsLoader { get; }
+    private Core.Abstractions.IOperationsLoader OperationsLoader { get; }
     public Core.Services.OperationsService OperationsService { get; }
-    public Core.Services.GitService GitService { get; }
-    public Core.Abstractions.ICommandService CommandService { get; }
-    public Core.ExternalTools.IToolResolver ToolResolver { get; }
-    public Core.EngineConfig EngineConfig { get; }
-    public Core.Engine.OperationExecution OperationExecution { get; }
+
     public Core.Engine.Engino Engino { get; }
+    public Core.Engine.EngineContext Context { get; }
 
     /* :: :: Vars :: End :: */
 
@@ -36,16 +32,18 @@ public sealed partial class Engine {
         Core.Engine.OperationExecution operationExecution,
         Core.Engine.Engino engino
     ) {
-        GameRegistry = gameRegistry;
         GameLauncher = gameLauncher;
         OperationsLoader = operationsLoader;
         OperationsService = operationsService;
-        GitService = gitService;
-        CommandService = commandService;
-        ToolResolver = toolResolver;
-        EngineConfig = engineConfig;
-        OperationExecution = operationExecution;
         Engino = engino;
+        Context = new Core.Engine.EngineContext(
+            engineConfig,
+            toolResolver,
+            gitService,
+            gameRegistry,
+            commandService,
+            operationExecution
+        );
     }
 
     /* :: :: */
@@ -54,17 +52,17 @@ public sealed partial class Engine {
 
     // Downloads a game module via Git
     public bool DownloadModule(string url) {
-        return GitService.CloneModule(url);
+        return Context.GitService.CloneModule(url);
     }
 
     // Builds a command from operation and context
     public List<string> BuildCommand(string currentGame, Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers) {
-        return CommandService.BuildCommand(currentGame, games, EngineConfig.Data, op, promptAnswers);
+        return Context.CommandService.BuildCommand(currentGame, games, Context.EngineConfig.Data, op, promptAnswers);
     }
 
     // Executes a command via ProcessRunner
     public bool ExecuteCommand(IList<string> commandParts, string title, EngineNet.Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, IDictionary<string, object?>? envOverrides = null, CancellationToken cancellationToken = default) {
-        return CommandService.ExecuteCommand(commandParts, title, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, envOverrides: envOverrides, cancellationToken: cancellationToken);
+        return Context.CommandService.ExecuteCommand(commandParts, title, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, envOverrides: envOverrides, cancellationToken: cancellationToken);
     }
 
     // Scans for game modules in registries
@@ -75,17 +73,17 @@ public sealed partial class Engine {
     /// <param name="_Filter"></param>
     /// <returns></returns>
     public Dictionary<string, Core.Utils.GameModuleInfo> Modules(Core.Utils.ModuleFilter _Filter) {
-        return GameRegistry.GetModules(_Filter);
+        return Context.GameRegistry.GetModules(_Filter);
     }
 
     // Discovers built games from registries
     public Dictionary<string, Core.Utils.GameInfo> DiscoverBuiltGames() {
-        return GameRegistry.GetBuiltGames();
+        return Context.GameRegistry.GetBuiltGames();
     }
 
     // Gets the executable path for a built game
     public string? GetGameExecutable(string name) {
-        return GameRegistry.GetGameExecutable(name);
+        return Context.GameRegistry.GetGameExecutable(name);
     }
 
     /* :: :: */
@@ -105,7 +103,7 @@ public sealed partial class Engine {
     /// Gets the root path for a game by name
     /// </summary>
     public string? GetGamePath(string name) {
-        return GameRegistry.GetGamePath(name);
+        return Context.GameRegistry.GetGamePath(name);
     }
 
     /* :: :: */

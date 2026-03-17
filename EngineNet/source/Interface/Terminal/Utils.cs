@@ -68,12 +68,7 @@ public class Utils() {
                         games,
                         op,
                         answers,
-                        _engine.EngineConfig,
-                        _engine.ToolResolver,
-                        _engine.GitService,
-                        _engine.GameRegistry,
-                        _engine.CommandService,
-                        _engine.OperationExecution,
+                        _engine.Context,
                         cancellationToken: cancellationToken
                     );
                 } finally {

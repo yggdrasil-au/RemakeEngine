@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 public partial class InternalOperations {
 
-    public bool DownloadModuleGit(IDictionary<string, object?> promptAnswers, Core.Services.GitService GitService) {
+    public bool DownloadModuleGit(IDictionary<string, object?> promptAnswers, EngineContext context) {
         string? url = null;
         if (promptAnswers.TryGetValue("url", out object? u)) {
             url = u?.ToString();
@@ -13,6 +13,6 @@ public partial class InternalOperations {
             Core.Diagnostics.Trace("[Engine.private.cs :: InternalOperations()]] download_module_git: no url provided");
             return false;
         }
-        return GitService.CloneModule(url);
+        return context.GitService.CloneModule(url);
     }
 }

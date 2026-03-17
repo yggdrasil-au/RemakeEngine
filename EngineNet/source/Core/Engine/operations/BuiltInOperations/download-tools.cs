@@ -4,7 +4,7 @@ using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 public partial class BuiltInOperations {
-    public async System.Threading.Tasks.Task<bool> DownloadTools(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath,  EngineConfig EngineConfig, System.Threading.CancellationToken cancellationToken = default) {
+    public async System.Threading.Tasks.Task<bool> DownloadTools(IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, string RootPath, EngineContext context, System.Threading.CancellationToken cancellationToken = default) {
         // Expect a 'tools_manifest' value (path), or fallback to first arg
         string? manifest = null;
         if (op.TryGetValue("tools_manifest", out object? tm) && tm is not null) {
@@ -17,7 +17,7 @@ public partial class BuiltInOperations {
             return false;
         }
 
-        Dictionary<string, object?> ctx = new Dictionary<string, object?>(EngineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object?> ctx = new Dictionary<string, object?>(context.EngineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
         if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobj)) {
             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
         }

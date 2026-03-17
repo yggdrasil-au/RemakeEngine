@@ -21,16 +21,11 @@ public sealed class Engino {
         Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
         IDictionary<string, object?> op,
         IDictionary<string, object?> promptAnswers,
-        Core.EngineConfig EngineConfig,
-        Core.ExternalTools.IToolResolver ToolResolver,
-        Core.Services.GitService GitService,
-        Core.Abstractions.IGameRegistry GameRegistry,
-        Core.Abstractions.ICommandService CommandService,
-        OperationExecution OperationExecution,
+        EngineContext context,
         System.Threading.CancellationToken cancellationToken = default
     ) {
         // 1. Build the execution context once
-        Dictionary<string, object?> ctx = Core.Utils.ExecutionContextBuilder.Build(currentGame, games, EngineConfig.Data);
+        Dictionary<string, object?> ctx = Core.Utils.ExecutionContextBuilder.Build(currentGame, games, context.EngineConfig.Data);
 
         // 2. Recursively resolve ALL placeholders anywhere in the operation definition
         if (Core.Utils.Placeholders.Resolve(op, ctx) is IDictionary<string, object?> fullyResolvedOp) {
@@ -38,7 +33,7 @@ public sealed class Engino {
         }
 
         string? scriptType = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant();
-        List<string> parts = CommandService.BuildCommand(currentGame, games, EngineConfig.Data, op, promptAnswers);
+        List<string> parts = context.CommandService.BuildCommand(currentGame, games, context.EngineConfig.Data, op, promptAnswers);
         if (parts.Count < 2) {
             return false;
         }
@@ -61,7 +56,7 @@ public sealed class Engino {
                         Core.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Executing engine operation {title} ({action})");
                         Core.UI.EngineSdk.PrintLine(message: $"\n>>> Engine operation: {title}");
                         // delegate engine type handling to ExecuteEngineOperationAsync
-                        result = await OperationExecution.ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, EngineConfig, ToolResolver, GitService, GameRegistry, cancellationToken);
+                        result = await context.OperationExecution.ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, context, cancellationToken);
                     } catch (System.Exception ex) {
                         Core.UI.EngineSdk.PrintLine($"engine ERROR: {ex.Message}");
                         result = false;
@@ -93,7 +88,7 @@ public sealed class Engino {
                             break;
                         }
 
-                        await action.ExecuteAsync(ToolResolver, cancellationToken);
+                        await action.ExecuteAsync(context.ToolResolver, cancellationToken);
                         result = true;
                     } catch (System.Exception ex) {
                         Core.UI.EngineSdk.PrintLine($"bms engine ERROR: {ex.Message}");
@@ -120,7 +115,7 @@ public sealed class Engino {
                             break;
                         }
                         // execute the action
-                        await act.ExecuteAsync(ToolResolver, cancellationToken);
+                        await act.ExecuteAsync(context.ToolResolver, cancellationToken);
                         result = true;
                     } catch (System.Exception ex) {
                         Core.UI.EngineSdk.PrintLine($"{scriptType} engine ERROR: {ex.Message}");
@@ -144,7 +139,7 @@ public sealed class Engino {
         if (result && OperationExecution.TryGetOnSuccessOperations(op, out List<Dictionary<string, object?>>? followUps) && followUps is not null) {
             foreach (Dictionary<string, object?> childOp in followUps) {
                 if (cancellationToken.IsCancellationRequested) break;
-                bool ok = await RunSingleOperationAsync(currentGame, games, childOp, promptAnswers, EngineConfig, ToolResolver, GitService, GameRegistry, CommandService, OperationExecution, cancellationToken);
+                bool ok = await RunSingleOperationAsync(currentGame, games, childOp, promptAnswers, context, cancellationToken);
                 if (!ok) {
                     result = false; // propagate failure from any onsuccess step
                 }

@@ -2,10 +2,6 @@
 
 ## Setup
 - Build: `dotnet build RemakeEngine.slnx -c Debug`
-- Run tests: `dotnet test Unit.Tests\EngineNet.Tests.csproj -c Debug --no-build --logger "trx;LogFileName=test_results.trx"`
-
-ignore any failing tests for now
-ignore test project build failures for now
 
 ## Use Exact Code style
 always use PascalCase

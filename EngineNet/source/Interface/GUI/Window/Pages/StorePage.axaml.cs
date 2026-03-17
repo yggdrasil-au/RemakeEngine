@@ -90,8 +90,8 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
             }
 
             // Get registered modules from EngineApps\Registries\Modules\Main.json
-            GuiBootstrapper.Engine.GameRegistry.RefreshModules();
-            IReadOnlyDictionary<string, object?> modules = GuiBootstrapper.Engine.GameRegistry.GetRegisteredModules();
+            GuiBootstrapper.Engine.Context.GameRegistry.RefreshModules();
+            IReadOnlyDictionary<string, object?> modules = GuiBootstrapper.Engine.Context.GameRegistry.GetRegisteredModules();
 
             // Get already downloaded games
             Dictionary<string, Core.Utils.GameModuleInfo> downloadedGames = GuiBootstrapper.Engine.Modules(Core.Utils.ModuleFilter.Installed);

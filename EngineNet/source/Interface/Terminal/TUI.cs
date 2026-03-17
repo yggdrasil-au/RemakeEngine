@@ -112,7 +112,7 @@ public partial class TUI {
                 opsFile: info.OpsFile,
                 currentGame: gameName,
                 games: allAvailableModules,
-                engineConfig: _engine.EngineConfig.Data
+                engineConfig: _engine.Context.EngineConfig.Data
             );
             if (!preparedOps.IsLoaded) {
                 string message = preparedOps.ErrorMessage ?? "Failed to load operations list.";

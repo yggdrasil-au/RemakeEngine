@@ -12,7 +12,7 @@ public partial class BuiltInOperations {
         string currentGame,
         Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
         string RootPath,
-        Core.EngineConfig EngineConfig
+        EngineContext context
     ) {
         // Parse arguments
         var argsList = op.TryGetValue("args", out object? argsObj) && argsObj is IList<object?> list

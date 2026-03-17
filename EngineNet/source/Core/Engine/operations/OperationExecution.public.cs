@@ -20,10 +20,7 @@ public sealed class OperationExecution {
         Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
         IDictionary<string, object?> op,
         IDictionary<string, object?> promptAnswers,
-        Core.EngineConfig EngineConfig,
-        Core.ExternalTools.IToolResolver ToolResolver,
-        Core.Services.GitService GitService,
-        Core.Abstractions.IGameRegistry GameRegistry,
+        EngineContext context,
         System.Threading.CancellationToken cancellationToken = default
     ) {
         if (!op.TryGetValue("script", out object? s) || s is null) {
@@ -61,30 +58,30 @@ public sealed class OperationExecution {
         switch (action) {
             // internal modules
             case "download_module_git": {
-                return new operations.Built_inActions.InternalOperations().DownloadModuleGit(promptAnswers, GitService);
+                return new operations.Built_inActions.InternalOperations().DownloadModuleGit(promptAnswers, context);
             }
             case "download_module_registry": {
-                return new operations.Built_inActions.InternalOperations().DownloadModuleRegistry(promptAnswers, GitService, GameRegistry);
+                return new operations.Built_inActions.InternalOperations().DownloadModuleRegistry(promptAnswers, context);
             }
 
             // Built-in actions
             case "config": {
-                return new operations.Built_inActions.BuiltInOperations().config(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig);
+                return new operations.Built_inActions.BuiltInOperations().config(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, context);
             }
             case "download-tools": {
-                return await new operations.Built_inActions.BuiltInOperations().DownloadTools(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, cancellationToken);
+                return await new operations.Built_inActions.BuiltInOperations().DownloadTools(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, context, cancellationToken);
             }
             case "format-extract": {
-                return new operations.Built_inActions.BuiltInOperations().format_extract(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, cancellationToken);
+                return new operations.Built_inActions.BuiltInOperations().format_extract(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, context, cancellationToken);
             }
             case "format-convert": {
-                return new operations.Built_inActions.BuiltInOperations().format_convert(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, ToolResolver, cancellationToken);
+                return new operations.Built_inActions.BuiltInOperations().format_convert(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, context, cancellationToken);
             }
             case "validate-files": {
-                return new operations.Built_inActions.BuiltInOperations().validate_files(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, cancellationToken);
+                return new operations.Built_inActions.BuiltInOperations().validate_files(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, context, cancellationToken);
             }
             case "rename-folders": {
-                return new operations.Built_inActions.BuiltInOperations().rename_folders(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, EngineConfig, cancellationToken);
+                return new operations.Built_inActions.BuiltInOperations().rename_folders(resolvedOp, promptAnswers, currentGame, games, Program.rootPath, context, cancellationToken);
             }
             default: {
                 Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] Unknown engine action: {action}");
