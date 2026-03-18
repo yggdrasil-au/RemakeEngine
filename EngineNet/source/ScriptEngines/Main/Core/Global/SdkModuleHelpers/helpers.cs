@@ -6,20 +6,41 @@ public static class Helpers {
     //AddConfigurationHelpers
     public static class AddConfigurationHelpers {
         public static bool Validate_Source_Dir(string dir) {
-        try {
-            // Security: Validate path is within allowed areas
-            if (!Security.IsAllowedPath(dir)) {
-                Core.UI.EngineSdk.Error($"Access denied: validate_source_dir path is outside allowed areas ('{dir}')");
+            try {
+                // Security: Validate path is within allowed areas
+                if (!Security.IsAllowedPath(dir)) {
+                    Core.UI.EngineSdk.Error($"Access denied: validate_source_dir path is outside allowed areas ('{dir}')");
+                    return false;
+                }
+                ValidateSourceDir(dir);
+                return true;
+            } catch (Exception ex) {
+                Core.Diagnostics.LuaInternalCatch("validate_source_dir failed with exception: " + ex);
                 return false;
             }
-            ScriptEngines.Helpers.ConfigHelpers.ValidateSourceDir(dir);
-            return true;
-        } catch (Exception ex) {
-            Core.Diagnostics.LuaInternalCatch("validate_source_dir failed with exception: " + ex);
-            return false;
         }
     }
+
+    /// <summary>
+    /// Validates that a source directory exists and is accessible.
+    /// Throws if invalid.
+    /// </summary>
+    private static void ValidateSourceDir(string dir) {
+        if (string.IsNullOrWhiteSpace(dir)) {
+            throw new System.ArgumentException("Source directory path is empty");
+        }
+
+        if (!System.IO.Directory.Exists(dir)) {
+            throw new System.IO.DirectoryNotFoundException($"Source directory not found: {dir}");
+        }
+        // Basic access check: attempt to enumerate one entry (if any)
+        try {
+            using IEnumerator<string> _ = System.IO.Directory.EnumerateFileSystemEntries(dir).GetEnumerator();
+        } catch (System.Exception ex) {
+            throw new System.IO.IOException($"Cannot access source directory '{dir}': {ex.Message}", ex);
+        }
     }
+
 
     //AddFileSystemOperations
     public static class AddFileSystemOperations {
@@ -81,7 +102,7 @@ public static class Helpers {
 
     // add hashing functions like sha1_file and md5
     public static class AddHashMethods {
-        
+
         public static dynamic? sha1_file(string path) {
             try {
                 if (!Security.EnsurePathAllowedWithPrompt(path)) {

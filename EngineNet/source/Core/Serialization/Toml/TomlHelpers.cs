@@ -14,10 +14,10 @@ namespace EngineNet.Core.Serialization.Toml;
 public static class TomlHelpers {
     public static object ParseFileToPlainObject(string path) {
         string text = System.IO.File.Exists(path) ? System.IO.File.ReadAllText(path) : string.Empty;
-        
+
         // Handle empty strings explicitly to avoid deserialization exceptions
-        var model = string.IsNullOrWhiteSpace(text) 
-            ? new Tomlyn.Model.TomlTable() 
+        var model = string.IsNullOrWhiteSpace(text)
+            ? new Tomlyn.Model.TomlTable()
             : Tomlyn.TomlSerializer.Deserialize<Tomlyn.Model.TomlTable>(text)!;
 
         // Convert the Tomlyn model (TomlTable/TomlArray) into standard .NET types

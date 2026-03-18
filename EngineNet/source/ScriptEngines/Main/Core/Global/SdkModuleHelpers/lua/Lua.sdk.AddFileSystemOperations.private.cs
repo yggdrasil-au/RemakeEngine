@@ -10,7 +10,7 @@ public static partial class Sdk {
                 Core.UI.EngineSdk.Error($"Access denied: find_subdir baseDir is outside allowed areas ('{baseDir}')");
                 return null;
             }
-            return Helpers.ConfigHelpers.FindSubdir(baseDir, name);
+            return ScriptEngines.Global.SdkModule.FileSystemUtils.FindSubdir(baseDir, name);
         };
         _LuaWorld.Sdk.Table["has_all_subdirs"] = (string baseDir, Table names) => {
             try {
@@ -19,7 +19,7 @@ public static partial class Sdk {
                     return false;
                 }
                 List<string> list = Lua.Globals.Utils.TableToStringList(names);
-                return Helpers.ConfigHelpers.HasAllSubdirs(baseDir, list);
+                return ScriptEngines.Global.SdkModule.FileSystemUtils.HasAllSubdirs(baseDir, list);
             } catch (Exception ex) {
                 Core.Diagnostics.LuaInternalCatch("has_all_subdirs failed with exception: " + ex);
                 return false;
@@ -140,7 +140,7 @@ public static partial class Sdk {
                     return false;
                 }
                 bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
-                Helpers.ConfigHelpers.CopyDirectory(src, dst, ow);
+                ScriptEngines.Global.SdkModule.FileSystemUtils.CopyDirectory(src, dst, ow);
                 return true;
             } catch (Exception ex) {
                 Core.Diagnostics.LuaInternalCatch("copy_dir failed with exception: " + ex);
@@ -155,7 +155,7 @@ public static partial class Sdk {
                     return false;
                 }
                 bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
-                Helpers.ConfigHelpers.MoveDirectory(src, dst, ow);
+                ScriptEngines.Global.SdkModule.FileSystemUtils.MoveDirectory(src, dst, ow);
                 return true;
             } catch (Exception ex) {
                 Core.Diagnostics.LuaInternalCatch("move_dir failed with exception: " + ex);
@@ -315,7 +315,7 @@ public static partial class Sdk {
                     }
                     return true;
                 } else if (System.IO.Directory.Exists(oldPath)) {
-                    Helpers.ConfigHelpers.MoveDirectory(oldPath, newPath, overwrite);
+                    ScriptEngines.Global.SdkModule.FileSystemUtils.MoveDirectory(oldPath, newPath, overwrite);
                     return true;
                 }
                 return false;

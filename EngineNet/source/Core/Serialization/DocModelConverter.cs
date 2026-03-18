@@ -1,7 +1,4 @@
 
-using System.Collections.Generic;
-using System.Text.Json;
-using Tomlyn.Model;
 
 namespace EngineNet.Core.Serialization;
 
@@ -11,6 +8,12 @@ namespace EngineNet.Core.Serialization;
 /// Centralizes number/boolean/string handling to avoid drift.
 /// </summary>
 public static class DocModelConverter {
+
+    /// <summary>
+    /// Converts a System.Text.Json.JsonElement of kind Object into a Dictionary<string, object?> with case-insensitive keys.
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <returns></returns>
     public static Dictionary<string, object?> FromJsonObject(System.Text.Json.JsonElement obj) {
         Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
         foreach (System.Text.Json.JsonProperty p in obj.EnumerateObject()) {
@@ -20,6 +23,11 @@ public static class DocModelConverter {
         return dict;
     }
 
+    /// <summary>
+    /// Recursively converts a System.Text.Json.JsonElement into a corresponding C# object model
+    /// </summary>
+    /// <param name="el"></param>
+    /// <returns></returns>
     public static object? FromJsonElement(System.Text.Json.JsonElement el) {
         switch (el.ValueKind) {
             case System.Text.Json.JsonValueKind.Object:
@@ -49,6 +57,13 @@ public static class DocModelConverter {
         }
     }
 
+    /// <summary>
+    /// Converts a Tomlyn.Model.TomlTable into a Dictionary<string, object?> with case-insensitive keys.
+    /// Recursively converts nested tables and arrays into corresponding Dictionary and List models.
+    /// Handles TOML types like strings, numbers, booleans, tables, arrays, and table arrays.
+    /// </summary>
+    /// <param name="table"></param>
+    /// <returns></returns>
     public static Dictionary<string, object?> FromTomlTable(Tomlyn.Model.TomlTable table) {
         Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
         foreach (KeyValuePair<string, object> kv in table) {
@@ -57,6 +72,11 @@ public static class DocModelConverter {
         return dict;
     }
 
+    /// <summary>
+    /// Recursively converts a TOML value (which can be a primitive, TomlTable, TomlArray, or TomlTableArray) into a corresponding C# object model (string, long, double, bool, Dictionary<string, object?>, List<object?>).
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
     public static object? FromTomlValue(object? value) {
         if (value is null) {
             return null;
@@ -84,5 +104,6 @@ public static class DocModelConverter {
 
         return value;
     }
+
 }
 
