@@ -1,7 +1,5 @@
 using MoonSharp.Interpreter;
 
-using System.Collections.Generic;
-
 namespace EngineNet.ScriptEngines.Lua.Global;
 
 /// <summary>
@@ -9,9 +7,9 @@ namespace EngineNet.ScriptEngines.Lua.Global;
 /// Provides secure database access with path validation.
 /// </summary>
 public static class Sqlite {
-    public static Table CreateSqliteModule(LuaWorld LuaEnvObj) {
+    public static void CreateSqliteModule(LuaWorld _LuaWorld) {
 
-        LuaEnvObj.SqliteModule["open"] = DynValue.NewCallback((ctx, args) => {
+        _LuaWorld.SqliteModule["open"] = DynValue.NewCallback((ctx, args) => {
             if (args.Count < 1 || args[0].Type != DataType.String) {
                 throw new ScriptRuntimeException("sqlite.open(path) requires a string path");
             }
@@ -23,14 +21,15 @@ public static class Sqlite {
                 throw new ScriptRuntimeException($"Access denied: SQLite database path '{path}' is outside allowed workspace areas");
             }
 
-            SqliteHandle handle = new SqliteHandle(LuaEnvObj.LuaScript, path);
-            return DynValue.NewTable(CreateSqliteHandleTable(LuaEnvObj, handle));
+            SqliteHandle handle = new SqliteHandle(_LuaWorld.LuaScript, path);
+            return DynValue.NewTable(CreateSqliteHandleTable(_LuaWorld, handle));
         });
-        return LuaEnvObj.SqliteModule;
+        // return _LuaWorld.SqliteModule;
+        _LuaWorld.LuaScript.Globals["sqlite"] = _LuaWorld.SqliteModule;
     }
 
-    private static Table CreateSqliteHandleTable(LuaWorld LuaEnvObj, SqliteHandle handle) {
-        Table SqliteHandleTable = new Table(LuaEnvObj.LuaScript);
+    private static Table CreateSqliteHandleTable(LuaWorld _LuaWorld, SqliteHandle handle) {
+        Table SqliteHandleTable = new Table(_LuaWorld.LuaScript);
         SqliteHandleTable["exec"] = DynValue.NewCallback((ctx, args) => {
             int offset = args.Count > 0 && args[0].Type == DataType.Table ? 1 : 0;
             if (args.Count <= offset || args[offset].Type != DataType.String) {

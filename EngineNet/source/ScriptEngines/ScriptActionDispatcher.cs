@@ -1,9 +1,13 @@
-using System.Collections.Generic;
+
 using EngineNet.Core.Data;
+
 
 namespace EngineNet.ScriptEngines;
 
-
+/// <summary>
+/// Centralized dispatcher for script actions, both embedded (lua/js/python) and external (bms).
+/// This ensures all script actions are created through a single point, allowing for consistent handling
+/// </summary>
 public sealed class ScriptActionDispatcher {
 
     // this is used by GameLauncher.cs to run game.toml if game is a script
@@ -14,7 +18,7 @@ public sealed class ScriptActionDispatcher {
     /// this should be the only way to call any embedded script action
     /// </summary>
     public static class EmbeddedActionDispatcher {
-        public static ScriptEngines.Helpers.IAction? TryCreate(
+        public static ScriptEngines.IAction? TryCreate(
             string scriptType,
             string scriptPath,
             IEnumerable<string> args,
@@ -49,7 +53,7 @@ public sealed class ScriptActionDispatcher {
     /// this should be the only way to call any external script action
     /// </summary>
     public static class ExternalActionDispatcher {
-        public static ScriptEngines.Helpers.IAction? TryCreate(
+        public static ScriptEngines.IAction? TryCreate(
             string scriptType,
             string scriptPath,
             string gameRoot,
@@ -69,3 +73,16 @@ public sealed class ScriptActionDispatcher {
         }
     }
 }
+
+/// <summary>
+/// Represents a single executable step within a game module.
+/// </summary>
+public interface IAction {
+    /// <summary>
+    /// Executes the action with access to tool resolution services.
+    /// </summary>
+    /// <param name="tools">Resolver for locating external tools.</param>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
+    Task ExecuteAsync(Core.ExternalTools.JsonToolResolver tools, CancellationToken cancellationToken = default);
+}
+

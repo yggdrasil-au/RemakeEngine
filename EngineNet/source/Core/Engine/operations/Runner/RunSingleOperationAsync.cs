@@ -102,7 +102,7 @@ public sealed class Runner {
                     try {
                         // create the action with the dispatcher
                         IEnumerable<string> argsEnum = args;
-                        ScriptEngines.Helpers.IAction? act = ScriptEngines.ScriptActionDispatcher.EmbeddedActionDispatcher.TryCreate(
+                        ScriptEngines.IAction? act = ScriptEngines.ScriptActionDispatcher.EmbeddedActionDispatcher.TryCreate(
                             scriptType: scriptType,
                             scriptPath: scriptPath,
                             args: argsEnum,

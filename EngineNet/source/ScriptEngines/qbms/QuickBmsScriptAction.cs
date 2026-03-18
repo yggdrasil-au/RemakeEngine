@@ -3,7 +3,7 @@ using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.ScriptEngines.qbms;
 
-public sealed class Main : Helpers.IAction {
+public sealed class Main : ScriptEngines.IAction {
     private readonly string _scriptPath;   // path to .bms
     private readonly string _moduleRoot;   // Game_Root
     private readonly string _inputDir;

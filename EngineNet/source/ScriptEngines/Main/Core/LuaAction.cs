@@ -3,9 +3,21 @@ using MoonSharp.Interpreter;
 
 namespace EngineNet.ScriptEngines.Lua;
 
+/// <summary>
+/// LuaAction sets up the core global variables, functions, modules, and diagnostics for Lua scripts in the EngineNet environment.
+/// </summary>
 public static class LuaAction {
 
-    public static void SetupCoreFunctions(
+    /// <summary>
+    /// Sets up the core global variables, functions, modules, and diagnostics for Lua scripts.
+    /// </summary>
+    /// <param name="_LuaWorld"></param>
+    /// <param name="_tools"></param>
+    /// <param name="_args"></param>
+    /// <param name="_gameRoot"></param>
+    /// <param name="_projectRoot"></param>
+    /// <param name="_scriptPath"></param>
+    public static void CreateGlobals(
         LuaWorld _LuaWorld,
         Core.ExternalTools.JsonToolResolver _tools,
         string[] _args,
@@ -14,24 +26,27 @@ public static class LuaAction {
         string _scriptPath
     ) {
         // --- 1. Global Variables & Environment Constants ---
-
-        globalVars(_LuaWorld, _args, _gameRoot, _projectRoot, _scriptPath);
+        CreateGlobalVars(_LuaWorld, _args, _gameRoot, _projectRoot, _scriptPath);
 
         // --- 2. Global Functions ---
-
-        globalFunctions(_LuaWorld, _tools);
+        CreateGlobalFunctions(_LuaWorld, _tools);
 
         // --- 3. Global Modules & Sub-Module Setup ---
-
-        globalModules(_LuaWorld, _tools);
+        CreateGlobalModules(_LuaWorld, _tools);
 
         // --- 4. Diagnostics & Logging ---
-
-        globalDiagnostics(_LuaWorld, _gameRoot, _projectRoot);
-
+        CreateGlobalDiagnostics(_LuaWorld, _gameRoot, _projectRoot);
     }
 
-    private static void globalVars(LuaWorld _LuaWorld, string[] _args, string _gameRoot, string _projectRoot, string _scriptPath) {
+    /// <summary>
+    /// Defines global variables and environment constants for Lua scripts, such as Game_Root, Project_Root, script_dir, argv, argc, UIMode, and DEBUG.
+    /// </summary>
+    /// <param name="_LuaWorld"></param>
+    /// <param name="_args"></param>
+    /// <param name="_gameRoot"></param>
+    /// <param name="_projectRoot"></param>
+    /// <param name="_scriptPath"></param>
+    private static void CreateGlobalVars(LuaWorld _LuaWorld, string[] _args, string _gameRoot, string _projectRoot, string _scriptPath) {
         // Game and Project path constants
         _LuaWorld.LuaScript.Globals["Game_Root"] = _gameRoot;
         _LuaWorld.LuaScript.Globals["Project_Root"] = _projectRoot;
@@ -63,7 +78,15 @@ public static class LuaAction {
 #endif
     }
 
-    private static void globalFunctions(LuaWorld _LuaWorld, Core.ExternalTools.JsonToolResolver _tools) {
+    /// <summary>
+    /// Defines global functions available to Lua scripts,
+    /// including utility functions like 'join' for path manipulation, 'import' for loading other Lua files, and 'tool' for resolving external tool paths.
+    /// Also defines functions for emitting engine SDK events (warn, error, prompt) to allow Lua scripts to interact with the user through the engine's UI.
+    /// </summary>
+    /// <param name="_LuaWorld"></param>
+    /// <param name="_tools"></param>
+    /// <exception cref="ScriptRuntimeException"></exception>
+    private static void CreateGlobalFunctions(LuaWorld _LuaWorld, Core.ExternalTools.JsonToolResolver _tools) {
 
         // Methods for emitting engineSDK events (warn, error, prompt)
         EngineSdkGlobals(_LuaWorld);
@@ -121,15 +144,27 @@ public static class LuaAction {
         _LuaWorld.LuaScript.Globals["require"] = _LuaWorld.LuaScript.Globals["import"];
     }
 
-    private static void globalModules(LuaWorld _LuaWorld, Core.ExternalTools.JsonToolResolver _tools) {
-        // Core Modules
-        _LuaWorld.LuaScript.Globals["sdk"] = Global.Sdk.CreateSdkModule(_LuaWorld, _tools);
-        _LuaWorld.LuaScript.Globals["sqlite"] = Global.Sqlite.CreateSqliteModule(_LuaWorld);
-        // Progress System internal components
-        CreateProgressModule(_LuaWorld);
+    /// <summary>
+    /// Defines the global modules available to Lua scripts,
+    /// including the core SDK module and any additional modules for functionality like file system access, process execution, JSON handling, etc.
+    /// </summary>
+    /// <param name="_LuaWorld"></param>
+    /// <param name="_tools"></param>
+    private static void CreateGlobalModules(LuaWorld _LuaWorld, Core.ExternalTools.JsonToolResolver _tools) {
+        Global.Sdk.CreateSdkModule(_LuaWorld, _tools);
+        Global.Sqlite.CreateSqliteModule(_LuaWorld);
+        Global.Progress.CreateProgressModule(_LuaWorld);
     }
 
-    private static void globalDiagnostics(LuaWorld _LuaWorld, string _gameRoot, string _projectRoot) {
+    /// <summary>
+    /// Defines global diagnostics and logging functions for Lua scripts,
+    /// allowing them to log messages and trace information through the engine's logging system.
+    /// Also logs initial environment information at startup.
+    /// </summary>
+    /// <param name="_LuaWorld"></param>
+    /// <param name="_gameRoot"></param>
+    /// <param name="_projectRoot"></param>
+    private static void CreateGlobalDiagnostics(LuaWorld _LuaWorld, string _gameRoot, string _projectRoot) {
         // Lua Diagnostics logging methods
         _LuaWorld.DiagnosticsMethods["Log"] = (System.Action<string>)Core.Diagnostics.LuaLogger.LuaLog;
         _LuaWorld.DiagnosticsMethods["Trace"] = (System.Action<string>)Core.Diagnostics.LuaLogger.LuaTrace;
@@ -139,7 +174,6 @@ public static class LuaAction {
         Core.Diagnostics.Log($"[LuaScriptAction.cs::SetupCoreFunctions()] Set Game_Root to '{_gameRoot}'");
         Core.Diagnostics.Log($"[LuaScriptAction.cs::SetupCoreFunctions()] Set Project_Root to '{_projectRoot}'");
     }
-
 
     /// <summary>
     /// Defines methods for emitting engine SDK events (warn, error, prompt) to allow Lua scripts to interact with the user through the engine's UI.
@@ -167,50 +201,5 @@ public static class LuaAction {
         _LuaWorld.LuaScript.Globals["colour_prompt"] = _LuaWorld.LuaScript.Globals["color_prompt"]; // (Correct) AU spelling
     }
 
-    /// <summary>
-    /// Defines the progress API for Lua scripts, allowing them to create and update progress bars in the engine UI.
-    /// </summary>
-    /// <param name="_LuaWorld"></param>
-    private static void CreateProgressModule(LuaWorld _LuaWorld) {
-        Core.UI.EngineSdk.ScriptProgress? activeScriptProgress = null;
-
-        // progress.new(total, id, label) -> Core.UI.EngineSdk.PanelProgress userdata
-        _LuaWorld.Progress["new"] = (System.Func<int, string?, string?, Core.UI.EngineSdk.PanelProgress>)((total, id, label) => {
-            string pid = string.IsNullOrEmpty(id) ? "p1" : id!;
-            return new Core.UI.EngineSdk.PanelProgress(total, pid, label);
-        });
-
-        // progress.start(total, label) -> Core.UI.EngineSdk.ScriptProgress userdata
-        _LuaWorld.Progress["start"] = (System.Func<int, string?, Core.UI.EngineSdk.ScriptProgress>)((total, label) => {
-            activeScriptProgress = new Core.UI.EngineSdk.ScriptProgress(total, "s1", label);
-            return activeScriptProgress;
-        });
-
-        // progress.step(label?) -> increments current progress by 1, optionally updates label
-        _LuaWorld.Progress["step"] = (System.Action<string?>)((label) => {
-            if (activeScriptProgress != null) {
-                activeScriptProgress.Update(1, label);
-                if (!string.IsNullOrEmpty(label)) {
-                    Core.UI.EngineSdk.PrintLine($"[Step {activeScriptProgress.Current}/{activeScriptProgress.Total}] {label}", System.ConsoleColor.Magenta);
-                }
-            }
-        });
-
-        // progress.add_steps(count) -> increases total steps
-        _LuaWorld.Progress["add_steps"] = (System.Action<int>)((count) => {
-            if (activeScriptProgress != null) {
-                activeScriptProgress.SetTotal(activeScriptProgress.Total + count);
-            }
-        });
-
-        // progress.finish() -> completes the progress
-        _LuaWorld.Progress["finish"] = (System.Action)(() => {
-            if (activeScriptProgress != null) {
-                activeScriptProgress.Complete();
-            }
-        });
-
-        _LuaWorld.LuaScript.Globals["progress"] = _LuaWorld.Progress;
-    }
 
 }

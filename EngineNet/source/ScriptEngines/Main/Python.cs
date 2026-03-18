@@ -14,7 +14,7 @@ namespace EngineNet.ScriptEngines.Python;
 /// <summary>
 /// entry point for executing a Python script, called from EngineNet.ScriptEngines.Helpers.EmbeddedActionDispatcher
 /// </summary>
-public sealed class Main : Helpers.IAction {
+public sealed class Main : ScriptEngines.IAction {
 
     private readonly string _scriptPath;
     private readonly string[] _args;

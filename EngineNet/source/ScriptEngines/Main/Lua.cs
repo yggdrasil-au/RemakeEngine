@@ -8,7 +8,7 @@ namespace EngineNet.ScriptEngines.Lua;
 /// <summary>
 /// entry point for executing a Lua script, called from EngineNet.ScriptEngines.Helpers.EmbeddedActionDispatcher
 /// </summary>
-public sealed class Main : Helpers.IAction {
+public sealed class Main : IAction {
 
     private readonly string _scriptPath;
     private readonly string[] _args;
@@ -55,7 +55,7 @@ public sealed class Main : Helpers.IAction {
             var contextualTools = new ContextualToolResolver(tools, moduleVersions);
 
             // Expose core functions, SDK and modules
-            LuaAction.SetupCoreFunctions(LuaWorld, contextualTools, this._args, this._gameRoot, this._projectRoot, this._scriptPath);
+            LuaAction.CreateGlobals(LuaWorld, contextualTools, this._args, this._gameRoot, this._projectRoot, this._scriptPath);
 
             // Register UserData types
             UserData.RegisterType<Core.UI.EngineSdk.PanelProgress>();
@@ -76,7 +76,7 @@ public sealed class Main : Helpers.IAction {
             // Create a fresh object array specifically for this call
             object[] argsForLua = new object[this._args.Length];
             Array.Copy(this._args, argsForLua, this._args.Length);
-            
+
             await System.Threading.Tasks.Task.Run(() => {
                 LuaWorld.LuaScript.Call(LuaWorld.LuaScript.LoadString(code), argsForLua);
             }, cancellationToken).ConfigureAwait(false);
