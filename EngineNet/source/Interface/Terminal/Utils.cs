@@ -27,7 +27,7 @@ public class Utils() {
     /// <summary>
     /// Execute a single operation in the terminal interface, handling events and output appropriately.
     /// </summary>
-    /// <param name="_engine"></param>
+    /// <param name="Engine"></param>
     /// <param name="game"></param>
     /// <param name="games"></param>
     /// <param name="op"></param>
@@ -35,7 +35,7 @@ public class Utils() {
     /// <param name="autoPromptResponses"></param>
     /// <returns></returns>
     public async System.Threading.Tasks.Task<bool> ExecuteOpAsync(
-        Core.Engine.Engine _engine,
+        MiniEngineFace Engine,
         string game,
         Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
         Dictionary<string, object?> op,
@@ -63,7 +63,7 @@ public class Utils() {
 
                     Core.UI.EngineSdk.LocalEventSink = OnEvent;
                     Core.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
-                    return await _engine.RunSingleOperationAsync(
+                    return await Engine.RunSingleOperationAsync(
                         game,
                         games,
                         op,
@@ -85,13 +85,13 @@ public class Utils() {
             }
 
             // Default: build and execute as external command (e.g., python)
-            List<string> parts = _engine.BuildCommand(game, games, op, answers);
+            List<string> parts = Engine.Context_CommandService_BuildCommand(game, games, Engine.Context_EngineConfig_Data, op, answers);
             if (parts.Count < 2) {
                 return false;
             }
 
             string title = op.TryGetValue("Name", out object? n) ? n?.ToString() ?? System.IO.Path.GetFileName(parts[1]) : System.IO.Path.GetFileName(parts[1]);
-            return _engine.ExecuteCommand(
+            return Engine.Context_CommandService_ExecuteCommand(
                 parts,
                 title,
                 onOutput: OnOutput,

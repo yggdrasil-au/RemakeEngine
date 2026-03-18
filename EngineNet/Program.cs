@@ -82,28 +82,33 @@ public static class Program {
 
             // 3. Interface selection based on "Remaining Args" (args with --root removed)
 
+            var UI = new Interface.Main(Engine);
+
             // Logic:
             // - No remaining args -> GUI
             // - One arg "--gui" -> GUI
             if (isGui) {
                 Core.Diagnostics.Trace("Launching GUI Interface...");
-                return Interface.GUI.GuiBootstrapper.Run(Engine); // ;; gui flow step1 ;;
+                //return Interface.GUI.GuiBootstrapper.Run(Engine); // ;; gui flow step1 ;;
+                return await UI.init(args, "gui", cts.Token);
             }
 
             // Logic:
             // - One arg "--tui" -> TUI
             if (isTui) {
                 Core.Diagnostics.Trace("Launching TUI Interface...");
-                Interface.Terminal.TUI TUI = new Interface.Terminal.TUI(Engine);
-                return await TUI.RunInteractiveMenuAsync(cts.Token);
+                //Interface.Terminal.TUI TUI = new Interface.Terminal.TUI(Engine);
+                //return await TUI.RunInteractiveMenuAsync(cts.Token);
+                return await UI.init(args, "tui", cts.Token);
             }
 
             // Logic:
             // - Anything else -> CLI (Pass original args so CLI can parse specific commands like 'build', 'run', etc.)
             if (isCli) {
                 Core.Diagnostics.Trace("Launching CLI Interface...");
-                Interface.Terminal.CLI CLI = new Interface.Terminal.CLI(Engine);
-                return await CLI.RunAsync(args, cts.Token);
+                //Interface.Terminal.CLI CLI = new Interface.Terminal.CLI(Engine);
+                //return await CLI.RunAsync(args, cts.Token);
+                return await UI.init(args, "cli", cts.Token);
             }
             EngineSdk.Error("No valid interface mode selected.");
             Core.Diagnostics.Bug("No valid interface mode selected.");

@@ -4,9 +4,9 @@ namespace EngineNet.Interface.Terminal;
 public partial class TUI {
 
     /* :: :: Constructor, Var :: START :: */
-    private readonly Core.Engine.Engine _engine;
-    public TUI(Core.Engine.Engine engine) {
-        _engine = engine;
+    private readonly MiniEngineFace Engine;
+    public TUI(MiniEngineFace engine) {
+        Engine = engine;
     }
 
     /* :: :: Constructor, Var :: END :: */
@@ -23,9 +23,9 @@ public partial class TUI {
     public async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync(System.Threading.CancellationToken cancellationToken = default, string? msg = null) {
         try {
             // get all modules that exist on disk
-            Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.Modules(Core.Utils.ModuleFilter.Installed);
+            Dictionary<string, Core.Utils.GameModuleInfo> modules = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.Installed);
             // get public modules
-            Dictionary<string, Core.Utils.GameModuleInfo> internalModules = _engine.Modules(Core.Utils.ModuleFilter.Internal);
+            Dictionary<string, Core.Utils.GameModuleInfo> internalModules = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.Internal);
 
             // Create a combined dictionary for lookup and execution
             Dictionary<string, Core.Utils.GameModuleInfo> allAvailableModules = new(modules);
@@ -108,11 +108,11 @@ public partial class TUI {
                 //return 1;
                 return await RunInteractiveMenuAsync(msg: "Selected game is missing operations file. Please choose again.");
             }
-            Core.Services.OperationsService.PreparedOperations preparedOps = _engine.Context.OperationContext.OperationsService.LoadAndPrepare(
+            Core.Services.OperationsService.PreparedOperations preparedOps = Engine.Context_OperationContext_OperationsService_LoadAndPrepare(
                 opsFile: info.OpsFile,
                 currentGame: gameName,
                 games: allAvailableModules,
-                engineConfig: _engine.Context.EngineConfig.Data
+                engineConfig: Engine.Context_EngineConfig_Data
             );
             if (!preparedOps.IsLoaded) {
                 string message = preparedOps.ErrorMessage ?? "Failed to load operations list.";
@@ -139,7 +139,7 @@ public partial class TUI {
                     Dictionary<string, object?> answers = new Dictionary<string, object?>();
                     // Initialization runs non-interactively; use defaults when provided
                     CollectAnswersForOperation(op.Operation, answers, defaultsOnly: true);
-                    bool ok = await new Utils().ExecuteOpAsync(_engine, gameName, allAvailableModules, op.Operation, answers);
+                    bool ok = await new Utils().ExecuteOpAsync(Engine, gameName, allAvailableModules, op.Operation, answers);
                     okAllInit &= ok;
                 }
                 initStopwatch.Stop();
@@ -217,7 +217,7 @@ public partial class TUI {
                     Core.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
 
                     try {
-                        bool launched = await _engine.GameLauncher.LaunchGameAsync(name: gameName);
+                        bool launched = await Engine.GameLauncher_LaunchGameAsync(name: gameName);
                         System.Console.WriteLine(launched
                             ? "\nGame finished or launched successfully. Press any key to continue..."
                             : "\nFailed to launch game. Press any key to continue...");
@@ -241,7 +241,7 @@ public partial class TUI {
                         // 2. Pass our custom StdinProvider that works with the Renderer
                         Core.ProcessRunner.StdinProvider rendererInput = () => TuiRenderer.ReadLineCustom("Input >", false);
 
-                        Core.Engine.RunAllResult result = await _engine.RunAllAsync(
+                        Core.Engine.RunAllResult result = await Engine.RunAllAsync(
                             gameName,
                             onOutput: Utils.OnOutput, // Make sure OnOutput calls OnEvent -> TuiRenderer
                             onEvent: Utils.OnEvent,
@@ -282,7 +282,7 @@ public partial class TUI {
                         if (CollectAnswersForOperation(op, answers, defaultsOnly: false)) {
                             TuiRenderer.Log($"Running: {selection}\n", ConsoleColor.Cyan);
                             System.Diagnostics.Stopwatch opStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                            bool ok = await new Utils().ExecuteOpAsync(_engine, gameName, allAvailableModules, op, answers);
+                            bool ok = await new Utils().ExecuteOpAsync(Engine, gameName, allAvailableModules, op, answers);
                             opStopwatch.Stop();
 
                             TuiRenderer.Log(ok

@@ -94,7 +94,7 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
             IReadOnlyDictionary<string, object?> modules = GuiBootstrapper.Engine.Context.GameRegistry.GetRegisteredModules();
 
             // Get already downloaded games
-            Dictionary<string, Core.Utils.GameModuleInfo> downloadedGames = GuiBootstrapper.Engine.Modules(Core.Utils.ModuleFilter.Installed);
+            Dictionary<string, Core.Utils.GameModuleInfo> downloadedGames = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.Installed);
 
             foreach (KeyValuePair<string, object?> kv in modules) {
                 string moduleName = kv.Key;
@@ -186,7 +186,7 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
                         ["url"] = item.Url ?? string.Empty
                     });
 
-                    bool result = await Task.Run(() => GuiBootstrapper.Engine.DownloadModule(item.Url!));
+                    bool result = await Task.Run(() => GuiBootstrapper.Engine.Context.GitService.CloneModule(item.Url!));
 
                     onOutput(result ? $"Download complete for {item.Name}." : $"Download failed for {item.Name}.", result ? "stdout" : "stderr");
                     onEvent(new Dictionary<string, object?> {

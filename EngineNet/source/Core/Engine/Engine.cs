@@ -11,7 +11,6 @@ public sealed partial class Engine {
     // Services exposed to partial classes
     public Core.Services.GameLauncher GameLauncher { get; }
     public Core.Engine.EngineContext Context { get; }
-
     public EngineRunAll EngineRunAll { get; }
 
     /* :: :: Vars :: End :: */
@@ -81,7 +80,7 @@ public sealed partial class Engine {
 
 
     // Downloads a game module via Git
-    public bool DownloadModule(string url) {
+    /*public bool DownloadModule(string url) {
         return Context.GitService.CloneModule(url);
     }
 
@@ -113,9 +112,9 @@ public sealed partial class Engine {
     /// <summary>
     /// Gets the root path for a game by name
     /// </summary>
-    public string? GetGamePath(string name) {
+    /*public string? GetGamePath(string name) {
         return Context.GameRegistry.GetGamePath(name);
-    }
+    }*/
 
     /* :: :: */
     //

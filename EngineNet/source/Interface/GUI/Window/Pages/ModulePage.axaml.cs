@@ -175,7 +175,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             _initOperations.Clear();
 
             // Gather module info from multiple sources
-            Dictionary<string, Core.Utils.GameModuleInfo> modules = GuiBootstrapper.Engine.Modules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Utils.GameModuleInfo> modules = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
             Core.Utils.GameModuleInfo? m = modules.TryGetValue(_moduleName, out Core.Utils.GameModuleInfo? mm) ? mm : null;
             if (m is not null) {
                 Title = string.IsNullOrWhiteSpace(m.Title) ? m.Name : m.Title!;
@@ -204,7 +204,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
             // Load operations if ops_file exists
             string? opsFile = null;
-            Dictionary<string, Core.Utils.GameModuleInfo> games = GuiBootstrapper.Engine.Modules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Utils.GameModuleInfo> games = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
             if (games.TryGetValue(_moduleName, out Core.Utils.GameModuleInfo? gameInfo)) {
                 opsFile = gameInfo.OpsFile;
                 if (string.IsNullOrWhiteSpace(ExePath)) {
@@ -297,7 +297,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         Raise(nameof(CanStop));
 
         try {
-            Dictionary<string, Core.Utils.GameModuleInfo> games = GuiBootstrapper.Engine.Modules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Utils.GameModuleInfo> games = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
 
             await EngineOperationRunner.RunAsync(
                 engine: GuiBootstrapper.Engine,
@@ -427,7 +427,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         Raise(nameof(CanStop));
 
         try {
-            Dictionary<string, Core.Utils.GameModuleInfo> games = GuiBootstrapper.Engine.Modules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Utils.GameModuleInfo> games = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
 
             Dictionary<string, object?> answers = new Dictionary<string, object?>();
             await CollectAnswersForOperationAsync(op: row.Op, answers: answers);
@@ -487,7 +487,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 operationName: $"Download {ModuleName}",
                 executor: async (onOutput, onEvent, stdin) => {
                     onEvent(new Dictionary<string, object?> { ["event"] = "start", ["name"] = ModuleName, ["url"] = RegistryUrl });
-                    bool result = await System.Threading.Tasks.Task.Run(function: () => GuiBootstrapper.Engine.DownloadModule(RegistryUrl!));
+                    bool result = await System.Threading.Tasks.Task.Run(function: () => GuiBootstrapper.Engine.Context.GitService.CloneModule(RegistryUrl!));
                     onOutput(result ? $"Download complete for {ModuleName}." : $"Download failed for {ModuleName}.", result ? "stdout" : "stderr");
                     onEvent(new Dictionary<string, object?> { ["event"] = "end", ["success"] = result, ["name"] = ModuleName });
                     return result;
@@ -503,7 +503,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     private async System.Threading.Tasks.Task OpenFolderAsync() {
         try {
             if (GuiBootstrapper.Engine is null) return;
-            string? path = GuiBootstrapper.Engine.GetGamePath(name: ModuleName);
+            string? path = GuiBootstrapper.Engine.Context.GameRegistry.GetGamePath(name: ModuleName);
             if (string.IsNullOrWhiteSpace(path) || !System.IO.Directory.Exists(path: path)) {
                 return;
             }

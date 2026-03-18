@@ -74,7 +74,7 @@ public partial class LibraryPage:UserControl {
                 throw new System.InvalidOperationException(message: "Engine is not initialized.");
             }
 
-            var modules = GuiBootstrapper.Engine.Modules(Core.Utils.ModuleFilter.Installed);
+            var modules = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.Installed);
 #if DEBUG
             Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] Found {modules.Count} modules.");
             // list all modules

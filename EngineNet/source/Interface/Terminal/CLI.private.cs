@@ -9,7 +9,7 @@ internal partial class CLI {
 
     private int ListGames() {
         try {
-            Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.Modules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Utils.GameModuleInfo> modules = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
             if (modules.Count == 0) {
                 System.Console.WriteLine("No modules found.");
                 return 0;
@@ -29,7 +29,7 @@ internal partial class CLI {
     private int ListOps(string game) {
         try {
             // Find the game module
-            Dictionary<string, Core.Utils.GameModuleInfo> modules = _engine.Modules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Utils.GameModuleInfo> modules = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
             if (!modules.TryGetValue(game, out Core.Utils.GameModuleInfo? mod)) {
                 System.Console.WriteLine($"Game '{game}' not found.");
                 return 1;
@@ -40,7 +40,7 @@ internal partial class CLI {
                 throw new System.ArgumentException($"Game '{game}' missing ops_file.");
             }
             // Load and validate operations
-            Core.Services.OperationsService.PreparedOperations preparedOps = _engine.Context.OperationContext.OperationsService.LoadAndPrepare(opsFile);
+            Core.Services.OperationsService.PreparedOperations preparedOps = Engine.Context_OperationContext_OperationsService_LoadAndPrepare(opsFile);
             if (!preparedOps.IsLoaded) {
                 System.Console.WriteLine(preparedOps.ErrorMessage ?? "Failed to load operations.");
                 return 1;

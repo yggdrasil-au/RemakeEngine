@@ -1,9 +1,4 @@
 
-using System.Linq;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Diagnostics;
-
 namespace EngineNet.Interface.Terminal;
 
 public partial class TUI {
@@ -301,8 +296,8 @@ public partial class TUI {
     }
 
     private (List<string> choices, HashSet<int> disabled) GetRegistryModulesChoices() {
-        var registered = _engine.Modules(Core.Utils.ModuleFilter.Registered);
-        var installed = _engine.Modules(Core.Utils.ModuleFilter.Installed);
+        var registered = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.Registered);
+        var installed = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.Installed);
 
         List<string> choices = new();
         HashSet<int> disabled = new();
@@ -319,7 +314,7 @@ public partial class TUI {
 
     private bool CollectAnswersForOperation(Dictionary<string, object?> op, Dictionary<string, object?> answers, bool defaultsOnly) {
         try {
-            if (_engine is null) {
+            if (Engine is null) {
                 return false;
             }
 
@@ -342,7 +337,7 @@ public partial class TUI {
                         }
 
                         // For Select types, we'll use TuiRenderer.Log to list options and ReadLineCustom for input
-                        // as standard menus might break the layout. 
+                        // as standard menus might break the layout.
                         // Alternatively, we can still use SelectFromMenu if we are careful.
                         // Let's stick to the prompt style for now to be safe.
                         TuiRenderer.Log($"{request.Title}:", ConsoleColor.Cyan);
@@ -363,7 +358,7 @@ public partial class TUI {
                             }
                             return Task.FromResult(Core.Services.OperationsService.PromptResponse.FromValue(choicesList[actualIdx]));
                         }
-                        
+
                         return Task.FromResult(Core.Services.OperationsService.PromptResponse.Cancelled());
                     }
                     case "confirm": {
@@ -416,9 +411,7 @@ public partial class TUI {
                 }
             };
 
-            return _engine.Context.OperationContext.OperationsService.CollectAnswersAsync(op, answers, handler, defaultsOnly)
-                .GetAwaiter()
-                .GetResult();
+            return Engine.Context_OperationContext_OperationsService_CollectAnswersAsync(op, answers, handler, defaultsOnly).GetAwaiter().GetResult();
         } catch (System.Exception ex) {
             Core.Diagnostics.Bug($"[TUI.private.cs::PromptUser()] Error during interactive prompts: {ex.Message}");
             return false;

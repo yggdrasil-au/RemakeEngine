@@ -1,16 +1,12 @@
 
-using System.Linq;
-using System.Collections.Generic;
-using System.Diagnostics;
-
 namespace EngineNet.Interface.Terminal;
 
 internal partial class CLI {
 
     /* :: :: Constructor, Var :: START :: */
-    private readonly Core.Engine.Engine _engine;
-    internal CLI(Core.Engine.Engine engine) {
-        _engine = engine;
+    private readonly MiniEngineFace Engine;
+    internal CLI(MiniEngineFace engine) {
+        Engine = engine;
     }
 
     /// <summary>
@@ -79,7 +75,7 @@ internal partial class CLI {
         }
 
         // Find game modules
-        Dictionary<string, Core.Utils.GameModuleInfo> games = _engine.Modules(Core.Utils.ModuleFilter.All);
+        Dictionary<string, Core.Utils.GameModuleInfo> games = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
         if (!TryResolveInlineGame(options, games, out string? gameName)) {
             Core.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
             return 1;
@@ -93,7 +89,7 @@ internal partial class CLI {
         }
 
         // Execute the operation
-        bool ok = await new Utils().ExecuteOpAsync(_engine, gameName!, games, op, options.PromptAnswers, options.AutoPromptResponses, cancellationToken);
+        bool ok = await new Utils().ExecuteOpAsync(Engine, gameName!, games, op, options.PromptAnswers, options.AutoPromptResponses, cancellationToken);
         return ok ? 0 : 1;
     }
 
