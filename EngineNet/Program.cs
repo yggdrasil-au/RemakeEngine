@@ -77,7 +77,7 @@ public static class Program {
             }
 
             if (Engine == null) {
-                Engine = InitialiseEngine();
+                Engine = await InitialiseEngine();
             }
 
             // 3. Interface selection based on "Remaining Args" (args with --root removed)
@@ -191,12 +191,12 @@ public static class Program {
     /// <summary>
     /// Initialises the engine
     /// </summary>
-    public static Core.Engine.Engine InitialiseEngine() {
+    public static async System.Threading.Tasks.Task<Core.Engine.Engine> InitialiseEngine() {
         if (Engine == null) {
             var tools = new Core.ExternalTools.JsonToolResolver();
             var engineConfig = new Core.EngineConfig();
 
-            var _registries = new Core.Utils.Registries();
+            var _registries = await Core.Utils.Registries.CreateAsync();
             var _scanner = new Core.Utils.ModuleScanner(_registries);
 
             var gameRegistry = new Core.Services.GameRegistry(_registries, _scanner);

@@ -1,9 +1,3 @@
-using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
-using Tomlyn.Model;
-
-using EngineNet.Core.Serialization.Json;
 
 namespace EngineNet.Core.Utils;
 
@@ -14,7 +8,12 @@ public sealed partial class Registries {
 
     private Dictionary<string, object?> _modules = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
 
-    public Registries() {
+    private Registries(string gamesRel, string modulesRel) {
+        _gamesRegistryPath = gamesRel;
+        _modulesRegistryPath = modulesRel;
+    }
+
+    public static async Task<Registries> CreateAsync() {
         string Module_registry = System.IO.Path.Combine("EngineApps", "Registries", "Modules", "Main.json");
 
         // Preferred locations (relative to working root)
@@ -23,18 +22,13 @@ public sealed partial class Registries {
 
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(modulesRel) ?? Program.rootPath);
 
-        checkRegistryFile(modulesRel, Module_registry);
-
-        _gamesRegistryPath = gamesRel;
-        _modulesRegistryPath = modulesRel;
-        _modules = Core.Serialization.Json.JsonHelpers.LoadJsonFile(_modulesRegistryPath);
-    }
-
-    private void checkRegistryFile(string modulesRel, string Module_registry) {
-        // If modules registry JSON is missing, try to download from GitHub repo
         if (!System.IO.File.Exists(modulesRel)) {
-            Core.ExternalTools.RemoteFallbacks.EnsureRepoFile(Module_registry, modulesRel);
+            await Core.ExternalTools.RemoteFallbacks.EnsureRepoFileAsync(Module_registry, modulesRel);
         }
+
+        var instance = new Registries(gamesRel, modulesRel);
+        instance._modules = Core.Serialization.Json.JsonHelpers.LoadJsonFile(instance._modulesRegistryPath);
+        return instance;
     }
 
     public void RefreshModules() => _modules = Core.Serialization.Json.JsonHelpers.LoadJsonFile(_modulesRegistryPath);

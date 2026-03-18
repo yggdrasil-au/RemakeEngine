@@ -16,7 +16,7 @@ public static class GuiBootstrapper {
     /// </summary>
     public static Core.Engine.Engine Engine {
         get; private set;
-    } = Program.InitialiseEngine(); // if not set by Program.Run, force reinitialization (e.g., for Avalonia previewer)
+    } = null!; // if not set by Program.Run, force reinitialization (e.g., for Avalonia previewer)
 
     /// <summary>
     /// Launches the Avalonia desktop application with the provided engine.
@@ -32,7 +32,11 @@ public static class GuiBootstrapper {
         try {
             // 1) Stash the engine so App.OnFrameworkInitializationCompleted (or similar)
             //    can pull it to compose view models.
-            Engine = engine;
+            if (engine == null) {
+                Engine = Program.InitialiseEngine().GetAwaiter().GetResult(); // only used in avalonia previewer
+            } else {
+                Engine = engine;
+            }
 
             // Ensure events from the engine (including "Play" button actions) reach the GUI
             Core.UI.EngineSdk.LocalEventSink = OperationOutputService.Instance.HandleEvent;
