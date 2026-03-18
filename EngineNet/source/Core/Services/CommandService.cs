@@ -14,7 +14,7 @@ public class CommandService {
         _runner = new ProcessRunner();
     }
 
-    public List<string> BuildCommand(string currentGame, Dictionary<string, GameModuleInfo> games, IDictionary<string, object?> engineData, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers) {
+    public List<string> BuildCommand(string currentGame, Dictionary<string, Data.GameModuleInfo> games, IDictionary<string, object?> engineData, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers) {
         return _builder.Build(currentGame, games, engineData, op, promptAnswers);
     }
 

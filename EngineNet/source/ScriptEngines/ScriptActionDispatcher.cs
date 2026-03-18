@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using EngineNet.Core.Data;
 
 namespace EngineNet.ScriptEngines;
 
@@ -17,11 +19,11 @@ public sealed class ScriptActionDispatcher {
             string scriptPath,
             IEnumerable<string> args,
             string currentGame,
-            Dictionary<string, Core.Utils.GameModuleInfo> games
+            Dictionary<string, GameModuleInfo> games
         ) {
             string t = (scriptType ?? string.Empty).ToLowerInvariant();
             string gameRoot = string.Empty;
-            if (games != null && !string.IsNullOrEmpty(currentGame) && games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? info)) {
+            if (games != null && !string.IsNullOrEmpty(currentGame) && games.TryGetValue(currentGame, out GameModuleInfo? info)) {
                 gameRoot = info.GameRoot;
             }
 

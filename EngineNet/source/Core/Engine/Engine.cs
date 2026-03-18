@@ -1,3 +1,4 @@
+using EngineNet.Core.Data;
 
 namespace EngineNet.Core.Engine;
 
@@ -25,7 +26,7 @@ public sealed partial class Engine {
 
         Core.ExternalTools.JsonToolResolver toolResolver,
 
-        Core.EngineConfig engineConfig,
+        EngineConfig engineConfig,
 
         Core.Engine.Runner Runner
     ) {
@@ -59,7 +60,7 @@ public sealed partial class Engine {
     // run single operation (used by GUI/TUI and RunAllAsync)
     public async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
         string currentGame,
-        Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
+        Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
         IDictionary<string, object?> op,
         IDictionary<string, object?> promptAnswers,
         System.Threading.CancellationToken cancellationToken = default
@@ -85,7 +86,7 @@ public sealed partial class Engine {
     }
 
     // Builds a command from operation and context
-    public List<string> BuildCommand(string currentGame, Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers) {
+    public List<string> BuildCommand(string currentGame, Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers) {
         return Context.CommandService.BuildCommand(currentGame, games, Context.EngineConfig.Data, op, promptAnswers);
     }
 
@@ -97,11 +98,11 @@ public sealed partial class Engine {
     // Scans for game modules in registries
     /// <summary>
     /// returns a dictionary of game modules filtered by the provided filter
-    /// with the name as the key and the GameModuleInfo as the value
+    /// with the name as the key and the Data.GameModuleInfo as the value
     /// </summary>
     /// <param name="_Filter"></param>
     /// <returns></returns>
-    public Dictionary<string, Core.Utils.GameModuleInfo> Modules(Core.Utils.ModuleFilter _Filter) {
+    public Dictionary<string, Core.Data.GameModuleInfo> Modules(Core.Utils.ModuleFilter _Filter) {
         return Context.GameRegistry.GetModules(_Filter);
     }
 

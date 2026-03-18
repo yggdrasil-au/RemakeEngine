@@ -9,13 +9,13 @@ internal partial class CLI {
 
     private int ListGames() {
         try {
-            Dictionary<string, Core.Utils.GameModuleInfo> modules = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Data.GameModuleInfo> modules = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
             if (modules.Count == 0) {
                 System.Console.WriteLine("No modules found.");
                 return 0;
             }
-            foreach (KeyValuePair<string, Core.Utils.GameModuleInfo> kv in modules) {
-                Core.Utils.GameModuleInfo m = kv.Value;
+            foreach (KeyValuePair<string, Core.Data.GameModuleInfo> kv in modules) {
+                Core.Data.GameModuleInfo m = kv.Value;
                 string state = m.DescribeState();
                 System.Console.WriteLine($"- {m.Name}  (state: {state}; root: {m.GameRoot})");
             }
@@ -29,8 +29,8 @@ internal partial class CLI {
     private int ListOps(string game) {
         try {
             // Find the game module
-            Dictionary<string, Core.Utils.GameModuleInfo> modules = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
-            if (!modules.TryGetValue(game, out Core.Utils.GameModuleInfo? mod)) {
+            Dictionary<string, Core.Data.GameModuleInfo> modules = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
+            if (!modules.TryGetValue(game, out Core.Data.GameModuleInfo? mod)) {
                 System.Console.WriteLine($"Game '{game}' not found.");
                 return 1;
             }
@@ -40,7 +40,7 @@ internal partial class CLI {
                 throw new System.ArgumentException($"Game '{game}' missing ops_file.");
             }
             // Load and validate operations
-            Core.Services.OperationsService.PreparedOperations preparedOps = Engine.Context_OperationContext_OperationsService_LoadAndPrepare(opsFile);
+            Core.Data.PreparedOperations preparedOps = Engine.Context_OperationContext_OperationsService_LoadAndPrepare(opsFile);
             if (!preparedOps.IsLoaded) {
                 System.Console.WriteLine(preparedOps.ErrorMessage ?? "Failed to load operations.");
                 return 1;
@@ -67,11 +67,11 @@ internal partial class CLI {
 
             // Print operations
             System.Console.WriteLine($"Operations for game '{game}':");
-            foreach (Core.Services.OperationsService.PreparedOperation op in preparedOps.InitOperations) {
+            foreach (Core.Data.PreparedOperation op in preparedOps.InitOperations) {
                 string prefix = op.HasDuplicateId ? "[dup-id] " : op.HasInvalidId ? "[invalid-id] " : string.Empty;
                 System.Console.WriteLine($"- [init] {prefix}{op.DisplayName}");
             }
-            foreach (Core.Services.OperationsService.PreparedOperation op in preparedOps.RegularOperations) {
+            foreach (Core.Data.PreparedOperation op in preparedOps.RegularOperations) {
                 string prefix = op.HasDuplicateId ? "[dup-id] " : op.HasInvalidId ? "[invalid-id] " : string.Empty;
                 System.Console.WriteLine($"- {prefix}{op.DisplayName}");
             }
@@ -102,7 +102,7 @@ internal partial class CLI {
         return args.Length <= index ? throw new System.ArgumentException(error) : args[index];
     }
 
-    private static bool TryResolveInlineGame(InlineOperationOptions options, Dictionary<string, Core.Utils.GameModuleInfo> games, out string? resolvedName) {
+    private static bool TryResolveInlineGame(InlineOperationOptions options, Dictionary<string, Core.Data.GameModuleInfo> games, out string? resolvedName) {
         resolvedName = null;
         string GameRoot;
 
@@ -116,7 +116,7 @@ internal partial class CLI {
         string? preferredRoot = ResolveFullPathSafe(GameRoot);
 
         if (!string.IsNullOrWhiteSpace(identifier)) {
-            foreach (KeyValuePair<string, Core.Utils.GameModuleInfo> kv in games) {
+            foreach (KeyValuePair<string, Core.Data.GameModuleInfo> kv in games) {
                 if (string.Equals(kv.Key, identifier, System.StringComparison.OrdinalIgnoreCase)) {
                     resolvedName = kv.Key;
                     ApplyGameOverrides(games, resolvedName, preferredRoot, options.OpsFile);
@@ -126,7 +126,7 @@ internal partial class CLI {
 
             string? identifierPath = ResolveFullPathSafe(identifier);
             if (!string.IsNullOrWhiteSpace(identifierPath)) {
-                foreach (KeyValuePair<string, Core.Utils.GameModuleInfo> kv in games) {
+                foreach (KeyValuePair<string, Core.Data.GameModuleInfo> kv in games) {
                     if (kv.Value.GameRoot is not null) {
                         string? existingRoot = ResolveFullPathSafe(kv.Value.GameRoot);
                         if (!string.IsNullOrWhiteSpace(existingRoot) && PathsEqual(existingRoot, identifierPath)) {
@@ -139,7 +139,7 @@ internal partial class CLI {
 
                 if (System.IO.Directory.Exists(identifierPath)) {
                     string inferredName = options.GameName ?? new System.IO.DirectoryInfo(identifierPath).Name;
-                    Core.Utils.GameModuleInfo moduleInfo = new Core.Utils.GameModuleInfo {
+                    Core.Data.GameModuleInfo moduleInfo = new Core.Data.GameModuleInfo {
                         Id = string.Empty,
                         GameRoot = identifierPath,
                         Name = string.Empty,
@@ -159,7 +159,7 @@ internal partial class CLI {
         }
         if (!string.IsNullOrWhiteSpace(preferredRoot) && System.IO.Directory.Exists(preferredRoot)) {
             string inferredName = options.GameName ?? new System.IO.DirectoryInfo(preferredRoot).Name;
-            Core.Utils.GameModuleInfo moduleInfo = new Core.Utils.GameModuleInfo {
+            Core.Data.GameModuleInfo moduleInfo = new Core.Data.GameModuleInfo {
                 Id = string.Empty,
                 GameRoot = preferredRoot,
                 Name = string.Empty,
@@ -179,8 +179,8 @@ internal partial class CLI {
         return false;
     }
 
-    private static void ApplyGameOverrides(Dictionary<string, Core.Utils.GameModuleInfo> games, string gameName, string? preferredRoot, string? opsFile) {
-        if (!games.TryGetValue(gameName, out Core.Utils.GameModuleInfo? moduleInfo)) {
+    private static void ApplyGameOverrides(Dictionary<string, Core.Data.GameModuleInfo> games, string gameName, string? preferredRoot, string? opsFile) {
+        if (!games.TryGetValue(gameName, out Core.Data.GameModuleInfo? moduleInfo)) {
             return;
         }
 

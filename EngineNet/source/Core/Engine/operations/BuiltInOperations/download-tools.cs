@@ -7,7 +7,7 @@ public partial class BuiltInOperations {
         IDictionary<string, object?> op,
         IDictionary<string, object?> promptAnswers,
         string currentGame,
-        Dictionary<string, Core.Utils.GameModuleInfo> games,
+        Dictionary<string, Core.Data.GameModuleInfo> games,
         EngineContext context,
         System.Threading.CancellationToken cancellationToken = default
     ) {
@@ -24,7 +24,7 @@ public partial class BuiltInOperations {
         }
 
         Dictionary<string, object?> ctx = new Dictionary<string, object?>(context.EngineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
-        if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobj)) {
+        if (!games.TryGetValue(currentGame, out Core.Data.GameModuleInfo? gobj)) {
             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
         }
         // Built-in placeholders

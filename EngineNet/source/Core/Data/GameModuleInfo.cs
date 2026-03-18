@@ -1,7 +1,6 @@
-
 using System.IO;
 
-namespace EngineNet.Core.Utils;
+namespace EngineNet.Core.Data;
 
 /// <summary>
 /// Represents a game module and its discovery/verification status.
@@ -32,4 +31,3 @@ public sealed class GameModuleInfo {
         return string.Join(", ", states);
     }
 }
-

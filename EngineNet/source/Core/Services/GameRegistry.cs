@@ -1,3 +1,4 @@
+using EngineNet.Core.Data;
 
 namespace EngineNet.Core.Services;
 
@@ -18,7 +19,7 @@ public class GameRegistry {
         _scanner = scanner;
     }
 
-    public Dictionary<string, Core.Utils.GameModuleInfo> GetModules(Core.Utils.ModuleFilter filter) {
+    public Dictionary<string, Core.Data.GameModuleInfo> GetModules(Core.Utils.ModuleFilter filter) {
         return _scanner.Modules(filter);
     }
 
@@ -28,7 +29,7 @@ public class GameRegistry {
     /// <param name="name">The name of the game.</param>
     /// <returns>The full path to the game's executable if found; otherwise, null.</returns>
     public string? GetGameExecutable(string name) {
-        return _registries.DiscoverBuiltGames().TryGetValue(name, out Core.Utils.GameInfo? gi) ? gi.ExePath : null;
+        return _registries.DiscoverBuiltGames().TryGetValue(name, out GameInfo? gi) ? gi.ExePath : null;
     }
 
     /// <summary>
@@ -39,7 +40,7 @@ public class GameRegistry {
     /// <returns>The root directory path of the game if found; otherwise, null.</returns>
     public string? GetGamePath(string name) {
         // Prefer installed location first, then fall back to downloaded location
-        if (_registries.DiscoverBuiltGames().TryGetValue(name, out Core.Utils.GameInfo? gi))
+        if (_registries.DiscoverBuiltGames().TryGetValue(name, out GameInfo? gi))
             return gi.GameRoot;
         string dir = System.IO.Path.Combine(_rootPath, "EngineApps", "Games", name);
         return System.IO.Directory.Exists(dir) ? dir : null;

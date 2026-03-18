@@ -36,8 +36,8 @@ public sealed class EngineRunAll {
             throw new System.ArgumentException("Game name is required.", nameof(gameName));
         }
 
-        Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games = Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
-        if (!games.TryGetValue(gameName, out EngineNet.Core.Utils.GameModuleInfo? gameInfo)) {
+        Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games = Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
+        if (!games.TryGetValue(gameName, out EngineNet.Core.Data.GameModuleInfo? gameInfo)) {
             throw new KeyNotFoundException($"Game '{gameName}' not found.");
         }
 

@@ -1,6 +1,7 @@
 using Avalonia;
 
 using EngineNet.Core.UI;
+using EngineNet.Core.Data;
 
 namespace EngineNet;
 
@@ -194,7 +195,7 @@ public static class Program {
     public static async System.Threading.Tasks.Task<Core.Engine.Engine> InitialiseEngine() {
         if (Engine == null) {
             var tools = new Core.ExternalTools.JsonToolResolver();
-            var engineConfig = new Core.EngineConfig();
+            var engineConfig = new EngineConfig();
 
             var _registries = await Core.Utils.Registries.CreateAsync();
             var _scanner = new Core.Utils.ModuleScanner(_registries);

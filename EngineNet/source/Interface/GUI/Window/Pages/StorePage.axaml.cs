@@ -94,7 +94,7 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
             IReadOnlyDictionary<string, object?> modules = GuiBootstrapper.Engine.Context.GameRegistry.GetRegisteredModules();
 
             // Get already downloaded games
-            Dictionary<string, Core.Utils.GameModuleInfo> downloadedGames = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.Installed);
+            Dictionary<string, Core.Data.GameModuleInfo> downloadedGames = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.Installed);
 
             foreach (KeyValuePair<string, object?> kv in modules) {
                 string moduleName = kv.Key;
@@ -122,7 +122,7 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
 
                 // Check if installed (has game.toml with exe)
                 bool isInstalled = false;
-                if (isDownloaded && downloadedGames.TryGetValue(moduleName, out Core.Utils.GameModuleInfo? gameInfo)) {
+                if (isDownloaded && downloadedGames.TryGetValue(moduleName, out Core.Data.GameModuleInfo? gameInfo)) {
                     isInstalled = gameInfo.IsInstalled;
                 }
 

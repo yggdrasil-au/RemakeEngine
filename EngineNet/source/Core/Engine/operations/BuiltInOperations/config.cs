@@ -9,7 +9,7 @@ public partial class BuiltInOperations {
     public bool config(
         IDictionary<string, object?> op,
         string currentGame,
-        Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games
+        Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games
     ) {
         // Parse arguments
         var argsList = op.TryGetValue("args", out object? argsObj) && argsObj is IList<object?> list

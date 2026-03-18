@@ -16,7 +16,7 @@ public sealed class Runner {
     /// <returns></returns>
     public async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
         string currentGame,
-        Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
+        Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
         IDictionary<string, object?> op,
         IDictionary<string, object?> promptAnswers,
         EngineContext Context,
@@ -70,7 +70,7 @@ public sealed class Runner {
                         string outputDir = op.TryGetValue("output", out object? out0) ? out0?.ToString() ?? string.Empty : string.Empty;
                         string? extension = op.TryGetValue("extension", out object? ext0) ? ext0?.ToString() : null;
 
-                        if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gameInfo)) {
+                        if (!games.TryGetValue(currentGame, out Core.Data.GameModuleInfo? gameInfo)) {
                             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                         }
 

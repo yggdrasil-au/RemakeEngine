@@ -331,9 +331,9 @@ public partial class TUI {
                         if (choicesList.Count == 0) {
                             TuiRenderer.Log($"No choices available for {request.Title}.", ConsoleColor.Yellow);
                             if (request.DefaultValue is not null) {
-                                return Task.FromResult(Core.Services.OperationsService.PromptResponse.UseDefaultValue());
+                                return Task.FromResult(Core.Data.PromptResponse.UseDefaultValue());
                             }
-                            return Task.FromResult(Core.Services.OperationsService.PromptResponse.FromValue(null));
+                            return Task.FromResult(Core.Data.PromptResponse.FromValue(null));
                         }
 
                         // For Select types, we'll use TuiRenderer.Log to list options and ReadLineCustom for input
@@ -347,19 +347,19 @@ public partial class TUI {
 
                         string input = TuiRenderer.ReadLineCustom("Selection # >", false);
                         if (string.IsNullOrWhiteSpace(input)) {
-                            return Task.FromResult(Core.Services.OperationsService.PromptResponse.Cancelled());
+                            return Task.FromResult(Core.Data.PromptResponse.Cancelled());
                         }
 
                         if (int.TryParse(input, out int choiceIdx) && choiceIdx >= 1 && choiceIdx <= choicesList.Count) {
                             int actualIdx = choiceIdx - 1;
                             if (disabled.Contains(actualIdx)) {
                                 TuiRenderer.Log("Selected item is disabled.", ConsoleColor.Red);
-                                return Task.FromResult(Core.Services.OperationsService.PromptResponse.Cancelled());
+                                return Task.FromResult(Core.Data.PromptResponse.Cancelled());
                             }
-                            return Task.FromResult(Core.Services.OperationsService.PromptResponse.FromValue(choicesList[actualIdx]));
+                            return Task.FromResult(Core.Data.PromptResponse.FromValue(choicesList[actualIdx]));
                         }
 
-                        return Task.FromResult(Core.Services.OperationsService.PromptResponse.Cancelled());
+                        return Task.FromResult(Core.Data.PromptResponse.Cancelled());
                     }
                     case "confirm": {
                         bool defVal = request.DefaultValue is bool b && b;
@@ -367,11 +367,11 @@ public partial class TUI {
                         string c = TuiRenderer.ReadLineCustom($"{request.Title} [y/N] (default {defHint}) >", false);
 
                         if (string.IsNullOrWhiteSpace(c)) {
-                            return Task.FromResult(Core.Services.OperationsService.PromptResponse.UseDefaultValue());
+                            return Task.FromResult(Core.Data.PromptResponse.UseDefaultValue());
                         }
 
                         bool val = c.Trim().StartsWith("y", System.StringComparison.OrdinalIgnoreCase);
-                        return Task.FromResult(Core.Services.OperationsService.PromptResponse.FromValue(val));
+                        return Task.FromResult(Core.Data.PromptResponse.FromValue(val));
                     }
                     case "checkbox": {
                         if (request.Choices.Count > 0) {
@@ -387,13 +387,13 @@ public partial class TUI {
 
                         if (string.IsNullOrWhiteSpace(line)) {
                             if (request.DefaultValue is IList<object?>) {
-                                return Task.FromResult(Core.Services.OperationsService.PromptResponse.UseDefaultValue());
+                                return Task.FromResult(Core.Data.PromptResponse.UseDefaultValue());
                             }
-                            return Task.FromResult(Core.Services.OperationsService.PromptResponse.FromValue(new List<object?>()));
+                            return Task.FromResult(Core.Data.PromptResponse.FromValue(new List<object?>()));
                         }
 
                         List<object?> selected = line.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries).Cast<object?>().ToList();
-                        return Task.FromResult(Core.Services.OperationsService.PromptResponse.FromValue(selected));
+                        return Task.FromResult(Core.Data.PromptResponse.FromValue(selected));
                     }
                     case "text":
                     default: {
@@ -401,12 +401,12 @@ public partial class TUI {
 
                         if (string.IsNullOrWhiteSpace(v)) {
                             if (request.DefaultValue is not null) {
-                                return Task.FromResult(Core.Services.OperationsService.PromptResponse.UseDefaultValue());
+                                return Task.FromResult(Core.Data.PromptResponse.UseDefaultValue());
                             }
-                            return Task.FromResult(Core.Services.OperationsService.PromptResponse.FromValue(string.Empty));
+                            return Task.FromResult(Core.Data.PromptResponse.FromValue(string.Empty));
                         }
 
-                        return Task.FromResult(Core.Services.OperationsService.PromptResponse.FromValue(v));
+                        return Task.FromResult(Core.Data.PromptResponse.FromValue(v));
                     }
                 }
             };

@@ -50,14 +50,14 @@ public sealed class Main {
 
         // expose methods here that the ui can call to interact with the engine, but only the ones we want to allow, and in a way that is safe and easy to use for the ui
 
-        public Dictionary<string, Core.Utils.GameModuleInfo> Context_GameRegistry_GetModules(Core.Utils.ModuleFilter filter) {
+        public Dictionary<string, Core.Data.GameModuleInfo> Context_GameRegistry_GetModules(Core.Utils.ModuleFilter filter) {
             return Engine.Context.GameRegistry.GetModules(filter);
         }
 
-        public Core.Services.OperationsService.PreparedOperations Context_OperationContext_OperationsService_LoadAndPrepare(
+        public Core.Data.PreparedOperations Context_OperationContext_OperationsService_LoadAndPrepare(
             string opsFile,
             string? currentGame = null,
-            Dictionary<string, Core.Utils.GameModuleInfo>? games = null,
+            Dictionary<string, Core.Data.GameModuleInfo>? games = null,
             IDictionary<string, object?>? engineConfig = null
         ) {
             return Engine.Context.OperationContext.OperationsService.LoadAndPrepare(opsFile, currentGame, games, engineConfig);
@@ -69,14 +69,14 @@ public sealed class Main {
 
         public async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
             string currentGame,
-            Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
+            Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
             IDictionary<string, object?> op,
             IDictionary<string, object?> promptAnswers,
             System.Threading.CancellationToken cancellationToken = default
         ) {
             return await Engine.RunSingleOperationAsync(currentGame, games, op, promptAnswers, cancellationToken: cancellationToken);
         }
-        public List<string> Context_CommandService_BuildCommand(string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, IDictionary<string, object?> engineData, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers) {
+        public List<string> Context_CommandService_BuildCommand(string currentGame, Dictionary<string, Core.Data.GameModuleInfo> games, IDictionary<string, object?> engineData, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers) {
             return Engine.Context.CommandService.BuildCommand(currentGame, games, engineData, op, promptAnswers);
         }
 
@@ -113,12 +113,12 @@ public sealed class Main {
 
 public interface MiniEngineFace {
 
-    public Dictionary<string, Core.Utils.GameModuleInfo> Context_GameRegistry_GetModules(Core.Utils.ModuleFilter filter);
+    public Dictionary<string, Core.Data.GameModuleInfo> Context_GameRegistry_GetModules(Core.Utils.ModuleFilter filter);
 
-    Core.Services.OperationsService.PreparedOperations Context_OperationContext_OperationsService_LoadAndPrepare(
+    Core.Data.PreparedOperations Context_OperationContext_OperationsService_LoadAndPrepare(
         string opsFile,
         string? currentGame = null,
-        Dictionary<string, Core.Utils.GameModuleInfo>? games = null,
+        Dictionary<string, Core.Data.GameModuleInfo>? games = null,
         IDictionary<string, object?>? engineConfig = null
     );
 
@@ -126,13 +126,13 @@ public interface MiniEngineFace {
 
     public System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
         string currentGame,
-        Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
+        Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
         IDictionary<string, object?> op,
         IDictionary<string, object?> promptAnswers,
         System.Threading.CancellationToken cancellationToken = default
     );
 
-    public List<string> Context_CommandService_BuildCommand(string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games, IDictionary<string, object?> engineData, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers);
+    public List<string> Context_CommandService_BuildCommand(string currentGame, Dictionary<string, Core.Data.GameModuleInfo> games, IDictionary<string, object?> engineData, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers);
 
     public bool Context_CommandService_ExecuteCommand(IList<string> commandParts, string title, Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, IDictionary<string, object?>? envOverrides = null, CancellationToken cancellationToken = default);
 

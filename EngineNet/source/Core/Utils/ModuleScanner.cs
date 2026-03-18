@@ -1,6 +1,6 @@
-using System;
-using System.Collections.Generic;
-using EngineNet.Core.UI;
+
+
+using EngineNet.Core.Data;
 
 namespace EngineNet.Core.Utils;
 
@@ -60,8 +60,8 @@ public sealed class ModuleScanner {
     /// New main entry point.
     ///
     /// Builds a full scan, then filters it by <paramref name="filter"/>.
-    /// You pick whether you want a Dictionary&lt;string,GameModuleInfo&gt; (like ListModules did),
-    /// or just a flat List&lt;GameModuleInfo&gt;.
+    /// You pick whether you want a Dictionary&lt;string,Data.GameModuleInfo&gt; (like ListModules did),
+    /// or just a flat List&lt;Data.GameModuleInfo&gt;.
     ///
     /// Examples:
     ///   // "only installed"
@@ -73,14 +73,14 @@ public sealed class ModuleScanner {
     /// Why not just always return Dictionary? Because sometimes you might only care
     /// about iteration or serialization and don't want the name->info map.
     /// </summary>
-    public Dictionary<string, GameModuleInfo> Modules(ModuleFilter filter) {
+    public Dictionary<string, Data.GameModuleInfo> Modules(ModuleFilter filter) {
         Core.Diagnostics.Trace($"[Core :: ModuleScanner.cs::Modules()] Scanning modules with filter {filter}");
-        Dictionary<string, GameModuleInfo> all = ScanAllModules();
-        IEnumerable<GameModuleInfo> filtered = FilterModules(all.Values, filter);
+        Dictionary<string, Data.GameModuleInfo> all = ScanAllModules();
+        IEnumerable<Data.GameModuleInfo> filtered = FilterModules(all.Values, filter);
 
         // Re-key into a new dictionary in case filter removed some.
-        Dictionary<string, GameModuleInfo> dict = new Dictionary<string, GameModuleInfo>(StringComparer.OrdinalIgnoreCase);
-        foreach (GameModuleInfo info in filtered) {
+        Dictionary<string, Data.GameModuleInfo> dict = new Dictionary<string, Data.GameModuleInfo>(StringComparer.OrdinalIgnoreCase);
+        foreach (Data.GameModuleInfo info in filtered) {
             dict[info.Name] = info;
             Core.Diagnostics.Trace($"[Core :: ModuleScanner.cs::Modules()] Including module: {info.Name} (State: {info.DescribeState()})");
         }
@@ -96,10 +96,10 @@ public sealed class ModuleScanner {
     ///
     /// This is how you get "any type to be returned", e.g.:
     ///
-    ///   // Return only installed modules as a plain List&lt;GameModuleInfo&gt;
-    ///   List<GameModuleInfo> installedList = scanner.Modules(
+    ///   // Return only installed modules as a plain List&lt;Data.GameModuleInfo&gt;
+    ///   List<Data.GameModuleInfo> installedList = scanner.Modules(
     ///         ModuleFilter.Installed,
-    ///         src => new List<GameModuleInfo>(src));
+    ///         src => new List<Data.GameModuleInfo>(src));
     ///
     ///   // Return names of unverified modules
     ///   string[] unverifiedNames = scanner.Modules(
@@ -110,20 +110,20 @@ public sealed class ModuleScanner {
     ///   var allDict = scanner.Modules(
     ///         ModuleFilter.All,
     ///         src => {
-    ///             var map = new Dictionary<string,GameModuleInfo>(StringComparer.OrdinalIgnoreCase);
+    ///             var map = new Dictionary<string,Data.GameModuleInfo>(StringComparer.OrdinalIgnoreCase);
     ///             foreach (var m in src) map[m.Name] = m;
     ///             return map;
     ///         });
     ///
     /// No extra allocations unless you want them.
     /// </summary>
-    public T Modules<T>(ModuleFilter filter, Func<IEnumerable<GameModuleInfo>, T> selector) {
+    public T Modules<T>(ModuleFilter filter, Func<IEnumerable<Data.GameModuleInfo>, T> selector) {
         if (selector == null){
             throw new ArgumentNullException(nameof(selector));
         }
 
-        Dictionary<string, GameModuleInfo> all = ScanAllModules();
-        IEnumerable<GameModuleInfo> filtered = FilterModules(all.Values, filter);
+        Dictionary<string, Data.GameModuleInfo> all = ScanAllModules();
+        IEnumerable<Data.GameModuleInfo> filtered = FilterModules(all.Values, filter);
 
         return selector(filtered);
     }
@@ -136,8 +136,8 @@ public sealed class ModuleScanner {
     /// Scans registry and file system (by delegating to Registries)
     /// and returns the superset of modules.
     /// </summary>
-    private Dictionary<string, GameModuleInfo> ScanAllModules() {
-        Dictionary<string, GameModuleInfo> result = new Dictionary<string, GameModuleInfo>(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, Data.GameModuleInfo> ScanAllModules() {
+        Dictionary<string, Data.GameModuleInfo> result = new Dictionary<string, Data.GameModuleInfo>(StringComparer.OrdinalIgnoreCase);
 
         // 1. Get all modules known to the central registry
         IReadOnlyDictionary<string, object?> registered = _registries.GetRegisteredModules();
@@ -172,7 +172,7 @@ public sealed class ModuleScanner {
                 opsFile = string.Empty;
             }
 
-            GameModuleInfo info = new GameModuleInfo {
+            Data.GameModuleInfo info = new Data.GameModuleInfo {
                 Id = id,
                 Name = name,
                 IsRegistered = true,
@@ -191,11 +191,11 @@ public sealed class ModuleScanner {
         foreach (KeyValuePair<string, GameInfo> kv in installed) {
             string name = kv.Key;
             GameInfo gameInfo = kv.Value;
-            GameModuleInfo info;
+            Data.GameModuleInfo info;
             // if not already present (i.e. registered), create a new entry
             if (!result.TryGetValue(name, out info!)) {
                 Core.Diagnostics.Trace($"[ModuleScanner.cs::ScanAllModules()] Found unregistered but installed module: {name}");
-                info = new GameModuleInfo {
+                info = new Data.GameModuleInfo {
                     Id = string.Empty, // unknown
                     Name = name, // from directory name
                     GameRoot = gameInfo.GameRoot,
@@ -223,7 +223,7 @@ public sealed class ModuleScanner {
 
             // A "Built" module must also be "Installed", so it must be in the dictionary.
             // We just need to update it.
-            if (result.TryGetValue(name, out GameModuleInfo? info)) {
+            if (result.TryGetValue(name, out Data.GameModuleInfo? info)) {
                 info.IsBuilt = true;
                 info.ExePath = gameInfo.ExePath ?? string.Empty;
                 info.Title = gameInfo.Title ?? string.Empty;
@@ -234,7 +234,7 @@ public sealed class ModuleScanner {
         }
 
         // 4. Final pass to set Unverified flag
-        foreach (GameModuleInfo info in result.Values) {
+        foreach (Data.GameModuleInfo info in result.Values) {
             info.IsUnverified = info.IsInstalled && !info.IsRegistered;
         }
 
@@ -251,7 +251,7 @@ public sealed class ModuleScanner {
     /// scans for the public operations
     /// </summary>
     /// <param name="result"></param>
-    private void ScanInternalOperations(Dictionary<string, GameModuleInfo> result) {
+    private void ScanInternalOperations(Dictionary<string, Data.GameModuleInfo> result) {
         try {
             string opsDir = System.IO.Path.Combine(Program.rootPath, "EngineApps", "Registries", "ops");
             if (!System.IO.Directory.Exists(opsDir)) return;
@@ -261,7 +261,7 @@ public sealed class ModuleScanner {
                 string name = System.IO.Path.GetFileNameWithoutExtension(file);
 
                 if (!result.ContainsKey(name)) {
-                    GameModuleInfo info = new GameModuleInfo {
+                    Data.GameModuleInfo info = new Data.GameModuleInfo {
                         Id = name,
                         Name = name,
                         IsRegistered = true,
@@ -283,9 +283,9 @@ public sealed class ModuleScanner {
     }
 
     /// <summary>
-    /// Filters a sequence of GameModuleInfo according to a ModuleFilter.
+    /// Filters a sequence of Data.GameModuleInfo according to a ModuleFilter.
     /// </summary>
-    private static IEnumerable<GameModuleInfo> FilterModules(IEnumerable<GameModuleInfo> source, ModuleFilter filter) {
+    private static IEnumerable<Data.GameModuleInfo> FilterModules(IEnumerable<Data.GameModuleInfo> source, ModuleFilter filter) {
         switch (filter) {
             case ModuleFilter.All: {
                 // exclude Internal modules from "All"
@@ -311,18 +311,18 @@ public sealed class ModuleScanner {
             }
             default: {
                 // unknown filter, return nothing
-                return Array.Empty<GameModuleInfo>();
+                return Array.Empty<Data.GameModuleInfo>();
             }
         }
     }
 
     /// <summary>
-    /// Yields only those GameModuleInfo instances from <paramref name="src"/>
+    /// Yields only those Data.GameModuleInfo instances from <paramref name="src"/>
     /// that satisfy the predicate <paramref name="pred"/>.
     /// </summary>
-    private static IEnumerable<GameModuleInfo> Only(IEnumerable<GameModuleInfo> src, Func<GameModuleInfo, bool> pred) {
+    private static IEnumerable<Data.GameModuleInfo> Only(IEnumerable<Data.GameModuleInfo> src, Func<Data.GameModuleInfo, bool> pred) {
         // foreach game module info in source, yield return if predicate matches
-        foreach (GameModuleInfo m in src) {
+        foreach (Data.GameModuleInfo m in src) {
             if (pred(m)) {
                 yield return m;
             }

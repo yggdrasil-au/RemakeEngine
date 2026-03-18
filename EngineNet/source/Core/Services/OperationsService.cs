@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-
+using EngineNet.Core.Data;
 using EngineNet.Core.Utils;
+
 
 namespace EngineNet.Core.Services;
 
@@ -35,7 +36,7 @@ public sealed class OperationsService {
     public PreparedOperations LoadAndPrepare(
         string opsFile,
         string? currentGame = null,
-        Dictionary<string, Core.Utils.GameModuleInfo>? games = null,
+        Dictionary<string, Data.GameModuleInfo>? games = null,
         IDictionary<string, object?>? engineConfig = null
     ) {
         PreparedOperations result = new PreparedOperations();
@@ -247,8 +248,8 @@ public sealed class OperationsService {
         List<PromptChoice> choices = new List<PromptChoice>();
 
         if (TryGetString(prompt, out string? provider, "choices_provider") && provider == "registry_modules") {
-            Dictionary<string, GameModuleInfo> registered = _gameRegistry.GetModules(ModuleFilter.Registered);
-            Dictionary<string, GameModuleInfo> installed = _gameRegistry.GetModules(ModuleFilter.Installed);
+            Dictionary<string, Data.GameModuleInfo> registered = _gameRegistry.GetModules(ModuleFilter.Registered);
+            Dictionary<string, Data.GameModuleInfo> installed = _gameRegistry.GetModules(ModuleFilter.Installed);
             foreach (string key in registered.Keys) {
                 bool isDisabled = installed.ContainsKey(key);
                 choices.Add(new PromptChoice(label: key, isDisabled: isDisabled));
@@ -368,113 +369,9 @@ public sealed class OperationsService {
         }
         return false;
     }
-
     /* :: :: Helpers :: END :: */
     // //
     /* :: :: Nested Types :: START :: */
-
-    /// <summary>
-    /// Prepared operations data for UI consumption.
-    /// </summary>
-    public sealed class PreparedOperations {
-        public bool IsLoaded { get; set; }
-        public string? ErrorMessage { get; set; }
-        public List<PreparedOperation> InitOperations { get; } = new List<PreparedOperation>();
-        public List<PreparedOperation> RegularOperations { get; } = new List<PreparedOperation>();
-        public bool HasRunAll { get; set; }
-        public List<string> Warnings { get; } = new List<string>();
-    }
-
-    /// <summary>
-    /// Represents a prepared operation with resolved metadata.
-    /// </summary>
-    public sealed class PreparedOperation {
-        public Dictionary<string, object?> Operation { get; }
-        public string DisplayName { get; }
-        public long? OperationId { get; }
-        public bool HasDuplicateId { get; }
-        public bool HasInvalidId { get; }
-        public string? ScriptPath { get; }
-        public string? ScriptType { get; }
-
-        public PreparedOperation(
-            Dictionary<string, object?> operation,
-            string displayName,
-            long? operationId,
-            bool hasDuplicateId,
-            bool hasInvalidId,
-            string? scriptPath,
-            string? scriptType
-        ) {
-            Operation = operation;
-            DisplayName = displayName;
-            OperationId = operationId;
-            HasDuplicateId = hasDuplicateId;
-            HasInvalidId = hasInvalidId;
-            ScriptPath = scriptPath;
-            ScriptType = scriptType;
-        }
-    }
-
-    /// <summary>
-    /// Encapsulates a prompt request for the UI.
-    /// </summary>
-    public sealed class PromptRequest {
-        public string Name { get; }
-        public string Type { get; }
-        public string Title { get; }
-        public object? DefaultValue { get; }
-        public IReadOnlyList<PromptChoice> Choices { get; }
-        public bool IsSecret { get; }
-
-        public PromptRequest(
-            string name,
-            string type,
-            string title,
-            object? defaultValue,
-            IReadOnlyList<PromptChoice> choices,
-            bool isSecret
-        ) {
-            Name = name;
-            Type = type;
-            Title = title;
-            DefaultValue = defaultValue;
-            Choices = choices;
-            IsSecret = isSecret;
-        }
-    }
-
-    /// <summary>
-    /// Represents the UI response for a prompt request.
-    /// </summary>
-    public sealed class PromptResponse {
-        public bool IsCancelled { get; }
-        public bool UseDefault { get; }
-        public object? Value { get; }
-
-        private PromptResponse(bool isCancelled, bool useDefault, object? value) {
-            IsCancelled = isCancelled;
-            UseDefault = useDefault;
-            Value = value;
-        }
-
-        public static PromptResponse Cancelled() => new PromptResponse(isCancelled: true, useDefault: false, value: null);
-        public static PromptResponse UseDefaultValue() => new PromptResponse(isCancelled: false, useDefault: true, value: null);
-        public static PromptResponse FromValue(object? value) => new PromptResponse(isCancelled: false, useDefault: false, value: value);
-    }
-
-    /// <summary>
-    /// Encapsulates a selectable prompt choice.
-    /// </summary>
-    public sealed class PromptChoice {
-        public string Label { get; }
-        public bool IsDisabled { get; }
-
-        public PromptChoice(string label, bool isDisabled) {
-            Label = label;
-            IsDisabled = isDisabled;
-        }
-    }
 
     /// <summary>
     /// UI prompt callback signature.

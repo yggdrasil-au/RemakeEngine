@@ -75,7 +75,7 @@ internal partial class CLI {
         }
 
         // Find game modules
-        Dictionary<string, Core.Utils.GameModuleInfo> games = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
+        Dictionary<string, Core.Data.GameModuleInfo> games = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
         if (!TryResolveInlineGame(options, games, out string? gameName)) {
             Core.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
             return 1;

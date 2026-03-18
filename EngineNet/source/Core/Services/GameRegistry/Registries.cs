@@ -1,4 +1,6 @@
 
+using EngineNet.Core.Data;
+
 namespace EngineNet.Core.Utils;
 
 public sealed partial class Registries {

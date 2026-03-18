@@ -6,8 +6,7 @@ using System.Linq;
 
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
-using System.Diagnostics;
-using System.Threading;
+
 using EngineNet.Interface.GUI.Services;
 
 namespace EngineNet.Interface.GUI.Pages;
@@ -17,7 +16,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     /* :: :: Vars :: START :: */
     private readonly string _moduleName = string.Empty;
 
-    private readonly List<Core.Services.OperationsService.PreparedOperation> _initOperations = new();
+    private readonly List<Core.Data.PreparedOperation> _initOperations = new();
 
     private class SessionState {
         public bool HasNavigatedOnce { get; set; } = false;
@@ -175,8 +174,8 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             _initOperations.Clear();
 
             // Gather module info from multiple sources
-            Dictionary<string, Core.Utils.GameModuleInfo> modules = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
-            Core.Utils.GameModuleInfo? m = modules.TryGetValue(_moduleName, out Core.Utils.GameModuleInfo? mm) ? mm : null;
+            Dictionary<string, Core.Data.GameModuleInfo> modules = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
+            Core.Data.GameModuleInfo? m = modules.TryGetValue(_moduleName, out Core.Data.GameModuleInfo? mm) ? mm : null;
             if (m is not null) {
                 Title = string.IsNullOrWhiteSpace(m.Title) ? m.Name : m.Title!;
                 ExePath = m.ExePath;
@@ -204,8 +203,8 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
             // Load operations if ops_file exists
             string? opsFile = null;
-            Dictionary<string, Core.Utils.GameModuleInfo> games = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
-            if (games.TryGetValue(_moduleName, out Core.Utils.GameModuleInfo? gameInfo)) {
+            Dictionary<string, Core.Data.GameModuleInfo> games = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
+            if (games.TryGetValue(_moduleName, out Core.Data.GameModuleInfo? gameInfo)) {
                 opsFile = gameInfo.OpsFile;
                 if (string.IsNullOrWhiteSpace(ExePath)) {
                     ExePath = gameInfo.ExePath;
@@ -219,7 +218,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             }
 
             if (!string.IsNullOrWhiteSpace(opsFile) && System.IO.File.Exists(path: opsFile)) {
-                Core.Services.OperationsService.PreparedOperations preparedOps = GuiBootstrapper.Engine.Context.OperationContext.OperationsService.LoadAndPrepare(
+                Core.Data.PreparedOperations preparedOps = GuiBootstrapper.Engine.Context.OperationContext.OperationsService.LoadAndPrepare(
                     opsFile: opsFile,
                     currentGame: _moduleName,
                     games: games,
@@ -239,7 +238,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
                 _initOperations.AddRange(preparedOps.InitOperations);
 
-                foreach (Core.Services.OperationsService.PreparedOperation op in preparedOps.RegularOperations) {
+                foreach (Core.Data.PreparedOperation op in preparedOps.RegularOperations) {
                     string scriptType = string.IsNullOrWhiteSpace(op.ScriptType) ? "python" : op.ScriptType;
                     string scriptPath = op.ScriptPath ?? string.Empty;
                     string displayName = op.DisplayName;
@@ -297,7 +296,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         Raise(nameof(CanStop));
 
         try {
-            Dictionary<string, Core.Utils.GameModuleInfo> games = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Data.GameModuleInfo> games = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
 
             await EngineOperationRunner.RunAsync(
                 engine: GuiBootstrapper.Engine,
@@ -427,7 +426,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         Raise(nameof(CanStop));
 
         try {
-            Dictionary<string, Core.Utils.GameModuleInfo> games = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Data.GameModuleInfo> games = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
 
             Dictionary<string, object?> answers = new Dictionary<string, object?>();
             await CollectAnswersForOperationAsync(op: row.Op, answers: answers);
@@ -546,9 +545,9 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                         defaultValue: defVal
                     );
                     if (res == null) {
-                        return Core.Services.OperationsService.PromptResponse.Cancelled();
+                        return Core.Data.PromptResponse.Cancelled();
                     }
-                    return Core.Services.OperationsService.PromptResponse.FromValue(res.Value);
+                    return Core.Data.PromptResponse.FromValue(res.Value);
                 }
                 case "select": {
                     string hint = request.Choices.Count > 0
@@ -562,10 +561,10 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                     );
                     if (string.IsNullOrWhiteSpace(v)) {
                         return request.DefaultValue is not null
-                            ? Core.Services.OperationsService.PromptResponse.UseDefaultValue()
-                            : Core.Services.OperationsService.PromptResponse.FromValue(string.Empty);
+                            ? Core.Data.PromptResponse.UseDefaultValue()
+                            : Core.Data.PromptResponse.FromValue(string.Empty);
                     }
-                    return Core.Services.OperationsService.PromptResponse.FromValue(v);
+                    return Core.Data.PromptResponse.FromValue(v);
                 }
                 case "checkbox": {
                     string hint = request.Choices.Count > 0
@@ -580,9 +579,9 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
                     if (string.IsNullOrWhiteSpace(v)) {
                         if (request.DefaultValue is IList<object?>) {
-                            return Core.Services.OperationsService.PromptResponse.UseDefaultValue();
+                            return Core.Data.PromptResponse.UseDefaultValue();
                         }
-                        return Core.Services.OperationsService.PromptResponse.FromValue(new List<object?>());
+                        return Core.Data.PromptResponse.FromValue(new List<object?>());
                     }
 
                     List<object?> list = new List<object?>();
@@ -590,7 +589,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                     foreach (string s in parts) {
                         list.Add(s);
                     }
-                    return Core.Services.OperationsService.PromptResponse.FromValue(list);
+                    return Core.Data.PromptResponse.FromValue(list);
                 }
                 case "text":
                 default: {
@@ -603,10 +602,10 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                     );
                     if (string.IsNullOrWhiteSpace(v)) {
                         return request.DefaultValue is not null
-                            ? Core.Services.OperationsService.PromptResponse.UseDefaultValue()
-                            : Core.Services.OperationsService.PromptResponse.FromValue(string.Empty);
+                            ? Core.Data.PromptResponse.UseDefaultValue()
+                            : Core.Data.PromptResponse.FromValue(string.Empty);
                     }
-                    return Core.Services.OperationsService.PromptResponse.FromValue(v);
+                    return Core.Data.PromptResponse.FromValue(v);
                 }
             }
         };

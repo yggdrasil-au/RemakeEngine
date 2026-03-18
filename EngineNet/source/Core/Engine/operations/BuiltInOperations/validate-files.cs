@@ -7,12 +7,12 @@ public partial class BuiltInOperations {
     public bool validate_files(
         IDictionary<string, object?> op,
         IDictionary<string, object?> promptAnswers,
-        string currentGame, Dictionary<string, Core.Utils.GameModuleInfo> games,
+        string currentGame, Dictionary<string, Core.Data.GameModuleInfo> games,
         EngineContext context,
         System.Threading.CancellationToken cancellationToken = default
     ) {
         Dictionary<string, object?> ctx = new Dictionary<string, object?>(context.EngineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
-        if (!games.TryGetValue(currentGame, out Core.Utils.GameModuleInfo? gobjValidate)) {
+        if (!games.TryGetValue(currentGame, out Core.Data.GameModuleInfo? gobjValidate)) {
             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
         }
         // Built-in placeholders

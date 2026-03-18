@@ -1,4 +1,4 @@
-namespace EngineNet.Core.Utils;
+namespace EngineNet.Core.Data;
 
 /// <summary>
 /// discovered game/module entry in the local registry.

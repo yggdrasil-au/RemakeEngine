@@ -23,7 +23,7 @@ public static class ExecutionContextBuilder {
     /// <exception cref="KeyNotFoundException">Thrown when the game specified by <paramref name="currentGame"/> is not found in <paramref name="games"/>.</exception>
     public static Dictionary<string, object?> Build(
         string currentGame,
-        Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
+        Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
         IDictionary<string, object?> engineConfig
     ) {
         if (string.IsNullOrWhiteSpace(currentGame)) {
@@ -32,7 +32,7 @@ public static class ExecutionContextBuilder {
 
         Dictionary<string, object?> ctx = new Dictionary<string, object?>(engineConfig, System.StringComparer.OrdinalIgnoreCase);
 
-        if (!games.TryGetValue(currentGame, out EngineNet.Core.Utils.GameModuleInfo? g) || g is not GameModuleInfo gdict) {
+        if (!games.TryGetValue(currentGame, out EngineNet.Core.Data.GameModuleInfo? g) || g is not Data.GameModuleInfo gdict) {
             throw new KeyNotFoundException(message: $"Unknown game '{currentGame}'.");
         }
 

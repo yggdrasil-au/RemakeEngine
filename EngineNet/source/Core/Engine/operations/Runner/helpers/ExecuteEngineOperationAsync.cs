@@ -17,7 +17,7 @@ public partial class OperationExecution {
     /// <exception cref="KeyNotFoundException"></exception>
     public async System.Threading.Tasks.Task<bool> ExecuteEngineOperationAsync(
         string currentGame,
-        Dictionary<string, EngineNet.Core.Utils.GameModuleInfo> games,
+        Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
         IDictionary<string, object?> op,
         IDictionary<string, object?> promptAnswers,
         EngineContext context,

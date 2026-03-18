@@ -23,12 +23,12 @@ public partial class TUI {
     public async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync(System.Threading.CancellationToken cancellationToken = default, string? msg = null) {
         try {
             // get all modules that exist on disk
-            Dictionary<string, Core.Utils.GameModuleInfo> modules = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.Installed);
+            Dictionary<string, Core.Data.GameModuleInfo> modules = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.Installed);
             // get public modules
-            Dictionary<string, Core.Utils.GameModuleInfo> internalModules = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.Internal);
+            Dictionary<string, Core.Data.GameModuleInfo> internalModules = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.Internal);
 
             // Create a combined dictionary for lookup and execution
-            Dictionary<string, Core.Utils.GameModuleInfo> allAvailableModules = new(modules);
+            Dictionary<string, Core.Data.GameModuleInfo> allAvailableModules = new(modules);
             foreach (var kv in internalModules) {
                 // Internal modules overwrite installed if there's a name collision
                 allAvailableModules[kv.Key] = kv.Value;
@@ -45,12 +45,12 @@ public partial class TUI {
 
                 List<string> gameMenu = new List<string>();
                 List<string> gameKeyMap = new List<string>();
-                //List<Core.Utils.GameModuleInfo> internalModulesList = new List<Core.Utils.GameModuleInfo>();
+                //List<Core.Data.GameModuleInfo> internalModulesList = new List<Core.Data.GameModuleInfo>();
 
                 // Build menu with states
                 // foreach module, display '<Name> [<isRegistered>, <isInstalled (always true here)>, <isBuilt>]'
-                foreach (KeyValuePair<string, Core.Utils.GameModuleInfo> kv in modules) {
-                    Core.Utils.GameModuleInfo m = kv.Value;
+                foreach (KeyValuePair<string, Core.Data.GameModuleInfo> kv in modules) {
+                    Core.Data.GameModuleInfo m = kv.Value;
                     // Skip public modules in modules list; add them after game modules below separator
                     /*if (m.IsInternal) {
                         internalModulesList.Add(m);
@@ -64,7 +64,7 @@ public partial class TUI {
                 gameKeyMap.Add("---"); // placeholder for separator
 
                 // Add public modules after game modules
-                foreach (Core.Utils.GameModuleInfo m in internalModules.Values) {
+                foreach (Core.Data.GameModuleInfo m in internalModules.Values) {
                     gameMenu.Add(m.Name);
                     gameKeyMap.Add(m.Name);
                 }
@@ -94,7 +94,7 @@ public partial class TUI {
 
             // 2) Load operations list and render menu
 
-            Core.Utils.GameModuleInfo? info = null;
+            Core.Data.GameModuleInfo? info = null;
             // check the module exists in combined modules dictionary
             if (!allAvailableModules.TryGetValue(gameName, out var moduleInfo) || (info = moduleInfo) is null) {
                 Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game not found.");
@@ -108,7 +108,7 @@ public partial class TUI {
                 //return 1;
                 return await RunInteractiveMenuAsync(msg: "Selected game is missing operations file. Please choose again.");
             }
-            Core.Services.OperationsService.PreparedOperations preparedOps = Engine.Context_OperationContext_OperationsService_LoadAndPrepare(
+            Core.Data.PreparedOperations preparedOps = Engine.Context_OperationContext_OperationsService_LoadAndPrepare(
                 opsFile: info.OpsFile,
                 currentGame: gameName,
                 games: allAvailableModules,
@@ -135,7 +135,7 @@ public partial class TUI {
                 System.Console.WriteLine(value: $"Running {preparedOps.InitOperations.Count} initialization operation(s) for {gameName}\n");
                 System.Diagnostics.Stopwatch initStopwatch = System.Diagnostics.Stopwatch.StartNew();
                 bool okAllInit = true;
-                foreach (Core.Services.OperationsService.PreparedOperation op in preparedOps.InitOperations) {
+                foreach (Core.Data.PreparedOperation op in preparedOps.InitOperations) {
                     Dictionary<string, object?> answers = new Dictionary<string, object?>();
                     // Initialization runs non-interactively; use defaults when provided
                     await CollectAnswersForOperation(op.Operation, answers, defaultsOnly: true);
@@ -176,7 +176,7 @@ public partial class TUI {
 
                 // list regular operations
                 // for each operation, display its "Name" entry if exists, or just display 'unnamed'
-                foreach (Core.Services.OperationsService.PreparedOperation op in preparedOps.RegularOperations) {
+                foreach (Core.Data.PreparedOperation op in preparedOps.RegularOperations) {
                     string name = op.DisplayName;
                     if (op.HasDuplicateId) {
                         name = $"[dup-id] {name}";
