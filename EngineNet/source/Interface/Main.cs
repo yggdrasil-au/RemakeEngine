@@ -90,7 +90,7 @@ public sealed class Main {
             Core.Services.OperationsService.PromptHandler handler,
             bool defaultsOnly = false
         ) {
-            return Engine.Context.OperationContext.OperationsService.CollectAnswersAsync(op, answers, handler, defaultsOnly).GetAwaiter().GetResult();
+            return await Engine.Context.OperationContext.OperationsService.CollectAnswersAsync(op, answers, handler, defaultsOnly);
         }
 
         public async Task<bool> GameLauncher_LaunchGameAsync(string name) {

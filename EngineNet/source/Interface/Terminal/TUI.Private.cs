@@ -312,7 +312,7 @@ public partial class TUI {
         return (choices, disabled);
     }
 
-    private bool CollectAnswersForOperation(Dictionary<string, object?> op, Dictionary<string, object?> answers, bool defaultsOnly) {
+    private async Task<bool> CollectAnswersForOperation(Dictionary<string, object?> op, Dictionary<string, object?> answers, bool defaultsOnly) {
         try {
             if (Engine is null) {
                 return false;
@@ -411,7 +411,7 @@ public partial class TUI {
                 }
             };
 
-            return Engine.Context_OperationContext_OperationsService_CollectAnswersAsync(op, answers, handler, defaultsOnly).GetAwaiter().GetResult();
+            return await Engine.Context_OperationContext_OperationsService_CollectAnswersAsync(op, answers, handler, defaultsOnly);
         } catch (System.Exception ex) {
             Core.Diagnostics.Bug($"[TUI.private.cs::PromptUser()] Error during interactive prompts: {ex.Message}");
             return false;

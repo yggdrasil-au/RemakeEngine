@@ -138,7 +138,7 @@ public partial class TUI {
                 foreach (Core.Services.OperationsService.PreparedOperation op in preparedOps.InitOperations) {
                     Dictionary<string, object?> answers = new Dictionary<string, object?>();
                     // Initialization runs non-interactively; use defaults when provided
-                    CollectAnswersForOperation(op.Operation, answers, defaultsOnly: true);
+                    await CollectAnswersForOperation(op.Operation, answers, defaultsOnly: true);
                     bool ok = await new Utils().ExecuteOpAsync(Engine, gameName, allAvailableModules, op.Operation, answers);
                     okAllInit &= ok;
                 }
@@ -279,7 +279,8 @@ public partial class TUI {
                     TuiRenderer.Initialize();
                     try {
                         // For manual single-op run, prompt interactively
-                        if (CollectAnswersForOperation(op, answers, defaultsOnly: false)) {
+                        Task<bool> promptTask = CollectAnswersForOperation(op, answers, defaultsOnly: false);
+                        if (await promptTask) {
                             TuiRenderer.Log($"Running: {selection}\n", ConsoleColor.Cyan);
                             System.Diagnostics.Stopwatch opStopwatch = System.Diagnostics.Stopwatch.StartNew();
                             bool ok = await new Utils().ExecuteOpAsync(Engine, gameName, allAvailableModules, op, answers);
