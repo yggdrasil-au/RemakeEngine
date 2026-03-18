@@ -1,6 +1,7 @@
-namespace EngineNet.Core.Utils;
 
 using System.Collections.Generic;
+
+namespace EngineNet.Core.UI;
 
 /// <summary>
 /// Disposable scope to set EngineSdk.LocalEventSink, MuteStdoutWhenLocalSink

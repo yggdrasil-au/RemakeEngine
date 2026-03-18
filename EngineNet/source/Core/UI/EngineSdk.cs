@@ -1,8 +1,4 @@
 
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-
 namespace EngineNet.Core.UI;
 
 /// <summary>
@@ -178,17 +174,17 @@ public static class EngineSdk {
                 ["message"] = $"> {autoResponse} (auto-response)",
                 ["color"] = "yellow"
             });
-            return autoResponse.Trim().StartsWith("y", System.StringComparison.OrdinalIgnoreCase) || 
-                   autoResponse.Trim().Equals("true", System.StringComparison.OrdinalIgnoreCase);
+            return autoResponse.Trim().StartsWith("y", System.StringComparison.OrdinalIgnoreCase) ||
+                    autoResponse.Trim().Equals("true", System.StringComparison.OrdinalIgnoreCase);
         }
 
         Emit("confirm", new Dictionary<string, object?> { ["id"] = id, ["message"] = message, ["default"] = defaultValue });
         try {
             string? line = System.Console.In.ReadLine();
             if (string.IsNullOrWhiteSpace(line)) return defaultValue;
-            return line.Trim().StartsWith("y", System.StringComparison.OrdinalIgnoreCase) || 
-                   line.Trim().Equals("true", System.StringComparison.OrdinalIgnoreCase) ||
-                   line.Trim().Equals("yes", System.StringComparison.OrdinalIgnoreCase);
+            return line.Trim().StartsWith("y", System.StringComparison.OrdinalIgnoreCase) ||
+                    line.Trim().Equals("true", System.StringComparison.OrdinalIgnoreCase) ||
+                    line.Trim().Equals("yes", System.StringComparison.OrdinalIgnoreCase);
         } catch {
             return defaultValue;
         }

@@ -15,14 +15,14 @@ public static class PathHelper {
     /// <returns>The absolute normalized path, or the original path if null/empty.</returns>
     public static string ResolveRelativePath(string root, string? path) {
         if (string.IsNullOrWhiteSpace(path)) return path ?? string.Empty;
-        
+
         // Ensure path uses consistent separators for the OS
         string normalizedPath = path.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
-        
+
         if (Path.IsPathRooted(normalizedPath)) {
             return Path.GetFullPath(normalizedPath);
         }
-        
+
         return Path.GetFullPath(Path.Combine(root, normalizedPath));
     }
 }

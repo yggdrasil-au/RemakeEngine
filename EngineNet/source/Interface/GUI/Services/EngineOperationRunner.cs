@@ -102,7 +102,7 @@ public static class EngineOperationRunner {
         };
 
         System.Action<Dictionary<string, object?>> sink = evt => { CapturePrompt(evt); outputService.HandleEvent(evt); };
-        using (new Core.Utils.SdkEventScope(sink: sink, muteStdout: true, autoPromptResponses: autoPromptResponses)) {
+        using (new Core.UI.SdkEventScope(sink: sink, muteStdout: true, autoPromptResponses: autoPromptResponses)) {
             return await Task.Run(() => executor(outputHandler, eventHandler, stdinProvider)).ConfigureAwait(false);
         }
     }

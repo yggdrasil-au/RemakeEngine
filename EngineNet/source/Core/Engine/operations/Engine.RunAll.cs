@@ -91,7 +91,7 @@ public sealed class EngineRunAll {
         System.Action<Dictionary<string, object?>>? previousSink = Core.UI.EngineSdk.LocalEventSink;
         bool previousMute = Core.UI.EngineSdk.MuteStdoutWhenLocalSink;
         string currentOperation = string.Empty;
-        Core.Utils.SdkEventScope? sdkScope = null;
+        Core.UI.SdkEventScope? sdkScope = null;
         if (onEvent is not null) {
             Core.UI.EngineSdk.LocalEventSink = evt => {
                 Dictionary<string, object?> payload = CloneEvent(evt);
@@ -102,7 +102,7 @@ public sealed class EngineRunAll {
                 onEvent(payload);
             };
             Core.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
-            sdkScope = new Core.Utils.SdkEventScope(sink: Core.UI.EngineSdk.LocalEventSink, muteStdout: true, autoPromptResponses: null);
+            sdkScope = new Core.UI.SdkEventScope(sink: Core.UI.EngineSdk.LocalEventSink, muteStdout: true, autoPromptResponses: null);
         }
 
         bool overallSuccess = true;

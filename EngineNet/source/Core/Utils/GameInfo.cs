@@ -1,7 +1,7 @@
 namespace EngineNet.Core.Utils;
 
 /// <summary>
-/// Describes a discovered game/module entry in the local registry.
+/// discovered game/module entry in the local registry.
 /// </summary>
 public sealed class GameInfo {
     /// <summary>

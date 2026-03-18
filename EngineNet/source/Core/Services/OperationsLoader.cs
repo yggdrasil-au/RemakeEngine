@@ -1,8 +1,6 @@
 
 using System.Collections;
 
-using EngineNet.Core.Utils;
-
 namespace EngineNet.Core.Services;
 
 public class OperationsLoader {
@@ -93,4 +91,10 @@ public class OperationsLoader {
             return null;
         }
     }
+}
+
+public sealed class Operations {
+    public static Dictionary<string, object?> ToMap(Tomlyn.Model.TomlTable table) => Serialization.DocModelConverter.FromTomlTable(table);
+
+    public static Dictionary<string, object?> ToMap(System.Text.Json.JsonElement obj) => Serialization.DocModelConverter.FromJsonObject(obj);
 }
