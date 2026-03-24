@@ -1,6 +1,4 @@
 
-using System.Collections.Generic;
-
 namespace EngineNet.Core.FileHandlers;
 
 internal static class FileValidator {
