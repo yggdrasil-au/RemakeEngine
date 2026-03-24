@@ -6,10 +6,10 @@
     "python.analysis.exclude": ["**/__pycache__", ".git", "OldModules/**", "OldRemakeRegistry/**", "Source/**", "GameFiles/**", ".VSCodeCounter/**", ".history/**", "**/node_modules", "**/.*"],
     "python.analysis.extraPaths": [
         "./Utils",
-        "./api_definitions",
+        "./EngineApps/api_definitions",
         "./Tools/Blender/blender-4.0.2-windows-x64/4.0/scripts/modules"
     ],
-    "python.analysis.stubPath": "./api_definitions",
+    "python.analysis.stubPath": "./EngineApps/api_definitions",
     "python-envs.defaultEnvManager": "ms-python.python:system",
     "python.languageServer": "Pylance",
     "python.analysis.diagnosticSeverityOverrides": {
@@ -51,14 +51,17 @@
     "files.enableTrash": true,
 
     "search.exclude": {
-    "**/.history": true
+        "**/.history": true
     },
+
     "Lua.codeLens.enable": true,
     "Lua.completion.callSnippet": "Both",
-    "Lua.diagnostics.globals": [
-        "Game_Root"
-    ],
     "Lua.doc.regengine": "lua",
     "Lua.hint.arrayIndex": "Enable",
-    "Lua.runtime.version": "Lua 5.2"
+    "Lua.runtime.version": "Lua 5.2",
+    "Lua.workspace.library": [
+        "./EngineApps/api_definitions"
+    ]
+
+    
 }

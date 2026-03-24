@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "target": "es2015",
+        "module": "commonjs",
+        // This is the crucial part: pure ECMAScript, NO DOM, NO Node.
+        "lib": ["es2015"],
+        "strict": true,
+        "noImplicitAny": true
+    },
+    // Exclude node_modules to ensure no third-party Node types sneak in
+    "exclude": [
+        "node_modules",
+        "**/*.spec.js"
+    ]
+}

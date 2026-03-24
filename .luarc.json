@@ -1,11 +1,21 @@
 {
     "$schema": "https://raw.githubusercontent.com/sumneko/vscode-lua/master/setting/schema.json",
-    "Lua.runtime.version": "Lua 5.3",
+
     "Lua.runtime.builtin": {
         "basic": "disable",
         "io": "disable",
         "os": "disable",
         "builtin": "disable",
         "debug": "disable"
-    }
+    },
+
+    "Lua.codeLens.enable": true,
+    "Lua.completion.callSnippet": "Both",
+    "Lua.doc.regengine": "lua",
+    "Lua.hint.arrayIndex": "Enable",
+    "Lua.runtime.version": "Lua 5.2",
+    "Lua.workspace.library": [
+        "./EngineApps/api_definitions"
+    ]
+
 }

@@ -1,3 +1,6 @@
+// example of explicitly referencing the API definitions when ide fails to pick them up
+/// <reference path="../../../api_definitions/api_definitions.d.ts" />
+
 // JavaScript feature showcase for the RemakeEngine demo module.
 // Reimplemented from lua_feature_demo.lua to demonstrate JS script engine capabilities.
 // Demonstrates the Jint C# interop APIs available from JsAction.cs
