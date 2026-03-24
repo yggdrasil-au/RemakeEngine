@@ -10,6 +10,17 @@
         <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
         <StartupObject>EngineNet.Program</StartupObject>
         <ApplicationIcon>icon.ico</ApplicationIcon>
+
+        <!-- Publish with all .net dependencies included (no .NET runtime required on target machine) -->
+        <SelfContained>true</SelfContained>
+
+        <!-- Publish as a single executable file -->
+        <PublishSingleFile>true</PublishSingleFile>
+        <!-- Include native libraries in the single file bundle -->
+        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+        <!-- Embedd PDBs in exe, these are used for debugging in published app -->
+        <DebugType>embedded</DebugType>
+
     </PropertyGroup>
 
     <ItemGroup>

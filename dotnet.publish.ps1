@@ -45,6 +45,11 @@ if (-not [string]::IsNullOrWhiteSpace($ConfigFilter)) {
 
 Write-Host "--- Build Version: $version | RID: $Runtime ---" -ForegroundColor Cyan
 
+# clear old output
+Write-Host "Cleaning old build outputs..." -ForegroundColor Yellow
+if (Test-Path $OutputRoot) { Remove-Item $OutputRoot -Recurse -Force }
+
+
 foreach ($t in $targets) {
     $config   = $t.Configuration
     $outDir   = (Join-Path $OutputRoot $t.Output)
@@ -55,9 +60,7 @@ foreach ($t in $targets) {
         -c $config `
         -f $Framework `
         -r $Runtime `
-        --self-contained true `
         -o $outDir `
-        -p:PublishSingleFile=true `
         -p:ApplicationIcon="$Icon" `
         -p:Version=$version `
         -p:FileVersion=$version `

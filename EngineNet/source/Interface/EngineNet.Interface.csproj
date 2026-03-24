@@ -6,6 +6,7 @@
         <OutputType>Library</OutputType>
         <LangVersion>latest</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
+        <DebugType>embedded</DebugType>
     </PropertyGroup>
 
     <ItemGroup>
