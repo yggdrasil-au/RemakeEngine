@@ -5,7 +5,7 @@ using Microsoft.Win32;
 
 namespace EngineNet.ScriptEngines.Global.SdkModule;
 
-public static class SymLink {
+internal static class SymLink {
     private const string SE_CREATE_SYMBOLIC_LINK_NAME = "SeCreateSymbolicLinkPrivilege";
 
     /* :: :: Methods :: START :: */
@@ -14,7 +14,7 @@ public static class SymLink {
     /// Creates a symbolic link and optionally overwrites an existing destination.
     /// On Windows, it validates Developer Mode and SeCreateSymbolicLinkPrivilege.
     /// </summary>
-    public static bool Create(string source, string destination, bool isDirectory, bool overwrite) {
+    internal static bool Create(string source, string destination, bool isDirectory, bool overwrite) {
         try {
             if (OperatingSystem.IsWindows()) {
                 if (!CanCreateSymLinks()) {
@@ -67,14 +67,14 @@ public static class SymLink {
     /// Checks if Developer Mode is enabled AND if the current user has the SeCreateSymbolicLinkPrivilege.
     /// </summary>
     [SupportedOSPlatform("windows")]
-    public static bool CanCreateSymLinks() {
+    internal static bool CanCreateSymLinks() {
         return IsDevModeEnabled() || HasSymbolicLinkPrivilege();
     }
 
     /// <summary>
     /// Returns clear, step-by-step instructions on how to fix the missing permissions.
     /// </summary>
-    public static string GetFixInstructions() {
+    internal static string GetFixInstructions() {
         return
             "[Symlink] Requirement Not Met: Symbolic Link Creation Privilege is Missing.\n" +
             "To fix this, you must add your user to the Local Security Policy:\n" +
@@ -180,12 +180,12 @@ public static class SymLink {
 
     [StructLayout(LayoutKind.Sequential)]
     private struct Luid {
-        public uint LowPart; public int HighPart;
+        internal uint LowPart; internal int HighPart;
     }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct LuidAndAttributes {
-        public Luid Luid; public uint Attributes;
+        internal Luid Luid; internal uint Attributes;
     }
 
     /* :: :: P/Invoke Boilerplate :: END :: */

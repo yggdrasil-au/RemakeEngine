@@ -8,7 +8,7 @@ namespace EngineNet.ScriptEngines;
 /// Centralized dispatcher for script actions, both embedded (lua/js/python) and external (bms).
 /// This ensures all script actions are created through a single point, allowing for consistent handling
 /// </summary>
-public sealed class ScriptActionDispatcher {
+internal sealed class ScriptActionDispatcher {
 
     // this is used by GameLauncher.cs to run game.toml if game is a script
     // and Runner.RunSingleOperationAsync to run embedded engine operations (lua/js/python)
@@ -17,8 +17,8 @@ public sealed class ScriptActionDispatcher {
     /// Resolves embedded actions (lua/js/bms) to IAction implementations.
     /// this should be the only way to call any embedded script action
     /// </summary>
-    public static class EmbeddedActionDispatcher {
-        public static ScriptEngines.IAction? TryCreate(
+    internal static class EmbeddedActionDispatcher {
+        internal static ScriptEngines.IAction? TryCreate(
             string scriptType,
             string scriptPath,
             IEnumerable<string> args,
@@ -52,8 +52,8 @@ public sealed class ScriptActionDispatcher {
     /// Resolves external actions (like bms) to IAction implementations.
     /// this should be the only way to call any external script action
     /// </summary>
-    public static class ExternalActionDispatcher {
-        public static ScriptEngines.IAction? TryCreate(
+    internal static class ExternalActionDispatcher {
+        internal static ScriptEngines.IAction? TryCreate(
             string scriptType,
             string scriptPath,
             string gameRoot,
@@ -77,7 +77,7 @@ public sealed class ScriptActionDispatcher {
 /// <summary>
 /// Represents a single executable step within a game module.
 /// </summary>
-public interface IAction {
+internal interface IAction {
     /// <summary>
     /// Executes the action with access to tool resolution services.
     /// </summary>

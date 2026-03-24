@@ -15,7 +15,7 @@ it acts as the global settings dictionary that provides variables for script exe
 /// <summary>
 /// Configuration class for the Engine, allowing storage of arbitrary key-value pairs.
 /// </summary>
-public sealed class EngineConfig {
-    public IDictionary<string, object?> Data => _data;
+internal sealed class EngineConfig {
+    internal IDictionary<string, object?> Data => _data;
     private Dictionary<string, object?> _data = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
 }

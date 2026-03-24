@@ -4,9 +4,9 @@ using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 
-public partial class BuiltInOperations {
+internal partial class BuiltInOperations {
 
-    public bool config(
+    internal bool config(
         IDictionary<string, object?> op,
         string currentGame,
         Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games

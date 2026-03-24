@@ -4,11 +4,11 @@ using MoonSharp.Interpreter;
 namespace EngineNet.ScriptEngines.Lua;
 
 // custom exception to signal script exit without treating it as an error
-public class ScriptExitException(int exitCode = 0) : Exception {
-    public int ExitCode { get; } = exitCode;
+internal class ScriptExitException(int exitCode = 0) : Exception {
+    internal int ExitCode { get; } = exitCode;
 }
 
-public static partial class SetupEnvironment {
+internal static partial class SetupEnvironment {
 
     /// <summary>
     /// Disallowed environment variables to prevent information disclosure from Lua.
@@ -17,7 +17,7 @@ public static partial class SetupEnvironment {
         "TMP", "TEMP", "Path", "OneDrive", "ComSpec", "DriverData", "PSModulePath", "USERNAME", "windir"
     };
 
-    public static void LuaEnvironment(LuaWorld _LuaWorld) {
+    internal static void LuaEnvironment(LuaWorld _LuaWorld) {
 
         _LuaWorld.LuaScript.Globals["loadfile"] = DynValue.Nil;     // Remove ability to load arbitrary files
         _LuaWorld.LuaScript.Globals["dofile"] = DynValue.Nil;       // Remove ability to execute arbitrary files

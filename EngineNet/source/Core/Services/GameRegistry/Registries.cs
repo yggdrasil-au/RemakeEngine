@@ -10,7 +10,7 @@ namespace EngineNet.Core.Utils;
 /// The class is designed to allow dynamic refreshing of the modules registry at runtime, while the games registry is read from disk on each access to ensure it reflects the current state of installed/downloaded games without requiring manual refreshing.
 /// This design allows for flexible and up-to-date access to game and module information for use in various engine functionalities such as game launching, operations execution, and UI display.
 /// </summary>
-public sealed partial class Registries {
+internal sealed partial class Registries {
 
     private readonly string _gamesRegistryPath;
     private readonly string _modulesRegistryPath;
@@ -26,7 +26,7 @@ public sealed partial class Registries {
     /// creates and initializes a new instance of the <see cref="Registries"/> class, ensuring that the modules registry file is present and loaded.
     /// </summary>
     /// <returns></returns>
-    public static async Task<Registries> CreateAsync() {
+    internal static async Task<Registries> CreateAsync() {
         string Module_registry = System.IO.Path.Combine("EngineApps", "Registries", "Modules", "Main.json");
 
         // Preferred locations (relative to working root)
@@ -49,7 +49,7 @@ public sealed partial class Registries {
     /// The games registry is not cached in memory, so it does not require refreshing - it is read from disk on each access to ensure it reflects the current state of installed/downloaded games.
     /// This design choice prioritizes accuracy for game discovery while allowing efficient caching for module information that is less likely to change frequently.
     /// </summary>
-    public void RefreshModules() => _modules = Core.Serialization.Json.JsonHelpers.LoadJsonFile(_modulesRegistryPath);
+    internal void RefreshModules() => _modules = Core.Serialization.Json.JsonHelpers.LoadJsonFile(_modulesRegistryPath);
 
     /// <summary>
     /// Gets the registered modules from the modules registry. The returned dictionary is case-insensitive for module names.
@@ -59,7 +59,7 @@ public sealed partial class Registries {
     /// The modules registry can be refreshed at runtime using the RefreshModules method to reflect any changes made to the registry file on disk.
     /// </summary>
     /// <returns></returns>
-    public IReadOnlyDictionary<string, object?> GetRegisteredModules() {
+    internal IReadOnlyDictionary<string, object?> GetRegisteredModules() {
         return _modules.TryGetValue("modules", out object? m) && m is Dictionary<string, object?> dict ? dict : new Dictionary<string, object?>();
     }
 
@@ -74,7 +74,7 @@ public sealed partial class Registries {
     /// Note: This method does not validate the contents of the operations files or the presence of executable entry points - it only checks for the existence of the operations.toml or operations.json file to consider a directory as a valid game entry.
     /// </summary>
     /// <returns></returns>
-    public Dictionary<string, GameInfo> DiscoverGames() {
+    internal Dictionary<string, GameInfo> DiscoverGames() {
         Dictionary<string, GameInfo> games = new Dictionary<string, GameInfo>(System.StringComparer.OrdinalIgnoreCase);
         if (!System.IO.Directory.Exists(_gamesRegistryPath)) {
             return games;
@@ -108,7 +108,7 @@ public sealed partial class Registries {
     /// A valid game entry must contain a game.toml with at least one valid executable entry (exe, lua script, or godot project).
     /// </summary>
     /// <returns></returns>
-    public Dictionary<string, GameInfo> DiscoverBuiltGames() {
+    internal Dictionary<string, GameInfo> DiscoverBuiltGames() {
         Dictionary<string, GameInfo> games = new Dictionary<string, GameInfo>(System.StringComparer.OrdinalIgnoreCase);
         if (!System.IO.Directory.Exists(_gamesRegistryPath)) {
             return games;

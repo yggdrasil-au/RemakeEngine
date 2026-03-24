@@ -5,29 +5,29 @@ namespace EngineNet.Core.FileHandlers.Formats;
 
 using System;
 
-public static partial class TxdExtractor {
+internal static partial class TxdExtractor {
 
     private sealed class NameInfo {
-        public NameInfo(string name, int nameSigOffsetInSegment, int originalFileOffset) {
+        internal NameInfo(string name, int nameSigOffsetInSegment, int originalFileOffset) {
             Name = name;
             NameSigOffsetInSegment = nameSigOffsetInSegment;
             OriginalFileOffset = originalFileOffset;
         }
 
-        public string Name {
+        internal string Name {
             get;
         }
-        public int NameSigOffsetInSegment {
+        internal int NameSigOffsetInSegment {
             get;
         }
-        public int OriginalFileOffset {
+        internal int OriginalFileOffset {
             get;
         }
-        public bool ProcessedMeta {
+        internal bool ProcessedMeta {
             get; private set;
         }
 
-        public void MarkProcessed() {
+        internal void MarkProcessed() {
             ProcessedMeta = true;
         }
     }

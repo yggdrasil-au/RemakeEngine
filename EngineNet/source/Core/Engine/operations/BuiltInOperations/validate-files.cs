@@ -2,9 +2,9 @@
 using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
-public partial class BuiltInOperations {
+internal partial class BuiltInOperations {
 
-    public bool validate_files(
+    internal bool validate_files(
         IDictionary<string, object?> op,
         IDictionary<string, object?> promptAnswers,
         string currentGame, Dictionary<string, Core.Data.GameModuleInfo> games,

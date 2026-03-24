@@ -3,7 +3,7 @@ using MoonSharp.Interpreter;
 
 namespace EngineNet.ScriptEngines.Lua;
 
-public static partial class SetupEnvironment {
+internal static partial class SetupEnvironment {
 
 
     /// <summary>

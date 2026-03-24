@@ -5,31 +5,31 @@ using IronPython.Hosting;
 
 namespace EngineNet.ScriptEngines.Python;
 
-public class PyProgressProxy {
+internal class PyProgressProxy {
     internal Core.UI.EngineSdk.ScriptProgress? ActiveScriptProgress { get; set; }
 
-    public Func<int, string?, string?, Core.UI.EngineSdk.PanelProgress>? NewFunc { get; set; }
-    public Func<int, string?, Core.UI.EngineSdk.ScriptProgress>? StartFunc { get; set; }
-    public Action<string?>? StepAction { get; set; }
-    public Action<int>? AddStepsAction { get; set; }
-    public Action? FinishAction { get; set; }
+    internal Func<int, string?, string?, Core.UI.EngineSdk.PanelProgress>? NewFunc { get; set; }
+    internal Func<int, string?, Core.UI.EngineSdk.ScriptProgress>? StartFunc { get; set; }
+    internal Action<string?>? StepAction { get; set; }
+    internal Action<int>? AddStepsAction { get; set; }
+    internal Action? FinishAction { get; set; }
 
-    public Core.UI.EngineSdk.PanelProgress @new(int total, string? id = null, string? label = null) => NewFunc!(total, id, label);
-    public Core.UI.EngineSdk.ScriptProgress start(int total, string? label = null) => StartFunc!(total, label);
-    public void step(string? label = null) => StepAction!(label);
-    public void add_steps(int count) => AddStepsAction!(count);
-    public void finish() => FinishAction!();
+    internal Core.UI.EngineSdk.PanelProgress @new(int total, string? id = null, string? label = null) => NewFunc!(total, id, label);
+    internal Core.UI.EngineSdk.ScriptProgress start(int total, string? label = null) => StartFunc!(total, label);
+    internal void step(string? label = null) => StepAction!(label);
+    internal void add_steps(int count) => AddStepsAction!(count);
+    internal void finish() => FinishAction!();
 }
 
-public class PyDiagnosticsProxy {
-    public Action<string>? LogAction { get; set; }
-    public Action<string>? TraceAction { get; set; }
+internal class PyDiagnosticsProxy {
+    internal Action<string>? LogAction { get; set; }
+    internal Action<string>? TraceAction { get; set; }
 
-    public void Log(string message) => LogAction!(message);
-    public void Trace(string message) => TraceAction!(message);
+    internal void Log(string message) => LogAction!(message);
+    internal void Trace(string message) => TraceAction!(message);
 }
 
-public static class PyAction {
+internal static class PyAction {
 
     /// <summary>
     /// Define important core functions as Python globals
@@ -40,7 +40,7 @@ public static class PyAction {
     /// <param name="gameRoot"></param>
     /// <param name="projectRoot"></param>
     /// <param name="scriptPath"></param>
-    public static void SetupCoreFunctions(
+    internal static void SetupCoreFunctions(
         PyWorld world,
         Core.ExternalTools.JsonToolResolver tools,
         string[] args,

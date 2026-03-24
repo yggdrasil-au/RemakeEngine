@@ -4,31 +4,31 @@ namespace EngineNet.Core;
 /// Runtime state shared by Core and Interface after project separation.
 /// The entry executable configures these values during startup.
 /// </summary>
-public static class Main {
-    public static string RootPath {
+internal static class Main {
+    internal static string RootPath {
         get; private set;
     } = string.Empty;
 
-    public static bool IsGui {
+    internal static bool IsGui {
         get; private set;
     }
 
-    public static bool IsTui {
+    internal static bool IsTui {
         get; private set;
     }
 
-    public static bool IsCli {
+    internal static bool IsCli {
         get; private set;
     }
 
-    public static Func<Task<Engine.Engine>>? EngineFactory {
+    internal static Func<Task<EngineNet.Core.Engine.IEngineFace>>? EngineFactory {
         get; private set;
     }
 
     /// <summary>
     /// Configures runtime state from the host entry point.
     /// </summary>
-    public static void ConfigureRuntime(string rootPath, bool isGui, bool isTui, bool isCli, Func<Task<Engine.Engine>>? engineFactory = null) {
+    internal static void ConfigureRuntime(string rootPath, bool isGui, bool isTui, bool isCli, Func<Task<EngineNet.Core.Engine.IEngineFace>>? engineFactory = null) {
         RootPath = rootPath ?? string.Empty;
         IsGui = isGui;
         IsTui = isTui;
@@ -42,7 +42,7 @@ public static class Main {
     /// <summary>
     /// Creates an engine using the configured host factory.
     /// </summary>
-    public static async Task<Engine.Engine> InitialiseEngineAsync() {
+    internal static async Task<EngineNet.Core.Engine.IEngineFace> InitialiseEngineAsync() {
         if (EngineFactory == null) {
             throw new InvalidOperationException("EngineFactory is not configured. Call ConfigureRuntime from the entry point first.");
         }

@@ -1,29 +1,21 @@
 
-using EngineNet.Core.Engine;
-
 namespace EngineNet.Interface;
 
 /// <summary>
 /// Utility methods for all UI
 /// </summary>
-public sealed class Main {
-
-    private static Core.Engine.Engine Engine = null!;
-
-    public Main(Engine _engine) {
-        Engine = _engine;
-    }
+public sealed class Main(Core.Engine.IEngineFace CoreEngine) {
 
     // called by program.cs to choose ui, and manage engine, instead of passing engine to ui, this class will manage and expose methods via a child class it passes into the ui
     public async Task<int> init(string[] args, string ui, System.Threading.CancellationToken cancellationToken) {
 
-        var miniEngine = new MiniEngine(Engine);
+        var miniEngine = new MiniEngine(CoreEngine);
 
         switch (ui) {
             case "gui":
                 // for now gui uses engine direclty
                 Core.Diagnostics.Trace("Launching GUI Interface...");
-                return Interface.GUI.GuiBootstrapper.Run(Engine);
+                return Interface.GUI.GuiBootstrapper.Run(CoreEngine);
             case "tui":
                 Core.Diagnostics.Trace("Launching TUI Interface...");
                 Interface.Terminal.TUI TUI = new Interface.Terminal.TUI(miniEngine);
@@ -42,9 +34,9 @@ public sealed class Main {
     }
 
     private class MiniEngine : MiniEngineFace {
-        private Core.Engine.Engine Engine;
+        private Core.Engine.IEngineFace Engine;
 
-        public MiniEngine(Core.Engine.Engine engine) {
+        public MiniEngine(Core.Engine.IEngineFace engine) {
             Engine = engine;
         }
 
@@ -97,7 +89,7 @@ public sealed class Main {
             return await Engine.GameLauncher.LaunchGameAsync(name);
         }
 
-        public async System.Threading.Tasks.Task<RunAllResult> RunAllAsync(
+        public async System.Threading.Tasks.Task<Core.Engine.RunAllResult> RunAllAsync(
             string gameName,
             Core.ProcessRunner.OutputHandler? onOutput = null,
             Core.ProcessRunner.EventHandler? onEvent = null,
@@ -136,7 +128,7 @@ public interface MiniEngineFace {
 
     public bool Context_CommandService_ExecuteCommand(IList<string> commandParts, string title, Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, IDictionary<string, object?>? envOverrides = null, CancellationToken cancellationToken = default);
 
-    public Task<bool> Context_OperationContext_OperationsService_CollectAnswersAsync(
+    internal Task<bool> Context_OperationContext_OperationsService_CollectAnswersAsync(
         Dictionary<string, object?> op,
         Dictionary<string, object?> answers,
         Core.Services.OperationsService.PromptHandler handler,
@@ -145,7 +137,7 @@ public interface MiniEngineFace {
 
     public Task<bool> GameLauncher_LaunchGameAsync(string name);
 
-    public Task<RunAllResult> RunAllAsync(
+    public Task<Core.Engine.RunAllResult> RunAllAsync(
         string gameName,
         Core.ProcessRunner.OutputHandler? onOutput = null,
         Core.ProcessRunner.EventHandler? onEvent = null,

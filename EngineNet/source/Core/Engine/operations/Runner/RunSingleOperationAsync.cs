@@ -1,7 +1,7 @@
 
 namespace EngineNet.Core.Engine;
 
-public sealed class Runner {
+internal sealed class Runner {
 
     // used to run a single op by both runallasync and direct operation execution in the GUI/TUI
 
@@ -14,7 +14,7 @@ public sealed class Runner {
     /// <param name="promptAnswers"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
+    internal async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
         string currentGame,
         Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
         IDictionary<string, object?> op,

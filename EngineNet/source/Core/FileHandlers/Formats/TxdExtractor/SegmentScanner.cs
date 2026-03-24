@@ -5,7 +5,7 @@ namespace EngineNet.Core.FileHandlers.Formats;
 
 using System;
 
-public static partial class TxdExtractor {
+internal static partial class TxdExtractor {
 
     private sealed class SegmentScanner {
         private static readonly byte[] SigFileStart = { 0x16, 0x00, 0x00, 0x00 };
@@ -19,13 +19,13 @@ public static partial class TxdExtractor {
         private readonly string _txdFilePath;
         private readonly int _lenEofSignature;
 
-        public SegmentScanner(byte[] data, string txdFilePath) {
+        internal SegmentScanner(byte[] data, string txdFilePath) {
             _data = data;
             _txdFilePath = txdFilePath;
             _lenEofSignature = EofPrefix.Length + LenEofVariablePart + EofSuffix.Length;
         }
 
-        public (List<Segment> segments, int totalTextures) CollectSegments() {
+        internal (List<Segment> segments, int totalTextures) CollectSegments() {
             byte[] data = _data;
             List<Segment> segments = [];
 

@@ -8,24 +8,24 @@ namespace EngineNet.Core.Engine;
 /// <summary>
 /// Represents a single operation in the dependency graph.
 /// </summary>
-public class OperationNode {
-    public string Id { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public Dictionary<string, object?> Operation { get; set; } = new();
-    public List<string> Dependencies { get; set; } = new();
-    public List<OperationNode> DependentNodes { get; set; } = new();
+internal class OperationNode {
+    internal string Id { get; set; } = string.Empty;
+    internal string Name { get; set; } = string.Empty;
+    internal Dictionary<string, object?> Operation { get; set; } = new();
+    internal List<string> Dependencies { get; set; } = new();
+    internal List<OperationNode> DependentNodes { get; set; } = new();
 }
 
 /// <summary>
 /// Builds, validates, and visualizes the operation dependency graph.
 /// </summary>
-public class OperationDependencyGraph {
-    public bool IsValid { get; private set; }
-    public List<string> Errors { get; private set; } = new();
+internal class OperationDependencyGraph {
+    internal bool IsValid { get; private set; }
+    internal List<string> Errors { get; private set; } = new();
 
     private readonly Dictionary<string, OperationNode> _nodes = new(StringComparer.OrdinalIgnoreCase);
 
-    public OperationDependencyGraph(List<Dictionary<string, object?>> operations) {
+    internal OperationDependencyGraph(List<Dictionary<string, object?>> operations) {
         BuildGraph(operations);
     }
 
@@ -161,7 +161,7 @@ public class OperationDependencyGraph {
     /// <summary>
     /// Prints the graph status and structure to Diagnostics.Trace.
     /// </summary>
-    public void PrintGraphToTrace() {
+    internal void PrintGraphToTrace() {
         Diagnostics.Trace("=== [Dependency Graph Builder] ===");
 
         if (!IsValid) {

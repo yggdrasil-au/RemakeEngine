@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
-public partial class BuiltInOperations {
+internal partial class BuiltInOperations {
 
-    public bool format_extract(
+    internal bool format_extract(
         IDictionary<string, object?> op,
         IDictionary<string, object?> promptAnswers,
         string currentGame,

@@ -2,20 +2,20 @@ using System.Collections.Generic;
 
 namespace EngineNet.Core.Utils;
 
-public static class ScriptConstants {
+internal static class ScriptConstants {
     // direct C# execution of specific methods accessable to any module
-    public const string TypeEngine   = "engine";
+    internal const string TypeEngine   = "engine";
 
     // embedded script types
-    public const string TypeLua      = "lua";
-    public const string TypeJs       = "js";
-    public const string TypePython   = "python";
+    internal const string TypeLua      = "lua";
+    internal const string TypeJs       = "js";
+    internal const string TypePython   = "python";
 
     // external script types
-    public const string TypeBms      = "bms";
+    internal const string TypeBms      = "bms";
 
     // direct C# execution, internal operations.toml only
-    public const string TypeInternal = "internal";
+    internal const string TypeInternal = "internal";
 
     // Define the "Embedded" group (Languages handled by EmbeddedActionDispatcher)
     private static readonly HashSet<string> _embeddedTypes = new(System.StringComparer.OrdinalIgnoreCase) {
@@ -40,7 +40,7 @@ public static class ScriptConstants {
     /// </summary>
     /// <param name="script_type"></param>
     /// <returns></returns>
-    public static bool IsEmbedded(string? script_type) {
+    internal static bool IsEmbedded(string? script_type) {
         return !string.IsNullOrWhiteSpace(script_type) && _embeddedTypes.Contains(script_type);
     }
 
@@ -49,12 +49,12 @@ public static class ScriptConstants {
     /// </summary>
     /// <param name="script_type"></param>
     /// <returns></returns>
-    public static bool IsExternal(string? script_type) {
+    internal static bool IsExternal(string? script_type) {
         return !string.IsNullOrWhiteSpace(script_type) && _externalTypes.Contains(script_type);
     }
 
     // is BuiltInOperation, internal or engine
-    public static bool IsBuiltIn(string? script_type) {
+    internal static bool IsBuiltIn(string? script_type) {
         return !string.IsNullOrWhiteSpace(script_type) && _internalTypes.Contains(script_type);
     }
 
@@ -71,7 +71,7 @@ public static class ScriptConstants {
     /// <summary>
     /// Checks if the provided script type string is a valid, supported type.
     /// </summary>
-    public static bool IsSupported(string? script_type) {
+    internal static bool IsSupported(string? script_type) {
         return !string.IsNullOrWhiteSpace(script_type) && _supportedTypes.Contains(script_type);
     }
 }

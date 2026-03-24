@@ -3,8 +3,8 @@ using MoonSharp.Interpreter;
 
 namespace EngineNet.ScriptEngines.Lua;
 
-public static partial class SetupEnvironment {
-    public static void CreateIoTable(LuaWorld _LuaWorld) {
+internal static partial class SetupEnvironment {
+    internal static void CreateIoTable(LuaWorld _LuaWorld) {
         _LuaWorld.Sdk.IO["open"] = (string path, string? mode) => {
             // Security: Validate file path with user approval if outside workspace
             if (!Security.EnsurePathAllowedWithPrompt(path)) {

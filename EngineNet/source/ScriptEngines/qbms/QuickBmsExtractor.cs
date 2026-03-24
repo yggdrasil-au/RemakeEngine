@@ -5,7 +5,7 @@ namespace EngineNet.ScriptEngines.qbms;
 /// Provides a built-in replacement for EnginePy\FormatHandlers\bms_extract.py.
 /// Wraps QuickBMS execution for matching files while mirroring the original CLI options.
 /// </summary>
-public static class QuickBmsExtractor {
+internal static class QuickBmsExtractor {
     private sealed class Options {
         internal string QuickBmsExe = string.Empty;
         internal string BmsScript = string.Empty;
@@ -21,7 +21,7 @@ public static class QuickBmsExtractor {
     /// </summary>
     /// <param name="args">CLI-style args: --quickbms PATH, --script PATH, --input DIR, --output DIR, [--extension EXT], [--overwrite], [targets...]</param>
     /// <returns>True when all processed files succeeded; false otherwise.</returns>
-    public static bool Run(IList<string> args) {
+    internal static bool Run(IList<string> args) {
         Options options;
         try {
             options = Parse(args);

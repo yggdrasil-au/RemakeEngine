@@ -3,7 +3,7 @@ using System.Collections;
 
 namespace EngineNet.Core.Services;
 
-public class OperationsLoader {
+internal class OperationsLoader {
 
     /// <summary>
     /// Loads operations from a specified file, supporting both JSON and TOML formats.
@@ -13,7 +13,7 @@ public class OperationsLoader {
     /// In case of any parsing errors, the method logs the issue and returns null.
     /// </summary> <param name="opsFile">The path to the operations file (JSON or TOML).</param>
     /// <returns>A list of operations represented as dictionaries, or null if an error occurs.</returns>
-    public List<Dictionary<string, object?>>? LoadOperations(string opsFile) {
+    internal List<Dictionary<string, object?>>? LoadOperations(string opsFile) {
         try {
             // Determine file type by extension
             string ext = System.IO.Path.GetExtension(opsFile);
@@ -93,8 +93,8 @@ public class OperationsLoader {
     }
 }
 
-public sealed class Operations {
-    public static Dictionary<string, object?> ToMap(Tomlyn.Model.TomlTable table) => Serialization.DocModelConverter.FromTomlTable(table);
+internal sealed class Operations {
+    internal static Dictionary<string, object?> ToMap(Tomlyn.Model.TomlTable table) => Serialization.DocModelConverter.FromTomlTable(table);
 
-    public static Dictionary<string, object?> ToMap(System.Text.Json.JsonElement obj) => Serialization.DocModelConverter.FromJsonObject(obj);
+    internal static Dictionary<string, object?> ToMap(System.Text.Json.JsonElement obj) => Serialization.DocModelConverter.FromJsonObject(obj);
 }

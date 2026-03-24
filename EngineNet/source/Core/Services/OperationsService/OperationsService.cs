@@ -7,7 +7,7 @@ namespace EngineNet.Core.Services;
 /// <summary>
 /// Provides shared operations loading, validation, and prompt-flow logic for all interfaces.
 /// </summary>
-public sealed class OperationsService {
+internal sealed class OperationsService {
 
     /* :: :: Vars :: START :: */
     private readonly OperationsLoader _loader;
@@ -16,7 +16,7 @@ public sealed class OperationsService {
     // //
     /* :: :: Constructors :: START :: */
 
-    public OperationsService(OperationsLoader loader, GameRegistry gameRegistry) {
+    internal OperationsService(OperationsLoader loader, GameRegistry gameRegistry) {
         _loader = loader;
         _gameRegistry = gameRegistry;
     }
@@ -30,7 +30,7 @@ public sealed class OperationsService {
     /// </summary>
     /// <param name="opsFile"></param>
     /// <returns></returns>
-    public PreparedOperations LoadAndPrepare(
+    internal PreparedOperations LoadAndPrepare(
         string opsFile,
         string? currentGame = null,
         Dictionary<string, Data.GameModuleInfo>? games = null,
@@ -132,7 +132,7 @@ public sealed class OperationsService {
     /// </summary>
     /// <param name="op"></param>
     /// <returns></returns>
-    public static string ResolveOperationDisplayName(IDictionary<string, object?> op) {
+    internal static string ResolveOperationDisplayName(IDictionary<string, object?> op) {
         string? name = GetString(op, "Name", "name");
         if (!string.IsNullOrWhiteSpace(name)) {
             return name;
@@ -159,7 +159,7 @@ public sealed class OperationsService {
     /// <param name="promptHandler"></param>
     /// <param name="defaultsOnly"></param>
     /// <returns></returns>
-    public async Task<bool> CollectAnswersAsync(
+    internal async Task<bool> CollectAnswersAsync(
         Dictionary<string, object?> op,
         Dictionary<string, object?> answers,
         PromptHandler promptHandler,

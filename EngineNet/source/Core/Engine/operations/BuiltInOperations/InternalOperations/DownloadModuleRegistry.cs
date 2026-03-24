@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
-public partial class InternalOperations {
+internal partial class InternalOperations {
 
-    public bool DownloadModuleRegistry(IDictionary<string, object?> promptAnswers, EngineContext context) {
+    internal bool DownloadModuleRegistry(IDictionary<string, object?> promptAnswers, EngineContext context) {
 
         string? input = null;
         if (promptAnswers.TryGetValue("url", out object? u)) {

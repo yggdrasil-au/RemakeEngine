@@ -5,18 +5,18 @@ namespace EngineNet.Core.FileHandlers.Formats;
 
 using System;
 
-public static partial class TxdExtractor {
+internal static partial class TxdExtractor {
 
     private sealed class Segment {
-        public Segment(int startOffset, byte[] data) {
+        internal Segment(int startOffset, byte[] data) {
             StartOffset = startOffset;
             Data = data;
         }
 
-        public int StartOffset {
+        internal int StartOffset {
             get;
         }
-        public byte[] Data {
+        internal byte[] Data {
             get;
         }
     }

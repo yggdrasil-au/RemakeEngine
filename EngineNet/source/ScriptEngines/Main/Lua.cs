@@ -8,14 +8,14 @@ namespace EngineNet.ScriptEngines.Lua;
 /// <summary>
 /// entry point for executing a Lua script, called from EngineNet.ScriptEngines.Helpers.EmbeddedActionDispatcher
 /// </summary>
-public sealed class Main : IAction {
+internal sealed class Main : IAction {
 
     private readonly string _scriptPath;
     private readonly string[] _args;
     private readonly string _gameRoot;
     private readonly string _projectRoot;
 
-    public Main(string scriptPath, IEnumerable<string>? args, string gameRoot, string projectRoot) {
+    internal Main(string scriptPath, IEnumerable<string>? args, string gameRoot, string projectRoot) {
         this._scriptPath = scriptPath;
         this._args = args is null ? System.Array.Empty<string>() : args as string[] ?? new List<string>(args).ToArray();
         this._gameRoot = gameRoot;

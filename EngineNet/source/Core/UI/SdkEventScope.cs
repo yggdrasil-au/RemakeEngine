@@ -7,12 +7,12 @@ namespace EngineNet.Core.UI;
 /// Disposable scope to set EngineSdk.LocalEventSink, MuteStdoutWhenLocalSink
 /// and optionally seed AutoPromptResponses, restoring prior values on dispose.
 /// </summary>
-public sealed class SdkEventScope:System.IDisposable {
+internal sealed class SdkEventScope:System.IDisposable {
     private readonly System.Action<Dictionary<string, object?>>? _prevSink;
     private readonly bool _prevMute;
     private readonly Dictionary<string, string> _prevAuto;
 
-    public SdkEventScope(
+    internal SdkEventScope(
         System.Action<Dictionary<string, object?>>? sink,
         bool muteStdout,
         IDictionary<string, string>? autoPromptResponses) {

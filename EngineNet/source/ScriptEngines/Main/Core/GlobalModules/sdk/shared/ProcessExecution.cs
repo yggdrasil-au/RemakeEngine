@@ -10,10 +10,10 @@ namespace EngineNet.ScriptEngines.Global.SdkModule;
 /// Process execution functionality for Lua scripts.
 /// Provides secure process execution with validation.
 /// </summary>
-public static class ProcessExecution {
+internal static class ProcessExecution {
     // Lightweight managed process support for non-blocking process execution from Lua.
     // Processes are stored in a concurrent dictionary and can be polled/waited from Lua.
-    public class ManagedProcess {
+    internal class ManagedProcess {
         internal System.Diagnostics.Process Process { get; set; } = null!;
         internal System.Text.StringBuilder Stdout { get; } = new System.Text.StringBuilder();
         internal System.Text.StringBuilder Stderr { get; } = new System.Text.StringBuilder();
@@ -31,7 +31,7 @@ public static class ProcessExecution {
     }
 
     // pid -> ManagedProcess
-    public static readonly System.Collections.Concurrent.ConcurrentDictionary<int, ManagedProcess> s_processes = new System.Collections.Concurrent.ConcurrentDictionary<int, ManagedProcess>();
+    internal static readonly System.Collections.Concurrent.ConcurrentDictionary<int, ManagedProcess> s_processes = new System.Collections.Concurrent.ConcurrentDictionary<int, ManagedProcess>();
     private static int s_nextPid = 0;
 
     // Heuristic helpers for path-like arguments and validation
@@ -82,7 +82,7 @@ public static class ProcessExecution {
 
     //
 
-    public static DynValue RunProcess(Script lua, Table commandArgs, Table? options) {
+    internal static DynValue RunProcess(Script lua, Table commandArgs, Table? options) {
         if (commandArgs == null) {
             throw new ScriptRuntimeException("run_process expects argument table");
         }
@@ -204,7 +204,7 @@ public static class ProcessExecution {
         return DynValue.NewTable(result);
     }
 
-    public static DynValue ExecProcess(Script lua, Table commandArgs, Table? options, bool silentRun) {
+    internal static DynValue ExecProcess(Script lua, Table commandArgs, Table? options, bool silentRun) {
         if (commandArgs == null) {
             throw new ScriptRuntimeException("exec expects argument table");
         }
@@ -265,7 +265,7 @@ public static class ProcessExecution {
         return ExecInCurrentTerminal(lua, parts, cwd, env, silentRun);
     }
 
-    public static DynValue SpawnProcess(Script lua, Table commandArgs, Table? options, Core.ExternalTools.JsonToolResolver tools) {
+    internal static DynValue SpawnProcess(Script lua, Table commandArgs, Table? options, Core.ExternalTools.JsonToolResolver tools) {
         List<string> parts = Lua.Globals.Utils.TableToStringList(commandArgs);
         if (parts.Count == 0) throw new ScriptRuntimeException("spawn_process requires at least one argument (executable path)");
         if (!EngineNet.ScriptEngines.Security.IsApprovedExecutable(parts[0], tools)) throw new ScriptRuntimeException($"Executable '{parts[0]}' is not approved");
@@ -347,7 +347,7 @@ public static class ProcessExecution {
         return DynValue.NewTable(t);
     }
 
-    public static DynValue PollProcess(Script lua, int pid) {
+    internal static DynValue PollProcess(Script lua, int pid) {
         if (!s_processes.TryGetValue(pid, out var mp)) throw new ScriptRuntimeException($"Unknown process id {pid}");
         Table t = new Table(lua);
         bool running = !mp.Process.HasExited;
@@ -381,7 +381,7 @@ public static class ProcessExecution {
         return DynValue.NewTable(t);
     }
 
-    public static DynValue WaitProcess(Script lua, int pid, int? timeoutMs) {
+    internal static DynValue WaitProcess(Script lua, int pid, int? timeoutMs) {
         if (!s_processes.TryGetValue(pid, out var mp)) throw new ScriptRuntimeException($"Unknown process id {pid}");
         bool finished;
         try {
@@ -422,7 +422,7 @@ public static class ProcessExecution {
         return DynValue.NewTable(t);
     }
 
-    public static DynValue CloseProcess(Script lua, int pid) {
+    internal static DynValue CloseProcess(Script lua, int pid) {
         if (!s_processes.TryRemove(pid, out var mp)) return DynValue.NewBoolean(false);
         try { if (!mp.Process.HasExited) mp.Process.Kill(true); }  catch {
             Core.Diagnostics.Bug($"Error .....'");

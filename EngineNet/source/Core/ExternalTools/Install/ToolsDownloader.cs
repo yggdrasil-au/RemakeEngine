@@ -10,16 +10,16 @@ using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.Core.ExternalTools;
 
-public sealed class ToolsDownloader {
+internal sealed class ToolsDownloader {
     private readonly string _rootPath;
     private readonly string _centralRepoJsonPath;
 
-    public ToolsDownloader(string rootPath, string centralRepoJsonPath) {
+    internal ToolsDownloader(string rootPath, string centralRepoJsonPath) {
         _rootPath = rootPath;
         _centralRepoJsonPath = centralRepoJsonPath;
     }
 
-    public async System.Threading.Tasks.Task<bool> ProcessAsync(string moduleTomlPath, bool force, IDictionary<string, object?>? context = null, System.Threading.CancellationToken cancellationToken = default) {
+    internal async System.Threading.Tasks.Task<bool> ProcessAsync(string moduleTomlPath, bool force, IDictionary<string, object?>? context = null, System.Threading.CancellationToken cancellationToken = default) {
         Core.UI.EngineSdk.PrintLine(string.Empty);
         Core.UI.EngineSdk.PrintLine($"=== Tools Downloader - manifest: {moduleTomlPath} ===", System.ConsoleColor.DarkCyan);
         if (!System.IO.File.Exists(moduleTomlPath)) {

@@ -1,6 +1,6 @@
 namespace EngineNet.Core.ExternalTools;
 
-public static class RemoteFallbacks {
+internal static class RemoteFallbacks {
     private const string RepoOwner = "yggdrasil-au";
     private const string RepoName = "RemakeEngine";
     private static readonly string[] BranchCandidates = new[] { "main", "master" };
@@ -10,7 +10,7 @@ public static class RemoteFallbacks {
     /// RemakeEngine GitHub repository at <paramref name="repoRelativePath"/> using raw URLs.
     /// Returns true if the file exists locally after the call.
     /// </summary>
-    public static async Task<bool> EnsureRepoFileAsync(string repoRelativePath, string localPath) {
+    internal static async Task<bool> EnsureRepoFileAsync(string repoRelativePath, string localPath) {
         try {
             if (System.IO.File.Exists(localPath)) {
                 return true;

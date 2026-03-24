@@ -4,10 +4,10 @@ namespace EngineNet.Core.ExternalTools;
 /// Centralized tool lockfile naming and path helpers.
 /// Update this in one place to rename the lockfile.
 /// </summary>
-public static class ToolLockfile {
-    public const string ToolLockfileName = "Tools.installed.json";
+internal static class ToolLockfile {
+    internal const string ToolLockfileName = "Tools.installed.json";
 
-    public static string GetPath(string rootPath) {
+    internal static string GetPath(string rootPath) {
         return System.IO.Path.Combine(rootPath, ToolLockfileName);
     }
 }

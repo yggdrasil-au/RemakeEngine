@@ -1,11 +1,11 @@
 
 namespace EngineNet.ScriptEngines.Global.SdkModule;
 
-public static class Helpers {
+internal static class Helpers {
 
     //AddConfigurationHelpers
-    public static class AddConfigurationHelpers {
-        public static bool Validate_Source_Dir(string dir) {
+    internal static class AddConfigurationHelpers {
+        internal static bool Validate_Source_Dir(string dir) {
             try {
                 // Security: Validate path is within allowed areas
                 if (!Security.IsAllowedPath(dir)) {
@@ -43,8 +43,8 @@ public static class Helpers {
 
 
     //AddFileSystemOperations
-    public static class AddFileSystemOperations {
-        public static Dictionary<string, object>? FileAttributes(string path) {
+    internal static class AddFileSystemOperations {
+        internal static Dictionary<string, object>? FileAttributes(string path) {
             if (!Security.EnsurePathAllowedWithPrompt(path)) {
                 return null;
             }
@@ -74,7 +74,7 @@ public static class Helpers {
             }
         }
 
-        public static List<string>? List_Dir(string path) {
+        internal static List<string>? List_Dir(string path) {
             // 1. Security check
             if (!Security.EnsurePathAllowedWithPrompt(path)) {
                 return null;
@@ -101,9 +101,9 @@ public static class Helpers {
     }
 
     // add hashing functions like sha1_file and md5
-    public static class AddHashMethods {
+    internal static class AddHashMethods {
 
-        public static dynamic? sha1_file(string path) {
+        internal static dynamic? sha1_file(string path) {
             try {
                 if (!Security.EnsurePathAllowedWithPrompt(path)) {
                     return null;
@@ -117,7 +117,7 @@ public static class Helpers {
             }
         }
 
-        public static string Md5Hash(string text) {
+        internal static string Md5Hash(string text) {
             try {
                 byte[] data = System.Security.Cryptography.MD5.HashData(System.Text.Encoding.UTF8.GetBytes(text ?? string.Empty));
                 return System.Convert.ToHexString(data).ToLowerInvariant();
@@ -128,7 +128,7 @@ public static class Helpers {
         }
     }
 
-    public static void Sleep(double seconds) {
+    internal static void Sleep(double seconds) {
         if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds <= 0) {
             return;
         }
@@ -142,8 +142,8 @@ public static class Helpers {
 
 
     //AddArchiveOperations
-    public static class AddArchiveOperations {
-        public static bool Extract_Archive(string archivePath, string destDir) {
+    internal static class AddArchiveOperations {
+        internal static bool Extract_Archive(string archivePath, string destDir) {
             try {
                 // Security: Validate paths are within allowed workspace areas
                 if (!Security.IsAllowedPath(archivePath) || !Security.IsAllowedPath(destDir)) {
@@ -166,7 +166,7 @@ public static class Helpers {
             }
         }
 
-        public static bool Create_Archive(string srcPath, string archivePath, string type) {
+        internal static bool Create_Archive(string srcPath, string archivePath, string type) {
             try {
                 // Security: Validate paths are within allowed workspace areas
                 if (!Security.IsAllowedPath(srcPath) || !Security.IsAllowedPath(archivePath)) {
@@ -202,8 +202,8 @@ public static class Helpers {
 
     //AddTomlHelpers
 
-    public static class AddTomlHelpers {
-        public static object? Toml_Read_File(string path) {
+    internal static class AddTomlHelpers {
+        internal static object? Toml_Read_File(string path) {
             try {
                 // Security: Validate path is within allowed areas
                 if (!Security.IsAllowedPath(path)) {
@@ -219,7 +219,7 @@ public static class Helpers {
             }
         }
 
-        public static void Toml_Write_File(string path, object? obj) {
+        internal static void Toml_Write_File(string path, object? obj) {
             try {
                 // Security: Validate path is within allowed areas
                 if (!Security.IsAllowedPath(path)) {

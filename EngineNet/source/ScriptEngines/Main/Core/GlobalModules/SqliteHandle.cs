@@ -4,13 +4,13 @@ namespace EngineNet.ScriptEngines.Lua.Global;
 /// <summary>
 /// SQLite connection handle for Lua scripts.
 /// </summary>
-public sealed class SqliteHandle:System.IDisposable {
+internal sealed class SqliteHandle:System.IDisposable {
     private readonly MoonSharp.Interpreter.Script _script;
     private readonly Microsoft.Data.Sqlite.SqliteConnection _connection;
     private Microsoft.Data.Sqlite.SqliteTransaction? _transaction;
     private bool _disposed;
 
-    public SqliteHandle(MoonSharp.Interpreter.Script script, string path) {
+    internal SqliteHandle(MoonSharp.Interpreter.Script script, string path) {
         _script = script;
         string fullPath = System.IO.Path.GetFullPath(path);
         Microsoft.Data.Sqlite.SqliteConnectionStringBuilder builder = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder {
@@ -20,7 +20,7 @@ public sealed class SqliteHandle:System.IDisposable {
         _connection.Open();
     }
 
-    public int Execute(string sql, MoonSharp.Interpreter.Table? parameters) {
+    internal int Execute(string sql, MoonSharp.Interpreter.Table? parameters) {
         EnsureNotDisposed();
         using Microsoft.Data.Sqlite.SqliteCommand command = _connection.CreateCommand();
         command.CommandText = sql;
@@ -32,7 +32,7 @@ public sealed class SqliteHandle:System.IDisposable {
         return command.ExecuteNonQuery();
     }
 
-    public MoonSharp.Interpreter.DynValue Query(string sql, MoonSharp.Interpreter.Table? parameters) {
+    internal MoonSharp.Interpreter.DynValue Query(string sql, MoonSharp.Interpreter.Table? parameters) {
         EnsureNotDisposed();
         using Microsoft.Data.Sqlite.SqliteCommand command = _connection.CreateCommand();
         command.CommandText = sql;
@@ -56,12 +56,12 @@ public sealed class SqliteHandle:System.IDisposable {
         return MoonSharp.Interpreter.DynValue.NewTable(result);
     }
 
-    public void BeginTransaction() {
+    internal void BeginTransaction() {
         EnsureNotDisposed();
         _transaction ??= _connection.BeginTransaction();
     }
 
-    public void Commit() {
+    internal void Commit() {
         if (_disposed) {
             return;
         }
@@ -73,7 +73,7 @@ public sealed class SqliteHandle:System.IDisposable {
         }
     }
 
-    public void Rollback() {
+    internal void Rollback() {
         if (_disposed) {
             return;
         }

@@ -8,7 +8,7 @@ namespace EngineNet.Core.FileHandlers.Formats;
 
 using System;
 
-public static partial class TxdExtractor {
+internal static partial class TxdExtractor {
 
 
     private sealed class TextureSegmentProcessor {
@@ -17,7 +17,7 @@ public static partial class TxdExtractor {
         private static readonly HashSet<byte> KnownFormatCodes = [0x52, 0x53, 0x54, 0x86, 0x02];
         private static readonly int NameSignatureLength = NameSignature.Length;
 
-        public int ProcessSegment(Segment segment, string outputDir, string outputExtension = "dds") {
+        internal int ProcessSegment(Segment segment, string outputDir, string outputExtension = "dds") {
             byte[] segmentData = segment.Data;
             int segmentOriginalStartOffset = segment.StartOffset;
             int texturesFound = 0;

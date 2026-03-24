@@ -7,27 +7,27 @@ namespace EngineNet.Core.Utils;
 /// <summary>
 /// Native Windows utilities for robust process management.
 /// </summary>
-public static class NativeMethods {
+internal static class NativeMethods {
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-    public static extern IntPtr CreateJobObject(IntPtr lpJobAttributes, string? lpName);
+    internal static extern IntPtr CreateJobObject(IntPtr lpJobAttributes, string? lpName);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool SetInformationJobObject(IntPtr hJob, JobObjectInfoType infoType, IntPtr lpJobObjectInfo, uint cbJobObjectInfoLength);
+    internal static extern bool SetInformationJobObject(IntPtr hJob, JobObjectInfoType infoType, IntPtr lpJobObjectInfo, uint cbJobObjectInfoLength);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool AssignProcessToJobObject(IntPtr hJob, IntPtr hProcess);
+    internal static extern bool AssignProcessToJobObject(IntPtr hJob, IntPtr hProcess);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool CloseHandle(IntPtr hObject);
+    internal static extern bool CloseHandle(IntPtr hObject);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool TerminateJobObject(IntPtr hJob, uint uExitCode);
+    internal static extern bool TerminateJobObject(IntPtr hJob, uint uExitCode);
 
-    public enum JobObjectInfoType {
+    internal enum JobObjectInfoType {
         AssociateCompletionPortInformation = 7,
         BasicLimitInformation = 2,
         BasicUIRestrictions = 4,
@@ -38,49 +38,49 @@ public static class NativeMethods {
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct JOBOBJECT_BASIC_LIMIT_INFORMATION {
-        public long PerProcessUserTimeLimit;
-        public long PerJobUserTimeLimit;
-        public uint LimitFlags;
-        public UIntPtr MinimumWorkingSetSize;
-        public UIntPtr MaximumWorkingSetSize;
-        public uint ActiveProcessLimit;
-        public long Affinity;
-        public uint PriorityClass;
-        public uint SchedulingClass;
+    internal struct JOBOBJECT_BASIC_LIMIT_INFORMATION {
+        internal long PerProcessUserTimeLimit;
+        internal long PerJobUserTimeLimit;
+        internal uint LimitFlags;
+        internal UIntPtr MinimumWorkingSetSize;
+        internal UIntPtr MaximumWorkingSetSize;
+        internal uint ActiveProcessLimit;
+        internal long Affinity;
+        internal uint PriorityClass;
+        internal uint SchedulingClass;
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct IO_COUNTERS {
-        public ulong ReadOperationCount;
-        public ulong WriteOperationCount;
-        public ulong OtherOperationCount;
-        public ulong ReadTransferCount;
-        public ulong WriteTransferCount;
-        public ulong OtherTransferCount;
+    internal struct IO_COUNTERS {
+        internal ulong ReadOperationCount;
+        internal ulong WriteOperationCount;
+        internal ulong OtherOperationCount;
+        internal ulong ReadTransferCount;
+        internal ulong WriteTransferCount;
+        internal ulong OtherTransferCount;
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct JOBOBJECT_EXTENDED_LIMIT_INFORMATION {
-        public JOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimitInformation;
-        public IO_COUNTERS IoCounters;
-        public UIntPtr ProcessMemoryLimit;
-        public UIntPtr JobMemoryLimit;
-        public UIntPtr PeakProcessMemoryLimit;
-        public UIntPtr PeakJobMemoryLimit;
+    internal struct JOBOBJECT_EXTENDED_LIMIT_INFORMATION {
+        internal JOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimitInformation;
+        internal IO_COUNTERS IoCounters;
+        internal UIntPtr ProcessMemoryLimit;
+        internal UIntPtr JobMemoryLimit;
+        internal UIntPtr PeakProcessMemoryLimit;
+        internal UIntPtr PeakJobMemoryLimit;
     }
 
-    public const uint JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x2000;
+    internal const uint JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x2000;
 }
 
 /// <summary>
 /// A managed wrapper for a Windows Job Object to ensure child process termination.
 /// </summary>
-public sealed class JobObject : IDisposable {
+internal sealed class JobObject : IDisposable {
     private IntPtr _handle;
     private bool _disposed;
 
-    public JobObject(string? name = null) {
+    internal JobObject(string? name = null) {
         if (!OperatingSystem.IsWindows()) return;
 
         _handle = NativeMethods.CreateJobObject(IntPtr.Zero, name);
@@ -104,12 +104,12 @@ public sealed class JobObject : IDisposable {
         }
     }
 
-    public bool AddProcess(Process process) {
+    internal bool AddProcess(Process process) {
         if (!OperatingSystem.IsWindows() || _handle == IntPtr.Zero || process.HasExited) return false;
         return NativeMethods.AssignProcessToJobObject(_handle, process.Handle);
     }
 
-    public void Terminate(uint exitCode = 1) {
+    internal void Terminate(uint exitCode = 1) {
         if (!OperatingSystem.IsWindows() || _handle == IntPtr.Zero) return;
         NativeMethods.TerminateJobObject(_handle, exitCode);
     }

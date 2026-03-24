@@ -5,7 +5,7 @@ using System.Diagnostics;
 namespace EngineNet.Core;
 
 // Diagnostic logging utility
-public static class Diagnostics {
+internal static class Diagnostics {
 
     private const bool IsTraceEnabled =
 #if DEBUG
@@ -26,7 +26,7 @@ public static class Diagnostics {
     private static StreamWriter? _tuiLogWriter; // Scrollback history
     private static readonly object _lock = new();
 
-    public static void Initialize(bool isGui, bool isTui) {
+    internal static void Initialize(bool isGui, bool isTui) {
         string logDirectory = string.Empty;
         try {
             string logDir = Path.Combine(EngineNet.Core.Main.RootPath, "logs");
@@ -88,7 +88,7 @@ public static class Diagnostics {
 #endif
 
             // 5. Hook System.Diagnostics.Trace to the Master Trace Log (Debug only)
-            // This ensures public .NET traces go to trace.log when debugging
+            // This ensures internal .NET traces go to trace.log when debugging
             if (IsTraceEnabled && _traceWriter != null) {
                 System.Diagnostics.Trace.Listeners.Add(new TextWriterTraceListener(_traceWriter));
                 System.Diagnostics.Trace.AutoFlush = true;
@@ -177,7 +177,7 @@ public static class Diagnostics {
     /// Only active in TUI mode and Debug builds.
     /// </summary>
     /// <param name="message"></param>
-    public static void TuiLog(string message) {
+    internal static void TuiLog(string message) {
 #if DEBUG
         if (_tuiLogWriter == null) return;
         lock (_lock) {
@@ -193,7 +193,7 @@ public static class Diagnostics {
     /// Log a trace message to trace.log, only in Debug builds, use anywhere for excessively verbose tracing
     /// </summary>
     /// <param name="message"></param>
-    public static void Trace(string message) {
+    internal static void Trace(string message) {
         if (!IsTraceEnabled || _traceWriter == null) {
             return;
         }
@@ -210,7 +210,7 @@ public static class Diagnostics {
     /// Logs an informational message to debug.log and trace.log
     /// </summary>
     /// <param name="message"></param>
-    public static void Info(string message) {
+    internal static void Info(string message) {
         if (_debugWriter == null) return;
 
         lock (_lock) {
@@ -230,7 +230,7 @@ public static class Diagnostics {
     /// Logs a general log message to debug.log and trace.log
     /// </summary>
     /// <param name="message"></param>
-    public static void Log(string message) {
+    internal static void Log(string message) {
         if (_debugWriter == null) return;
 
         lock (_lock) {
@@ -251,7 +251,7 @@ public static class Diagnostics {
     /// </summary>
     /// <param name="message"></param>
     /// <param name="ex"></param>
-    public static void Bug(string message, Exception? ex = null) {
+    internal static void Bug(string message, Exception? ex = null) {
         if (_bugWriter == null) return;
 
         lock (_lock) {
@@ -275,7 +275,7 @@ public static class Diagnostics {
     /// eg when a Lua script calls a C# function that throws an exception, this method can be used to log that exception from C# into lua.log and trace.log.
     /// </summary>
     /// <param name="ex"></param>
-    public static void LuaInternalCatch(string ex) {
+    internal static void LuaInternalCatch(string ex) {
         if (Diagnostics._bugWriter == null) return;
 
         lock (Diagnostics._lock) {
@@ -299,7 +299,7 @@ public static class Diagnostics {
     /// eg when a JS script calls a C# function that throws an exception, this method can be used to log that exception from C# into js.log and trace.log.
     /// </summary>
     /// <param name="ex"></param>
-    public static void JspublicCatch(string ex) {
+    internal static void JspublicCatch(string ex) {
         if (Diagnostics._bugWriter == null) return;
 
         lock (Diagnostics._lock) {
@@ -319,7 +319,7 @@ public static class Diagnostics {
     }
 
 
-    public static void Close() {
+    internal static void Close() {
         _debugWriter?.Close();
         _bugWriter?.Close();
         _luaLogWriter?.Close();
@@ -334,12 +334,12 @@ public static class Diagnostics {
 
     // mirrors Diagnostics but for loggin via Lua scripts
     // find todo in LuaScriptAction.cs for next steps
-    public static class LuaLogger {
+    internal static class LuaLogger {
         /// <summary>
         /// Like the Log method but specifically for logging messages from Lua scripts, using the moonsharp Global Diagnostics.Log function.
         /// </summary>
         /// <param name="message"></param>
-        public static void LuaLog(string message) {
+        internal static void LuaLog(string message) {
             if (Diagnostics._luaLogWriter == null) return;
 
             lock (Diagnostics._lock) {
@@ -358,7 +358,7 @@ public static class Diagnostics {
         /// trace into main trace log from Lua scripts, only in Debug builds, use lua.log in release builds
         /// </summary>
         /// <param name="message"></param>
-        public static void LuaTrace(string message) {
+        internal static void LuaTrace(string message) {
             if (IsTraceEnabled) {
                 if (Diagnostics._traceWriter == null) return;
 
@@ -376,12 +376,12 @@ public static class Diagnostics {
     }
 
     // JS Logger, exactly like LuaLogger but for JS scripts
-    public static class JsLogger {
+    internal static class JsLogger {
         /// <summary>
         /// Like the Log method but specifically for logging messages from JS scripts, using the Global Diagnostics.Log function.
         /// </summary>
         /// <param name="message"></param>
-        public static void JsLog(string message) {
+        internal static void JsLog(string message) {
             if (Diagnostics._jsLogWriter == null) return;
 
             lock (Diagnostics._lock) {
@@ -396,7 +396,7 @@ public static class Diagnostics {
             }
         }
 
-        public static void JsTrace(string message) {
+        internal static void JsTrace(string message) {
             if (IsTraceEnabled) {
                 if (Diagnostics._traceWriter == null) return;
 
@@ -414,12 +414,12 @@ public static class Diagnostics {
     }
 
     // Python Logger, exactly like LuaLogger but for Python scripts
-    public static class PythonLogger {
+    internal static class PythonLogger {
         /// <summary>
         /// Like the Log method but specifically for logging messages from Python scripts, using the Global Diagnostics.Log function.
         /// </summary>
         /// <param name="message"></param>
-        public static void PythonLog(string message) {
+        internal static void PythonLog(string message) {
             if (Diagnostics._pythonLogWriter == null) return;
 
             lock (Diagnostics._lock) {
@@ -434,7 +434,7 @@ public static class Diagnostics {
             }
         }
 
-        public static void PythonTrace(string message) {
+        internal static void PythonTrace(string message) {
             if (IsTraceEnabled) {
                 if (Diagnostics._traceWriter == null) return;
 

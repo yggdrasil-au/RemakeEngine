@@ -14,7 +14,7 @@ public static class GuiBootstrapper {
     /// Stored temporarily so the App (and its view models) can access it
     /// during initialization.
     /// </summary>
-    public static Core.Engine.Engine Engine {
+    public static Core.Engine.IEngineFace Engine {
         get; private set;
     } = null!; // if not set by Program.Run, force reinitialization (e.g., for Avalonia previewer)
 
@@ -28,7 +28,7 @@ public static class GuiBootstrapper {
     /// <returns>
     /// 0 on normal shutdown; 1 if an exception is caught during startup/run.
     /// </returns>
-    public static int Run(Core.Engine.Engine engine) {
+    public static int Run(Core.Engine.IEngineFace engine) {
         try {
             // 1) Stash the engine so App.OnFrameworkInitializationCompleted (or similar)
             //    can pull it to compose view models.

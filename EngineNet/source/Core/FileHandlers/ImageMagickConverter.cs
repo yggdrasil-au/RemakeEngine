@@ -29,7 +29,7 @@ namespace EngineNet.Core.FileHandlers;
 ///   --no-auto-orient       disable auto-orient
 ///   --arg VALUE            Raw arg to pass to ImageMagick; can repeat
 /// </summary>
-public static class ImageMagickConverter {
+internal static class ImageMagickConverter {
     private const string ToolMagick = "magick";
     private const string ImageMagickName = "ImageMagick";
 
@@ -37,29 +37,29 @@ public static class ImageMagickConverter {
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, Core.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> s_active = new();
 
     private sealed class Options {
-        public string Source = string.Empty;
-        public string Target = string.Empty;
-        public string InputExt = string.Empty;
-        public string OutputExt = string.Empty;
+        internal string Source = string.Empty;
+        internal string Target = string.Empty;
+        internal string InputExt = string.Empty;
+        internal string OutputExt = string.Empty;
 
-        public bool Overwrite = false;
-        public bool Replace = false;
-        public int? Workers = null;
-        public bool Verbose = false;
-        public bool Debug = false;
+        internal bool Overwrite = false;
+        internal bool Replace = false;
+        internal int? Workers = null;
+        internal bool Verbose = false;
+        internal bool Debug = false;
 
-        public string? MagickPath;
+        internal string? MagickPath;
 
         // Image operations
-        public bool AutoOrient = true;
-        public string? Resize; // e.g. 1024x1024, 800x, x800
-        public int? Quality;   // 0..100
+        internal bool AutoOrient = true;
+        internal string? Resize; // e.g. 1024x1024, 800x, x800
+        internal int? Quality;   // 0..100
 
         // Raw passthrough
-        public List<string> ExtraArgs = new();
+        internal List<string> ExtraArgs = new();
     }
 
-    public static bool Run(EngineNet.Core.ExternalTools.JsonToolResolver toolResolver, IList<string> args, System.Threading.CancellationToken cancellationToken = default) {
+    internal static bool Run(EngineNet.Core.ExternalTools.JsonToolResolver toolResolver, IList<string> args, System.Threading.CancellationToken cancellationToken = default) {
         try {
             Options opt = Parse(args);
 

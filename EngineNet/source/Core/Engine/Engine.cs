@@ -5,18 +5,18 @@ namespace EngineNet.Core.Engine;
 /// <summary>
 /// Core Engine class providing main functionality
 /// </summary>
-public sealed partial class Engine {
+internal sealed partial class Engine : IEngineFace{
 
     /* :: :: Vars :: Start :: */
 
     // Services exposed to partial classes
     public Core.Services.GameLauncher GameLauncher { get; }
     public Core.Engine.EngineContext Context { get; }
-    public EngineRunAll EngineRunAll { get; }
+    internal EngineRunAll EngineRunAll { get; }
 
     /* :: :: Vars :: End :: */
 
-    public Engine(
+    internal Engine(
         Core.Services.GameRegistry gameRegistry,
         Core.Services.GameLauncher gameLauncher,
         Core.Services.OperationsLoader OperationsLoader,
@@ -80,44 +80,15 @@ public sealed partial class Engine {
     }
 
 
-    // Downloads a game module via Git
-    /*public bool DownloadModule(string url) {
-        return Context.GitService.CloneModule(url);
-    }
+}
 
-    // Builds a command from operation and context
-    public List<string> BuildCommand(string currentGame, Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers) {
-        return Context.CommandService.BuildCommand(currentGame, games, Context.EngineConfig.Data, op, promptAnswers);
-    }
+public interface IEngineFace {
+    public Task<bool> RunSingleOperationAsync(string currentGame, Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, CancellationToken cancellationToken = default);
+    public Task<RunAllResult> RunAllAsync(string gameName, Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, CancellationToken cancellationToken = default);
 
-    // Executes a command via ProcessRunner
-    public bool ExecuteCommand(IList<string> commandParts, string title, EngineNet.Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, IDictionary<string, object?>? envOverrides = null, CancellationToken cancellationToken = default) {
-        return Context.CommandService.ExecuteCommand(commandParts, title, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, envOverrides: envOverrides, cancellationToken: cancellationToken);
-    }
+    internal Core.Services.GameLauncher GameLauncher { get; }
 
-    // Scans for game modules in registries
-    /// <summary>
-    /// returns a dictionary of game modules filtered by the provided filter
-    /// with the name as the key and the Data.GameModuleInfo as the value
-    /// </summary>
-    /// <param name="_Filter"></param>
-    /// <returns></returns>
-    public Dictionary<string, Core.Data.GameModuleInfo> Modules(Core.Utils.ModuleFilter _Filter) {
-        return Context.GameRegistry.GetModules(_Filter);
-    }
+    internal EngineContext Context { get; }
 
-    /* :: :: */
-    //
-    /* :: :: */
-
-    /// <summary>
-    /// Gets the root path for a game by name
-    /// </summary>
-    /*public string? GetGamePath(string name) {
-        return Context.GameRegistry.GetGamePath(name);
-    }*/
-
-    /* :: :: */
-    //
 
 }

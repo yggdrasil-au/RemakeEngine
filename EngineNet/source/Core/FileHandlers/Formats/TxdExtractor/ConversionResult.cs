@@ -1,10 +1,10 @@
 
 namespace EngineNet.Core.FileHandlers.Formats;
 
-public static partial class TxdExtractor {
+internal static partial class TxdExtractor {
 
-    public readonly struct ConversionResult {
-        public ConversionResult(byte[]? header, byte[]? pixels, string? format, bool needsUnswizzle, int bytesPerPixel) {
+    internal readonly struct ConversionResult {
+        internal ConversionResult(byte[]? header, byte[]? pixels, string? format, bool needsUnswizzle, int bytesPerPixel) {
             Header = header;
             Pixels = pixels;
             Format = format;
@@ -12,19 +12,19 @@ public static partial class TxdExtractor {
             BytesPerPixel = bytesPerPixel;
         }
 
-        public byte[]? Header {
+        internal byte[]? Header {
             get;
         }
-        public byte[]? Pixels {
+        internal byte[]? Pixels {
             get;
         }
-        public string? Format {
+        internal string? Format {
             get;
         }
-        public bool NeedsUnswizzle {
+        internal bool NeedsUnswizzle {
             get;
         }
-        public int BytesPerPixel {
+        internal int BytesPerPixel {
             get;
         }
     }

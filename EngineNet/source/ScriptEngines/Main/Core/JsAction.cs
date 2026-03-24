@@ -3,7 +3,7 @@ using Jint.Native;
 
 namespace EngineNet.ScriptEngines.Js;
 
-public static class JsAction {
+internal static class JsAction {
 
     /// <summary>
     /// Define important core functions as Js globals
@@ -14,7 +14,7 @@ public static class JsAction {
     /// <param name="_gameRoot"></param>
     /// <param name="_projectRoot"></param>
     /// <param name="_scriptPath"></param>
-    public static void SetupCoreFunctions(
+    internal static void SetupCoreFunctions(
         JsWorld _JSWorld,
         Core.ExternalTools.JsonToolResolver _tools,
         string[] _args,

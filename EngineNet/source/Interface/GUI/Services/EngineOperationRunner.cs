@@ -20,7 +20,7 @@ public static class EngineOperationRunner {
     /// <param name="executor">Callback that runs the actual engine work.</param>
     /// <param name="autoPromptResponses">Optional automatic prompt answers.</param>
     public static async Task<TResult> RunAsync<TResult>(
-        Core.Engine.Engine engine,
+        Core.Engine.IEngineFace engine,
         string moduleName,
         string operationName,
         System.Func<Core.ProcessRunner.OutputHandler, Core.ProcessRunner.EventHandler, Core.ProcessRunner.StdinProvider, Task<TResult>> executor,

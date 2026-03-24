@@ -2,7 +2,7 @@ using MoonSharp.Interpreter;
 
 namespace EngineNet.ScriptEngines.Lua.Global;
 
-public static partial class Sdk {
+internal static partial class Sdk {
 
     private static void AddColorPrintFunctions(LuaWorld _LuaWorld) {
         // color/colour print: accepts either (color, message[, newline]) or a table { colour=?, color=?, message=?, newline=? }

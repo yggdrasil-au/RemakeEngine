@@ -11,7 +11,7 @@ using System.Collections;
 
 namespace EngineNet.Core.FileHandlers.Formats;
 
-public static partial class TxdExtractor {
+internal static partial class TxdExtractor {
 
     private static List<string> EnumerateTxdFiles(string inputPathAbs) {
         if (!System.IO.File.Exists(inputPathAbs) && !System.IO.Directory.Exists(inputPathAbs)) {

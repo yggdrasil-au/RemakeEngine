@@ -2,8 +2,8 @@
 using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
-public partial class BuiltInOperations {
-    public async System.Threading.Tasks.Task<bool> DownloadTools(
+internal partial class BuiltInOperations {
+    internal async System.Threading.Tasks.Task<bool> DownloadTools(
         IDictionary<string, object?> op,
         IDictionary<string, object?> promptAnswers,
         string currentGame,

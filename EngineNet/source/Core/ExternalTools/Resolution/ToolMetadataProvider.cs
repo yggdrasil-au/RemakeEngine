@@ -8,16 +8,16 @@ using System.Collections.Generic;
 /// Provides metadata for tools (executable path and optional version) by
 /// consulting <see cref="ToolLockfile.ToolLockfileName"/> when available, and falling back to EngineNet.Core.ExternalTools.JsonToolResolver.
 /// </summary>
-public sealed class ToolMetadataProvider {
+internal sealed class ToolMetadataProvider {
     private readonly string _projectRoot;
     private readonly EngineNet.Core.ExternalTools.JsonToolResolver _resolver;
 
-    public ToolMetadataProvider(string projectRoot, EngineNet.Core.ExternalTools.JsonToolResolver resolver) {
+    internal ToolMetadataProvider(string projectRoot, EngineNet.Core.ExternalTools.JsonToolResolver resolver) {
         _projectRoot = projectRoot;
         _resolver = resolver;
     }
 
-    public (string? exe, string? version) ResolveExeAndVersion(string toolId) {
+    internal (string? exe, string? version) ResolveExeAndVersion(string toolId) {
         string jsonPath = ToolLockfile.GetPath(_projectRoot);
 
         if (System.IO.File.Exists(jsonPath)) {

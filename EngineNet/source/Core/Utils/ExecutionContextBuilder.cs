@@ -9,7 +9,7 @@ namespace EngineNet.Core.Utils;
 /// Builds the placeholder/variable context used by command building and embedded actions,
 /// including module placeholders merged from config.toml.
 /// </summary>
-public static class ExecutionContextBuilder {
+internal static class ExecutionContextBuilder {
 
     /// <summary>
     /// Builds the execution context for a given game, merging engine config and module-specific placeholders.
@@ -21,7 +21,7 @@ public static class ExecutionContextBuilder {
     /// <returns>A dictionary representing the execution context for the specified game, including merged placeholders from config.toml.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="currentGame"/> is empty.</exception>
     /// <exception cref="KeyNotFoundException">Thrown when the game specified by <paramref name="currentGame"/> is not found in <paramref name="games"/>.</exception>
-    public static Dictionary<string, object?> Build(
+    internal static Dictionary<string, object?> Build(
         string currentGame,
         Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
         IDictionary<string, object?> engineConfig

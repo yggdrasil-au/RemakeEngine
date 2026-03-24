@@ -5,32 +5,32 @@ namespace EngineNet.Core.FileHandlers.Formats;
 
 using System;
 
-public static partial class TxdExtractor {
+internal static partial class TxdExtractor {
 
     private static class Log {
         private static readonly object Sync = new();
 
-        public static void Cyan(string message) {
+        internal static void Cyan(string message) {
             Write(System.ConsoleColor.Cyan, message);
         }
 
-        public static void Blue(string message) {
+        internal static void Blue(string message) {
             Write(System.ConsoleColor.Blue, message);
         }
 
-        public static void Green(string message) {
+        internal static void Green(string message) {
             Write(System.ConsoleColor.Green, message);
         }
 
-        public static void Yellow(string message) {
+        internal static void Yellow(string message) {
             Write(System.ConsoleColor.Yellow, message);
         }
 
-        public static void Red(string message) {
+        internal static void Red(string message) {
             Write(System.ConsoleColor.Red, message, true);
         }
 
-        public static void Gray(string message) {
+        internal static void Gray(string message) {
             Write(System.ConsoleColor.DarkGray, message);
         }
 

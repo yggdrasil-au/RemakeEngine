@@ -114,7 +114,7 @@ public class JsonToolResolver {
         return null;
     }
 
-    public virtual string ResolveToolPath(string toolId, string? version = null) {
+    internal virtual string ResolveToolPath(string toolId, string? version = null) {
         Load();
 
         if (_tools.TryGetValue(toolId, out var versions)) {

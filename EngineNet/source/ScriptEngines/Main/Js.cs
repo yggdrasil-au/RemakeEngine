@@ -6,7 +6,7 @@ namespace EngineNet.ScriptEngines.Js;
 /// <summary>
 /// entry point for executing a JS script, called from EngineNet.ScriptEngines.Helpers.EmbeddedActionDispatcher
 /// </summary>
-public sealed class Main : ScriptEngines.IAction {
+internal sealed class Main : ScriptEngines.IAction {
 
     private readonly string _scriptPath;
     private readonly string[] _args;

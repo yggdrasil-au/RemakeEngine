@@ -5,10 +5,10 @@ namespace EngineNet.Core.FileHandlers.Formats;
 
 using System;
 
-public static partial class TxdExtractor {
+internal static partial class TxdExtractor {
 
     private sealed class TextureFormatConverter {
-        public ConversionResult Convert(
+        internal ConversionResult Convert(
             int fmtCode,
             int width,
             int height,

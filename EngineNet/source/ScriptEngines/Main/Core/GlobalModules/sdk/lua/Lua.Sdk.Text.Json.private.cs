@@ -2,7 +2,7 @@ using MoonSharp.Interpreter;
 
 namespace EngineNet.ScriptEngines.Lua.Global;
 
-public static partial class Sdk {
+internal static partial class Sdk {
     /// <summary>
     /// register JSON encoding/decoding functions in sdk.text.json
     /// </summary>

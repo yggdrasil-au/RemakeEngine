@@ -11,7 +11,7 @@ namespace EngineNet.Core.Services;
 /// It resolves game metadata, execution paths, and handles different launch types
 /// such as direct executables, Lua scripts, or Godot project files.
 /// </summary>
-public class GameLauncher {
+internal class GameLauncher {
     private readonly GameRegistry _gameRegistry;
     private readonly ExternalTools.JsonToolResolver _toolResolver;
     private readonly EngineConfig _config;
@@ -26,7 +26,7 @@ public class GameLauncher {
     /// <param name="toolResolver">The tool resolver for finding external tools (e.g., Godot).</param>
     /// <param name="config">The global engine configuration.</param>
     /// <param name="rootPath">The base path for the engine project.</param>
-    public GameLauncher(GameRegistry gameRegistry, ExternalTools.JsonToolResolver toolResolver, EngineConfig config, string rootPath) {
+    internal GameLauncher(GameRegistry gameRegistry, ExternalTools.JsonToolResolver toolResolver, EngineConfig config, string rootPath) {
         _gameRegistry = gameRegistry;
         _toolResolver = toolResolver;
         _config = config;
@@ -42,7 +42,7 @@ public class GameLauncher {
     /// </summary>
     /// <param name="name">The unique identifier of the game module to launch.</param>
     /// <returns>A task that represents the asynchronous launch operation, returning <c>true</c> if the launch was successful; otherwise, <c>false</c>.</returns>
-    public async Task<bool> LaunchGameAsync(string name) {
+    internal async Task<bool> LaunchGameAsync(string name) {
         string root = _gameRegistry.GetGamePath(name) ?? _rootPath;
         string gameToml = System.IO.Path.Combine(root, "game.toml");
 

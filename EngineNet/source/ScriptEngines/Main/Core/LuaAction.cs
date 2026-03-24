@@ -6,7 +6,7 @@ namespace EngineNet.ScriptEngines.Lua;
 /// <summary>
 /// LuaAction sets up the core global variables, functions, modules, and diagnostics for Lua scripts in the EngineNet environment.
 /// </summary>
-public static class LuaAction {
+internal static class LuaAction {
 
     /// <summary>
     /// Sets up the core global variables, functions, modules, and diagnostics for Lua scripts.
@@ -17,7 +17,7 @@ public static class LuaAction {
     /// <param name="_gameRoot"></param>
     /// <param name="_projectRoot"></param>
     /// <param name="_scriptPath"></param>
-    public static void CreateGlobals(
+    internal static void CreateGlobals(
         LuaWorld _LuaWorld,
         Core.ExternalTools.JsonToolResolver _tools,
         string[] _args,

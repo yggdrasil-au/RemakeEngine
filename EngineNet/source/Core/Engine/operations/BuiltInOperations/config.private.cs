@@ -4,7 +4,7 @@ using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 
-public partial class BuiltInOperations {
+internal partial class BuiltInOperations {
 
     private void ApplyUpdate(IDictionary<string, object?> doc, string group, int index, string key, string value, string? typeHint) {
         object? convertedValue = ConvertValue(value, typeHint);
@@ -155,19 +155,19 @@ public partial class BuiltInOperations {
     }
 
     private class ConfigOptions {
-        public string Group = "placeholders";
-        public int Index = 1;
-        public string? Key;
-        public string? Value;
-        public string TypeHint = "auto";
-        public string? ConfigPath;
-        public bool List = false;
-        public List<SetToken> Sets = new List<SetToken>();
+        internal string Group = "placeholders";
+        internal int Index = 1;
+        internal string? Key;
+        internal string? Value;
+        internal string TypeHint = "auto";
+        internal string? ConfigPath;
+        internal bool List = false;
+        internal List<SetToken> Sets = new List<SetToken>();
     }
 
     private class SetToken {
-        public string Key { get; set; } = "";
-        public string Value { get; set; } = "";
-        public string? TypeHint { get; set; }
+        internal string Key { get; set; } = "";
+        internal string Value { get; set; } = "";
+        internal string? TypeHint { get; set; }
     }
 }

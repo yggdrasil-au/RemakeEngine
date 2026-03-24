@@ -10,14 +10,14 @@ namespace EngineNet.Core.ExternalTools;
 /// Dynamically assembles the tools registry from fragmented JSON files in the Tools directory.
 /// Scans EngineApps/Registries/Tools/ and deep-merges all JSON files found in each subfolder.
 /// </summary>
-public static class InternalToolRegistry {
+internal static class InternalToolRegistry {
     private static readonly string ToolsRegistryRoot = Path.Combine(EngineNet.Core.Main.RootPath, "EngineApps", "Registries", "Tools");
 
     /// <summary>
     /// Aggregates all tool definitions from the registry folder into a single result object.
     /// Result structure: { "ToolName": { "Version": { "Platform": { "url": "...", ... } } } }
     /// </summary>
-    public static Dictionary<string, object?> Assemble() {
+    internal static Dictionary<string, object?> Assemble() {
         var registry = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
 
         if (!Directory.Exists(ToolsRegistryRoot)) {

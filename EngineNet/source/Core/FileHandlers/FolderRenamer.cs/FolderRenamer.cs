@@ -1,14 +1,14 @@
 
 namespace EngineNet.Core.FileHandlers;
 
-public static partial class FolderRenamer {
+internal static partial class FolderRenamer {
 
     /// <summary>
     /// Renames directories in a target tree according to a mapping from SQLite, JSON, or inline CLI definitions.
     /// </summary>
     /// <param name="args">CLI-style args: TARGET_DIR [--map-db-file PATH --db-table-name NAME] | [--map-cli OLD NEW ...] | [--map-json PATH]</param>
     /// <returns>True if renames completed; false if a failure occurred.</returns>
-    public static bool Run(IList<string> args) {
+    internal static bool Run(IList<string> args) {
         Options options;
         try {
             options = Parse(args);

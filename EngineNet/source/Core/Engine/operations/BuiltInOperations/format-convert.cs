@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
-public partial class BuiltInOperations {
-    public bool format_convert(
+internal partial class BuiltInOperations {
+    internal bool format_convert(
         IDictionary<string, object?> op,
         IDictionary<string, object?> promptAnswers,
         string currentGame,

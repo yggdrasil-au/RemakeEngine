@@ -6,7 +6,7 @@ namespace EngineNet.Core.Utils;
 /// Lightweight Git helper to clone game modules into the local registry.
 /// Mirrors LegacyEnginePy/Core/git_tools.py behavior.
 /// </summary>
-public sealed class GitTools() {
+internal sealed class GitTools() {
 
     /* :: :: Constructor, Var :: START :: */
     private readonly string _gamesDir = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "EngineApps", "Games");
@@ -14,7 +14,7 @@ public sealed class GitTools() {
     /* :: :: Constructor, Var :: END :: */
     //
     /* :: :: Methods ::  :: */
-    public bool CloneModule(string url) {
+    internal bool CloneModule(string url) {
         if (string.IsNullOrWhiteSpace(url)) {
             return false;
         }

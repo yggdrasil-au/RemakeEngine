@@ -7,7 +7,7 @@ namespace EngineNet.Core.Engine;
 /// <summary>
 /// Encapsulates the core services required for executing engine operations.
 /// </summary>
-public record EngineContext(
+internal record EngineContext(
     GameRegistry GameRegistry,
     CommandService CommandService,
     ExternalTools.JsonToolResolver ToolResolver,
@@ -20,7 +20,7 @@ public record EngineContext(
 );
 
 // operation context record
-public record OperationContext(
+internal record OperationContext(
     Core.Services.OperationsService OperationsService,
     Core.Services.OperationsLoader OperationsLoader,
     Core.Engine.Runner Runner

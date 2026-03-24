@@ -1,9 +1,9 @@
 
 namespace EngineNet.Core.Serialization.Json;
 
-public sealed class JsonHelpers {
+internal sealed class JsonHelpers {
 
-    public static Dictionary<string, object?> LoadJsonFile(string filePath) {
+    internal static Dictionary<string, object?> LoadJsonFile(string filePath) {
         try {
             if (System.IO.File.Exists(filePath)) {
                 using System.IO.FileStream fs = System.IO.File.OpenRead(filePath);

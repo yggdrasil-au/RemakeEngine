@@ -3,22 +3,22 @@ using Table = System.Collections.Generic.Dictionary<string, object>;
 
 namespace EngineNet.ScriptEngines.Js;
 
-public class JsWorld {
+internal class JsWorld {
     // get engine
-    public Jint.Engine JsScript { get; }
+    internal Jint.Engine JsScript { get; }
 
     // Global namespaces
     // We use Dictionary<string, object> because Jint accepts this directly as a JS Object.
-    public Table Sdk { get; }
-    public Table console { get; }
-    public Table io { get; }
-    public Table DiagnosticsMethods { get; }
-    public Table Progress { get; }
-    public Table os { get; }
-    public Table Sqlite { get; }
+    internal Table Sdk { get; }
+    internal Table console { get; }
+    internal Table io { get; }
+    internal Table DiagnosticsMethods { get; }
+    internal Table Progress { get; }
+    internal Table os { get; }
+    internal Table Sqlite { get; }
 
     // Constructor
-    public JsWorld(Jint.Engine _jsEngine) {
+    internal JsWorld(Jint.Engine _jsEngine) {
         JsScript = _jsEngine;
 
         // Initialize main namespaces

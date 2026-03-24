@@ -6,20 +6,20 @@ namespace EngineNet.Core.Services;
 /// Provides a registry for discovering and managing game information within the engine.
 /// This class is responsible for locating game modules, built games, and their associated files.
 /// </summary>
-public class GameRegistry {
+internal class GameRegistry {
     private readonly Core.Utils.ModuleScanner _scanner;
-    public readonly Core.Utils.Registries _registries;
+    internal readonly Core.Utils.Registries _registries;
     private readonly string _rootPath = EngineNet.Core.Main.RootPath;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GameRegistry"/> class.
     /// </summary>
-    public GameRegistry(Core.Utils.Registries registries, Core.Utils.ModuleScanner scanner) {
+    internal GameRegistry(Core.Utils.Registries registries, Core.Utils.ModuleScanner scanner) {
         _registries = registries;
         _scanner = scanner;
     }
 
-    public Dictionary<string, Core.Data.GameModuleInfo> GetModules(Core.Utils.ModuleFilter filter) {
+    internal Dictionary<string, Core.Data.GameModuleInfo> GetModules(Core.Utils.ModuleFilter filter) {
         return _scanner.Modules(filter);
     }
 
@@ -28,7 +28,7 @@ public class GameRegistry {
     /// </summary>
     /// <param name="name">The name of the game.</param>
     /// <returns>The full path to the game's executable if found; otherwise, null.</returns>
-    public string? GetGameExecutable(string name) {
+    internal string? GetGameExecutable(string name) {
         return _registries.DiscoverBuiltGames().TryGetValue(name, out GameInfo? gi) ? gi.ExePath : null;
     }
 
@@ -38,7 +38,7 @@ public class GameRegistry {
     /// </summary>
     /// <param name="name">The name of the game.</param>
     /// <returns>The root directory path of the game if found; otherwise, null.</returns>
-    public string? GetGamePath(string name) {
+    internal string? GetGamePath(string name) {
         // Prefer installed location first, then fall back to downloaded location
         if (_registries.DiscoverBuiltGames().TryGetValue(name, out GameInfo? gi))
             return gi.GameRoot;
@@ -46,11 +46,11 @@ public class GameRegistry {
         return System.IO.Directory.Exists(dir) ? dir : null;
     }
 
-    public IReadOnlyDictionary<string, object?> GetRegisteredModules() {
+    internal IReadOnlyDictionary<string, object?> GetRegisteredModules() {
         return _registries.GetRegisteredModules();
     }
 
-    public void RefreshModules() {
+    internal void RefreshModules() {
         _registries.RefreshModules();
     }
 }

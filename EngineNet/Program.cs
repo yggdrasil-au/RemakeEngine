@@ -7,7 +7,7 @@ namespace EngineNet;
 
 public static class Program {
 
-    private static Core.Engine.Engine? Engine {get; set;}
+    private static EngineNet.Core.Engine.IEngineFace? Engine {get; set;}
     private static string rootPath {get; set;} = string.Empty;
     private static bool isGui {get; set;} = false;
     private static bool isTui {get; set;} = false;
@@ -196,7 +196,7 @@ public static class Program {
     /// <summary>
     /// Initialises the engine
     /// </summary>
-    private static async System.Threading.Tasks.Task<Core.Engine.Engine> InitialiseEngine() {
+    private static async System.Threading.Tasks.Task<EngineNet.Core.Engine.IEngineFace> InitialiseEngine() {
         if (Engine == null) {
             var tools = new Core.ExternalTools.JsonToolResolver();
             var engineConfig = new EngineConfig();
@@ -214,7 +214,7 @@ public static class Program {
 
             var Runner = new Core.Engine.Runner();
 
-            Core.Engine.Engine _engine = new Core.Engine.Engine(
+            EngineNet.Core.Engine.Engine _engine = new EngineNet.Core.Engine.Engine(
                 gameRegistry,
                 _gameLauncher,
                 _opsLoader,

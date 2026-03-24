@@ -1,7 +1,7 @@
 
 namespace EngineNet.Core.Engine;
 
-public partial class OperationExecution {
+internal partial class OperationExecution {
 
     /// <summary>
     /// Try to get the list of operations defined in the "onsuccess" or "on_success" field of the given operation.
@@ -9,7 +9,7 @@ public partial class OperationExecution {
     /// <param name="op"></param>
     /// <param name="ops"></param>
     /// <returns></returns>
-    public static bool TryGetOnSuccessOperations(
+    internal static bool TryGetOnSuccessOperations(
         IDictionary<string, object?> op,
         out List<Dictionary<string, object?>>? ops
     ) {

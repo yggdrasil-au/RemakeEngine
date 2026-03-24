@@ -11,8 +11,8 @@ namespace EngineNet.Core.Serialization.Toml;
 /// - Lists of dictionaries map to arrays-of-tables
 /// - Primitives map to their TOML counterparts
 /// </summary>
-public static class TomlHelpers {
-    public static object ParseFileToPlainObject(string path) {
+internal static class TomlHelpers {
+    internal static object ParseFileToPlainObject(string path) {
         string text = System.IO.File.Exists(path) ? System.IO.File.ReadAllText(path) : string.Empty;
 
         // Handle empty strings explicitly to avoid deserialization exceptions
@@ -28,7 +28,7 @@ public static class TomlHelpers {
         return ConvertTomlToPlain(model);
     }
 
-    public static void WriteTomlFile(string path, object? data) {
+    internal static void WriteTomlFile(string path, object? data) {
         // Convert plain objects to Tomlyn.Model.TomlTable model and serialize
         Tomlyn.Model.TomlTable root = ConvertPlainToTomlTable(data) ?? new Tomlyn.Model.TomlTable();
         string text = Tomlyn.TomlSerializer.Serialize(root);
@@ -177,7 +177,7 @@ public static class TomlHelpers {
         return ConvertPlainToTomlValue(props);
     }
 
-    public static string WriteDocument(object? data) {
+    internal static string WriteDocument(object? data) {
         Tomlyn.Model.TomlTable root = ConvertPlainToTomlTable(data) ?? new Tomlyn.Model.TomlTable();
         return Tomlyn.TomlSerializer.Serialize(root);
     }
@@ -185,7 +185,7 @@ public static class TomlHelpers {
     /// <summary>
     /// Specialized helper to read the [[tool]] array of tables from module tool manifests.
     /// </summary>
-    public static List<Dictionary<string, object?>> ReadTools(string path) {
+    internal static List<Dictionary<string, object?>> ReadTools(string path) {
         if (!System.IO.File.Exists(path)) return new List<Dictionary<string, object?>>();
 
         object parsed = ParseFileToPlainObject(path);
@@ -201,7 +201,7 @@ public static class TomlHelpers {
     /// <summary>
     /// Specialized helper to read and merge [[placeholders]] blocks from config files.
     /// </summary>
-    public static Dictionary<string, object?> ReadPlaceholdersFile(string path) {
+    internal static Dictionary<string, object?> ReadPlaceholdersFile(string path) {
         var result = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
         if (!System.IO.File.Exists(path)) return result;
 

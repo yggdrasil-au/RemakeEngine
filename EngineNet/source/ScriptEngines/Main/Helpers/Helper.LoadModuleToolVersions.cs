@@ -3,9 +3,9 @@ using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.ScriptEngines;
 
-public static class Helper {
+internal static class Helper {
 
-    public static Dictionary<string, string> LoadModuleToolVersions(string _gameRoot) {
+    internal static Dictionary<string, string> LoadModuleToolVersions(string _gameRoot) {
         var versions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         string toolsTomlPath = System.IO.Path.Combine(_gameRoot, "Tools.toml");
         if (System.IO.File.Exists(toolsTomlPath)) {

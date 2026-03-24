@@ -3,13 +3,13 @@ using System.Text;
 
 namespace EngineNet.ScriptEngines.Python;
 
-public static class SetupSafeEnvironment {
+internal static class SetupSafeEnvironment {
 
     /// <summary>
     /// setup a Python environment with restricted access to built-in libraries for sandboxing
     /// </summary>
     /// <param name="world"></param>
-    public static void PyEnvironment(PyWorld _PyWorld) {
+    internal static void PyEnvironment(PyWorld _PyWorld) {
         // IronPython is somewhat sandboxed by default if you don't enable certain options,
         // Remove dangerous standard library functions
 

@@ -4,7 +4,7 @@ namespace EngineNet.Core.Engine;
 
 public sealed record RunAllResult(string Game, bool Success, int TotalOperations, int SucceededOperations);
 
-public sealed class EngineRunAll {
+internal sealed class EngineRunAll {
 
     // this is the meathod used to execute the run all ops by both GUI and TUI
 
@@ -21,7 +21,7 @@ public sealed class EngineRunAll {
     /// <exception cref="KeyNotFoundException"></exception>
     /// <exception cref="System.IO.FileNotFoundException"></exception>
     /// <exception cref="System.Exception"></exception>
-    public async System.Threading.Tasks.Task<RunAllResult> RunAllAsync(
+    internal async System.Threading.Tasks.Task<RunAllResult> RunAllAsync(
         string gameName,
         Core.Engine.EngineContext Context,
         Core.ProcessRunner.OutputHandler? onOutput = null,
@@ -256,7 +256,7 @@ public sealed class EngineRunAll {
     /// </summary>
     private sealed class StdinRedirectReader:System.IO.TextReader {
         private readonly Core.ProcessRunner.StdinProvider _provider;
-        public StdinRedirectReader(Core.ProcessRunner.StdinProvider provider) => _provider = provider;
+        internal StdinRedirectReader(Core.ProcessRunner.StdinProvider provider) => _provider = provider;
         public override string? ReadLine() => _provider();
     }
 

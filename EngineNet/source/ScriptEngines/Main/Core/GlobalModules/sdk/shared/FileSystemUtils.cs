@@ -6,10 +6,10 @@ namespace EngineNet.ScriptEngines.Global.SdkModule;
 /// File system utilities for script execution.
 /// Provides safe file system operations with proper security checks.
 /// </summary>
-public static class FileSystemUtils {
-    public static bool PathExists(string path) => System.IO.Path.Exists(path);
+internal static class FileSystemUtils {
+    internal static bool PathExists(string path) => System.IO.Path.Exists(path);
 
-    public static bool PathExistsIncludingLinks(string path) {
+    internal static bool PathExistsIncludingLinks(string path) {
         if (PathExists(path)) {
             return true;
         }
@@ -23,7 +23,7 @@ public static class FileSystemUtils {
         }
     }
 
-    public static bool IsSymlink(string path) {
+    internal static bool IsSymlink(string path) {
         try {
             System.IO.FileSystemInfo info = GetInfo(path);
             return info.LinkTarget != null || info.Attributes.HasFlag(System.IO.FileAttributes.ReparsePoint);
@@ -33,7 +33,7 @@ public static class FileSystemUtils {
         }
     }
 
-    public static string? RealPath(string path) {
+    internal static string? RealPath(string path) {
         try {
             return System.IO.Path.GetFullPath(path);
         } catch (Exception ex) {
@@ -42,7 +42,7 @@ public static class FileSystemUtils {
         }
     }
 
-    public static string? ReadLink(string path) {
+    internal static string? ReadLink(string path) {
         try {
             System.IO.FileSystemInfo info = GetInfo(path);
             return info.LinkTarget;
@@ -57,7 +57,7 @@ public static class FileSystemUtils {
     /// destination exists, throws. If moving across volumes or into an existing destination,
     /// falls back to copy+delete. Writes progress for copy operations.
     /// </summary>
-    public static void MoveDirectory(string sourceDir, string destDir, bool overwrite = false) {
+    internal static void MoveDirectory(string sourceDir, string destDir, bool overwrite = false) {
         if (string.IsNullOrWhiteSpace(sourceDir)) {
             throw new System.ArgumentException("sourceDir is empty");
         }
@@ -103,7 +103,7 @@ public static class FileSystemUtils {
     /// If <paramref name="overwrite"/> is false and destination exists, throws.
     /// Writes progress updates to the engine System.Console.
     /// </summary>
-    public static void CopyDirectory(string sourceDir, string destDir, bool overwrite = false, string? progressLabel = null) {
+    internal static void CopyDirectory(string sourceDir, string destDir, bool overwrite = false, string? progressLabel = null) {
         if (string.IsNullOrWhiteSpace(sourceDir)) {
             throw new System.ArgumentException("sourceDir is empty");
         }
@@ -171,7 +171,7 @@ public static class FileSystemUtils {
     /// named <paramref name="name"/>. Comparison is case-insensitive on Windows.
     /// Returns null if not found.
     /// </summary>
-    public static string? FindSubdir(string baseDir, string name, bool caseInsensitive = true) {
+    internal static string? FindSubdir(string baseDir, string name, bool caseInsensitive = true) {
         if (!System.IO.Directory.Exists(baseDir)) {
             return null;
         }
@@ -194,7 +194,7 @@ public static class FileSystemUtils {
     /// Checks whether all subdirectory names in <paramref name="names"/> exist directly under <paramref name="baseDir"/>.
     /// Comparison is case-insensitive on Windows by default.
     /// </summary>
-    public static bool HasAllSubdirs(string baseDir, IEnumerable<string> names, bool caseInsensitive = true) {
+    internal static bool HasAllSubdirs(string baseDir, IEnumerable<string> names, bool caseInsensitive = true) {
         if (!System.IO.Directory.Exists(baseDir)) {
             return false;
         }

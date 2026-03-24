@@ -5,11 +5,11 @@ namespace EngineNet.Core.FileHandlers.Formats;
 
 using System;
 
-public static partial class TxdExtractor {
+internal static partial class TxdExtractor {
 
 
     private sealed class TxdExporter {
-        public (int totalTexturesExported, int filesProcessed, int filesWithExports) ExportPath(string inputPathAbs, string? outputDirBaseArg, string outputExtension = "dds") {
+        internal (int totalTexturesExported, int filesProcessed, int filesWithExports) ExportPath(string inputPathAbs, string? outputDirBaseArg, string outputExtension = "dds") {
             int overallTexturesExported = 0;
             int filesProcessedCount = 0;
             int filesWithExports = 0;
@@ -85,7 +85,7 @@ public static partial class TxdExtractor {
             return (overallTexturesExported, filesProcessedCount, filesWithExports);
         }
 
-    public int ExportTexturesFromTxd(string txdFilePath, string outputDirBase, string outputExtension = "dds") {
+    internal int ExportTexturesFromTxd(string txdFilePath, string outputDirBase, string outputExtension = "dds") {
             Log.Cyan($"Processing TXD file: {txdFilePath}");
             byte[] data;
             try {

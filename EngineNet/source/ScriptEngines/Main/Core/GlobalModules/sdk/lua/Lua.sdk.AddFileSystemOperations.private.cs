@@ -2,7 +2,7 @@ using MoonSharp.Interpreter;
 
 namespace EngineNet.ScriptEngines.Lua.Global;
 
-public static partial class Sdk {
+internal static partial class Sdk {
 
     private static void AddFileSystemOperations(LuaWorld _LuaWorld) {
         _LuaWorld.Sdk.Table["find_subdir"] = (string baseDir, string name) => {

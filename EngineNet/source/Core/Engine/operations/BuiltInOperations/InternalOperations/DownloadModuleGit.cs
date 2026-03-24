@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
-public partial class InternalOperations {
+internal partial class InternalOperations {
 
-    public bool DownloadModuleGit(IDictionary<string, object?> promptAnswers, EngineContext context) {
+    internal bool DownloadModuleGit(IDictionary<string, object?> promptAnswers, EngineContext context) {
         string? url = null;
         if (promptAnswers.TryGetValue("url", out object? u)) {
             url = u?.ToString();

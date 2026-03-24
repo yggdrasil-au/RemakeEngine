@@ -5,13 +5,13 @@ namespace EngineNet.ScriptEngines.Lua.Global;
 /// <summary>
 /// SDK module providing file operations, archive handling, and system utilities for Lua scripts.
 /// </summary>
-public static class Progress {
+internal static class Progress {
 
     /// <summary>
     /// Defines the progress API for Lua scripts, allowing them to create and update progress bars in the engine UI.
     /// </summary>
     /// <param name="_LuaWorld"></param>
-    public static void CreateProgressModule(LuaWorld _LuaWorld) {
+    internal static void CreateProgressModule(LuaWorld _LuaWorld) {
         Core.UI.EngineSdk.ScriptProgress? activeScriptProgress = null;
 
         // progress.new(total, id, label) -> Core.UI.EngineSdk.PanelProgress userdata

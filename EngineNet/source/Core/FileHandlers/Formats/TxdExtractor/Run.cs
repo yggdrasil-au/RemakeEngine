@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace EngineNet.Core.FileHandlers.Formats;
 
-public static partial class TxdExtractor {
+internal static partial class TxdExtractor {
 
     private static readonly System.Text.Encoding Utf8NoBom = new System.Text.UTF8Encoding(false, false);
 
@@ -11,7 +11,7 @@ public static partial class TxdExtractor {
     /// </summary>
     /// <param name="args">CLI-style args: [input_path] [--output_dir DIR]</param>
     /// <returns>True if extraction completed successfully.</returns>
-    public static bool Run(List<string> args) {
+    internal static bool Run(List<string> args) {
         try {
             Options options = Parse(args);
             TxdExporter exporter = new();

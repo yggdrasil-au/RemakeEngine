@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
-public partial class BuiltInOperations {
+internal partial class BuiltInOperations {
 
-    public bool rename_folders(
+    internal bool rename_folders(
         IDictionary<string, object?> op,
         IDictionary<string, object?> promptAnswers,
         string currentGame,

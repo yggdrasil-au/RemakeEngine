@@ -4,13 +4,13 @@ using Jint.Native;
 
 namespace EngineNet.ScriptEngines.Js;
 
-public static class SetupSafeEnvironment {
+internal static class SetupSafeEnvironment {
     // called by JsScriptAction.ExecuteAsync()
     /// <summary>
     /// setup a JS environment with restricted access to built-in libraries for sandboxing
     /// </summary>
     /// <param name="_JSWorld"></param>
-    public static void JsEnvironment(JsWorld _JSWorld) {
+    internal static void JsEnvironment(JsWorld _JSWorld) {
 
         /*
         there wont be any 'require' function in this env instead the methods will be exposed directly on the global object,

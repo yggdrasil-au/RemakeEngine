@@ -7,43 +7,43 @@ namespace EngineNet.ScriptEngines.Lua;
 /// This is created fresh for each script execution and passed to all helper methods that register functions/tables in the Lua environment.
 /// It also tracks any IDisposable resources created during execution to ensure they can be cleaned up at the end of the script's lifecycle, preventing resource leaks across multiple script executions.
 /// </summary>
-public class LuaWorld {
+internal class LuaWorld {
     /* :: :: Properties :: START :: */
 
     /// <summary>
     /// Gets the MoonSharp script instance for this Lua execution context.
     /// </summary>
-    public Script LuaScript { get; }
+    internal Script LuaScript { get; }
 
     /// <summary>
     /// Gets the path of the script being executed.
     /// </summary>
-    public string LuaScriptPath { get; }
+    internal string LuaScriptPath { get; }
 
     /// <summary>
     /// Gets the SDK hierarchy (sdk, sdk.IO, sdk.Hash, sdk.text.*).
     /// </summary>
-    public SdkContainer Sdk { get; }
+    internal SdkContainer Sdk { get; }
 
     /// <summary>
     /// Gets the global progress table (not under sdk).
     /// </summary>
-    public Table Progress { get; }
+    internal Table Progress { get; }
 
     /// <summary>
     /// Gets the global os table (not under sdk).
     /// </summary>
-    public Table Os { get; }
+    internal Table Os { get; }
 
     /// <summary>
     /// Gets the diagnostics methods table exposed to Lua.
     /// </summary>
-    public Table DiagnosticsMethods { get; }
+    internal Table DiagnosticsMethods { get; }
 
     /// <summary>
     /// Gets the SQLite module table exposed to Lua.
     /// </summary>
-    public Table SqliteModule { get; }
+    internal Table SqliteModule { get; }
 
     /* :: :: Properties :: END :: */
     // //
@@ -59,31 +59,31 @@ public class LuaWorld {
     /// <summary>
     /// Container for sdk tables to mirror Lua usage (sdk, sdk.IO, sdk.Hash, sdk.text.*).
     /// </summary>
-    public class SdkContainer {
+    internal class SdkContainer {
         /// <summary>
         /// Gets the root sdk table.
         /// </summary>
-        public Table Table { get; }
+        internal Table Table { get; }
 
         /// <summary>
         /// Gets the sdk.IO table.
         /// </summary>
-        public Table IO { get; }
+        internal Table IO { get; }
 
         /// <summary>
         /// Gets the sdk.Hash table.
         /// </summary>
-        public Table Hash { get; }
+        internal Table Hash { get; }
 
         /// <summary>
         /// Gets the sdk.text container.
         /// </summary>
-        public TextContainer Text { get; }
+        internal TextContainer Text { get; }
 
         /// <summary>
         /// Creates a new SDK container and links tables in MoonSharp.
         /// </summary>
-        public SdkContainer(Script script) {
+        internal SdkContainer(Script script) {
             Table = new Table(script);
             IO = new Table(script);
             Hash = new Table(script);
@@ -98,26 +98,26 @@ public class LuaWorld {
     /// <summary>
     /// Container for sdk.text tables (sdk.text.json, sdk.text.toml).
     /// </summary>
-    public class TextContainer {
+    internal class TextContainer {
         /// <summary>
         /// Gets the sdk.text table.
         /// </summary>
-        public Table Table { get; }
+        internal Table Table { get; }
 
         /// <summary>
         /// Gets the sdk.text.json table.
         /// </summary>
-        public Table Json { get; }
+        internal Table Json { get; }
 
         /// <summary>
         /// Gets the sdk.text.toml table.
         /// </summary>
-        public Table Toml { get; }
+        internal Table Toml { get; }
 
         /// <summary>
         /// Creates a new text container and links tables in MoonSharp.
         /// </summary>
-        public TextContainer(Script script) {
+        internal TextContainer(Script script) {
             Table = new Table(script);
             Json = new Table(script);
             Toml = new Table(script);
@@ -135,7 +135,7 @@ public class LuaWorld {
     /// <summary>
     /// Creates a new Lua world for a single script execution.
     /// </summary>
-    public LuaWorld(Script _luaScript, string _scriptPath) {
+    internal LuaWorld(Script _luaScript, string _scriptPath) {
         LuaScript = _luaScript;
         LuaScriptPath = _scriptPath;
 
@@ -164,7 +164,7 @@ public class LuaWorld {
     /// <summary>
     /// Tracks a disposable resource created for this Lua execution.
     /// </summary>
-    public void RegisterDisposable(System.IDisposable disposable) {
+    internal void RegisterDisposable(System.IDisposable disposable) {
         if (disposable == null) {
             return;
         }
@@ -177,7 +177,7 @@ public class LuaWorld {
     /// <summary>
     /// Removes a disposable resource from tracking once it has been closed.
     /// </summary>
-    public void UnregisterDisposable(System.IDisposable disposable) {
+    internal void UnregisterDisposable(System.IDisposable disposable) {
         if (disposable == null) {
             return;
         }
@@ -190,7 +190,7 @@ public class LuaWorld {
     /// <summary>
     /// Disposes any tracked resources that remain open at the end of execution.
     /// </summary>
-    public void DisposeOpenDisposables() {
+    internal void DisposeOpenDisposables() {
         System.IDisposable[] disposables;
         lock (_openDisposablesLock) {
             disposables = _openDisposables.ToArray();

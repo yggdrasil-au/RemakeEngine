@@ -7,14 +7,14 @@ namespace EngineNet.Core.Serialization;
 /// Dictionary<string, object?> and List<object?> models used by the engine.
 /// Centralizes number/boolean/string handling to avoid drift.
 /// </summary>
-public static class DocModelConverter {
+internal static class DocModelConverter {
 
     /// <summary>
     /// Converts a System.Text.Json.JsonElement of kind Object into a Dictionary<string, object?> with case-insensitive keys.
     /// </summary>
     /// <param name="obj"></param>
     /// <returns></returns>
-    public static Dictionary<string, object?> FromJsonObject(System.Text.Json.JsonElement obj) {
+    internal static Dictionary<string, object?> FromJsonObject(System.Text.Json.JsonElement obj) {
         Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
         foreach (System.Text.Json.JsonProperty p in obj.EnumerateObject()) {
             dict[p.Name] = FromJsonElement(p.Value);
@@ -28,7 +28,7 @@ public static class DocModelConverter {
     /// </summary>
     /// <param name="el"></param>
     /// <returns></returns>
-    public static object? FromJsonElement(System.Text.Json.JsonElement el) {
+    internal static object? FromJsonElement(System.Text.Json.JsonElement el) {
         switch (el.ValueKind) {
             case System.Text.Json.JsonValueKind.Object:
                 return FromJsonObject(el);
@@ -64,7 +64,7 @@ public static class DocModelConverter {
     /// </summary>
     /// <param name="table"></param>
     /// <returns></returns>
-    public static Dictionary<string, object?> FromTomlTable(Tomlyn.Model.TomlTable table) {
+    internal static Dictionary<string, object?> FromTomlTable(Tomlyn.Model.TomlTable table) {
         Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
         foreach (KeyValuePair<string, object> kv in table) {
             dict[kv.Key] = FromTomlValue(kv.Value);
@@ -77,7 +77,7 @@ public static class DocModelConverter {
     /// </summary>
     /// <param name="value"></param>
     /// <returns></returns>
-    public static object? FromTomlValue(object? value) {
+    internal static object? FromTomlValue(object? value) {
         if (value is null) {
             return null;
         }
