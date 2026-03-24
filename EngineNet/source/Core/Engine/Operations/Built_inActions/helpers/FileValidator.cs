@@ -1,6 +1,10 @@
 
-namespace EngineNet.Core.FileHandlers;
+namespace EngineNet.Core.Engine.operations.Built_inActions.helpers;
 
+/// <summary>
+/// Utility for validating that files referenced in SQLite tables exist relative to a base folder.
+/// used by the "validate-files" operation
+/// </summary>
 internal static class FileValidator {
     private sealed class Options {
         internal string DbPath = string.Empty;
@@ -64,6 +68,7 @@ internal static class FileValidator {
             return false;
         }
     }
+
     private static Options Parse(IList<string> args) {
         if (args is null || args.Count < 2) {
             throw new System.ArgumentException("Missing required arguments: db_path and base_folder.");
@@ -172,6 +177,7 @@ internal static class FileValidator {
 
         return groups;
     }
+
     private static bool CheckRequiredDirectories(string baseFolder, List<RequiredDirGroup> requiredDirs) {
         WriteBlue($"-- Checking Required Subdirectories in: {baseFolder} ---");
         if (requiredDirs.Count == 0) {
@@ -236,8 +242,8 @@ internal static class FileValidator {
         string dbPath,
         string baseFolder,
         Dictionary<string, string> tables,
-        bool debug)
-    {
+        bool debug
+    ) {
         WriteBlue("--- Validating SQLite references ---");
         if (tables.Count == 0) {
             WriteYellow("No tables specified for validation (skipping DB check).");
@@ -344,6 +350,7 @@ internal static class FileValidator {
             return (false, 0, 0);
         }
     }
+
     private static string QuoteIdentifier(string identifier) {
         return string.IsNullOrWhiteSpace(identifier)
             ? throw new System.ArgumentException("Identifier cannot be null or empty.")

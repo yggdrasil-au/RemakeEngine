@@ -1,7 +1,7 @@
 
-namespace EngineNet.Core.Engine;
+namespace EngineNet.Core.Engine.Operations.helpers;
 
-internal partial class OperationExecution {
+internal class OpMetadataExtractor {
 
     /// <summary>
     /// Try to get the list of operations defined in the "onsuccess" or "on_success" field of the given operation.
@@ -9,7 +9,7 @@ internal partial class OperationExecution {
     /// <param name="op"></param>
     /// <param name="ops"></param>
     /// <returns></returns>
-    internal static bool TryGetOnSuccessOperations(
+    internal static bool ExtractSuccessActions(
         IDictionary<string, object?> op,
         out List<Dictionary<string, object?>>? ops
     ) {

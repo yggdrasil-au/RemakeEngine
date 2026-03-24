@@ -241,7 +241,7 @@ public partial class TUI {
                         // 2. Pass our custom StdinProvider that works with the Renderer
                         Core.ProcessRunner.StdinProvider rendererInput = () => TuiRenderer.ReadLineCustom("Input >", false);
 
-                        Core.Engine.RunAllResult result = await Engine.RunAllAsync(
+                        Core.Engine.Operations.RunAllResult result = await Engine.RunAllAsync(
                             gameName,
                             onOutput: Utils.OnOutput, // Make sure OnOutput calls OnEvent -> TuiRenderer
                             onEvent: Utils.OnEvent,

@@ -1,32 +1,55 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
+
 using System.Text;
 
-namespace EngineNet.Core.Engine;
-
-/// <summary>
-/// Represents a single operation in the dependency graph.
-/// </summary>
-internal class OperationNode {
-    internal string Id { get; set; } = string.Empty;
-    internal string Name { get; set; } = string.Empty;
-    internal Dictionary<string, object?> Operation { get; set; } = new();
-    internal List<string> Dependencies { get; set; } = new();
-    internal List<OperationNode> DependentNodes { get; set; } = new();
-}
+namespace EngineNet.Core.Engine.Operations.helpers;
 
 /// <summary>
 /// Builds, validates, and visualizes the operation dependency graph.
+/// used by the Run-All operation to determine execution order and detect issues before starting execution.
 /// </summary>
-internal class OperationDependencyGraph {
+internal class OpDependencyGraph {
     internal bool IsValid { get; private set; }
     internal List<string> Errors { get; private set; } = new();
 
-    private readonly Dictionary<string, OperationNode> _nodes = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Core.Data.OperationNode> _nodes = new(StringComparer.OrdinalIgnoreCase);
 
-    internal OperationDependencyGraph(List<Dictionary<string, object?>> operations) {
+    internal OpDependencyGraph(List<Dictionary<string, object?>> operations) {
         BuildGraph(operations);
+    }
+
+    /// <summary>
+    /// Prints the graph status and structure to Diagnostics.Trace.
+    /// </summary>
+    internal void PrintGraphToTrace() {
+        Diagnostics.Trace("=== [Dependency Graph Builder] ===");
+
+        if (!IsValid) {
+            Diagnostics.Trace("[DependencyGraph] Graph is INVALID. Parallel features would be disabled.");
+            Diagnostics.Trace("[DependencyGraph] Errors:");
+            foreach (var err in Errors) {
+                Diagnostics.Trace($"  => {err}");
+            }
+            Diagnostics.Trace("==================================");
+            return;
+        }
+
+        Diagnostics.Trace("[DependencyGraph] Graph is VALID. Dependency Map:");
+
+        foreach (var node in _nodes.Values) {
+            var sb = new StringBuilder();
+            sb.Append($"  [{node.Id}]");
+
+            if (node.Dependencies.Count > 0) {
+                sb.Append(" --> depends on --> [");
+                sb.Append(string.Join(", ", node.Dependencies));
+                sb.Append("]");
+            } else {
+                sb.Append(" (No dependencies)");
+            }
+
+            Diagnostics.Trace(sb.ToString());
+        }
+        Diagnostics.Trace("==================================");
     }
 
     private void BuildGraph(List<Dictionary<string, object?>> operations) {
@@ -55,7 +78,7 @@ internal class OperationDependencyGraph {
                 continue;
             }
 
-            _nodes[id] = new OperationNode {
+            _nodes[id] = new Core.Data.OperationNode {
                 Id = id,
                 Name = name,
                 Operation = op,
@@ -139,7 +162,7 @@ internal class OperationDependencyGraph {
         return false;
     }
 
-    private bool DetectCycle(OperationNode node, HashSet<string> visited, HashSet<string> recursionStack) {
+    private bool DetectCycle(Core.Data.OperationNode node, HashSet<string> visited, HashSet<string> recursionStack) {
         if (recursionStack.Contains(node.Id)) {
             Errors.Add($"Circular dependency detected involving operation '{node.Id}'.");
             return true;
@@ -158,40 +181,6 @@ internal class OperationDependencyGraph {
         return false;
     }
 
-    /// <summary>
-    /// Prints the graph status and structure to Diagnostics.Trace.
-    /// </summary>
-    internal void PrintGraphToTrace() {
-        Diagnostics.Trace("=== [Dependency Graph Builder] ===");
-
-        if (!IsValid) {
-            Diagnostics.Trace("[DependencyGraph] Graph is INVALID. Parallel features would be disabled.");
-            Diagnostics.Trace("[DependencyGraph] Errors:");
-            foreach (var err in Errors) {
-                Diagnostics.Trace($"  => {err}");
-            }
-            Diagnostics.Trace("==================================");
-            return;
-        }
-
-        Diagnostics.Trace("[DependencyGraph] Graph is VALID. Dependency Map:");
-
-        foreach (var node in _nodes.Values) {
-            var sb = new StringBuilder();
-            sb.Append($"  [{node.Id}]");
-
-            if (node.Dependencies.Count > 0) {
-                sb.Append(" --> depends on --> [");
-                sb.Append(string.Join(", ", node.Dependencies));
-                sb.Append("]");
-            } else {
-                sb.Append(" (No dependencies)");
-            }
-
-            Diagnostics.Trace(sb.ToString());
-        }
-        Diagnostics.Trace("==================================");
-    }
 
     // --- Dictionary Extraction Helpers ---
 

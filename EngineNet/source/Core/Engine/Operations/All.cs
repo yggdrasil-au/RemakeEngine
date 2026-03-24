@@ -1,10 +1,9 @@
-using System.Collections.Generic;
 
-namespace EngineNet.Core.Engine;
+namespace EngineNet.Core.Engine.Operations;
 
 public sealed record RunAllResult(string Game, bool Success, int TotalOperations, int SucceededOperations);
 
-internal sealed class EngineRunAll {
+internal sealed class All {
 
     // this is the meathod used to execute the run all ops by both GUI and TUI
 
@@ -21,7 +20,7 @@ internal sealed class EngineRunAll {
     /// <exception cref="KeyNotFoundException"></exception>
     /// <exception cref="System.IO.FileNotFoundException"></exception>
     /// <exception cref="System.Exception"></exception>
-    internal async System.Threading.Tasks.Task<RunAllResult> RunAllAsync(
+    internal async System.Threading.Tasks.Task<RunAllResult> RunAsync(
         string gameName,
         Core.Engine.EngineContext Context,
         Core.ProcessRunner.OutputHandler? onOutput = null,
@@ -53,7 +52,7 @@ internal sealed class EngineRunAll {
         // --- NEW DEPENDENCY GRAPH LOGIC ---
         // Build the graph and print it to the trace log for debugging.
         // It does not alter 'allOps' or affect the standard linear execution.
-        var dependencyGraph = new OperationDependencyGraph(allOps);
+        var dependencyGraph = new helpers.OpDependencyGraph(allOps);
         dependencyGraph.PrintGraphToTrace();
 
         if (!dependencyGraph.IsValid) {
@@ -130,7 +129,7 @@ internal sealed class EngineRunAll {
                     string? scriptType = GetScriptType(op);
                     // ensure script type is valid
                     if (Core.Utils.ScriptConstants.IsSupported(scriptType)) {
-                        ok = await Context.OperationContext.Runner.RunSingleOperationAsync(gameName, games, op, promptAnswers, Context, cancellationToken).ConfigureAwait(false);
+                        ok = await Context.OperationContext.Single.RunAsync(gameName, games, op, promptAnswers, Context, cancellationToken).ConfigureAwait(false);
                     } else if (string.IsNullOrEmpty(scriptType)) {
                         Core.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Skipping operation '{currentOperation}' due to null or empty script type");
                         overallSuccess = false;

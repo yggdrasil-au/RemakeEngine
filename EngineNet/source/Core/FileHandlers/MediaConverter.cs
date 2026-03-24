@@ -59,26 +59,26 @@ internal static class MediaConverter {
             // check if current required tool exist
             if (string.Equals(opt.Mode, ToolFfmpeg, System.StringComparison.OrdinalIgnoreCase)) {
                 if (!System.IO.File.Exists(opt.FfmpegPath!)) {
-                    WriteError($"ffmpeg executable not found: {opt.FfmpegPath}");
-                    WriteError($"Please ensure ffmpeg is installed. You can download it using the 'Download Required Tools' operation.");
+                    Core.UI.EngineSdk.Error($"ffmpeg executable not found: {opt.FfmpegPath}");
+                    Core.UI.EngineSdk.Error($"Please ensure ffmpeg is installed. You can download it using the 'Download Required Tools' operation.");
                     return false;
                 }
             } else if (string.Equals(opt.Mode, ToolVgmstream, System.StringComparison.OrdinalIgnoreCase)) {
                 if (!System.IO.File.Exists(opt.VgmstreamCli!)) {
-                    WriteError($"vgmstream-cli executable not found: {opt.VgmstreamCli}");
-                    WriteError($"Please ensure vgmstream-cli is installed. You can download it using the 'Download Required Tools' operation.");
+                    Core.UI.EngineSdk.Error($"vgmstream-cli executable not found: {opt.VgmstreamCli}");
+                    Core.UI.EngineSdk.Error($"Please ensure vgmstream-cli is installed. You can download it using the 'Download Required Tools' operation.");
                     return false;
                 }
                 // If using vgmstream with Godot mode, we also need ffmpeg
                 if (opt.GodotCompatible && (string.IsNullOrEmpty(opt.FfmpegPath) || !System.IO.File.Exists(opt.FfmpegPath))) {
-                    WriteError($"ffmpeg executable not found: {opt.FfmpegPath ?? "null"}");
-                    WriteError($"vgmstream with --godot-compatible requires ffmpeg for post-processing. Please ensure ffmpeg is installed.");
+                    Core.UI.EngineSdk.Error($"ffmpeg executable not found: {opt.FfmpegPath ?? "null"}");
+                    Core.UI.EngineSdk.Error($"vgmstream with --godot-compatible requires ffmpeg for post-processing. Please ensure ffmpeg is installed.");
                     return false;
                 }
             }
 
             if (!System.IO.Directory.Exists(opt.Source)) {
-                WriteError($"Source directory not found: {opt.Source}");
+                Core.UI.EngineSdk.Error($"Source directory not found: {opt.Source}");
                 return false;
             }
             System.IO.Directory.CreateDirectory(opt.Target);
@@ -88,18 +88,18 @@ internal static class MediaConverter {
                 opt.Workers = System.Math.Max(1, (int)System.Math.Floor(cores * 0.75));
             }
 
-            WriteInfo($"--- Starting {opt.Mode.ToUpperInvariant()} Conversion ---");
+            Core.UI.EngineSdk.Info($"--- Starting {opt.Mode.ToUpperInvariant()} Conversion ---");
             WriteVerbose(opt.Verbose, $"Using executable: {(opt.Mode == "ffmpeg" ? opt.FfmpegPath : opt.VgmstreamCli)}");
 
             List<string> allFiles = System.IO.Directory.EnumerateFiles(opt.Source, "*" + opt.InputExt, System.IO.SearchOption.AllDirectories)
                                      .Where(p => p.EndsWith(opt.InputExt, System.StringComparison.OrdinalIgnoreCase))
                                      .ToList();
             if (allFiles.Count == 0) {
-                WriteWarn($"No '{opt.InputExt}' files found in {opt.Source}.");
+                Core.UI.EngineSdk.Warn($"No '{opt.InputExt}' files found in {opt.Source}.");
                 return true; // nothing to do
             }
 
-            WriteInfo($"Found {allFiles.Count} files to process with {opt.Workers} workers.");
+            Core.UI.EngineSdk.Info($"Found {allFiles.Count} files to process with {opt.Workers} workers.");
 
             int success = 0;
             int skipped = 0;
@@ -168,7 +168,7 @@ internal static class MediaConverter {
                     }
                 });
             } catch (System.OperationCanceledException) {
-                WriteWarn("\nConversion cancelled by user.");
+                Core.UI.EngineSdk.Warn("\nConversion cancelled by user.");
             }
 
             progressCts.Cancel();
@@ -179,14 +179,14 @@ internal static class MediaConverter {
                 // ignore
             }
 
-            WriteInfo("\n--- Conversion Completed ---");
+            Core.UI.EngineSdk.Info("\n--- Conversion Completed ---");
 
             UI.EngineSdk.PrintLine($"Success: {success}", System.ConsoleColor.Green);
             UI.EngineSdk.PrintLine($"Skipped: {skipped}", System.ConsoleColor.Yellow);
             UI.EngineSdk.PrintLine($"Errors: {errors}", System.ConsoleColor.Red);
 
             if (!errorList.IsEmpty) {
-                WriteError("\nEncountered the following errors:");
+                Core.UI.EngineSdk.Error("\nEncountered the following errors:");
                 foreach ((string file, string msg) in errorList) {
                     UI.EngineSdk.PrintLine($" Fail - File: {file}\n    Reason: {msg}", System.ConsoleColor.Red);
                 }
@@ -195,12 +195,11 @@ internal static class MediaConverter {
 
             return true;
         } catch (System.Exception ex) {
-            WriteError($"Media conversion failed: {ex.Message}");
+            Core.UI.EngineSdk.Error($"Media conversion failed: {ex.Message}");
             Core.Diagnostics.Log($"[MediaConverter.cs::Run()] MediaConverter: Exception during media conversion: {ex}");
             return false;
         }
     }
-
 
     private static (bool ok, string? message) ConvertOne(string srcPath, string destPath, Options opt, System.Threading.CancellationToken cancellationToken = default) {
         try {
@@ -586,7 +585,7 @@ internal static class MediaConverter {
         return string.IsNullOrWhiteSpace(ext) ? ext : ext.StartsWith('.') ? ext : "." + ext;
     }
 
-    private static string? Which(string name) {
+    /*public static string? Which(string name) {
         try {
             string path = System.Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
             foreach (string dir in path.Split(System.IO.Path.PathSeparator)) {
@@ -597,29 +596,13 @@ internal static class MediaConverter {
                     }
                 } catch {
                     Core.Diagnostics.Bug("Failed to find executable in PATH: " + name);
-                    /* ignore */
                 }
             }
         } catch {
             Core.Diagnostics.Bug("Failed to enumerate PATH directories");
-            /* ignore */
         }
         return null;
-    }
-
-    // Todo use sdk events/logging
-
-    private static void WriteInfo(string msg) {
-        Core.UI.EngineSdk.Info(msg);
-    }
-
-    private static void WriteWarn(string msg) {
-        Core.UI.EngineSdk.Warn(msg);
-    }
-
-    private static void WriteError(string msg) {
-        Core.UI.EngineSdk.Error(msg);
-    }
+    }*/
 
     private static void WriteVerbose(bool enabled, string msg) {
         if (!enabled) {

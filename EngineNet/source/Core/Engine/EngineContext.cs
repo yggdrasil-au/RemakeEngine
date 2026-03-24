@@ -23,5 +23,5 @@ internal record EngineContext(
 internal record OperationContext(
     Core.Services.OperationsService OperationsService,
     Core.Services.OperationsLoader OperationsLoader,
-    Core.Engine.Runner Runner
+    Core.Engine.Operations.Single Single
 );

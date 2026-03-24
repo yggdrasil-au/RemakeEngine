@@ -1,7 +1,7 @@
 
-namespace EngineNet.Core.Engine;
+namespace EngineNet.Core.Engine.Operations;
 
-internal sealed class Runner {
+internal sealed class Single {
 
     // used to run a single op by both runallasync and direct operation execution in the GUI/TUI
 
@@ -14,7 +14,7 @@ internal sealed class Runner {
     /// <param name="promptAnswers"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    internal async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
+    internal async System.Threading.Tasks.Task<bool> RunAsync(
         string currentGame,
         Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
         IDictionary<string, object?> op,
@@ -55,8 +55,8 @@ internal sealed class Runner {
                         Core.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Executing engine operation {title} ({action})");
                         Core.UI.EngineSdk.PrintLine(message: $"\n>>> Engine operation: {title}");
                         // delegate engine type handling to ExecuteEngineOperationAsync
-                        var OperationExecution = new Core.Engine.OperationExecution();
-                        result = await OperationExecution.ExecuteEngineOperationAsync(currentGame, games, op, promptAnswers, Context, cancellationToken);
+                        var OperationExecution = new helpers.OpDispatcher();
+                        result = await OperationExecution.DispatchAsync(currentGame, games, op, promptAnswers, Context, cancellationToken);
                     } catch (System.Exception ex) {
                         Core.UI.EngineSdk.PrintLine($"engine ERROR: {ex.Message}");
                         result = false;
@@ -137,10 +137,10 @@ internal sealed class Runner {
         }
 
         // If the main operation succeeded, run any nested [[operation.onsuccess]] steps
-        if (result && OperationExecution.TryGetOnSuccessOperations(op, out List<Dictionary<string, object?>>? followUps) && followUps is not null) {
+        if (result && helpers.OpMetadataExtractor.ExtractSuccessActions(op, out List<Dictionary<string, object?>>? followUps) && followUps is not null) {
             foreach (Dictionary<string, object?> childOp in followUps) {
                 if (cancellationToken.IsCancellationRequested) break;
-                bool ok = await Context.OperationContext.Runner.RunSingleOperationAsync(currentGame, games, childOp, promptAnswers, Context, cancellationToken);
+                bool ok = await Context.OperationContext.Single.RunAsync(currentGame, games, childOp, promptAnswers, Context, cancellationToken);
                 if (!ok) {
                     result = false; // propagate failure from any onsuccess step
                 }

@@ -61,7 +61,8 @@
     "Lua.runtime.version": "Lua 5.2",
     "Lua.workspace.library": [
         "./EngineApps/api_definitions"
-    ]
+    ],
+    "window.zoomLevel": 0.2
 
     
 }

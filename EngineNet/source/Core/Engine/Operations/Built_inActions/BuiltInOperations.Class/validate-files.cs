@@ -2,6 +2,7 @@
 using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
+
 internal partial class BuiltInOperations {
 
     internal bool validate_files(
@@ -86,7 +87,7 @@ internal partial class BuiltInOperations {
         }
 
         Core.UI.EngineSdk.PrintLine("\n>>> Built-in file validation");
-        bool okValidate = FileHandlers.FileValidator.Run(argsValidate);
+        bool okValidate = helpers.FileValidator.Run(argsValidate);
         return okValidate;
     }
 }

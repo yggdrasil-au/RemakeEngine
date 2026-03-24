@@ -1,7 +1,7 @@
 
-namespace EngineNet.Core.Engine;
+namespace EngineNet.Core.Engine.Operations.helpers;
 
-internal partial class OperationExecution {
+internal class OpDispatcher {
 
     // used by run single operation to execute engine operations of type "engine"
 
@@ -15,7 +15,7 @@ internal partial class OperationExecution {
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     /// <exception cref="KeyNotFoundException"></exception>
-    internal async System.Threading.Tasks.Task<bool> ExecuteEngineOperationAsync(
+    internal async System.Threading.Tasks.Task<bool> DispatchAsync(
         string currentGame,
         Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
         IDictionary<string, object?> op,

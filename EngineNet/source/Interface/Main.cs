@@ -89,7 +89,7 @@ public sealed class Main(Core.Engine.IEngineFace CoreEngine) {
             return await Engine.GameLauncher.LaunchGameAsync(name);
         }
 
-        public async System.Threading.Tasks.Task<Core.Engine.RunAllResult> RunAllAsync(
+        public async System.Threading.Tasks.Task<Core.Engine.Operations.RunAllResult> RunAllAsync(
             string gameName,
             Core.ProcessRunner.OutputHandler? onOutput = null,
             Core.ProcessRunner.EventHandler? onEvent = null,
@@ -118,7 +118,7 @@ public interface MiniEngineFace {
 
     public System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
         string currentGame,
-        Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
+        Dictionary<string, Core.Data.GameModuleInfo> games,
         IDictionary<string, object?> op,
         IDictionary<string, object?> promptAnswers,
         System.Threading.CancellationToken cancellationToken = default
@@ -137,7 +137,7 @@ public interface MiniEngineFace {
 
     public Task<bool> GameLauncher_LaunchGameAsync(string name);
 
-    public Task<Core.Engine.RunAllResult> RunAllAsync(
+    public Task<Core.Engine.Operations.RunAllResult> RunAllAsync(
         string gameName,
         Core.ProcessRunner.OutputHandler? onOutput = null,
         Core.ProcessRunner.EventHandler? onEvent = null,

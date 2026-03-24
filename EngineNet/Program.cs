@@ -212,7 +212,7 @@ public static class Program {
             var _commandService = new Core.Services.CommandService();
             var _operationsService = new Core.Services.OperationsService(_opsLoader, gameRegistry);
 
-            var Runner = new Core.Engine.Runner();
+            var Single = new Core.Engine.Operations.Single();
 
             EngineNet.Core.Engine.Engine _engine = new EngineNet.Core.Engine.Engine(
                 gameRegistry,
@@ -226,7 +226,7 @@ public static class Program {
 
                 engineConfig,
 
-                Runner
+                Single
             );
             return _engine;
         }
