@@ -162,7 +162,7 @@ public sealed class ModuleScanner {
                 }
             }
 
-            string GameRoot = !string.IsNullOrWhiteSpace(path) ? System.IO.Path.Combine(Program.rootPath, path) : string.Empty;
+            string GameRoot = !string.IsNullOrWhiteSpace(path) ? System.IO.Path.Combine(EngineNet.Core.Main.RootPath, path) : string.Empty;
 
             // opts file could be .toml or .json;
             string opsFile = System.IO.Path.Combine(GameRoot, "operations.toml");
@@ -253,7 +253,7 @@ public sealed class ModuleScanner {
     /// <param name="result"></param>
     private void ScanInternalOperations(Dictionary<string, Data.GameModuleInfo> result) {
         try {
-            string opsDir = System.IO.Path.Combine(Program.rootPath, "EngineApps", "Registries", "ops");
+            string opsDir = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "EngineApps", "Registries", "ops");
             if (!System.IO.Directory.Exists(opsDir)) return;
 
             string[] files = System.IO.Directory.GetFiles(opsDir, "*.toml");

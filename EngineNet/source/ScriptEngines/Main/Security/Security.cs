@@ -166,9 +166,9 @@ public static class Security {
 
             // Get current working directory and common workspace patterns
             string currentDir = NormalizeLowerFullPath(System.IO.Directory.GetCurrentDirectory());
-            string projectRoot = string.IsNullOrWhiteSpace(EngineNet.Program.rootPath)
+            string projectRoot = string.IsNullOrWhiteSpace(EngineNet.Core.Main.RootPath)
                 ? currentDir
-                : NormalizeLowerFullPath(EngineNet.Program.rootPath);
+                : NormalizeLowerFullPath(EngineNet.Core.Main.RootPath);
 
             //Core.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Current directory '{currentDir}'");
             //Core.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Project root '{projectRoot}'");

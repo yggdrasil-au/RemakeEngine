@@ -7,21 +7,17 @@ namespace EngineNet;
 
 public static class Program {
 
-    public static Core.Engine.Engine? Engine {
-        get; private set;
-    }
-
-
-    public static string rootPath {get; private set;} = string.Empty;
-
-    public static bool isGui {get; private set;} = false;
-    public static bool isTui {get; private set;} = false;
-    public static bool isCli {get; private set;} = false;
+    private static Core.Engine.Engine? Engine {get; set;}
+    private static string rootPath {get; set;} = string.Empty;
+    private static bool isGui {get; set;} = false;
+    private static bool isTui {get; set;} = false;
+    private static bool isCli {get; set;} = false;
 
     /* :: :: Vars :: START :: */
     public static AppBuilder BuildAvaloniaApp()  {
         return Interface.GUI.GuiBootstrapper.BuildAvaloniaApp();
     }
+
     /* :: :: Vars :: END :: */
     // //
     /* :: :: Main :: START :: */
@@ -76,6 +72,14 @@ public static class Program {
                 ConsoleHelper.AllocConsole();
                 Core.Diagnostics.Trace("Allocated new console window for TUI/CLI mode.");
             }
+
+            Core.Main.ConfigureRuntime(
+                rootPath: Program.rootPath,
+                isGui: Program.isGui,
+                isTui: Program.isTui,
+                isCli: Program.isCli,
+                engineFactory: Program.InitialiseEngine
+            );
 
             if (Engine == null) {
                 Engine = await InitialiseEngine();
@@ -192,7 +196,7 @@ public static class Program {
     /// <summary>
     /// Initialises the engine
     /// </summary>
-    public static async System.Threading.Tasks.Task<Core.Engine.Engine> InitialiseEngine() {
+    private static async System.Threading.Tasks.Task<Core.Engine.Engine> InitialiseEngine() {
         if (Engine == null) {
             var tools = new Core.ExternalTools.JsonToolResolver();
             var engineConfig = new EngineConfig();

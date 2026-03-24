@@ -29,7 +29,7 @@ public static class Diagnostics {
     public static void Initialize(bool isGui, bool isTui) {
         string logDirectory = string.Empty;
         try {
-            string logDir = Path.Combine(Program.rootPath, "logs");
+            string logDir = Path.Combine(EngineNet.Core.Main.RootPath, "logs");
             if (isGui) {
                 logDir = Path.Combine(logDir, "gui");
             } else if (isTui) {

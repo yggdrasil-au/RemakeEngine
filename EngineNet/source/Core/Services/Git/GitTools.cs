@@ -9,7 +9,7 @@ namespace EngineNet.Core.Utils;
 public sealed class GitTools() {
 
     /* :: :: Constructor, Var :: START :: */
-    private readonly string _gamesDir = System.IO.Path.Combine(Program.rootPath, "EngineApps", "Games");
+    private readonly string _gamesDir = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "EngineApps", "Games");
 
     /* :: :: Constructor, Var :: END :: */
     //

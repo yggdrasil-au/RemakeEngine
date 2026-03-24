@@ -65,9 +65,9 @@ public static class LuaAction {
 
         // UI Mode (cli, gui, tui)
         string mode = "unknown";
-        if (Program.isCli) mode = "cli";
-        else if (Program.isGui) mode = "gui";
-        else if (Program.isTui) mode = "tui";
+        if (EngineNet.Core.Main.IsCli) mode = "cli";
+        else if (EngineNet.Core.Main.IsGui) mode = "gui";
+        else if (EngineNet.Core.Main.IsTui) mode = "tui";
         _LuaWorld.LuaScript.Globals["UIMode"] = mode;
 
         // Debug state

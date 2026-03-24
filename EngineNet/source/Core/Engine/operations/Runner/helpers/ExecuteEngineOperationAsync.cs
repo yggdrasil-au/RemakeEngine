@@ -41,7 +41,7 @@ public partial class OperationExecution {
                 Core.UI.EngineSdk.Error("Internal operation blocked: Missing source file context.");
                 return false;
             }
-            string allowedDir = System.IO.Path.Combine(Program.rootPath, "EngineApps", "Registries", "ops");
+            string allowedDir = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "EngineApps", "Registries", "ops");
             string fullSource = System.IO.Path.GetFullPath(sourceFile);
             string fullAllowed = System.IO.Path.GetFullPath(allowedDir);
 

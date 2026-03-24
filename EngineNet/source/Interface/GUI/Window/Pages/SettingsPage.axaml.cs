@@ -10,7 +10,7 @@ namespace EngineNet.Interface.GUI.Pages;
 public partial class SettingsPage:UserControl, INotifyPropertyChanged {
     //
     /** :: :: Vars :: START :: **/
-    public string ProjectRoot { get; set; } = Program.rootPath;
+    public string ProjectRoot { get; set; } = EngineNet.Core.Main.RootPath;
     public string Status { get; set; } = String.Empty;
 
     /** :: :: Vars :: END :: **/

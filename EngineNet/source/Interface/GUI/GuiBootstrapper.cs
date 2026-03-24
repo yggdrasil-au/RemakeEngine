@@ -33,7 +33,7 @@ public static class GuiBootstrapper {
             // 1) Stash the engine so App.OnFrameworkInitializationCompleted (or similar)
             //    can pull it to compose view models.
             if (engine == null) {
-                Engine = Program.InitialiseEngine().GetAwaiter().GetResult(); // only used in avalonia previewer
+                Engine = EngineNet.Core.Main.InitialiseEngineAsync().GetAwaiter().GetResult(); // only used in avalonia previewer
             } else {
                 Engine = engine;
             }

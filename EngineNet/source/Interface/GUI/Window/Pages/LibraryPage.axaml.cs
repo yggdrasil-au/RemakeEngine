@@ -157,7 +157,7 @@ public partial class LibraryPage:UserControl {
         }
 
         // 2) fallback to <project_root>/placeholder.png
-        string placeholder = System.IO.Path.Combine(Program.rootPath, "placeholder.png");
+        string placeholder = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "placeholder.png");
 
         string pick;
         if (!string.IsNullOrWhiteSpace(icon) && System.IO.File.Exists(icon)) {

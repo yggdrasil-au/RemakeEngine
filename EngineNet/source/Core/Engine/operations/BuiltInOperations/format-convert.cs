@@ -52,8 +52,8 @@ public partial class BuiltInOperations {
         // Built-in placeholders
         string gameRoot3 = gobj.GameRoot;
         ctx["Game_Root"] = gameRoot3;
-        ctx["Project_Root"] = Program.rootPath;
-        ctx["Registry_Root"] = System.IO.Path.Combine(Program.rootPath, "EngineApps");
+        ctx["Project_Root"] = EngineNet.Core.Main.RootPath;
+        ctx["Registry_Root"] = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "EngineApps");
         ctx["Game"] = new Dictionary<string, object?> {
             ["RootPath"] = gameRoot3,
             ["Name"] = currentGame,
@@ -81,7 +81,7 @@ public partial class BuiltInOperations {
         // ignore
         }
         cfgDict2["module_path"] = gameRoot3;
-        cfgDict2["project_path"] = Program.rootPath;
+        cfgDict2["project_path"] = EngineNet.Core.Main.RootPath;
 
         List<string> args = new List<string>();
         if (op.TryGetValue("args", out object? aobj) && aobj is System.Collections.IList aList) {

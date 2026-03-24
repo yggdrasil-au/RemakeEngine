@@ -18,8 +18,8 @@ public partial class BuiltInOperations {
         // Built-in placeholders
         string gameRoot4 = gobjValidate.GameRoot;
         ctx["Game_Root"] = gameRoot4;
-        ctx["Project_Root"] = Program.rootPath;
-        ctx["Registry_Root"] = System.IO.Path.Combine(Program.rootPath, "EngineApps");
+        ctx["Project_Root"] = EngineNet.Core.Main.RootPath;
+        ctx["Registry_Root"] = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "EngineApps");
         ctx["Game"] = new Dictionary<string, object?> {
             ["RootPath"] = gameRoot4,
             ["Name"] = currentGame,
@@ -46,7 +46,7 @@ public partial class BuiltInOperations {
             Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
         }
         cfgDict3["module_path"] = gameRoot4;
-        cfgDict3["project_path"] = Program.rootPath;
+        cfgDict3["project_path"] = EngineNet.Core.Main.RootPath;
 
         string? resolvedDbPath = null;
         if (op.TryGetValue("db", out object? dbObj) && dbObj is not null) {

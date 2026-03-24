@@ -33,11 +33,11 @@ public sealed class ScriptActionDispatcher {
 
             switch (t) {
                 case "lua":
-                    return new ScriptEngines.Lua.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: Program.rootPath);
+                    return new ScriptEngines.Lua.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: EngineNet.Core.Main.RootPath);
                 case "js": case "javascript":
-                    return new ScriptEngines.Js.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: Program.rootPath);
+                    return new ScriptEngines.Js.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: EngineNet.Core.Main.RootPath);
                 case "python": case "py":
-                    return new ScriptEngines.Python.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: Program.rootPath);
+                    return new ScriptEngines.Python.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: EngineNet.Core.Main.RootPath);
                 default: {
                     Core.Diagnostics.Log($"[EmbeddedActionDispatcher.cs::TryCreate()] Unsupported embedded script type '{scriptType}'");
                     return null;

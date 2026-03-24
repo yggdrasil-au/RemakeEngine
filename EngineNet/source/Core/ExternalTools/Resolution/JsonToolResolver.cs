@@ -16,7 +16,7 @@ public class JsonToolResolver {
     private System.DateTime _lastWriteTime;
 
     public JsonToolResolver() {
-        _lockfilePath = ToolLockfile.GetPath(Program.rootPath);
+        _lockfilePath = ToolLockfile.GetPath(EngineNet.Core.Main.RootPath);
         Load();
     }
 

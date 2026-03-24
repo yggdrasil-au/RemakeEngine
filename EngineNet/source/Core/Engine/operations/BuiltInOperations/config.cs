@@ -25,7 +25,7 @@ public partial class BuiltInOperations {
                 configPath = System.IO.Path.Combine(gameInfo.GameRoot, "config.toml");
             } else {
                 // Fallback
-                configPath = System.IO.Path.Combine(Program.rootPath, "config.toml");
+                configPath = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "config.toml");
             }
         }
 

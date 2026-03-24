@@ -30,8 +30,8 @@ public partial class BuiltInOperations {
         // Built-in placeholders
         string gameRoot = gobj.GameRoot;
         ctx["Game_Root"] = gameRoot;
-        ctx["Project_Root"] = Program.rootPath;
-        ctx["Registry_Root"] = System.IO.Path.Combine(Program.rootPath, "EngineApps");
+        ctx["Project_Root"] = EngineNet.Core.Main.RootPath;
+        ctx["Registry_Root"] = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "EngineApps");
         ctx["Game"] = new Dictionary<string, object?> {
             ["RootPath"] = gameRoot,
             ["Name"] = currentGame,
@@ -61,7 +61,7 @@ public partial class BuiltInOperations {
             Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
         }
         cfgDict0["module_path"] = gameRoot;
-        cfgDict0["project_path"] = Program.rootPath;
+        cfgDict0["project_path"] = EngineNet.Core.Main.RootPath;
         string resolvedManifest = Core.Utils.Placeholders.Resolve(manifest!, ctx)?.ToString() ?? manifest!;
 
         bool force = false;
@@ -73,7 +73,7 @@ public partial class BuiltInOperations {
             force = b2;
         }
 
-        ExternalTools.ToolsDownloader dl = new ExternalTools.ToolsDownloader(Program.rootPath, "");
+        ExternalTools.ToolsDownloader dl = new ExternalTools.ToolsDownloader(EngineNet.Core.Main.RootPath, "");
         await dl.ProcessAsync(resolvedManifest, force, ctx, cancellationToken);
         return true;
     }

@@ -1,3 +1,5 @@
 <Solution>
 	<Project Path="EngineNet/EngineNet.csproj" />
+	<Project Path="EngineNet/source/Core/EngineNet.Core.csproj" />
+	<Project Path="EngineNet/source/Interface/EngineNet.Interface.csproj" />
 </Solution>

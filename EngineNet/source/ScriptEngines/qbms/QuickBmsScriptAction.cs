@@ -51,7 +51,7 @@ public sealed class Main : ScriptEngines.IAction {
         } catch { /* ignore parse issues; best-effort */ }
 
         // Resolve QuickBMS exe and version via provider (tool lockfile or resolver)
-        Core.ExternalTools.ToolMetadataProvider provider = new Core.ExternalTools.ToolMetadataProvider(projectRoot: Program.rootPath, resolver: tools);
+        Core.ExternalTools.ToolMetadataProvider provider = new Core.ExternalTools.ToolMetadataProvider(projectRoot: EngineNet.Core.Main.RootPath, resolver: tools);
         (string? installedExe, string? installedVersion) = provider.ResolveExeAndVersion(toolId: "QuickBMS");
 
         // Enforce required version (if declared)

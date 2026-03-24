@@ -20,8 +20,8 @@ public partial class BuiltInOperations {
         // Built-in placeholders
         string gameRoot5 = gobj3.GameRoot;
         ctx["Game_Root"] = gameRoot5;
-        ctx["Project_Root"] = Program.rootPath;
-        ctx["Registry_Root"] = System.IO.Path.Combine(Program.rootPath, "EngineApps");
+        ctx["Project_Root"] = EngineNet.Core.Main.RootPath;
+        ctx["Registry_Root"] = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "EngineApps");
         ctx["Game"] = new Dictionary<string, object?> {
             ["RootPath"] = gameRoot5,
             ["Name"] = currentGame,
@@ -48,7 +48,7 @@ public partial class BuiltInOperations {
             Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
         }
         cfgDict4["module_path"] = gameRoot5;
-        cfgDict4["project_path"] = Program.rootPath;
+        cfgDict4["project_path"] = EngineNet.Core.Main.RootPath;
 
         List<string> args = new List<string>();
         if (op.TryGetValue("args", out object? aobjRename) && aobjRename is System.Collections.IList aListRename) {
