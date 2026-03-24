@@ -1,14 +1,6 @@
 // python interpreter
 using IronPython.Hosting;
 
-
-using System.IO;
-using System.Collections.Generic;
-
-using EngineNet.Core;
-using EngineNet.Core.UI;
-using EngineNet.ScriptEngines.Python;
-
 namespace EngineNet.ScriptEngines.Python;
 
 /// <summary>
@@ -21,7 +13,7 @@ public sealed class Main : ScriptEngines.IAction {
     private readonly string _gameRoot;
     private readonly string _projectRoot;
 
-    internal Main(string scriptPath, System.Collections.Generic.IEnumerable<string>? args, string gameRoot, string projectRoot) {
+    public Main(string scriptPath, System.Collections.Generic.IEnumerable<string>? args, string gameRoot, string projectRoot) {
         _scriptPath = scriptPath;
         _args = args is null ? System.Array.Empty<string>() : args as string[] ?? new System.Collections.Generic.List<string>(args).ToArray();
         _gameRoot = gameRoot;
