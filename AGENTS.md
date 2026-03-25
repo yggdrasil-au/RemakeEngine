@@ -12,7 +12,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and workflows
 when writing code, always add documentation and update existing relevant comments and documentation.
 
 # Lua in Remake Engine C#
-when exposing new lua globals/globally accessible components, update the lua 'api_definitions.lua' file at the root of the project to include the new components for vs code intellisense and documentation purposes, and also update the lua 'EngineApps\Games\demo\scripts\lua_feature_demo.lua' script in the demo game module to demonstrate the new features.
+when exposing new lua globals/globally accessible components, update the lua 'EngineApps\api_definitions\api_definitions.lua' file at the root of the project to include the new components for vs code intellisense and documentation purposes, and also update the lua 'EngineApps\Games\demo\scripts\lua_feature_demo.lua' script in the demo game module to demonstrate the new features.
 
 # Schema Maintenance
 Whenever changes are made to the engine's configuration parsing, metadata loading, or tool management in C# (e.g., in `OperationsLoader.cs`, `GameLauncher.cs`, or `SimpleToml.cs`), you MUST update the corresponding JSON schemas and documentation in [schemas/](schemas/).

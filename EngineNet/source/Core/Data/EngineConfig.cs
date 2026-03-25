@@ -16,6 +16,11 @@ it acts as the global settings dictionary that provides variables for script exe
 /// Configuration class for the Engine, allowing storage of arbitrary key-value pairs.
 /// </summary>
 internal sealed class EngineConfig {
+    /// <summary>
+    /// A case-insensitive dictionary for storing engine configuration data.
+    /// This can include any settings or variables that need to be accessed globally across the engine, such as paths, flags, or other parameters.
+    /// The Engine and its services can read from this dictionary to resolve variables when building execution contexts or commands.
+    /// </summary>
     internal IDictionary<string, object?> Data => _data;
     private Dictionary<string, object?> _data = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
 }

@@ -1,5 +1,24 @@
 
 
+[[operation]]
+	run-all = true
+	id = 4
+	Name = "Download Tools"
+	Instructions = "Uses the engine downloader to retrieve optional demo tooling."
+	script_type = "engine"
+	script = "download-tools"
+	tools_manifest = "{{Game_Root}}/Tools.toml"
+
+
+[[operation]]
+	#init = true
+	run-all = true
+	id = 1
+	Name = "build"
+	Instructions = ""
+	script_type = "lua"
+	script = "{{Game_Root}}/scripts/build.lua"
+	args = []
 
 
 [[operation]]
@@ -53,15 +72,6 @@
 	script = "{{Game_Root}}/scripts/python_feature_demo.py"
 	args = []
 
-
-[[operation]]
-	run-all = true
-	id = 4
-	Name = "Download Tools"
-	Instructions = "Uses the engine downloader to retrieve optional demo tooling."
-	script_type = "engine"
-	script = "download-tools"
-	tools_manifest = "{{Game_Root}}/Tools.toml"
 
 [[operation]]
 	id = 5

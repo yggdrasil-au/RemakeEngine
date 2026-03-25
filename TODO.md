@@ -92,32 +92,11 @@ Example:
 dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module "demo" --run_op 1
 ```
 
----
-
-### CLI
-:: FEATURE :: add run-all option to cli
+:: FEATURE :: add run-all option to cli after adding support for running operations by name/id.
 
 ---
 
 ## FileHandlers
-
-### TxdExtractor
-
-* :: FEATURE :: Add support for **exporting PNG directly from DDS** to avoid requiring external conversion tools.
-
-Possible approaches:
-
-Use a **C# image processing library**.
-
-```
-SixLabors.ImageSharp
-```
-
-to `EngineNet.csproj`.
-
-This would allow **pure C# in-memory conversion from DDS pixel data to PNG**, avoiding the overhead of invoking an external tool like ImageMagick.
-
----
 
 * :: ISSUE ::
 
@@ -128,3 +107,5 @@ The **gyan builds** do not work correctly for the **VP6 → OGV conversion** req
 Additional problem:
 
 * The **ffmpeg 8.0 tool definition currently uses "latest build"**, which causes hash verification to fail when the upstream build changes.
+
+
