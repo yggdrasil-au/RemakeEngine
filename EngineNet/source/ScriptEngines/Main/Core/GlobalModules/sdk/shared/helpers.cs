@@ -234,4 +234,38 @@ internal static class Helpers {
         }
 
     }
+
+    internal static class AddYamlHelpers {
+        internal static object? Yaml_Read_File(string path) {
+            try {
+                // Security: Validate path is within allowed areas
+                if (!Security.IsAllowedPath(path)) {
+                    Core.UI.EngineSdk.Error($"Access denied: yaml_read_file path is outside allowed areas ('{path}')");
+                    return null;
+                }
+
+                object obj = Core.Serialization.Yaml.YamlHelpers.ParseFileToPlainObject(path);
+                return obj;
+            } catch (System.Exception ex) {
+                Core.UI.EngineSdk.Error($"YAML read failed: {ex.Message}");
+                Core.Diagnostics.LuaInternalCatch("yaml_read_file failed with exception: " + ex);
+                return null;
+            }
+        }
+
+        internal static void Yaml_Write_File(string path, object? obj) {
+            try {
+                // Security: Validate path is within allowed areas
+                if (!Security.IsAllowedPath(path)) {
+                    Core.UI.EngineSdk.Error($"Access denied: yaml_write_file path is outside allowed areas ('{path}')");
+                    return;
+                }
+
+                Core.Serialization.Yaml.YamlHelpers.WriteYamlFile(path, obj);
+            } catch (System.Exception ex) {
+                Core.UI.EngineSdk.Error($"YAML write failed: {ex.Message}");
+                Core.Diagnostics.LuaInternalCatch("yaml_write_file failed with exception: " + ex);
+            }
+        }
+    }
 }

@@ -2,6 +2,10 @@
 
 ## Engine
 
+### modules
+some modules have git submodules, ensure engine clones with `--recurse-submodules` to avoid missing files.
+
+
 ### Operations
 
 * :: FEATURE :: Add **parallel execution support** for operations based on declared dependencies.

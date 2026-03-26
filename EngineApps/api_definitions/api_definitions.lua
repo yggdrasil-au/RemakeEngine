@@ -710,17 +710,27 @@ function sdk.toml_read_file(path) end
 ---@param value table
 function sdk.toml_write_file(path, value) end
 
+--- Reads a YAML file into a Lua table.
+---@param path string
+---@return table|nil data
+function sdk.yaml_read_file(path) end
+
+--- Writes a Lua table to a YAML file.
+---@param path string
+---@param value table
+function sdk.yaml_write_file(path, value) end
+
 --- TOML helpers in sdk.text.toml.
 ---@class SdkTextToml
----@field read_file fun(path: string): table|nil
----@field write_file fun(path: string, value: table)
+---@field read_file? fun(path: string): table|nil
+---@field write_file? fun(path: string, value: table)
 local SdkTextToml = {}
 
 --- JSON helpers in sdk.text.json.
 ---@class SdkTextJson
----@field encode fun(value: any, opts?: JsonEncodeOptions): string
----@field decode fun(json: string): any
----@field isNull fun(val: any): boolean
+---@field encode? fun(value: any, opts?: JsonEncodeOptions): string
+---@field decode? fun(json: string): any
+---@field isNull? fun(val: any): boolean
 local SdkTextJson = {}
 
 --- Encodes a Lua value to JSON.
@@ -734,14 +744,35 @@ function SdkTextJson.encode(value, opts) end
 ---@return any value
 function SdkTextJson.decode(json) end
 
+--- YAML helpers in sdk.text.yaml.
+---@class SdkTextYaml
+---@field encode? fun(value: any, opts?: JsonEncodeOptions): string
+---@field decode? fun(yaml: string): any
+---@field read_file? fun(path: string): table|nil
+---@field write_file? fun(path: string, value: table)
+local SdkTextYaml = {}
+
+--- Encodes a Lua value to YAML.
+---@param value any
+---@param opts? JsonEncodeOptions
+---@return string yaml
+function SdkTextYaml.encode(value, opts) end
+
+--- Decodes YAML into Lua values.
+---@param yaml string
+---@return any value
+function SdkTextYaml.decode(yaml) end
+
 ---@class SdkText
----@field json SdkTextJson
----@field toml SdkTextToml
+---@field json? SdkTextJson
+---@field toml? SdkTextToml
+---@field yaml? SdkTextYaml
 local SdkText = {}
 
 sdk.text = {}
 sdk.text.json = {}
 sdk.text.toml = {}
+sdk.text.yaml = {}
 
 --- Encodes a Lua value to JSON.
 ---@param value any
@@ -768,6 +799,27 @@ function sdk.text.toml.read_file(path) end
 ---@param path string
 ---@param value table
 function sdk.text.toml.write_file(path, value) end
+
+--- Encodes a Lua value to YAML.
+---@param value any
+---@param opts? JsonEncodeOptions
+---@return string yaml
+function sdk.text.yaml.encode(value, opts) end
+
+--- Decodes YAML into Lua values.
+---@param yaml string
+---@return any value
+function sdk.text.yaml.decode(yaml) end
+
+--- Reads a YAML file into a Lua table.
+---@param path string
+---@return table|nil data
+function sdk.text.yaml.read_file(path) end
+
+--- Writes a Lua table to a YAML file.
+---@param path string
+---@param value table
+function sdk.text.yaml.write_file(path, value) end
 
 --- Executes a process and streams output to the engine console in real-time.
 --- Security: The executable must be in the approved tools list (use 'tool()' to resolve).

@@ -4,7 +4,7 @@ Demonstrates EVERY C# tool available from LuaScriptAction.cs including:
 - Global functions: tool(), argv, warn/error, prompt(), progress()
 - SDK file/directory operations: ensure_dir, path_exists, copy/move operations, etc.
 - SDK symlink operations: create_symlink, is_symlink, realpath, readlink
-- SDK utilities: color_print, sleep, md5, TOML helpers
+- SDK utilities: color_print, sleep, md5, TOML/YAML helpers
 - SDK process execution: exec, run_process
 - SQLite module: open, exec, query, transactions
 --]]
@@ -55,7 +55,7 @@ sdk.color_print('white', ' (color vs colour)')
 
 -- Stage-based script progress (for GUI status indicator)
 -- New progress API usage
-progress.start(19, 'Comprehensive Lua API Demo')
+progress.start(20, 'Comprehensive Lua API Demo')
 
 sdk.color_print('yellow', '--- Progress Tracking Examples ---')
 -- ❌ INCORRECT: Common progress mistakes
@@ -289,7 +289,7 @@ local test_config = {
     demo = {
         name = 'Lua API Demo',
         version = '1.0.0',
-        features = {'sqlite', 'filesystem', 'toml', 'json'}
+        features = {'sqlite', 'filesystem', 'toml', 'yaml', 'json'}
     },
     paths = {
         scratch = scratch_root,
@@ -311,6 +311,32 @@ sdk.color_print('green', 'TOML file written to: ' .. scratch_root .. '/test_conf
 local loaded_toml_alt = sdk.text.toml.read_file(scratch_root .. '/test_config_alt.toml')
 if loaded_toml_alt and loaded_toml_alt.demo then
     sdk.color_print('green', 'TOML loaded successfully (alt) - demo version: ' .. tostring(loaded_toml_alt.demo.version))
+end
+
+progress.step('Testing YAML operations')
+
+-- SDK YAML helpers
+local yaml_test_path = scratch_root .. '/test_config.yaml'
+sdk.yaml_write_file(yaml_test_path, test_config)
+sdk.color_print('green', 'YAML file written to: ' .. yaml_test_path)
+
+local loaded_yaml = sdk.yaml_read_file(yaml_test_path)
+if loaded_yaml and loaded_yaml.demo then
+    sdk.color_print('green', 'YAML loaded successfully - demo name: ' .. tostring(loaded_yaml.demo.name))
+end
+
+sdk.text.yaml.write_file(scratch_root .. '/test_config_alt.yaml', test_config)
+sdk.color_print('green', 'YAML file written to: ' .. scratch_root .. '/test_config_alt.yaml')
+
+local loaded_yaml_alt = sdk.text.yaml.read_file(scratch_root .. '/test_config_alt.yaml')
+if loaded_yaml_alt and loaded_yaml_alt.demo then
+    sdk.color_print('green', 'YAML loaded successfully (alt) - demo version: ' .. tostring(loaded_yaml_alt.demo.version))
+end
+
+local encoded_yaml = sdk.text.yaml.encode(test_config, { indent = true })
+local decoded_yaml = sdk.text.yaml.decode(encoded_yaml)
+if decoded_yaml and decoded_yaml.demo then
+    sdk.color_print('green', 'YAML encode/decode successful - demo version: ' .. tostring(decoded_yaml.demo.version))
 end
 
 progress.step('Testing process execution (run_process)')
@@ -394,6 +420,8 @@ local features_to_log = {
     {'sdk', 'sleep()', 'Sleep/delay'},
     {'sdk', 'toml_read_file()', 'TOML file reading'},
     {'sdk', 'toml_write_file()', 'TOML file writing'},
+    {'sdk', 'yaml_read_file()', 'YAML file reading'},
+    {'sdk', 'yaml_write_file()', 'YAML file writing'},
     {'sdk', 'run_process()', 'Process execution with capture'},
     {'sdk', 'exec()', 'Process execution streaming'},
     {'sqlite', 'open()', 'Database opening'},
@@ -488,13 +516,15 @@ local comprehensive_summary = {
         scratch_root = scratch_root,
         --config_path = config_path,
         sqlite_path = sqlite_path,
-        toml_path = toml_test_path
+        toml_path = toml_test_path,
+        yaml_path = yaml_test_path
     },
     test_results = {
         directory_operations = true,
         file_operations = copy_success and backup_success,
         symlink_operations = symlink_success,
         toml_operations = loaded_toml ~= nil,
+        yaml_operations = loaded_yaml ~= nil and loaded_yaml_alt ~= nil and decoded_yaml ~= nil,
         sqlite_operations = count_after_rollback > 0,
         process_execution = process_result and process_result.success,
         json_module = true
@@ -515,7 +545,9 @@ local rf = io.open(json_path, 'r')
 local loaded_json
 if rf then
     local content = rf:read('*a'); rf:close()
-    loaded_json = sdk.text.json.decode(content)
+    if content then
+        loaded_json = sdk.text.json.decode(content)
+    end
 end
 if loaded_json and loaded_json.demo_info then
     sdk.color_print('green', 'JSON loaded successfully - title: ' .. tostring(loaded_json.demo_info.title))

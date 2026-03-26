@@ -96,7 +96,7 @@ internal class LuaWorld {
     }
 
     /// <summary>
-    /// Container for sdk.text tables (sdk.text.json, sdk.text.toml).
+    /// Container for sdk.text tables (sdk.text.json, sdk.text.toml, sdk.text.yaml).
     /// </summary>
     internal class TextContainer {
         /// <summary>
@@ -115,15 +115,22 @@ internal class LuaWorld {
         internal Table Toml { get; }
 
         /// <summary>
+        /// Gets the sdk.text.yaml table.
+        /// </summary>
+        internal Table Yaml { get; }
+
+        /// <summary>
         /// Creates a new text container and links tables in MoonSharp.
         /// </summary>
         internal TextContainer(Script script) {
             Table = new Table(script);
             Json = new Table(script);
             Toml = new Table(script);
+            Yaml = new Table(script);
 
             Table["json"] = Json;
             Table["toml"] = Toml;
+            Table["yaml"] = Yaml;
         }
     }
 

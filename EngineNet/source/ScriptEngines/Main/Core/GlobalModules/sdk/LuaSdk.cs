@@ -19,11 +19,14 @@ internal static partial class Sdk {
         // Archive operations
         AddArchiveOperations(_LuaWorld);
 
-        // TOML helpers
+        // Register TOML encoding/decoding functions in sdk.text.toml
         AddTomlHelpers(_LuaWorld);
 
         // Register JSON encoding/decoding functions in sdk.text.json
         JsonModules(_LuaWorld);
+
+        // Register YAML encoding/decoding and file helpers in sdk.text.yaml
+        YamlModules(_LuaWorld);
 
         // Process execution helpers
         AddProcessExecution(_LuaWorld, tools);
