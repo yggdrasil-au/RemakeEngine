@@ -60,8 +60,8 @@ internal sealed class ToolsDownloader {
             Core.UI.EngineSdk.PrintLine($"Processing: {toolName} {version}", System.ConsoleColor.Cyan);
 
             // Check if version is already fully installed
-            if (!force && lockData.TryGetValue(toolName!, out object? existingToolObj)) {
-                object? existingVerObj = GetProperty(existingToolObj, version!);
+            if (!force && lockData.TryGetValue(toolName, out object? existingToolObj)) {
+                object? existingVerObj = GetProperty(existingToolObj, version);
                 if (existingVerObj != null) {
                     string? existingExe = GetStringProperty(existingVerObj, "exe");
                     string? existingInstallPath = GetStringProperty(existingVerObj, "install_path");
@@ -78,7 +78,7 @@ internal sealed class ToolsDownloader {
                 }
             }
 
-            if (!TryLookupPlatform(central, toolName!, version!, platform, out string? url, out string? sha256, out string? checksumSource, out object? platformData)) {
+            if (!TryLookupPlatform(central, toolName, version, platform, out string? url, out string? sha256, out string? checksumSource, out object? platformData)) {
                 Core.UI.EngineSdk.PrintLine($"1 ERROR: Not in registry for platform '{platform}'.", System.ConsoleColor.Red);
                 continue;
             }
@@ -186,7 +186,7 @@ internal sealed class ToolsDownloader {
 
             string? exePath = null;
             if (unpack && !string.IsNullOrWhiteSpace(unpackDest)) {
-                string dest = System.IO.Path.GetFullPath(System.IO.Path.Combine(_rootPath, unpackDest!));
+                string dest = System.IO.Path.GetFullPath(System.IO.Path.Combine(_rootPath, unpackDest));
                 System.IO.Directory.CreateDirectory(dest);
                 Core.UI.EngineSdk.Info($"Unpacking to: {dest}");
                 List<string>? extractedFiles = null;
@@ -200,9 +200,9 @@ internal sealed class ToolsDownloader {
 
                 // Try to find an exe in dest (best-effort)
                 if (extractedFiles != null && extractedFiles.Count > 0) {
-                    exePath = FindExe(extractedFiles, toolName!, platformData);
+                    exePath = FindExe(extractedFiles, toolName, platformData);
                 } else {
-                    exePath = FindExe(dest, toolName!, platformData);
+                    exePath = FindExe(dest, toolName, platformData);
                 }
                 
                 if (!string.IsNullOrWhiteSpace(exePath)) {
@@ -213,17 +213,17 @@ internal sealed class ToolsDownloader {
             }
 
             // Update lockfile entry (supports multiple versions per tool)
-            if (!lockData.TryGetValue(toolName!, out object? toolObj) || toolObj is not Dictionary<string, object?> toolVersions) {
+            if (!lockData.TryGetValue(toolName, out object? toolObj) || toolObj is not Dictionary<string, object?> toolVersions) {
                 toolVersions = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-                lockData[toolName!] = toolVersions;
+                lockData[toolName] = toolVersions;
             }
 
-            toolVersions[version!] = new Dictionary<string, object?> {
+            toolVersions[version] = new Dictionary<string, object?> {
                 ["version"] = version,
                 ["platform"] = platform,
                 ["install_path"] = string.IsNullOrWhiteSpace(unpackDest) 
                     ? System.IO.Path.GetFullPath(downloadDir) 
-                    : System.IO.Path.GetFullPath(System.IO.Path.Combine(_rootPath, unpackDest!)),
+                    : System.IO.Path.GetFullPath(System.IO.Path.Combine(_rootPath, unpackDest)),
                 ["exe"] = exePath,
                 ["sha256"] = sha256,
                 ["source_url"] = url

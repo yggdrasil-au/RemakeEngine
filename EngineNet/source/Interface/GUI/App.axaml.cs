@@ -2,7 +2,7 @@ using Avalonia;
 
 namespace EngineNet.Interface.GUI;
 
-public partial class App:Avalonia.Application {
+public class App:Avalonia.Application {
     public override void Initialize() {
         Avalonia.Markup.Xaml.AvaloniaXamlLoader.Load(this);
     }

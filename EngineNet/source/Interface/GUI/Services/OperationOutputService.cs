@@ -90,8 +90,8 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
 
     // Script activity tracking (stage-based indicator)
     private string _activeScriptName = string.Empty;
-    private int _activeScriptStages = 0;
-    private int _activeScriptCurrent = 0;
+    //private int _activeScriptStages;
+    //private int _activeScriptCurrent;
 
     private string _activeJobsSummary = "Active: none";
     public string ActiveJobsSummary {
@@ -142,8 +142,8 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     private const int FlushBatchMax = 250;
     private const int MaxLines = 5000;
     private const int MaxChars = 200_000;
-    private int _currentChars = 0;
-    private bool _flushTimerRequested = false;
+    private int _currentChars;
+    private bool _flushTimerRequested;
 
     /// <summary>
     /// Add a raw output line (buffered + throttled for UI responsiveness).
@@ -448,8 +448,8 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
 
     private void HandleScriptActiveStart(Dictionary<string, object?> payload) {
         _activeScriptName = payload.TryGetValue("name", out object? n) ? n?.ToString() ?? "Script" : "Script";
-        _activeScriptStages = 0;
-        _activeScriptCurrent = 0;
+        //_activeScriptStages = 0;
+        //_activeScriptCurrent = 0;
         // Use bottom panel to show script activity even if no progress panel is active
         IsProgressPanelActive = true;
         ProgressLabel = _activeScriptName;
@@ -467,8 +467,8 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
         if (current < 0) current = 0;
         if (current > total) current = total;
 
-        _activeScriptStages = total;
-        _activeScriptCurrent = current;
+        //_activeScriptStages = total;
+        //_activeScriptCurrent = current;
 
         IsProgressPanelActive = true;
         ProgressLabel = string.IsNullOrEmpty(label) ? (_activeScriptName.Length > 0 ? _activeScriptName : "Script") : label;
@@ -488,8 +488,8 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
         CurrentSpinner = string.Empty;
         // Leave panel visible at 100% until next operation resets/overrides it
         _activeScriptName = string.Empty;
-        _activeScriptStages = 0;
-        _activeScriptCurrent = 0;
+        //_activeScriptStages = 0;
+        //_activeScriptCurrent = 0;
     }
 
     private void UpdateProgressPanelLines(IReadOnlyList<string> lines) {

@@ -1,7 +1,7 @@
 
 namespace EngineNet.Core.Engine.Operations.helpers;
 
-internal class OpDispatcher {
+internal static class OpDispatcher {
 
     // used by run single operation to execute engine operations of type "engine"
 
@@ -15,7 +15,7 @@ internal class OpDispatcher {
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     /// <exception cref="KeyNotFoundException"></exception>
-    internal async System.Threading.Tasks.Task<bool> DispatchAsync(
+    internal static async System.Threading.Tasks.Task<bool> DispatchAsync(
         IDictionary<string, object?> executableOperation,
         IDictionary<string, object?> promptAnswers,
         string currentGame,
@@ -105,13 +105,19 @@ internal class OpDispatcher {
 
 }
 
+/// <summary>
+/// Encapsulates arguments for engine operations of type "engine".
+/// This is used to pass multiple parameters to built-in actions in a clean way, and can be extended in the future without changing method signatures.
+/// </summary>
 internal class OperationArgs {
-    internal IDictionary<string, object?> op;
-    internal IDictionary<string, object?> promptAnswers;
-    internal string currentGame;
-    internal Dictionary<string, Core.Data.GameModuleInfo> games;
-    internal EngineContext context;
-    internal System.Threading.CancellationToken cancellationToken;
+    // values here must be readonly to ensure immutability, as the BuiltInOperations class and methods are static (for now) and should not have mutable state.
+
+    internal readonly IDictionary<string, object?> op;
+    internal readonly IDictionary<string, object?> promptAnswers;
+    internal readonly string currentGame;
+    internal readonly Dictionary<string, Core.Data.GameModuleInfo> games;
+    internal readonly EngineContext context;
+    internal readonly System.Threading.CancellationToken cancellationToken;
 
     internal OperationArgs(
         IDictionary<string, object?> op,

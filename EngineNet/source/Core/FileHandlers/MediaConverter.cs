@@ -21,18 +21,18 @@ internal static class MediaConverter {
         internal string Target = string.Empty;              // directory
         internal string InputExt = string.Empty;            // eg .vp6, .snu
         internal string OutputExt = string.Empty;           // eg .ogv, .wav
-        internal bool Overwrite = false;
-        internal bool Replace = false;
-        internal bool GodotCompatible = false;
+        internal bool Overwrite;
+        internal bool Replace;
+        internal bool GodotCompatible;
         internal string? FfmpegPath;                        // ffmpeg/ffmpeg.exe
         internal string? VgmstreamCli;                      // vgmstream-cli/vgmstream-cli.exe
         internal string VideoCodec = "libtheora";
         internal string VideoQuality = "10";
         internal string AudioCodec = "libvorbis";
         internal string AudioQuality = "10";
-        internal int? Workers = null;                       // default 75% cores
-        internal bool Verbose = false;
-        internal bool Debug = false;
+        internal int? Workers;                       // default 75% cores
+        internal bool Verbose;
+        internal bool Debug;
     }
 
     // Tracks currently running external conversions (for progress panel)
@@ -495,8 +495,8 @@ internal static class MediaConverter {
         Options o = new Options();
         // Simple argv parser (supports both short and long flags)
         for (int i = 0; i < argv.Count; i++) {
-            string a = argv[i] ?? string.Empty;
-            string NextVal() => ++i < argv.Count ? argv[i] ?? string.Empty : throw new System.ArgumentException($"Missing value for {a}");
+            string a = argv[i];
+            string NextVal() => ++i < argv.Count ? argv[i] : throw new System.ArgumentException($"Missing value for {a}");
 
             switch (a) {
                 case "-m":

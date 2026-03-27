@@ -80,7 +80,7 @@ internal static class JsAction {
 
         // progress.new(total, id, label) -> Core.UI.EngineSdk.PanelProgress userdata
         _JSWorld.Progress["new"] = (Func<int, string?, string?, Core.UI.EngineSdk.PanelProgress>)((total, id, label) => {
-            string pid = string.IsNullOrEmpty(id) ? "p1" : id!;
+            string pid = string.IsNullOrEmpty(id) ? "p1" : id;
             return new Core.UI.EngineSdk.PanelProgress(total, pid, label);
         });
 

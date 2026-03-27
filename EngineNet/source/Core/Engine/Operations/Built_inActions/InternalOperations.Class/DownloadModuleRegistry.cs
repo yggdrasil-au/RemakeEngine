@@ -19,7 +19,7 @@ internal partial class InternalOperations {
         var knownModules = context.GameRegistry.GetRegisteredModules();
         string? url = input;
 
-        if (knownModules.TryGetValue(input!, out object? modObj) && modObj is Dictionary<string, object?> modData) {
+        if (knownModules.TryGetValue(input, out object? modObj) && modObj is Dictionary<string, object?> modData) {
             if (modData.TryGetValue("url", out object? uObj)) {
                 url = uObj?.ToString();
             }

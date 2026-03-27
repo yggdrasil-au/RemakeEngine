@@ -29,7 +29,7 @@ public sealed partial class ProcessRunner {
                 sb.Append(' ');
             }
 
-            sb.Append(QuoteArg(parts[i] ?? string.Empty));
+            sb.Append(QuoteArg(parts[i]));
         }
         return sb.ToString();
     }

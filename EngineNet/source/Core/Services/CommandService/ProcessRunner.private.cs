@@ -111,7 +111,7 @@ public sealed partial class ProcessRunner() {
             proc.BeginErrorReadLine();
 
             bool awaitingPrompt = false;
-            string? lastPromptMsg = null;
+            //string? lastPromptMsg = null;
 
             void SendToChild(string? text) {
                 try {
@@ -159,7 +159,7 @@ public sealed partial class ProcessRunner() {
                 string? promptMsg = HandleLine(item.line, item.stream);
                 if (promptMsg != null) {
                     awaitingPrompt = true;
-                    lastPromptMsg = promptMsg;
+                    //lastPromptMsg = promptMsg;
                 }
 
                 if (awaitingPrompt && !proc.HasExited) {
@@ -169,7 +169,7 @@ public sealed partial class ProcessRunner() {
                     } catch { ans = string.Empty; }
                     SendToChild(ans);
                     awaitingPrompt = false;
-                    lastPromptMsg = null;
+                    //lastPromptMsg = null;
                 }
             }
 

@@ -137,7 +137,7 @@ internal static class FileSystemUtils {
         // Prepare files list to compute progress
         List<string> files = System.IO.Directory.EnumerateFiles(srcRoot, "*", System.IO.SearchOption.AllDirectories).ToList();
         int total = files.Count;
-        int current = 0;
+        //int current = 0;
 
         using Core.UI.EngineSdk.PanelProgress? progress = total > 0
             ? new Core.UI.EngineSdk.PanelProgress(total, id: "fs_copy", label: progressLabel ?? $"Copying {total} files...")
@@ -155,7 +155,7 @@ internal static class FileSystemUtils {
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(target)!);
             System.IO.File.Copy(file, target, overwrite: true);
 
-            current++;
+            //current++;
             progress?.Update(1);
         }
 

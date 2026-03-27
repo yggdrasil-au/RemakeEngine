@@ -21,15 +21,15 @@ internal static class Main {
         get; private set;
     }
 
-    internal static Func<Task<EngineNet.Core.Engine.IEngineFace>>? EngineFactory {
-        get; private set;
+    private static Func<Task<EngineNet.Core.Engine.IEngineFace>>? EngineFactory {
+        get; set;
     }
 
     /// <summary>
     /// Configures runtime state from the host entry point.
     /// </summary>
     internal static void ConfigureRuntime(string rootPath, bool isGui, bool isTui, bool isCli, Func<Task<EngineNet.Core.Engine.IEngineFace>>? engineFactory = null) {
-        RootPath = rootPath ?? string.Empty;
+        RootPath = rootPath;
         IsGui = isGui;
         IsTui = isTui;
         IsCli = isCli;

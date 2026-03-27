@@ -23,8 +23,8 @@ internal static class ProcessExecution {
         internal object StderrLock { get; } = new object();
 
         // NEW: cursors so we can return deltas safely (without breaking existing API)
-        internal int StdoutCursor { get; set; } = 0;
-        internal int StderrCursor { get; set; } = 0;
+        internal int StdoutCursor { get; set; }
+        internal int StderrCursor { get; set; }
 
         internal System.Threading.Tasks.TaskCompletionSource<int> ExitTcs { get; } =
             new System.Threading.Tasks.TaskCompletionSource<int>(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
@@ -32,7 +32,7 @@ internal static class ProcessExecution {
 
     // pid -> ManagedProcess
     internal static readonly System.Collections.Concurrent.ConcurrentDictionary<int, ManagedProcess> s_processes = new System.Collections.Concurrent.ConcurrentDictionary<int, ManagedProcess>();
-    private static int s_nextPid = 0;
+    private static int s_nextPid;
 
     // Heuristic helpers for path-like arguments and validation
     private static bool LooksLikePath(string s) {
@@ -58,7 +58,7 @@ internal static class ProcessExecution {
 
     private static bool ValidateArgPaths(IEnumerable<string> args, string? cwd) {
         if (!string.IsNullOrEmpty(cwd)) {
-            if (!EngineNet.ScriptEngines.Security.IsAllowedPath(cwd!)) {
+            if (!EngineNet.ScriptEngines.Security.IsAllowedPath(cwd)) {
                 Core.UI.EngineSdk.Error($"Access denied: working directory outside allowed areas ('{cwd}')");
                 return false;
             }
@@ -218,7 +218,7 @@ internal static class ProcessExecution {
         bool newTerminal = false;
         bool keepOpen = false;
         bool wait = true;
-        string? title = null;
+        //string? title = null;
         Dictionary<string, object?> env = new Dictionary<string, object?>(System.StringComparer.Ordinal);
 
         if (options != null) {
@@ -235,8 +235,8 @@ internal static class ProcessExecution {
             v = options.Get("wait");
             if (v.Type == DataType.Boolean) { wait = v.Boolean; }
 
-            v = options.Get("title");
-            if (v.Type == DataType.String) { title = v.String; }
+            //v = options.Get("title");
+            //if (v.Type == DataType.String) { title = v.String; }
 
             v = options.Get("env");
             if (v.Type == DataType.Table) {
@@ -383,17 +383,18 @@ internal static class ProcessExecution {
 
     internal static DynValue WaitProcess(Script lua, int pid, int? timeoutMs) {
         if (!s_processes.TryGetValue(pid, out var mp)) throw new ScriptRuntimeException($"Unknown process id {pid}");
-        bool finished;
+        // TODO: 
+        //bool finished;
         try {
             if (timeoutMs.HasValue) {
-                finished = mp.ExitTcs.Task.Wait(timeoutMs.Value);
+                //finished = mp.ExitTcs.Task.Wait(timeoutMs.Value);
             } else {
-                finished = mp.ExitTcs.Task.Wait(System.Threading.Timeout.Infinite);
+                //finished = mp.ExitTcs.Task.Wait(System.Threading.Timeout.Infinite);
             }
         } catch (System.Exception) {
-            finished = mp.Process.HasExited;
+            //finished = mp.Process.HasExited;
         }
-        Table t = new Table(lua);
+        var t = new Table(lua);
         bool running = !mp.Process.HasExited;
         t["running"] = running;
         if (!running) t["exit_code"] = mp.Process.ExitCode;

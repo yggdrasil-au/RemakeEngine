@@ -1,29 +1,20 @@
+using System.Text.Json;
+
 namespace EngineNet.Core.ExternalTools;
-
-using System.Collections.Generic;
-
-
 
 /// <summary>
 /// Provides metadata for tools (executable path and optional version) by
 /// consulting <see cref="ToolLockfile.ToolLockfileName"/> when available, and falling back to EngineNet.Core.ExternalTools.JsonToolResolver.
 /// </summary>
-internal sealed class ToolMetadataProvider {
-    private readonly string _projectRoot;
-    private readonly EngineNet.Core.ExternalTools.JsonToolResolver _resolver;
+internal static class ToolMetadataProvider {
 
-    internal ToolMetadataProvider(string projectRoot, EngineNet.Core.ExternalTools.JsonToolResolver resolver) {
-        _projectRoot = projectRoot;
-        _resolver = resolver;
-    }
-
-    internal (string? exe, string? version) ResolveExeAndVersion(string toolId) {
-        string jsonPath = ToolLockfile.GetPath(_projectRoot);
+    internal static (string? exe, string? version) ResolveExeAndVersion(string toolId, string _rootPath, JsonToolResolver _toolResolver) {
+        string jsonPath = ToolLockfile.GetPath(_rootPath);
 
         if (System.IO.File.Exists(jsonPath)) {
             try {
-            using System.IO.FileStream fs = System.IO.File.OpenRead(jsonPath);
-                using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(fs);
+                JsonDocument doc = System.Text.Json.JsonDocument.Parse(System.IO.File.OpenRead(jsonPath));
+
                 if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object) {
                     foreach (System.Text.Json.JsonProperty prop in doc.RootElement.EnumerateObject()) {
                         if (!prop.Name.Equals(toolId, System.StringComparison.OrdinalIgnoreCase)) continue;
@@ -31,7 +22,7 @@ internal sealed class ToolMetadataProvider {
                         // Accept string or { exe, version }
                         if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.String) {
                             string? exeStr = prop.Value.GetString();
-                            return (ResolveRelative(jsonPath!, exeStr), null);
+                            return (ResolveRelative(jsonPath, exeStr), null);
                         }
 
                         if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Object) {
@@ -43,7 +34,7 @@ internal sealed class ToolMetadataProvider {
                             foreach (var vProp in prop.Value.EnumerateObject()) {
                                 if (vProp.Value.ValueKind == System.Text.Json.JsonValueKind.Object) {
                                     if (vProp.Value.TryGetProperty("exe", out System.Text.Json.JsonElement exeEl) && exeEl.ValueKind == System.Text.Json.JsonValueKind.String) {
-                                        exe = ResolveRelative(jsonPath!, exeEl.GetString());
+                                        exe = ResolveRelative(jsonPath, exeEl.GetString());
                                         version = vProp.Name;
                                         return (exe, version);
                                     }
@@ -52,7 +43,7 @@ internal sealed class ToolMetadataProvider {
 
                             // fallback to { exe, version } format
                             if (prop.Value.TryGetProperty("exe", out System.Text.Json.JsonElement exeEl2) && exeEl2.ValueKind == System.Text.Json.JsonValueKind.String) {
-                                exe = ResolveRelative(jsonPath!, exeEl2.GetString());
+                                exe = ResolveRelative(jsonPath, exeEl2.GetString());
                             }
                             if (prop.Value.TryGetProperty("version", out System.Text.Json.JsonElement verEl) && verEl.ValueKind == System.Text.Json.JsonValueKind.String) {
                                 version = verEl.GetString();
@@ -65,15 +56,15 @@ internal sealed class ToolMetadataProvider {
         }
 
         // Fallback to tool resolver path
-        string path = _resolver.ResolveToolPath(toolId);
+        string path = _toolResolver.ResolveToolPath(toolId);
         return (path, null);
     }
 
     private static string ResolveRelative(string jsonPath, string? path) {
         if (string.IsNullOrWhiteSpace(path)) return string.Empty;
-        if (System.IO.Path.IsPathRooted(path!)) return path!;
+        if (System.IO.Path.IsPathRooted(path)) return path;
         string baseDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(jsonPath)) ?? System.IO.Directory.GetCurrentDirectory();
-        return System.IO.Path.GetFullPath(System.IO.Path.Combine(baseDir, path!));
+        return System.IO.Path.GetFullPath(System.IO.Path.Combine(baseDir, path));
     }
 }
 

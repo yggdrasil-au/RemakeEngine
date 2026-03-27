@@ -37,11 +37,11 @@ internal static class ImageMagickConverter {
         internal string InputExt = string.Empty;
         internal string OutputExt = string.Empty;
 
-        internal bool Overwrite = false;
-        internal bool Replace = false;
-        internal int? Workers = null;
-        internal bool Verbose = false;
-        internal bool Debug = false;
+        internal bool Overwrite;
+        internal bool Replace;
+        internal int? Workers;
+        //internal bool Verbose;
+        internal bool Debug;
 
         internal string? MagickPath;
 
@@ -59,7 +59,7 @@ internal static class ImageMagickConverter {
             Options opt = Parse(args);
 
             // Resolve magick executable
-            opt.MagickPath ??= toolResolver.ResolveToolPath(ImageMagickName) ?? toolResolver.ResolveToolPath(ToolMagick);
+            opt.MagickPath ??= toolResolver.ResolveToolPath(ImageMagickName);
             if (string.IsNullOrWhiteSpace(opt.MagickPath) || !File.Exists(opt.MagickPath!)) {
                 // Try PATH fallbacks
                 opt.MagickPath = Which("magick.exe") ?? Which("magick") ?? opt.MagickPath;
@@ -355,8 +355,8 @@ internal static class ImageMagickConverter {
         Options o = new Options();
 
         for (int i = 0; i < argv.Count; i++) {
-            string a = argv[i] ?? string.Empty;
-            string NextVal() => ++i < argv.Count ? argv[i] ?? string.Empty : throw new ArgumentException($"Missing value for {a}");
+            string a = argv[i];
+            string NextVal() => ++i < argv.Count ? argv[i] : throw new ArgumentException($"Missing value for {a}");
 
             switch (a) {
                 case "-s":
@@ -389,7 +389,7 @@ internal static class ImageMagickConverter {
                     break;
                 case "-v":
                 case "--verbose":
-                    o.Verbose = true;
+                    //o.Verbose = true;
                     break;
                 case "-d":
                 case "--debug":

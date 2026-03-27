@@ -15,7 +15,7 @@ internal class GameLauncher {
     private readonly GameRegistry _gameRegistry;
     private readonly ExternalTools.JsonToolResolver _toolResolver;
     private readonly EngineConfig _config;
-    private readonly string _rootPath;
+    private readonly string _rootPath = Main.RootPath;
 
     /* :: :: Constructors :: START :: */
 
@@ -25,12 +25,10 @@ internal class GameLauncher {
     /// <param name="gameRegistry">The registry to look up game paths and executables.</param>
     /// <param name="toolResolver">The tool resolver for finding external tools (e.g., Godot).</param>
     /// <param name="config">The global engine configuration.</param>
-    /// <param name="rootPath">The base path for the engine project.</param>
-    internal GameLauncher(GameRegistry gameRegistry, ExternalTools.JsonToolResolver toolResolver, EngineConfig config, string rootPath) {
-        _gameRegistry = gameRegistry;
-        _toolResolver = toolResolver;
-        _config = config;
-        _rootPath = rootPath;
+    internal GameLauncher(GameRegistry gameRegistry, ExternalTools.JsonToolResolver toolResolver, EngineConfig config) {
+        this._gameRegistry = gameRegistry;
+        this._toolResolver = toolResolver;
+        this._config = config;
     }
 
     /* :: :: Constructors :: END :: */
@@ -43,7 +41,7 @@ internal class GameLauncher {
     /// <param name="name">The unique identifier of the game module to launch.</param>
     /// <returns>A task that represents the asynchronous launch operation, returning <c>true</c> if the launch was successful; otherwise, <c>false</c>.</returns>
     internal async Task<bool> LaunchGameAsync(string name) {
-        string root = _gameRegistry.GetGamePath(name) ?? _rootPath;
+        string root = _gameRegistry.GetGamePath(name) ?? this._rootPath;
         string gameToml = System.IO.Path.Combine(root, "game.toml");
 
         // Build placeholder context for resolution
@@ -56,7 +54,7 @@ internal class GameLauncher {
             Diagnostics.Bug($"[GameLauncher] err building context for game '{name}'");
             ctx = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase) {
                 ["Game_Root"] = root,
-                ["Project_Root"] = _rootPath
+                ["Project_Root"] = this._rootPath
             };
         }
 
@@ -68,13 +66,13 @@ internal class GameLauncher {
             if (System.IO.File.Exists(gameToml)) {
                 foreach (string raw in System.IO.File.ReadAllLines(gameToml)) {
                     string line = raw.Trim();
-                    if (line.Length == 0 || line.StartsWith("#")) continue;
-                    if (line.StartsWith("[")) continue;
+                    if (line.Length == 0 || line.StartsWith('#')) continue;
+                    if (line.StartsWith('[')) continue;
                     int eq = line.IndexOf('=');
                     if (eq <= 0) continue;
                     string key = line.Substring(0, eq).Trim();
                     string valRaw = line.Substring(eq + 1).Trim();
-                    string? val = valRaw.StartsWith("\"") && valRaw.EndsWith("\"") ? valRaw.Substring(1, valRaw.Length - 2) : valRaw;
+                    string? val = valRaw.StartsWith('\"') && valRaw.EndsWith('\"') ? valRaw.Substring(1, valRaw.Length - 2) : valRaw;
                     if (string.IsNullOrWhiteSpace(val)) continue;
                     switch (key.ToLowerInvariant()) {
                         case "exe":
@@ -112,7 +110,7 @@ internal class GameLauncher {
                 // Use the dispatcher to create the correct action (Lua, JS, or Python)
                 var action = EngineNet.ScriptEngines.ScriptActionDispatcher.EmbeddedActionDispatcher.TryCreate(
                     scriptType: ext,
-                    scriptPath: scriptPath!,
+                    scriptPath: scriptPath,
                     args: System.Array.Empty<string>(), // Launching a game usually implies no args, or you could parse them from toml
                     currentGame: name,
                     games: games
@@ -120,7 +118,7 @@ internal class GameLauncher {
 
                 if (action != null) {
                     Core.Diagnostics.Trace($"[GameLauncher] executing {ext} script '{scriptPath}' for game '{name}'");
-                    await action.ExecuteAsync(tools: _toolResolver);
+                    await action.ExecuteAsync(tools: this._toolResolver);
                     return true;
                 } else {
                     Core.Diagnostics.Log($"[GameLauncher] Unsupported script type '{ext}' in '{scriptPath}'");
@@ -134,16 +132,16 @@ internal class GameLauncher {
         // If godot project specified, invoke godot
         if (!string.IsNullOrWhiteSpace(godotProject)) {
             try {
-                ToolMetadataProvider provider = new ToolMetadataProvider(projectRoot: _rootPath, resolver: _toolResolver);
-                (string? godotExe, _) = provider.ResolveExeAndVersion(toolId: "godot");
-                string godotPath = string.IsNullOrWhiteSpace(godotExe) ? _toolResolver.ResolveToolPath("godot") : godotExe!;
+                //var provider = new ToolMetadataProvider(projectRoot: this._rootPath, resolver: this._toolResolver);
+                (string? godotExe, _) = ToolMetadataProvider.ResolveExeAndVersion(toolId: "godot", this._rootPath, this._toolResolver);
+                string godotPath = string.IsNullOrWhiteSpace(godotExe) ? this._toolResolver.ResolveToolPath("godot") : godotExe;
                 if (!System.IO.File.Exists(godotPath)) return false;
-                System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
+                var psi = new System.Diagnostics.ProcessStartInfo {
                     FileName = godotPath,
                     UseShellExecute = false,
                 };
-                psi.ArgumentList.Add(godotProject!);
-                psi.WorkingDirectory = System.IO.Path.GetDirectoryName(godotProject!) ?? root;
+                psi.ArgumentList.Add(godotProject);
+                psi.WorkingDirectory = System.IO.Path.GetDirectoryName(godotProject) ?? root;
                 System.Diagnostics.Process.Start(psi);
                 return true;
             } catch { return false; }
@@ -156,9 +154,9 @@ internal class GameLauncher {
             return false;
         }
         try {
-            System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
-                FileName = exe!,
-                WorkingDirectory = work!,
+            var psi = new System.Diagnostics.ProcessStartInfo {
+                FileName = exe,
+                WorkingDirectory = work,
                 UseShellExecute = true
             };
             System.Diagnostics.Process.Start(psi);

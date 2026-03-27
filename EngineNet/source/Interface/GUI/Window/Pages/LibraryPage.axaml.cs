@@ -87,7 +87,7 @@ public partial class LibraryPage:UserControl {
                 var m = kv.Value;
                 string name = m.Name;
                 string? exe = m.ExePath;
-                string title = string.IsNullOrWhiteSpace(m.Title) ? name : m.Title!;
+                string title = string.IsNullOrWhiteSpace(m.Title) ? name : m.Title;
                 string gameRoot = m.GameRoot;
                 if (string.IsNullOrWhiteSpace(gameRoot)) {
         Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load(): Module '{name}' has no game root defined.");

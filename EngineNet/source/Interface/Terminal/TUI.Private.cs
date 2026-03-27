@@ -286,16 +286,16 @@ public partial class TUI {
         }
     }
 
-    private string PromptText(string title) {
+    /*private string PromptText(string title) {
         System.Console.Write($"{title}: ");
         try {
             return System.Console.ReadLine() ?? string.Empty;
         } catch {
             return string.Empty;
         }
-    }
+    }*/
 
-    private (List<string> choices, HashSet<int> disabled) GetRegistryModulesChoices() {
+    /*private (List<string> choices, HashSet<int> disabled) GetRegistryModulesChoices() {
         var registered = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.Registered);
         var installed = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.Installed);
 
@@ -310,7 +310,7 @@ public partial class TUI {
         }
 
         return (choices, disabled);
-    }
+    }*/
 
     private async Task<bool> CollectAnswersForOperation(Dictionary<string, object?> op, Dictionary<string, object?> answers, bool defaultsOnly) {
         try {

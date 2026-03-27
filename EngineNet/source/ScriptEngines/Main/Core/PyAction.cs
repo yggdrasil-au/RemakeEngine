@@ -87,7 +87,7 @@ internal static class PyAction {
 
         // progress.new(total, id, label) -> Core.UI.EngineSdk.PanelProgress userdata
         progressProxy.NewFunc = (total, id, label) => {
-            string pid = string.IsNullOrEmpty(id) ? "p1" : id!;
+            string pid = string.IsNullOrEmpty(id) ? "p1" : id;
             return new Core.UI.EngineSdk.PanelProgress(total, pid, label ?? "");
         };
 

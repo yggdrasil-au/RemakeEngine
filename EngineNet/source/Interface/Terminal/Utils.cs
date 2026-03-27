@@ -10,7 +10,7 @@ namespace EngineNet.Interface.Terminal;
 /// <summary>
 /// Utility methods for CLI/TUI handling, can also be used by GUI if needed
 /// </summary>
-public class Utils() {
+public class Utils {
 
     private static readonly System.Text.Json.JsonSerializerOptions s_jsonOpts = new() {
         WriteIndented = false,
@@ -20,9 +20,9 @@ public class Utils() {
 
     private static readonly object s_consoleLock = new();
 
-    private static int s_activePanels = 0;
+    private static int s_activePanels;
     private static readonly Dictionary<string, List<string>> s_panelStatus = new();
-    private static bool s_rendererInitializedByEvent = false;
+    private static bool s_rendererInitializedByEvent;
 
     /// <summary>
     /// Execute a single operation in the terminal interface, handling events and output appropriately.

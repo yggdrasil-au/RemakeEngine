@@ -10,9 +10,7 @@ using System;
 
 internal static partial class TxdExtractor {
 
-
     private sealed class TextureSegmentProcessor {
-        private readonly TextureFormatConverter _converter = new();
         private static readonly byte[] NameSignature = { 0x2D, 0x00, 0x02, 0x1C, 0x00, 0x00, 0x00, 0x0A };
         private static readonly HashSet<byte> KnownFormatCodes = [0x52, 0x53, 0x54, 0x86, 0x02];
         private static readonly int NameSignatureLength = NameSignature.Length;
@@ -147,7 +145,7 @@ internal static partial class TxdExtractor {
                         }
 
                         System.Span<byte> swizzledBaseMipData = segmentData.AsSpan(pixelDataStart, actualMipDataSize);
-                        ConversionResult conversion = _converter.Convert(fmtCode, width, height, mipMapCountFromFile, swizzledBaseMipData, actualMipDataSize, segmentOriginalStartOffset, currentName);
+                        ConversionResult conversion = TextureFormatConverter.Convert(fmtCode, width, height, mipMapCountFromFile, swizzledBaseMipData, actualMipDataSize, segmentOriginalStartOffset, currentName);
 
                         if (conversion.Header == null || conversion.Pixels == null) {
                             string reason = conversion.NeedsUnswizzle && conversion.Pixels == null

@@ -1,14 +1,12 @@
 
-using System.Collections.Generic;
-
 namespace EngineNet.Core.FileHandlers.Formats;
 
 using System;
 
 internal static partial class TxdExtractor {
 
-    private sealed class TextureFormatConverter {
-        internal ConversionResult Convert(
+    private static class TextureFormatConverter {
+        internal static ConversionResult Convert(
             int fmtCode,
             int width,
             int height,
@@ -16,7 +14,8 @@ internal static partial class TxdExtractor {
             System.ReadOnlySpan<byte> swizzledBaseMipData,
             int actualMipDataSize,
             int segmentOriginalStartOffset,
-            NameInfo nameInfo) {
+            NameInfo nameInfo
+        ) {
 
             bool needsUnswizzle = false;
             int bytesPerPixelForUns = 0;
@@ -123,7 +122,7 @@ internal static partial class TxdExtractor {
             return new ConversionResult(ddsHeader, outputPixels, exportFormat, needsUnswizzle, bytesPerPixelForUns);
         }
 
-        private int GetExpectedBaseMipSize(int width, int height, string format) {
+        private static int GetExpectedBaseMipSize(int width, int height, string format) {
             if (format.StartsWith("DXT")) {
                 int blockSize = (format == "DXT1") ? 8 : 16;
                 int blocksX = Math.Max(1, (width + 3) / 4);

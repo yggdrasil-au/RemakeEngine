@@ -16,7 +16,7 @@ internal static class Progress {
 
         // progress.new(total, id, label) -> Core.UI.EngineSdk.PanelProgress userdata
         _LuaWorld.Progress["new"] = (System.Func<int, string?, string?, Core.UI.EngineSdk.PanelProgress>)((total, id, label) => {
-            string pid = string.IsNullOrEmpty(id) ? "p1" : id!;
+            string pid = string.IsNullOrEmpty(id) ? "p1" : id;
             return new Core.UI.EngineSdk.PanelProgress(total, pid, label);
         });
 

@@ -9,9 +9,10 @@ public static class Program {
 
     private static EngineNet.Core.Engine.IEngineFace? Engine {get; set;}
     private static string rootPath {get; set;} = string.Empty;
-    private static bool isGui {get; set;} = false;
-    private static bool isTui {get; set;} = false;
-    private static bool isCli {get; set;} = false;
+    private static bool isGui {get; set;}
+    private static bool isTui {get; set;}
+    private static bool isCli {get; set;}
+
 
     /* :: :: Vars :: START :: */
     public static AppBuilder BuildAvaloniaApp()  {
@@ -24,7 +25,7 @@ public static class Program {
     [STAThread]
     public static async System.Threading.Tasks.Task<int> Main(string[] args) {
         using var cts = new System.Threading.CancellationTokenSource();
-        System.Console.CancelKeyPress += (s, e) => {
+        System.Console.CancelKeyPress += (_s, e) => {
             e.Cancel = true;
             cts.Cancel();
             Core.Diagnostics.Log("Global Cancellation Requested (Ctrl+C)");
@@ -170,16 +171,16 @@ public static class Program {
             if (string.IsNullOrWhiteSpace(startDir)) {
                 dir = string.Empty;
             } else {
-                dir = System.IO.Path.GetFullPath(startDir!);
+                dir = System.IO.Path.GetFullPath(startDir);
             }
             while (!string.IsNullOrEmpty(dir)) {
-                string reg = System.IO.Path.Combine(dir!, "EngineApps");
+                string reg = System.IO.Path.Combine(dir, "EngineApps");
                 string games = System.IO.Path.Combine(reg, "Games");
                 if (System.IO.Directory.Exists(games)) {
-                    return dir!;
+                    return dir;
                 }
 
-                System.IO.DirectoryInfo? parent = System.IO.Directory.GetParent(dir!);
+                System.IO.DirectoryInfo? parent = System.IO.Directory.GetParent(dir);
                 if (parent is null) {
                     break;
                 }
@@ -206,7 +207,7 @@ public static class Program {
 
             var gameRegistry = new Core.Services.GameRegistry(_registries, _scanner);
 
-            var _gameLauncher = new Core.Services.GameLauncher(gameRegistry, tools, engineConfig, Program.rootPath);
+            var _gameLauncher = new Core.Services.GameLauncher(gameRegistry, tools, engineConfig);
             var _opsLoader = new Core.Services.OperationsLoader();
             var _gitService = new Core.Services.GitService();
             var _commandService = new Core.Services.CommandService();

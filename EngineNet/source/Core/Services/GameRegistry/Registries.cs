@@ -10,7 +10,7 @@ namespace EngineNet.Core.Utils;
 /// The class is designed to allow dynamic refreshing of the modules registry at runtime, while the games registry is read from disk on each access to ensure it reflects the current state of installed/downloaded games without requiring manual refreshing.
 /// This design allows for flexible and up-to-date access to game and module information for use in various engine functionalities such as game launching, operations execution, and UI display.
 /// </summary>
-internal sealed partial class Registries {
+internal sealed class Registries {
 
     private readonly string _gamesRegistryPath;
     private readonly string _modulesRegistryPath;

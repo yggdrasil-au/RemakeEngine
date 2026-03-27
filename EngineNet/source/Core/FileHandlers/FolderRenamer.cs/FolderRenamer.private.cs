@@ -252,7 +252,7 @@ internal static partial class FolderRenamer {
     private static void WriteInfo(string message) => Write(System.ConsoleColor.Yellow, message);
     private static void WriteWarn(string message) => Write(System.ConsoleColor.DarkYellow, message);
     private static void WriteSuccess(string message) => Write(System.ConsoleColor.Green, message);
-    private static void WriteGray(string message) => Write(System.ConsoleColor.Gray, message);
+    //private static void WriteGray(string message) => Write(System.ConsoleColor.Gray, message);
     private static void WriteCyan(string message) => Write(System.ConsoleColor.Cyan, message);
     private static void WriteError(string message) => Write(System.ConsoleColor.Red, message, true);
 

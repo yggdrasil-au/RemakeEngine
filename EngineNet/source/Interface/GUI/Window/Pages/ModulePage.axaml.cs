@@ -14,14 +14,14 @@ namespace EngineNet.Interface.GUI.Pages;
 public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     /* :: :: Vars :: START :: */
-    private readonly string _moduleName = string.Empty;
+    private readonly string _moduleName;
 
     private readonly List<Core.Data.PreparedOperation> _initOperations = new();
 
     private class SessionState {
-        public bool HasNavigatedOnce { get; set; } = false;
-        public bool DontAskAgain { get; set; } = false;
-        public bool AutoRunInit { get; set; } = false;
+        public bool HasNavigatedOnce { get; set; }
+        public bool DontAskAgain { get; set; }
+        public bool AutoRunInit { get; set; }
     }
     private static readonly Dictionary<string, SessionState> _moduleStates = new();
 
@@ -35,7 +35,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         }
     }
 
-    public string ModuleName { get; private set; } = string.Empty;
+    public string ModuleName { get; }
     public string Title { get; private set; } = string.Empty;
     public string? GameRoot { get; private set; }
     public string? ExePath { get; private set; }
@@ -177,7 +177,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             Dictionary<string, Core.Data.GameModuleInfo> modules = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
             Core.Data.GameModuleInfo? m = modules.TryGetValue(_moduleName, out Core.Data.GameModuleInfo? mm) ? mm : null;
             if (m is not null) {
-                Title = string.IsNullOrWhiteSpace(m.Title) ? m.Name : m.Title!;
+                Title = string.IsNullOrWhiteSpace(m.Title) ? m.Name : m.Title;
                 ExePath = m.ExePath;
                 GameRoot = m.GameRoot;
                 IsBuilt = m.IsBuilt;
@@ -197,7 +197,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 RegistryUrl = reg.TryGetValue(key: "url", value: out object? u) ? u?.ToString() : null;
                 if (string.IsNullOrWhiteSpace(Title)) {
                     string? title = reg.TryGetValue(key: "title", value: out object? t) ? t?.ToString() : null;
-                    Title = string.IsNullOrWhiteSpace(title) ? _moduleName : title!;
+                    Title = string.IsNullOrWhiteSpace(title) ? _moduleName : title;
                 }
             }
 
@@ -276,9 +276,9 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         if (GuiBootstrapper.Engine == null) {
             return null;
         }
-        string? icon = string.IsNullOrWhiteSpace(gameRoot) ? null : System.IO.Path.Combine(path1: gameRoot!, path2: "icon.png");
+        string? icon = string.IsNullOrWhiteSpace(gameRoot) ? null : System.IO.Path.Combine(path1: gameRoot, path2: "icon.png");
         string placeholder = System.IO.Path.Combine(path1: EngineNet.Core.Main.RootPath, path2: "placeholder.png");
-        string pick = (!string.IsNullOrWhiteSpace(icon) && System.IO.File.Exists(path: icon!)) ? icon! : placeholder;
+        string pick = (!string.IsNullOrWhiteSpace(icon) && System.IO.File.Exists(path: icon)) ? icon : placeholder;
         try {
             return System.IO.File.Exists(path: pick) ? new Bitmap(pick) : null;
         } catch (System.Exception ex) {
@@ -413,8 +413,8 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         }
     }
 
-    private void Stop() {
-        _cts?.Cancel();
+    private async void Stop() {
+        this._cts?.Cancel();
     }
 
     private async System.Threading.Tasks.Task RunOpAsync(OpRow? row) {

@@ -1,9 +1,8 @@
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 
-internal class ConfigHelpers {
-
-    internal void ApplyUpdate(IDictionary<string, object?> doc, string group, int index, string key, string value, string? typeHint) {
+internal static class ConfigHelpers {
+    internal static void ApplyUpdate(IDictionary<string, object?> doc, string group, int index, string key, string value, string? typeHint) {
         object? convertedValue = ConvertValue(value, typeHint);
         var targetContext = EnsureGroupEntry(doc, group, index);
 
@@ -15,7 +14,7 @@ internal class ConfigHelpers {
         }
     }
 
-    internal object EnsureGroupEntry(IDictionary<string, object?> doc, string group, int index) {
+    internal static object EnsureGroupEntry(IDictionary<string, object?> doc, string group, int index) {
         if (!doc.TryGetValue(group, out object? g) || g == null) {
             var newDict = new Dictionary<string, object?>();
             // If index > 1, we must start as a list
@@ -68,7 +67,7 @@ internal class ConfigHelpers {
         }
     }
 
-    internal object ConvertValue(string raw, string? hint) {
+    internal static object ConvertValue(string raw, string? hint) {
         hint = (hint ?? "auto").ToLowerInvariant();
 
         switch (hint) {
@@ -98,12 +97,12 @@ internal class ConfigHelpers {
                 // Lua tonumber returns float or int.
                 // We prefer int if possible, else double.
                 if (long.TryParse(s, out long n)) return n;
-                if (double.TryParse(s, out double f)) return f; 
+                if (double.TryParse(s, out double f)) return f;
                 return s;
         }
     }
 
-    internal ConfigOptions ParseArgs(List<string> args) {
+    internal static ConfigOptions ParseArgs(List<string> args) {
         var opts = new ConfigOptions();
         for (int i = 0; i < args.Count; i++) {
             string a = args[i];
@@ -125,7 +124,7 @@ internal class ConfigHelpers {
         return opts;
     }
 
-    internal SetToken? ParseSetToken(string token) {
+    internal static SetToken? ParseSetToken(string token) {
         // key=value[:type]
         if (string.IsNullOrEmpty(token)) return null;
         int eq = token.IndexOf('=');
@@ -138,7 +137,7 @@ internal class ConfigHelpers {
         // Check for trailing :type
         // FIX: Only treat as type hint if it matches allowed types
         string[] allowedTypes = { "string", "boolean", "bool", "integer", "int", "float", "number", "double", "auto" };
-        
+
         int lastColon = rest.LastIndexOf(':');
         if (lastColon > 0) {
             string possibleType = rest.Substring(lastColon + 1);
@@ -151,18 +150,18 @@ internal class ConfigHelpers {
         return new SetToken { Key = key, Value = rest, TypeHint = typeHint };
     }
 
-    internal class ConfigOptions {
+    internal sealed class ConfigOptions {
         internal string Group = "placeholders";
         internal int Index = 1;
         internal string? Key;
         internal string? Value;
         internal string TypeHint = "auto";
         internal string? ConfigPath;
-        internal bool List = false;
+        internal bool List;
         internal List<SetToken> Sets = new List<SetToken>();
     }
 
-    internal class SetToken {
+    internal sealed class SetToken {
         internal string Key { get; set; } = "";
         internal string Value { get; set; } = "";
         internal string? TypeHint { get; set; }

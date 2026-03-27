@@ -11,7 +11,7 @@ namespace EngineNet.Interface.Terminal;
 /// </summary>
 public static class TuiRenderer {
     private static readonly object _lock = new();
-    private static bool _isActive = false;
+    private static bool _isActive;
 
     public static bool IsActive => _isActive;
 
@@ -19,7 +19,7 @@ public static class TuiRenderer {
     private static int _statusHeight = 8; // Reserved lines at bottom for progress
     private static int _width;
     private static int _height;
-    private static int _scrollOffset = 0;
+    private static int _scrollOffset;
     private static readonly int _maxBufferSize = 10000; // Hold up to 10k lines per operation
 
     // State
@@ -27,8 +27,8 @@ public static class TuiRenderer {
     private static readonly List<string> _statusLines = new();
     private static string _inputBuffer = "";
     private static string _promptLabel = "";
-    private static bool _isInputActive = false;
-    private static System.Threading.CancellationTokenSource? _cts = null;
+    private static bool _isInputActive;
+    private static System.Threading.CancellationTokenSource? _cts;
 
     private struct LogEntry {
         public string Message;

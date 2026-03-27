@@ -9,7 +9,7 @@ internal static partial class TxdExtractor {
 
 
     private sealed class TxdExporter {
-        internal (int totalTexturesExported, int filesProcessed, int filesWithExports) ExportPath(string inputPathAbs, string? outputDirBaseArg, string outputExtension = "dds") {
+        /*internal (int totalTexturesExported, int filesProcessed, int filesWithExports) ExportPath(string inputPathAbs, string? outputDirBaseArg, string outputExtension = "dds") {
             int overallTexturesExported = 0;
             int filesProcessedCount = 0;
             int filesWithExports = 0;
@@ -52,9 +52,9 @@ internal static partial class TxdExtractor {
                     currentOutputDirBase = System.IO.Path.Combine(baseDir, baseName + "_txd");
                 }
 
-                lastUsedOutputBaseForSummary = currentOutputDirBase!;
+                lastUsedOutputBaseForSummary = currentOutputDirBase;
                 Log.Cyan($"\n--- Processing file: {txdFile} ---");
-                int texturesInFile = ExportTexturesFromTxd(txdFile, currentOutputDirBase!, outputExtension);
+                int texturesInFile = ExportTexturesFromTxd(txdFile, currentOutputDirBase, outputExtension);
                 overallTexturesExported += texturesInFile;
                 filesProcessedCount += 1;
                 if (texturesInFile > 0) {
@@ -83,9 +83,9 @@ internal static partial class TxdExtractor {
             }
 
             return (overallTexturesExported, filesProcessedCount, filesWithExports);
-        }
+        }*/
 
-    internal int ExportTexturesFromTxd(string txdFilePath, string outputDirBase, string outputExtension = "dds") {
+        internal int ExportTexturesFromTxd(string txdFilePath, string outputDirBase, string outputExtension = "dds") {
             Log.Cyan($"Processing TXD file: {txdFilePath}");
             byte[] data;
             try {

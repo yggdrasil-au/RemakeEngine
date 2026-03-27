@@ -14,7 +14,7 @@ internal class BuiltInOperations {
             ? list.Select(x => x?.ToString() ?? "").ToList()
             : new List<string>();
 
-        var opts = new ConfigHelpers().ParseArgs(argsList);
+        var opts = ConfigHelpers.ParseArgs(argsList);
 
         string? configPath = opts.ConfigPath;
         if (string.IsNullOrEmpty(configPath)) {
@@ -72,8 +72,8 @@ internal class BuiltInOperations {
             // Handle Multi-set
             if (opts.Sets.Count > 0) {
                 foreach (var set in opts.Sets) {
-                    new ConfigHelpers().ApplyUpdate(doc, opts.Group, opts.Index, set.Key, set.Value, set.TypeHint);
-                    string msg = $"Updated {opts.Group}[{(opts.Index == 0 ? 1 : opts.Index)}].{set.Key} = {new ConfigHelpers().ConvertValue(set.Value, set.TypeHint)}";
+                    ConfigHelpers.ApplyUpdate(doc, opts.Group, opts.Index, set.Key, set.Value, set.TypeHint);
+                    string msg = $"Updated {opts.Group}[{(opts.Index == 0 ? 1 : opts.Index)}].{set.Key} = {ConfigHelpers.ConvertValue(set.Value, set.TypeHint)}";
                     Core.UI.EngineSdk.PrintLine(msg, System.ConsoleColor.Green);
                 }
             } else {
@@ -90,8 +90,8 @@ internal class BuiltInOperations {
                         return false;
                     }
                 } else {
-                    new ConfigHelpers().ApplyUpdate(doc, opts.Group, opts.Index, opts.Key, opts.Value, opts.TypeHint);
-                    string msg = $"Updated {opts.Group}[{(opts.Index == 0 ? 1 : opts.Index)}].{opts.Key} = {new ConfigHelpers().ConvertValue(opts.Value, opts.TypeHint)}";
+                    ConfigHelpers.ApplyUpdate(doc, opts.Group, opts.Index, opts.Key, opts.Value, opts.TypeHint);
+                    string msg = $"Updated {opts.Group}[{(opts.Index == 0 ? 1 : opts.Index)}].{opts.Key} = {ConfigHelpers.ConvertValue(opts.Value, opts.TypeHint)}";
                     Core.UI.EngineSdk.PrintLine(msg, System.ConsoleColor.Green);
                 }
             }
@@ -182,8 +182,8 @@ internal class BuiltInOperations {
         }
         Dictionary<string, object?> ctx = Helpers.BuildOperationContext(operationArgs.context, operationArgs.currentGame, operationArgs.games);
         string resolvedManifest = Helpers.ResolveOperationValue(operationArgs.op, "tools_manifest", ctx, fallbackToRawValue: true)
-            ?? Core.Utils.Placeholders.Resolve(manifest!, ctx)?.ToString()
-            ?? manifest!;
+            ?? Core.Utils.Placeholders.Resolve(manifest, ctx)?.ToString()
+            ?? manifest;
 
         bool force = false;
         if (operationArgs.promptAnswers.TryGetValue("force download", out object? fd) && fd is bool b1) {

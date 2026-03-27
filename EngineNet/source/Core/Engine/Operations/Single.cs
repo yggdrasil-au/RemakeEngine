@@ -58,8 +58,8 @@ internal sealed class Single {
                         Core.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Executing engine operation {title} ({action})");
                         Core.UI.EngineSdk.PrintLine(message: $"\n>>> Engine operation: {title}");
                         // delegate engine type handling to ExecuteEngineOperationAsync
-                        var OperationExecution = new helpers.OpDispatcher();
-                        result = await OperationExecution.DispatchAsync(executableOperation, promptAnswers, currentGame, games, Context, cancellationToken);
+                        //var op_dispatcher = new helpers.OpDispatcher();
+                        result = await helpers.OpDispatcher.DispatchAsync(executableOperation, promptAnswers, currentGame, games, Context, cancellationToken);
                     } catch (System.Exception ex) {
                         Core.UI.EngineSdk.PrintLine($"engine ERROR: {ex.Message}");
                         result = false;
