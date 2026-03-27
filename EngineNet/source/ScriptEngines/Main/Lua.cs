@@ -26,6 +26,7 @@ internal sealed class Main : IAction {
     public async System.Threading.Tasks.Task ExecuteAsync(Core.ExternalTools.JsonToolResolver tools, System.Threading.CancellationToken cancellationToken = default) {
         bool ok = false;
         int exitCode = 0;
+        System.Exception? executionError = null;
         LuaWorld? LuaWorld = null;
         try {
             if (!System.IO.File.Exists(this._scriptPath)) {
@@ -87,14 +88,25 @@ internal sealed class Main : IAction {
             // Script called os.exit, treat as normal exit without error
             exitCode = exitEx.ExitCode;
             ok = exitEx.ExitCode == 0;
+            if (!ok) {
+                executionError = new System.InvalidOperationException($"Lua script exited with non-zero code {exitCode}.");
+            }
         } catch (Exception ex) {
             Diagnostics.LuaInternalCatch("Lua script threw an exception: " + ex);
             Core.UI.EngineSdk.PrintLine(message: $"Lua script threw an exception: {ex}", color: System.ConsoleColor.Red);
             exitCode = 1;
+            executionError = ex;
         } finally {
             LuaWorld?.DisposeOpenDisposables();
 
             Core.UI.EngineSdk.ScriptActiveEnd(success: ok, exitCode: exitCode);
+        }
+
+        if (!ok) {
+            throw new System.InvalidOperationException(
+                message: $"Lua script failed with exit code {exitCode}: '{this._scriptPath}'",
+                innerException: executionError
+            );
         }
     }
 

@@ -58,9 +58,7 @@ internal static class ExecutionContextBuilder {
             if (!string.IsNullOrWhiteSpace(gdict.GameRoot) && System.IO.File.Exists(cfgPath)) {
                 Dictionary<string, object?> fromToml = TomlHelpers.ReadPlaceholdersFile(cfgPath);
                 foreach (KeyValuePair<string, object?> kv in fromToml) {
-                    if (!ctx.ContainsKey(kv.Key)) {
-                        ctx[kv.Key] = kv.Value;
-                    }
+                    ctx[kv.Key] = kv.Value;
                 }
             }
         } catch {

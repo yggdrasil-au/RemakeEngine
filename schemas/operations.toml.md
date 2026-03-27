@@ -24,6 +24,7 @@ Operations are defined in TOML format using `[[operation]]` array entries. Each 
 - **`depends-on`** (array of integers): List of operation IDs that must complete successfully before this operation runs.
 - **`prompts`** (array): Interactive prompts for user input before execution.
 - **`onsuccess`** (array): Operations to execute upon successful completion.
+  - `onsuccess` operations are placeholder-resolved when each child operation executes, using the latest context and module `config.toml` placeholder values at that time.
 
 ## Prompt Configuration
 
@@ -124,6 +125,8 @@ The following placeholders are automatically expanded in `script`, `args`, and o
 - `{{Game_Root}}` - Absolute path to the game module root directory
 - `{{Project_Root}}` - Absolute path to the engine root directory
 - Custom placeholders defined in module's `config.toml`
+
+For `onsuccess` child operations, placeholder expansion is evaluated at child execution time, not frozen when the parent operation starts.
 
 ## Complete Example
 

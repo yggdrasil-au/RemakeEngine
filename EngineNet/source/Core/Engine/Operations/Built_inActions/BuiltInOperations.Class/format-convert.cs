@@ -1,8 +1,10 @@
-using System.Collections.Generic;
+
 using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
+
 internal partial class BuiltInOperations {
+
     internal bool format_convert(
         IDictionary<string, object?> op,
         IDictionary<string, object?> promptAnswers,
@@ -44,44 +46,49 @@ internal partial class BuiltInOperations {
         }
         Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: final tool = '{tool}'");
 
-        // Resolve args (used for both TXD and media conversions)
+
+
+        // Resolve args
         Dictionary<string, object?> ctx = new Dictionary<string, object?>(context.EngineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
         if (!games.TryGetValue(currentGame, out Core.Data.GameModuleInfo? gobj)) {
             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
         }
         // Built-in placeholders
-        string gameRoot3 = gobj.GameRoot;
-        ctx["Game_Root"] = gameRoot3;
+        string gameRoot = gobj.GameRoot;
+        ctx["Game_Root"] = gameRoot;
         ctx["Project_Root"] = EngineNet.Core.Main.RootPath;
         ctx["Registry_Root"] = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "EngineApps");
         ctx["Game"] = new Dictionary<string, object?> {
-            ["RootPath"] = gameRoot3,
+            ["RootPath"] = gameRoot,
             ["Name"] = currentGame,
         };
-        if (!ctx.TryGetValue("RemakeEngine", out object? re2) || re2 is not IDictionary<string, object?> reDict2) {
-            ctx["RemakeEngine"] = reDict2 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+        // Ensure RemakeEngine dictionary exists
+        if (!ctx.TryGetValue("RemakeEngine", out object? re) || re is not IDictionary<string, object?> reDict) {
+            ctx["RemakeEngine"] = reDict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+            Core.Diagnostics.Log("[] Created RemakeEngine dictionary in placeholders context");
         }
-
-        if (!reDict2.TryGetValue("Config", out object? cfg2) || cfg2 is not IDictionary<string, object?> cfgDict2) {
-            reDict2["Config"] = cfgDict2 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+        // Ensure Config dictionary exists
+        if (!reDict.TryGetValue("Config", out object? cfg) || cfg is not IDictionary<string, object?> cfgDict) {
+            reDict["Config"] = cfgDict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+            Core.Diagnostics.Log("[] Created RemakeEngine.Config dictionary in placeholders context");
         }
         // Merge module placeholders from config.toml
         try {
-            string cfgPath = System.IO.Path.Combine(gameRoot3, "config.toml");
-            if (!string.IsNullOrWhiteSpace(gameRoot3) && System.IO.File.Exists(cfgPath)) {
+            string cfgPath = System.IO.Path.Combine(gameRoot, "config.toml");
+            if (!string.IsNullOrWhiteSpace(gameRoot) && System.IO.File.Exists(cfgPath)) {
                 Dictionary<string, object?> fromToml = TomlHelpers.ReadPlaceholdersFile(cfgPath);
                 foreach (KeyValuePair<string, object?> kv in fromToml) {
-                    if (!ctx.ContainsKey(kv.Key)) {
-                        ctx[kv.Key] = kv.Value;
-                    }
+                    ctx[kv.Key] = kv.Value;
                 }
             }
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"[Engine.private.cs :: Operations()]] format-convert: failed to read config.toml: {ex.Message}");
-        // ignore
+            Core.Diagnostics.Bug($"[] failed to read config.toml: {ex.Message}");
         }
-        cfgDict2["module_path"] = gameRoot3;
-        cfgDict2["project_path"] = EngineNet.Core.Main.RootPath;
+        // assign default placeholders
+        cfgDict["module_path"] = gameRoot;
+        cfgDict["project_path"] = EngineNet.Core.Main.RootPath;
+
+
 
         List<string> args = new List<string>();
         if (op.TryGetValue("args", out object? aobj) && aobj is System.Collections.IList aList) {
@@ -94,20 +101,23 @@ internal partial class BuiltInOperations {
             }
         }
 
+
+
+        // execute
         if (string.Equals(tool, "ffmpeg", System.StringComparison.OrdinalIgnoreCase) || string.Equals(tool, "vgmstream", System.StringComparison.OrdinalIgnoreCase)) {
             // attempt built-in media conversion (ffmpeg/vgmstream) using the same CLI args
             Core.UI.EngineSdk.PrintLine("\n>>> Built-in media conversion");
-            Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: running media conversion with args: {string.Join(' ', args)}");
+            Core.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running media conversion with args: {string.Join(' ', args)}");
             bool okMedia = FileHandlers.MediaConverter.Run(context.ToolResolver, args, cancellationToken);
             return okMedia;
         } else if (string.Equals(tool, "ImageMagick", System.StringComparison.OrdinalIgnoreCase)) {
             // attempt image conversion (ImageMagick) using the CLI args
             Core.UI.EngineSdk.PrintLine("\n>>> Built-in image conversion");
-            Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: running image conversion with args: {string.Join(' ', args)}");
+            Core.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running image conversion with args: {string.Join(' ', args)}");
             bool okImage = FileHandlers.ImageMagickConverter.Run(context.ToolResolver, args, cancellationToken);
             return okImage;
         } else {
-            Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: unknown tool '{tool}'");
+            Core.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: unknown tool '{tool}'");
             Core.UI.EngineSdk.PrintLine($"ERROR: format-convert requires a valid tool. Found: '{tool ?? "(null)"}'");
             Core.UI.EngineSdk.PrintLine("Supported tools: ffmpeg, vgmstream, ImageMagick");
             Core.UI.EngineSdk.PrintLine("Specify tool with --tool parameter or -m/--mode in args.");

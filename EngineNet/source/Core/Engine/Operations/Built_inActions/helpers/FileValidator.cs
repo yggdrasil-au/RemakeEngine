@@ -35,7 +35,8 @@ internal static class FileValidator {
     /// </summary>
     /// <param name="args">CLI-style args: DB_PATH BASE_DIR [--tables spec] [--required-dirs dir1,dir2] [--no-required-dirs-check] [--debug]</param>
     /// <returns>True if all required files exist (or no rows to check); false otherwise.</returns>
-    internal static bool Run(IList<string> args) {
+    internal static bool Run(IList<string> args, System.Threading.CancellationToken cancellationToken = default) {
+        // TODO: implement Cancelation Token handling
         try {
             Options options = Parse(args);
             options.DbPath = System.IO.Path.GetFullPath(options.DbPath);

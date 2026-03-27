@@ -22,16 +22,19 @@ internal sealed class Single {
         EngineContext Context,
         System.Threading.CancellationToken cancellationToken = default
     ) {
+        // Keep the incoming operation metadata raw so nested on-success operations are
+        // resolved only when each child actually executes.
+        IDictionary<string, object?> rawOperation = op;
+
         // 1. Build the execution Context once
         Dictionary<string, object?> ctx = Core.Utils.ExecutionContextBuilder.Build(currentGame, games, Context.EngineConfig.Data);
 
-        // 2. Recursively resolve ALL placeholders anywhere in the operation definition
-        if (Core.Utils.Placeholders.Resolve(op, ctx) is IDictionary<string, object?> fullyResolvedOp) {
-            op = fullyResolvedOp;
-        }
+        // 2. Resolve placeholders for the current operation execution payload.
+        //    Nested onsuccess blocks are intentionally excluded from this resolution pass.
+        IDictionary<string, object?> executableOperation = ResolveExecutionPayload(rawOperation, ctx);
 
-        string? scriptType = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant();
-        List<string> parts = Context.CommandService.BuildCommand(currentGame, games, Context.EngineConfig.Data, op, promptAnswers);
+        string? scriptType = (executableOperation.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant();
+        List<string> parts = Context.CommandService.BuildCommand(currentGame, games, Context.EngineConfig.Data, executableOperation, promptAnswers);
         if (parts.Count < 2) {
             return false;
         }
@@ -50,13 +53,13 @@ internal sealed class Single {
                 // for running built-in engine operations (like download-tools) or internal operations (like download_module_git)
                 case var t when Utils.ScriptConstants.IsBuiltIn(t): {
                     try {
-                        string? action = op.TryGetValue("script", out object? s) ? s?.ToString() : null;
-                        string? title = op.TryGetValue("Name", out object? n) ? n?.ToString() ?? action : action;
+                        string? action = executableOperation.TryGetValue("script", out object? s) ? s?.ToString() : null;
+                        string? title = executableOperation.TryGetValue("Name", out object? n) ? n?.ToString() ?? action : action;
                         Core.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Executing engine operation {title} ({action})");
                         Core.UI.EngineSdk.PrintLine(message: $"\n>>> Engine operation: {title}");
                         // delegate engine type handling to ExecuteEngineOperationAsync
                         var OperationExecution = new helpers.OpDispatcher();
-                        result = await OperationExecution.DispatchAsync(currentGame, games, op, promptAnswers, Context, cancellationToken);
+                        result = await OperationExecution.DispatchAsync(currentGame, games, executableOperation, promptAnswers, Context, cancellationToken);
                     } catch (System.Exception ex) {
                         Core.UI.EngineSdk.PrintLine($"engine ERROR: {ex.Message}");
                         result = false;
@@ -66,9 +69,9 @@ internal sealed class Single {
                 // for running external script types (like bms)
                 case var t when Utils.ScriptConstants.IsExternal(t): {
                     try {
-                        string inputDir = op.TryGetValue("input", out object? in0) ? in0?.ToString() ?? string.Empty : string.Empty;
-                        string outputDir = op.TryGetValue("output", out object? out0) ? out0?.ToString() ?? string.Empty : string.Empty;
-                        string? extension = op.TryGetValue("extension", out object? ext0) ? ext0?.ToString() : null;
+                        string inputDir = executableOperation.TryGetValue("input", out object? in0) ? in0?.ToString() ?? string.Empty : string.Empty;
+                        string outputDir = executableOperation.TryGetValue("output", out object? out0) ? out0?.ToString() ?? string.Empty : string.Empty;
+                        string? extension = executableOperation.TryGetValue("extension", out object? ext0) ? ext0?.ToString() : null;
 
                         if (!games.TryGetValue(currentGame, out Core.Data.GameModuleInfo? gameInfo)) {
                             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
@@ -137,7 +140,7 @@ internal sealed class Single {
         }
 
         // If the main operation succeeded, run any nested [[operation.onsuccess]] steps
-        if (result && helpers.OpMetadataExtractor.ExtractSuccessActions(op, out List<Dictionary<string, object?>>? followUps) && followUps is not null) {
+        if (result && helpers.OpMetadataExtractor.ExtractSuccessActions(rawOperation, out List<Dictionary<string, object?>>? followUps) && followUps is not null) {
             foreach (Dictionary<string, object?> childOp in followUps) {
                 if (cancellationToken.IsCancellationRequested) break;
                 bool ok = await Context.OperationContext.Single.RunAsync(currentGame, games, childOp, promptAnswers, Context, cancellationToken);
@@ -148,6 +151,21 @@ internal sealed class Single {
         }
 
         return result;
+    }
+
+    private static IDictionary<string, object?> ResolveExecutionPayload(
+        IDictionary<string, object?> rawOperation,
+        IDictionary<string, object?> context
+    ) {
+        Dictionary<string, object?> executionPayload = new Dictionary<string, object?>(rawOperation, System.StringComparer.OrdinalIgnoreCase);
+        executionPayload.Remove("onsuccess");
+        executionPayload.Remove("on_success");
+
+        if (Core.Utils.Placeholders.Resolve(executionPayload, context) is IDictionary<string, object?> resolvedPayload) {
+            return resolvedPayload;
+        }
+
+        return executionPayload;
     }
 
 }

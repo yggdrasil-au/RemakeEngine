@@ -1,8 +1,8 @@
 
-using System.Collections.Generic;
 using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
+
 internal partial class BuiltInOperations {
 
     internal bool format_extract(
@@ -16,43 +16,49 @@ internal partial class BuiltInOperations {
         // Determine input file format
         string? format = op.TryGetValue("format", out object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
 
-        // Resolve args (used for both TXD and media conversions)
+
+
+        // Resolve args
         Dictionary<string, object?> ctx = new Dictionary<string, object?>(context.EngineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
         if (!games.TryGetValue(currentGame, out Core.Data.GameModuleInfo? gobj)) {
             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
         }
         // Built-in placeholders
-        string gameRoot2 = gobj.GameRoot;
-        ctx["Game_Root"] = gameRoot2;
+        string gameRoot = gobj.GameRoot;
+        ctx["Game_Root"] = gameRoot;
         ctx["Project_Root"] = EngineNet.Core.Main.RootPath;
         ctx["Registry_Root"] = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "EngineApps");
         ctx["Game"] = new Dictionary<string, object?> {
-            ["RootPath"] = gameRoot2,
+            ["RootPath"] = gameRoot,
             ["Name"] = currentGame,
         };
-        if (!ctx.TryGetValue("RemakeEngine", out object? re1) || re1 is not IDictionary<string, object?> reDict1) {
-            ctx["RemakeEngine"] = reDict1 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+        // Ensure RemakeEngine dictionary exists
+        if (!ctx.TryGetValue("RemakeEngine", out object? re) || re is not IDictionary<string, object?> reDict) {
+            ctx["RemakeEngine"] = reDict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+            Core.Diagnostics.Log("[] Created RemakeEngine dictionary in placeholders context");
         }
-
-        if (!reDict1.TryGetValue("Config", out object? cfg1) || cfg1 is not IDictionary<string, object?> cfgDict1) {
-            reDict1["Config"] = cfgDict1 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+        // Ensure Config dictionary exists
+        if (!reDict.TryGetValue("Config", out object? cfg) || cfg is not IDictionary<string, object?> cfgDict) {
+            reDict["Config"] = cfgDict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+            Core.Diagnostics.Log("[] Created RemakeEngine.Config dictionary in placeholders context");
         }
         // Merge module placeholders from config.toml
         try {
-            string cfgPath = System.IO.Path.Combine(gameRoot2, "config.toml");
-            if (!string.IsNullOrWhiteSpace(gameRoot2) && System.IO.File.Exists(cfgPath)) {
+            string cfgPath = System.IO.Path.Combine(gameRoot, "config.toml");
+            if (!string.IsNullOrWhiteSpace(gameRoot) && System.IO.File.Exists(cfgPath)) {
                 Dictionary<string, object?> fromToml = TomlHelpers.ReadPlaceholdersFile(cfgPath);
                 foreach (KeyValuePair<string, object?> kv in fromToml) {
-                    if (!ctx.ContainsKey(kv.Key)) {
-                        ctx[kv.Key] = kv.Value;
-                    }
+                    ctx[kv.Key] = kv.Value;
                 }
             }
-        }  catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
+        } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"[] failed to read config.toml: {ex.Message}");
         }
-        cfgDict1["module_path"] = gameRoot2;
-        cfgDict1["project_path"] = EngineNet.Core.Main.RootPath;
+        // assign default placeholders
+        cfgDict["module_path"] = gameRoot;
+        cfgDict["project_path"] = EngineNet.Core.Main.RootPath;
+
+
 
         List<string> args = new List<string>();
         if (op.TryGetValue("args", out object? aobj) && aobj is System.Collections.IList aList) {
@@ -65,18 +71,19 @@ internal partial class BuiltInOperations {
             }
         }
 
-        // If format is TXD, use built-in extractor
 
+
+        // execute
+        // If format is TXD, use built-in extractor
         if (string.Equals(format, "txd", System.StringComparison.OrdinalIgnoreCase)) {
             Core.UI.EngineSdk.PrintLine("\n>>> Built-in TXD extraction");
-            bool okTxd = FileHandlers.Formats.TxdExtractor.Run(args);
-            return okTxd;
-        } else if (string.IsNullOrWhiteSpace(format)) {
-            // Auto-detect format - default to TXD for now
-            Core.UI.EngineSdk.PrintLine("\n>>> Built-in TXD extraction (auto-detected)");
-            bool okTxd = FileHandlers.Formats.TxdExtractor.Run(args);
-            return okTxd;
-        } else {
+            Core.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
+            bool ok = FileHandlers.Formats.TxdExtractor.Run(args, cancellationToken);
+            return ok;
+        } /*else if (string.IsNullOrWhiteSpace(format)) {
+            // TODO: Auto-detect format, when other formats are supported
+
+        }*/ else {
             Core.UI.EngineSdk.PrintLine($"ERROR: format-extract does not support format '{format}'");
             Core.UI.EngineSdk.PrintLine("Supported formats: txd (default)");
             return false;

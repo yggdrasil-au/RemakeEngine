@@ -60,9 +60,10 @@
     "Lua.hint.arrayIndex": "Enable",
     "Lua.runtime.version": "Lua 5.2",
     "Lua.workspace.library": [
-        "./EngineApps/api_definitions"
+        "./EngineApps/api_definitions",
+        "./EngineApps/Games/TheSimpsonsGame-PS3/operations/SetupAudioDir.lua"
     ],
     "window.zoomLevel": 0.2
 
-    
+
 }

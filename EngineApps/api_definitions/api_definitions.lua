@@ -571,8 +571,8 @@ function sdk.read_file(path) end
 
 --- Renames or moves a file or directory.
 --- Supports cross-volume moves and merging directories.
----@param old_path string
----@param new_path string
+---@param old_path string?
+---@param new_path string?
 ---@param overwrite? boolean
 ---@return boolean ok
 function sdk.rename_file(old_path, new_path, overwrite) end
@@ -602,7 +602,7 @@ function sdk.create_symlink(source, destination, is_directory, overwrite) end
 function sdk.create_hardlink(source, destination) end
 
 --- Checks whether a path exists.
----@param path string
+---@param path string?
 ---@return boolean ok
 function sdk.path_exists(path) end
 

@@ -23,6 +23,9 @@ internal partial class BuiltInOperations {
             return false;
         }
 
+
+
+        // Resolve args
         Dictionary<string, object?> ctx = new Dictionary<string, object?>(context.EngineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
         if (!games.TryGetValue(currentGame, out Core.Data.GameModuleInfo? gobj)) {
             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
@@ -37,14 +40,14 @@ internal partial class BuiltInOperations {
             ["Name"] = currentGame,
         };
         // Ensure RemakeEngine dictionary exists
-        if (!ctx.TryGetValue("RemakeEngine", out object? re0) || re0 is not IDictionary<string, object?> reDict0) {
-            ctx["RemakeEngine"] = reDict0 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
-            Core.Diagnostics.Log("[Engine.private.cs :: Operations()]] Created RemakeEngine dictionary in placeholders context");
+        if (!ctx.TryGetValue("RemakeEngine", out object? re) || re is not IDictionary<string, object?> reDict) {
+            ctx["RemakeEngine"] = reDict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+            Core.Diagnostics.Log("[] Created RemakeEngine dictionary in placeholders context");
         }
         // Ensure Config dictionary exists
-        if (!reDict0.TryGetValue("Config", out object? cfg0) || cfg0 is not IDictionary<string, object?> cfgDict0) {
-            reDict0["Config"] = cfgDict0 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
-            Core.Diagnostics.Log("[Engine.private.cs :: Operations()]] Created RemakeEngine.Config dictionary in placeholders context");
+        if (!reDict.TryGetValue("Config", out object? cfg) || cfg is not IDictionary<string, object?> cfgDict) {
+            reDict["Config"] = cfgDict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+            Core.Diagnostics.Log("[] Created RemakeEngine.Config dictionary in placeholders context");
         }
         // Merge module placeholders from config.toml
         try {
@@ -52,30 +55,33 @@ internal partial class BuiltInOperations {
             if (!string.IsNullOrWhiteSpace(gameRoot) && System.IO.File.Exists(cfgPath)) {
                 Dictionary<string, object?> fromToml = TomlHelpers.ReadPlaceholdersFile(cfgPath);
                 foreach (KeyValuePair<string, object?> kv in fromToml) {
-                    if (!ctx.ContainsKey(kv.Key)) {
-                        ctx[kv.Key] = kv.Value;
-                    }
+                    ctx[kv.Key] = kv.Value;
                 }
             }
-        }  catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
+        } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"[] failed to read config.toml: {ex.Message}");
         }
-        cfgDict0["module_path"] = gameRoot;
-        cfgDict0["project_path"] = EngineNet.Core.Main.RootPath;
+        // assign default placeholders
+        cfgDict["module_path"] = gameRoot;
+        cfgDict["project_path"] = EngineNet.Core.Main.RootPath;
+
+
+
         string resolvedManifest = Core.Utils.Placeholders.Resolve(manifest!, ctx)?.ToString() ?? manifest!;
 
         bool force = false;
         if (promptAnswers.TryGetValue("force download", out object? fd) && fd is bool b1) {
             force = b1;
         }
-
         if (promptAnswers.TryGetValue("force_download", out object? fd2) && fd2 is bool b2) {
             force = b2;
         }
 
+
+
+        // execute
         ExternalTools.ToolsDownloader dl = new ExternalTools.ToolsDownloader(EngineNet.Core.Main.RootPath, "");
         await dl.ProcessAsync(resolvedManifest, force, ctx, cancellationToken);
         return true;
     }
-
 }

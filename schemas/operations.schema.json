@@ -64,7 +64,7 @@
         },
         "onsuccess": {
           "type": "array",
-          "description": "Operations to execute upon successful completion.",
+          "description": "Operations to execute upon successful completion. Placeholders are resolved when each child operation executes, using the latest runtime context.",
           "items": { "$ref": "#/$defs/operation" }
         }
       },

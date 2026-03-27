@@ -11,7 +11,8 @@ internal static partial class TxdExtractor {
     /// </summary>
     /// <param name="args">CLI-style args: [input_path] [--output_dir DIR]</param>
     /// <returns>True if extraction completed successfully.</returns>
-    internal static bool Run(List<string> args) {
+    internal static bool Run(List<string> args, System.Threading.CancellationToken cancellationToken) {
+        // TODO: implement Cancelation Token handling
         try {
             Options options = Parse(args);
             TxdExporter exporter = new();

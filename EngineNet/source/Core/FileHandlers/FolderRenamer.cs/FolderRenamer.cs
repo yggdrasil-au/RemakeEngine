@@ -8,7 +8,8 @@ internal static partial class FolderRenamer {
     /// </summary>
     /// <param name="args">CLI-style args: TARGET_DIR [--map-db-file PATH --db-table-name NAME] | [--map-cli OLD NEW ...] | [--map-json PATH]</param>
     /// <returns>True if renames completed; false if a failure occurred.</returns>
-    internal static bool Run(IList<string> args) {
+    internal static bool Run(IList<string> args, System.Threading.CancellationToken cancellationToken) {
+        // TODO: implement Cancelation Token handling
         Options options;
         try {
             options = Parse(args);

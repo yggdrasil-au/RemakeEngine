@@ -1,8 +1,8 @@
 
-using System.Collections.Generic;
 using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
+
 internal partial class BuiltInOperations {
 
     internal bool rename_folders(
@@ -13,47 +13,58 @@ internal partial class BuiltInOperations {
         EngineContext context,
         System.Threading.CancellationToken cancellationToken = default
     ) {
+
+
+
+        // Resolve args
         Dictionary<string, object?> ctx = new Dictionary<string, object?>(context.EngineConfig.Data, System.StringComparer.OrdinalIgnoreCase);
-        if (!games.TryGetValue(currentGame, out Core.Data.GameModuleInfo? gobj3)) {
+        if (!games.TryGetValue(currentGame, out Core.Data.GameModuleInfo? gobj)) {
             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
         }
         // Built-in placeholders
-        string gameRoot5 = gobj3.GameRoot;
-        ctx["Game_Root"] = gameRoot5;
+        string gameRoot = gobj.GameRoot;
+        ctx["Game_Root"] = gameRoot;
         ctx["Project_Root"] = EngineNet.Core.Main.RootPath;
         ctx["Registry_Root"] = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "EngineApps");
         ctx["Game"] = new Dictionary<string, object?> {
-            ["RootPath"] = gameRoot5,
+            ["RootPath"] = gameRoot,
             ["Name"] = currentGame,
         };
-        if (!ctx.TryGetValue("RemakeEngine", out object? re4) || re4 is not IDictionary<string, object?> reDict4) {
-            ctx["RemakeEngine"] = reDict4 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+        // Ensure RemakeEngine dictionary exists
+        if (!ctx.TryGetValue("RemakeEngine", out object? re) || re is not IDictionary<string, object?> reDict) {
+            ctx["RemakeEngine"] = reDict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+            Core.Diagnostics.Log("[] Created RemakeEngine dictionary in placeholders context");
         }
-
-        if (!reDict4.TryGetValue("Config", out object? cfg4) || cfg4 is not IDictionary<string, object?> cfgDict4) {
-            reDict4["Config"] = cfgDict4 = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+        // Ensure Config dictionary exists
+        if (!reDict.TryGetValue("Config", out object? cfg) || cfg is not IDictionary<string, object?> cfgDict) {
+            reDict["Config"] = cfgDict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+            Core.Diagnostics.Log("[] Created RemakeEngine.Config dictionary in placeholders context");
         }
         // Merge module placeholders from config.toml
         try {
-            string cfgPath = System.IO.Path.Combine(gameRoot5, "config.toml");
-            if (!string.IsNullOrWhiteSpace(gameRoot5) && System.IO.File.Exists(cfgPath)) {
+            string cfgPath = System.IO.Path.Combine(gameRoot, "config.toml");
+            if (!string.IsNullOrWhiteSpace(gameRoot) && System.IO.File.Exists(cfgPath)) {
                 Dictionary<string, object?> fromToml = TomlHelpers.ReadPlaceholdersFile(cfgPath);
                 foreach (KeyValuePair<string, object?> kv in fromToml) {
-                    if (!ctx.ContainsKey(kv.Key)) {
-                        ctx[kv.Key] = kv.Value;
-                    }
+                    ctx[kv.Key] = kv.Value;
                 }
             }
-        }  catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"[Engine.cs] err reading config.toml: {ex.Message}");
+        } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"[] failed to read config.toml: {ex.Message}");
         }
-        cfgDict4["module_path"] = gameRoot5;
-        cfgDict4["project_path"] = EngineNet.Core.Main.RootPath;
+        // assign default placeholders
+        cfgDict["module_path"] = gameRoot;
+        cfgDict["project_path"] = EngineNet.Core.Main.RootPath;
 
+
+
+        // create args list
         List<string> args = new List<string>();
-        if (op.TryGetValue("args", out object? aobjRename) && aobjRename is System.Collections.IList aListRename) {
-            object? resolvedObj = Core.Utils.Placeholders.Resolve(aobjRename, ctx);
-            System.Collections.IList resolved = resolvedObj as System.Collections.IList ?? aListRename;
+
+        // Resolve args
+        if (op.TryGetValue("args", out object? aobj) && aobj is System.Collections.IList aList) {
+            object? resolvedObj = Core.Utils.Placeholders.Resolve(aobj, ctx);
+            System.Collections.IList resolved = resolvedObj as System.Collections.IList ?? aList;
             foreach (object? a in resolved) {
                 if (a is not null) {
                     args.Add(a.ToString()!);
@@ -61,9 +72,13 @@ internal partial class BuiltInOperations {
             }
         }
 
+
+
+        // execute
         Core.UI.EngineSdk.PrintLine("\n>>> Built-in folder rename");
+
         Core.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
-        bool okRename = FileHandlers.FolderRenamer.Run(args);
-        return okRename;
+        bool ok = FileHandlers.FolderRenamer.Run(args, cancellationToken);
+        return ok;
     }
 }
