@@ -10,33 +10,33 @@ internal class OpDispatcher {
     /// </summary>
     /// <param name="currentGame"></param>
     /// <param name="games"></param>
-    /// <param name="op"></param>
+    /// <param name="executableOperation"></param>
     /// <param name="promptAnswers"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     /// <exception cref="KeyNotFoundException"></exception>
     internal async System.Threading.Tasks.Task<bool> DispatchAsync(
-        string currentGame,
-        Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
-        IDictionary<string, object?> op,
+        IDictionary<string, object?> executableOperation,
         IDictionary<string, object?> promptAnswers,
+        string currentGame,
+        Dictionary<string, Core.Data.GameModuleInfo> games,
         EngineContext context,
         System.Threading.CancellationToken cancellationToken = default
     ) {
-        if (!op.TryGetValue("script", out object? s) || s is null) {
+        if (!executableOperation.TryGetValue("script", out object? s) || s is null) {
             Core.Diagnostics.Log("[Engine.private.cs :: Operations()] Missing 'script' value in engine operation");
             return false;
         }
 
-        // 'op' is already fully resolved from Runner.RunSingleOperationAsync!
-        IDictionary<string, object?> resolvedOp = op;
+        // 'executableOperation' is already fully resolved from Runner.RunSingleOperationAsync!
+        //IDictionary<string, object?> executableOperation = executableOperation;
 
         Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] engine operation script: {s}");
 
         // ensure internal ops are from allowed dirs
-        string? type = resolvedOp.TryGetValue("script_type", out object? st) ? st?.ToString()?.ToLowerInvariant() : null;
+        string? type = executableOperation.TryGetValue("script_type", out object? st) ? st?.ToString()?.ToLowerInvariant() : null;
         if (type == "internal") {
-            string? sourceFile = resolvedOp.TryGetValue("_source_file", out object? sf) ? sf?.ToString() : null;
+            string? sourceFile = executableOperation.TryGetValue("_source_file", out object? sf) ? sf?.ToString() : null;
             if (string.IsNullOrWhiteSpace(sourceFile)) {
                 Core.UI.EngineSdk.Error("Internal operation blocked: Missing source file context.");
                 return false;
@@ -50,6 +50,16 @@ internal class OpDispatcher {
                 return false;
             }
         }
+
+        // create built-in object for passing to built-in actions
+        var operationArgs = new OperationArgs(
+            executableOperation,
+            promptAnswers,
+            currentGame,
+            games,
+            context,
+            cancellationToken
+        );
 
         // Determine action
         string? action = s.ToString()?.ToLowerInvariant();
@@ -66,22 +76,24 @@ internal class OpDispatcher {
 
             // Built-in actions
             case "config": {
-                return new operations.Built_inActions.BuiltInOperations().config(resolvedOp, currentGame, games);
+                return operations.Built_inActions.BuiltInOperations.config(executableOperation, currentGame, games);
             }
+
+
             case "download-tools": {
-                return await new operations.Built_inActions.BuiltInOperations().DownloadTools(resolvedOp, promptAnswers, currentGame, games, context, cancellationToken);
+                return await operations.Built_inActions.BuiltInOperations.DownloadTools(operationArgs);
             }
             case "format-extract": {
-                return new operations.Built_inActions.BuiltInOperations().format_extract(resolvedOp, promptAnswers, currentGame, games, context, cancellationToken);
+                return operations.Built_inActions.BuiltInOperations.format_extract(operationArgs);
             }
             case "format-convert": {
-                return new operations.Built_inActions.BuiltInOperations().format_convert(resolvedOp, promptAnswers, currentGame, games, context, cancellationToken);
+                return operations.Built_inActions.BuiltInOperations.format_convert(operationArgs);
             }
             case "validate-files": {
-                return new operations.Built_inActions.BuiltInOperations().validate_files(resolvedOp, promptAnswers, currentGame, games, context, cancellationToken);
+                return operations.Built_inActions.BuiltInOperations.validate_files(operationArgs);
             }
             case "rename-folders": {
-                return new operations.Built_inActions.BuiltInOperations().rename_folders(resolvedOp, promptAnswers, currentGame, games, context, cancellationToken);
+                return operations.Built_inActions.BuiltInOperations.rename_folders(operationArgs);
             }
             default: {
                 Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] Unknown engine action: {action}");
@@ -91,4 +103,29 @@ internal class OpDispatcher {
     }
 
 
+}
+
+internal class OperationArgs {
+    internal IDictionary<string, object?> op;
+    internal IDictionary<string, object?> promptAnswers;
+    internal string currentGame;
+    internal Dictionary<string, Core.Data.GameModuleInfo> games;
+    internal EngineContext context;
+    internal System.Threading.CancellationToken cancellationToken;
+
+    internal OperationArgs(
+        IDictionary<string, object?> op,
+        IDictionary<string, object?> promptAnswers,
+        string currentGame,
+        Dictionary<string, Core.Data.GameModuleInfo> games,
+        EngineContext context,
+        System.Threading.CancellationToken cancellationToken
+    ) {
+        this.op = op;
+        this.promptAnswers = promptAnswers;
+        this.currentGame = currentGame;
+        this.games = games;
+        this.context = context;
+        this.cancellationToken = cancellationToken;
+    }
 }

@@ -1,12 +1,9 @@
-using System.Collections.Generic;
-using System.Linq;
-using EngineNet.Core.Serialization.Toml;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 
-internal partial class BuiltInOperations {
+internal class ConfigHelpers {
 
-    private void ApplyUpdate(IDictionary<string, object?> doc, string group, int index, string key, string value, string? typeHint) {
+    internal void ApplyUpdate(IDictionary<string, object?> doc, string group, int index, string key, string value, string? typeHint) {
         object? convertedValue = ConvertValue(value, typeHint);
         var targetContext = EnsureGroupEntry(doc, group, index);
 
@@ -18,7 +15,7 @@ internal partial class BuiltInOperations {
         }
     }
 
-    private object EnsureGroupEntry(IDictionary<string, object?> doc, string group, int index) {
+    internal object EnsureGroupEntry(IDictionary<string, object?> doc, string group, int index) {
         if (!doc.TryGetValue(group, out object? g) || g == null) {
             var newDict = new Dictionary<string, object?>();
             // If index > 1, we must start as a list
@@ -71,7 +68,7 @@ internal partial class BuiltInOperations {
         }
     }
 
-    private object ConvertValue(string raw, string? hint) {
+    internal object ConvertValue(string raw, string? hint) {
         hint = (hint ?? "auto").ToLowerInvariant();
 
         switch (hint) {
@@ -106,7 +103,7 @@ internal partial class BuiltInOperations {
         }
     }
 
-    private ConfigOptions ParseArgs(List<string> args) {
+    internal ConfigOptions ParseArgs(List<string> args) {
         var opts = new ConfigOptions();
         for (int i = 0; i < args.Count; i++) {
             string a = args[i];
@@ -128,7 +125,7 @@ internal partial class BuiltInOperations {
         return opts;
     }
 
-    private SetToken? ParseSetToken(string token) {
+    internal SetToken? ParseSetToken(string token) {
         // key=value[:type]
         if (string.IsNullOrEmpty(token)) return null;
         int eq = token.IndexOf('=');
@@ -154,7 +151,7 @@ internal partial class BuiltInOperations {
         return new SetToken { Key = key, Value = rest, TypeHint = typeHint };
     }
 
-    private class ConfigOptions {
+    internal class ConfigOptions {
         internal string Group = "placeholders";
         internal int Index = 1;
         internal string? Key;
@@ -165,7 +162,7 @@ internal partial class BuiltInOperations {
         internal List<SetToken> Sets = new List<SetToken>();
     }
 
-    private class SetToken {
+    internal class SetToken {
         internal string Key { get; set; } = "";
         internal string Value { get; set; } = "";
         internal string? TypeHint { get; set; }

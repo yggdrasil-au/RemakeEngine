@@ -59,7 +59,7 @@ internal sealed class Single {
                         Core.UI.EngineSdk.PrintLine(message: $"\n>>> Engine operation: {title}");
                         // delegate engine type handling to ExecuteEngineOperationAsync
                         var OperationExecution = new helpers.OpDispatcher();
-                        result = await OperationExecution.DispatchAsync(currentGame, games, executableOperation, promptAnswers, Context, cancellationToken);
+                        result = await OperationExecution.DispatchAsync(executableOperation, promptAnswers, currentGame, games, Context, cancellationToken);
                     } catch (System.Exception ex) {
                         Core.UI.EngineSdk.PrintLine($"engine ERROR: {ex.Message}");
                         result = false;
