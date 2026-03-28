@@ -918,6 +918,7 @@ function colour_prompt(message, color, id, secret) end
 --- Loads and executes a Lua file relative to the current script's directory.
 --- Like standard 'dofile', this evaluates the file every time it is called and does not cache results.
 --- If the path does not end in '.lua', it is appended automatically.
+--- Any root level code in the imported file will be executed immediately apon import unless contained within a function.
 ---@param path string The relative or absolute path to the Lua file.
 ---@return any result The value returned by the executed Lua script (if any).
 function import(path) end
