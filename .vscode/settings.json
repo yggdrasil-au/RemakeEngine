@@ -88,5 +88,7 @@
         "**/.history": true
     },
     "dotnet.defaultSolution": "RemakeEngine.slnx",
+    "Lua.diagnostics.libraryFiles": "Enable",
+    "Lua.hint.enable": true,
 }
 

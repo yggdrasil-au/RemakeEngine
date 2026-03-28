@@ -16,6 +16,9 @@
     "Lua.runtime.version": "Lua 5.3",
     "Lua.workspace.library": [
         "./EngineApps/api_definitions"
-    ]
+    ],
 
+    "Lua.misc.parameters": [
+        "--develop=true"
+    ]
 }

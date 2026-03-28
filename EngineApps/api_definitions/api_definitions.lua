@@ -20,7 +20,7 @@ The file is organized into sections:
 ]]
 
 
----@meta
+---@meta _
 
 -- Builtins
 
@@ -920,15 +920,15 @@ function colour_prompt(message, color, id, secret) end
 --- If the path does not end in '.lua', it is appended automatically.
 --- Any root level code in the imported file will be executed immediately apon import unless contained within a function.
 ---@param path string The relative or absolute path to the Lua file.
----@return any result The value returned by the executed Lua script (if any).
+---@return unknown result The value returned by the executed Lua script (if any).
 function import(path) end
 
 --- Alias for import.
---- Note: In RemakeEngine, 'require' is a direct alias for 'import'. 
---- Unlike standard Lua 'require', it does NOT cache modules in 'package.loaded' 
+--- Note: In RemakeEngine, 'require' is a direct alias for 'import'.
+--- Unlike standard Lua 'require', it does NOT cache modules in 'package.loaded'
 --- and will re-evaluate the file on every call.
 ---@param path string The relative or absolute path to the Lua file.
----@return any result The value returned by the executed Lua script (if any).
+---@return unknown result The value returned by the executed Lua script (if any).
 function require(path) end
 
 --- Diagnostics helpers.

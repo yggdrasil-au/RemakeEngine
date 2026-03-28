@@ -137,10 +137,17 @@ internal static class LuaAction {
                 throw new ScriptRuntimeException($"import error: file not found '{safePath}'");
             }
 
+            string previousScriptDir = currentScriptDir;
+            string nextScriptDir = System.IO.Path.GetDirectoryName(safePath)?.Replace("\\", "/") ?? "";
+
             try {
+                // Ensure nested imports resolve relative to the currently imported file.
+                _LuaWorld.LuaScript.Globals["script_dir"] = nextScriptDir;
                 return _LuaWorld.LuaScript.DoFile(safePath);
             } catch (Exception ex) {
                 throw new ScriptRuntimeException($"import error in '{safePath}': {ex.Message}");
+            } finally {
+                _LuaWorld.LuaScript.Globals["script_dir"] = previousScriptDir;
             }
         });
 
