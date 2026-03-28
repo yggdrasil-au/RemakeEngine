@@ -21,30 +21,22 @@ internal sealed class Engine : IEngineFace{
         Core.Services.CommandService commandService,
         Core.Services.OperationsService OperationsService,
         Core.Services.GitService gitService,
-
         Core.ExternalTools.JsonToolResolver toolResolver,
-
         Data.EngineConfig engineConfig,
-
         EngineNet.Core.Engine.Operations.Single Runner
     ) {
         this.GameLauncher = gameLauncher;
-
         OperationContext operationContext = new OperationContext(
             OperationsService,
             OperationsLoader,
             Runner
         );
-
         this.Context = new Core.Engine.EngineContext(
             gameRegistry,
             commandService,
             toolResolver,
-
             gitService,
-
             engineConfig,
-
             operationContext
         );
     }

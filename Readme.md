@@ -1,6 +1,6 @@
 # Remake Engine
 
-Remake Engine is an extensible cross-platform orchestration engine for repeatable game workflows. It ships with a .NET 10 core (**EngineNet**) that can run through either a command-line interface or TUI or an Avalonia-based GUI.
+Remake Engine is an extensible cross-platform orchestration engine for repeatable game workflows. It ships with a .NET 10 core (**EngineNet**) that can run through a command-line interface, a TUI, or an Avalonia-based GUI.
 
 ## Key Features
 - Configuration-driven operations defined in JSON or TOML (`operations.json` / `operations.toml`).
@@ -72,9 +72,9 @@ GitHub Actions workflows in `.github/workflows/` keep pull requests, SonarCloud 
 Run `dotnet build RemakeEngine.slnx` and `dotnet test RemakeEngine.slnx --nologo` locally before opening a PR so the CI checks stay green. To cut a multi-platform release, push a tag like `v2.5.0`; for a Windows-only drop use `win-v2.5.0`. The workflows create the release entry and upload the zipped outputs automatically.
 
 ## Interfaces
-* **Simple GUI (Avalonia):** intended for end-users wanting a straightforward way to run predefined operations for their games/modules, to just run all primary operations, then to launch the game after.
-* **Interactive TUI:** Menu-driven experience that lists games, prompts for answers, and streams operation output.
-* **Developer CLI:** Direct command invocation for bespoke automation or module authoring. Arguments map to the same structures used by `operations.(json|toml)`.
+* **Simple GUI (Avalonia):** end-user focused entry point to run predefined operations and launch games.
+* **Interactive TUI:** menu-driven experience that lists games, collects prompts, and streams output.
+* **Developer CLI:** direct command invocation for automation or module authoring. Arguments map to the same structures used by `operations.(json|toml)`.
 
 ## Configuration and Modules
 * `EngineApps/Games/<GameName>/operations.(json|toml)` define operations for a game/module. Groups inside these files control execution ordering.
@@ -108,8 +108,15 @@ RemakeEngine/
   RemakeEngine.slnx           # Solution
 ```
 
+## Where To Look Next
+- [EngineNet/readme.md](EngineNet/readme.md) for the .NET entry point and project layout.
+- [EngineNet/source/Core/readme.md](EngineNet/source/Core/readme.md) for engine runtime responsibilities.
+- [EngineNet/source/Interface/readme.md](EngineNet/source/Interface/readme.md) for GUI/TUI/CLI behavior.
+- [EngineNet/source/ScriptEngines/Readme.md](EngineNet/source/ScriptEngines/Readme.md) for embedded and external script runtimes.
+- [schemas/operations.toml.md](schemas/operations.toml.md) for the operations manifest guide.
+
 ## Contributing
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, coding standards, and release workflows. When modifying the engine, update the matching specification in `EngineNet/specs/` so documentation stays in sync with the implementation.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, coding standards, and release workflows. When modifying the engine, update the matching schemas in [schemas/](schemas/) and public docs in [RemakeEngineDocs](https://github.com/yggdrasil-au/RemakeEngineDocs).
 
 ## Module Licensing Policy
 

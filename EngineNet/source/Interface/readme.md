@@ -2,7 +2,11 @@
 
 RemakeEngine provides three distinct user interfaces: the **GUI** (Graphical User Interface), the **TUI** (Terminal User Interface), and the **CLI** (Command Line Interface).
 
-While the GUI and TUI are designed to explore and execute pre-defined workflows found in `operations.toml` files, the **CLI** functions fundamentally differently. It is designed for ad-hoc execution and automation, allowing users to construct operations on the fly without requiring them to be defined in a file beforehand.
+While the GUI and TUI are designed to explore and execute predefined workflows found in `operations.toml` files, the **CLI** functions fundamentally differently. It is designed for ad-hoc execution and automation, allowing users to construct operations on the fly without requiring them to be defined in a file beforehand.
+
+## How The Interfaces Connect To Core
+
+All interfaces are launched by `EngineNet.Program` and orchestrated through `Interface.Main`, which exposes a limited `MiniEngineFace` to the UI layer. This keeps the UI safe and focused, while the engine core remains responsible for registries, operations, command execution, and script dispatch.
 
 ## 1\. The Command Line Interface (CLI)
 
@@ -22,14 +26,14 @@ Instead of selecting an operation by name or ID from a list, you provide the ope
 
 ```pwsh
 # Explicitly defines the operation structure in the command itself
-dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo\" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua" --args '["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo", "--prompt", "prompt overide", "--note", "This is a note from the prompt"]'
+dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo\" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua" --args '["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo", "--prompt", "prompt override", "--note", "This is a note from the prompt"]'
 ```
 
 *Note: Currently, the CLI focuses on this inline construction method. While it can list operations defined in files (via `--list-ops`), its primary execution mode allows you to bypass those files entirely.*
 
 ## 2\. The Terminal User Interface (TUI)
 
-**Primary Use Case:** Interactive development and exploration of pre-defined workflows.
+**Primary Use Case:** Interactive development and exploration of predefined workflows.
 
 The TUI is an interactive menu system that runs inside the terminal. Unlike the CLI, it is **strictly file-driven**. It relies entirely on the structure defined in `operations.toml` to populate its menus.
 
@@ -40,6 +44,8 @@ The TUI is an interactive menu system that runs inside the terminal. Unlike the 
 3.  **Execution:** It presents the parsed operations as a selectable list. You cannot run a script via the TUI unless it is explicitly defined in that file.
 
 This interface ensures consistency; users can only execute workflows that the module creator has officially defined and tested.
+
+![TUI Select Game Menu](../../../.github/assets/selectGameMenu.png)
 
 ## 3\. The Graphical User Interface (GUI)
 
@@ -52,4 +58,14 @@ Like the TUI, the GUI is **file-driven**. It parses `operations.toml` to generat
   * **Visual Loading:** Upon selecting a module, the GUI loads the operations list into memory.
   * **Rich Interaction:** It supports interactive features defined in the operations file, such as confirmation dialogs, checkboxes, and text prompts, which are rendered as actual windows rather than text queries.
   * **State Awareness:** It uses the file metadata to display icons, descriptions, and verification status, which the CLI and TUI largely ignore.
+
+
+![GUI Library Page](../../../.github/assets/guiLibraryPage.png)
+
+
+## Related Docs
+- [../../readme.md](../../readme.md)
+- [../../../Readme.md](../../../Readme.md)
+- [../Core/readme.md](../Core/readme.md)
+- [../ScriptEngines/Readme.md](../ScriptEngines/Readme.md)
 
