@@ -12,6 +12,7 @@ internal sealed class Single {
     /// <param name="games"></param>
     /// <param name="op"></param>
     /// <param name="promptAnswers"></param>
+    /// <param name="Context"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     internal async System.Threading.Tasks.Task<bool> RunAsync(
@@ -31,7 +32,7 @@ internal sealed class Single {
 
         // 2. Resolve placeholders for the current operation execution payload.
         //    Nested onsuccess blocks are intentionally excluded from this resolution pass.
-        IDictionary<string, object?> executableOperation = ResolveExecutionPayload(rawOperation, ctx);
+        IDictionary<string, object?> executableOperation = Single.ResolveExecutionPayload(rawOperation, ctx);
 
         string? scriptType = (executableOperation.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant();
         List<string> parts = Context.CommandService.BuildCommand(currentGame, games, Context.EngineConfig.Data, executableOperation, promptAnswers);
@@ -143,7 +144,7 @@ internal sealed class Single {
         if (result && helpers.OpMetadataExtractor.ExtractSuccessActions(rawOperation, out List<Dictionary<string, object?>>? followUps) && followUps is not null) {
             foreach (Dictionary<string, object?> childOp in followUps) {
                 if (cancellationToken.IsCancellationRequested) break;
-                bool ok = await Context.OperationContext.Single.RunAsync(currentGame, games, childOp, promptAnswers, Context, cancellationToken);
+                bool ok = await Context.OperationContext.Single.RunAsync(currentGame: currentGame, games: games, op: childOp, promptAnswers: promptAnswers, Context: Context, cancellationToken);
                 if (!ok) {
                     result = false; // propagate failure from any onsuccess step
                 }

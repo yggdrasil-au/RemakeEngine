@@ -11,7 +11,7 @@ internal sealed class Engine : IEngineFace{
     // Services exposed to partial classes
     public Core.Services.GameLauncher GameLauncher { get; }
     public Core.Engine.EngineContext Context { get; }
-    internal Operations.All All { get; }
+    private Operations.All All { get; }
 
     /* :: :: Vars :: End :: */
 
@@ -29,7 +29,7 @@ internal sealed class Engine : IEngineFace{
 
         EngineNet.Core.Engine.Operations.Single Runner
     ) {
-        GameLauncher = gameLauncher;
+        this.GameLauncher = gameLauncher;
 
         OperationContext operationContext = new OperationContext(
             OperationsService,
@@ -37,9 +37,9 @@ internal sealed class Engine : IEngineFace{
             Runner
         );
 
-        All = new Operations.All();
+        this.All = new Operations.All();
 
-        Context = new Core.Engine.EngineContext(
+        this.Context = new Core.Engine.EngineContext(
             gameRegistry,
             commandService,
             toolResolver,
@@ -64,7 +64,7 @@ internal sealed class Engine : IEngineFace{
         IDictionary<string, object?> promptAnswers,
         System.Threading.CancellationToken cancellationToken = default
     ) {
-        return await Context.OperationContext.Single.RunAsync(currentGame, games, op, promptAnswers, this.Context, cancellationToken);
+        return await this.Context.OperationContext.Single.RunAsync(currentGame, games, op, promptAnswers, this.Context, cancellationToken);
     }
 
     // run all
@@ -75,7 +75,7 @@ internal sealed class Engine : IEngineFace{
         Core.ProcessRunner.StdinProvider? stdinProvider = null,
         System.Threading.CancellationToken cancellationToken = default
     ) {
-        return await All.RunAsync(gameName, this.Context, onOutput, onEvent, stdinProvider, cancellationToken);
+        return await this.All.RunAsync(gameName, this.Context, onOutput, onEvent, stdinProvider, cancellationToken);
     }
 
 

@@ -8,7 +8,7 @@ internal sealed class PromptChoice {
     internal bool IsDisabled { get; }
 
     internal PromptChoice(string label, bool isDisabled) {
-        Label = label;
-        IsDisabled = isDisabled;
+        this.Label = label;
+        this.IsDisabled = isDisabled;
     }
 }

@@ -134,9 +134,55 @@ internal static class Security {
         }
     }
 
+    private static bool IsForbiddenPath(string normalizedPath) {
+        if (string.IsNullOrWhiteSpace(normalizedPath)) return false;
+
+        string currentDir = NormalizeLowerFullPath(System.IO.Directory.GetCurrentDirectory());
+        string projectRoot = string.IsNullOrWhiteSpace(EngineNet.Core.Main.RootPath)
+            ? currentDir
+            : NormalizeLowerFullPath(EngineNet.Core.Main.RootPath);
+
+        List<string> forbiddenPatterns = new List<string> {
+            "/etc", "/bin", "/sbin",
+            System.IO.Path.Combine("/usr", "bin"),
+            System.IO.Path.Combine("/usr", "sbin"),
+            "/sys", "/proc", "/dev",
+            // Explicitly deny access to Engine Files to prevent tampering
+            System.IO.Path.Combine(projectRoot, "EngineApps", "Registries").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
+            System.IO.Path.Combine(projectRoot, "EngineApps", "api_definitions").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
+            System.IO.Path.Combine(projectRoot, "EngineApps", "Tools").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
+            // if the script is running from Source, also deny access to EngineNet source to prevent tampering
+            System.IO.Path.Combine(projectRoot, "EngineNet").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
+        };
+
+        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)) {
+            forbiddenPatterns.Add(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Windows).ToLowerInvariant());
+            forbiddenPatterns.Add(System.Environment.GetFolderPath(System.Environment.SpecialFolder.System).ToLowerInvariant());
+            forbiddenPatterns.Add(System.Environment.GetFolderPath(System.Environment.SpecialFolder.SystemX86).ToLowerInvariant());
+            forbiddenPatterns.Add(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ProgramFiles).ToLowerInvariant());
+            forbiddenPatterns.Add(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ProgramFilesX86).ToLowerInvariant());
+            forbiddenPatterns.Add(System.Environment.GetFolderPath(System.Environment.SpecialFolder.CommonApplicationData).ToLowerInvariant());
+        }
+
+        foreach (string forbiddenPattern in forbiddenPatterns) {
+            if (string.IsNullOrWhiteSpace(forbiddenPattern)) continue;
+            string normalizedForbidden = NormalizeBoundaryPattern(forbiddenPattern);
+            if (IsPathWithinBoundary(normalizedPath, normalizedForbidden)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     internal static bool TryGetAllowedCanonicalPathWithPrompt(string path, out string canonicalPath) {
         if (TryGetAllowedCanonicalPath(path, out canonicalPath)) {
             return true;
+        }
+
+        if (IsForbiddenPath(NormalizeLowerFullPath(path))) {
+            canonicalPath = string.Empty;
+            Core.UI.EngineSdk.Error($"Access denied: File path '{path}' is a protected system or engine path");
+            return false;
         }
 
         // Ask the user for permission to grant temporary access to this external path
@@ -251,6 +297,13 @@ internal static class Security {
 
         try {
             string normalizedPath = NormalizeLowerFullPath(path);
+            
+            // Deny explicitly forbidden paths immediately
+            if (IsForbiddenPath(normalizedPath)) {
+                Core.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Path '{normalizedPath}' is forbidden");
+                return false;
+            }
+
             string fullPath = GetCanonicalFullPath(path);
             //Core.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Checking path '{fullPath}'");
             //Core.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Normalized path '{normalizedPath}'");
@@ -333,30 +386,6 @@ internal static class Security {
             } catch (Exception ex) {
                 /* ignore */
                 Core.Diagnostics.Bug("IsAllowedPath: Failed to resolve symlink for path: " + fullPath + " with exception: " + ex);
-            }
-
-            // Deny access to sensitive system directories
-            string[] forbiddenPatterns = {
-                @"c:\windows\system32",
-                @"c:\windows\syswow64",
-                @"c:\program files",
-                @"c:\program files (x86)",
-                "/etc", "/bin", "/sbin", "/usr/bin", "/usr/sbin",
-                "/sys", "/proc", "/dev",
-                // Explicitly deny access to Engine Files to prevent tampering
-                System.IO.Path.Combine(projectRoot, "EngineApps", "Registries").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
-                System.IO.Path.Combine(projectRoot, "EngineApps", "api_definitions").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
-                System.IO.Path.Combine(projectRoot, "EngineApps", "Tools").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
-                // if the script is running from Source, also deny access to EngineNet source to prevent tampering
-                System.IO.Path.Combine(projectRoot, "EngineNet").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
-            };
-
-            foreach (string forbiddenPattern in forbiddenPatterns) {
-                string normalizedForbidden = NormalizeBoundaryPattern(forbiddenPattern);
-                if (IsPathWithinBoundary(normalizedPath, normalizedForbidden)) {
-                    Core.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Path '{normalizedPath}' starts with forbidden pattern '{normalizedForbidden}'");
-                    return false;
-                }
             }
 
             // Additional check: allow relative paths within current directory

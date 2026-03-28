@@ -19,11 +19,11 @@ internal sealed class PromptRequest {
         IReadOnlyList<PromptChoice> choices,
         bool isSecret
     ) {
-        Name = name;
-        Type = type;
-        Title = title;
-        DefaultValue = defaultValue;
-        Choices = choices;
-        IsSecret = isSecret;
+        this.Name = name;
+        this.Type = type;
+        this.Title = title;
+        this.DefaultValue = defaultValue;
+        this.Choices = choices;
+        this.IsSecret = isSecret;
     }
 }

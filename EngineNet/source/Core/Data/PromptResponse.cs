@@ -9,9 +9,9 @@ internal sealed class PromptResponse {
     internal object? Value { get; }
 
     private PromptResponse(bool isCancelled, bool useDefault, object? value) {
-        IsCancelled = isCancelled;
-        UseDefault = useDefault;
-        Value = value;
+        this.IsCancelled = isCancelled;
+        this.UseDefault = useDefault;
+        this.Value = value;
     }
     
     internal static PromptResponse Cancelled() => new PromptResponse(isCancelled: true, useDefault: false, value: null);

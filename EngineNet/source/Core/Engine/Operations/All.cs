@@ -11,6 +11,7 @@ internal sealed class All {
     /// this meathod runs all operations marked with "run-all" or "run_all" flag, as well as any "init" operations, for the specified game.
     /// </summary>
     /// <param name="gameName"></param>
+    /// <param name="Context"></param>
     /// <param name="onOutput"></param>
     /// <param name="onEvent"></param>
     /// <param name="stdinProvider"></param>
@@ -298,7 +299,7 @@ internal sealed class All {
 
             string type = GetString(prompt, "type").ToLowerInvariant();
             if (prompt.TryGetValue("condition", out object? conditionObj) && conditionObj is string conditionName) {
-                if (!answers.TryGetValue(conditionName, out object? conditionValue)) {
+                if (!answers.TryGetValue(conditionName, out object? _)) {
                     foreach (object? other in prompts) {
                         if (other is Dictionary<string, object?> otherPrompt &&
                             string.Equals(GetString(otherPrompt, "Name"), conditionName, System.StringComparison.OrdinalIgnoreCase)) {

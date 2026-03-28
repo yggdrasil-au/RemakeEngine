@@ -7,27 +7,19 @@ internal sealed class GameInfo {
     /// <summary>
     /// Path to the operations file (toml or json) that describes actions for this game.
     /// </summary>
-    internal string OpsFile {
-        get;
-    }
+    internal string OpsFile { get; }
     /// <summary>
     /// Root directory of the game/module on disk.
     /// </summary>
-    internal string GameRoot {
-        get;
-    }
+    internal string GameRoot { get; }
     /// <summary>
     /// Optional absolute path to the game's executable, if known.
     /// </summary>
-    internal string? ExePath {
-        get;
-    }
+    internal string? ExePath { get; }
     /// <summary>
     /// Optional human-friendly title.
     /// </summary>
-    internal string? Title {
-        get;
-    }
+    internal string? Title { get; }
 
     /// <summary>
     /// Create a new <see cref="GameInfo"/>.
@@ -37,9 +29,9 @@ internal sealed class GameInfo {
     /// <param name="exePath">Optional executable path.</param>
     /// <param name="title">Optional title.</param>
     internal GameInfo(string opsFile, string gameRoot, string? exePath = null, string? title = null) {
-        OpsFile = opsFile;
-        GameRoot = gameRoot;
-        ExePath = exePath;
-        Title = title;
+        this.OpsFile = opsFile;
+        this.GameRoot = gameRoot;
+        this.ExePath = exePath;
+        this.Title = title;
     }
 }

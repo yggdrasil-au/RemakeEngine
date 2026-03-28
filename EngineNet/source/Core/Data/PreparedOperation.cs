@@ -21,12 +21,12 @@ internal sealed class PreparedOperation {
         string? scriptPath,
         string? scriptType
     ) {
-        Operation = operation;
-        DisplayName = displayName;
-        OperationId = operationId;
-        HasDuplicateId = hasDuplicateId;
-        HasInvalidId = hasInvalidId;
-        ScriptPath = scriptPath;
-        ScriptType = scriptType;
+        this.Operation = operation;
+        this.DisplayName = displayName;
+        this.OperationId = operationId;
+        this.HasDuplicateId = hasDuplicateId;
+        this.HasInvalidId = hasInvalidId;
+        this.ScriptPath = scriptPath;
+        this.ScriptType = scriptType;
     }
 }
