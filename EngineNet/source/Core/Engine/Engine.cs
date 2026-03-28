@@ -11,7 +11,6 @@ internal sealed class Engine : IEngineFace{
     // Services exposed to partial classes
     public Core.Services.GameLauncher GameLauncher { get; }
     public Core.Engine.EngineContext Context { get; }
-    private Operations.All All { get; }
 
     /* :: :: Vars :: End :: */
 
@@ -37,8 +36,6 @@ internal sealed class Engine : IEngineFace{
             Runner
         );
 
-        this.All = new Operations.All();
-
         this.Context = new Core.Engine.EngineContext(
             gameRegistry,
             commandService,
@@ -61,33 +58,16 @@ internal sealed class Engine : IEngineFace{
         string currentGame,
         Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
         IDictionary<string, object?> op,
-        IDictionary<string, object?> promptAnswers,
+        Data.PromptAnswers promptAnswers,
         System.Threading.CancellationToken cancellationToken = default
     ) {
         return await this.Context.OperationContext.Single.RunAsync(currentGame, games, op, promptAnswers, this.Context, cancellationToken);
     }
 
-    // run all
-    public async System.Threading.Tasks.Task<Operations.RunAllResult> RunAllAsync(
-        string gameName,
-        Core.ProcessRunner.OutputHandler? onOutput = null,
-        Core.ProcessRunner.EventHandler? onEvent = null,
-        Core.ProcessRunner.StdinProvider? stdinProvider = null,
-        System.Threading.CancellationToken cancellationToken = default
-    ) {
-        return await this.All.RunAsync(gameName, this.Context, onOutput, onEvent, stdinProvider, cancellationToken);
-    }
-
-
 }
 
 public interface IEngineFace {
-    public Task<bool> RunSingleOperationAsync(string currentGame, Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers, CancellationToken cancellationToken = default);
-    public Task<Operations.RunAllResult> RunAllAsync(string gameName, Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, CancellationToken cancellationToken = default);
-
+    public Task<bool> RunSingleOperationAsync(string currentGame, Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games, IDictionary<string, object?> op, Data.PromptAnswers promptAnswers, CancellationToken cancellationToken = default);
     internal Core.Services.GameLauncher GameLauncher { get; }
-
     internal EngineContext Context { get; }
-
-
 }

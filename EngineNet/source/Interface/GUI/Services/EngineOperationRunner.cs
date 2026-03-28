@@ -14,13 +14,11 @@ public static class EngineOperationRunner {
     /// Executes an engine operation while routing output, events, and prompts to the GUI services.
     /// </summary>
     /// <typeparam name="TResult">Type returned by the underlying executor.</typeparam>
-    /// <param name="engine">Engine instance.</param>
     /// <param name="moduleName">Name of the module/game for contextual logging.</param>
     /// <param name="operationName">Friendly operation name displayed to the user.</param>
     /// <param name="executor">Callback that runs the actual engine work.</param>
     /// <param name="autoPromptResponses">Optional automatic prompt answers.</param>
     public static async Task<TResult> RunAsync<TResult>(
-        Core.Engine.IEngineFace engine,
         string moduleName,
         string operationName,
         System.Func<Core.ProcessRunner.OutputHandler, Core.ProcessRunner.EventHandler, Core.ProcessRunner.StdinProvider, Task<TResult>> executor,

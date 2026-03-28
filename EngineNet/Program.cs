@@ -80,8 +80,6 @@ public static class Program {
 
             Program.Engine ??= await Program.InitialiseEngine();
 
-            // 3. Interface selection based on "Remaining Args" (args with --root removed)
-
             var UI = new Interface.Main(Engine);
 
             // Logic:

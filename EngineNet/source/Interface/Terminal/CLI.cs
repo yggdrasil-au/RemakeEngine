@@ -75,7 +75,7 @@ internal partial class CLI {
         }
 
         // Find game modules
-        Dictionary<string, Core.Data.GameModuleInfo> games = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
+        Dictionary<string, Core.Data.GameModuleInfo> games = Engine.GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
         if (!TryResolveInlineGame(options, games, out string? gameName)) {
             Core.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
             return 1;
@@ -145,7 +145,7 @@ internal partial class CLI {
             get; private set;
         }
         internal Dictionary<string, object?> OperationFields { get; } = new(System.StringComparer.OrdinalIgnoreCase);
-        internal Dictionary<string, object?> PromptAnswers { get; } = new(System.StringComparer.OrdinalIgnoreCase); // respond to operations.toml prompts
+        internal Core.Data.PromptAnswers PromptAnswers { get; } = new Core.Data.PromptAnswers(); // respond to operations.toml prompts
         internal Dictionary<string, string> AutoPromptResponses { get; } = new(System.StringComparer.OrdinalIgnoreCase); // responde to lua prompt() calls
 
         private readonly List<string> _args = new();

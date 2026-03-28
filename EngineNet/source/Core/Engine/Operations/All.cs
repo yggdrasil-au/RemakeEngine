@@ -21,7 +21,7 @@ internal sealed class All {
     /// <exception cref="KeyNotFoundException"></exception>
     /// <exception cref="System.IO.FileNotFoundException"></exception>
     /// <exception cref="System.Exception"></exception>
-    internal async System.Threading.Tasks.Task<RunAllResult> RunAsync(
+    internal static async System.Threading.Tasks.Task<RunAllResult> RunAsync(
         string gameName,
         Core.Engine.EngineContext Context,
         Core.ProcessRunner.OutputHandler? onOutput = null,
@@ -124,7 +124,7 @@ internal sealed class All {
                     ["name"] = currentOperation
                 });
 
-                Dictionary<string, object?> promptAnswers = BuildPromptDefaults(op);
+                Core.Data.PromptAnswers promptAnswers = BuildPromptDefaults(op);
                 bool ok = false;
                 try {
                     string? scriptType = GetScriptType(op);
@@ -281,8 +281,8 @@ internal sealed class All {
     /// </summary>
     /// <param name="op"></param>
     /// <returns></returns>
-    private static Dictionary<string, object?> BuildPromptDefaults(Dictionary<string, object?> op) {
-        Dictionary<string, object?> answers = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+    private static Core.Data.PromptAnswers BuildPromptDefaults(Dictionary<string, object?> op) {
+        Core.Data.PromptAnswers answers = new Core.Data.PromptAnswers();
         if (!op.TryGetValue("prompts", out object? promptsObj) || promptsObj is not IList<object?> prompts) {
             return answers;
         }

@@ -39,7 +39,7 @@ public partial class MainWindow:Window {
     }
 
     private void ShowBuilding() {
-        if (GuiBootstrapper.Engine is null) {
+        if (GuiBootstrapper.MiniEngine is null) {
             ContentHost.Content = new Pages.BuildingPage();
             return;
         }
@@ -47,7 +47,7 @@ public partial class MainWindow:Window {
     }
 
     private void ShowSettings() {
-        if (GuiBootstrapper.Engine is null) {
+        if (GuiBootstrapper.MiniEngine is null) {
             ContentHost.Content = new Pages.SettingsPage();
             return;
         }

@@ -27,7 +27,7 @@ internal sealed class CommandBuilder() {
         Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
         IDictionary<string, object?> engineConfig,
         IDictionary<string, object?> op,
-        IDictionary<string, object?> promptAnswers
+        EngineNet.Core.Data.PromptAnswers promptAnswers
     ) {
         if (string.IsNullOrWhiteSpace(currentGame)) {
             throw new System.ArgumentException(message: "No game has been loaded.", nameof(currentGame));

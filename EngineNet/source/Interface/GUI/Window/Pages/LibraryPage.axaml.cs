@@ -69,12 +69,12 @@ public partial class LibraryPage:UserControl {
     private void Load() {
         try {
             Items.Clear(); // reset
-            if (GuiBootstrapper.Engine == null) {
-                Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] Load() aborted: GuiBootstrapper.Engine is null.");
+            if (GuiBootstrapper.MiniEngine == null) {
+                Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] Load() aborted: GuiBootstrapper.MiniEngine is null.");
                 throw new System.InvalidOperationException(message: "Engine is not initialized.");
             }
 
-            var modules = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.Installed);
+            var modules = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Utils.ModuleFilter.Installed);
 #if DEBUG
             Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] Found {modules.Count} modules.");
             // list all modules
@@ -141,8 +141,8 @@ public partial class LibraryPage:UserControl {
     /// <param name="gameRoot"></param>
     /// <returns>
     private Bitmap? ResolveCoverUri(string? gameRoot) {
-        if (GuiBootstrapper.Engine == null) {
-            Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() aborted: GuiBootstrapper.Engine is null.");
+        if (GuiBootstrapper.MiniEngine == null) {
+            Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() aborted: GuiBootstrapper.MiniEngine is null.");
             throw new System.InvalidOperationException(message: "Engine is not initialized.");
         }
         if (string.IsNullOrWhiteSpace(gameRoot)) {
@@ -195,7 +195,7 @@ public partial class LibraryPage:UserControl {
             ContentControl? host = this.FindControl<ContentControl>(name: "DetailsHost");
             ScrollViewer? cards = this.FindControl<ScrollViewer>(name: "CardsGrid");
             if (host is null || cards is null) return;
-            if (GuiBootstrapper.Engine is null) return;
+            if (GuiBootstrapper.MiniEngine is null) return;
             host.Content = new ModulePage(moduleName);
             host.IsVisible = true;
             cards.IsVisible = false;

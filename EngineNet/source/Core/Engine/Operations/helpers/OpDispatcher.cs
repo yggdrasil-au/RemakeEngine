@@ -17,7 +17,7 @@ internal static class OpDispatcher {
     /// <exception cref="KeyNotFoundException"></exception>
     internal static async System.Threading.Tasks.Task<bool> DispatchAsync(
         IDictionary<string, object?> executableOperation,
-        IDictionary<string, object?> promptAnswers,
+        Core.Data.PromptAnswers promptAnswers,
         string currentGame,
         Dictionary<string, Core.Data.GameModuleInfo> games,
         EngineContext context,
@@ -113,7 +113,7 @@ internal class OperationArgs {
     // values here must be readonly to ensure immutability, as the BuiltInOperations class and methods are static (for now) and should not have mutable state.
 
     internal readonly IDictionary<string, object?> op;
-    internal readonly IDictionary<string, object?> promptAnswers;
+    internal readonly Core.Data.PromptAnswers promptAnswers;
     internal readonly string currentGame;
     internal readonly Dictionary<string, Core.Data.GameModuleInfo> games;
     internal readonly EngineContext context;
@@ -121,7 +121,7 @@ internal class OperationArgs {
 
     internal OperationArgs(
         IDictionary<string, object?> op,
-        IDictionary<string, object?> promptAnswers,
+        Core.Data.PromptAnswers promptAnswers,
         string currentGame,
         Dictionary<string, Core.Data.GameModuleInfo> games,
         EngineContext context,

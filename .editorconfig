@@ -20,9 +20,6 @@ dotnet_naming_symbols.private_static_fields.applicable_kinds = *
 dotnet_naming_symbols.private_static_fields.applicable_accessibilities = *
 dotnet_naming_symbols.private_static_fields.required_modifiers = *
 
-# Define the 'lower_camel_case_with_s_prefix' style
-dotnet_naming_style.lower_camel_case_with_s_prefix.capitalization = *
-dotnet_naming_style.lower_camel_case_with_s_prefix.required_prefix = *
 
 # Bind the symbol group to the style
 dotnet_naming_rule.private_static_fields_should_be_s_prefix.symbols = *

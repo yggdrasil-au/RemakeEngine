@@ -11,12 +11,13 @@ namespace EngineNet.Interface.GUI;
 public static class GuiBootstrapper {
     /// <summary>
     /// Engine instance provided by the host application at startup.
-    /// Stored temporarily so the App (and its view models) can access it
-    /// during initialization.
+    /// Stored only for previewer/bootstrapping; GUI pages should use <see cref="MiniEngine" />.
     /// </summary>
     public static Core.Engine.IEngineFace Engine {
         get; private set;
-    } = null!; // if not set by Program.Run, force reinitialization (e.g., for Avalonia previewer)
+    } = null!;
+
+    internal static MiniEngineFace MiniEngine { get; set; } = null!;
 
     /// <summary>
     /// Launches the Avalonia desktop application with the provided engine.
@@ -25,14 +26,21 @@ public static class GuiBootstrapper {
     /// An application-specific engine/service root passed to the UI layer.
     /// Typically used to construct the MainViewModel and other services.
     /// </param>
+    /// <param name="miniEngine">
+    /// A simplified interface to the engine, exposing only the methods needed by the UI.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// A token to cancel the operation.
+    /// </param>
     /// <returns>
     /// 0 on normal shutdown; 1 if an exception is caught during startup/run.
     /// </returns>
-    public static int Run(Core.Engine.IEngineFace engine) {
+    internal static int Run(MiniEngineFace miniEngine, System.Threading.CancellationToken cancellationToken) {
         try {
             // 1) Stash the engine so App.OnFrameworkInitializationCompleted (or similar)
-            //    can pull it to compose view models.
-            Engine = engine ?? EngineNet.Core.Main.InitialiseEngineAsync().GetAwaiter().GetResult(); // only used in avalonia previewer
+            //    can pull it to compose view models and support the previewer.
+            Engine = EngineNet.Core.Main.InitialiseEngineAsync().GetAwaiter().GetResult(); // only used in avalonia previewer
+            MiniEngine = miniEngine;
 
             // Ensure events from the engine (including "Play" button actions) reach the GUI
             Core.UI.EngineSdk.LocalEventSink = OperationOutputService.Instance.HandleEvent;

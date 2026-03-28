@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 internal partial class InternalOperations {
 
-    internal bool DownloadModuleRegistry(IDictionary<string, object?> promptAnswers, EngineContext context) {
+    internal bool DownloadModuleRegistry(Core.Data.PromptAnswers promptAnswers, EngineContext context) {
 
         string? input = null;
         if (promptAnswers.TryGetValue("url", out object? u)) {

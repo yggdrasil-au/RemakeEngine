@@ -19,7 +19,7 @@ internal sealed class Single {
         string currentGame,
         Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
         IDictionary<string, object?> op,
-        IDictionary<string, object?> promptAnswers,
+        Core.Data.PromptAnswers promptAnswers,
         EngineContext Context,
         System.Threading.CancellationToken cancellationToken = default
     ) {

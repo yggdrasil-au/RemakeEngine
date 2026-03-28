@@ -85,16 +85,16 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
             Status = "Loading…";
             Items.Clear();
 
-            if (GuiBootstrapper.Engine == null) {
+            if (GuiBootstrapper.MiniEngine == null) {
                 throw new InvalidOperationException(message: "Engine is not initialized.");
             }
 
             // Get registered modules from EngineApps\Registries\Modules\Main.json
-            GuiBootstrapper.Engine.Context.GameRegistry.RefreshModules();
-            IReadOnlyDictionary<string, object?> modules = GuiBootstrapper.Engine.Context.GameRegistry.GetRegisteredModules();
+            GuiBootstrapper.MiniEngine.GameRegistry_RefreshModules();
+            IReadOnlyDictionary<string, object?> modules = GuiBootstrapper.MiniEngine.GameRegistry_GetRegisteredModules();
 
             // Get already downloaded games
-            Dictionary<string, Core.Data.GameModuleInfo> downloadedGames = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.Installed);
+            Dictionary<string, Core.Data.GameModuleInfo> downloadedGames = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Utils.ModuleFilter.Installed);
 
             foreach (KeyValuePair<string, object?> kv in modules) {
                 string moduleName = kv.Key;
@@ -167,7 +167,7 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
         }
 
         try {
-            if (GuiBootstrapper.Engine == null) {
+            if (GuiBootstrapper.MiniEngine == null) {
                 return;
             }
 
@@ -176,7 +176,6 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
             OperationOutputService.Instance.AddOutput($"Starting download for {item.Name}…", "stdout");
 
             bool success = await EngineOperationRunner.RunAsync(
-                GuiBootstrapper.Engine,
                 item.Name,
                 $"Download {item.Name}",
                 async (onOutput, onEvent, stdin) => {
@@ -186,7 +185,7 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
                         ["url"] = item.Url ?? string.Empty
                     });
 
-                    bool result = await Task.Run(() => GuiBootstrapper.Engine.Context.GitService.CloneModule(item.Url!));
+                    bool result = await Task.Run(() => GuiBootstrapper.MiniEngine.GitService_CloneModule(item.Url!));
 
                     onOutput(result ? $"Download complete for {item.Name}." : $"Download failed for {item.Name}.", result ? "stdout" : "stderr");
                     onEvent(new Dictionary<string, object?> {
@@ -223,7 +222,7 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
         if (item is null) return;
         try {
             Window? w = TopLevel.GetTopLevel(this) as Window;
-            if (w is MainWindow mw && GuiBootstrapper.Engine is not null) {
+            if (w is MainWindow mw && GuiBootstrapper.MiniEngine is not null) {
                 mw.ShowLibraryFor(item.Name);
             }
         } catch { /* ignore */ }

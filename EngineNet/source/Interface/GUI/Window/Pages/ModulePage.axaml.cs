@@ -112,7 +112,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     /* :: :: Methods :: START :: */
 
     private async void OnLoaded(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e) {
-        if (_initOperations.Count == 0 || GuiBootstrapper.Engine is null) {
+        if (_initOperations.Count == 0 || GuiBootstrapper.MiniEngine is null) {
             IsExecutionEnabled = true;
             Raise(nameof(CanPlay));
             Raise(nameof(CanRunAll));
@@ -165,7 +165,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     private void Load() {
         try {
-            if (GuiBootstrapper.Engine is null) {
+            if (GuiBootstrapper.MiniEngine is null) {
                 throw new InvalidOperationException(message: "Engine is not initialized.");
             }
 
@@ -174,7 +174,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             _initOperations.Clear();
 
             // Gather module info from multiple sources
-            Dictionary<string, Core.Data.GameModuleInfo> modules = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Data.GameModuleInfo> modules = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
             Core.Data.GameModuleInfo? m = modules.TryGetValue(_moduleName, out Core.Data.GameModuleInfo? mm) ? mm : null;
             if (m is not null) {
                 Title = string.IsNullOrWhiteSpace(m.Title) ? m.Name : m.Title;
@@ -192,7 +192,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             }
 
             // Registry info (URL)
-            IReadOnlyDictionary<string, object?> regs = GuiBootstrapper.Engine.Context.GameRegistry.GetRegisteredModules();
+            IReadOnlyDictionary<string, object?> regs = GuiBootstrapper.MiniEngine.GameRegistry_GetRegisteredModules();
             if (regs.TryGetValue(_moduleName, out object? regObj) && regObj is IDictionary<string, object?> reg) {
                 RegistryUrl = reg.TryGetValue(key: "url", value: out object? u) ? u?.ToString() : null;
                 if (string.IsNullOrWhiteSpace(Title)) {
@@ -203,7 +203,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
             // Load operations if ops_file exists
             string? opsFile = null;
-            Dictionary<string, Core.Data.GameModuleInfo> games = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Data.GameModuleInfo> games = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
             if (games.TryGetValue(_moduleName, out Core.Data.GameModuleInfo? gameInfo)) {
                 opsFile = gameInfo.OpsFile;
                 if (string.IsNullOrWhiteSpace(ExePath)) {
@@ -218,11 +218,11 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             }
 
             if (!string.IsNullOrWhiteSpace(opsFile) && System.IO.File.Exists(path: opsFile)) {
-                Core.Data.PreparedOperations preparedOps = GuiBootstrapper.Engine.Context.OperationContext.OperationsService.LoadAndPrepare(
+                Core.Data.PreparedOperations preparedOps = GuiBootstrapper.MiniEngine.OperationsService_LoadAndPrepare(
                     opsFile: opsFile,
                     currentGame: _moduleName,
                     games: games,
-                    engineConfig: GuiBootstrapper.Engine.Context.EngineConfig.Data
+                    engineConfig: GuiBootstrapper.MiniEngine.EngineConfig_Data
                 );
                 if (!preparedOps.IsLoaded) {
                     Core.Diagnostics.Log($"Load: Failed to load operations list for module {_moduleName} from ops file '{opsFile}'. {preparedOps.ErrorMessage}");
@@ -273,7 +273,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private Bitmap? ResolveCoverBitmap(string? gameRoot) {
-        if (GuiBootstrapper.Engine == null) {
+        if (GuiBootstrapper.MiniEngine == null) {
             return null;
         }
         string? icon = string.IsNullOrWhiteSpace(gameRoot) ? null : System.IO.Path.Combine(path1: gameRoot, path2: "icon.png");
@@ -288,7 +288,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private async System.Threading.Tasks.Task ExecuteInitOperationsAsync() {
-        if (_initOperations.Count == 0 || GuiBootstrapper.Engine is null) return;
+        if (_initOperations.Count == 0 || GuiBootstrapper.MiniEngine is null) return;
 
         IsRunning = true;
         _cts = new CancellationTokenSource();
@@ -296,10 +296,9 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         Raise(nameof(CanStop));
 
         try {
-            Dictionary<string, Core.Data.GameModuleInfo> games = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Data.GameModuleInfo> games = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
 
             await EngineOperationRunner.RunAsync(
-                engine: GuiBootstrapper.Engine,
                 moduleName: ModuleName,
                 operationName: "Initialization Ops",
                 executor: async (onOutput, onEvent, stdin) => {
@@ -311,10 +310,10 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                         System.Console.SetIn(new GuiStdinRedirectReader(provider: stdin));
                         bool okAllInit = true;
                         foreach (var op in _initOperations) {
-                            Dictionary<string, object?> answers = new Dictionary<string, object?>();
+                            Core.Data.PromptAnswers answers = new Core.Data.PromptAnswers();
                             await CollectAnswersForOperationAsync(op: op.Operation, answers: answers, defaultsOnly: true);
 
-                            bool ok = await GuiBootstrapper.Engine.RunSingleOperationAsync(
+                            bool ok = await GuiBootstrapper.MiniEngine.RunSingleOperationAsync(
                                 currentGame: ModuleName,
                                 games,
                                 op: op.Operation,
@@ -349,10 +348,9 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private async System.Threading.Tasks.Task PlayAsync() {
-        if (GuiBootstrapper.Engine is null || string.IsNullOrWhiteSpace(ModuleName)) return;
+        if (GuiBootstrapper.MiniEngine is null || string.IsNullOrWhiteSpace(ModuleName)) return;
         try {
             await EngineOperationRunner.RunAsync(
-                engine: GuiBootstrapper.Engine,
                 moduleName: ModuleName,
                 operationName: "Play",
                 executor: async (onOutput, onEvent, stdin) => {
@@ -366,7 +364,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
                     try {
                         System.Console.SetIn(new GuiStdinRedirectReader(provider: stdin));
-                        return await GuiBootstrapper.Engine.GameLauncher.LaunchGameAsync(name: ModuleName);
+                        return await GuiBootstrapper.MiniEngine.GameLauncher_LaunchGameAsync(name: ModuleName);
                     } finally {
                         Core.UI.EngineSdk.LocalEventSink = previousSink;
                         Core.UI.EngineSdk.MuteStdoutWhenLocalSink = previousMute;
@@ -381,7 +379,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private async System.Threading.Tasks.Task RunAllAsync() {
-        if (GuiBootstrapper.Engine is null || string.IsNullOrWhiteSpace(ModuleName)) return;
+        if (GuiBootstrapper.MiniEngine is null || string.IsNullOrWhiteSpace(ModuleName)) return;
 
         IsRunning = true;
         _cts = new CancellationTokenSource();
@@ -390,11 +388,10 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
         try {
             await EngineOperationRunner.RunAsync(
-                engine: GuiBootstrapper.Engine,
                 moduleName: ModuleName,
                 operationName: "Run All",
                 executor: async (onOutput, onEvent, stdin) => {
-                    var res = await GuiBootstrapper.Engine.RunAllAsync(gameName: ModuleName, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdin, cancellationToken: _cts.Token);
+                    var res = await GuiBootstrapper.MiniEngine.RunAllAsync(gameName: ModuleName, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdin, cancellationToken: _cts.Token);
                     return res.Success;
                 }
             );
@@ -418,7 +415,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private async System.Threading.Tasks.Task RunOpAsync(OpRow? row) {
-        if (row is null || GuiBootstrapper.Engine is null) return;
+        if (row is null || GuiBootstrapper.MiniEngine is null) return;
 
         IsRunning = true;
         _cts = new CancellationTokenSource();
@@ -426,14 +423,13 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         Raise(nameof(CanStop));
 
         try {
-            Dictionary<string, Core.Data.GameModuleInfo> games = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Data.GameModuleInfo> games = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
 
-            Dictionary<string, object?> promptAnswers = new Dictionary<string, object?>();
+            Core.Data.PromptAnswers promptAnswers = new Core.Data.PromptAnswers();
             await CollectAnswersForOperationAsync(op: row.Op, answers: promptAnswers);
 
             // Use embedded execution path (Engine handles engine/lua/js/bms in-process)
             await EngineOperationRunner.RunAsync(
-                engine: GuiBootstrapper.Engine,
                 moduleName: ModuleName,
                 operationName: row.Name,
                 executor: async (_, onEvent, stdin) => {
@@ -443,7 +439,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                     System.IO.TextReader previous = System.Console.In;
                     try {
                         System.Console.SetIn(new GuiStdinRedirectReader(provider: stdin));
-                        bool ok = await GuiBootstrapper.Engine.RunSingleOperationAsync(
+                        bool ok = await GuiBootstrapper.MiniEngine.RunSingleOperationAsync(
                             currentGame: ModuleName,
                             games,
                             op: row.Op,
@@ -477,16 +473,15 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private async System.Threading.Tasks.Task DownloadAsync() {
-        if (GuiBootstrapper.Engine is null) return;
+        if (GuiBootstrapper.MiniEngine is null) return;
         if (string.IsNullOrWhiteSpace(RegistryUrl)) return;
         try {
             await EngineOperationRunner.RunAsync(
-                engine: GuiBootstrapper.Engine,
                 moduleName: ModuleName,
                 operationName: $"Download {ModuleName}",
                 executor: async (onOutput, onEvent, stdin) => {
                     onEvent(new Dictionary<string, object?> { ["event"] = "start", ["name"] = ModuleName, ["url"] = RegistryUrl });
-                    bool result = await System.Threading.Tasks.Task.Run(function: () => GuiBootstrapper.Engine.Context.GitService.CloneModule(RegistryUrl!));
+                    bool result = await System.Threading.Tasks.Task.Run(function: () => GuiBootstrapper.MiniEngine.GitService_CloneModule(RegistryUrl!));
                     onOutput(result ? $"Download complete for {ModuleName}." : $"Download failed for {ModuleName}.", result ? "stdout" : "stderr");
                     onEvent(new Dictionary<string, object?> { ["event"] = "end", ["success"] = result, ["name"] = ModuleName });
                     return result;
@@ -501,8 +496,8 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     private async System.Threading.Tasks.Task OpenFolderAsync() {
         try {
-            if (GuiBootstrapper.Engine is null) return;
-            string? path = GuiBootstrapper.Engine.Context.GameRegistry.GetGamePath(name: ModuleName);
+            if (GuiBootstrapper.MiniEngine is null) return;
+            string? path = GuiBootstrapper.MiniEngine.GameRegistry_GetGamePath(name: ModuleName);
             if (string.IsNullOrWhiteSpace(path) || !System.IO.Directory.Exists(path: path)) {
                 return;
             }
@@ -525,13 +520,13 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private bool IsDownloaded() {
-        if (GuiBootstrapper.Engine is null) return false;
+        if (GuiBootstrapper.MiniEngine is null) return false;
         string path = System.IO.Path.Combine(path1: EngineNet.Core.Main.RootPath, path2: System.IO.Path.Combine("EngineApps", "Games", _moduleName));
         return System.IO.Directory.Exists(path: path);
     }
 
-    private async System.Threading.Tasks.Task CollectAnswersForOperationAsync(Dictionary<string, object?> op, Dictionary<string, object?> answers, bool defaultsOnly = false) {
-        if (GuiBootstrapper.Engine is null) {
+    private async System.Threading.Tasks.Task CollectAnswersForOperationAsync(Dictionary<string, object?> op, Core.Data.PromptAnswers answers, bool defaultsOnly = false) {
+        if (GuiBootstrapper.MiniEngine is null) {
             return;
         }
 
@@ -610,7 +605,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             }
         };
 
-        await GuiBootstrapper.Engine.Context.OperationContext.OperationsService.CollectAnswersAsync(op, answers, handler, defaultsOnly);
+        await GuiBootstrapper.MiniEngine.OperationsService_CollectAnswersAsync(op, answers, handler, defaultsOnly);
     }
 
     /* :: :: Methods :: END :: */

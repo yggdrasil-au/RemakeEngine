@@ -14,7 +14,7 @@ internal class CommandService {
         _runner = new ProcessRunner();
     }
 
-    internal List<string> BuildCommand(string currentGame, Dictionary<string, Data.GameModuleInfo> games, IDictionary<string, object?> engineData, IDictionary<string, object?> op, IDictionary<string, object?> promptAnswers) {
+    internal List<string> BuildCommand(string currentGame, Dictionary<string, Data.GameModuleInfo> games, IDictionary<string, object?> engineData, IDictionary<string, object?> op, Data.PromptAnswers promptAnswers) {
         return _builder.Build(currentGame, games, engineData, op, promptAnswers);
     }
 

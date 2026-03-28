@@ -32,12 +32,12 @@ public class Utils {
     /// <param name="autoPromptResponses"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public async System.Threading.Tasks.Task<bool> ExecuteOpAsync(
+    internal async System.Threading.Tasks.Task<bool> ExecuteOpAsync(
         MiniEngineFace Engine,
         string game,
         Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
         Dictionary<string, object?> op,
-        Dictionary<string, object?> promptAnswers,
+        Core.Data.PromptAnswers promptAnswers,
         Dictionary<string, string>? autoPromptResponses = null,
         System.Threading.CancellationToken cancellationToken = default
     ) {
@@ -83,13 +83,13 @@ public class Utils {
             }
 
             // Default: build and execute as external command (e.g., python)
-            List<string> parts = Engine.Context_CommandService_BuildCommand(game, games, Engine.Context_EngineConfig_Data, op, promptAnswers);
+            List<string> parts = Engine.CommandService_BuildCommand(game, games, Engine.EngineConfig_Data, op, promptAnswers);
             if (parts.Count < 2) {
                 return false;
             }
 
             string title = op.TryGetValue("Name", out object? n) ? n?.ToString() ?? System.IO.Path.GetFileName(parts[1]) : System.IO.Path.GetFileName(parts[1]);
-            return Engine.Context_CommandService_ExecuteCommand(
+            return Engine.CommandService_ExecuteCommand(
                 parts,
                 title,
                 onOutput: OnOutput,

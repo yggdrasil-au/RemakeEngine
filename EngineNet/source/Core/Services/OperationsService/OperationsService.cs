@@ -161,7 +161,7 @@ internal sealed class OperationsService {
     /// <returns></returns>
     internal async Task<bool> CollectAnswersAsync(
         Dictionary<string, object?> op,
-        Dictionary<string, object?> answers,
+        PromptAnswers answers,
         PromptHandler promptHandler,
         bool defaultsOnly = false
     ) {
@@ -266,7 +266,7 @@ internal sealed class OperationsService {
         return choices;
     }
 
-    private static void EnsureConditionDefault(IList<object?> prompts, Dictionary<string, object?> answers, string conditionName) {
+    private static void EnsureConditionDefault(IList<object?> prompts, PromptAnswers answers, string conditionName) {
         if (answers.ContainsKey(conditionName)) {
             return;
         }

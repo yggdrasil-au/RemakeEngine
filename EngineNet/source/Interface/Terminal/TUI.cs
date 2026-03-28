@@ -5,7 +5,7 @@ public partial class TUI {
 
     /* :: :: Constructor, Var :: START :: */
     private readonly MiniEngineFace Engine;
-    public TUI(MiniEngineFace engine) {
+    internal TUI(MiniEngineFace engine) {
         Engine = engine;
     }
 
@@ -23,9 +23,9 @@ public partial class TUI {
     public async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync(System.Threading.CancellationToken cancellationToken = default, string? msg = null) {
         try {
             // get all modules that exist on disk
-            Dictionary<string, Core.Data.GameModuleInfo> modules = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.Installed);
+            Dictionary<string, Core.Data.GameModuleInfo> modules = Engine.GameRegistry_GetModules(Core.Utils.ModuleFilter.Installed);
             // get public modules
-            Dictionary<string, Core.Data.GameModuleInfo> internalModules = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.Internal);
+            Dictionary<string, Core.Data.GameModuleInfo> internalModules = Engine.GameRegistry_GetModules(Core.Utils.ModuleFilter.Internal);
 
             // Create a combined dictionary for lookup and execution
             Dictionary<string, Core.Data.GameModuleInfo> allAvailableModules = new(modules);
@@ -108,11 +108,11 @@ public partial class TUI {
                 //return 1;
                 return await RunInteractiveMenuAsync(msg: "Selected game is missing operations file. Please choose again.");
             }
-            Core.Data.PreparedOperations preparedOps = Engine.Context_OperationContext_OperationsService_LoadAndPrepare(
+            Core.Data.PreparedOperations preparedOps = Engine.OperationsService_LoadAndPrepare(
                 opsFile: info.OpsFile,
                 currentGame: gameName,
                 games: allAvailableModules,
-                engineConfig: Engine.Context_EngineConfig_Data
+                engineConfig: Engine.EngineConfig_Data
             );
             if (!preparedOps.IsLoaded) {
                 string message = preparedOps.ErrorMessage ?? "Failed to load operations list.";
@@ -136,7 +136,7 @@ public partial class TUI {
                 System.Diagnostics.Stopwatch initStopwatch = System.Diagnostics.Stopwatch.StartNew();
                 bool okAllInit = true;
                 foreach (Core.Data.PreparedOperation op in preparedOps.InitOperations) {
-                    Dictionary<string, object?> promptAnswers = new Dictionary<string, object?>();
+                    Core.Data.PromptAnswers promptAnswers = new Core.Data.PromptAnswers();
                     // Initialization runs non-interactively; use defaults when provided
                     await CollectAnswersForOperation(op.Operation, promptAnswers, defaultsOnly: true);
                     bool ok = await new Utils().ExecuteOpAsync(Engine, gameName, allAvailableModules, op.Operation, promptAnswers, cancellationToken: cancellationToken);
@@ -273,7 +273,7 @@ public partial class TUI {
                 int opIndex = idx - opStartIndex;
                 if (opIndex >= 0 && opIndex < preparedOps.RegularOperations.Count) {
                     Dictionary<string, object?> op = preparedOps.RegularOperations[opIndex].Operation;
-                    Dictionary<string, object?> answers = new Dictionary<string, object?>();
+                    Core.Data.PromptAnswers answers = new Core.Data.PromptAnswers();
 
                     // Initialize Renderer for interactive prompts and execution
                     TuiRenderer.Initialize();

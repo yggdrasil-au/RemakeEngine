@@ -296,8 +296,8 @@ public partial class TUI {
     }*/
 
     /*private (List<string> choices, HashSet<int> disabled) GetRegistryModulesChoices() {
-        var registered = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.Registered);
-        var installed = Engine.Context_GameRegistry_GetModules(Core.Utils.ModuleFilter.Installed);
+        var registered = Engine.GameRegistry_GetModules(Core.Utils.ModuleFilter.Registered);
+        var installed = Engine.GameRegistry_GetModules(Core.Utils.ModuleFilter.Installed);
 
         List<string> choices = new();
         HashSet<int> disabled = new();
@@ -312,7 +312,7 @@ public partial class TUI {
         return (choices, disabled);
     }*/
 
-    private async Task<bool> CollectAnswersForOperation(Dictionary<string, object?> op, Dictionary<string, object?> answers, bool defaultsOnly) {
+    private async Task<bool> CollectAnswersForOperation(Dictionary<string, object?> op, Core.Data.PromptAnswers answers, bool defaultsOnly) {
         try {
             if (Engine is null) {
                 return false;
@@ -411,7 +411,7 @@ public partial class TUI {
                 }
             };
 
-            return await Engine.Context_OperationContext_OperationsService_CollectAnswersAsync(op, answers, handler, defaultsOnly);
+            return await Engine.OperationsService_CollectAnswersAsync(op, answers, handler, defaultsOnly);
         } catch (System.Exception ex) {
             Core.Diagnostics.Bug($"[TUI.private.cs::PromptUser()] Error during interactive prompts: {ex.Message}");
             return false;
