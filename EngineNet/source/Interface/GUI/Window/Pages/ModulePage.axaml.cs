@@ -428,15 +428,15 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         try {
             Dictionary<string, Core.Data.GameModuleInfo> games = GuiBootstrapper.Engine.Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
 
-            Dictionary<string, object?> answers = new Dictionary<string, object?>();
-            await CollectAnswersForOperationAsync(op: row.Op, answers: answers);
+            Dictionary<string, object?> promptAnswers = new Dictionary<string, object?>();
+            await CollectAnswersForOperationAsync(op: row.Op, answers: promptAnswers);
 
             // Use embedded execution path (Engine handles engine/lua/js/bms in-process)
             await EngineOperationRunner.RunAsync(
                 engine: GuiBootstrapper.Engine,
                 moduleName: ModuleName,
                 operationName: row.Name,
-                executor: async (onOutput, onEvent, stdin) => {
+                executor: async (_, onEvent, stdin) => {
                     Core.UI.EngineSdk.LocalEventSink = e => onEvent(e);
                     Core.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
 
@@ -447,7 +447,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                             currentGame: ModuleName,
                             games,
                             op: row.Op,
-                            answers,
+                            promptAnswers,
                             cancellationToken: _cts.Token
                         );
                         return ok;

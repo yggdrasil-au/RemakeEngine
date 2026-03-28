@@ -213,9 +213,6 @@ internal static class Security {
         return false;
     }
 
-    internal static bool EnsurePathAllowedWithPrompt(string path) {
-        return TryGetAllowedCanonicalPathWithPrompt(path, out _);
-    }
     /// <summary>
     /// Security validation: Check if executable is approved for RemakeEngine use.
     /// Allows registered tools, common system utilities, and resolved tool paths.

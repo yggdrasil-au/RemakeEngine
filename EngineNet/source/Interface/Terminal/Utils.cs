@@ -28,7 +28,7 @@ public class Utils {
     /// <param name="game"></param>
     /// <param name="games"></param>
     /// <param name="op"></param>
-    /// <param name="answers"></param>
+    /// <param name="promptAnswers"></param>
     /// <param name="autoPromptResponses"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
@@ -37,7 +37,7 @@ public class Utils {
         string game,
         Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
         Dictionary<string, object?> op,
-        Dictionary<string, object?> answers,
+        Dictionary<string, object?> promptAnswers,
         Dictionary<string, string>? autoPromptResponses = null,
         System.Threading.CancellationToken cancellationToken = default
     ) {
@@ -65,7 +65,7 @@ public class Utils {
                         game,
                         games,
                         op,
-                        answers,
+                        promptAnswers,
                         cancellationToken: cancellationToken
                     );
                 } finally {
@@ -83,7 +83,7 @@ public class Utils {
             }
 
             // Default: build and execute as external command (e.g., python)
-            List<string> parts = Engine.Context_CommandService_BuildCommand(game, games, Engine.Context_EngineConfig_Data, op, answers);
+            List<string> parts = Engine.Context_CommandService_BuildCommand(game, games, Engine.Context_EngineConfig_Data, op, promptAnswers);
             if (parts.Count < 2) {
                 return false;
             }

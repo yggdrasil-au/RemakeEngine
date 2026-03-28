@@ -136,10 +136,10 @@ public partial class TUI {
                 System.Diagnostics.Stopwatch initStopwatch = System.Diagnostics.Stopwatch.StartNew();
                 bool okAllInit = true;
                 foreach (Core.Data.PreparedOperation op in preparedOps.InitOperations) {
-                    Dictionary<string, object?> answers = new Dictionary<string, object?>();
+                    Dictionary<string, object?> promptAnswers = new Dictionary<string, object?>();
                     // Initialization runs non-interactively; use defaults when provided
-                    await CollectAnswersForOperation(op.Operation, answers, defaultsOnly: true);
-                    bool ok = await new Utils().ExecuteOpAsync(Engine, gameName, allAvailableModules, op.Operation, answers);
+                    await CollectAnswersForOperation(op.Operation, promptAnswers, defaultsOnly: true);
+                    bool ok = await new Utils().ExecuteOpAsync(Engine, gameName, allAvailableModules, op.Operation, promptAnswers, cancellationToken: cancellationToken);
                     okAllInit &= ok;
                 }
                 initStopwatch.Stop();
