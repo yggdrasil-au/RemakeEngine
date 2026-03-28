@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://remake.engine/schemas/tools.schema.json",
   "title": "RemakeEngine Module Tools Manifest (Tools.toml)",
-  "description": "Schema for declaring module-specific tool requirements. Uses [[tool]] array-of-tables.",
+  "description": "Schema for declaring module-specific tool requirements. Uses [[tool]] array-of-tables. Archives and installs are centralized under ProjectRoot/EngineApps/Tools by the engine runtime.",
   "type": "object",
   "additionalProperties": true,
   "properties": {
@@ -19,9 +19,9 @@
       "properties": {
         "name": { "type": "string", "minLength": 1, "description": "Logical tool name (e.g., QuickBMS)." },
         "version": { "type": "string", "description": "Preferred/required version string." },
-        "destination": { "type": "string", "description": "Install destination folder under the project, if tool is downloaded by the engine." },
-        "unpack": { "type": "boolean", "description": "Whether the downloaded artifact needs unpacking." },
-        "unpack_destination": { "type": "string", "description": "Destination folder for unpacked contents." }
+        "destination": { "type": "string", "description": "Deprecated. Runtime ignores this field and stores archives under ProjectRoot/EngineApps/Tools/_archives." },
+        "unpack": { "type": "boolean", "description": "Whether the downloaded artifact needs unpacking into the centralized install folder." },
+        "unpack_destination": { "type": "string", "description": "Deprecated. Runtime ignores this field and unpacks into ProjectRoot/EngineApps/Tools/ToolName-Version-Platform." }
       },
       "required": ["name"]
     }

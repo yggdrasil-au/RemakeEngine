@@ -26,10 +26,12 @@ internal static partial class Sdk {
             }
         };
         _LuaWorld.Sdk.Table["path_exists"] = (string path) => {
-            return Security.EnsurePathAllowedWithPrompt(path) && ScriptEngines.Global.SdkModule.FileSystemUtils.PathExists(path);
+            return Security.TryGetAllowedCanonicalPathWithPrompt(path, out string safePath)
+                && ScriptEngines.Global.SdkModule.FileSystemUtils.PathExists(safePath);
         };
         _LuaWorld.Sdk.Table["lexists"] = (string path) => {
-            return Security.EnsurePathAllowedWithPrompt(path) && ScriptEngines.Global.SdkModule.FileSystemUtils.PathExistsIncludingLinks(path);
+            return Security.TryGetAllowedCanonicalPathWithPrompt(path, out string safePath)
+                && ScriptEngines.Global.SdkModule.FileSystemUtils.PathExistsIncludingLinks(safePath);
         };
         _LuaWorld.Sdk.Table["absolute_path"] = (string path) => {
             if (string.IsNullOrEmpty(path)) return path;
@@ -105,11 +107,11 @@ internal static partial class Sdk {
         };
 
         _LuaWorld.Sdk.Table["mkdir"] = (string path) => {
-            if (!Security.EnsurePathAllowedWithPrompt(path)) {
+            if (!Security.TryGetAllowedCanonicalPathWithPrompt(path, out string safePath)) {
                 return false;
             }
             try {
-                System.IO.Directory.CreateDirectory(path);
+                System.IO.Directory.CreateDirectory(safePath);
                 return true;
             } catch (Exception ex) {
                 Core.Diagnostics.LuaInternalCatch("mkdir failed with exception: " + ex);
@@ -130,7 +132,8 @@ internal static partial class Sdk {
             }
         };
         _LuaWorld.Sdk.Table["is_dir"] = (string path) => {
-            return Security.EnsurePathAllowedWithPrompt(path) && System.IO.Directory.Exists(path);
+            return Security.TryGetAllowedCanonicalPathWithPrompt(path, out string safePath)
+                && System.IO.Directory.Exists(safePath);
         };
         _LuaWorld.Sdk.Table["copy_dir"] = (string src, string dst, DynValue overwrite) => {
             try {
@@ -201,7 +204,8 @@ internal static partial class Sdk {
         };
 
         _LuaWorld.Sdk.Table["is_file"] = (string path) => {
-            return Security.EnsurePathAllowedWithPrompt(path) && System.IO.File.Exists(path);
+            return Security.TryGetAllowedCanonicalPathWithPrompt(path, out string safePath)
+                && System.IO.File.Exists(safePath);
         };
         _LuaWorld.Sdk.Table["is_absolute"] = (string path) => {
             if (string.IsNullOrEmpty(path)) return false;
@@ -223,19 +227,19 @@ internal static partial class Sdk {
         _LuaWorld.Sdk.Table["remove_file"] = (string path) => {
             try {
                 // Security: Validate path prior to deletion
-                if (!Security.IsAllowedPath(path)) {
+                if (!Security.TryGetAllowedCanonicalPath(path, out string safePath)) {
                     Core.UI.EngineSdk.Error($"Access denied: remove_file path is outside allowed areas ('{path}')");
                     return false;
                 }
-                if (ScriptEngines.Global.SdkModule.FileSystemUtils.IsSymlink(path) || System.IO.File.Exists(path)) {
+                if (ScriptEngines.Global.SdkModule.FileSystemUtils.IsSymlink(safePath) || System.IO.File.Exists(safePath)) {
                     // Clear read-only if present
-                    if (System.IO.File.Exists(path)) {
-                        System.IO.FileAttributes attributes = System.IO.File.GetAttributes(path);
+                    if (System.IO.File.Exists(safePath)) {
+                        System.IO.FileAttributes attributes = System.IO.File.GetAttributes(safePath);
                         if ((attributes & System.IO.FileAttributes.ReadOnly) == System.IO.FileAttributes.ReadOnly) {
-                            System.IO.File.SetAttributes(path, attributes & ~System.IO.FileAttributes.ReadOnly);
+                            System.IO.File.SetAttributes(safePath, attributes & ~System.IO.FileAttributes.ReadOnly);
                         }
                     }
-                    System.IO.File.Delete(path);
+                    System.IO.File.Delete(safePath);
                 }
                 return true;
             } catch (Exception ex) {
@@ -246,18 +250,19 @@ internal static partial class Sdk {
         _LuaWorld.Sdk.Table["copy_file"] = (string src, string dst, DynValue overwrite) => {
             try {
                 // Security: Validate or prompt-approve paths
-                if (!Security.EnsurePathAllowedWithPrompt(src) || !Security.EnsurePathAllowedWithPrompt(dst)) {
+                if (!Security.TryGetAllowedCanonicalPathWithPrompt(src, out string safeSrc) ||
+                    !Security.TryGetAllowedCanonicalPathWithPrompt(dst, out string safeDst)) {
                     return false;
                 }
 
                 bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
-                if (ow && System.IO.File.Exists(dst)) {
-                    System.IO.FileAttributes attributes = System.IO.File.GetAttributes(dst);
+                if (ow && System.IO.File.Exists(safeDst)) {
+                    System.IO.FileAttributes attributes = System.IO.File.GetAttributes(safeDst);
                     if ((attributes & System.IO.FileAttributes.ReadOnly) == System.IO.FileAttributes.ReadOnly) {
-                        System.IO.File.SetAttributes(dst, attributes & ~System.IO.FileAttributes.ReadOnly);
+                        System.IO.File.SetAttributes(safeDst, attributes & ~System.IO.FileAttributes.ReadOnly);
                     }
                 }
-                System.IO.File.Copy(src, dst, ow);
+                System.IO.File.Copy(safeSrc, safeDst, ow);
                 return true;
             } catch (Exception ex) {
                 Core.Diagnostics.LuaInternalCatch("copy_file failed with exception: " + ex);
@@ -266,14 +271,14 @@ internal static partial class Sdk {
         };
         _LuaWorld.Sdk.Table["write_file"] = (string path, string content) => {
             try {
-                if (!Security.EnsurePathAllowedWithPrompt(path)) {
+                if (!Security.TryGetAllowedCanonicalPathWithPrompt(path, out string safePath)) {
                     return false;
                 }
-                string? parent = System.IO.Path.GetDirectoryName(path);
+                string? parent = System.IO.Path.GetDirectoryName(safePath);
                 if (!string.IsNullOrEmpty(parent)) {
                     System.IO.Directory.CreateDirectory(parent);
                 }
-                System.IO.File.WriteAllText(path, content ?? string.Empty);
+                System.IO.File.WriteAllText(safePath, content ?? string.Empty);
                 return true;
             } catch (Exception ex) {
                 Core.Diagnostics.LuaInternalCatch("write_file failed with exception: " + ex);
@@ -282,13 +287,13 @@ internal static partial class Sdk {
         };
         _LuaWorld.Sdk.Table["read_file"] = (string path) => {
             try {
-                if (!Security.EnsurePathAllowedWithPrompt(path)) {
+                if (!Security.TryGetAllowedCanonicalPathWithPrompt(path, out string safePath)) {
                     return null;
                 }
-                if (!System.IO.File.Exists(path)) {
+                if (!System.IO.File.Exists(safePath)) {
                     return null;
                 }
-                return System.IO.File.ReadAllText(path);
+                return System.IO.File.ReadAllText(safePath);
             } catch (Exception ex) {
                 Core.Diagnostics.LuaInternalCatch("read_file failed with exception: " + ex);
                 return null;
@@ -297,25 +302,26 @@ internal static partial class Sdk {
         _LuaWorld.Sdk.Table["rename_file"] = (string oldPath, string newPath, bool overwrite = false) => {
             try {
                 // Security: Validate or prompt-approve paths
-                if (!Security.EnsurePathAllowedWithPrompt(oldPath) || !Security.EnsurePathAllowedWithPrompt(newPath)) {
+                if (!Security.TryGetAllowedCanonicalPathWithPrompt(oldPath, out string safeOldPath) ||
+                    !Security.TryGetAllowedCanonicalPathWithPrompt(newPath, out string safeNewPath)) {
                     return false;
                 }
 
-                if (System.IO.File.Exists(oldPath)) {
-                    if (System.IO.File.Exists(newPath)) {
+                if (System.IO.File.Exists(safeOldPath)) {
+                    if (System.IO.File.Exists(safeNewPath)) {
                         if (!overwrite) return false;
-                        System.IO.File.Delete(newPath);
+                        System.IO.File.Delete(safeNewPath);
                     }
                     try {
-                        System.IO.File.Move(oldPath, newPath, overwrite);
+                        System.IO.File.Move(safeOldPath, safeNewPath, overwrite);
                     } catch {
                         // Fallback for cross-volume moves (or older .NET targets)
-                        System.IO.File.Copy(oldPath, newPath, overwrite);
-                        System.IO.File.Delete(oldPath);
+                        System.IO.File.Copy(safeOldPath, safeNewPath, overwrite);
+                        System.IO.File.Delete(safeOldPath);
                     }
                     return true;
-                } else if (System.IO.Directory.Exists(oldPath)) {
-                    ScriptEngines.Global.SdkModule.FileSystemUtils.MoveDirectory(oldPath, newPath, overwrite);
+                } else if (System.IO.Directory.Exists(safeOldPath)) {
+                    ScriptEngines.Global.SdkModule.FileSystemUtils.MoveDirectory(safeOldPath, safeNewPath, overwrite);
                     return true;
                 }
                 return false;
@@ -327,16 +333,16 @@ internal static partial class Sdk {
 
         _LuaWorld.Sdk.Table["is_writable"] = (string path) => {
             try {
-                if (!Security.IsAllowedPath(path)) {
+                if (!Security.TryGetAllowedCanonicalPath(path, out string safePath)) {
                     return false;
                 }
 
                 // If it's a file, check file attributes and try to open for writing
-                if (File.Exists(path)) {
+                if (File.Exists(safePath)) {
                     try {
-                        FileInfo fi = new FileInfo(path);
+                        FileInfo fi = new FileInfo(safePath);
                         if (fi.IsReadOnly) return false;
-                        using (FileStream fs = File.Open(path, FileMode.Open, FileAccess.Write, FileShare.ReadWrite)) {
+                        using (FileStream fs = File.Open(safePath, FileMode.Open, FileAccess.Write, FileShare.ReadWrite)) {
                             return true;
                         }
                     } catch {
@@ -344,11 +350,11 @@ internal static partial class Sdk {
                     }
                 }
 
-                if (!Directory.Exists(path))
+                if (!Directory.Exists(safePath))
                     return false;
 
                 // For directories, try to create a temp file
-                string testFile = Path.Combine(path, Path.GetRandomFileName() + ".tmp");
+                string testFile = Path.Combine(safePath, Path.GetRandomFileName() + ".tmp");
 
                 try {
                     // Create a zero-byte file and delete it immediately when closed
@@ -367,11 +373,12 @@ internal static partial class Sdk {
         // Create hardlink (files only)
         _LuaWorld.Sdk.Table["create_hardlink"] = (string src, string dst) => {
             try {
-                if (!Security.EnsurePathAllowedWithPrompt(src) || !Security.EnsurePathAllowedWithPrompt(dst)) {
+                if (!Security.TryGetAllowedCanonicalPathWithPrompt(src, out string safeSrc) ||
+                    !Security.TryGetAllowedCanonicalPathWithPrompt(dst, out string safeDst)) {
                     return false;
                 }
-                string destFull = System.IO.Path.GetFullPath(dst);
-                string srcFull = System.IO.Path.GetFullPath(src);
+                string destFull = safeDst;
+                string srcFull = safeSrc;
                 string? parent = System.IO.Path.GetDirectoryName(destFull);
                 if (!string.IsNullOrEmpty(parent)) {
                     System.IO.Directory.CreateDirectory(parent);

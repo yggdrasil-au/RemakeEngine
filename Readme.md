@@ -18,6 +18,15 @@ Project docs live at <https://github.com/yggdrasil-au/RemakeEngineDocs> with a w
 - [.NET SDK 10.0](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
 - git
 
+### Platform Support
+- **Primary Supported:** Windows x64 (`win-x64`)
+- **Target Support:** All Windows variants and Linux distributions (primarily `linux-x64`)
+- **Best-Effort:** macOS (`osx-arm64`) where available
+
+The engine is developed and tested primarily on Windows x64. Cross-platform support is an active goal across all Windows and Linux targets, with macOS support provided where practical.
+
+Module support is separate from engine support. Individual game modules can have narrower platform support based on their scripts, external tools, and format pipelines.
+
 ### Clone and Build
 ```pwsh
 git clone https://github.com/yggdrasil-au/RemakeEngine.git
@@ -57,7 +66,7 @@ GitHub Actions workflows in `.github/workflows/` keep pull requests, SonarCloud 
 | Workflow | Trigger | What it runs |
 | --- | --- | --- |
 | `build.yml` | Pushes to `main`, PRs | Windows build with SonarCloud analysis using the runner-hosted scanner cache. |
-| `global-release.yml` | Tags matching `v*`, manual dispatch | Matrix builds/tests on Windows, macOS, and Linux across Debug/Release, then publishes self-contained artifacts for six runtimes and attaches them to a GitHub Release. |
+| `global-release.yml` | Tags matching `v*`, manual dispatch | Matrix builds/tests on Windows, macOS, and Linux across Debug/Release, then publishes self-contained artifacts for `win-x64`, `linux-x64`, and `osx-arm64` and attaches them to a GitHub Release. |
 | `on commit -- Win64 Build.yml` | Tags matching `win-v*`, manual dispatch | Windows-only Debug/Release build + test followed by a packaged `win-x64` release artifact. |
 
 Run `dotnet build RemakeEngine.slnx` and `dotnet test RemakeEngine.slnx --nologo` locally before opening a PR so the CI checks stay green. To cut a multi-platform release, push a tag like `v2.5.0`; for a Windows-only drop use `win-v2.5.0`. The workflows create the release entry and upload the zipped outputs automatically.

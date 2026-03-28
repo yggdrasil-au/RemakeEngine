@@ -84,18 +84,17 @@ internal sealed class ToolsDownloader {
             }
             Core.UI.EngineSdk.Info($"URL: {url}");
 
-            string? destination = dep.TryGetValue("destination", out object? d) ? d?.ToString() : "./TMP/Downloads";
-            if (context != null && destination != null) {
-                destination = Core.Utils.Placeholders.Resolve(destination, context)?.ToString();
+            // Paths are centralized under ProjectRoot/EngineApps/Tools so tools are sharable across modules.
+            if (dep.ContainsKey("destination") || dep.ContainsKey("unpack_destination")) {
+                Core.UI.EngineSdk.Warn($"{toolName} {version}: fields 'destination' and 'unpack_destination' are deprecated and ignored. Using centralized tool paths under EngineApps/Tools.");
             }
 
             bool unpack = dep.TryGetValue("unpack", out object? u) && u is bool b && b;
-            string? unpackDest = dep.TryGetValue("unpack_destination", out object? ud) ? ud?.ToString() : null;
-            if (context != null && unpackDest != null) {
-                unpackDest = Core.Utils.Placeholders.Resolve(unpackDest, context)?.ToString();
-            }
 
-            string downloadDir = System.IO.Path.GetFullPath(System.IO.Path.Combine(_rootPath, destination ?? "./TMP/Downloads"));
+            string centralToolsRoot = GetCentralToolsRoot(_rootPath);
+            string installFolderName = BuildToolInstallFolderName(toolName, version, platform);
+            string downloadDir = System.IO.Path.Combine(centralToolsRoot, "_archives", installFolderName);
+            string installDir = System.IO.Path.Combine(centralToolsRoot, installFolderName);
             System.IO.Directory.CreateDirectory(downloadDir);
 
             // Initial filename from URL (may be incorrect for redirects)
@@ -185,25 +184,23 @@ internal sealed class ToolsDownloader {
             }
 
             string? exePath = null;
-            if (unpack && !string.IsNullOrWhiteSpace(unpackDest)) {
-                string dest = System.IO.Path.GetFullPath(System.IO.Path.Combine(_rootPath, unpackDest));
-                System.IO.Directory.CreateDirectory(dest);
-                Core.UI.EngineSdk.Info($"Unpacking to: {dest}");
-                List<string>? extractedFiles = null;
+            if (unpack) {
+                if (System.IO.Directory.Exists(installDir)) {
+                    System.IO.Directory.Delete(installDir, recursive: true);
+                }
+                System.IO.Directory.CreateDirectory(installDir);
+
+                Core.UI.EngineSdk.Info($"Unpacking to: {installDir}");
                 try {
-                    extractedFiles = ExtractArchive(archivePath, dest);
+                    ExtractArchiveToInstallLayout(archivePath, installDir);
                 } catch (NotSupportedException nse) {
                     Core.UI.EngineSdk.Warn($"{nse.Message} Leaving archive as-is.");
                 } catch (Exception ex) {
                     Core.UI.EngineSdk.PrintLine($"1 ERROR: Failed to unpack '{archivePath}': {ex.Message}", System.ConsoleColor.Red);
                 }
 
-                // Try to find an exe in dest (best-effort)
-                if (extractedFiles != null && extractedFiles.Count > 0) {
-                    exePath = FindExe(extractedFiles, toolName, platformData);
-                } else {
-                    exePath = FindExe(dest, toolName, platformData);
-                }
+                // Try to find an exe in the centralized install path (best-effort)
+                exePath = FindExe(installDir, toolName, platformData);
                 
                 if (!string.IsNullOrWhiteSpace(exePath)) {
                     Core.UI.EngineSdk.Info($"Detected executable: {exePath}");
@@ -221,9 +218,9 @@ internal sealed class ToolsDownloader {
             toolVersions[version] = new Dictionary<string, object?> {
                 ["version"] = version,
                 ["platform"] = platform,
-                ["install_path"] = string.IsNullOrWhiteSpace(unpackDest) 
-                    ? System.IO.Path.GetFullPath(downloadDir) 
-                    : System.IO.Path.GetFullPath(System.IO.Path.Combine(_rootPath, unpackDest)),
+                ["install_path"] = unpack
+                    ? System.IO.Path.GetFullPath(installDir)
+                    : System.IO.Path.GetFullPath(downloadDir),
                 ["exe"] = exePath,
                 ["sha256"] = sha256,
                 ["source_url"] = url
@@ -457,6 +454,94 @@ internal sealed class ToolsDownloader {
 
         // Add more formats later if desired (e.g., .tar, .tar.gz via SharpCompress)
         throw new NotSupportedException($"Archive format not supported for auto-unpack: {ext}");
+    }
+
+    /// <summary>
+    /// Extracts an archive into an install directory and flattens a single wrapper folder.
+    /// </summary>
+    private static void ExtractArchiveToInstallLayout(string archivePath, string installDir) {
+        string stagingDir = System.IO.Path.Combine(installDir, ".extract-staging");
+        if (System.IO.Directory.Exists(stagingDir)) {
+            System.IO.Directory.Delete(stagingDir, recursive: true);
+        }
+
+        System.IO.Directory.CreateDirectory(stagingDir);
+        try {
+            ExtractArchive(archivePath, stagingDir);
+            PromoteExtractedContent(stagingDir, installDir);
+        } finally {
+            if (System.IO.Directory.Exists(stagingDir)) {
+                System.IO.Directory.Delete(stagingDir, recursive: true);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Moves extracted files into final install root, unwrapping one top-level folder when present.
+    /// </summary>
+    private static void PromoteExtractedContent(string stagingDir, string installDir) {
+        string[] topLevelEntries = System.IO.Directory.GetFileSystemEntries(stagingDir);
+
+        string sourceRoot = stagingDir;
+        if (topLevelEntries.Length == 1 && System.IO.Directory.Exists(topLevelEntries[0])) {
+            sourceRoot = topLevelEntries[0];
+        }
+
+        MoveDirectoryContents(sourceRoot, installDir);
+
+        if (!string.Equals(sourceRoot, stagingDir, StringComparison.OrdinalIgnoreCase) && System.IO.Directory.Exists(sourceRoot)) {
+            System.IO.Directory.Delete(sourceRoot, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// Recursively moves all files and subdirectories from source to target, merging directories when needed.
+    /// </summary>
+    private static void MoveDirectoryContents(string sourceDir, string targetDir) {
+        System.IO.Directory.CreateDirectory(targetDir);
+
+        foreach (string filePath in System.IO.Directory.GetFiles(sourceDir)) {
+            string fileName = System.IO.Path.GetFileName(filePath);
+            string targetPath = System.IO.Path.Combine(targetDir, fileName);
+            System.IO.File.Move(filePath, targetPath, overwrite: true);
+        }
+
+        foreach (string subDir in System.IO.Directory.GetDirectories(sourceDir)) {
+            string dirName = System.IO.Path.GetFileName(subDir);
+            string targetSubDir = System.IO.Path.Combine(targetDir, dirName);
+            if (System.IO.Directory.Exists(targetSubDir)) {
+                MoveDirectoryContents(subDir, targetSubDir);
+                if (System.IO.Directory.Exists(subDir)) {
+                    System.IO.Directory.Delete(subDir, recursive: true);
+                }
+            } else {
+                System.IO.Directory.Move(subDir, targetSubDir);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns the shared root folder for third-party tools within the project.
+    /// </summary>
+    private static string GetCentralToolsRoot(string projectRoot) {
+        return System.IO.Path.GetFullPath(System.IO.Path.Combine(projectRoot, "EngineApps", "Tools"));
+    }
+
+    /// <summary>
+    /// Builds a deterministic install folder name: ToolName-Version-Platform.
+    /// </summary>
+    private static string BuildToolInstallFolderName(string toolName, string version, string platform) {
+        return $"{SanitizePathSegment(toolName)}-{SanitizePathSegment(version)}-{SanitizePathSegment(platform)}";
+    }
+
+    private static string SanitizePathSegment(string value) {
+        if (string.IsNullOrWhiteSpace(value)) {
+            return "unknown";
+        }
+
+        char[] invalid = System.IO.Path.GetInvalidFileNameChars();
+        var chars = value.Select(c => invalid.Contains(c) ? '_' : c).ToArray();
+        return new string(chars).Trim();
     }
 
     /// <summary>

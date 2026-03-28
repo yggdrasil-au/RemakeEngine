@@ -129,14 +129,18 @@ internal static class LuaAction {
                 absolutePath += ".lua";
             }
 
-            if (!System.IO.File.Exists(absolutePath)) {
-                throw new ScriptRuntimeException($"import error: file not found '{absolutePath}'");
+            if (!Security.TryGetAllowedCanonicalPathWithPrompt(absolutePath, out string safePath)) {
+                throw new ScriptRuntimeException($"import error: access denied '{absolutePath}'");
+            }
+
+            if (!System.IO.File.Exists(safePath)) {
+                throw new ScriptRuntimeException($"import error: file not found '{safePath}'");
             }
 
             try {
-                return _LuaWorld.LuaScript.DoFile(absolutePath);
+                return _LuaWorld.LuaScript.DoFile(safePath);
             } catch (Exception ex) {
-                throw new ScriptRuntimeException($"import error in '{absolutePath}': {ex.Message}");
+                throw new ScriptRuntimeException($"import error in '{safePath}': {ex.Message}");
             }
         });
 

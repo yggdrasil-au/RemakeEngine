@@ -7,7 +7,7 @@ internal static partial class SetupEnvironment {
     internal static void CreateIoTable(LuaWorld _LuaWorld) {
         _LuaWorld.Sdk.IO["open"] = (string path, string? mode) => {
             // Security: Validate file path with user approval if outside workspace
-            if (!Security.EnsurePathAllowedWithPrompt(path)) {
+            if (!Security.TryGetAllowedCanonicalPathWithPrompt(path, out string safePath)) {
                 //return DynValue.Nil;
                 return DynValue.NewTuple(DynValue.Nil, DynValue.NewString("Access denied to path: " + path));
             }
@@ -18,11 +18,11 @@ internal static partial class SetupEnvironment {
                 mode = mode ?? "r";
                 bool binaryMode = mode.Contains("b");
                 if (mode.Contains('r')) {
-                    fs = new System.IO.FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read);
+                    fs = new System.IO.FileStream(safePath, System.IO.FileMode.Open, System.IO.FileAccess.Read);
                 } else if (mode.Contains('w')) {
-                    fs = new System.IO.FileStream(path, System.IO.FileMode.Create, System.IO.FileAccess.Write);
+                    fs = new System.IO.FileStream(safePath, System.IO.FileMode.Create, System.IO.FileAccess.Write);
                 } else if (mode.Contains('a')) {
-                    fs = new System.IO.FileStream(path, System.IO.FileMode.Append, System.IO.FileAccess.Write);
+                    fs = new System.IO.FileStream(safePath, System.IO.FileMode.Append, System.IO.FileAccess.Write);
                 }
 
                 if (fs != null) {
@@ -137,7 +137,7 @@ internal static partial class SetupEnvironment {
                     };
                     return DynValue.NewTable(InstanceHandle);
                 }
-                return DynValue.NewTuple(DynValue.Nil, DynValue.NewString("io.open failed to open path: " + path));
+                return DynValue.NewTuple(DynValue.Nil, DynValue.NewString("io.open failed to open path: " + safePath));
             } catch (Exception ex) {
                 if (fs != null && registered) {
                     try {

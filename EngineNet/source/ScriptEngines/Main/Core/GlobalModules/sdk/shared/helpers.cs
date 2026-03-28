@@ -45,22 +45,22 @@ internal static class Helpers {
     //AddFileSystemOperations
     internal static class AddFileSystemOperations {
         internal static Dictionary<string, object>? FileAttributes(string path) {
-            if (!Security.EnsurePathAllowedWithPrompt(path)) {
+            if (!Security.TryGetAllowedCanonicalPathWithPrompt(path, out string safePath)) {
                 return null;
             }
 
             try {
                 var attrs = new Dictionary<string, object>();
 
-                if (System.IO.Directory.Exists(path)) {
-                    var dirInfo = new System.IO.DirectoryInfo(path);
+                if (System.IO.Directory.Exists(safePath)) {
+                    var dirInfo = new System.IO.DirectoryInfo(safePath);
                     attrs["mode"] = "directory";
                     attrs["modification"] = (double)new System.DateTimeOffset(dirInfo.LastWriteTime).ToUnixTimeSeconds();
                     return attrs;
                 }
 
-                if (System.IO.File.Exists(path)) {
-                    var fileInfo = new System.IO.FileInfo(path);
+                if (System.IO.File.Exists(safePath)) {
+                    var fileInfo = new System.IO.FileInfo(safePath);
                     attrs["mode"] = "file";
                     attrs["size"] = fileInfo.Length;
                     attrs["modification"] = (double)new System.DateTimeOffset(fileInfo.LastWriteTime).ToUnixTimeSeconds();
@@ -76,14 +76,14 @@ internal static class Helpers {
 
         internal static List<string>? List_Dir(string path) {
             // 1. Security check
-            if (!Security.EnsurePathAllowedWithPrompt(path)) {
+            if (!Security.TryGetAllowedCanonicalPathWithPrompt(path, out string safePath)) {
                 return null;
             }
 
             try {
                 // 2. Logic: Get all files and directories
                 // This returns the full paths initially
-                string[] entries = System.IO.Directory.GetFileSystemEntries(path);
+                string[] entries = System.IO.Directory.GetFileSystemEntries(safePath);
 
                 // 3. Transformation: Convert full paths to just names
                 List<string> names = new List<string>();
@@ -105,10 +105,10 @@ internal static class Helpers {
 
         internal static dynamic? sha1_file(string path) {
             try {
-                if (!Security.EnsurePathAllowedWithPrompt(path)) {
+                if (!Security.TryGetAllowedCanonicalPathWithPrompt(path, out string safePath)) {
                     return null;
                 }
-                using System.IO.FileStream fs = System.IO.File.OpenRead(path);
+                using System.IO.FileStream fs = System.IO.File.OpenRead(safePath);
                 byte[] hash = System.Security.Cryptography.SHA1.HashData(fs);
                 return System.Convert.ToHexString(hash).ToLowerInvariant();
             } catch (Exception ex) {
