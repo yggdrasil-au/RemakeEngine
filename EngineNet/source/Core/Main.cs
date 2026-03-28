@@ -29,13 +29,13 @@ internal static class Main {
     /// Configures runtime state from the host entry point.
     /// </summary>
     internal static void ConfigureRuntime(string rootPath, bool isGui, bool isTui, bool isCli, Func<Task<EngineNet.Core.Engine.IEngineFace>>? engineFactory = null) {
-        RootPath = rootPath;
-        IsGui = isGui;
-        IsTui = isTui;
-        IsCli = isCli;
+        Main.RootPath = rootPath;
+        Main.IsGui = isGui;
+        Main.IsTui = isTui;
+        Main.IsCli = isCli;
 
         if (engineFactory != null) {
-            EngineFactory = engineFactory;
+            Main.EngineFactory = engineFactory;
         }
     }
 
@@ -43,10 +43,10 @@ internal static class Main {
     /// Creates an engine using the configured host factory.
     /// </summary>
     internal static async Task<EngineNet.Core.Engine.IEngineFace> InitialiseEngineAsync() {
-        if (EngineFactory == null) {
+        if (Main.EngineFactory == null) {
             throw new InvalidOperationException("EngineFactory is not configured. Call ConfigureRuntime from the entry point first.");
         }
 
-        return await EngineFactory();
+        return await Main.EngineFactory();
     }
 }

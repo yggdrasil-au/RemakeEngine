@@ -30,7 +30,8 @@
     "godotTools.editorPath.godot4": "a:\\RemakeEngine\\Main\\Tools\\Godot\\Godot_v4.5-stable_mono_win64\\Godot_v4.5-stable_mono_win64_console.exe",
 
     "VSCodeCounter.exclude": [
-        "runtime"
+        "runtime",
+        "**/.history/**"
     ],
     "explorerExclude.backup": {},
 
@@ -63,7 +64,18 @@
         "./EngineApps/api_definitions",
         "./EngineApps/Games/TheSimpsonsGame-PS3/operations/SetupAudioDir.lua"
     ],
-    "window.zoomLevel": 0.2
-
+    "window.zoomLevel": 0.2,
+    "dotnet.formatting.organizeImportsOnFormat": true,
+    "dotnet.typeMembers.propertyGenerationBehavior": "preferAutoProperties",
+    "csharp.debug.console": "integratedTerminal",
+    "dotnetAcquisitionExtension.highVerbosity": true,
+    "dotnet.enablePublishIssuesToProblems": true,
+    "dotnet.enableWorkspaceBasedDevelopment": true,
+    "dotnet.preferVisualStudioCodeFileSystemWatcher": true,
+    "explorer.autoRevealExclude": {
+        "**/.history/**": true
+    },
+    "explorer.excludeGitIgnore": false,
+    "omnisharp.projectFilesExcludePattern": "**/node_modules/**,**/.git/**,**/bower_components/**,**/.history/**",
 
 }

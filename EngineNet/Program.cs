@@ -24,8 +24,8 @@ public static class Program {
     /* :: :: Main :: START :: */
     [STAThread]
     public static async System.Threading.Tasks.Task<int> Main(string[] args) {
-        using var cts = new System.Threading.CancellationTokenSource();
-        System.Console.CancelKeyPress += (_s, e) => {
+        var cts = new System.Threading.CancellationTokenSource();
+        System.Console.CancelKeyPress += (_, e) => {
             e.Cancel = true;
             cts.Cancel();
             Core.Diagnostics.Log("Global Cancellation Requested (Ctrl+C)");
@@ -39,22 +39,18 @@ public static class Program {
             }
 
             // 1. Parse Args to separate the Root path from the Mode flags
-            var parsedArgs = ParseArguments(args);
+            ParsedArgs parsedArgs = Program.ParseArguments(args);
 
             // 2. Resolve Root Path
             if (parsedArgs.ExplicitRoot != null) {
                 rootPath = parsedArgs.ExplicitRoot;
             } else {
-                string foundRoot = TryFindProjectRoot(System.IO.Directory.GetCurrentDirectory());
+                string foundRoot = Program.TryFindProjectRoot(System.IO.Directory.GetCurrentDirectory());
                 if (!string.IsNullOrEmpty(foundRoot)) {
                     rootPath = foundRoot;
                 } else {
-                    foundRoot = TryFindProjectRoot(System.AppContext.BaseDirectory);
-                    if (!string.IsNullOrEmpty(foundRoot)) {
-                        rootPath = foundRoot;
-                    } else {
-                        rootPath = System.IO.Directory.GetCurrentDirectory();
-                    }
+                    foundRoot = Program.TryFindProjectRoot(System.AppContext.BaseDirectory);
+                    Program.rootPath = !string.IsNullOrEmpty(foundRoot) ? foundRoot : System.IO.Directory.GetCurrentDirectory();
                 }
             }
 
@@ -82,9 +78,7 @@ public static class Program {
                 engineFactory: Program.InitialiseEngine
             );
 
-            if (Engine == null) {
-                Engine = await InitialiseEngine();
-            }
+            Program.Engine ??= await Program.InitialiseEngine();
 
             // 3. Interface selection based on "Remaining Args" (args with --root removed)
 
@@ -122,7 +116,7 @@ public static class Program {
         } catch (System.Exception ex) {
             Core.Diagnostics.Bug("Critical Engine Failure in Main", ex);
             Core.Diagnostics.Log($"Engine Error: {ex}");
-            System.Console.Error.WriteLine($"Critical Engine Failure: {ex.Message}");
+            await System.Console.Error.WriteLineAsync($"Critical Engine Failure: {ex.Message}");
             return 1;
         } finally {
             Core.Diagnostics.Close();
@@ -130,6 +124,7 @@ public static class Program {
             if (System.OperatingSystem.IsWindows()) {
                 ConsoleHelper.FreeConsole();
             }
+            cts.Dispose();
         }
     }
 
@@ -140,7 +135,7 @@ public static class Program {
     // Simple container for parsed results
     private class ParsedArgs {
         public string? ExplicitRoot { get; set; }
-        public List<string> Remaining { get; set; } = new List<string>();
+        public List<string> Remaining { get; } = new List<string>();
     }
 
     // Walks arguments, extracts --root value, and keeps the rest preserving order
@@ -167,12 +162,7 @@ public static class Program {
 
     private static string TryFindProjectRoot(string? startDir) {
         try {
-            string dir;
-            if (string.IsNullOrWhiteSpace(startDir)) {
-                dir = string.Empty;
-            } else {
-                dir = System.IO.Path.GetFullPath(startDir);
-            }
+            string dir = string.IsNullOrWhiteSpace(startDir) ? string.Empty : System.IO.Path.GetFullPath(startDir);
             while (!string.IsNullOrEmpty(dir)) {
                 string reg = System.IO.Path.Combine(dir, "EngineApps");
                 string games = System.IO.Path.Combine(reg, "Games");

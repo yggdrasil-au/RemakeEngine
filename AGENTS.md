@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Setup
-- Build: `dotnet build RemakeEngine.slnx -c Debug`
+- Build: `dotnet build RemakeEngine.slnx`
 
 ## Use Exact Code style
 always use PascalCase

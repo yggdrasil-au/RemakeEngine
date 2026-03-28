@@ -1,9 +1,6 @@
 
 using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Text.Json;
-using System.Threading;
 
 namespace EngineNet.Interface.Terminal;
 
@@ -18,7 +15,7 @@ public class Utils {
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never
     };
 
-    private static readonly object s_consoleLock = new();
+    private static readonly Lock s_consoleLock = new();
 
     private static int s_activePanels;
     private static readonly Dictionary<string, List<string>> s_panelStatus = new();
@@ -33,6 +30,7 @@ public class Utils {
     /// <param name="op"></param>
     /// <param name="answers"></param>
     /// <param name="autoPromptResponses"></param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public async System.Threading.Tasks.Task<bool> ExecuteOpAsync(
         MiniEngineFace Engine,
@@ -54,7 +52,7 @@ public class Utils {
                 Dictionary<string, string> prevAutoResponses = new(Core.UI.EngineSdk.AutoPromptResponses);
                 try {
                     // Set auto-prompt responses if provided
-                    if (autoPromptResponses != null && autoPromptResponses.Count > 0) {
+                    if (autoPromptResponses is { Count: > 0 }) {
                         Core.UI.EngineSdk.AutoPromptResponses.Clear();
                         foreach (KeyValuePair<string, string> kv in autoPromptResponses) {
                             Core.UI.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
@@ -152,7 +150,7 @@ public class Utils {
         }
     }
 
-    private static string? StdinProvider() {
+    private static string StdinProvider() {
         return TuiRenderer.ReadLineCustom("Input >", false);
     }
 
@@ -197,11 +195,11 @@ public class Utils {
 
             case "confirm": {
                 string cMsg = evt.TryGetValue("message", out object? cm) ? cm?.ToString() ?? "Confirm?" : "Confirm?";
-                bool def = evt.TryGetValue("default", out object? d) && d is bool db && db;
+                bool def = evt.TryGetValue("default", out object? d) && d is true;
                 TuiRenderer.Log($"? {cMsg} [{(def ? "y/N" : "Y/n")}]", ConsoleColor.Cyan);
                 break;
             }
-            
+
             case "progress_panel_start": {
                 lock (s_consoleLock) {
                     s_activePanels++;
@@ -278,6 +276,7 @@ public class Utils {
 
             default:
                 // Log unknown events to debug
+                Core.Diagnostics.Log($"[Utils.cs::OnEvent()] Unhandled event type: {typ}");
                 break;
         }
     }
@@ -360,13 +359,13 @@ public class Utils {
         if (value is IDictionary dict) {
             Dictionary<string, object?> nested = new Dictionary<string, object?>(System.StringComparer.Ordinal);
             foreach (DictionaryEntry entry in dict) {
-                string key = entry.Key?.ToString() ?? string.Empty;
+                string key = entry.Key.ToString() ?? string.Empty;
                 nested[key] = CloneValue(entry.Value);
             }
             return nested;
         }
 
-        if (value is IEnumerable enumerable && value is not string) {
+        if (value is IEnumerable enumerable and not string) {
             List<object?> list = new List<object?>();
             foreach (object? item in enumerable) {
                 list.Add(CloneValue(item));
@@ -383,27 +382,29 @@ public class Utils {
     }
 
     private static object? SafeStringify(object? value) {
-        if (value is null) {
-            return null;
-        }
+        switch (value) {
+            case null:
+                return null;
 
-        if (value is IReadOnlyDictionary<string, object?> roDict) {
-            Dictionary<string, object?> nested = new Dictionary<string, object?>(System.StringComparer.Ordinal);
-            foreach (KeyValuePair<string, object?> kv in roDict) {
-                nested[kv.Key] = SafeStringify(kv.Value);
+            case IReadOnlyDictionary<string, object?> roDict: {
+                Dictionary<string, object?> nested = new Dictionary<string, object?>(System.StringComparer.Ordinal);
+                foreach (KeyValuePair<string, object?> kv in roDict) {
+                    nested[kv.Key] = SafeStringify(kv.Value);
+                }
+                return nested;
             }
-            return nested;
-        }
 
-        if (value is IEnumerable enumerable && value is not string) {
-            List<object?> list = new List<object?>();
-            foreach (object? item in enumerable) {
-                list.Add(SafeStringify(item));
+            case IEnumerable enumerable when value is not string: {
+                List<object?> list = new List<object?>();
+                foreach (object? item in enumerable) {
+                    list.Add(SafeStringify(item));
+                }
+                return list;
             }
-            return list;
-        }
 
-        return value.ToString();
+            default:
+                return value.ToString();
+        }
     }
 
     private static List<string> BuildTuiProgressLines(IReadOnlyDictionary<string, object?> payload) {
@@ -425,14 +426,14 @@ public class Utils {
             int skip = (stats.TryGetValue("skip", out object? sk) ? (sk as System.IConvertible)?.ToInt32(null) : 0) ?? 0;
             int err = (stats.TryGetValue("err", out object? e) ? (e as System.IConvertible)?.ToInt32(null) : 0) ?? 0;
             double percent = (stats.TryGetValue("percent", out object? pct) ? (pct as System.IConvertible)?.ToDouble(null) : 0.0) ?? 0.0;
-            int width = 30;
+            int width;
             try {
                 int buf = System.Math.Max(20, System.Console.BufferWidth);
                 // Keep the bar a reasonable fraction of buffer width
                 width = System.Math.Clamp(buf - 40, 10, 60);
             } catch { width = 30; }
             int filled = (int)System.Math.Round(percent * width);
-            System.Text.StringBuilder bar = new System.Text.StringBuilder(width + 48);
+            var bar = new System.Text.StringBuilder(width + 48);
             // Truncate label to keep line short; Draw method still clamps
             string lbl = label;
             try {
@@ -473,7 +474,7 @@ public class Utils {
         } else {
             lines.Add($"Active: {activeTotal}");
             if (activeJobs != null) {
-                foreach (object? jobObj in activeJobs) {
+                foreach (object jobObj in activeJobs) {
                     if (jobObj is not IReadOnlyDictionary<string, object?> job)
                         continue;
 
@@ -481,7 +482,7 @@ public class Utils {
                     string file = (job.TryGetValue("file", out object? f) ? f?.ToString() : "...") ?? "...";
                     string elapsed = (job.TryGetValue("elapsed", out object? e) ? e?.ToString() : "...") ?? "...";
 
-                    int maxFile = 50;
+                    int maxFile;
                     try { maxFile = System.Math.Max(18, System.Console.BufferWidth - 20); } catch { maxFile = 50; }
                     if (file.Length > maxFile) {
                         file = file.Substring(0, maxFile - 3) + "...";
