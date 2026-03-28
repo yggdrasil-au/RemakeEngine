@@ -16,18 +16,18 @@ resharper_redundant_base_qualifier_highlighting = none
 resharper_redundant_name_qualifier_highlighting = none
 
 # Define the 'private_static_fields' symbol group
-dotnet_naming_symbols.private_static_fields.applicable_kinds = field
-dotnet_naming_symbols.private_static_fields.applicable_accessibilities = private
-dotnet_naming_symbols.private_static_fields.required_modifiers = static
+dotnet_naming_symbols.private_static_fields.applicable_kinds = *
+dotnet_naming_symbols.private_static_fields.applicable_accessibilities = *
+dotnet_naming_symbols.private_static_fields.required_modifiers = *
 
 # Define the 'lower_camel_case_with_s_prefix' style
-dotnet_naming_style.lower_camel_case_with_s_prefix.capitalization = camel_case
-dotnet_naming_style.lower_camel_case_with_s_prefix.required_prefix = s_
+dotnet_naming_style.lower_camel_case_with_s_prefix.capitalization = *
+dotnet_naming_style.lower_camel_case_with_s_prefix.required_prefix = *
 
 # Bind the symbol group to the style
-dotnet_naming_rule.private_static_fields_should_be_s_prefix.symbols = private_static_fields
-dotnet_naming_rule.private_static_fields_should_be_s_prefix.style = lower_camel_case_with_s_prefix
-dotnet_naming_rule.private_static_fields_should_be_s_prefix.severity = suggestion
+dotnet_naming_rule.private_static_fields_should_be_s_prefix.symbols = *
+dotnet_naming_rule.private_static_fields_should_be_s_prefix.style = *
+dotnet_naming_rule.private_static_fields_should_be_s_prefix.severity = *
 
 
 # Disable Naming convention warnings

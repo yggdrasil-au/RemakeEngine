@@ -18,26 +18,20 @@
         "reportMissingImports": "none",
         "reportInvalidTypeForm": "none"
     },
-
     "cSpell.words": [
         "Colours",
         "endc",
         "printc"
     ],
-
     "json.maxItemsComputed": 500000,
-
     "godotTools.editorPath.godot4": "a:\\RemakeEngine\\Main\\Tools\\Godot\\Godot_v4.5-stable_mono_win64\\Godot_v4.5-stable_mono_win64_console.exe",
-
     "VSCodeCounter.exclude": [
         "runtime",
         "**/.history/**"
     ],
     "explorerExclude.backup": {},
-
     "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "fullSolution",
     "dotnet.backgroundAnalysis.compilerDiagnosticsScope": "fullSolution",
-
     "files.watcherExclude": {
         "**/.history/**": true
     },
@@ -50,11 +44,6 @@
         "**/.history/**": false
     },
     "files.enableTrash": true,
-
-    "search.exclude": {
-        "**/.history": true
-    },
-
     "Lua.codeLens.enable": true,
     "Lua.completion.callSnippet": "Both",
     "Lua.doc.regengine": "lua",
@@ -66,16 +55,38 @@
     ],
     "window.zoomLevel": 0.2,
     "dotnet.formatting.organizeImportsOnFormat": true,
-    "dotnet.typeMembers.propertyGenerationBehavior": "preferAutoProperties",
+    "dotnet.typeMembers.propertyGenerationBehavior": "preferThrowingProperties",
     "csharp.debug.console": "integratedTerminal",
     "dotnetAcquisitionExtension.highVerbosity": true,
     "dotnet.enablePublishIssuesToProblems": true,
-    "dotnet.enableWorkspaceBasedDevelopment": true,
-    "dotnet.preferVisualStudioCodeFileSystemWatcher": true,
+    "dotnet.enableWorkspaceBasedDevelopment": false,
+    "dotnet.preferVisualStudioCodeFileSystemWatcher": false,
     "explorer.autoRevealExclude": {
         "**/.history/**": true
     },
     "explorer.excludeGitIgnore": false,
     "omnisharp.projectFilesExcludePattern": "**/node_modules/**,**/.git/**,**/bower_components/**,**/.history/**",
-
+    "resharper.solution.showLoadingStatus": true,
+    "resharper.build.restorePackagesOnBuild": true,
+    "resharper.build.outputVerbosityLevel": "Detailed",
+    "dotnetAcquisitionExtension.enableTelemetry": false,
+    "dotnet.diagnostics.reportInformationAsHint": false,
+    "dotnet.inlayHints.enableInlayHintsForIndexerParameters": true,
+    "dotnet.inlayHints.enableInlayHintsForLiteralParameters": true,
+    "dotnet.inlayHints.enableInlayHintsForOtherParameters": true,
+    "dotnet.inlayHints.enableInlayHintsForParameters": true,
+    "dotnet.inlayHints.suppressInlayHintsForParametersThatDifferOnlyBySuffix": false,
+    "dotnet.navigation.navigateToDecompiledSources": false,
+    "dotnet.projects.enableFileBasedPrograms": false,
+    "dotnet.server.sourceGeneratorExecution": "Automatic",
+    "dotnet.automaticallyCreateSolutionInWorkspace": false,
+    "dotnet.projects.excludeGlob": "**/.history/**",
+    "csharp.metadataExcludePaths": [
+        "**/.history/**"
+    ],
+    "search.exclude": {
+        "**/.history": true
+    },
+    "dotnet.defaultSolution": "RemakeEngine.slnx",
 }
+

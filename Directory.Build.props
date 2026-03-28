@@ -3,5 +3,6 @@
         <BuildDir>$(MSBuildThisFileDirectory)\EngineNet\.build\$(MSBuildProjectName)\</BuildDir>
         <BaseOutputPath>$(BuildDir)bin\</BaseOutputPath>
         <BaseIntermediateOutputPath>$(BuildDir)obj\</BaseIntermediateOutputPath>
+        <DefaultItemExcludes>$(DefaultItemExcludes);.history\**</DefaultItemExcludes>
     </PropertyGroup>
 </Project>
