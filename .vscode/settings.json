@@ -48,10 +48,9 @@
     "Lua.completion.callSnippet": "Both",
     "Lua.doc.regengine": "lua",
     "Lua.hint.arrayIndex": "Enable",
-    "Lua.runtime.version": "Lua 5.2",
+    "Lua.runtime.version": "Lua 5.3",
     "Lua.workspace.library": [
-        "./EngineApps/api_definitions",
-        "./EngineApps/Games/TheSimpsonsGame-PS3/operations/SetupAudioDir.lua"
+        "./EngineApps/api_definitions"
     ],
     "window.zoomLevel": 0.2,
     "dotnet.formatting.organizeImportsOnFormat": true,
@@ -90,5 +89,35 @@
     "dotnet.defaultSolution": "RemakeEngine.slnx",
     "Lua.diagnostics.libraryFiles": "Enable",
     "Lua.hint.enable": true,
+    "Lua.completion.maxSuggestCount": 500,
+    "Lua.completion.showWord": "Enable",
+    "Lua.diagnostics.ignoredFiles": "Enable",
+    "Lua.hint.setType": true,
+    "Lua.runtime.path": [],
+    "Lua.type.inferParamType": true,
+    "Lua.type.checkTableShape": true,
+    "Lua.workspace.ignoreDir": [
+        ".betterGit",
+        ".github",
+        ".history",
+        ".idea",
+        ".vscode",
+        ".VSCodeCounter",
+        "EngineApps/Registries",
+        "Registries",
+        "EngineApps/Tools",
+        "Tools",
+        "__pycache__",
+        "GameFiles",
+        "Source",
+        "EngineBuild",
+        "EngineNet",
+        "logs",
+        "RemakeEngineDocs",
+        "schemas",
+        "tmp"
+    ],
+    "Lua.workspace.ignoreSubmodules": false,
+    "Lua.workspace.useGitIgnore": false,
 }
 

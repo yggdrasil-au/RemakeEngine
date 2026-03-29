@@ -729,7 +729,7 @@ local SdkTextToml = {}
 --- JSON helpers in sdk.text.json.
 ---@class SdkTextJson
 ---@field encode? fun(value: any, opts?: JsonEncodeOptions): string
----@field decode? fun(json: string): any
+---@field decode? fun(json: string|nil): any
 ---@field isNull? fun(val: any): boolean
 local SdkTextJson = {}
 
@@ -918,7 +918,8 @@ function colour_prompt(message, color, id, secret) end
 --- Loads and executes a Lua file relative to the current script's directory.
 --- Like standard 'dofile', this evaluates the file every time it is called and does not cache results.
 --- If the path does not end in '.lua', it is appended automatically.
---- Any root level code in the imported file will be executed immediately apon import unless contained within a function.
+--- when importing a file use --type <filename> to enable IDE support for the imported file, otherwise it will be treated as unknown
+--- Any root level code in the imported file will be executed immediately upon import unless contained within a function.
 ---@param path string The relative or absolute path to the Lua file.
 ---@return unknown result The value returned by the executed Lua script (if any).
 function import(path) end
