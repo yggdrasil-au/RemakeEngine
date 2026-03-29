@@ -210,11 +210,15 @@ internal static class MediaConverter {
                     List<string> args = new List<string> {
                         "-y",
                         "-i", srcPath,
+                        "-map", "0:v",
+                        // Keep first audio stream when present, but allow video-only inputs.
+                        "-map", "0:a:0?",
                         "-c:v", opt.VideoCodec,
                         "-q:v", opt.VideoQuality,
                         "-loglevel", "error",
-                        destPath
                     };
+                    args.AddRange(BuildAudioCodecArgs(opt.OutputExt, opt.AudioCodec, opt.AudioQuality));
+                    args.Add(destPath);
                     RegisterActive("ffmpeg", srcPath);
                     try { return Exec(ff, args, opt.Debug, cancellationToken); }
                     finally { UnregisterActive(); }
