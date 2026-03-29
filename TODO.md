@@ -2,6 +2,14 @@
 
 ## Engine
 
+Reimplement p3dTools in C#, with additional features and improvements:
+allow output of raw contents, png, conf, raw mesh obj, etc
+also support direct conversion of p3d files to obj and glb with materials and textures included (like the existing p3d2obj and p3d2gltf tools).
+
+place within Core.formats along site TXD extractor
+consider seperating Core.Formats into a independent csproj lib to prevent bloating the main engine assembly with format-specific tooling
+
+
 ### modules
 some modules have git submodules, ensure engine clones with `--recurse-submodules` to avoid missing files.
 
