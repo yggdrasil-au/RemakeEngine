@@ -24,7 +24,7 @@ public sealed class Main : ScriptEngines.IAction {
         _extension = string.IsNullOrWhiteSpace(extension) ? null : extension;
     }
 
-    public async System.Threading.Tasks.Task ExecuteAsync(Core.ExternalTools.JsonToolResolver tools, System.Threading.CancellationToken cancellationToken = default) {
+    public async System.Threading.Tasks.Task ExecuteAsync(Core.ExternalTools.JsonToolResolver tools, Core.Services.CommandService commandService, System.Threading.CancellationToken cancellationToken = default) {
         // Validate script and directories
         if (string.IsNullOrWhiteSpace(_scriptPath) || !System.IO.File.Exists(_scriptPath)) {
             throw new System.IO.FileNotFoundException("BMS script not found", _scriptPath);

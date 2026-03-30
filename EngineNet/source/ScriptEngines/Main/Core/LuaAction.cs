@@ -13,6 +13,7 @@ internal static class LuaAction {
     /// </summary>
     /// <param name="_LuaWorld"></param>
     /// <param name="_tools"></param>
+    /// <param name="_commandService"></param>
     /// <param name="_args"></param>
     /// <param name="_gameRoot"></param>
     /// <param name="_projectRoot"></param>
@@ -20,6 +21,7 @@ internal static class LuaAction {
     internal static void CreateGlobals(
         LuaWorld _LuaWorld,
         Core.ExternalTools.JsonToolResolver _tools,
+        Core.Services.CommandService _commandService,
         string[] _args,
         string _gameRoot,
         string _projectRoot,
@@ -32,7 +34,7 @@ internal static class LuaAction {
         CreateGlobalFunctions(_LuaWorld, _tools);
 
         // --- 3. Global Modules & Sub-Module Setup ---
-        CreateGlobalModules(_LuaWorld, _tools);
+        CreateGlobalModules(_LuaWorld, _tools, _commandService);
 
         // --- 4. Diagnostics & Logging ---
         CreateGlobalDiagnostics(_LuaWorld, _gameRoot, _projectRoot);
@@ -161,8 +163,9 @@ internal static class LuaAction {
     /// </summary>
     /// <param name="_LuaWorld"></param>
     /// <param name="_tools"></param>
-    private static void CreateGlobalModules(LuaWorld _LuaWorld, Core.ExternalTools.JsonToolResolver _tools) {
-        Global.Sdk.CreateSdkModule(_LuaWorld, _tools);
+    /// <param name="_commandService"></param>
+    private static void CreateGlobalModules(LuaWorld _LuaWorld, Core.ExternalTools.JsonToolResolver _tools, Core.Services.CommandService _commandService) {
+        Global.Sdk.CreateSdkModule(_LuaWorld, _tools, _commandService);
         Global.Sqlite.CreateSqliteModule(_LuaWorld);
         Global.Progress.CreateProgressModule(_LuaWorld);
     }

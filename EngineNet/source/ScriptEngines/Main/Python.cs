@@ -21,7 +21,7 @@ internal sealed class Main : ScriptEngines.IAction {
     }
 
     //
-    public async System.Threading.Tasks.Task ExecuteAsync(Core.ExternalTools.JsonToolResolver tools, System.Threading.CancellationToken cancellationToken = default) {
+    public async Task ExecuteAsync(Core.ExternalTools.JsonToolResolver tools, Core.Services.CommandService commandService, CancellationToken cancellationToken = default) {
         bool ok = false;
         try {
             if (!System.IO.File.Exists(_scriptPath)) {

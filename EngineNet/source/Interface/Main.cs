@@ -126,6 +126,9 @@ public sealed class Main {
             return await EngineNet.Core.Engine.Operations.All.RunAsync(gameName, Engine.Context, onOutput, onEvent, stdinProvider, cancellationToken);
         }
 
+        public void CommandService_OpenFolder(string path) {
+            Engine.Context.CommandService.OpenFolder(path);
+        }
 
     }
 }
@@ -191,5 +194,7 @@ internal interface MiniEngineFace {
         Core.ProcessRunner.StdinProvider? stdinProvider = null,
         System.Threading.CancellationToken cancellationToken = default
     );
+
+    internal void CommandService_OpenFolder(string path);
 
 }

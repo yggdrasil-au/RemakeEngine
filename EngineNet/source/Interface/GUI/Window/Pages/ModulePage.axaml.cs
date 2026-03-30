@@ -498,18 +498,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             if (string.IsNullOrWhiteSpace(path) || !System.IO.Directory.Exists(path: path)) {
                 return;
             }
-            System.Diagnostics.ProcessStartInfo? psi = new System.Diagnostics.ProcessStartInfo { UseShellExecute = true };
-            if (System.OperatingSystem.IsWindows()) {
-                psi.FileName = "explorer";
-                psi.Arguments = $"\"{path}\"";
-            } else if (System.OperatingSystem.IsMacOS()) {
-                psi.FileName = "open";
-                psi.Arguments = $"\"{path}\"";
-            } else {
-                psi.FileName = "xdg-open";
-                psi.Arguments = $"\"{path}\"";
-            }
-            System.Diagnostics.Process.Start(psi);
+            GuiBootstrapper.MiniEngine.CommandService_OpenFolder(path);
         } catch {
             Core.Diagnostics.Bug("OpenFolderAsync: Failed to open folder.");
         }

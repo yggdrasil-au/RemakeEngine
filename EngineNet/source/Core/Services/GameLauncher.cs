@@ -15,6 +15,7 @@ internal class GameLauncher {
     private readonly GameRegistry _gameRegistry;
     private readonly ExternalTools.JsonToolResolver _toolResolver;
     private readonly EngineConfig _config;
+    private readonly CommandService _commandService;
     private readonly string _rootPath = Main.RootPath;
 
     /* :: :: Constructors :: START :: */
@@ -25,10 +26,12 @@ internal class GameLauncher {
     /// <param name="gameRegistry">The registry to look up game paths and executables.</param>
     /// <param name="toolResolver">The tool resolver for finding external tools (e.g., Godot).</param>
     /// <param name="config">The global engine configuration.</param>
-    internal GameLauncher(GameRegistry gameRegistry, ExternalTools.JsonToolResolver toolResolver, EngineConfig config) {
+    /// <param name="commandService">The command service for executing processes.</param>
+    internal GameLauncher(GameRegistry gameRegistry, ExternalTools.JsonToolResolver toolResolver, EngineConfig config, CommandService commandService) {
         this._gameRegistry = gameRegistry;
         this._toolResolver = toolResolver;
         this._config = config;
+        this._commandService = commandService;
     }
 
     /* :: :: Constructors :: END :: */
@@ -64,7 +67,7 @@ internal class GameLauncher {
         string? godotProject = null;
         try {
             if (System.IO.File.Exists(gameToml)) {
-                foreach (string raw in System.IO.File.ReadAllLines(gameToml)) {
+                foreach (string raw in await System.IO.File.ReadAllLinesAsync(gameToml)) {
                     string line = raw.Trim();
                     if (line.Length == 0 || line.StartsWith('#')) continue;
                     if (line.StartsWith('[')) continue;
@@ -72,7 +75,7 @@ internal class GameLauncher {
                     if (eq <= 0) continue;
                     string key = line.Substring(0, eq).Trim();
                     string valRaw = line.Substring(eq + 1).Trim();
-                    string? val = valRaw.StartsWith('\"') && valRaw.EndsWith('\"') ? valRaw.Substring(1, valRaw.Length - 2) : valRaw;
+                    string val = valRaw.StartsWith('\"') && valRaw.EndsWith('\"') ? valRaw.Substring(1, valRaw.Length - 2) : valRaw;
                     if (string.IsNullOrWhiteSpace(val)) continue;
                     switch (key.ToLowerInvariant()) {
                         case "exe":
@@ -118,7 +121,7 @@ internal class GameLauncher {
 
                 if (action != null) {
                     Core.Diagnostics.Trace($"[GameLauncher] executing {ext} script '{scriptPath}' for game '{name}'");
-                    await action.ExecuteAsync(tools: this._toolResolver);
+                    await action.ExecuteAsync(tools: this._toolResolver, commandService: this._commandService);
                     return true;
                 } else {
                     Core.Diagnostics.Log($"[GameLauncher] Unsupported script type '{ext}' in '{scriptPath}'");
@@ -136,14 +139,9 @@ internal class GameLauncher {
                 (string? godotExe, _) = ToolMetadataProvider.ResolveExeAndVersion(toolId: "godot", this._rootPath, this._toolResolver);
                 string godotPath = string.IsNullOrWhiteSpace(godotExe) ? this._toolResolver.ResolveToolPath("godot") : godotExe;
                 if (!System.IO.File.Exists(godotPath)) return false;
-                var psi = new System.Diagnostics.ProcessStartInfo {
-                    FileName = godotPath,
-                    UseShellExecute = false,
-                };
-                psi.ArgumentList.Add(godotProject);
-                psi.WorkingDirectory = System.IO.Path.GetDirectoryName(godotProject) ?? root;
-                System.Diagnostics.Process.Start(psi);
-                return true;
+
+                string workDir = System.IO.Path.GetDirectoryName(godotProject) ?? root;
+                return _commandService.LaunchDetached(godotPath, new[] { godotProject }, workDir);
             } catch { return false; }
         }
 
@@ -154,13 +152,7 @@ internal class GameLauncher {
             return false;
         }
         try {
-            var psi = new System.Diagnostics.ProcessStartInfo {
-                FileName = exe,
-                WorkingDirectory = work,
-                UseShellExecute = true
-            };
-            System.Diagnostics.Process.Start(psi);
-            return true;
+            return _commandService.LaunchDetached(exe, System.Array.Empty<string>(), work);
         } catch {
             Core.Diagnostics.Bug($"[GameLauncher] err launching exe '{exe}' for game '{name}'");
             return false;

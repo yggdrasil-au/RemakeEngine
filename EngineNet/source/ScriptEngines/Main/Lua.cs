@@ -23,7 +23,7 @@ internal sealed class Main : IAction {
     }
 
     //
-    public async System.Threading.Tasks.Task ExecuteAsync(Core.ExternalTools.JsonToolResolver tools, System.Threading.CancellationToken cancellationToken = default) {
+    public async Task ExecuteAsync(Core.ExternalTools.JsonToolResolver tools, Core.Services.CommandService commandService, CancellationToken cancellationToken = default) {
         bool ok = false;
         int exitCode = 0;
         System.Exception? executionError = null;
@@ -56,7 +56,7 @@ internal sealed class Main : IAction {
             var contextualTools = new ContextualToolResolver(tools, moduleVersions);
 
             // Expose core functions, SDK and modules
-            LuaAction.CreateGlobals(LuaWorld, contextualTools, this._args, this._gameRoot, this._projectRoot, this._scriptPath);
+            LuaAction.CreateGlobals(LuaWorld, contextualTools, commandService, this._args, this._gameRoot, this._projectRoot, this._scriptPath);
 
             // Register UserData types
             UserData.RegisterType<Core.UI.EngineSdk.PanelProgress>();

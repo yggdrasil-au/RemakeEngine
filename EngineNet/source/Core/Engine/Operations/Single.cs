@@ -93,7 +93,7 @@ internal sealed class Single {
                             break;
                         }
 
-                        await action.ExecuteAsync(Context.ToolResolver, cancellationToken);
+                        await action.ExecuteAsync(Context.ToolResolver, Context.CommandService, cancellationToken);
                         result = true;
                     } catch (System.Exception ex) {
                         Core.UI.EngineSdk.PrintLine($"bms engine ERROR: {ex.Message}");
@@ -120,7 +120,7 @@ internal sealed class Single {
                             break;
                         }
                         // execute the action
-                        await act.ExecuteAsync(Context.ToolResolver, cancellationToken);
+                        await act.ExecuteAsync(Context.ToolResolver, Context.CommandService, cancellationToken);
                         result = true;
                     } catch (System.Exception ex) {
                         Core.UI.EngineSdk.PrintLine($"{scriptType} engine ERROR: {ex.Message}");

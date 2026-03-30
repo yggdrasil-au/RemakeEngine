@@ -195,9 +195,9 @@ public static class Program {
 
             var gameRegistry = new Core.Services.GameRegistry(_registries, _scanner);
 
-            var _gameLauncher = new Core.Services.GameLauncher(gameRegistry, tools, engineConfig);
-            var _opsLoader = new Core.Services.OperationsLoader();
             var _commandService = new Core.Services.CommandService();
+            var _gameLauncher = new Core.Services.GameLauncher(gameRegistry, tools, engineConfig, _commandService);
+            var _opsLoader = new Core.Services.OperationsLoader();
             var _operationsService = new Core.Services.OperationsService(_opsLoader, gameRegistry);
 
             var Single = new Core.Engine.Operations.Single();
