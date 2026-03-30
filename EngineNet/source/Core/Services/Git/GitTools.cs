@@ -6,15 +6,15 @@ namespace EngineNet.Core.Utils;
 /// Lightweight Git helper to clone game modules into the local registry.
 /// Mirrors LegacyEnginePy/Core/git_tools.py behavior.
 /// </summary>
-internal sealed class GitTools() {
+internal static class GitTools {
 
     /* :: :: Constructor, Var :: START :: */
-    private readonly string _gamesDir = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "EngineApps", "Games");
+    private static readonly string _gamesDir = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "EngineApps", "Games");
 
     /* :: :: Constructor, Var :: END :: */
     //
     /* :: :: Methods ::  :: */
-    internal bool CloneModule(string url) {
+    internal static bool CloneModule(string url) {
         if (string.IsNullOrWhiteSpace(url)) {
             return false;
         }
@@ -45,9 +45,11 @@ internal sealed class GitTools() {
                 StandardOutputEncoding = System.Text.Encoding.UTF8,
                 StandardErrorEncoding = System.Text.Encoding.UTF8,
             };
+            // contruct command: git clone <url> <target> --recurse-submodules
             psi.ArgumentList.Add("clone");
             psi.ArgumentList.Add(url);
             psi.ArgumentList.Add(target);
+            psi.ArgumentList.Add("--recurse-submodules");
 
             using System.Diagnostics.Process? proc = System.Diagnostics.Process.Start(psi);
             if (proc is null) {

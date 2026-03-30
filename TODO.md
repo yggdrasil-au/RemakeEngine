@@ -10,10 +10,6 @@ place within Core.formats along site TXD extractor
 consider seperating Core.Formats into a independent csproj lib to prevent bloating the main engine assembly with format-specific tooling
 
 
-### modules
-some modules have git submodules, ensure engine clones with `--recurse-submodules` to avoid missing files.
-
-
 ### Operations
 
 * :: FEATURE :: Add **parallel execution support** for operations based on declared dependencies.
@@ -42,27 +38,6 @@ Implementation requirements:
   * invalid dependency references
 * If operation IDs are invalid or missing, **disable dependency-based execution features** to prevent incorrect scheduling.
 
-
----
-
-* :: FEATURE :: Add support for **operations requesting elevated privileges**.
-
-Some operations may require **elevated privileges** (for example, creating symlinks on Windows).
-
-Possible behaviour:
-
-* Operations can include a flag such as:
-
-```
-requires_elevation = true
-```
-
-* If the engine is not running with administrator privileges:
-
-  * display a **clear warning**
-  * optionally offer to **restart or launch a helper script with elevation**
-
-This would allow operations requiring administrator permissions (such as **symlink creation on Windows**) to run successfully.
 
 ---
 

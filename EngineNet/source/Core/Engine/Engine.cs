@@ -20,7 +20,6 @@ internal sealed class Engine : IEngineFace{
         Core.Services.OperationsLoader OperationsLoader,
         Core.Services.CommandService commandService,
         Core.Services.OperationsService OperationsService,
-        Core.Services.GitService gitService,
         Core.ExternalTools.JsonToolResolver toolResolver,
         Data.EngineConfig engineConfig,
         EngineNet.Core.Engine.Operations.Single Runner
@@ -35,7 +34,6 @@ internal sealed class Engine : IEngineFace{
             gameRegistry,
             commandService,
             toolResolver,
-            gitService,
             engineConfig,
             operationContext
         );
@@ -56,10 +54,15 @@ internal sealed class Engine : IEngineFace{
         return await this.Context.OperationContext.Single.RunAsync(currentGame, games, op, promptAnswers, this.Context, cancellationToken);
     }
 
+    public bool CloneModule(string url) {
+        return Utils.GitTools.CloneModule(url);
+    }
+
 }
 
 public interface IEngineFace {
     public Task<bool> RunSingleOperationAsync(string currentGame, Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games, IDictionary<string, object?> op, Data.PromptAnswers promptAnswers, CancellationToken cancellationToken = default);
+    public bool CloneModule(string url);
     internal Core.Services.GameLauncher GameLauncher { get; }
     internal EngineContext Context { get; }
 }

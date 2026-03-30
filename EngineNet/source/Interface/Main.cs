@@ -83,7 +83,7 @@ public sealed class Main {
         /// Clones a module repository from the registry URL.
         /// </summary>
         public bool GitService_CloneModule(string url) {
-            return Engine.Context.GitService.CloneModule(url);
+            return Engine.CloneModule(url);
         }
 
         public async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(

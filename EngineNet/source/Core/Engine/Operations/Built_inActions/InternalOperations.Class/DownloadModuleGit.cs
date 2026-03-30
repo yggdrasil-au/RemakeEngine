@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 internal partial class InternalOperations {
@@ -13,6 +12,6 @@ internal partial class InternalOperations {
             Core.Diagnostics.Trace("[Engine.private.cs :: InternalOperations()]] download_module_git: no url provided");
             return false;
         }
-        return context.GitService.CloneModule(url);
+        return Utils.GitTools.CloneModule(url);
     }
 }

@@ -12,7 +12,6 @@ internal record EngineContext(
     CommandService CommandService,
     ExternalTools.JsonToolResolver ToolResolver,
 
-    GitService GitService,
 
     EngineConfig EngineConfig,
 

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 
 namespace EngineNet.Core.Engine.operations.Built_inActions;
 internal partial class InternalOperations {
@@ -30,6 +29,6 @@ internal partial class InternalOperations {
             return false;
         }
 
-        return context.GitService.CloneModule(url);
+        return Utils.GitTools.CloneModule(url);
     }
 }
