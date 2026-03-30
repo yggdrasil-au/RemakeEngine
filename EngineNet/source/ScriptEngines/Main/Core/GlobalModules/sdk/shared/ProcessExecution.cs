@@ -31,7 +31,8 @@ internal static class ProcessExecution {
     }
 
     // pid -> ManagedProcess
-    internal static readonly System.Collections.Concurrent.ConcurrentDictionary<int, ManagedProcess> s_processes = new System.Collections.Concurrent.ConcurrentDictionary<int, ManagedProcess>();
+    internal static readonly System.Collections.Concurrent.ConcurrentDictionary<int, ManagedProcess> s_processes =
+        new System.Collections.Concurrent.ConcurrentDictionary<int, ManagedProcess>();
     private static int s_nextPid;
 
     // Heuristic helpers for path-like arguments and validation
@@ -179,8 +180,8 @@ internal static class ProcessExecution {
                     try {
                         process.Kill(entireProcessTree: true);
                     }  catch {
-            Core.Diagnostics.Bug($"[LuaProcessExecution] Error killing timed-out process '{fileName}'");
-        }
+                        Core.Diagnostics.Bug($"[LuaProcessExecution] Error killing timed-out process '{fileName}'");
+                    }
                     throw new ScriptRuntimeException($"Process '{fileName}' timed out after {timeoutMs.Value} ms");
                 }
             } else {
@@ -190,9 +191,10 @@ internal static class ProcessExecution {
             throw new ScriptRuntimeException($"Failed to run process '{fileName}': {ex.Message}");
         }
 
-        Table result = new Table(lua);
-        result["exit_code"] = process.ExitCode;
-        result["success"] = process.ExitCode == 0;
+        Table result = new Table(lua) {
+            ["exit_code"] = process.ExitCode,
+            ["success"] = process.ExitCode == 0
+        };
         if (captureStdout) {
             result["stdout"] = stdoutBuilder.ToString();
         }
@@ -222,8 +224,7 @@ internal static class ProcessExecution {
         Dictionary<string, object?> env = new Dictionary<string, object?>(System.StringComparer.Ordinal);
 
         if (options != null) {
-            DynValue v;
-            v = options.Get("cwd");
+            DynValue v = options.Get("cwd");
             if (!v.IsNil() && v.Type == DataType.String) { cwd = v.String; }
 
             v = options.Get("new_terminal");
@@ -324,10 +325,10 @@ internal static class ProcessExecution {
                 }
             };
         }
-        p.Exited += (_, __) => {
+        p.Exited += (_, _) => {
             try { mp.ExitTcs.TrySetResult(p.ExitCode); }  catch {
-            Core.Diagnostics.Bug($"[LuaProcessExecution] Error setting exit code for process '{psi.FileName}'");
-        }
+                Core.Diagnostics.Bug($"[LuaProcessExecution] Error setting exit code for process '{psi.FileName}'");
+            }
         };
 
         try {
@@ -342,8 +343,9 @@ internal static class ProcessExecution {
         int id = System.Threading.Interlocked.Increment(ref s_nextPid);
         s_processes[id] = mp;
 
-        Table t = new Table(lua);
-        t["pid"] = id;
+        Table t = new Table(lua);{
+            t["pid"] = id;
+        }
         return DynValue.NewTable(t);
     }
 
@@ -383,7 +385,7 @@ internal static class ProcessExecution {
 
     internal static DynValue WaitProcess(Script lua, int pid, int? timeoutMs) {
         if (!s_processes.TryGetValue(pid, out var mp)) throw new ScriptRuntimeException($"Unknown process id {pid}");
-        // TODO: 
+        // TODO:
         //bool finished;
         try {
             if (timeoutMs.HasValue) {

@@ -9,7 +9,7 @@ namespace EngineNet.Core.Utils;
 /// Constructs command-line invocations from an operation definition and context.
 /// Responsible for resolving placeholders and mapping prompts/answers to CLI args.
 /// </summary>
-internal sealed class CommandBuilder() {
+internal sealed class CommandBuilder {
 
     /// <summary>
     /// Build a process invocation for the given operation.
