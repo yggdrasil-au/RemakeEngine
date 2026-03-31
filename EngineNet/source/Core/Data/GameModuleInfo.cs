@@ -1,5 +1,3 @@
-using System.IO;
-
 namespace EngineNet.Core.Data;
 
 /// <summary>

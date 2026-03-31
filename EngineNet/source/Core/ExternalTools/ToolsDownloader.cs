@@ -1,8 +1,4 @@
-
-using System;
 using System.IO.Compression;
-using System.Linq;
-using System.Collections.Generic;
 using SharpCompress.Archives;
 using SharpCompress.Archives.SevenZip;
 using SharpCompress.Common;

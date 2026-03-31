@@ -1,4 +1,3 @@
-using System.Text;
 using MoonSharp.Interpreter;
 
 namespace EngineNet.ScriptEngines.Lua;

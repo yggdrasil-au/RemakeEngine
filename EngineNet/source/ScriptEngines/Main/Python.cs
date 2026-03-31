@@ -1,6 +1,4 @@
 // python interpreter
-using IronPython.Hosting;
-
 namespace EngineNet.ScriptEngines.Python;
 
 /// <summary>

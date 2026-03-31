@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace EngineNet.Interface.GUI.Models;
 
 internal sealed record ProgressPanelModel {

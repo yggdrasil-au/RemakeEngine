@@ -1,8 +1,4 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
 using Avalonia.Controls;
-using Avalonia;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using EngineNet.Interface.GUI.Services;

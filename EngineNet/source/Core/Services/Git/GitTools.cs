@@ -14,12 +14,12 @@ internal static class GitTools {
     /* :: :: Constructor, Var :: END :: */
     //
     /* :: :: Methods ::  :: */
-    internal static bool CloneModule(string url) {
+    internal static bool CloneModule(string url, Core.Services.CommandService commandService) {
         if (string.IsNullOrWhiteSpace(url)) {
             return false;
         }
 
-        if (!IsGitInstalled()) {
+        if (!IsGitInstalled(commandService)) {
             EngineSdk.Warn("Git is not installed or not found in PATH.");
             Core.Diagnostics.Log("[GitTools.cs::CloneModule()] GitTools: Git is not installed or not found in PATH.");
             return false;
@@ -36,32 +36,26 @@ internal static class GitTools {
             EngineSdk.Print($"Downloading '{repoName}' from '{url}'...");
             EngineSdk.Print($"Target directory: '{target}'");
 
-            System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
-                FileName = "git",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                StandardOutputEncoding = System.Text.Encoding.UTF8,
-                StandardErrorEncoding = System.Text.Encoding.UTF8,
-            };
-            // contruct command: git clone <url> <target> --recurse-submodules
-            psi.ArgumentList.Add("clone");
-            psi.ArgumentList.Add(url);
-            psi.ArgumentList.Add(target);
-            psi.ArgumentList.Add("--recurse-submodules");
+            int rc = -1;
+            bool ok = commandService.ExecuteCommand(
+                commandParts: new List<string> { "git", "clone", url, target, "--recurse-submodules" },
+                title: "git clone",
+                onOutput: (line, _) => {
+                    EngineSdk.Print(line);
+                },
+                onEvent: evt => {
+                    if (evt.TryGetValue("event", out object? kind) && string.Equals(kind?.ToString(), "end", System.StringComparison.OrdinalIgnoreCase)) {
+                        if (evt.TryGetValue("exit_code", out object? code) && int.TryParse(code?.ToString(), out int parsed)) {
+                            rc = parsed;
+                        }
+                    }
+                }
+            );
 
-            using System.Diagnostics.Process? proc = System.Diagnostics.Process.Start(psi);
-            if (proc is null) {
-                throw new System.InvalidOperationException("Failed to start git");
+            if (rc < 0) {
+                rc = ok ? 0 : 1;
             }
 
-            proc.OutputDataReceived += (_, e) => { if (e.Data != null) { EngineSdk.Print(e.Data); } };
-            proc.ErrorDataReceived += (_, e) => { if (e.Data != null) { EngineSdk.Print(e.Data); } };
-            proc.BeginOutputReadLine();
-            proc.BeginErrorReadLine();
-            proc.WaitForExit();
-            int rc = proc.ExitCode;
             if (rc == 0) {
                 EngineSdk.Success($"\nSuccessfully downloaded '{repoName}'.");
                 return true;
@@ -76,21 +70,18 @@ internal static class GitTools {
         }
     }
 
-    private static bool IsGitInstalled() {
+    private static bool IsGitInstalled(Core.Services.CommandService commandService) {
         try {
-            System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
-                FileName = "git",
-                ArgumentList = { "--version" },
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                StandardOutputEncoding = System.Text.Encoding.UTF8,
-                StandardErrorEncoding = System.Text.Encoding.UTF8,
-            };
-            using System.Diagnostics.Process? p = System.Diagnostics.Process.Start(psi);
-            p!.WaitForExit(3000);
-            return p.ExitCode == 0;
+            Core.Services.ProcessResult result = commandService.RunProcess(
+                executable: "git",
+                args: new[] { "--version" },
+                cwd: null,
+                env: null,
+                timeoutMs: 3000,
+                captureStdout: true,
+                captureStderr: true
+            );
+            return result.Success;
         } catch {
             Core.Diagnostics.Bug("[GitTools.cs::CloneModule()] Exception while checking for git installation.");
             return false;

@@ -141,7 +141,9 @@ internal class GameLauncher {
                 if (!System.IO.File.Exists(godotPath)) return false;
 
                 string workDir = System.IO.Path.GetDirectoryName(godotProject) ?? root;
-                return _commandService.LaunchDetached(godotPath, new[] { godotProject }, workDir);
+                return _commandService.LaunchDetached(godotPath, new[] { godotProject }, workDir, new DetachedLaunchOptions {
+                    UseShellExecute = false
+                });
             } catch { return false; }
         }
 
@@ -152,7 +154,9 @@ internal class GameLauncher {
             return false;
         }
         try {
-            return _commandService.LaunchDetached(exe, System.Array.Empty<string>(), work);
+            return _commandService.LaunchDetached(exe, System.Array.Empty<string>(), work, new DetachedLaunchOptions {
+                UseShellExecute = true
+            });
         } catch {
             Core.Diagnostics.Bug($"[GameLauncher] err launching exe '{exe}' for game '{name}'");
             return false;

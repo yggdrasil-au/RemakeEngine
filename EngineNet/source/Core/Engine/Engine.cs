@@ -55,7 +55,7 @@ internal sealed class Engine : IEngineFace{
     }
 
     public bool CloneModule(string url) {
-        return Utils.GitTools.CloneModule(url);
+        return Utils.GitTools.CloneModule(url, this.Context.CommandService);
     }
 
 }

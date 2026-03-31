@@ -1,5 +1,3 @@
-
-using System.Collections.Generic;
 using SixLabors.ImageSharp;
 using BCnEncoder.Decoder;
 using BCnEncoder.ImageSharp;

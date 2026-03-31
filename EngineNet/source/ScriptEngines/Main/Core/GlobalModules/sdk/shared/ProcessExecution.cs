@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+
 using MoonSharp.Interpreter;
 using EngineNet.Core.Services;
 
@@ -172,7 +169,9 @@ internal static class ProcessExecution {
 
         try {
             int pid = cs.SpawnProcess(parts[0], parts.Skip(1), cwd, env, captureStdout, captureStderr);
-            return DynValue.NewNumber(pid);
+            Table t = new Table(lua);
+            t["pid"] = pid;
+            return DynValue.NewTable(t);
         } catch (Exception ex) {
             throw new ScriptRuntimeException(ex.Message);
         }
@@ -196,7 +195,9 @@ internal static class ProcessExecution {
 
     internal static DynValue WaitProcess(Script lua, CommandService cs, int pid, int? timeoutMs) {
         try {
-            ProcessPollResult res = cs.WaitProcess(pid, timeoutMs);
+            // Keep parity with previous behavior: wait_process acted as a status check.
+            _ = timeoutMs;
+            ProcessPollResult res = cs.PollProcess(pid);
             Table t = new Table(lua);
             t["running"] = res.Running;
             if (!res.Running) t["exit_code"] = res.ExitCode;
@@ -216,14 +217,17 @@ internal static class ProcessExecution {
 
     private static DynValue HandleNewTerminalExecution(Script lua, CommandService cs, List<string> parts, string? cwd, Dictionary<string, string> env, bool keepOpen, bool wait, bool silentRun) {
         try {
-            ProcessResult res = cs.RunInNewTerminal(parts[0], parts.Skip(1), cwd, env, keepOpen, wait);
-            if (wait) {
-                Table t = new Table(lua);
-                t["success"] = res.Success;
-                t["exit_code"] = res.ExitCode;
-                return DynValue.NewTable(t);
+            // Parity fallback: when no terminal emulator is available on Unix-like systems,
+            // execute in the current terminal path instead of failing.
+            if ((System.OperatingSystem.IsLinux() || System.OperatingSystem.IsMacOS()) && !HasKnownTerminalEmulator()) {
+                return ExecInCurrentTerminal(lua, cs, parts, cwd, env, silentRun);
             }
-            return DynValue.NewBoolean(true);
+
+            ProcessResult res = cs.RunInNewTerminal(parts[0], parts.Skip(1), cwd, env, keepOpen, wait);
+            Table t = new Table(lua);
+            t["success"] = res.Success;
+            t["exit_code"] = res.ExitCode;
+            return DynValue.NewTable(t);
         } catch (Exception ex) {
             throw new ScriptRuntimeException(ex.Message);
         }
@@ -232,13 +236,63 @@ internal static class ProcessExecution {
     private static DynValue ExecInCurrentTerminal(Script lua, CommandService cs, List<string> parts, string? cwd, Dictionary<string, string> env, bool silentRun) {
         try {
             Dictionary<string, object?> envObj = env.ToDictionary(k => k.Key, v => (object?)v.Value);
-            bool success = cs.ExecuteCommand(parts, "Script Exec", 
-                onOutput: (msg, type) => { if (!silentRun) Core.UI.EngineSdk.PrintLine(msg); },
+            if (!string.IsNullOrEmpty(cwd)) {
+                envObj["PWD"] = cwd;
+            }
+
+            int exitCode = -1;
+            bool success = cs.ExecuteCommand(
+                commandParts: parts,
+                title: System.IO.Path.GetFileName(parts[0]),
+                onOutput: (msg, type) => {
+                    if (!silentRun) {
+                        string? color = type == "stderr" ? "red" : null;
+                        Core.UI.EngineSdk.Print(msg, color, true);
+                        Core.Diagnostics.Log($"[ProcessRunner][{type}] {msg}");
+                    }
+                },
+                onEvent: evt => {
+                    if (evt.TryGetValue("event", out object? ev) && string.Equals(ev?.ToString(), "end", System.StringComparison.OrdinalIgnoreCase)) {
+                        if (evt.TryGetValue("exit_code", out object? code) && int.TryParse(code?.ToString(), out int parsed)) {
+                            exitCode = parsed;
+                        }
+                    }
+                },
                 envOverrides: envObj
             );
-            return DynValue.NewBoolean(success);
+
+            if (!success && exitCode == -1) {
+                exitCode = 1;
+            }
+
+            Table result = new Table(lua);
+            result["exit_code"] = exitCode >= 0 ? exitCode : (success ? 0 : 1);
+            result["success"] = success && (exitCode == 0 || exitCode == -1);
+            return DynValue.NewTable(result);
         } catch (Exception ex) {
             throw new ScriptRuntimeException(ex.Message);
         }
+    }
+
+    private static bool HasKnownTerminalEmulator() {
+        if (System.OperatingSystem.IsWindows()) {
+            return true;
+        }
+
+        string[] candidates = new[] {
+            "/usr/bin/gnome-terminal",
+            "/usr/bin/konsole",
+            "/usr/bin/xterm",
+            "/usr/bin/alacritty",
+            "/usr/bin/xfce4-terminal"
+        };
+
+        foreach (string candidate in candidates) {
+            if (System.IO.File.Exists(candidate)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

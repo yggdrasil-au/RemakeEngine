@@ -1,7 +1,5 @@
 using MoonSharp.Interpreter;
 
-using System.Collections.Generic;
-
 namespace EngineNet.ScriptEngines.Lua.Globals;
 
 /// <summary>

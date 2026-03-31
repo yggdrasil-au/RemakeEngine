@@ -1,10 +1,3 @@
-using System.ComponentModel;
-using System.Collections.ObjectModel;
-
-using Avalonia.Controls;
-using Avalonia.Media.Imaging;
-
-using EngineNet.Interface.GUI.Services;
 
 namespace EngineNet.Interface.GUI.Pages;
 

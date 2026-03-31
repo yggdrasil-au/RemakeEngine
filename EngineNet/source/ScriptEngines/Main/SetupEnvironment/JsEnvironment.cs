@@ -1,7 +1,3 @@
-using System.Text;
-using Jint;
-using Jint.Native;
-
 namespace EngineNet.ScriptEngines.Js;
 
 internal static class SetupSafeEnvironment {

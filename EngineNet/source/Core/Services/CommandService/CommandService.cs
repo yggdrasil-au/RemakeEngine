@@ -1,11 +1,6 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 using EngineNet.Core.Utils;
 
@@ -151,12 +146,26 @@ public class CommandService {
     }
 
     public bool LaunchDetached(string executable, IEnumerable<string> args, string? cwd) {
+        return LaunchDetached(executable, args, cwd, new DetachedLaunchOptions {
+            UseShellExecute = true
+        });
+    }
+
+    public bool LaunchDetached(string executable, IEnumerable<string> args, string? cwd, DetachedLaunchOptions options) {
         try {
             ProcessStartInfo psi = new ProcessStartInfo {
                 FileName = executable,
                 WorkingDirectory = cwd ?? string.Empty,
-                UseShellExecute = true
+                UseShellExecute = options.UseShellExecute
             };
+            if (options.CreateNoWindow.HasValue) {
+                psi.CreateNoWindow = options.CreateNoWindow.Value;
+            }
+
+            if (options.WindowStyle.HasValue) {
+                psi.WindowStyle = options.WindowStyle.Value;
+            }
+
             foreach (string arg in args) {
                 psi.ArgumentList.Add(arg);
             }
@@ -336,4 +345,10 @@ public class ProcessPollResult {
     public string StderrFull { get; set; } = string.Empty;
     public string StdoutDelta { get; set; } = string.Empty;
     public string StderrDelta { get; set; } = string.Empty;
+}
+
+public sealed class DetachedLaunchOptions {
+    public bool UseShellExecute { get; set; } = true;
+    public bool? CreateNoWindow { get; set; }
+    public ProcessWindowStyle? WindowStyle { get; set; }
 }

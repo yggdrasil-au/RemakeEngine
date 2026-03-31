@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace EngineNet.Core.FileHandlers.Formats;
 
 internal static partial class TxdExtractor {

@@ -1,6 +1,3 @@
-
-using System.Text;
-
 namespace EngineNet.ScriptEngines.Python;
 
 internal static class SetupSafeEnvironment {

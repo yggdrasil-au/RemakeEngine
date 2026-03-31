@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace EngineNet.Core.Utils;
 
 internal static class ScriptConstants {

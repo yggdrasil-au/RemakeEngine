@@ -1,5 +1,3 @@
-using MoonSharp.Interpreter;
-
 namespace EngineNet.ScriptEngines.Lua.Global;
 
 internal static partial class Sdk {
