@@ -13,7 +13,7 @@
     "Lua.completion.callSnippet": "Both",
     "Lua.doc.regengine": "lua",
     "Lua.hint.arrayIndex": "Enable",
-    "Lua.runtime.version": "Lua 5.3",
+    "Lua.runtime.version": "fhdfh",
     "Lua.workspace.library": [
         "./EngineApps/api_definitions"
     ],

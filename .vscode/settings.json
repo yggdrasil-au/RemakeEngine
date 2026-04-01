@@ -36,7 +36,7 @@
         "**/.history/**": true
     },
     "files.exclude": {
-        "**/.git": true,
+        "**/.git": false,
         "**/.svn": true,
         "**/.hg": true,
         "**/.DS_Store": true,
@@ -48,7 +48,7 @@
     "Lua.completion.callSnippet": "Both",
     "Lua.doc.regengine": "lua",
     "Lua.hint.arrayIndex": "Enable",
-    "Lua.runtime.version": "Lua 5.3",
+    "Lua.runtime.version": "Moonsharp 2.0.0.0",
     "Lua.workspace.library": [
         "./EngineApps/api_definitions"
     ],

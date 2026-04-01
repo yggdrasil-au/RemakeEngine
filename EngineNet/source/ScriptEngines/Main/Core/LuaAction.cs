@@ -94,7 +94,7 @@ internal static class LuaAction {
         EngineSdkGlobals(_LuaWorld);
 
         // Global path join (soft join, always uses forward slashes)
-        _LuaWorld.LuaScript.Globals["join"] = (System.Func<ScriptExecutionContext, CallbackArguments, DynValue>)((context, args) => {
+        _LuaWorld.LuaScript.Globals["join"] = (System.Func<ScriptExecutionContext, CallbackArguments, DynValue>)((_, args) => {
             var parts = Enumerable.Range(0, args.Count)
                 .Select(i => args[i])
                 .Where(v => v.Type != DataType.Nil && v.Type != DataType.Void)
@@ -122,7 +122,7 @@ internal static class LuaAction {
         _LuaWorld.LuaScript.Globals["tool"] = _LuaWorld.LuaScript.Globals["ResolveToolPath"]; // alias for convenience
 
         // Global 'import' function - loads and executes Lua files relative to current script_dir global
-        _LuaWorld.LuaScript.Globals["import"] = (System.Func<ScriptExecutionContext, string, DynValue>)((context, path) => {
+        _LuaWorld.LuaScript.Globals["import"] = (System.Func<ScriptExecutionContext, string, DynValue>)((_, path) => {
             // Re-fetch script_dir from globals at runtime to allow dynamic updates
             string currentScriptDir = _LuaWorld.LuaScript.Globals.Get("script_dir").String ?? "";
             string absolutePath = System.IO.Path.IsPathRooted(path) ? path : System.IO.Path.Combine(currentScriptDir, path);

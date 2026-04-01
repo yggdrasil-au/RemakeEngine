@@ -45,18 +45,20 @@ if json then
     print("    json.serialize is: " .. type(json.serialize))
     print("    json.null is: " .. type(json.null))
     print("    json.parse is: " .. type(json.parse))
-    print("    json.isNull is: " .. type(json.isNull))
+    local jsonIsNullMember = rawget(json, "isNull")
+    print("    json.isNull is: " .. tostring(jsonIsNullMember) .. " (should be nil; use sdk.text.json.isNull)")
 
     local status, js = pcall(function() return json.serialize({a = 1, b = json.null()}) end)
     if status then
         print("      serialize: " .. js)
         local status2, tbl = pcall(function() return json.parse(js) end)
-        if status2 then
+        if status2 and tbl then
             print("      parse: table returned")
-            if type(json.isNull) == "function" then
-                print("      isNull check: " .. tostring(json.isNull(tbl.b)))
+            local nulval = json.null()
+            if jsonIsNullMember == nil then
+                print("      isNull: (nil) - not available in this environment; use sdk.text.json.isNull")
             else
-                print("      isNull: (nil) - function not available in this environment")
+                print("      isNull: unexpected non-nil value: " .. tostring(jsonIsNullMember))
             end
         else
             print("      parse failed: " .. tostring(tbl))
@@ -84,27 +86,125 @@ if sdk and sdk.text and sdk.text.json then
 end
 
 -- 6. Language differences
-print("\nTesting Language differences:")
--- Lambda style
--- Note: MoonSharp supports this, but let's wrap it in a pcall or comment if standard Lua parsers in some IDEs complain,
--- but here we are testing the runtime. The error "attempt to call a nil value" appeared AFTER JSON module.
--- Let's check if the Lambda style or Unicode escapes caused the previous failure by adding safety or comments.
 
+print("\nTesting Language differences:")
+
+-- Unicode escape
 print("  Testing Unicode escape \\u{20AC}:")
 local status, err = pcall(function()
-    print("    Result: " .. "\u{20AC}")
+    local euro = "\u{20AC}"
+    print("    Result: " .. euro .. " (codepoint: " .. tostring(string.unicode(euro)) .. ")")
+    assert(string.unicode(euro) == 8364, "Unicode escape did not produce expected codepoint")
 end)
 if not status then print("    Unicode escape failed: " .. tostring(err)) end
 
+-- Lambda style
 print("  Testing Lambda style:")
 local status_lambda, err_lambda = pcall(function()
-    -- We use load to check if the syntax is accepted by the loader
     local func = load("return |x, y| x + y")
     if func then
         local sum = func()
         print("    Lambda style sum(5, 10): " .. sum(5, 10))
+        assert(sum(5, 10) == 15, "Lambda did not return expected value")
     else
         print("    Lambda style syntax not supported by 'load'")
     end
 end)
 if not status_lambda then print("    Lambda test threw error: " .. tostring(err_lambda)) end
+
+-- Multiple-expression indices parsing/runtime behavior
+print("  Testing multiple-expression indices:")
+local multiIndexChunk, multiIndexLoadErr = load("local x = {}; return x[1,2,3]")
+if multiIndexChunk then
+    print("    Parse accepted: true")
+    local multiIndexRunOk, multiIndexRunResult = pcall(multiIndexChunk)
+    print("    Runtime success: " .. tostring(multiIndexRunOk))
+    if not multiIndexRunOk then
+        print("    Runtime error (expected for non-userdata): " .. tostring(multiIndexRunResult))
+    else
+        print("    Runtime result: " .. tostring(multiIndexRunResult))
+    end
+else
+    print("    Parse accepted: false")
+    print("    Parse error: " .. tostring(multiIndexLoadErr))
+end
+
+-- __iterator metamethod and default iterator (probe in protected chunks)
+print("  Testing __iterator and default iterator:")
+
+local function hasArg(flag)
+    if type(argv) ~= "table" then
+        return false
+    end
+
+    for i = 1, #argv do
+        if argv[i] == flag then
+            return true
+        end
+    end
+
+    return false
+end
+
+local runUnsafeIteratorProbe = hasArg("--unsafe-iterator-probes")
+
+local defaultIteratorStatus, defaultIteratorResult = pcall(function()
+    local chunk, loadErr = load([[local t = {10, 20, 30}
+local out = {}
+for v in t do
+    table.insert(out, v)
+end
+return out]])
+    if not chunk then
+        error("default iterator chunk load failed: " .. tostring(loadErr))
+    end
+    return chunk()
+end)
+if defaultIteratorStatus and type(defaultIteratorResult) == "table" then
+    print("    Default iterator values: " .. table.concat(defaultIteratorResult, ", "))
+    if #defaultIteratorResult == 3 and defaultIteratorResult[1] == 10 and defaultIteratorResult[2] == 20 and defaultIteratorResult[3] == 30 then
+        print("    Default iterator works as expected.")
+    else
+        print("    Default iterator returned unexpected values.")
+    end
+else
+    print("    Default iterator unsupported/error: " .. tostring(defaultIteratorResult))
+end
+
+if not runUnsafeIteratorProbe then
+    print("    __iterator probe skipped by default (pass --unsafe-iterator-probes to force; can crash MoonSharp VM in this runtime).")
+else
+    local customIteratorStatus, customIteratorResult = pcall(function()
+        local chunk, loadErr = load([[local mt = {
+    __iterator = function(self)
+        local i = 0
+        return function()
+            i = i + 1
+            if self[i] then
+                return self[i]
+            end
+        end
+    end
+}
+local t = setmetatable({100, 200, 300}, mt)
+local out = {}
+for v in t do
+    table.insert(out, v)
+end
+return out]])
+        if not chunk then
+            error("custom iterator chunk load failed: " .. tostring(loadErr))
+        end
+        return chunk()
+    end)
+    if customIteratorStatus and type(customIteratorResult) == "table" then
+        print("    __iterator values: " .. table.concat(customIteratorResult, ", "))
+        if #customIteratorResult == 3 and customIteratorResult[1] == 100 and customIteratorResult[2] == 200 and customIteratorResult[3] == 300 then
+            print("    __iterator works as expected.")
+        else
+            print("    __iterator returned unexpected values.")
+        end
+    else
+        print("    __iterator unsupported/error: " .. tostring(customIteratorResult))
+    end
+end

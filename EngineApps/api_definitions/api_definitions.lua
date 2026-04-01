@@ -292,45 +292,94 @@ function next(t, index) end
 -- 1b. MoonSharp Additions
 -- =============================================================================
 
----@class MoonSharpInfo
----@field version string The version of the interpreter.
----@field luacompat string The Lua version compatibility (e.g., '5.2').
----@field platform string The platform it is running on.
----@field is_aot boolean True if running on AOT.
----@field is_unity boolean True if running in Unity.
----@field is_mono boolean True if running on Mono.
----@field is_clr4 boolean True if running on CLR4.
----@field is_pcl boolean True if running as a PCL.
----@field banner string The engine banner text.
 _MOONSHARP = {}
 
--- Global aliases for table.pack and table.unpack
+--- Packs arguments into a table (alias for table.pack).
+---@param ... any
+---@return table<integer, any>
 function pack(...) end
-function unpack(...) end
+--- Unpacks values from a table (alias for table.unpack).
+---@param t table<integer, any>
+---@return ... any
+function unpack(t) end
 
--- Safe environment loaders
+--- Loads a chunk with the environment defaulting to the caller's environment.
+---@param ld string|function The chunk or loader function.
+---@param source? string
+---@param mode? string
+---@param env? table
+---@return function|nil chunk
+---@return string? error_message
 function loadsafe(ld, source, mode, env) end
+--- Loads a file with the environment defaulting to the caller's environment.
+---@param filename? string
+---@param mode? string
+---@param env? table
+---@return function|nil chunk
+---@return string? error_message
 function loadfilesafe(filename, mode, env) end
 
--- String module additions
+--- Returns the unicode codepoint(s) at the given position(s) in the string.
+---@param s string
+---@param i? integer
+---@param j? integer
+---@return integer|table<integer, integer>
 function string.unicode(s, i, j) end
+--- Returns true if str2 is contained in str1.
+---@param str1 string
+---@param str2 string
+---@return boolean
 function string.contains(str1, str2) end
+--- Returns true if str1 starts with str2.
+---@param str1 string
+---@param str2 string
+---@return boolean
 function string.startsWith(str1, str2) end
+--- Returns true if str1 ends with str2.
+---@param str1 string
+---@param str2 string
+---@return boolean
 function string.endsWith(str1, str2) end
 
--- Dynamic evaluation module
 ---@class DynamicModule
 dynamic = {}
-function dynamic.eval(expr) end
+--- Prepares an expression for dynamic evaluation.
+---@param expr string
+---@return any prepared
 function dynamic.prepare(expr) end
+--- Evaluates a prepared expression or string.
+---@param expr any
+---@return any result
+function dynamic.eval(expr) end
 
--- MoonSharp JSON module (Internal)
 ---@class MoonSharpJson
+---@field parse fun(jsonString: string): any
+---@field serialize fun(value: any): string
+---@field null fun(): any
+---@field isNull nil Always nil in the current MoonSharp environment.
 json = {}
+--- Parses a JSON string into a Lua table.
+---@param jsonString string
+---@return any
 function json.parse(jsonString) end
+--- Serializes a Lua value to a JSON string.
+---@param value any
+---@return string
 function json.serialize(value) end
+--- Returns a special value representing JSON null.
+---@return any
 function json.null() end
-function json.isNull(val) end
+---@deprecated not available in this environment, use sdk.text.json.isNull instead
+json.isNull = nil
+
+--[[
+MoonSharp Language Differences (not type-annotatable, but important for documentation):
+* Multiple expressions can be used as indices, but the value to be indexed must be a userdata or a table resolving to userdata through the metatable (without using metamethods).
+* Metalua short anonymous functions (lambda-style) are supported: |x, y| x + y is shorthand for function(x, y) return x + y end.
+* In this engine runtime, direct table iteration with `for v in table do ... end` is not guaranteed; use pairs()/ipairs() for compatibility.
+* `__iterator` probing can trigger a MoonSharp VM null-reference error path (`ExecIterPrep`) in this runtime build; treat it as unsupported.
+* Unicode escapes (\u{xxx}, up to 8 hex digits) are supported inside strings and output the specified Unicode codepoint, as in Lua 5.3.
+]]
 
 
 -- =============================================================================
@@ -429,7 +478,6 @@ function string.gsub(s, pattern, repl, n) end
 ---@field env? table<string, string> Environment variable overrides.
 ---@field new_terminal? boolean If true, attempts to launch in a new terminal window.
 ---@field keep_open? boolean (Used with new_terminal) Keeps the terminal open after exit.
----@field title? string Optional title for the process/window.
 ---@field wait? boolean (Default: true) If false, returns immediately without waiting for exit.
 local ExecOptions = {}
 
@@ -484,12 +532,18 @@ local ProcessStatus = {}
 ---@field indent? boolean If true, pretty-prints JSON.
 local JsonEncodeOptions = {}
 
+---@class SdkHash
+---@field md5 fun(text: string): string
+---@field sha1_file fun(path: string): string|nil
+local SdkHash = {}
+
 -- =============================================================================
 -- 3. SDK Modules
 -- =============================================================================
 
 ---@class SDK
 ---@field IO IO_Lib Access to IO functions (same as global 'io').
+---@field Hash SdkHash Hash helpers under sdk.Hash.
 ---@field cpu_count integer The number of logical processors available.
 ---@field text SdkText JSON/text helpers.
 sdk = {}
@@ -571,8 +625,8 @@ function sdk.read_file(path) end
 
 --- Renames or moves a file or directory.
 --- Supports cross-volume moves and merging directories.
----@param old_path string?
----@param new_path string?
+---@param old_path string
+---@param new_path string
 ---@param overwrite? boolean
 ---@return boolean ok
 function sdk.rename_file(old_path, new_path, overwrite) end
@@ -602,7 +656,7 @@ function sdk.create_symlink(source, destination, is_directory, overwrite) end
 function sdk.create_hardlink(source, destination) end
 
 --- Checks whether a path exists.
----@param path string?
+---@param path string
 ---@return boolean ok
 function sdk.path_exists(path) end
 
@@ -628,7 +682,7 @@ function sdk.is_absolute(path) end
 
 --- Resolves a path to its absolute path with long path support on Windows.
 ---@param path string
----@return string|nil absolute_path
+---@return string absolute_path
 function sdk.absolute_path(path) end
 
 --- Checks whether a file or directory is writable.
@@ -729,7 +783,7 @@ local SdkTextToml = {}
 --- JSON helpers in sdk.text.json.
 ---@class SdkTextJson
 ---@field encode? fun(value: any, opts?: JsonEncodeOptions): string
----@field decode? fun(json: string|nil): any
+---@field decode? fun(json: string): any
 ---@field isNull? fun(val: any): boolean
 local SdkTextJson = {}
 
@@ -764,9 +818,9 @@ function SdkTextYaml.encode(value, opts) end
 function SdkTextYaml.decode(yaml) end
 
 ---@class SdkText
----@field json? SdkTextJson
----@field toml? SdkTextToml
----@field yaml? SdkTextYaml
+---@field json SdkTextJson
+---@field toml SdkTextToml
+---@field yaml SdkTextYaml
 local SdkText = {}
 
 sdk.text = {}
@@ -854,6 +908,8 @@ function sdk.spawn_process(args, options) end
 function sdk.poll_process(pid) end
 
 --- Waits for a background process to complete, or for a timeout.
+--- Note: Current C# implementation returns a status snapshot using poll semantics.
+--- The timeout argument is accepted for API compatibility but is currently ignored.
 ---@param pid integer The process ID returned by spawn_process.
 ---@param timeout_ms? integer Optional timeout in milliseconds.
 ---@return ProcessStatus status Information about the process state.

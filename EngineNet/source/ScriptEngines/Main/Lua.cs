@@ -22,6 +22,24 @@ internal sealed class Main : IAction {
         this._projectRoot = projectRoot;
     }
 
+    /// <summary>
+    /// Returns true when the exception chain contains the known MoonSharp iterator prep NullReferenceException.
+    /// </summary>
+    /// <param name="exception">The exception to inspect.</param>
+    /// <returns>True when the stack indicates the known ExecIterPrep failure path.</returns>
+    private static bool IsMoonSharpIteratorPrepNullReference(Exception exception) {
+        Exception? current = exception;
+        while (current is not null) {
+            if (current is NullReferenceException && current.StackTrace?.Contains("MoonSharp.Interpreter.Execution.VM.Processor.ExecIterPrep", StringComparison.Ordinal) == true) {
+                return true;
+            }
+
+            current = current.InnerException;
+        }
+
+        return false;
+    }
+
     //
     public async Task ExecuteAsync(Core.ExternalTools.JsonToolResolver tools, Core.Services.CommandService commandService, CancellationToken cancellationToken = default) {
         bool ok = false;
@@ -92,10 +110,18 @@ internal sealed class Main : IAction {
                 executionError = new System.InvalidOperationException($"Lua script exited with non-zero code {exitCode}.");
             }
         } catch (Exception ex) {
-            Diagnostics.LuaInternalCatch("Lua script threw an exception: " + ex);
-            Core.UI.EngineSdk.PrintLine(message: $"Lua script threw an exception: {ex}", color: System.ConsoleColor.Red);
+            Exception finalException = ex;
+            if (IsMoonSharpIteratorPrepNullReference(ex)) {
+                string compatibilityMessage = "Lua compatibility limitation: MoonSharp can throw a CLR NullReferenceException when preparing 'for ... in' iteration over tables/__iterator in this runtime. Use pairs()/ipairs() instead of direct table iterators.";
+                finalException = new InvalidOperationException(compatibilityMessage, ex);
+                Core.UI.EngineSdk.PrintLine(message: compatibilityMessage, color: System.ConsoleColor.Yellow);
+                Diagnostics.LuaInternalCatch("Lua iterator compatibility guard triggered: " + ex);
+            }
+
+            Diagnostics.LuaInternalCatch("Lua script threw an exception: " + finalException);
+            Core.UI.EngineSdk.PrintLine(message: $"Lua script threw an exception: {finalException}", color: System.ConsoleColor.Red);
             exitCode = 1;
-            executionError = ex;
+            executionError = finalException;
         } finally {
             LuaWorld?.DisposeOpenDisposables();
 
