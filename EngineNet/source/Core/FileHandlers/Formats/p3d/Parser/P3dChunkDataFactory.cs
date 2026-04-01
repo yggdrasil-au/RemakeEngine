@@ -233,8 +233,11 @@ internal static class ChunkDataFactory {
             case ChunkType.StaticPhysicsDSG:
                 return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), null);
 
-            case ChunkType.StatePropDataV1:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseStatePropDataV1(bytes));
+            case ChunkType.StatePropDataV1: {
+                uint version = ParseVersion(bytes);
+                string name = ParseName(bytes);
+                return ChunkData.Create(typ, name, version, ParseStatePropDataV1(bytes));
+            }
             case ChunkType.StatePropStateDataV1:
                 return ChunkData.Create(typ, ParseName(bytes), null, ParseStatePropStateDataV1(bytes));
             case ChunkType.StatePropVisibilitiesData:

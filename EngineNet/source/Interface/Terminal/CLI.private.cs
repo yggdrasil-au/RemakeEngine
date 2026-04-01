@@ -86,7 +86,7 @@ internal partial class CLI {
         CLI Usage:
             engine --list-games (to list available game modules)
             engine --list-ops <game> (to list available operations for a game module)
-            engine --game_module <name|path> --script <action> [--script_type <type>] [--args ""...""] (to manually run an operation directly)
+            engine --game_module <name|path> --script <action> [--script_type <type>] [--args '""<arg>"",""<arg>""'] (to manually run an operation directly)
         Other commands:
             --root ""PATH""
             --gui

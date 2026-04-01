@@ -2,9 +2,13 @@ namespace EngineNet.Core.FileHandlers.Formats.p3d;
 
 internal static class Main {
 
+    private const string UnsupportedRootParityNote = "[p3d] Note: Parser parity is currently aligned with p3dtoolsRust root handling. Unsupported root variants (for example DataFileCompressed) are intentionally reported as unsupported.";
+
     /// <summary>
     /// Runs p3d parser/list/export workflows.
     /// Supported args: [path] [--recurse] [--list] [-o|--out folder] [--parse-only]
+    /// Limitation: To maintain parity with p3dtoolsRust, only DataFile root chunks are currently supported.
+    /// Compressed/root variants (for example DataFileCompressed) are expected to fail with an unsupported message.
     /// </summary>
     internal static bool Run(List<string> args, System.Threading.CancellationToken cancellationToken) {
         try {
@@ -16,6 +20,8 @@ internal static class Main {
 
             P3dRunOptions options = ParseOptions(args);
             P3dRunMode mode = ResolveMode(options);
+
+            Core.Diagnostics.Log(UnsupportedRootParityNote);
 
             bool requireRecursiveFlag = mode != P3dRunMode.ParseOnly;
             List<string> files = EnumerateP3dFiles(options.InputPath, options.Recurse, requireRecursiveFlag);
