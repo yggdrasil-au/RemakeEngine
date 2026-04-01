@@ -1,4 +1,4 @@
-namespace EngineNet.Core.FileHandlers.Formats;
+namespace EngineNet.Core.FileHandlers.Formats.txd;
 
 internal static partial class TxdExtractor {
 

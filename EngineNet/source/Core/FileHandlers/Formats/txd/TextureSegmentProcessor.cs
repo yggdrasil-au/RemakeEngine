@@ -2,7 +2,7 @@ using SixLabors.ImageSharp;
 using BCnEncoder.Decoder;
 using BCnEncoder.ImageSharp;
 
-namespace EngineNet.Core.FileHandlers.Formats;
+namespace EngineNet.Core.FileHandlers.Formats.txd;
 
 using System;
 

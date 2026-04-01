@@ -214,7 +214,7 @@ internal class BuiltInOperations {
         if (string.Equals(format, "txd", System.StringComparison.OrdinalIgnoreCase)) {
             Core.UI.EngineSdk.PrintLine("\n>>> Built-in TXD extraction");
             Core.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
-            bool ok = FileHandlers.Formats.TxdExtractor.Run(args, operationArgs.cancellationToken);
+            bool ok = FileHandlers.Formats.txd.TxdExtractor.Run(args, operationArgs.cancellationToken);
             return ok;
         } /*else if (string.IsNullOrWhiteSpace(format)) {
             // TODO: Auto-detect format, when other formats are supported
