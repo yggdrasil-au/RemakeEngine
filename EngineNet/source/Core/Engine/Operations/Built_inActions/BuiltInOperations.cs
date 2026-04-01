@@ -203,26 +203,27 @@ internal class BuiltInOperations {
         Operations.helpers.OperationArgs operationArgs
     ) {
         // Determine input file format
-        string? format = operationArgs.op.TryGetValue("format", out object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
+        string? format = operationArgs.op.TryGetValue("format", out object? ft)
+            ? ft?.ToString()?.ToLowerInvariant() : null;
+
         Dictionary<string, object?> ctx = Helpers.BuildOperationContext(operationArgs.context, operationArgs.currentGame, operationArgs.games);
         List<string> args = Helpers.ResolveOperationArgs(operationArgs.op, ctx);
 
-
-
         // execute
-        // If format is TXD, use built-in extractor
-        if (string.Equals(format, "txd", System.StringComparison.OrdinalIgnoreCase)) {
-            Core.UI.EngineSdk.PrintLine("\n>>> Built-in TXD extraction");
-            Core.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
-            bool ok = FileHandlers.Formats.txd.TxdExtractor.Run(args, operationArgs.cancellationToken);
-            return ok;
-        } /*else if (string.IsNullOrWhiteSpace(format)) {
-            // TODO: Auto-detect format, when other formats are supported
-
-        }*/ else {
-            Core.UI.EngineSdk.PrintLine($"ERROR: format-extract does not support format '{format}'");
-            Core.UI.EngineSdk.PrintLine("Supported formats: txd (default)");
-            return false;
+        switch (format) {
+            case "p3d": {
+                Core.UI.EngineSdk.PrintLine("\n>>> Built-in P3D extraction");
+                Core.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
+                return FileHandlers.Formats.p3d.Main.Run(args, operationArgs.cancellationToken);
+            } case "txd": {
+                Core.UI.EngineSdk.PrintLine("\n>>> Built-in TXD extraction");
+                Core.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
+                return FileHandlers.Formats.txd.TxdExtractor.Run(args, operationArgs.cancellationToken);
+            } default: {
+                Core.UI.EngineSdk.PrintLine($"ERROR: format-extract does not support format '{format}'");
+                Core.UI.EngineSdk.PrintLine("Supported formats: p3d, txd");
+                return false;
+            }
         }
     }
 
@@ -231,8 +232,6 @@ internal class BuiltInOperations {
     ) {
         Dictionary<string, object?> ctx = Helpers.BuildOperationContext(operationArgs.context, operationArgs.currentGame, operationArgs.games);
         List<string> args = Helpers.ResolveOperationArgs(operationArgs.op, ctx);
-
-
 
         // execute
         Core.UI.EngineSdk.PrintLine("\n>>> Built-in folder rename");
