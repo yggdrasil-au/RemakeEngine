@@ -11,6 +11,9 @@ name: sonarqube scan action - SonarQubeBuild.yml
 on:
   workflow_dispatch: {} # allow manual runs
 
+permissions:
+  contents: read
+
 jobs:
   sonarqube:
     name: SonarQube

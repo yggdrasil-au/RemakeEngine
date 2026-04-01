@@ -109,14 +109,14 @@ internal class BuiltInOperations {
     }
 
 
-    internal static bool format_convert(
-        Operations.helpers.OperationArgs operationArgs
-    ) {
+    internal static bool format_convert(Operations.helpers.OperationArgs operationArgs) {
         Core.Diagnostics.Log("[Engine.private.cs :: Operations()]] format-convert");
-        // Determine tool - check both 'tool' field and '-m'/'--mode' in args
-        string? tool = operationArgs.op.TryGetValue("tool", out object? ft) ? ft?.ToString()?.ToLowerInvariant() : null;
 
-#if DEBUG
+        // 1. Determine tool - check both 'tool' field and '-m'/'--mode' in args
+        string? tool = operationArgs.op.TryGetValue("tool", out object? ft) 
+            ? ft?.ToString()?.ToLowerInvariant() : null;
+
+    #if DEBUG
         if (operationArgs.op.TryGetValue("args", out object? argsDebugObj)) {
             Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: args type = {argsDebugObj?.GetType().FullName ?? "null"}");
             if (argsDebugObj is System.Collections.IList argsDebugList) {
@@ -126,12 +126,11 @@ internal class BuiltInOperations {
                 }
             }
         }
-#endif
+    #endif
 
-        // If tool not specified, try to extract from args
+        // 2. If tool not specified, try to extract from args
         if (string.IsNullOrWhiteSpace(tool) && operationArgs.op.TryGetValue("args", out object? argsObj)) {
             if (argsObj is System.Collections.IList argsList) {
-                // Check for -m/--mode flag
                 for (int i = 0; i < argsList.Count - 1; i++) {
                     string arg = argsList[i]?.ToString() ?? string.Empty;
                     if (arg == "-m" || arg == "--mode") {
@@ -140,34 +139,39 @@ internal class BuiltInOperations {
                         break;
                     }
                 }
-
             }
         }
+
         Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: final tool = '{tool}'");
+
+        // 3. Prepare Execution Context
         Dictionary<string, object?> ctx = Helpers.BuildOperationContext(operationArgs.context, operationArgs.currentGame, operationArgs.games);
         List<string> args = Helpers.ResolveOperationArgs(operationArgs.op, ctx);
 
+        // 4. Execute via Switch
+        switch (tool) {
+            case "ffmpeg":
+            case "vgmstream":
+                Core.UI.EngineSdk.PrintLine("\n>>> Built-in media conversion");
+                Core.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running media conversion with args: {string.Join(' ', args)}");
+                return FileHandlers.MediaConverter.Run(operationArgs.context.ToolResolver, args, operationArgs.cancellationToken);
 
+            case "imagemagick":
+                Core.UI.EngineSdk.PrintLine("\n>>> Built-in image conversion");
+                Core.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running image conversion with args: {string.Join(' ', args)}");
+                return FileHandlers.ImageMagickConverter.Run(operationArgs.context.ToolResolver, args, operationArgs.cancellationToken);
 
-        // execute
-        if (string.Equals(tool, "ffmpeg", System.StringComparison.OrdinalIgnoreCase) || string.Equals(tool, "vgmstream", System.StringComparison.OrdinalIgnoreCase)) {
-            // attempt built-in media conversion (ffmpeg/vgmstream) using the same CLI args
-            Core.UI.EngineSdk.PrintLine("\n>>> Built-in media conversion");
-            Core.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running media conversion with args: {string.Join(' ', args)}");
-            bool okMedia = FileHandlers.MediaConverter.Run(operationArgs.context.ToolResolver, args, operationArgs.cancellationToken);
-            return okMedia;
-        } else if (string.Equals(tool, "ImageMagick", System.StringComparison.OrdinalIgnoreCase)) {
-            // attempt image conversion (ImageMagick) using the CLI args
-            Core.UI.EngineSdk.PrintLine("\n>>> Built-in image conversion");
-            Core.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running image conversion with args: {string.Join(' ', args)}");
-            bool okImage = FileHandlers.ImageMagickConverter.Run(operationArgs.context.ToolResolver, args, operationArgs.cancellationToken);
-            return okImage;
-        } else {
-            Core.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: unknown tool '{tool}'");
-            Core.UI.EngineSdk.PrintLine($"ERROR: format-convert requires a valid tool. Found: '{tool ?? "(null)"}'");
-            Core.UI.EngineSdk.PrintLine("Supported tools: ffmpeg, vgmstream, ImageMagick");
-            Core.UI.EngineSdk.PrintLine("Specify tool with --tool parameter or -m/--mode in args.");
-            return false;
+            case "p3d":
+                Core.UI.EngineSdk.PrintLine("\n>>> Built-in p3d conversion");
+                Core.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running p3d conversion with args: {string.Join(' ', args)}");
+                return FileHandlers.Formats.p3d.Main.Run(args, operationArgs.cancellationToken);
+
+            default:
+                Core.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: unknown tool '{tool}'");
+                Core.UI.EngineSdk.PrintLine($"ERROR: format-convert requires a valid tool. Found: '{tool ?? "(null)"}'");
+                Core.UI.EngineSdk.PrintLine("Supported tools: ffmpeg, vgmstream, ImageMagick, p3d");
+                Core.UI.EngineSdk.PrintLine("Specify tool with --tool parameter or -m/--mode in args.");
+                return false;
         }
     }
 
@@ -212,6 +216,7 @@ internal class BuiltInOperations {
         // execute
         switch (format) {
             case "p3d": {
+                // in future will be specifically for converting p3d into there core component files (meshes, textures, shaders, etc)
                 Core.UI.EngineSdk.PrintLine("\n>>> Built-in P3D extraction");
                 Core.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
                 return FileHandlers.Formats.p3d.Main.Run(args, operationArgs.cancellationToken);

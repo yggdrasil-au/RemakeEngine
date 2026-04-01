@@ -10,6 +10,8 @@ name: sonar cloud scanner, build, test (coverage) - SonarQube.yml
 on:
   workflow_dispatch: {} # allow manual runs
 
+permissions:
+  contents: read
 
 jobs:
   build:

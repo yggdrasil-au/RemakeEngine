@@ -6,15 +6,15 @@ internal static class Main {
 
     /// <summary>
     /// Runs p3d parser/list/export workflows.
-    /// Supported args: [path] [--recurse] [--list] [-o|--out folder] [--parse-only]
+    /// Supported args: [path] [--recurse] [--list] [-o|--out folder] [--parse-only] [--export gltf|obj] [--mode parse|list|gltf|obj]
     /// Limitation: To maintain parity with p3dtoolsRust, only DataFile root chunks are currently supported.
     /// Compressed/root variants (for example DataFileCompressed) are expected to fail with an unsupported message.
     /// </summary>
     internal static bool Run(List<string> args, System.Threading.CancellationToken cancellationToken) {
         try {
             if (args.Count == 0) {
-                Core.Diagnostics.Log("[p3d] Usage: p3d <file-or-directory> [--recurse] [--list] [-o|--out folder] [--parse-only]");
-                Core.UI.EngineSdk.PrintLine("Usage: p3d <file-or-directory> [--recurse] [--list] [-o|--out folder] [--parse-only]");
+                Core.Diagnostics.Log("[p3d] Usage: p3d <file-or-directory> [--recurse] [--list] [-o|--out folder] [--parse-only] [--export gltf|obj] [--mode parse|list|gltf|obj]");
+                Core.UI.EngineSdk.PrintLine("Usage: p3d <file-or-directory> [--recurse] [--list] [-o|--out folder] [--parse-only] [--export gltf|obj] [--mode parse|list|gltf|obj]");
                 return false;
             }
 
@@ -57,6 +57,15 @@ internal static class Main {
                             Core.Diagnostics.Log($"[p3d] Exported {System.IO.Path.GetFileName(file)}");
                             Core.UI.EngineSdk.PrintLine($"[OK] Exported {System.IO.Path.GetFileName(file)}", System.ConsoleColor.Green);
                             break;
+                        case P3dRunMode.ExportObj:
+                            if (string.IsNullOrWhiteSpace(options.OutputDirectory)) {
+                                throw new P3dParseException("Output directory is required in export mode.");
+                            }
+
+                            P3dObjExporter.ExportAllToObj(file, chunks, options.OutputDirectory);
+                            Core.Diagnostics.Log($"[p3d] Exported OBJ {System.IO.Path.GetFileName(file)}");
+                            Core.UI.EngineSdk.PrintLine($"[OK] Exported OBJ {System.IO.Path.GetFileName(file)}", System.ConsoleColor.Green);
+                            break;
                     }
 
                     success++;
@@ -72,6 +81,7 @@ internal static class Main {
                 P3dRunMode.ParseOnly => "parse",
                 P3dRunMode.ListHighLevel => "list",
                 P3dRunMode.ExportGltf => "export",
+                P3dRunMode.ExportObj => "export-obj",
                 _ => "unknown",
             };
 
@@ -112,7 +122,10 @@ internal static class Main {
         }
 
         if (!string.IsNullOrWhiteSpace(options.OutputDirectory) && !options.ParseOnly) {
-            return P3dRunMode.ExportGltf;
+            return options.ExportFormat switch {
+                P3dExportFormat.Obj => P3dRunMode.ExportObj,
+                _ => P3dRunMode.ExportGltf,
+            };
         }
 
         return P3dRunMode.ParseOnly;
@@ -161,6 +174,14 @@ internal static class Main {
                 case "--output_dir":
                     options.OutputDirectory = ReadOptionValue(args, ref i, current);
                     break;
+                case "--export":
+                case "--export-format":
+                    options.ExportFormat = ParseExportFormat(ReadOptionValue(args, ref i, current));
+                    break;
+                case "-m":
+                case "--mode":
+                    ApplyModeOption(options, ReadOptionValue(args, ref i, current));
+                    break;
                 case "-r":
                 case "--recurse":
                     options.Recurse = true;
@@ -199,6 +220,44 @@ internal static class Main {
         return options;
     }
 
+    private static void ApplyModeOption(P3dRunOptions options, string value) {
+        string mode = value.Trim().ToLowerInvariant();
+        switch (mode) {
+            case "parse":
+            case "parse-only":
+                options.ParseOnly = true;
+                options.List = false;
+                break;
+            case "list":
+                options.List = true;
+                options.ParseOnly = false;
+                break;
+            case "gltf":
+            case "export":
+                options.ParseOnly = false;
+                options.List = false;
+                options.ExportFormat = P3dExportFormat.Gltf;
+                break;
+            case "obj":
+            case "export-obj":
+                options.ParseOnly = false;
+                options.List = false;
+                options.ExportFormat = P3dExportFormat.Obj;
+                break;
+            default:
+                throw new P3dParseException($"Unknown mode '{value}'. Supported modes: parse, list, gltf, obj.");
+        }
+    }
+
+    private static P3dExportFormat ParseExportFormat(string value) {
+        string export = value.Trim().ToLowerInvariant();
+        return export switch {
+            "gltf" => P3dExportFormat.Gltf,
+            "obj" => P3dExportFormat.Obj,
+            _ => throw new P3dParseException($"Unknown export format '{value}'. Supported formats: gltf, obj."),
+        };
+    }
+
     private static string ReadOptionValue(IReadOnlyList<string> args, ref int index, string optionName) {
         if (index + 1 >= args.Count) {
             throw new P3dParseException($"Option '{optionName}' expects a value.");
@@ -212,6 +271,12 @@ internal static class Main {
         ParseOnly,
         ListHighLevel,
         ExportGltf,
+        ExportObj,
+    }
+
+    private enum P3dExportFormat {
+        Gltf,
+        Obj,
     }
 
     private sealed class P3dRunOptions {
@@ -234,5 +299,9 @@ internal static class Main {
         internal bool ParseOnly {
             get; set;
         }
+
+        internal P3dExportFormat ExportFormat {
+            get; set;
+        } = P3dExportFormat.Gltf;
     }
 }

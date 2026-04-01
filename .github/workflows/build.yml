@@ -13,6 +13,8 @@ name: SonarQube default - build.yml (DISABLED - Reference Only)
 on:
   workflow_dispatch: {} # allow manual runs
 
+permissions:
+  contents: read
 
 jobs:
   build:

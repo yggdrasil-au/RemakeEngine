@@ -2,12 +2,19 @@
 
 ## Engine
 
-Reimplement p3dTools in C#, with additional features and improvements:
-allow output of raw contents, png, conf, raw mesh obj, etc
-also support direct conversion of p3d files to obj and glb with materials and textures included (like the existing p3d2obj and p3d2gltf tools).
 
-place within Core.formats along site TXD extractor
 consider seperating Core.Formats into a independent csproj lib to prevent bloating the main engine assembly with format-specific tooling
+
+
+add schemas\cli-command.schema.md doc
+
+update the new p3d format conversion and extraction tooling
+ensure format_convert is used for converting p3d files to obj and glb files
+and format_extract is used for extracting p3d file data into its core components (meshes, textures, animations, etc)
+current implementation simply exposes the entire tool via both functions
+the p3d tooling has been implemented based directly on the Rust implementation with much exact parity including poor code quiality
+it must be massivly refactored and improved to meet the standards of the rest of the engine
+
 
 
 ### Operations
