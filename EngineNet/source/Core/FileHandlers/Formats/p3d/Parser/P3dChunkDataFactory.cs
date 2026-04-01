@@ -24,29 +24,51 @@ internal static class ChunkDataFactory {
             case ChunkType.VertexShader:
                 return ChunkData.Create(typ, null, null, ParseVertexShader(bytes));
 
-            case ChunkType.OldParticleSystem:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseOldParticleSystem(bytes));
-            case ChunkType.OldParticleSystemFactory:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseOldParticleSystemFactory(bytes));
+            case ChunkType.OldParticleSystem: {
+                // Rust parity: Version precedes Name for old particle system chunks.
+                uint version = ParseVersion(bytes);
+                string name = ParseName(bytes);
+                return ChunkData.Create(typ, name, version, ParseOldParticleSystem(bytes));
+            }
+            case ChunkType.OldParticleSystemFactory: {
+                // Rust parity: Version precedes Name for old particle system chunks.
+                uint version = ParseVersion(bytes);
+                string name = ParseName(bytes);
+                return ChunkData.Create(typ, name, version, ParseOldParticleSystemFactory(bytes));
+            }
             case ChunkType.OldParticleInstancingInfo:
                 return ChunkData.Create(typ, null, ParseVersion(bytes), ParseOldParticleSystemInstancingInfo(bytes));
             case ChunkType.OldParticleAnimation:
             case ChunkType.OldEmitterAnimation:
             case ChunkType.OldGeneratorAnimation:
                 return ChunkData.Create(typ, null, ParseVersion(bytes), null);
-            case ChunkType.OldBaseEmitter:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseOldBaseEmitter(bytes));
-            case ChunkType.OldSpriteEmitter:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseOldSpriteEmitter(bytes));
+            case ChunkType.OldBaseEmitter: {
+                // Rust parity: Version precedes Name for old particle system chunks.
+                uint version = ParseVersion(bytes);
+                string name = ParseName(bytes);
+                return ChunkData.Create(typ, name, version, ParseOldBaseEmitter(bytes));
+            }
+            case ChunkType.OldSpriteEmitter: {
+                // Rust parity: Version precedes Name for old particle system chunks.
+                uint version = ParseVersion(bytes);
+                string name = ParseName(bytes);
+                return ChunkData.Create(typ, name, version, ParseOldSpriteEmitter(bytes));
+            }
             case ChunkType.InstanceableParticleSystem:
                 return ChunkData.Create(typ, null, null, ParseInstanceableParticleSystem(bytes));
 
-            case ChunkType.Animation:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseAnimation(bytes));
+            case ChunkType.Animation: {
+                uint version = ParseVersion(bytes);
+                string name = ParseName(bytes);
+                return ChunkData.Create(typ, name, version, ParseAnimation(bytes));
+            }
             case ChunkType.AnimationSize:
                 return ChunkData.Create(typ, null, ParseVersion(bytes), ParseAnimationSize(bytes));
-            case ChunkType.AnimationGroup:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseAnimationGroup(bytes));
+            case ChunkType.AnimationGroup: {
+                uint version = ParseVersion(bytes);
+                string name = ParseName(bytes);
+                return ChunkData.Create(typ, name, version, ParseAnimationGroup(bytes));
+            }
             case ChunkType.AnimationGroupList:
                 return ChunkData.Create(typ, null, ParseVersion(bytes), ParseAnimationGroupList(bytes));
             case ChunkType.Float1Channel:
@@ -63,17 +85,26 @@ internal static class ChunkDataFactory {
                 return ChunkData.Create(typ, null, ParseVersion(bytes), ParseChannel(bytes, typ));
             case ChunkType.ChannelInterpolationMode:
                 return ChunkData.Create(typ, null, ParseVersion(bytes), ParseChannelInterpolation(bytes));
-            case ChunkType.OldFrameController:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseOldFrameController(bytes));
+            case ChunkType.OldFrameController: {
+                uint version = ParseVersion(bytes);
+                string name = ParseName(bytes);
+                return ChunkData.Create(typ, name, version, ParseOldFrameController(bytes));
+            }
             case ChunkType.P3DMultiController:
                 return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseMultiController(bytes));
             case ChunkType.P3DMultiControllerTracks:
                 return ChunkData.Create(typ, null, null, ParseMultiControllerTracks(bytes));
 
-            case ChunkType.OldBillboardQuad:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseOldBillboardQuad(bytes));
-            case ChunkType.OldBillboardQuadGroup:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseOldBillboardQuadGroup(bytes));
+            case ChunkType.OldBillboardQuad: {
+                uint version = ParseVersion(bytes);
+                string name = ParseName(bytes);
+                return ChunkData.Create(typ, name, version, ParseOldBillboardQuad(bytes));
+            }
+            case ChunkType.OldBillboardQuadGroup: {
+                uint version = ParseVersion(bytes);
+                string name = ParseName(bytes);
+                return ChunkData.Create(typ, name, version, ParseOldBillboardQuadGroup(bytes));
+            }
             case ChunkType.OldBillboardDisplayInfo:
                 return ChunkData.Create(typ, null, ParseVersion(bytes), ParseOldBillboardDisplayInfo(bytes));
             case ChunkType.OldBillboardPerspectiveInfo:
@@ -139,12 +170,21 @@ internal static class ChunkDataFactory {
             case ChunkType.P3DCompositeDrawableSortOrder:
                 return ChunkData.Create(typ, null, null, ParseCompositeDrawableSortOrder(bytes));
 
-            case ChunkType.AnimatedObjectFactory:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseAnimatedObjectFactory(bytes));
-            case ChunkType.AnimatedObject:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseAnimatedObject(bytes));
-            case ChunkType.AnimatedObjectAnimation:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseAnimatedObjectAnimation(bytes));
+            case ChunkType.AnimatedObjectFactory: {
+                uint version = ParseVersion(bytes);
+                string name = ParseName(bytes);
+                return ChunkData.Create(typ, name, version, ParseAnimatedObjectFactory(bytes));
+            }
+            case ChunkType.AnimatedObject: {
+                uint version = ParseVersion(bytes);
+                string name = ParseName(bytes);
+                return ChunkData.Create(typ, name, version, ParseAnimatedObject(bytes));
+            }
+            case ChunkType.AnimatedObjectAnimation: {
+                uint version = ParseVersion(bytes);
+                string name = ParseName(bytes);
+                return ChunkData.Create(typ, name, version, ParseAnimatedObjectAnimation(bytes));
+            }
             case ChunkType.EntityDSG:
             case ChunkType.InstanceableAnimatedDynamicPhysicsDSG:
             case ChunkType.DynamicPhysicsDSG:

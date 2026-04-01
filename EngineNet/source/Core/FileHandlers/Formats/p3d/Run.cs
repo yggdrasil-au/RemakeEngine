@@ -10,6 +10,7 @@ internal static class Main {
         try {
             if (args.Count == 0) {
                 Core.Diagnostics.Log("[p3d] Usage: p3d <file-or-directory> [--recurse] [--list] [-o|--out folder] [--parse-only]");
+                Core.UI.EngineSdk.PrintLine("Usage: p3d <file-or-directory> [--recurse] [--list] [-o|--out folder] [--parse-only]");
                 return false;
             }
 
@@ -20,6 +21,7 @@ internal static class Main {
             List<string> files = EnumerateP3dFiles(options.InputPath, options.Recurse, requireRecursiveFlag);
             if (files.Count == 0) {
                 Core.Diagnostics.Log($"[p3d] No .p3d files found for '{options.InputPath}'.");
+                Core.UI.EngineSdk.PrintLine($"No .p3d files found for '{options.InputPath}'.", System.ConsoleColor.Red);
                 return false;
             }
 
@@ -35,6 +37,7 @@ internal static class Main {
                     switch (mode) {
                         case P3dRunMode.ParseOnly:
                             Core.Diagnostics.Log($"[p3d] OK {System.IO.Path.GetFileName(file)} | chunks={chunks.Count}");
+                            Core.UI.EngineSdk.PrintLine($"[OK] {System.IO.Path.GetFileName(file)} | chunks={chunks.Count}", System.ConsoleColor.Green);
                             break;
                         case P3dRunMode.ListHighLevel:
                             ListHighLevelTypes(file, chunks);
@@ -46,13 +49,16 @@ internal static class Main {
 
                             P3dGltfExporter.ExportAllToGltf(file, chunks, options.OutputDirectory);
                             Core.Diagnostics.Log($"[p3d] Exported {System.IO.Path.GetFileName(file)}");
+                            Core.UI.EngineSdk.PrintLine($"[OK] Exported {System.IO.Path.GetFileName(file)}", System.ConsoleColor.Green);
                             break;
                     }
 
                     success++;
                 } catch (Exception ex) {
                     failed++;
-                    Core.Diagnostics.Log($"[p3d] FAIL {System.IO.Path.GetFileName(file)} | {ex.Message}");
+                    string details = ex.InnerException is null ? ex.Message : $"{ex.Message} | {ex.InnerException.Message}";
+                    Core.Diagnostics.Log($"[p3d] FAIL {System.IO.Path.GetFileName(file)} | {details}");
+                    Core.UI.EngineSdk.PrintLine($"[FAIL] {System.IO.Path.GetFileName(file)} | {details}", System.ConsoleColor.Red);
                 }
             }
 
@@ -64,24 +70,31 @@ internal static class Main {
             };
 
             Core.Diagnostics.Log($"[p3d] Completed ({modeName}) | success={success} failed={failed} total={files.Count}");
+            System.ConsoleColor summaryColor = failed == 0 ? System.ConsoleColor.Green : System.ConsoleColor.Red;
+            Core.UI.EngineSdk.PrintLine($"[p3d] Completed ({modeName}) | success={success} failed={failed} total={files.Count}", summaryColor);
             return failed == 0;
         } catch (Exception ex) {
-            Core.Diagnostics.Log($"Error: {ex.Message}");
+            string details = ex.InnerException is null ? ex.Message : $"{ex.Message} | {ex.InnerException.Message}";
+            Core.Diagnostics.Log($"Error: {details}");
+            Core.UI.EngineSdk.PrintLine($"Error: {details}", System.ConsoleColor.Red);
             return false;
         }
     }
 
     private static void ListHighLevelTypes(string file, IReadOnlyList<Chunk> chunks) {
         Core.Diagnostics.Log($"[p3d] Listing {System.IO.Path.GetFileName(file)}");
+        Core.UI.EngineSdk.PrintLine($"Listing {System.IO.Path.GetFileName(file)}");
         List<HighLevelType> highLevelTypes = P3dHighLevel.ParseHighLevelTypes(chunks);
 
         foreach (HighLevelType highLevelType in highLevelTypes) {
             switch (highLevelType) {
                 case HighLevelType.MeshType meshType:
                     Core.Diagnostics.Log($"Mesh: {meshType.Mesh.Name}");
+                    Core.UI.EngineSdk.PrintLine($"Mesh: {meshType.Mesh.Name}");
                     break;
                 case HighLevelType.SkinType skinType:
                     Core.Diagnostics.Log($"Skin: {skinType.Skin.Name}");
+                    Core.UI.EngineSdk.PrintLine($"Skin: {skinType.Skin.Name}");
                     break;
             }
         }

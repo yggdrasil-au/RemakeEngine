@@ -324,10 +324,10 @@ internal sealed class ByteReader {
     private void EnsureRemaining(int size, bool isAdvance = false) {
         if (Remaining < size) {
             if (isAdvance) {
-                throw new P3dParseException($"Advance overrun by {size - Remaining} bytes.");
+                throw new P3dParseException($"Advance overrun by {size - Remaining} bytes (position={_position}, requested={size}, remaining={Remaining}).");
             }
 
-            throw new P3dParseException($"Overrun by {size - Remaining} bytes");
+            throw new P3dParseException($"Overrun by {size - Remaining} bytes (position={_position}, requested={size}, remaining={Remaining}).");
         }
     }
 }

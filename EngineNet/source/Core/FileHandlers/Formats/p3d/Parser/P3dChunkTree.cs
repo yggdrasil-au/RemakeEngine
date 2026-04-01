@@ -93,7 +93,8 @@ internal sealed class Chunk {
             data = ChunkDataFactory.FromChunkType(typ, dataSlice);
         } catch (Exception ex) {
             string lineage = parent.HasValue ? chunks[parent.Value].GetLineage(chunks) : "Unknown";
-            throw new P3dParseException($"Error: Could not parse data. Lineage Info: {lineage}", ex);
+            string detail = ex.InnerException?.Message ?? ex.Message;
+            throw new P3dParseException($"Error: Could not parse data for {typ}. Lineage Info: {lineage}. Details: {detail}", ex);
         }
 
         int index = chunks.Count;
