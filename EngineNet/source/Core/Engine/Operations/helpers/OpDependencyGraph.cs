@@ -1,6 +1,4 @@
 
-using System.Text;
-
 namespace EngineNet.Core.Engine.Operations.helpers;
 
 /// <summary>
