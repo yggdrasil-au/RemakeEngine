@@ -16,12 +16,33 @@ internal partial class CLI {
     /// <returns></returns>
     internal async System.Threading.Tasks.Task<int> RunAsync(string[] args, System.Threading.CancellationToken cancellationToken = default) {
         try {
+            if (args.Length == 0) {
+                PrintHelp();
+                return 0;
+            }
+
+            InlineOperationOptions options = InlineOperationOptions.Parse(args);
+
+            if (options.RunAll) {
+                Core.Diagnostics.Trace("Detected run-all operation invocation.");
+                if (options.RunOperationSelector is not null) {
+                    Core.Diagnostics.Log("ERROR: --run_op cannot be combined with --run_all.");
+                    return 2;
+                }
+
+                return await RunAllOperationsAsync(options, cancellationToken);
+            }
+
+            if (options.RunOperationSelector is not null) {
+                Core.Diagnostics.Trace("Detected named operation invocation.");
+                return await RunSelectedOperationAsync(options, cancellationToken);
+            }
 
             // Check for inline operation invocation
             if (IsInlineOperationInvocation(args)) {
                 Core.Diagnostics.Trace("Detected inline operation invocation.");
                 // Run operation directly from command-line args
-                return await RunInlineOperationAsync(args, cancellationToken);
+                return await RunInlineOperationAsync(options, cancellationToken);
             }
 
             string cmd = args[0].ToLowerInvariant();
@@ -56,12 +77,7 @@ internal partial class CLI {
     /// </summary>
     /// <param name="args"></param>
     /// <returns></returns>
-    internal async System.Threading.Tasks.Task<int> RunInlineOperationAsync(string[] args, System.Threading.CancellationToken cancellationToken = default) {
-        // Parse inline operation options
-        InlineOperationOptions options;
-
-        options = InlineOperationOptions.Parse(args);
-
+    internal async System.Threading.Tasks.Task<int> RunInlineOperationAsync(InlineOperationOptions options, System.Threading.CancellationToken cancellationToken = default) {
         // Validate required options
         if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot)) {
             Core.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) is required for inline execution.");
@@ -91,6 +107,90 @@ internal partial class CLI {
         // Execute the operation
         bool ok = await new Utils().ExecuteOpAsync(Engine, gameName!, games, op, options.PromptAnswers, options.AutoPromptResponses, cancellationToken);
         return ok ? 0 : 1;
+    }
+
+    /// <summary>
+    /// Run a predefined operation selected by name or ID.
+    /// </summary>
+    /// <param name="options"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    internal async System.Threading.Tasks.Task<int> RunSelectedOperationAsync(InlineOperationOptions options, System.Threading.CancellationToken cancellationToken = default) {
+        if (options.RunOperationSelector is null) {
+            Core.Diagnostics.Log("ERROR: --run_op requires an operation name or ID.");
+            return 2;
+        }
+
+        if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot)) {
+            Core.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) is required for --run_op.");
+            return 2;
+        }
+
+        Dictionary<string, Core.Data.GameModuleInfo> games = Engine.GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
+        if (!TryResolveInlineGame(options, games, out string? gameName)) {
+            Core.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
+            return 1;
+        }
+
+        if (!TryLoadPreparedOperations(gameName!, games, options.OpsFile, out Core.Data.PreparedOperations? preparedOps, out int loadCode)) {
+            return loadCode;
+        }
+
+        if (!TryResolvePreparedOperation(preparedOps!, options.RunOperationSelector, out Core.Data.PreparedOperation? selectedOp, out string? errorMessage)) {
+            if (!string.IsNullOrWhiteSpace(errorMessage)) {
+                System.Console.Error.WriteLine($"ERROR: {errorMessage}");
+                Core.Diagnostics.Log($"ERROR: {errorMessage}");
+            }
+
+            if (preparedOps is not null) {
+                WriteOperationSelectionHint(gameName!, preparedOps);
+            }
+            return 1;
+        }
+
+        Core.Data.PromptAnswers promptAnswers = options.PromptAnswers;
+        bool ok = await new Utils().ExecuteOpAsync(Engine, gameName!, games, selectedOp!.Operation, promptAnswers, options.AutoPromptResponses, cancellationToken);
+        return ok ? 0 : 1;
+    }
+
+    /// <summary>
+    /// Run the module's configured run-all sequence.
+    /// </summary>
+    /// <param name="options"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    internal async System.Threading.Tasks.Task<int> RunAllOperationsAsync(InlineOperationOptions options, System.Threading.CancellationToken cancellationToken = default) {
+        if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot)) {
+            Core.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) is required for --run_all.");
+            return 2;
+        }
+
+        Dictionary<string, Core.Data.GameModuleInfo> games = Engine.GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
+        if (!TryResolveInlineGame(options, games, out string? gameName)) {
+            Core.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
+            return 1;
+        }
+
+        if (!TryLoadPreparedOperations(gameName!, games, options.OpsFile, out _, out int loadCode)) {
+            return loadCode;
+        }
+
+        try {
+            Core.Engine.Operations.RunAllResult result = await Engine.RunAllAsync(
+                gameName!,
+                onOutput: Utils.OnOutput,
+                onEvent: Utils.OnEvent,
+                stdinProvider: static () => System.Console.ReadLine() ?? string.Empty,
+                cancellationToken: cancellationToken
+            );
+
+            Core.Diagnostics.Log($"[CLI::RunAllOperationsAsync()] Completed run-all for '{result.Game}' with {result.SucceededOperations}/{result.TotalOperations} successful operations.");
+            return result.Success ? 0 : 1;
+        } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"CLI RunAll Error: {ex}");
+            System.Console.WriteLine($"Error: {ex.Message}");
+            return -1;
+        }
     }
 
     /// <summary>
@@ -142,6 +242,12 @@ internal partial class CLI {
             get; private set;
         }
         internal string? ScriptType {
+            get; private set;
+        }
+        internal object? RunOperationSelector {
+            get; private set;
+        }
+        internal bool RunAll {
             get; private set;
         }
         internal Dictionary<string, object?> OperationFields { get; } = new(System.StringComparer.OrdinalIgnoreCase);
@@ -211,6 +317,19 @@ internal partial class CLI {
                             throw new System.ArgumentException("Option '--script' requires a value.");
                         }
                         options.Script = value;
+                        break;
+                    case "run_op":
+                        if (value is null) {
+                            throw new System.ArgumentException("Option '--run-op' requires an operation name or ID.");
+                        }
+                        options.RunOperationSelector = ParseValueToken(value);
+                        break;
+                    case "run_all":
+                        if (value is null) {
+                            options.RunAll = true;
+                        } else {
+                            options.RunAll = IsTruthy(ParseValueToken(value));
+                        }
                         break;
                     case "script_type":
                     case "type":
@@ -301,7 +420,7 @@ internal partial class CLI {
             }
 
             if (!op.ContainsKey("args") && !_argsOverride && _args.Count > 0) {
-                op["args"] = _args.Select(a => a).ToList();
+                op["args"] = _args.ToList();
             }
 
             return op;

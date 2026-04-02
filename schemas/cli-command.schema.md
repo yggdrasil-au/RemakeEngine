@@ -34,6 +34,8 @@ Commands for listing and managing modules and operations.
 | `--help`, `-h` | Displays CLI usage instructions. | `--help` |
 | `--list-games` | Lists all detected game modules. | `--list-games` |
 | `--list-ops <game>`| Lists available operations for a specific game. | `--list-ops demo` |
+| `--game_module <name|id|path> --run_op <name|id>` | Runs a manifest-defined operation by exact display name or numeric ID. | `--game_module 480 --run_op 1` |
+| `--game_module <name|id|path> --run_all` | Runs the module's configured run-all sequence. | `--game_module 480 --run_all` |
 
 ## Inline Operation Execution
 
@@ -43,8 +45,24 @@ You can execute a specific operation or script directly from the CLI. This mode 
 
 | Flag | Description |
 | :--- | :--- |
-| `--game_module`, `--game`, `--module`, `--gameid` | The name or path of the game module. |
+| `--game_module`, `--game`, `--module`, `--gameid` | The name, registered ID, or path of the game module. Exact module names are resolved first, then registered IDs, then path resolution. |
 | `--script` | The identifier of the operation or the path to a script file. |
+
+### File-Driven Operation Execution
+
+When `--run_op` or `--run_all` is present, the CLI loads the module's `operations.toml` or `operations.json` and executes the selected manifest entry instead of building an ad-hoc script command.
+
+### `--run_op`
+
+| Flag | Description |
+| :--- | :--- |
+| `--run_op <name|id>` | Executes the first exact name match or the operation with the matching numeric ID. If duplicate names or IDs exist, the CLI prompts for a selection when interactive input is available. |
+
+### `--run_all`
+
+| Flag | Description |
+| :--- | :--- |
+| `--run_all` | Executes the module's existing run-all flow using the engine's scheduler. |
 
 ### Configuration Flags
 

@@ -6,6 +6,7 @@ Remake Engine is an extensible cross-platform orchestration engine for repeatabl
 - Configuration-driven operations defined in JSON or TOML (`operations.json` / `operations.toml`).
 - Embedded Lua, JavaScript, and Python engines (heavily focused on Lua, with minimal JS/Python support) with shared SDK helpers plus built-in extract/convert actions.
 - Cross-platform GUI for "run all" and launch scenarios, alongside full TUI experiences for power users.
+- CLI execution of manifest-defined operations by exact name or numeric ID, plus a dedicated run-all flag.
 - Declarative placeholders that pull values from `project.json` to keep per-user paths out of manifests.
 - Tool orchestration for common pipelines (QuickBMS, FFmpeg, vgmstream, etc.).
 
@@ -48,6 +49,16 @@ dotnet run -c Release --project EngineNet --framework net10.0 -- --tui
 
 # CLI example, great for direct operation invocations
 dotnet run -c Release --project EngineNet --framework net10.0 -- --game_module "EngineApps/Games/demo" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua"
+
+# Run a manifest-defined operation by ID or name
+dotnet run -c Release --project EngineNet --framework net10.0 -- --game_module "demo" --run_op 1
+dotnet run -c Release --project EngineNet --framework net10.0 -- --game_module "demo" --run_op "Lua Feature Showcase"
+
+# Registered module IDs are also accepted for module resolution
+dotnet run -c Release --project EngineNet --framework net10.0 -- --game_module 480 --run_op 1
+
+# Run the module's configured run-all sequence
+dotnet run -c Release --project EngineNet --framework net10.0 -- --game_module "demo" --run_all
 ```
 
 ### Quick Demo Run
@@ -74,7 +85,7 @@ Run `dotnet build RemakeEngine.slnx` and `dotnet test RemakeEngine.slnx --nologo
 ## Interfaces
 * **Simple GUI (Avalonia):** end-user focused entry point to run predefined operations and launch games.
 * **Interactive TUI:** menu-driven experience that lists games, collects prompts, and streams output.
-* **Developer CLI:** direct command invocation for automation or module authoring. Arguments map to the same structures used by `operations.(json|toml)`.
+* **Developer CLI:** direct command invocation for automation or module authoring. It supports both ad-hoc inline execution and manifest-defined operations selected by name or ID, and it can resolve registered modules by name, ID, or path.
 
 ## Configuration and Modules
 * `EngineApps/Games/<GameName>/operations.(json|toml)` define operations for a game/module. Groups inside these files control execution ordering.

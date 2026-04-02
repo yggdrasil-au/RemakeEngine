@@ -4,7 +4,7 @@
 - Build: `dotnet build RemakeEngine.slnx`
 
 ## Use Exact Code style
-always use PascalCase
+always prefer PascalCase
 read [Style.md](Style.md)
 
 ## CONTRIBUTING

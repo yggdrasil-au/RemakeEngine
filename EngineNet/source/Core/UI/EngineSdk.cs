@@ -375,7 +375,7 @@ public static class EngineSdk {
         private readonly System.Threading.CancellationTokenSource _cts;
         private readonly System.Threading.Tasks.Task _panelTask;
         private long _processed;
-        private long _total;
+        private readonly long _total;
         private readonly string _label;
 
         public long Total => _total;

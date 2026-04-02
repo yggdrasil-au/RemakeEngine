@@ -51,7 +51,7 @@ internal static class ImageMagickConverter {
         internal int? Quality;   // 0..100
 
         // Raw passthrough
-        internal List<string> ExtraArgs = new();
+        internal readonly List<string> ExtraArgs = new();
     }
 
     internal static bool Run(EngineNet.Core.ExternalTools.JsonToolResolver toolResolver, IList<string> args, System.Threading.CancellationToken cancellationToken = default) {

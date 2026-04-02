@@ -2,7 +2,7 @@
 
 RemakeEngine provides three distinct user interfaces: the **GUI** (Graphical User Interface), the **TUI** (Terminal User Interface), and the **CLI** (Command Line Interface).
 
-While the GUI and TUI are designed to explore and execute predefined workflows found in `operations.toml` files, the **CLI** functions fundamentally differently. It is designed for ad-hoc execution and automation, allowing users to construct operations on the fly without requiring them to be defined in a file beforehand.
+While the GUI and TUI are designed to explore and execute predefined workflows found in `operations.toml` files, the **CLI** supports both ad-hoc execution and direct execution of manifest-defined operations.
 
 ## How The Interfaces Connect To Core
 
@@ -12,7 +12,7 @@ All interfaces are launched by `EngineNet.Program` and orchestrated through `Int
 
 **Primary Use Case:** Automation, CI/CD pipelines, and executing arbitrary scripts without modifying configuration files.
 
-The CLI is unique because **it does not require an `operations.toml` file to function**. Unlike the other interfaces which act as "players" for defined operations, the CLI acts as a "builder." You construct the operation directly using arguments at runtime.
+The CLI remains unique because **it does not require an `operations.toml` file to function**. Unlike the other interfaces which act as "players" for defined operations, the CLI can also act as a "builder." You may still construct the operation directly using arguments at runtime, or ask the CLI to execute a file-defined operation by name or ID.
 
 ### How it works
 
@@ -21,6 +21,8 @@ Instead of selecting an operation by name or ID from a list, you provide the ope
   * **Bypasses Definitions:** You do not need to register a script in a game's config file to run it.
   * **Inline Construction:** The operation is assembled in memory based on your flags (`--script`, `--game`, `--arg`).
   * **Ad-Hoc Execution:** Useful for testing a new script quickly or running one-off maintenance tasks that don't warrant a permanent entry in the operations list.
+  * **Manifest Execution:** Use `--run_op` or `--run_all` to execute operations already defined in a module's `operations.toml` or `operations.json` file.
+  * **Module Resolution:** `--game_module` accepts a registered module's exact name, registered ID, or a filesystem path, in that order.
 
 **Example:**
 
@@ -29,7 +31,7 @@ Instead of selecting an operation by name or ID from a list, you provide the ope
 dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo\" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua" --args '["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo", "--prompt", "prompt override", "--note", "This is a note from the prompt"]'
 ```
 
-*Note: Currently, the CLI focuses on this inline construction method. While it can list operations defined in files (via `--list-ops`), its primary execution mode allows you to bypass those files entirely.*
+*Note: The CLI still supports inline construction, but it can now also execute predefined operations by exact name or numeric ID, and it can run a module's configured run-all sequence directly.*
 
 ## 2\. The Terminal User Interface (TUI)
 

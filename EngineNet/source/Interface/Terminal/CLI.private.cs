@@ -35,7 +35,7 @@ internal partial class CLI {
                 throw new System.ArgumentException($"Game '{game}' missing ops_file.");
             }
             // Load and validate operations
-            Core.Data.PreparedOperations preparedOps = Engine.OperationsService_LoadAndPrepare(opsFile);
+            Core.Data.PreparedOperations preparedOps = Engine.OperationsService_LoadAndPrepare(opsFile, game, modules, Engine.EngineConfig_Data);
             if (!preparedOps.IsLoaded) {
                 System.Console.WriteLine(preparedOps.ErrorMessage ?? "Failed to load operations.");
                 return 1;
@@ -47,28 +47,15 @@ internal partial class CLI {
                 return 0;
             }
 
-            if (preparedOps.Warnings.Count > 0) {
-                foreach (string warning in preparedOps.Warnings) {
-                    Core.Diagnostics.Log($"[CLI::ListOps()] Warning: {warning}");
-                }
-                System.Console.ForegroundColor = System.ConsoleColor.Yellow;
-                System.Console.WriteLine("Validation Warnings:");
-                foreach (string warning in preparedOps.Warnings) {
-                    System.Console.WriteLine($"  • {warning}");
-                }
-                System.Console.ResetColor();
-                System.Console.WriteLine();
-            }
+            WritePreparedOperationWarnings(preparedOps, game, opsFile);
 
             // Print operations
             System.Console.WriteLine($"Operations for game '{game}':");
             foreach (Core.Data.PreparedOperation op in preparedOps.InitOperations) {
-                string prefix = op.HasDuplicateId ? "[dup-id] " : op.HasInvalidId ? "[invalid-id] " : string.Empty;
-                System.Console.WriteLine($"- [init] {prefix}{op.DisplayName}");
+                System.Console.WriteLine($"- [init] {FormatPreparedOperation(op)}");
             }
             foreach (Core.Data.PreparedOperation op in preparedOps.RegularOperations) {
-                string prefix = op.HasDuplicateId ? "[dup-id] " : op.HasInvalidId ? "[invalid-id] " : string.Empty;
-                System.Console.WriteLine($"- {prefix}{op.DisplayName}");
+                System.Console.WriteLine($"- {FormatPreparedOperation(op)}");
             }
 
             return 0;
@@ -86,7 +73,9 @@ internal partial class CLI {
         CLI Usage:
             engine --list-games (to list available game modules)
             engine --list-ops <game> (to list available operations for a game module)
-            engine --game_module <name|path> --script <action> [--script_type <type>] [--args '""<arg>"",""<arg>""'] (to manually run an operation directly)
+            engine --game_module <name|id|path> --run_op <name|id> (to run a defined operation from Operations.toml)
+            engine --game_module <name|id|path> --run_all (to run the module's configured run-all sequence)
+            engine --game_module <name|id|path> --script <action> [--script_type <type>] [--args '""<arg>"",""<arg>""'] (to manually run an operation directly)
         Other commands:
             --root ""PATH""
             --gui
@@ -117,6 +106,15 @@ internal partial class CLI {
                     ApplyGameOverrides(games, resolvedName, preferredRoot, options.OpsFile);
                     return true;
                 }
+            }
+
+            if (TryResolveGameByRegisteredId(games, identifier, out string? resolvedById)) {
+                resolvedName = resolvedById;
+                if (resolvedName is not null) {
+                    ApplyGameOverrides(games, resolvedName, preferredRoot, options.OpsFile);
+                    return true;
+                }
+                return false;
             }
 
             string? identifierPath = ResolveFullPathSafe(identifier);
@@ -172,6 +170,238 @@ internal partial class CLI {
         }
 
         return false;
+    }
+
+    private static bool TryResolveGameByRegisteredId(Dictionary<string, Core.Data.GameModuleInfo> games, string identifier, out string? resolvedName) {
+        resolvedName = null;
+
+        if (!long.TryParse(identifier, out long requestedId)) {
+            return false;
+        }
+
+        foreach (KeyValuePair<string, Core.Data.GameModuleInfo> kv in games) {
+            Core.Data.GameModuleInfo moduleInfo = kv.Value;
+            if (!moduleInfo.IsRegistered) {
+                continue;
+            }
+
+            if (!long.TryParse(moduleInfo.Id, out long moduleId)) {
+                continue;
+            }
+
+            if (moduleId == requestedId) {
+                resolvedName = kv.Key;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool TryLoadPreparedOperations(
+        string gameName,
+        Dictionary<string, Core.Data.GameModuleInfo> games,
+        string? opsFileOverride,
+        out Core.Data.PreparedOperations? preparedOps,
+        out int exitCode
+    ) {
+        preparedOps = null;
+        exitCode = 1;
+
+        if (!games.TryGetValue(gameName, out Core.Data.GameModuleInfo? moduleInfo)) {
+            WriteUserError($"Game '{gameName}' was not found.");
+            exitCode = 1;
+            return false;
+        }
+
+        string opsFile = !string.IsNullOrWhiteSpace(opsFileOverride)
+            ? ResolveFullPathSafe(opsFileOverride)
+            : moduleInfo.OpsFile;
+
+        if (string.IsNullOrWhiteSpace(opsFile) || !System.IO.File.Exists(opsFile)) {
+            WriteUserError($"Game '{gameName}' is missing an operations file.");
+            exitCode = 1;
+            return false;
+        }
+
+        preparedOps = Engine.OperationsService_LoadAndPrepare(opsFile, gameName, games, Engine.EngineConfig_Data);
+        if (!preparedOps.IsLoaded) {
+            WriteUserError(preparedOps.ErrorMessage ?? "Failed to load operations.");
+            exitCode = 1;
+            return false;
+        }
+
+        WritePreparedOperationWarnings(preparedOps, gameName, opsFile);
+        exitCode = 0;
+        return true;
+    }
+
+    private static bool TryResolvePreparedOperation(
+        Core.Data.PreparedOperations preparedOps,
+        object? selector,
+        out Core.Data.PreparedOperation? selected,
+        out string? errorMessage
+    ) {
+        selected = null;
+        errorMessage = null;
+
+        List<(Core.Data.PreparedOperation Operation, bool IsInit)> candidates = GetPreparedOperationCandidates(preparedOps);
+        if (candidates.Count == 0) {
+            errorMessage = "No operations found.";
+            return false;
+        }
+
+        string selectorText = selector?.ToString()?.Trim() ?? string.Empty;
+        if (selectorText.Length == 0) {
+            errorMessage = "--run_op requires an operation name or ID.";
+            return false;
+        }
+
+        bool selectorIsNumeric = long.TryParse(selectorText, out long selectorId);
+
+        if (selectorIsNumeric) {
+            List<(Core.Data.PreparedOperation Operation, bool IsInit)> idMatches = candidates
+                .Where(entry => entry.Operation.OperationId.HasValue && entry.Operation.OperationId.Value == selectorId)
+                .ToList();
+
+            if (idMatches.Count == 1) {
+                selected = idMatches[0].Operation;
+                return true;
+            }
+
+            if (idMatches.Count > 1) {
+                selected = PromptForPreparedOperationChoice(idMatches, $"Multiple operations share ID {selectorId}. Select one:");
+                if (selected is not null) {
+                    return true;
+                }
+
+                errorMessage = $"Unable to resolve operation ID {selectorId}.";
+                return false;
+            }
+        }
+
+        List<(Core.Data.PreparedOperation Operation, bool IsInit)> nameMatches = candidates
+            .Where(entry => string.Equals(entry.Operation.DisplayName, selectorText, System.StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (nameMatches.Count == 1) {
+            selected = nameMatches[0].Operation;
+            return true;
+        }
+
+        if (nameMatches.Count > 1) {
+            selected = PromptForPreparedOperationChoice(nameMatches, $"Multiple operations share the name '{selectorText}'. Select one:");
+            if (selected is not null) {
+                return true;
+            }
+
+            errorMessage = $"Unable to resolve operation name '{selectorText}'.";
+            return false;
+        }
+
+        errorMessage = selectorIsNumeric
+            ? $"Operation ID {selectorId} was not found."
+            : $"Operation '{selectorText}' was not found.";
+        return false;
+    }
+
+    private static void WriteUserError(string message) {
+        System.Console.Error.WriteLine($"ERROR: {message}");
+        Core.Diagnostics.Log($"ERROR: {message}");
+    }
+
+    private static void WriteOperationSelectionHint(string gameName, Core.Data.PreparedOperations preparedOps) {
+        System.Console.Error.WriteLine($"Use --list-ops {gameName} to inspect the available operations.");
+
+        List<string> options = GetPreparedOperationCandidates(preparedOps)
+            .Select(entry => FormatPreparedOperationChoice(entry.Operation, entry.IsInit))
+            .ToList();
+
+        if (options.Count == 0) {
+            System.Console.Error.WriteLine("No operations are available for this module.");
+            return;
+        }
+
+        System.Console.Error.WriteLine("Available operations:");
+        foreach (string option in options.Take(10)) {
+            System.Console.Error.WriteLine($"  - {option}");
+        }
+
+        if (options.Count > 10) {
+            System.Console.Error.WriteLine($"  ... and {options.Count - 10} more");
+        }
+    }
+
+    private static Core.Data.PreparedOperation? PromptForPreparedOperationChoice(
+        IReadOnlyList<(Core.Data.PreparedOperation Operation, bool IsInit)> matches,
+        string message
+    ) {
+        if (matches.Count == 0) {
+            return null;
+        }
+
+        if (System.Console.IsInputRedirected || System.Console.IsOutputRedirected) {
+            System.Console.WriteLine(message);
+            for (int index = 0; index < matches.Count; index++) {
+                System.Console.WriteLine($"  {index + 1}. {FormatPreparedOperationChoice(matches[index].Operation, matches[index].IsInit)}");
+            }
+            return null;
+        }
+
+        while (true) {
+            System.Console.WriteLine(message);
+            for (int index = 0; index < matches.Count; index++) {
+                System.Console.WriteLine($"  {index + 1}. {FormatPreparedOperationChoice(matches[index].Operation, matches[index].IsInit)}");
+            }
+
+            System.Console.Write("Selection (blank to cancel): ");
+            string? input = System.Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(input)) {
+                return null;
+            }
+
+            if (int.TryParse(input.Trim(), out int choice) && choice >= 1 && choice <= matches.Count) {
+                return matches[choice - 1].Operation;
+            }
+
+            System.Console.WriteLine("Invalid selection. Please enter a valid number.");
+        }
+    }
+
+    private static List<(Core.Data.PreparedOperation Operation, bool IsInit)> GetPreparedOperationCandidates(Core.Data.PreparedOperations preparedOps) {
+        List<(Core.Data.PreparedOperation Operation, bool IsInit)> candidates = new();
+        candidates.AddRange(preparedOps.InitOperations.Select(op => (op, true)));
+        candidates.AddRange(preparedOps.RegularOperations.Select(op => (op, false)));
+        return candidates;
+    }
+
+    private static string FormatPreparedOperation(Core.Data.PreparedOperation op) {
+        return FormatPreparedOperationChoice(op, false);
+    }
+
+    private static string FormatPreparedOperationChoice(Core.Data.PreparedOperation op, bool isInit) {
+        string phasePrefix = isInit ? "[init] " : string.Empty;
+        string idText = op.OperationId.HasValue ? $"[id={op.OperationId.Value}] " : "[id=?] ";
+        string statePrefix = op.HasDuplicateId ? "[dup-id] " : op.HasInvalidId ? "[invalid-id] " : string.Empty;
+        return $"{phasePrefix}{statePrefix}{idText}{op.DisplayName}";
+    }
+
+    private static void WritePreparedOperationWarnings(Core.Data.PreparedOperations preparedOps, string game, string opsFile) {
+        if (preparedOps.Warnings.Count == 0) {
+            return;
+        }
+
+        foreach (string warning in preparedOps.Warnings) {
+            Core.Diagnostics.Log($"[CLI] Warning for '{game}' ({opsFile}): {warning}");
+        }
+
+        System.Console.ForegroundColor = System.ConsoleColor.Yellow;
+        System.Console.WriteLine("Validation Warnings:");
+        foreach (string warning in preparedOps.Warnings) {
+            System.Console.WriteLine($"  • {warning}");
+        }
+        System.Console.ResetColor();
+        System.Console.WriteLine();
     }
 
     private static void ApplyGameOverrides(Dictionary<string, Core.Data.GameModuleInfo> games, string gameName, string? preferredRoot, string? opsFile) {
@@ -352,6 +582,19 @@ internal partial class CLI {
 
     private static string NormalizeOperationKey(string key) {
         return key.Replace('-', '_').Trim();
+    }
+
+    private static bool IsTruthy(object? value) {
+        return value switch {
+            null => false,
+            bool b => b,
+            string s => bool.TryParse(s, out bool parsed) && parsed,
+            long l => l != 0,
+            int i => i != 0,
+            short s => s != 0,
+            byte b => b != 0,
+            _ => true
+        };
     }
 
 }

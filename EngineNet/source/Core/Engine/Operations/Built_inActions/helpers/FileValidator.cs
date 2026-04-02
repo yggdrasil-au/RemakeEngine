@@ -63,7 +63,7 @@ internal static class FileValidator {
             }
 
             (bool allFound, int totalChecked, int _) = ValidateTables(options.DbPath, options.BaseFolder, tables, options.Debug);
-            return requiredDirsOk && (totalChecked == 0 ? true : allFound);
+            return requiredDirsOk && (totalChecked == 0 || allFound);
         } catch (System.Exception ex) {
             WriteRed(ex.Message);
             return false;

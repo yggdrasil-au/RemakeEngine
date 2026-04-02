@@ -36,18 +36,15 @@ internal class OpDependencyGraph {
         Diagnostics.Trace("[DependencyGraph] Graph is VALID. Dependency Map:");
 
         foreach (var node in _nodes.Values) {
-            var sb = new StringBuilder();
-            sb.Append($"  [{node.Id}]");
+            string line = $"  [{node.Id}]";
 
             if (node.Dependencies.Count > 0) {
-                sb.Append(" --> depends on --> [");
-                sb.Append(string.Join(", ", node.Dependencies));
-                sb.Append("]");
+                line += $" --> depends on --> [{string.Join(", ", node.Dependencies)}]";
             } else {
-                sb.Append(" (No dependencies)");
+                line += " (No dependencies)";
             }
 
-            Diagnostics.Trace(sb.ToString());
+            Diagnostics.Trace(line);
         }
         Diagnostics.Trace("==================================");
     }

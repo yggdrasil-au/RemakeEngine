@@ -276,7 +276,7 @@ internal static class P3dGltfExporter {
                     Renormalize(w);
 
                     for (int j = 0; j < joints.Length; j++) {
-                        if (w[j] == 0.0f) {
+                        if (MathF.Abs(w[j]) < 0.000001f) {
                             joints[j] = 0;
                         }
                     }

@@ -158,7 +158,7 @@ internal static class ConfigHelpers {
         internal string TypeHint = "auto";
         internal string? ConfigPath;
         internal bool List;
-        internal List<SetToken> Sets = new List<SetToken>();
+        internal readonly List<SetToken> Sets = new List<SetToken>();
     }
 
     internal sealed class SetToken {

@@ -13,7 +13,7 @@
 [[operation]]
 	#init = true
 	run-all = true
-	id = 1
+	id = 0
 	Name = "build"
 	Instructions = ""
 	script_type = "lua"
@@ -188,7 +188,7 @@
 [[operations]]
 	run-all = false
 	Name = "Download from Registry"
-	id = "69"
+	id = "67"
 	description = "Clone a game repository from the known registry list."
 	script = "download_module_registry"
 	script_type = "internal"
