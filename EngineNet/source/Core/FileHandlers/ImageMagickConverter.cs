@@ -285,13 +285,13 @@ internal static class ImageMagickConverter {
                 outBuf = new System.Text.StringBuilder(8 * 1024);
                 p.ErrorDataReceived += (_, e) => { if (e.Data != null) lock (errBuf!) errBuf!.AppendLine(e.Data); };
                 p.OutputDataReceived += (_, e) => { if (e.Data != null) lock (outBuf!) outBuf!.AppendLine(e.Data); };
-                try { p.BeginErrorReadLine(); } catch { }
-                try { p.BeginOutputReadLine(); } catch { }
+                try { p.BeginErrorReadLine(); } catch (Exception ex) { Core.Diagnostics.Bug($"[ImageMagickConverter] BeginErrorReadLine catch triggered: {ex}"); }
+                try { p.BeginOutputReadLine(); } catch (Exception ex) { Core.Diagnostics.Bug($"[ImageMagickConverter] BeginOutputReadLine catch triggered: {ex}"); }
             }
 
             while (!p.HasExited) {
                 if (cancellationToken.IsCancellationRequested) {
-                    try { p.Kill(true); } catch { }
+                    try { p.Kill(true); } catch (Exception ex) { Core.Diagnostics.Bug($"[ImageMagickConverter] Kill catch triggered during cancellation: {ex}"); }
                     return (false, "cancelled by user");
                 }
                 System.Threading.Thread.Sleep(100);

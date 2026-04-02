@@ -140,8 +140,8 @@ public class CommandService {
 
     public bool CloseProcess(int pid) {
         if (!_spawnedProcesses.TryRemove(pid, out ManagedProcess? mp)) return false;
-        try { if (!mp.Process.HasExited) mp.Process.Kill(true); } catch { /* ignore */ }
-        try { mp.Process.Dispose(); } catch { /* ignore */ }
+        try { if (!mp.Process.HasExited) mp.Process.Kill(true); } catch (Exception ex) { Diagnostics.Bug($"[CommandService] CloseProcess kill catch triggered for pid {pid}: {ex}"); /* ignore */ }
+        try { mp.Process.Dispose(); } catch (Exception ex) { Diagnostics.Bug($"[CommandService] CloseProcess dispose catch triggered for pid {pid}: {ex}"); /* ignore */ }
         return true;
     }
 

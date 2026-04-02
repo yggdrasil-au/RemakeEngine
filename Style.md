@@ -142,6 +142,7 @@ Use **4 spaces per indentation level**.
 Catching all exceptions with a generic `catch` clause may be overly broad. This can make errors harder to diagnose when exceptions are caught unintentionally.
 ### Recommendation
 If possible, catch only **specific exception types** to avoid catching unintended exceptions.
+additionally always ensure catch blocks contain a Core.Diagnostics.Bug($"[filename.cs::functionName()]:: catch: {{exception.Message}}") call, as its purpose is to indicate when catch blocks are used
 
 ---
 

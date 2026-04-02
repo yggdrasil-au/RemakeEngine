@@ -68,7 +68,7 @@ internal static class QuickBmsExtractor {
         int errors = 0;
 
         // Minimal active job tracking for progress panel
-        System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
+        using System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
         EngineNet.Core.UI.EngineSdk.SdkConsoleProgress.ActiveProcess? current = null;
         System.Threading.Tasks.Task panel = EngineNet.Core.UI.EngineSdk.SdkConsoleProgress.StartPanel(
             total: files.Count,
@@ -259,7 +259,7 @@ internal static class QuickBmsExtractor {
 
     private static string NormalizePath(string path) {
         if (string.IsNullOrWhiteSpace(path)) {
-            return path ?? string.Empty;
+            return path;
         }
 
         try {

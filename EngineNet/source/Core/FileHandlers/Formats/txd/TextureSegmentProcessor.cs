@@ -179,6 +179,7 @@ internal static partial class TxdExtractor {
                         } catch (System.IO.IOException ex) {
                             throw new TxdExportException($"          FATAL ERROR: IOError writing {ext.ToUpper()} file {outFile} for '{currentName.Name}': {ex.Message}");
                         } catch (System.Exception ex) {
+                            Core.Diagnostics.Bug($"[TextureSegmentProcessor] convert/save catch triggered for '{currentName.Name}' to '{outFile}': {ex}");
                             throw new TxdExportException($"          FATAL ERROR: Failed to convert/save {ext.ToUpper()} for '{currentName.Name}': {ex.Message}");
                         }
 

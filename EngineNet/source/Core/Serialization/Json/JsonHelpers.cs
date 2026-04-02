@@ -3,6 +3,12 @@ namespace EngineNet.Core.Serialization.Json;
 
 internal sealed class JsonHelpers {
 
+    /// <summary>
+    /// Loads a JSON file and returns its contents as a dictionary.
+    /// If the file is missing, malformed, or not a JSON object, an empty dictionary is returned.
+    /// </summary>
+    /// <param name="filePath"></param>
+    /// <returns></returns>
     internal static Dictionary<string, object?> LoadJsonFile(string filePath) {
         try {
             if (System.IO.File.Exists(filePath)) {
@@ -19,8 +25,8 @@ internal sealed class JsonHelpers {
                 // Step 6: Ensure we never return null.
                 return dict ?? new Dictionary<string, object?>();
             }
-        } catch {
-            Core.Diagnostics.Bug($"[JsonHelpers] Failed to load or parse JSON config file at '{filePath}'. Returning empty config.");
+        } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"[JsonHelpers] Failed to load or parse JSON config file at '{filePath}'. Returning empty config. Exception: {ex}");
         }
 
         // Step 8: Missing file or error path -> empty config (safe default).

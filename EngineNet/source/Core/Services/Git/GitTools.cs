@@ -64,6 +64,7 @@ internal static class GitTools {
             Core.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Git exited with code {rc}.");
             return false;
         } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"[GitTools.cs::CloneModule()] Catch triggered during git clone: {ex}");
             EngineSdk.Error($"An error occurred during download: {ex.Message}");
             Core.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
             return false;

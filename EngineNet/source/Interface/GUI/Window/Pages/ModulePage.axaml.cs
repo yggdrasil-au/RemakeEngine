@@ -315,7 +315,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                         return okAllInit;
                     } finally {
                         try {
-                            System.Console.SetIn(new System.IO.StreamReader(System.Console.OpenStandardInput()));
+                            System.Console.SetIn(previous);
                         } catch (Exception ex) {
                             System.Console.SetIn(previous);
                             Core.Diagnostics.Bug($"ExecuteInitOperationsAsync: Failed to restore Console.In. {ex}");
@@ -439,7 +439,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                         return ok;
                     } finally {
                         try {
-                            System.Console.SetIn(new System.IO.StreamReader(System.Console.OpenStandardInput()));
+                            System.Console.SetIn(previous);
                         } catch (Exception ex) {
                             System.Console.SetIn(previous);
                             Core.Diagnostics.Bug($"RunOpAsync: Failed to restore Console.In. {ex}");

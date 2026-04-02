@@ -62,6 +62,7 @@ internal sealed class Single {
                         //var op_dispatcher = new helpers.OpDispatcher();
                         result = await helpers.OpDispatcher.DispatchAsync(executableOperation, promptAnswers, currentGame, games, Context, cancellationToken);
                     } catch (System.Exception ex) {
+                        Core.Diagnostics.Bug($"[Single.cs::RunAsync()] Engine operation catch triggered: {ex}");
                         Core.UI.EngineSdk.PrintLine($"engine ERROR: {ex.Message}");
                         result = false;
                     }
@@ -96,6 +97,7 @@ internal sealed class Single {
                         await action.ExecuteAsync(Context.ToolResolver, Context.CommandService, cancellationToken);
                         result = true;
                     } catch (System.Exception ex) {
+                        Core.Diagnostics.Bug($"[Single.cs::RunAsync()] External action catch triggered: {ex}");
                         Core.UI.EngineSdk.PrintLine($"bms engine ERROR: {ex.Message}");
                         result = false;
                     }
@@ -123,6 +125,7 @@ internal sealed class Single {
                         await act.ExecuteAsync(Context.ToolResolver, Context.CommandService, cancellationToken);
                         result = true;
                     } catch (System.Exception ex) {
+                        Core.Diagnostics.Bug($"[Single.cs::RunAsync()] Embedded action catch triggered for '{scriptType}': {ex}");
                         Core.UI.EngineSdk.PrintLine($"{scriptType} engine ERROR: {ex.Message}");
                         result = false;
                     }

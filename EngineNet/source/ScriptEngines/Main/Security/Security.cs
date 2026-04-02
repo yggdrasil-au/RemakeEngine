@@ -45,7 +45,8 @@ internal static class Security {
         try {
             string fullPath = System.IO.Path.GetFullPath(path);
             return CleanPathPrefix(fullPath);
-        } catch {
+        } catch (System.Exception ex) {
+            Core.Diagnostics.Bug("[Security.cs::GetCanonicalFullPath()] catch triggered for path: " + path + " with exception: " + ex);
             return CleanPathPrefix(path).Replace('/', System.IO.Path.DirectorySeparatorChar);
         }
     }

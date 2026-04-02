@@ -308,7 +308,8 @@ public class Utils {
         try {
             JsonSerializer.Serialize(clone, s_jsonOpts);
             return clone;
-        } catch {
+        } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"[Utils.cs::CloneForLogging()] Clone serialization catch triggered: {ex}");
             Dictionary<string, object?> safe = new Dictionary<string, object?>(clone.Count, System.StringComparer.Ordinal);
             foreach (KeyValuePair<string, object?> kv in clone) {
                 safe[kv.Key] = SafeStringify(kv.Value);

@@ -88,22 +88,20 @@ internal sealed class All {
             System.Console.SetIn(new StdinRedirectReader(stdinProvider));
         }
 
-        System.Action<Dictionary<string, object?>>? previousSink = Core.UI.EngineSdk.LocalEventSink;
-        bool previousMute = Core.UI.EngineSdk.MuteStdoutWhenLocalSink;
-        string currentOperation = string.Empty;
-        Core.UI.SdkEventScope? sdkScope = null;
-        if (onEvent is not null) {
-            Core.UI.EngineSdk.LocalEventSink = evt => {
-                Dictionary<string, object?> payload = CloneEvent(evt);
-                payload["game"] = gameName;
-                if (!string.IsNullOrEmpty(currentOperation)) {
-                    payload["operation"] = currentOperation;
-                }
-                onEvent(payload);
-            };
-            Core.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
-            sdkScope = new Core.UI.SdkEventScope(sink: Core.UI.EngineSdk.LocalEventSink, muteStdout: true, autoPromptResponses: null);
-        }
+        OperationState currentOperation = new OperationState();
+        using Core.UI.SdkEventScope? sdkScope = onEvent is not null
+            ? new Core.UI.SdkEventScope(
+                sink: evt => {
+                    Dictionary<string, object?> payload = CloneEvent(evt);
+                    payload["game"] = gameName;
+                    if (!string.IsNullOrEmpty(currentOperation.Value)) {
+                        payload["operation"] = currentOperation.Value;
+                    }
+                    onEvent(payload);
+                },
+                muteStdout: true,
+                autoPromptResponses: null)
+            : null;
 
         bool overallSuccess = true;
         int succeeded = 0;
@@ -117,11 +115,11 @@ internal sealed class All {
                 }
 
                 Dictionary<string, object?> op = selected[index];
-                currentOperation = ResolveOperationName(op);
+                currentOperation.Value = ResolveOperationName(op);
                 EmitSequenceEvent(onEvent, "run-all-op-start", gameName, new Dictionary<string, object?> {
                     ["index"] = index,
                     ["total"] = selected.Count,
-                    ["name"] = currentOperation
+                    ["name"] = currentOperation.Value
                 });
 
                 Core.Data.PromptAnswers promptAnswers = BuildPromptDefaults(op);
@@ -132,19 +130,19 @@ internal sealed class All {
                     if (Core.Utils.ScriptConstants.IsSupported(scriptType)) {
                         ok = await Context.OperationContext.Single.RunAsync(gameName, games, op, promptAnswers, Context, cancellationToken).ConfigureAwait(false);
                     } else if (string.IsNullOrEmpty(scriptType)) {
-                        Core.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Skipping operation '{currentOperation}' due to null or empty script type");
+                        Core.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Skipping operation '{currentOperation.Value}' due to null or empty script type");
                         overallSuccess = false;
                     } else {
-                        Core.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Skipping operation '{currentOperation}' due to unsupported script type '{scriptType}'");
+                        Core.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Skipping operation '{currentOperation.Value}' due to unsupported script type '{scriptType}'");
                         overallSuccess = false;
                     }
                 } catch (System.Exception ex) {
                     overallSuccess = false;
                     EmitSequenceEvent(onEvent, evt: "run-all-op-error", gameName, extras: new Dictionary<string, object?> {
-                        [key: "name"] = currentOperation,
+                        [key: "name"] = currentOperation.Value,
                         [key: "message"] = ex.Message
                     });
-                    Core.Diagnostics.Bug($"[RunAll.cs::RunAllAsync()] err running op '{currentOperation}': {ex.Message}");
+                    Core.Diagnostics.Bug($"[RunAll.cs::RunAllAsync()] err running op '{currentOperation.Value}': {ex.Message}");
                 }
 
                 overallSuccess &= ok;
@@ -155,19 +153,16 @@ internal sealed class All {
                 EmitSequenceEvent(onEvent, "run-all-op-end", gameName, new Dictionary<string, object?> {
                     ["index"] = index,
                     ["total"] = selected.Count,
-                    ["name"] = currentOperation,
+                    ["name"] = currentOperation.Value,
                     ["success"] = ok
                 });
             }
         } finally {
-            if (sdkScope is not null) { sdkScope.Dispose(); }
-            if (onEvent is not null) { Core.UI.EngineSdk.LocalEventSink = previousSink; Core.UI.EngineSdk.MuteStdoutWhenLocalSink = previousMute; }
-
             if (previousReader is not null) {
                 System.Console.SetIn(previousReader);
             }
 
-            currentOperation = string.Empty;
+            currentOperation.Value = string.Empty;
             Core.Diagnostics.Trace($"[RunAll.cs::RunAllAsync()] finished running all operations for game '{gameName}'");
         }
 
@@ -197,6 +192,13 @@ internal sealed class All {
         }
 
         return clone;
+    }
+
+    /// <summary>
+    /// Holds the current operation name for event callbacks without reassigning the captured local.
+    /// </summary>
+    private sealed class OperationState {
+        internal string Value { get; set; } = string.Empty;
     }
 
     /// <summary>

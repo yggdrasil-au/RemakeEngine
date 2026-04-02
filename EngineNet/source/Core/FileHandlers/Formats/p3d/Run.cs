@@ -90,6 +90,7 @@ internal static class Main {
             Core.UI.EngineSdk.PrintLine($"[p3d] Completed ({modeName}) | success={success} failed={failed} total={files.Count}", summaryColor);
             return failed == 0;
         } catch (Exception ex) {
+            Core.Diagnostics.Bug($"[p3d] Run catch triggered: {ex}");
             string details = ex.InnerException is null ? ex.Message : $"{ex.Message} | {ex.InnerException.Message}";
             Core.Diagnostics.Log($"Error: {details}");
             Core.UI.EngineSdk.PrintLine($"Error: {details}", System.ConsoleColor.Red);

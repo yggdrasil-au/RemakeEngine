@@ -163,7 +163,10 @@ public sealed partial class ProcessRunner() {
                     string? ans;
                     try {
                         ans = stdinProvider?.Invoke();
-                    } catch { ans = string.Empty; }
+                    } catch (System.Exception ex) {
+                        Core.Diagnostics.Bug("[ProcessRunner] stdinProvider catch triggered while awaiting prompt: " + ex);
+                        ans = string.Empty;
+                    }
                     SendToChild(ans);
                     awaitingPrompt = false;
                     //lastPromptMsg = null;
@@ -177,7 +180,10 @@ public sealed partial class ProcessRunner() {
                     string? ans;
                     try {
                         ans = stdinProvider?.Invoke();
-                    } catch { ans = string.Empty; }
+                    } catch (System.Exception ex) {
+                        Core.Diagnostics.Bug("[ProcessRunner] stdinProvider catch triggered while draining output: " + ex);
+                        ans = string.Empty;
+                    }
                     SendToChild(ans);
                 }
             }

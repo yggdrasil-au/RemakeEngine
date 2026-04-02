@@ -228,6 +228,7 @@ internal static class Helpers {
                 }
                 Core.Serialization.Toml.TomlHelpers.WriteTomlFile(path, obj);
             } catch (System.Exception ex) {
+                Core.Diagnostics.Bug("[helpers.cs::Toml_Write_File] catch triggered with exception: " + ex);
                 Core.UI.EngineSdk.Error($"TOML write failed: {ex.Message}");
                 Core.Diagnostics.LuaInternalCatch("toml_write_file failed with exception: " + ex);
             }

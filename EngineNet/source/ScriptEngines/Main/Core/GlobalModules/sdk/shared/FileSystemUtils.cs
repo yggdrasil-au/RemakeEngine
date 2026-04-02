@@ -18,6 +18,7 @@ internal static class FileSystemUtils {
             System.IO.FileSystemInfo info = GetInfo(path);
             return info.Exists || info.LinkTarget != null;
         } catch (Exception ex) {
+            Core.Diagnostics.Bug("[FileSystemUtils] path_exists_including_links catch triggered for path: " + path + " with exception: " + ex);
             Core.Diagnostics.LuaInternalCatch("path_exists_including_links failed for path: " + path + " with exception: " + ex);
             return false;
         }

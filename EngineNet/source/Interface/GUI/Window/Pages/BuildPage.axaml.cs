@@ -43,7 +43,10 @@ public partial class BuildingPage:UserControl {
                     }
                 };
             }
-        } catch { /* ignore; non-critical */ }
+        } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"[BuildPage] TryWireAutoScroll catch triggered: {ex}");
+            /* ignore; non-critical */
+        }
     }
 
     private void WireScrollViewer() {
@@ -71,7 +74,10 @@ public partial class BuildingPage:UserControl {
             var offset = _outputScroll.Offset;
             double remaining = (extent.Height - viewport.Height) - offset.Y;
             _autoScrollEnabled = remaining <= bottomThreshold;
-        } catch { _autoScrollEnabled = true; }
+        } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"[BuildPage] UpdateAutoScrollFlag catch triggered: {ex}");
+            _autoScrollEnabled = true;
+        }
     }
 
     private void ScrollToEndSafe() {
@@ -81,7 +87,8 @@ public partial class BuildingPage:UserControl {
             var offset = _outputScroll.Offset;
             // Set Y to max extent to pin bottom; X unchanged
             _outputScroll.Offset = new Avalonia.Vector(x: offset.X, y: extent.Height);
-        } catch {
+        } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"[BuildPage] ScrollToEndSafe catch triggered: {ex}");
             // Fallback: no-op
         }
     }

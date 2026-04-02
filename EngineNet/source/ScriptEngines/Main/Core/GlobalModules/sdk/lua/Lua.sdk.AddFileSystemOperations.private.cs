@@ -295,6 +295,7 @@ internal static partial class Sdk {
                 }
                 return System.IO.File.ReadAllText(safePath);
             } catch (Exception ex) {
+                Core.Diagnostics.Bug("[Lua.sdk.AddFileSystemOperations] read_file catch triggered with exception: " + ex);
                 Core.Diagnostics.LuaInternalCatch("read_file failed with exception: " + ex);
                 return null;
             }
@@ -314,7 +315,8 @@ internal static partial class Sdk {
                     }
                     try {
                         System.IO.File.Move(safeOldPath, safeNewPath, overwrite);
-                    } catch {
+                    } catch (Exception ex) {
+                        Core.Diagnostics.Bug("[Lua.sdk.AddFileSystemOperations] rename_file fallback catch triggered with exception: " + ex);
                         // Fallback for cross-volume moves (or older .NET targets)
                         System.IO.File.Copy(safeOldPath, safeNewPath, overwrite);
                         System.IO.File.Delete(safeOldPath);
@@ -345,7 +347,8 @@ internal static partial class Sdk {
                         using (FileStream fs = File.Open(safePath, FileMode.Open, FileAccess.Write, FileShare.ReadWrite)) {
                             return true;
                         }
-                    } catch {
+                    } catch (Exception ex) {
+                        Core.Diagnostics.Bug("[Lua.sdk.AddFileSystemOperations] is_writable(file) catch triggered with exception: " + ex);
                         return false;
                     }
                 }
@@ -361,10 +364,12 @@ internal static partial class Sdk {
                     using (File.Create(testFile, 1, FileOptions.DeleteOnClose)) {
                         return true;
                     }
-                } catch {
+                } catch (Exception ex) {
+                    Core.Diagnostics.Bug("[Lua.sdk.AddFileSystemOperations] is_writable(directory) catch triggered with exception: " + ex);
                     return false;
                 }
-            } catch {
+            } catch (Exception ex) {
+                Core.Diagnostics.Bug("[Lua.sdk.AddFileSystemOperations] is_writable outer catch triggered with exception: " + ex);
                 return false;
             }
         };
@@ -403,6 +408,7 @@ internal static partial class Sdk {
                     return false;
                 }
             } catch (Exception ex) {
+                Core.Diagnostics.Bug("[Lua.sdk.AddFileSystemOperations] create_hardlink catch triggered with exception: " + ex);
                 Core.Diagnostics.LuaInternalCatch("create_hardlink failed with exception: " + ex);
                 return false;
             }
