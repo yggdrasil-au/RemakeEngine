@@ -5,9 +5,6 @@
 
 consider seperating Core.Formats into a independent csproj lib to prevent bloating the main engine assembly with format-specific tooling
 
-
-add schemas\cli-command.schema.md doc
-
 update the new p3d format conversion and extraction tooling
 ensure format_convert is used for converting p3d files to obj and glb files
 and format_extract is used for extracting p3d file data into its core components (meshes, textures, animations, etc)
@@ -20,11 +17,8 @@ it must be massivly refactored and improved to meet the standards of the rest of
 ### Operations
 
 * :: FEATURE :: Add **parallel execution support** for operations based on declared dependencies.
-
 Example workflow:
-
 After **Extract Archives** completes, the following operations can run **in parallel** because they have no dependencies on each other:
-
 > -- Convert Models (.preinstanced → .blend)
 > -- Convert Videos (.vp6 → .ogv)
 > -- Convert Audio (.snu → .wav)

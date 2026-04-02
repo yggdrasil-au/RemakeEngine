@@ -15,7 +15,7 @@ see [Style.md](Style.md)
 ## Ways to Use the Engine
 - **Simple GUI:** One-click "run all" and launch flows; not intended for watching streamed output or deep debugging.
 - **Interactive CLI:** Menu-driven experience with prompt collection and live output.
-- **Developer CLI:** Direct command invocation for fine-grained control, e.g.
+- **Developer CLI:** Direct command invocation for fine-grained control. See [schemas/cli-command.schema.md](schemas/cli-command.schema.md) for full syntax and examples.
   ```pwsh
   dotnet run --project EngineNet -- --game_module "EngineApps/Games/demo" --script_type engine --script rename-folders
   ```
@@ -65,7 +65,7 @@ If you are planning a release, coordinate the tag with maintainers so secrets (S
 - [ ] `dotnet test RemakeEngine.slnx`
 - [ ] Behavioural changes covered by automated tests
 - [ ] JSON schemas in [schemas/](schemas/) updated to match any C# parsing changes
-- [ ] Documentation ([operations.toml.md](schemas/operations.toml.md)) refreshed for new features
+- [ ] Documentation ([operations.toml.md](schemas/operations.toml.md) and [cli-command.schema.md](schemas/cli-command.schema.md)) refreshed for new features
 - [ ] Docs, manifests, or sample data refreshed when required
 - [ ] No unintentional breaking changes; include migration notes when needed
 
