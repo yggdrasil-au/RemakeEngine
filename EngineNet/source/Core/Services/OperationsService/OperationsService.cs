@@ -57,7 +57,10 @@ internal sealed class OperationsService {
         if (!string.IsNullOrEmpty(currentGame) && games != null && engineConfig != null) {
             try {
                 ctx = Core.Utils.ExecutionContextBuilder.Build(currentGame, games, engineConfig);
-            } catch { /* ignore context build failure for menu rendering */ }
+            } catch (System.Exception ex) {
+                Core.Diagnostics.Bug($"[OperationsService::LoadAndPrepare()] Failed building context for game '{currentGame}'.", ex);
+                /* ignore context build failure for menu rendering */
+            }
         }
 
         Dictionary<long, int> idCounts = new Dictionary<long, int>();
@@ -334,7 +337,8 @@ internal sealed class OperationsService {
         try {
             value = System.Convert.ToInt64(raw);
             return true;
-        } catch {
+        } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"[OperationsService::TryGetLong()] Failed to parse operation id value '{raw}'.", ex);
             return false;
         }
     }

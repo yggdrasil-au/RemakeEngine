@@ -37,7 +37,14 @@ internal sealed class ToolsDownloader {
             try {
                 using var doc = System.Text.Json.JsonDocument.Parse(await System.IO.File.ReadAllTextAsync(lockPath));
                 lockData = ConvertToDeepDictionary(doc.RootElement);
-            } catch (Exception ex) {
+            } catch (System.Text.Json.JsonException ex) {
+                Core.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Failed to parse lockfile '{lockPath}'.", ex);
+                Core.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
+            } catch (System.IO.IOException ex) {
+                Core.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] IO error loading lockfile '{lockPath}'.", ex);
+                Core.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
+            } catch (System.UnauthorizedAccessException ex) {
+                Core.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Access denied loading lockfile '{lockPath}'.", ex);
                 Core.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
             }
         }
@@ -167,6 +174,7 @@ internal sealed class ToolsDownloader {
                             Core.UI.EngineSdk.Warn($"Could not find entry for '{fileName}' in upstream checksums.");
                         }
                     } catch (Exception ex) {
+                        Core.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Failed to fetch/parse upstream checksums from '{checksumSource}'.", ex);
                         Core.UI.EngineSdk.Warn($"Failed to fetch/parse upstream checksums: {ex.Message}");
                     }
                 }
@@ -192,6 +200,7 @@ internal sealed class ToolsDownloader {
                 } catch (NotSupportedException nse) {
                     Core.UI.EngineSdk.Warn($"{nse.Message} Leaving archive as-is.");
                 } catch (Exception ex) {
+                    Core.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Failed to unpack archive '{archivePath}' to '{installDir}'.", ex);
                     Core.UI.EngineSdk.PrintLine($"1 ERROR: Failed to unpack '{archivePath}': {ex.Message}", System.ConsoleColor.Red);
                 }
 
@@ -631,6 +640,7 @@ internal sealed class ToolsDownloader {
             System.IO.File.SetUnixFileMode(path, newMode);
             Core.UI.EngineSdk.Info($"Applied executable permissions to: {path}");
         } catch (Exception ex) {
+            Core.Diagnostics.Bug($"[ToolsDownloader::ApplyExecutablePermissions()] Failed to set executable permissions for '{path}'.", ex);
             Core.UI.EngineSdk.Warn($"Could not set executable bit on {path}: {ex.Message}");
         }
     }

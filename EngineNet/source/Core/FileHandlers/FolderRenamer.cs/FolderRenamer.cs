@@ -14,6 +14,7 @@ internal static partial class FolderRenamer {
         try {
             options = Parse(args);
         } catch (System.ArgumentException ex) {
+            Core.Diagnostics.Bug("[FolderRenamer::Run()] Invalid arguments.", ex);
             WriteError(ex.Message);
             return false;
         }

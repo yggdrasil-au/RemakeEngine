@@ -51,7 +51,8 @@ internal static partial class TxdExtractor {
                         string? nameValue;
                         try {
                             nameValue = Utf8NoBom.GetString(nameBytes).Trim();
-                        } catch {
+                        } catch (System.Exception ex) {
+                            Core.Diagnostics.Bug($"[TextureSegmentProcessor::ProcessSegment()] Failed to decode name bytes at offset 0x{segmentOriginalStartOffset + nameSigOffset:X}.", ex);
                             nameValue = System.BitConverter.ToString(nameBytes.ToArray()).Replace("-", string.Empty);
                         }
 

@@ -33,6 +33,7 @@ internal static class InternalToolRegistry {
                         MergeDictionaries(toolData, fileData);
                     }
                 } catch (Exception ex) {
+                    Diagnostics.Bug($"[InternalToolRegistry] Error parsing registry fragment '{jsonFile}'.", ex);
                     Diagnostics.Log($"[InternalToolRegistry] Error parsing {jsonFile}: {ex.Message}");
                 }
             }

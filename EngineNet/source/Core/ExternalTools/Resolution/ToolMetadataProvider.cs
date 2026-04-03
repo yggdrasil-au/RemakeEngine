@@ -52,7 +52,19 @@ internal static class ToolMetadataProvider {
                         }
                     }
                 }
-            } catch { /* ignore parse errors and fallback */ }
+            } catch (System.Text.Json.JsonException ex) {
+                Core.Diagnostics.Bug($"[ToolMetadataProvider] JSON parse error reading lockfile '{jsonPath}'.", ex);
+                /* ignore parse errors and fallback */
+            } catch (System.IO.IOException ex) {
+                Core.Diagnostics.Bug($"[ToolMetadataProvider] IO error reading lockfile '{jsonPath}'.", ex);
+                /* ignore parse errors and fallback */
+            } catch (System.UnauthorizedAccessException ex) {
+                Core.Diagnostics.Bug($"[ToolMetadataProvider] Access denied reading lockfile '{jsonPath}'.", ex);
+                /* ignore parse errors and fallback */
+            } catch (System.ArgumentException ex) {
+                Core.Diagnostics.Bug($"[ToolMetadataProvider] Invalid lockfile path '{jsonPath}'.", ex);
+                /* ignore parse errors and fallback */
+            }
         }
 
         // Fallback to tool resolver path

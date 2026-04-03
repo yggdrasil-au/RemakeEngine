@@ -49,7 +49,8 @@ internal static partial class TxdExtractor {
                     } else {
                         System.Threading.Interlocked.Increment(ref skip);
                     }
-                } catch {
+                } catch (System.Exception ex) {
+                    Core.Diagnostics.Bug($"[TxdExtractor::Run()] Failed processing txd file '{txdFile}'.", ex);
                     System.Threading.Interlocked.Increment(ref err);
                 } finally {
                     System.Threading.Interlocked.Increment(ref processed);
@@ -60,15 +61,18 @@ internal static partial class TxdExtractor {
             cts.Cancel();
             try {
                 progress.Wait();
-            } catch {
+            } catch (System.AggregateException ex) {
+                Core.Diagnostics.Bug("[TxdExtractor::Run()] Progress task wait failed.", ex);
                 Core.Diagnostics.Bug("[TxdExtractor] Progress task cancelled.");
                 /* ignore */
             }
             return true;
         } catch (TxdExportException ex) {
+            Core.Diagnostics.Bug("[TxdExtractor::Run()] TXD export exception.", ex);
             Log.Red(ex.Message);
             return false;
         } catch (System.Exception ex) {
+            Core.Diagnostics.Bug("[TxdExtractor::Run()] Unhandled TXD extraction error.", ex);
             Log.Red($"Unhandled TXD extraction error: {ex.Message}");
             if (!string.IsNullOrWhiteSpace(ex.StackTrace)) {
                 Log.Gray(ex.StackTrace!);

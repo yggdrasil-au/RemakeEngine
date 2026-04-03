@@ -97,6 +97,7 @@ internal static class Diagnostics {
             Log($"[System] Logging initialized at {DateTime.Now}");
 
         } catch (Exception ex) {
+            Bug("[Diagnostics::Initialize()] Failed to initialize logging subsystem.", ex);
             Console.Error.WriteLine($"CRITICAL: Failed to init loggers. {ex.Message}");
             Console.WriteLine(logDirectory);
         }
@@ -122,12 +123,20 @@ internal static class Diagnostics {
                 if (subDir.LastWriteTime < threshold) {
                     try {
                         subDir.Delete(true);
-                    } catch {
+                    } catch (System.IO.IOException ex) {
+                        Bug($"[Diagnostics::CleanLogDirectory()] Failed to delete log folder '{subDir.FullName}'.", ex);
+                        // Folder might be locked by another process; skip it for now.
+                    } catch (System.UnauthorizedAccessException ex) {
+                        Bug($"[Diagnostics::CleanLogDirectory()] Access denied deleting log folder '{subDir.FullName}'.", ex);
                         // Folder might be locked by another process; skip it for now.
                     }
                 }
             }
-        } catch {
+        } catch (System.IO.IOException ex) {
+            Bug($"[Diagnostics::CleanLogDirectory()] IO error while cleaning '{logDir}'.", ex);
+            // continue
+        } catch (System.UnauthorizedAccessException ex) {
+            Bug($"[Diagnostics::CleanLogDirectory()] Access denied while cleaning '{logDir}'.", ex);
             // continue
         }
     }

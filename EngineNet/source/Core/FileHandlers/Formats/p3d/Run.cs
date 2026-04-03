@@ -70,6 +70,7 @@ internal static class Main {
 
                     success++;
                 } catch (Exception ex) {
+                    Core.Diagnostics.Bug($"[p3d] Per-file processing failed for '{file}'.", ex);
                     failed++;
                     string details = ex.InnerException is null ? ex.Message : $"{ex.Message} | {ex.InnerException.Message}";
                     Core.Diagnostics.Log($"[p3d] FAIL {System.IO.Path.GetFileName(file)} | {details}");

@@ -65,6 +65,7 @@ internal static class FileValidator {
             (bool allFound, int totalChecked, int _) = ValidateTables(options.DbPath, options.BaseFolder, tables, options.Debug);
             return requiredDirsOk && (totalChecked == 0 || allFound);
         } catch (System.Exception ex) {
+            Core.Diagnostics.Bug("[FileValidator::Run()] Validation run failed.", ex);
             WriteRed(ex.Message);
             return false;
         }
@@ -275,6 +276,7 @@ internal static class FileValidator {
                         rows.Add(reader.IsDBNull(0) ? null : reader.GetString(0));
                     }
                 } catch (Microsoft.Data.Sqlite.SqliteException ex) {
+                    Core.Diagnostics.Bug($"[FileValidator::ValidateTables()] Failed querying '{table}.{column}'.", ex);
                     WriteRed($"  ERROR: Unable to query {table}.{column}: {ex.Message}");
                     WriteYellow(new string('-', 20));
                     overallAllFound = false;
@@ -347,6 +349,7 @@ internal static class FileValidator {
 
             return (overallAllFound, totalChecked, totalMissing);
         } catch (Microsoft.Data.Sqlite.SqliteException ex) {
+            Core.Diagnostics.Bug($"[FileValidator::ValidateTables()] SQLite failure opening '{dbPath}'.", ex);
             WriteRed($"SQLite error: {ex.Message}");
             return (false, 0, 0);
         }

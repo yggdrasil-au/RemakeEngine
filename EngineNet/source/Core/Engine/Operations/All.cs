@@ -248,7 +248,8 @@ internal sealed class All {
 
         try {
             return System.Convert.ToInt32(value) != 0;
-        } catch {
+        } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"[All.cs::IsFlagSet()] Failed to convert flag '{key}' value '{value}' to boolean.", ex);
             return false;
         }
     }

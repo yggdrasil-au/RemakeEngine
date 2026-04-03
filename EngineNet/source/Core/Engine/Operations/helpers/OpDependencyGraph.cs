@@ -142,7 +142,7 @@ internal class OpDependencyGraph {
         if (!op.TryGetValue(key, out object? value) || value is null) return false;
         if (value is bool b) return b;
         if (value is string s) return bool.TryParse(s, out bool parsed) && parsed;
-        try { return Convert.ToInt32(value) != 0; } catch { return false; }
+        try { return Convert.ToInt32(value) != 0; } catch (System.Exception ex) { Core.Diagnostics.Bug($"[OpDependencyGraph::IsFlagSet()] Failed to convert flag '{key}' value '{value}' to boolean.", ex); return false; }
     }
 
     private bool HasCycles() {

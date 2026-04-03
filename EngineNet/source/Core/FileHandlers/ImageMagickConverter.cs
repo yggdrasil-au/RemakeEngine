@@ -139,13 +139,15 @@ internal static class ImageMagickConverter {
                             errorList.Add((Path.GetFileName(src), msg ?? "unknown error"));
                         }
                     } catch (Exception ex) {
+                        Core.Diagnostics.Bug($"[ImageMagickConverter::Run()] Conversion worker failed for source '{src}'.", ex);
                         Interlocked.Increment(ref errors);
                         errorList.Add((Path.GetFileName(src), ex.Message));
                     } finally {
                         Interlocked.Increment(ref processed);
                     }
                 });
-            } catch (OperationCanceledException) {
+            } catch (OperationCanceledException ex) {
+                Core.Diagnostics.Bug("[ImageMagickConverter::Run()] Conversion cancelled by user.", ex);
                 Core.UI.EngineSdk.Warn("\nConversion cancelled by user.");
             }
 
@@ -153,7 +155,8 @@ internal static class ImageMagickConverter {
             progressCts.Cancel();
             try {
                 progressTask.Wait();
-            } catch {
+            } catch (System.AggregateException ex) {
+                Core.Diagnostics.Bug("[ImageMagickConverter::Run()] Progress panel wait failed.", ex);
                 // ignore
             }
             // --- END ADD ---
@@ -171,6 +174,7 @@ internal static class ImageMagickConverter {
 
             return errors == 0;
         } catch (Exception ex) {
+            Core.Diagnostics.Bug("[ImageMagickConverter::Run()] Unhandled conversion failure.", ex);
             Core.UI.EngineSdk.Error($"ImageMagick conversion failed: {ex.Message}");
             return false;
         }
@@ -223,6 +227,7 @@ internal static class ImageMagickConverter {
             }
 
         } catch (Exception ex) {
+            Core.Diagnostics.Bug($"[ImageMagickConverter::ConvertOne()] Conversion failed for '{srcPath}' -> '{destPath}'.", ex);
             TryDelete(destPath);
             return (false, ex.Message);
         }
@@ -237,15 +242,15 @@ internal static class ImageMagickConverter {
                 File = System.IO.Path.GetFileName(srcPath),
                 StartedUtc = System.DateTime.UtcNow
             };
-        } catch{
-            Core.Diagnostics.Bug("Failed to register active process");
+        } catch (System.Exception ex) {
+            Core.Diagnostics.Bug("[ImageMagickConverter::RegisterActive()] Failed to register active process.", ex);
             /* ignore */
         }
     }
 
     private static void UnregisterActive() {
-        try { s_active.TryRemove(System.Threading.Thread.CurrentThread.ManagedThreadId, out _); } catch {
-            Core.Diagnostics.Bug("Failed to unregister active process");
+        try { s_active.TryRemove(System.Threading.Thread.CurrentThread.ManagedThreadId, out _); } catch (System.Exception ex) {
+            Core.Diagnostics.Bug("[ImageMagickConverter::UnregisterActive()] Failed to unregister active process.", ex);
             /* ignore */
         }
     }
@@ -265,8 +270,8 @@ internal static class ImageMagickConverter {
             p.StartInfo.CreateNoWindow = true;
             p.StartInfo.RedirectStandardError = !passthroughOutput;
             p.StartInfo.RedirectStandardOutput = !passthroughOutput;
-            try { p.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8; } catch { }
-            try { p.StartInfo.StandardOutputEncoding = System.Text.Encoding.UTF8; } catch { }
+            try { p.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8; } catch (Exception ex) { Core.Diagnostics.Bug("[ImageMagickConverter::Exec()] Failed setting stderr encoding.", ex); }
+            try { p.StartInfo.StandardOutputEncoding = System.Text.Encoding.UTF8; } catch (Exception ex) { Core.Diagnostics.Bug("[ImageMagickConverter::Exec()] Failed setting stdout encoding.", ex); }
 
             using var job = System.OperatingSystem.IsWindows() ? new Utils.JobObject() : null;
 
@@ -312,6 +317,7 @@ internal static class ImageMagickConverter {
 
             return (false, $"exit code {p.ExitCode}");
         } catch (Exception ex) {
+            Core.Diagnostics.Bug($"[ImageMagickConverter::Exec()] Process execution failed for '{fileName}'.", ex);
             return (false, ex.Message);
         }
     }
@@ -327,7 +333,8 @@ internal static class ImageMagickConverter {
         string fullPath;
         try {
             fullPath = Path.GetFullPath(path);
-        } catch {
+        } catch (Exception ex) {
+            Core.Diagnostics.Bug($"[ImageMagickConverter::ToLongPath()] Failed to normalize path '{path}'.", ex);
             fullPath = path; // Fallback if GetFullPath fails (e.g., invalid chars)
         }
 
@@ -448,13 +455,13 @@ internal static class ImageMagickConverter {
                     if (File.Exists(candidate)) {
                         return candidate;
                     }
-                } catch {
-                    Core.Diagnostics.Bug("Failed to find executable: " + name);
+                } catch (Exception ex) {
+                    Core.Diagnostics.Bug($"[ImageMagickConverter::Which()] Failed searching PATH entry '{dir}' for '{name}'.", ex);
                     /* ignore */
                 }
             }
-        } catch {
-            Core.Diagnostics.Bug("Failed to get PATH environment variable");
+        } catch (Exception ex) {
+            Core.Diagnostics.Bug("[ImageMagickConverter::Which()] Failed to enumerate PATH entries.", ex);
             /* ignore */
         }
         return null;
@@ -465,8 +472,14 @@ internal static class ImageMagickConverter {
             if (!string.IsNullOrWhiteSpace(path) && File.Exists(path)) {
                 File.Delete(path);
             }
-        } catch {
-            Core.Diagnostics.Bug("Failed to delete file: " + path);
+        } catch (System.IO.IOException ex) {
+            Core.Diagnostics.Bug($"[ImageMagickConverter::TryDelete()] IO error deleting '{path}'.", ex);
+            /* ignore */
+        } catch (System.UnauthorizedAccessException ex) {
+            Core.Diagnostics.Bug($"[ImageMagickConverter::TryDelete()] Access denied deleting '{path}'.", ex);
+            /* ignore */
+        } catch (System.ArgumentException ex) {
+            Core.Diagnostics.Bug($"[ImageMagickConverter::TryDelete()] Invalid path '{path}' during delete.", ex);
             /* ignore */
         }
     }
