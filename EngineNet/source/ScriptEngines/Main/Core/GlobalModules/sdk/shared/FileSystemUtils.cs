@@ -129,9 +129,7 @@ internal static class FileSystemUtils {
         string dstRoot = System.IO.Path.GetFullPath(destDir);
 
         // Create all directories first
-        foreach (string dir in System.IO.Directory.EnumerateDirectories(srcRoot, "*", System.IO.SearchOption.AllDirectories)) {
-            string rel = System.IO.Path.GetRelativePath(srcRoot, dir);
-            string target = System.IO.Path.Combine(dstRoot, rel);
+        foreach (string target in System.IO.Directory.EnumerateDirectories(srcRoot, "*", System.IO.SearchOption.AllDirectories).Select(dir => System.IO.Path.Combine(dstRoot, System.IO.Path.GetRelativePath(srcRoot, dir)))) {
             System.IO.Directory.CreateDirectory(target);
         }
 
@@ -150,11 +148,9 @@ internal static class FileSystemUtils {
         }
 
         // Copy files with progress
-        foreach (string file in files) {
-            string rel = System.IO.Path.GetRelativePath(srcRoot, file);
-            string target = System.IO.Path.Combine(dstRoot, rel);
-            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(target)!);
-            System.IO.File.Copy(file, target, overwrite: true);
+        foreach (var item in files.Select(file => (File: file, Target: System.IO.Path.Combine(dstRoot, System.IO.Path.GetRelativePath(srcRoot, file))))) {
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(item.Target)!);
+            System.IO.File.Copy(item.File, item.Target, overwrite: true);
 
             //current++;
             progress?.Update(1);

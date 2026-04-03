@@ -34,6 +34,7 @@ internal static class FileValidator {
     /// Also supports checking required subdirectories.
     /// </summary>
     /// <param name="args">CLI-style args: DB_PATH BASE_DIR [--tables spec] [--required-dirs dir1,dir2] [--no-required-dirs-check] [--debug]</param>
+    /// <param name="cancellationToken"></param>
     /// <returns>True if all required files exist (or no rows to check); false otherwise.</returns>
     internal static bool Run(IList<string> args, System.Threading.CancellationToken cancellationToken = default) {
         // TODO: implement Cancelation Token handling

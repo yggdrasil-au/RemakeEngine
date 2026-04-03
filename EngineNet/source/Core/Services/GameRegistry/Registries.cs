@@ -140,8 +140,7 @@ internal sealed class Registries {
             string? godotPath = null;
             string? title = null;
             try {
-                foreach (string raw in System.IO.File.ReadAllLines(gameToml)) {
-                    string line = raw.Trim();
+                foreach (string line in System.IO.File.ReadAllLines(gameToml).Select(raw => raw.Trim())) {
                     if (line.Length == 0 || line.StartsWith("#")) {
                         continue;
                     }

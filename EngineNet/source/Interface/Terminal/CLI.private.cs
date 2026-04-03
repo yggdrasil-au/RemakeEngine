@@ -9,10 +9,8 @@ internal partial class CLI {
                 System.Console.WriteLine("No modules found.");
                 return 0;
             }
-            foreach (KeyValuePair<string, Core.Data.GameModuleInfo> kv in modules) {
-                Core.Data.GameModuleInfo m = kv.Value;
-                string state = m.DescribeState();
-                System.Console.WriteLine($"- {m.Name}  (state: {state}; root: {m.GameRoot})");
+            foreach (var item in modules.Values.Select(m => (Name: m.Name, State: m.DescribeState(), Root: m.GameRoot))) {
+                System.Console.WriteLine($"- {item.Name}  (state: {item.State}; root: {item.Root})");
             }
             return 0;
         } catch (System.Exception ex) {
@@ -532,11 +530,8 @@ internal partial class CLI {
 
         string[] commaSplit = trimmed.Split(',', System.StringSplitOptions.RemoveEmptyEntries);
         if (commaSplit.Length > 0) {
-            foreach (string segment in commaSplit) {
-                string value = StripEnclosingQuotes(segment.Trim());
-                if (value.Length > 0) {
-                    yield return value;
-                }
+            foreach (string value in commaSplit.Select(segment => StripEnclosingQuotes(segment.Trim())).Where(value => value.Length > 0)) {
+                yield return value;
             }
             yield break;
         }

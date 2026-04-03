@@ -81,29 +81,33 @@ public partial class LibraryPage:UserControl {
                 Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()]   Module: {m.Name}, Installed: {m.IsInstalled}, Built: {m.IsBuilt}, Unverified: {m.IsUnverified}, Registered: {m.IsRegistered}");
             }
 #endif
-            foreach (var kv in modules) {
-                var m = kv.Value;
-                string name = m.Name;
-                string? exe = m.ExePath;
-                string title = string.IsNullOrWhiteSpace(m.Title) ? name : m.Title;
-                string gameRoot = m.GameRoot;
-                if (string.IsNullOrWhiteSpace(gameRoot)) {
-        Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load(): Module '{name}' has no game root defined.");
+            foreach (var item in modules.Values.Select(m => (
+                Name: m.Name,
+                ExePath: m.ExePath,
+                Title: string.IsNullOrWhiteSpace(m.Title) ? m.Name : m.Title,
+                GameRoot: m.GameRoot,
+                IsBuilt: m.IsBuilt,
+                IsInstalled: m.IsInstalled,
+                IsRegistered: m.IsRegistered,
+                IsUnverified: m.IsUnverified
+            ))) {
+                if (string.IsNullOrWhiteSpace(item.GameRoot)) {
+                    Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load(): Module '{item.Name}' has no game root defined.");
                 }
 
-                bool isBuilt = m.IsBuilt;
-                bool isInstalled = m.IsInstalled;
-                bool isRegistered = m.IsRegistered;
-                bool isUnverified = m.IsUnverified;
+                bool isBuilt = item.IsBuilt;
+                bool isInstalled = item.IsInstalled;
+                bool isRegistered = item.IsRegistered;
+                bool isUnverified = item.IsUnverified;
                 bool isUnbuilt = isInstalled && !isBuilt;
 
                 string primaryActionText = isBuilt ? "Play" : "Run All Build Operations";
 
                 Items.Add(new Row {
-                    ModuleName = name,
-                    Title = title,
-                    ExePath = exe,
-                    Image = ResolveCoverUri(gameRoot),
+                    ModuleName = item.Name,
+                    Title = item.Title,
+                    ExePath = item.ExePath,
+                    Image = ResolveCoverUri(item.GameRoot),
                     IsBuilt = isBuilt,
                     IsInstalled = isInstalled,
                     IsRegistered = isRegistered,

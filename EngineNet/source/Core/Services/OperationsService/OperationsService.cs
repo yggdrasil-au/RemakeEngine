@@ -250,20 +250,15 @@ internal sealed class OperationsService {
         if (TryGetString(prompt, out string? provider, "choices_provider") && provider == "registry_modules") {
             Dictionary<string, Data.GameModuleInfo> registered = _gameRegistry.GetModules(ModuleFilter.Registered);
             Dictionary<string, Data.GameModuleInfo> installed = _gameRegistry.GetModules(ModuleFilter.Installed);
-            foreach (string key in registered.Keys) {
-                bool isDisabled = installed.ContainsKey(key);
-                choices.Add(new PromptChoice(label: key, isDisabled: isDisabled));
-            }
+            choices.AddRange(registered.Keys.Select(key => new PromptChoice(label: key, isDisabled: installed.ContainsKey(key))));
             return choices;
         }
 
         if (TryGetList(prompt, out IList<object?>? rawChoices, "choices", "Choices") && rawChoices is not null) {
-            foreach (object? choice in rawChoices) {
-                string label = choice?.ToString() ?? string.Empty;
-                if (!string.IsNullOrWhiteSpace(label)) {
-                    choices.Add(new PromptChoice(label: label, isDisabled: false));
-                }
-            }
+            choices.AddRange(rawChoices
+                .Select(choice => choice?.ToString() ?? string.Empty)
+                .Where(label => !string.IsNullOrWhiteSpace(label))
+                .Select(label => new PromptChoice(label: label, isDisabled: false)));
         }
 
         return choices;

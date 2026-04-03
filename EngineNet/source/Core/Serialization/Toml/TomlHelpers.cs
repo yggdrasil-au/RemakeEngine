@@ -30,7 +30,7 @@ internal static class TomlHelpers {
 
     internal static void WriteTomlFile(string path, object? data) {
         // Convert plain objects to Tomlyn.Model.TomlTable model and serialize
-        Tomlyn.Model.TomlTable root = ConvertPlainToTomlTable(data) ?? new Tomlyn.Model.TomlTable();
+        Tomlyn.Model.TomlTable root = ConvertPlainToTomlTable(data);
         string text = Tomlyn.TomlSerializer.Serialize(root);
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path) ?? ".");
         System.IO.File.WriteAllText(path, text);
@@ -41,21 +41,21 @@ internal static class TomlHelpers {
             case null:
                 return new Dictionary<string, object?>();
             case Tomlyn.Model.TomlTable tt:
-                Dictionary<string, object?>? dict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
                 foreach (string key in tt.Keys) {
-                    object? v = tt[key];
+                    object v = tt[key];
                     dict[key] = ConvertTomlToPlain(v);
                 }
                 return dict;
             case Tomlyn.Model.TomlArray arr: {
-                List<object?>? list = new List<object?>();
+                List<object?> list = new List<object?>();
                 foreach (object? item in arr) {
                     list.Add(ConvertTomlToPlain(item));
                 }
                 return list;
             }
             case Tomlyn.Model.TomlTableArray taa: {
-                List<object?>? list = new List<object?>();
+                List<object?> list = new List<object?>();
                 foreach (var t in taa) {
                     list.Add(ConvertTomlToPlain(t));
                 }
@@ -84,7 +84,7 @@ internal static class TomlHelpers {
         }
     }
 
-    private static Tomlyn.Model.TomlTable? ConvertPlainToTomlTable(object? data) {
+    private static Tomlyn.Model.TomlTable ConvertPlainToTomlTable(object? data) {
         if (data is null)
             return new Tomlyn.Model.TomlTable();
 
@@ -94,8 +94,8 @@ internal static class TomlHelpers {
         if (data is IDictionary rawDict) {
             var table = new Tomlyn.Model.TomlTable();
             foreach (DictionaryEntry entry in rawDict) {
-                if (entry.Key is null)
-                    continue;
+                //if (entry.Key is null)
+                //    continue;
                 string key = entry.Key.ToString()!;
                 var val = ConvertPlainToTomlValue(entry.Value);
                 if (val != null)
@@ -104,7 +104,7 @@ internal static class TomlHelpers {
             return table;
         }
 
-        if (data is IEnumerable enumerable && data is not string) {
+        if (data is IEnumerable enumerable and not string) {
             // If the root is a list, wrap it under a single key "root"? Better to coerce into a table
             // For our purposes we expect a table at the root. Create a table with a single key if needed.
             var table = new Tomlyn.Model.TomlTable();
@@ -138,10 +138,10 @@ internal static class TomlHelpers {
         if (value is IDictionary dict) {
             var table = new Tomlyn.Model.TomlTable();
             foreach (DictionaryEntry entry in dict) {
-                if (entry.Key is null)
-                    continue;
+                //if (entry.Key is null)
+                //    continue;
                 string key = entry.Key.ToString()!;
-                var val = ConvertPlainToTomlValue(entry.Value);
+                object? val = ConvertPlainToTomlValue(entry.Value);
                 if (val != null)
                     table[key] = val;
             }
@@ -149,22 +149,19 @@ internal static class TomlHelpers {
         }
 
         // IEnumerable -> Tomlyn.Model.TomlArray or Tomlyn.Model.TomlTableArray (arrays of tables)
-        if (value is IEnumerable enumerable && value is not string) {
+        if (value is IEnumerable enumerable and not string) {
             var items = enumerable.Cast<object?>().ToList();
             bool allDicts = items.Count > 0 && items.All(x => x is IDictionary);
             if (allDicts) {
                 var taa = new Tomlyn.Model.TomlTableArray();
-                foreach (var item in items) {
-                    var t = ConvertPlainToTomlTable(item);
-                    if (t != null)
-                        taa.Add(t);
+                foreach (var table in items.Select(ConvertPlainToTomlTable).Where(_ => true)) {
+                    taa.Add(table);
                 }
                 return taa;
             } else {
                 var arr = new Tomlyn.Model.TomlArray();
-                foreach (var item in items) {
-                    var v = ConvertPlainToTomlValue(item);
-                    arr.Add(v ?? string.Empty);
+                foreach (var entryValue in items.Select(ConvertPlainToTomlValue)) {
+                    arr.Add(entryValue ?? string.Empty);
                 }
                 return arr;
             }
@@ -178,7 +175,7 @@ internal static class TomlHelpers {
     }
 
     internal static string WriteDocument(object? data) {
-        Tomlyn.Model.TomlTable root = ConvertPlainToTomlTable(data) ?? new Tomlyn.Model.TomlTable();
+        Tomlyn.Model.TomlTable root = ConvertPlainToTomlTable(data);
         return Tomlyn.TomlSerializer.Serialize(root);
     }
 

@@ -67,8 +67,7 @@ internal class GameLauncher {
         string? godotProject = null;
         try {
             if (System.IO.File.Exists(gameToml)) {
-                foreach (string raw in await System.IO.File.ReadAllLinesAsync(gameToml)) {
-                    string line = raw.Trim();
+                foreach (string line in (await System.IO.File.ReadAllLinesAsync(gameToml)).Select(raw => raw.Trim())) {
                     if (line.Length == 0 || line.StartsWith('#')) continue;
                     if (line.StartsWith('[')) continue;
                     int eq = line.IndexOf('=');

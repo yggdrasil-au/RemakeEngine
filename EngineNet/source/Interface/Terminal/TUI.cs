@@ -49,16 +49,9 @@ public partial class TUI {
 
                 // Build menu with states
                 // foreach module, display '<Name> [<isRegistered>, <isInstalled (always true here)>, <isBuilt>]'
-                foreach (KeyValuePair<string, Core.Data.GameModuleInfo> kv in modules) {
-                    Core.Data.GameModuleInfo m = kv.Value;
-                    // Skip public modules in modules list; add them after game modules below separator
-                    /*if (m.IsInternal) {
-                        internalModulesList.Add(m);
-                        continue;
-                    }*/
-                    string display = $"{m.Name}  [{m.DescribeState()}]";
-                    gameMenu.Add(display);
-                    gameKeyMap.Add(m.Name);
+                foreach (var item in modules.Values.Select(m => (Display: $"{m.Name}  [{m.DescribeState()}]", Name: m.Name))) {
+                    gameMenu.Add(item.Display);
+                    gameKeyMap.Add(item.Name);
                 }
                 gameMenu.Add("---------------"); // separator before public modules
                 gameKeyMap.Add("---"); // placeholder for separator
