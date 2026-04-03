@@ -43,7 +43,7 @@ public sealed partial class ProcessRunner() {
         IDictionary<string, object?>? envOverrides = null,
         System.Threading.CancellationToken cancellationToken = default
     ) {
-        if (commandParts is null || commandParts.Count < 1) {
+        if (/*commandParts is null || **cannot be null */commandParts.Count < 1) {
             onOutput?.Invoke($"Operation '{opTitle}' has no executable specified. Skipping.", "stderr");
             return false;
         }
@@ -60,13 +60,14 @@ public sealed partial class ProcessRunner() {
             Core.Diagnostics.Log("Executing command:");
             Core.Diagnostics.Log("  " + FormatCommand(commandParts));
             Core.Diagnostics.Log($"  cwd: {System.IO.Directory.GetCurrentDirectory()}");
-            if (envOverrides != null && envOverrides.Count > 0) {
+            if (envOverrides is { Count: > 0 }) {
                 Core.Diagnostics.Log("  env overrides:");
                 foreach (KeyValuePair<string, object?> kv in envOverrides) {
                     Core.Diagnostics.Log($"    {kv.Key}={kv.Value}");
                 }
             }
-        } catch {
+        } catch (System.Exception ex) {
+            Core.Diagnostics.Bug("[ProcessRunner::Execute()] Failed to write verbose command diagnostics: " + ex);
             /* ignore formatting errors */
         }
 
@@ -84,7 +85,9 @@ public sealed partial class ProcessRunner() {
             psi.ArgumentList.Add(commandParts[i]);
         }
 
-        using System.Diagnostics.Process proc = new System.Diagnostics.Process { StartInfo = psi, EnableRaisingEvents = true };
+        using System.Diagnostics.Process proc = new System.Diagnostics.Process();
+        proc.StartInfo = psi;
+        proc.EnableRaisingEvents = true;
 
         System.Collections.Concurrent.BlockingCollection<(string stream, string line)> q = new System.Collections.Concurrent.BlockingCollection<(string stream, string line)>(boundedCapacity: 1000);
 
@@ -114,8 +117,14 @@ public sealed partial class ProcessRunner() {
                 try {
                     proc.StandardInput.WriteLine(text ?? string.Empty);
                     proc.StandardInput.Flush();
-                } catch {
-                    Core.Diagnostics.Bug("[ProcessRunner.cs::Execute()] Warning: Failed to write to child stdin.");
+                } catch (System.IO.IOException ex) {
+                    Core.Diagnostics.Bug("[ProcessRunner.cs::Execute()] IO error writing to child stdin: " + ex);
+                    /* ignore */
+                } catch (System.ObjectDisposedException ex) {
+                    Core.Diagnostics.Bug("[ProcessRunner.cs::Execute()] Child stdin disposed while writing: " + ex);
+                    /* ignore */
+                } catch (System.InvalidOperationException ex) {
+                    Core.Diagnostics.Bug("[ProcessRunner.cs::Execute()] Child stdin unavailable while writing: " + ex);
                     /* ignore */
                 }
             }
@@ -196,22 +205,25 @@ public sealed partial class ProcessRunner() {
                 onEvent?.Invoke(new Dictionary<string, object?> { ["event"] = "end", ["success"] = false, ["exit_code"] = rc });
                 return false;
             }
-        } catch (System.OperationCanceledException) {
+        } catch (System.OperationCanceledException ex) {
+            Core.Diagnostics.Bug("[ProcessRunner::Execute()] Operation cancelled: " + ex);
             TryTerminate(proc);
             onEvent?.Invoke(new Dictionary<string, object?> { ["event"] = "end", ["success"] = false, ["exit_code"] = 130 });
             return false;
-        } catch (System.IO.FileNotFoundException) {
+        } catch (System.IO.FileNotFoundException ex) {
+            Core.Diagnostics.Bug("[ProcessRunner::Execute()] Command or script not found: " + ex);
             onEvent?.Invoke(new Dictionary<string, object?> { ["event"] = "error", ["kind"] = "FileNotFoundError", ["message"] = "Command or script not found." });
             return false;
         } catch (System.Exception ex) {
+            Core.Diagnostics.Bug("[ProcessRunner::Execute()] Unexpected process runner exception: " + ex);
             onEvent?.Invoke(new Dictionary<string, object?> { ["event"] = "error", ["kind"] = "Exception", ["message"] = ex.Message });
             return false;
         } finally {
             try {
                 proc.OutputDataReceived -= outHandler;
                 proc.ErrorDataReceived -= errHandler;
-            } catch {
-                Core.Diagnostics.Bug("Warning: Failed to detach event handlers.");
+            } catch (System.Exception ex) {
+                Core.Diagnostics.Bug("[ProcessRunner::Execute()] Failed to detach event handlers: " + ex);
                 /* ignore */
             }
         }

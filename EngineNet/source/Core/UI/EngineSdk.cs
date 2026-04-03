@@ -46,7 +46,10 @@ public static class EngineSdk {
             try {
                 // Pass a shallow copy to avoid accidental modifications by receivers
                 LocalEventSink(new Dictionary<string, object?>(payload, System.StringComparer.Ordinal));
-            } catch { /* ignore sink errors */ }
+            } catch (System.Exception ex) {
+                Core.Diagnostics.Bug($"[EngineSdk::Emit()] Local event sink failed: {ex}");
+                /* ignore sink errors */
+            }
             if (MuteStdoutWhenLocalSink) {
                 return;
             }
@@ -55,7 +58,8 @@ public static class EngineSdk {
         string json;
         try {
             json = System.Text.Json.JsonSerializer.Serialize(payload, JsonOpts);
-        } catch {
+        } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"[EngineSdk::Emit()] Failed to serialize event payload for '{@event}': {ex}");
             // As a last resort, stringify values to avoid serialization failures
             Dictionary<string, object?> safe = new Dictionary<string, object?>(System.StringComparer.Ordinal);
             foreach (KeyValuePair<string, object?> kv in payload) {
@@ -69,7 +73,11 @@ public static class EngineSdk {
             //System.Console.Out.Write(Prefix);
             System.Console.Out.WriteLine(json.Replace('\n', ' '));
             System.Console.Out.Flush();
-        } catch {
+        } catch (System.IO.IOException ex) {
+            Core.Diagnostics.Bug($"[EngineSdk::Emit()] IO error writing event '{@event}' to stdout: {ex}");
+            // Swallow IO errors; there is no recovery if stdout is closed
+        } catch (System.ObjectDisposedException ex) {
+            Core.Diagnostics.Bug($"[EngineSdk::Emit()] Stdout disposed while writing event '{@event}': {ex}");
             // Swallow IO errors; there is no recovery if stdout is closed
         }
     }
@@ -125,7 +133,14 @@ public static class EngineSdk {
         try {
             string? line = System.Console.In.ReadLine();
             return (line ?? string.Empty).TrimEnd('\n');
-        } catch {
+        } catch (System.IO.IOException ex) {
+            Core.Diagnostics.Bug($"[EngineSdk::color_prompt()] IO error while reading console input: {ex}");
+            return string.Empty;
+        } catch (System.ObjectDisposedException ex) {
+            Core.Diagnostics.Bug($"[EngineSdk::color_prompt()] Console input disposed: {ex}");
+            return string.Empty;
+        } catch (System.InvalidOperationException ex) {
+            Core.Diagnostics.Bug($"[EngineSdk::color_prompt()] Console input unavailable: {ex}");
             return string.Empty;
         }
     }
@@ -153,7 +168,14 @@ public static class EngineSdk {
         try {
             string? line = System.Console.In.ReadLine();
             return (line ?? string.Empty).TrimEnd('\n');
-        } catch {
+        } catch (System.IO.IOException ex) {
+            Core.Diagnostics.Bug($"[EngineSdk::Prompt()] IO error while reading console input: {ex}");
+            return string.Empty;
+        } catch (System.ObjectDisposedException ex) {
+            Core.Diagnostics.Bug($"[EngineSdk::Prompt()] Console input disposed: {ex}");
+            return string.Empty;
+        } catch (System.InvalidOperationException ex) {
+            Core.Diagnostics.Bug($"[EngineSdk::Prompt()] Console input unavailable: {ex}");
             return string.Empty;
         }
     }
@@ -185,7 +207,14 @@ public static class EngineSdk {
             return line.Trim().StartsWith("y", System.StringComparison.OrdinalIgnoreCase) ||
                     line.Trim().Equals("true", System.StringComparison.OrdinalIgnoreCase) ||
                     line.Trim().Equals("yes", System.StringComparison.OrdinalIgnoreCase);
-        } catch {
+        } catch (System.IO.IOException ex) {
+            Core.Diagnostics.Bug($"[EngineSdk::Confirm()] IO error while reading console input: {ex}");
+            return defaultValue;
+        } catch (System.ObjectDisposedException ex) {
+            Core.Diagnostics.Bug($"[EngineSdk::Confirm()] Console input disposed: {ex}");
+            return defaultValue;
+        } catch (System.InvalidOperationException ex) {
+            Core.Diagnostics.Bug($"[EngineSdk::Confirm()] Console input unavailable: {ex}");
             return defaultValue;
         }
     }
@@ -277,8 +306,8 @@ public static class EngineSdk {
             try {
                 System.Threading.Interlocked.Exchange(ref _processed, _total);
                 EmitProgress();
-            } catch {
-                Core.Diagnostics.Bug("Failed to unregister active process for media conversion");
+            } catch (System.Exception ex) {
+                Core.Diagnostics.Bug($"[EngineSdk::ScriptProgress::Complete()] Failed to emit final script progress: {ex}");
             }
         }
 
@@ -301,8 +330,12 @@ public static class EngineSdk {
         string name = string.Empty;
         try {
             name = System.IO.Path.GetFileName(scriptPath);
-        } catch {
-            Core.Diagnostics.Bug("EngineSdk.ScriptActiveStart: failed to get file name from path.");
+        } catch (System.ArgumentException ex) {
+            Core.Diagnostics.Bug($"[EngineSdk::ScriptActiveStart()] Invalid script path '{scriptPath}': {ex}");
+        } catch (System.IO.PathTooLongException ex) {
+            Core.Diagnostics.Bug($"[EngineSdk::ScriptActiveStart()] Script path too long '{scriptPath}': {ex}");
+        } catch (System.NotSupportedException ex) {
+            Core.Diagnostics.Bug($"[EngineSdk::ScriptActiveStart()] Unsupported script path '{scriptPath}': {ex}");
         }
         Emit("script_active_start", new Dictionary<string, object?> {
             ["name"] = string.IsNullOrEmpty(name) ? scriptPath : name,
@@ -332,8 +365,12 @@ public static class EngineSdk {
         string name = string.Empty;
         try {
             name = System.IO.Path.GetFileName(scriptPath);
-        } catch {
-            Core.Diagnostics.Bug("EngineSdk.OperationActiveStart: failed to get file name from path.");
+        } catch (System.ArgumentException ex) {
+            Core.Diagnostics.Bug($"[EngineSdk::OperationActiveStart()] Invalid operation path '{scriptPath}': {ex}");
+        } catch (System.IO.PathTooLongException ex) {
+            Core.Diagnostics.Bug($"[EngineSdk::OperationActiveStart()] Operation path too long '{scriptPath}': {ex}");
+        } catch (System.NotSupportedException ex) {
+            Core.Diagnostics.Bug($"[EngineSdk::OperationActiveStart()] Unsupported operation path '{scriptPath}': {ex}");
         }
         Emit("operation_active_start", new Dictionary<string, object?> {
             ["name"] = string.IsNullOrEmpty(name) ? scriptPath : name,
@@ -417,12 +454,18 @@ public static class EngineSdk {
                 if (!_cts.IsCancellationRequested) {
                     _cts.Cancel();
                 }
-                try { _panelTask.Wait(1000); } catch {
-                    Core.Diagnostics.Bug("Failed to wait for panel task completion");
+                try { _panelTask.Wait(1000); } catch (System.AggregateException ex) {
+                    Core.Diagnostics.Bug($"[EngineSdk::PanelProgress::Complete()] Failed while waiting for panel task completion: {ex}");
+                    /* ignore */
+                } catch (System.ObjectDisposedException ex) {
+                    Core.Diagnostics.Bug($"[EngineSdk::PanelProgress::Complete()] Panel task disposed while waiting: {ex}");
                     /* ignore */
                 }
-            } catch {
-                Core.Diagnostics.Bug("Failed to cancel panel task");
+            } catch (System.ObjectDisposedException ex) {
+                Core.Diagnostics.Bug($"[EngineSdk::PanelProgress::Complete()] Cancellation source disposed: {ex}");
+                /* ignore */
+            } catch (System.InvalidOperationException ex) {
+                Core.Diagnostics.Bug($"[EngineSdk::PanelProgress::Complete()] Failed to cancel panel task: {ex}");
                 /* ignore */
             }
         }
@@ -493,8 +536,8 @@ public static class EngineSdk {
 
         private static void EmitPanelStart(string id) {
             int procs = 8;
-            try { procs = System.Math.Max(1, System.Math.Min(16, System.Environment.ProcessorCount)); } catch {
-                                Core.Diagnostics.Bug("Failed to enumerate PATH directories");
+            try { procs = System.Math.Max(1, System.Math.Min(16, System.Environment.ProcessorCount)); } catch (System.Exception ex) {
+                Core.Diagnostics.Bug($"[EngineSdk::SdkConsoleProgress::EmitPanelStart()] Failed to read processor count: {ex}");
                 /* ignore */
             }
             // 1 (progress) + 1 (header/none) + procs (active job lines) + 1 (overflow)
@@ -525,8 +568,8 @@ public static class EngineSdk {
                 int max = 8;
                 try {
                     max = System.Math.Max(1, System.Math.Min(16, System.Environment.ProcessorCount));
-                } catch {
-                    Core.Diagnostics.Bug("Failed to enumerate PATH directories");
+                } catch (System.Exception ex) {
+                    Core.Diagnostics.Bug($"[EngineSdk::SdkConsoleProgress::BuildPanelData()] Failed to read processor count: {ex}");
                     /* ignore */
                 }
                 System.DateTime now = System.DateTime.UtcNow;

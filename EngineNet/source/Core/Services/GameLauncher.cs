@@ -53,8 +53,8 @@ internal class GameLauncher {
         Dictionary<string, object?> ctx;
         try {
             ctx = Core.Utils.ExecutionContextBuilder.Build(currentGame: name, games: games, engineConfig: _config.Data);
-        } catch {
-            Diagnostics.Bug($"[GameLauncher] err building context for game '{name}'");
+        } catch (System.Exception ex) {
+            Diagnostics.Bug($"[GameLauncher] err building context for game '{name}': {ex}");
             ctx = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase) {
                 ["Game_Root"] = root,
                 ["Project_Root"] = this._rootPath
@@ -100,9 +100,13 @@ internal class GameLauncher {
             } else {
                 Diagnostics.Trace($"[GameLauncher] no game.toml found for game '{name}' at expected path: {gameToml}");
             }
-        } catch {
-            /* ignore malformed toml */
-            Diagnostics.Bug($"[GameLauncher] err parsing game.toml for game '{name}'");
+        } catch (System.IO.IOException ex) {
+            /* keep fallback behavior: malformed or unreadable toml should not block launch */
+            Diagnostics.Bug($"[GameLauncher] IO error parsing game.toml for game '{name}': {ex}");
+        } catch (System.UnauthorizedAccessException ex) {
+            Diagnostics.Bug($"[GameLauncher] Access denied parsing game.toml for game '{name}': {ex}");
+        } catch (System.Exception ex) {
+            Diagnostics.Bug($"[GameLauncher] Unexpected error parsing game.toml for game '{name}': {ex}");
         }
 
         // if lua script exists, run it
@@ -144,7 +148,10 @@ internal class GameLauncher {
                 return _commandService.LaunchDetached(godotPath, new[] { godotProject }, workDir, new DetachedLaunchOptions {
                     UseShellExecute = false
                 });
-            } catch { return false; }
+            } catch (System.Exception ex) {
+                Core.Diagnostics.Bug($"[GameLauncher] err launching godot project '{godotProject}' for game '{name}': {ex}");
+                return false;
+            }
         }
 
         // exe path from game.toml or registry
@@ -157,8 +164,8 @@ internal class GameLauncher {
             return _commandService.LaunchDetached(exe, System.Array.Empty<string>(), work, new DetachedLaunchOptions {
                 UseShellExecute = true
             });
-        } catch {
-            Core.Diagnostics.Bug($"[GameLauncher] err launching exe '{exe}' for game '{name}'");
+        } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"[GameLauncher] err launching exe '{exe}' for game '{name}': {ex}");
             return false;
         }
     }

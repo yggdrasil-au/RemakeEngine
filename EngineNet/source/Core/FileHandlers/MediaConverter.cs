@@ -167,14 +167,16 @@ internal static class MediaConverter {
                         System.Threading.Interlocked.Increment(ref processed);
                     }
                 });
-            } catch (System.OperationCanceledException) {
+            } catch (System.OperationCanceledException ex) {
+                Core.Diagnostics.Bug($"[MediaConverter::Run()] Conversion cancelled by user: {ex}");
                 Core.UI.EngineSdk.Warn("\nConversion cancelled by user.");
             }
 
             progressCts.Cancel();
             try {
-                progressTask.Wait();
-            } catch {
+                progressTask.Wait(cancellationToken);
+            } catch (System.AggregateException ex) {
+                Core.Diagnostics.Bug($"[MediaConverter::Run()] Progress task wait failed: {ex}");
                 Core.Diagnostics.Trace("[MediaConverter] Progress task cancelled.");
                 // ignore
             }
@@ -195,6 +197,7 @@ internal static class MediaConverter {
 
             return true;
         } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"[MediaConverter.cs::Run()] Media conversion failed: {ex}");
             Core.UI.EngineSdk.Error($"Media conversion failed: {ex.Message}");
             Core.Diagnostics.Log($"[MediaConverter.cs::Run()] MediaConverter: Exception during media conversion: {ex}");
             return false;
@@ -326,8 +329,11 @@ internal static class MediaConverter {
                                 if (System.IO.File.Exists(tmpWav)) {
                                     System.IO.File.Delete(tmpWav);
                                 }
-                            } catch {
-                                Core.Diagnostics.Bug("Failed to delete temporary WAV file: " + tmpWav);
+                            } catch (System.IO.IOException ex) {
+                                Core.Diagnostics.Bug("[MediaConverter::ConvertOne()] Failed to delete temporary WAV file: " + tmpWav + " with exception: " + ex);
+                                /* ignore */
+                            } catch (System.UnauthorizedAccessException ex) {
+                                Core.Diagnostics.Bug("[MediaConverter::ConvertOne()] Access denied while deleting temporary WAV file: " + tmpWav + " with exception: " + ex);
                                 /* ignore */
                             }
                         }
@@ -344,11 +350,16 @@ internal static class MediaConverter {
 
             return (false, $"Unsupported mode: {opt.Mode}");
         } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"[MediaConverter::ConvertOne()] Conversion failed for '{srcPath}' -> '{destPath}': {ex}");
             try {
                 if (System.IO.File.Exists(destPath)) {
                     System.IO.File.Delete(destPath);
                 }
-            } catch {
+            } catch (System.IO.IOException cleanupEx) {
+                Core.Diagnostics.Bug($"[MediaConverter::ConvertOne()] Failed to clean up destination '{destPath}' after error: {cleanupEx}");
+                /* safe to ignore: best-effort temp file cleanup */
+            } catch (System.UnauthorizedAccessException cleanupEx) {
+                Core.Diagnostics.Bug($"[MediaConverter::ConvertOne()] Access denied during cleanup of '{destPath}': {cleanupEx}");
                 /* safe to ignore: best-effort temp file cleanup */
             }
             return (false, ex.Message);
@@ -363,15 +374,15 @@ internal static class MediaConverter {
                 File = System.IO.Path.GetFileName(srcPath),
                 StartedUtc = System.DateTime.UtcNow
             };
-        } catch{
-            Core.Diagnostics.Bug("Failed to register active process for media conversion");
+        } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"[MediaConverter::RegisterActive()] Failed to register active process for media conversion: {ex}");
             /* ignore */
         }
     }
 
     private static void UnregisterActive() {
-        try { s_active.TryRemove(System.Threading.Thread.CurrentThread.ManagedThreadId, out _); } catch {
-            Core.Diagnostics.Bug("Failed to unregister active process for media conversion");
+        try { s_active.TryRemove(System.Threading.Thread.CurrentThread.ManagedThreadId, out _); } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"[MediaConverter::UnregisterActive()] Failed to unregister active process for media conversion: {ex}");
             /* ignore */
         }
     }
@@ -388,8 +399,8 @@ internal static class MediaConverter {
             p.StartInfo.CreateNoWindow = true;
             p.StartInfo.RedirectStandardError = !passthroughOutput;
             p.StartInfo.RedirectStandardOutput = !passthroughOutput;
-            try { p.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8; } catch { /* non-critical: default encoding is fine */ }
-            try { p.StartInfo.StandardOutputEncoding = System.Text.Encoding.UTF8; } catch { /* non-critical */ }
+            try { p.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8; } catch (System.Exception ex) { Core.Diagnostics.Bug($"[MediaConverter::Exec()] Failed to set stderr encoding for '{fileName}': {ex}"); /* non-critical: default encoding is fine */ }
+            try { p.StartInfo.StandardOutputEncoding = System.Text.Encoding.UTF8; } catch (System.Exception ex) { Core.Diagnostics.Bug($"[MediaConverter::Exec()] Failed to set stdout encoding for '{fileName}': {ex}"); /* non-critical */ }
 
             using var job = System.OperatingSystem.IsWindows() ? new Utils.JobObject() : null;
 
@@ -414,7 +425,7 @@ internal static class MediaConverter {
 
             while (!p.HasExited) {
                 if (cancellationToken.IsCancellationRequested) {
-                    try { p.Kill(true); } catch { }
+                    try { p.Kill(true); } catch (System.Exception ex) { Core.Diagnostics.Bug($"[MediaConverter::Exec()] Failed to kill process '{fileName}' during cancellation: {ex}"); }
                     return (false, "cancelled by user");
                 }
                 System.Threading.Thread.Sleep(100);
@@ -422,7 +433,7 @@ internal static class MediaConverter {
 
             int exitCode = p.ExitCode;
             // Explicitly dispose to release file handles
-            p.Dispose();
+            // p.Dispose();
 
             if (exitCode == 0) {
                 return (true, null);
@@ -439,6 +450,7 @@ internal static class MediaConverter {
             }
             return (false, $"exit code {exitCode}");
         } catch (System.Exception ex) {
+            Core.Diagnostics.Bug($"[MediaConverter::Exec()] Process execution failed for '{fileName}': {ex}");
             return (false, ex.Message);
         }
     }
@@ -488,8 +500,14 @@ internal static class MediaConverter {
                     fs.Position++;
                 }
             }
-        } catch {
-            Core.Diagnostics.Bug("Failed to read WAV channels from file: " + path);
+        } catch (System.IO.IOException ex) {
+            Core.Diagnostics.Bug("[MediaConverter::TryReadWavChannels()] IO failure while reading WAV channels from file: " + path + " with exception: " + ex);
+            /* ignore parse errors */
+        } catch (System.UnauthorizedAccessException ex) {
+            Core.Diagnostics.Bug("[MediaConverter::TryReadWavChannels()] Access denied while reading WAV channels from file: " + path + " with exception: " + ex);
+            /* ignore parse errors */
+        } catch (System.Exception ex) {
+            Core.Diagnostics.Bug("[MediaConverter::TryReadWavChannels()] Unexpected failure while reading WAV channels from file: " + path + " with exception: " + ex);
             /* ignore parse errors */
         }
         return null;

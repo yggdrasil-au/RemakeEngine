@@ -56,13 +56,14 @@ public class CommandService {
 
             if (timeoutMs.HasValue) {
                 if (!process.WaitForExit(timeoutMs.Value)) {
-                    try { process.Kill(entireProcessTree: true); } catch { /* ignore */ }
+                    try { process.Kill(entireProcessTree: true); } catch (Exception ex) { Diagnostics.Bug($"[CommandService::RunProcess()] Failed to kill timed-out process '{executable}': {ex}"); /* ignore */ }
                     throw new Exception($"Process '{executable}' timed out after {timeoutMs.Value} ms");
                 }
             } else {
                 process.WaitForExit();
             }
         } catch (Exception ex) {
+            Diagnostics.Bug($"[CommandService::RunProcess()] Failed to run process '{executable}': {ex}");
             throw new Exception($"Failed to run process '{executable}': {ex.Message}");
         }
 
@@ -99,7 +100,7 @@ public class CommandService {
         }
 
         p.Exited += (_, __) => {
-            try { mp.ExitTcs.TrySetResult(p.ExitCode); } catch { /* ignore */ }
+            try { mp.ExitTcs.TrySetResult(p.ExitCode); } catch (Exception ex) { Diagnostics.Bug($"[CommandService::SpawnProcess()] Failed setting ExitTcs result for '{executable}': {ex}"); /* ignore */ }
         };
 
         if (!p.Start()) {
@@ -133,7 +134,10 @@ public class CommandService {
             } else {
                 mp.ExitTcs.Task.Wait(Timeout.Infinite);
             }
-        } catch { /* ignore wait errors */ }
+        } catch (Exception ex) {
+            Diagnostics.Bug($"[CommandService::WaitProcess()] Wait failed for pid {pid}: {ex}");
+            /* ignore wait errors */
+        }
 
         return ExtractProcessState(mp);
     }

@@ -25,8 +25,14 @@ internal sealed class JsonHelpers {
                 // Step 6: Ensure we never return null.
                 return dict ?? new Dictionary<string, object?>();
             }
-        } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"[JsonHelpers] Failed to load or parse JSON config file at '{filePath}'. Returning empty config. Exception: {ex}");
+        } catch (System.Text.Json.JsonException ex) {
+            Core.Diagnostics.Bug($"[JsonHelpers] JSON parsing error for file '{filePath}': {ex}");
+        } catch (System.IO.IOException ex) {
+            Core.Diagnostics.Bug($"[JsonHelpers] IO error reading file '{filePath}': {ex}");
+        } catch (System.UnauthorizedAccessException ex) {
+            Core.Diagnostics.Bug($"[JsonHelpers] Access denied reading JSON file '{filePath}': {ex}");
+        } catch (System.ArgumentException ex) {
+            Core.Diagnostics.Bug($"[JsonHelpers] Invalid JSON file path '{filePath}': {ex}");
         }
 
         // Step 8: Missing file or error path -> empty config (safe default).
