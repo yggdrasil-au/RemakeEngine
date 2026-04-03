@@ -14,7 +14,7 @@ public static class EngineSdk {
     public static bool MuteStdoutWhenLocalSink { get; set; } = true;
 
     // Auto-responses for prompts by ID. When a prompt with matching ID is requested, the corresponding response is returned automatically without user interaction.
-    public static Dictionary<string, string> AutoPromptResponses { get; set; } = new(System.StringComparer.OrdinalIgnoreCase);
+    public static Dictionary<string, string> AutoPromptResponses { get; set; } = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
 
     private static readonly System.Text.Json.JsonSerializerOptions JsonOpts = new() {
         WriteIndented = false,
@@ -277,7 +277,7 @@ public static class EngineSdk {
         public int Total => _total;
         public int Current => System.Threading.Volatile.Read(ref _processed);
         public string Id { get; }
-        public string? Label => _label;
+        public string Label => _label;
 
         public ScriptProgress(int total, string id = "s1", string? label = null) {
             _total = System.Math.Max(1, total);
@@ -418,7 +418,7 @@ public static class EngineSdk {
         public long Total => _total;
         public long Current => System.Threading.Volatile.Read(ref _processed);
         public string Id { get; }
-        public string? Label => _label;
+        public string Label => _label;
 
         public PanelProgress(long total, string id = "p1", string? label = null) {
             _total = System.Math.Max(1, total);
@@ -432,7 +432,7 @@ public static class EngineSdk {
                     long p = System.Threading.Volatile.Read(ref _processed);
                     // Use 'ok' equal to processed (clamped to int) for a simple linear flow.
                     int ok = p > int.MaxValue ? int.MaxValue : (int)p;
-                    return (processed: p, ok: ok, skip: 0, err: 0);
+                    return (processed: p, ok, skip: 0, err: 0);
                 },
                 activeSnapshot: () => new List<SdkConsoleProgress.ActiveProcess>(),
                 label: _label,

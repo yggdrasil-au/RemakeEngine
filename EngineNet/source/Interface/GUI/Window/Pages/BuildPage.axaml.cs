@@ -1,7 +1,5 @@
-using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using EngineNet.Interface.GUI.Services;
 
 namespace EngineNet.Interface.GUI.Pages;
 
@@ -33,10 +31,10 @@ public partial class BuildingPage:UserControl {
         try {
             _outputTextBox = this.FindControl<TextBox>(name: "OutputTextBox");
             if (_outputTextBox != null) {
-                _outputTextBox.AttachedToVisualTree += (_, __) => WireScrollViewer();
+                _outputTextBox.AttachedToVisualTree += (_, _) => WireScrollViewer();
 
                 // When new lines are added or updated, keep the view pinned to bottom if the user hasn't scrolled up
-                Service.Lines.CollectionChanged += (_, __) => TryAutoScroll();
+                Service.Lines.CollectionChanged += (_, _) => TryAutoScroll();
                 Service.PropertyChanged += (_, args) => {
                     if (args.PropertyName == nameof(OperationOutputService.FullLogText)) {
                         TryAutoScroll();
@@ -54,7 +52,7 @@ public partial class BuildingPage:UserControl {
         _outputScroll = _outputTextBox.FindDescendantOfType<ScrollViewer>();
         if (_outputScroll != null) {
             // Track user-initiated scroll to disable auto-scroll when scrolled up significantly
-            _outputScroll.ScrollChanged += (_, __) => UpdateAutoScrollFlag();
+            _outputScroll.ScrollChanged += (_, _) => UpdateAutoScrollFlag();
             UpdateAutoScrollFlag();
         }
     }

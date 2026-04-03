@@ -51,7 +51,7 @@ internal static class ImageMagickConverter {
         internal int? Quality;   // 0..100
 
         // Raw passthrough
-        internal readonly List<string> ExtraArgs = new();
+        internal readonly List<string> ExtraArgs = new List<string>();
     }
 
     internal static bool Run(EngineNet.Core.ExternalTools.JsonToolResolver toolResolver, IList<string> args, System.Threading.CancellationToken cancellationToken = default) {
@@ -200,7 +200,7 @@ internal static class ImageMagickConverter {
             }
 
             // Optional quality (only if provided)
-            if (opt.Quality is int q && q >= 0 && q <= 100) {
+            if (opt.Quality is int q and >= 0 and <= 100) {
                 a.Add("-quality");
                 a.Add(q.ToString());
             }
@@ -424,7 +424,7 @@ internal static class ImageMagickConverter {
                     o.ExtraArgs.Add(NextVal());
                     break;
                 default:
-                    // ignore unknowns for forward-compat
+                    Core.Diagnostics.Log($"[ImageMagickConverter::Parse()] Unknown argument '{a}'.");
                     break;
             }
         }

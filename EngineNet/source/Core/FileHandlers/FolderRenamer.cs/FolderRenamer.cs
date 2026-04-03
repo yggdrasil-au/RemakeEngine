@@ -2,11 +2,11 @@
 namespace EngineNet.Core.FileHandlers;
 
 internal static partial class FolderRenamer {
-
     /// <summary>
     /// Renames directories in a target tree according to a mapping from SQLite, JSON, or inline CLI definitions.
     /// </summary>
     /// <param name="args">CLI-style args: TARGET_DIR [--map-db-file PATH --db-table-name NAME] | [--map-cli OLD NEW ...] | [--map-json PATH]</param>
+    /// <param name="cancellationToken"></param>
     /// <returns>True if renames completed; false if a failure occurred.</returns>
     internal static bool Run(IList<string> args, System.Threading.CancellationToken cancellationToken) {
         // TODO: implement Cancelation Token handling
@@ -19,8 +19,8 @@ internal static partial class FolderRenamer {
             return false;
         }
 
-        Dictionary<string, string>? renameMap = null;
-        string mapDescription = "default";
+        Dictionary<string, string>? renameMap;
+        string mapDescription;
 
         if (!string.IsNullOrWhiteSpace(options.MapDbFile)) {
             string dbPath = NormalizePath(options.MapDbFile!);

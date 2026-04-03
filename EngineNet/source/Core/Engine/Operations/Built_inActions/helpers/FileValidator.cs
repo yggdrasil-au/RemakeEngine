@@ -21,10 +21,10 @@ internal static class FileValidator {
                 throw new System.ArgumentException("Required directory options cannot be empty.");
             }
 
-            Options = options;
+            Variants = options;
         }
 
-        internal IReadOnlyList<string> Options {
+        internal IReadOnlyList<string> Variants {
             get;
         }
     }
@@ -36,7 +36,7 @@ internal static class FileValidator {
     /// <param name="args">CLI-style args: DB_PATH BASE_DIR [--tables spec] [--required-dirs dir1,dir2] [--no-required-dirs-check] [--debug]</param>
     /// <param name="cancellationToken"></param>
     /// <returns>True if all required files exist (or no rows to check); false otherwise.</returns>
-    internal static bool Run(IList<string> args, System.Threading.CancellationToken cancellationToken = default) {
+    internal static bool Run(IList<string> args, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         // TODO: implement Cancelation Token handling
         try {
             Options options = Parse(args);
@@ -198,7 +198,7 @@ internal static class FileValidator {
             bool groupFound = false;
             string? matchedOption = null;
 
-            foreach (string option in dirGroup.Options) {
+            foreach (string option in dirGroup.Variants) {
                 string expected = System.IO.Path.Combine(baseFolder, option);
                 if (System.IO.Directory.Exists(expected)) {
                     groupFound = true;
@@ -209,13 +209,13 @@ internal static class FileValidator {
 
             if (groupFound) {
                 foundCount += 1;
-                if (dirGroup.Options.Count > 1) {
-                    string key = string.Join("||", dirGroup.Options);
+                if (dirGroup.Variants.Count > 1) {
+                    string key = string.Join("||", dirGroup.Variants);
                     matchedVariants[key] = matchedOption!;
                 }
             } else {
                 allFound = false;
-                missing.Add(string.Join("||", dirGroup.Options));
+                missing.Add(string.Join("||", dirGroup.Variants));
             }
         }
 

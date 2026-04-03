@@ -6,7 +6,7 @@ namespace EngineNet.Core;
 /// are parsed as JSON event payloads and forwarded to <c>onEvent</c>.
 /// Supports interactive prompts by invoking <c>stdinProvider</c> when a prompt event is received.
 /// </summary>
-public sealed partial class ProcessRunner() {
+public sealed partial class ProcessRunner {
     /// <summary>
     /// Callback to receive a single line of output from the child process.
     /// </summary>

@@ -278,7 +278,7 @@ internal static partial class Sdk {
                 if (!string.IsNullOrEmpty(parent)) {
                     System.IO.Directory.CreateDirectory(parent);
                 }
-                System.IO.File.WriteAllText(safePath, content ?? string.Empty);
+                System.IO.File.WriteAllText(safePath, content);
                 return true;
             } catch (Exception ex) {
                 Core.Diagnostics.LuaInternalCatch("write_file failed with exception: " + ex);
@@ -344,7 +344,7 @@ internal static partial class Sdk {
                     try {
                         FileInfo fi = new FileInfo(safePath);
                         if (fi.IsReadOnly) return false;
-                        using (FileStream fs = File.Open(safePath, FileMode.Open, FileAccess.Write, FileShare.ReadWrite)) {
+                        using (File.Open(safePath, FileMode.Open, FileAccess.Write, FileShare.ReadWrite)) {
                             return true;
                         }
                     } catch (Exception ex) {

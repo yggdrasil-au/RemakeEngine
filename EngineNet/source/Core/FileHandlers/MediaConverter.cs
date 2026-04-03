@@ -48,31 +48,31 @@ internal static class MediaConverter {
     /// --workers N, --godot, --verbose, --debug, codec/quality options.</param>
     /// <param name="cancellationToken">Cancellation token to abort the conversion.</param>
     /// <returns>True if all files were processed successfully; false otherwise.</returns>
-    internal static bool Run(EngineNet.Core.ExternalTools.JsonToolResolver toolResolver, IList<string> args, System.Threading.CancellationToken cancellationToken = default) {
+    internal static bool Run(EngineNet.Core.ExternalTools.JsonToolResolver toolResolver, IList<string> args, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         try {
             Options opt = Parse(args);
 
             // Resolve executables using the tool resolver
-            opt.FfmpegPath = opt.FfmpegPath ?? toolResolver.ResolveToolPath(ToolFfmpeg);
-            opt.VgmstreamCli = opt.VgmstreamCli ?? toolResolver.ResolveToolPath(VgmstreamCliName);
+            opt.FfmpegPath ??= toolResolver.ResolveToolPath(ToolFfmpeg);
+            opt.VgmstreamCli ??= toolResolver.ResolveToolPath(VgmstreamCliName);
 
             // check if current required tool exist
             if (string.Equals(opt.Mode, ToolFfmpeg, System.StringComparison.OrdinalIgnoreCase)) {
                 if (!System.IO.File.Exists(opt.FfmpegPath!)) {
                     Core.UI.EngineSdk.Error($"ffmpeg executable not found: {opt.FfmpegPath}");
-                    Core.UI.EngineSdk.Error($"Please ensure ffmpeg is installed. You can download it using the 'Download Required Tools' operation.");
+                    Core.UI.EngineSdk.Error("Please ensure ffmpeg is installed. You can download it using the 'Download Required Tools' operation.");
                     return false;
                 }
             } else if (string.Equals(opt.Mode, ToolVgmstream, System.StringComparison.OrdinalIgnoreCase)) {
                 if (!System.IO.File.Exists(opt.VgmstreamCli!)) {
                     Core.UI.EngineSdk.Error($"vgmstream-cli executable not found: {opt.VgmstreamCli}");
-                    Core.UI.EngineSdk.Error($"Please ensure vgmstream-cli is installed. You can download it using the 'Download Required Tools' operation.");
+                    Core.UI.EngineSdk.Error("Please ensure vgmstream-cli is installed. You can download it using the 'Download Required Tools' operation.");
                     return false;
                 }
                 // If using vgmstream with Godot mode, we also need ffmpeg
                 if (opt.GodotCompatible && (string.IsNullOrEmpty(opt.FfmpegPath) || !System.IO.File.Exists(opt.FfmpegPath))) {
                     Core.UI.EngineSdk.Error($"ffmpeg executable not found: {opt.FfmpegPath ?? "null"}");
-                    Core.UI.EngineSdk.Error($"vgmstream with --godot-compatible requires ffmpeg for post-processing. Please ensure ffmpeg is installed.");
+                    Core.UI.EngineSdk.Error("vgmstream with --godot-compatible requires ffmpeg for post-processing. Please ensure ffmpeg is installed.");
                     return false;
                 }
             }
@@ -204,7 +204,7 @@ internal static class MediaConverter {
         }
     }
 
-    private static (bool ok, string? message) ConvertOne(string srcPath, string destPath, Options opt, System.Threading.CancellationToken cancellationToken = default) {
+    private static (bool ok, string? message) ConvertOne(string srcPath, string destPath, Options opt, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         try {
             // Build external commands
             if (string.Equals(opt.Mode, ToolFfmpeg, System.StringComparison.OrdinalIgnoreCase)) {
@@ -387,7 +387,7 @@ internal static class MediaConverter {
         }
     }
 
-    private static (bool ok, string? message) Exec(string fileName, IList<string> arguments, bool passthroughOutput, System.Threading.CancellationToken cancellationToken = default) {
+    private static (bool ok, string? message) Exec(string fileName, IList<string> arguments, bool passthroughOutput, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         try {
             using System.Diagnostics.Process p = new System.Diagnostics.Process();
             p.StartInfo.FileName = fileName;
@@ -483,7 +483,7 @@ internal static class MediaConverter {
                 string id = new string(br.ReadChars(4));
                 uint size = br.ReadUInt32();
                 if (id == "fmt ") {
-                    ushort audioFormat = br.ReadUInt16();
+                    //ushort audioFormat = br.ReadUInt16();
                     ushort channels = br.ReadUInt16();
                     // skip rest of fmt
                     long remaining = (long)size - 4;
@@ -518,7 +518,9 @@ internal static class MediaConverter {
         // Simple argv parser (supports both short and long flags)
         for (int i = 0; i < argv.Count; i++) {
             string a = argv[i];
-            string NextVal() => ++i < argv.Count ? argv[i] : throw new System.ArgumentException($"Missing value for {a}");
+            string NextVal() {
+                return ++i < argv.Count ? argv[i] : throw new System.ArgumentException($"Missing value for {a}");
+            }
 
             switch (a) {
                 case "-m":

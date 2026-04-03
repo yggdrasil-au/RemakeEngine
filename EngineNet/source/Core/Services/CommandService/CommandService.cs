@@ -7,26 +7,18 @@ using EngineNet.Core.Utils;
 namespace EngineNet.Core.Services;
 
 public class CommandService {
-    private readonly CommandBuilder _builder;
-    private readonly ProcessRunner _runner;
-
-    public CommandBuilder Builder => _builder;
-    public ProcessRunner Runner => _runner;
+    private readonly CommandBuilder _builder = new CommandBuilder();
+    private readonly ProcessRunner _runner = new ProcessRunner();
 
     // Tracks spawned background processes
-    private readonly ConcurrentDictionary<int, ManagedProcess> _spawnedProcesses = new();
+    private readonly ConcurrentDictionary<int, ManagedProcess> _spawnedProcesses = new ConcurrentDictionary<int, ManagedProcess>();
     private int _nextPid;
-
-    public CommandService() {
-        _builder = new CommandBuilder();
-        _runner = new ProcessRunner();
-    }
 
     public List<string> BuildCommand(string currentGame, Dictionary<string, Data.GameModuleInfo> games, IDictionary<string, object?> engineData, IDictionary<string, object?> op, Data.PromptAnswers promptAnswers) {
         return _builder.Build(currentGame, games, engineData, op, promptAnswers);
     }
 
-    public bool ExecuteCommand(IList<string> commandParts, string title, ProcessRunner.OutputHandler? onOutput = null, ProcessRunner.EventHandler? onEvent = null, ProcessRunner.StdinProvider? stdinProvider = null, IDictionary<string, object?>? envOverrides = null, CancellationToken cancellationToken = default) {
+    public bool ExecuteCommand(IList<string> commandParts, string title, ProcessRunner.OutputHandler? onOutput = null, ProcessRunner.EventHandler? onEvent = null, ProcessRunner.StdinProvider? stdinProvider = null, IDictionary<string, object?>? envOverrides = null, CancellationToken cancellationToken = default(CancellationToken)) {
         return _runner.Execute(commandParts, title, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, envOverrides: envOverrides, cancellationToken: cancellationToken);
     }
 
@@ -40,7 +32,8 @@ public class CommandService {
         StringBuilder stdoutBuilder = new StringBuilder();
         StringBuilder stderrBuilder = new StringBuilder();
 
-        using Process process = new Process { StartInfo = psi };
+        using Process process = new Process();
+        process.StartInfo = psi;
 
         if (captureStdout) {
             process.OutputDataReceived += (_, e) => { if (e.Data != null) { lock (stdoutBuilder) { stdoutBuilder.AppendLine(e.Data); } } };
@@ -99,7 +92,7 @@ public class CommandService {
             };
         }
 
-        p.Exited += (_, __) => {
+        p.Exited += (_, _) => {
             try { mp.ExitTcs.TrySetResult(p.ExitCode); } catch (Exception ex) { Diagnostics.Bug($"[CommandService::SpawnProcess()] Failed setting ExitTcs result for '{executable}': {ex}"); /* ignore */ }
         };
 
@@ -216,7 +209,8 @@ public class CommandService {
                     foreach (var kv in env) { psi.Environment[kv.Key] = kv.Value; }
                 }
 
-                using Process p = new Process { StartInfo = psi };
+                using Process p = new Process();
+                p.StartInfo = psi;
                 p.Start();
                 if (wait) {
                     p.WaitForExit();
@@ -244,7 +238,8 @@ public class CommandService {
                     }
 
                     if (!string.IsNullOrEmpty(cwd)) { psi.WorkingDirectory = cwd; }
-                    using Process p = new Process { StartInfo = psi };
+                    using Process p = new Process();
+                    p.StartInfo = psi;
                     p.Start();
                     if (wait) {
                         p.WaitForExit();
@@ -331,7 +326,7 @@ public class CommandService {
         internal object StderrLock { get; } = new object();
         internal int StdoutCursor { get; set; }
         internal int StderrCursor { get; set; }
-        internal TaskCompletionSource<int> ExitTcs { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal TaskCompletionSource<int> ExitTcs { get; } = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
     }
 }
 

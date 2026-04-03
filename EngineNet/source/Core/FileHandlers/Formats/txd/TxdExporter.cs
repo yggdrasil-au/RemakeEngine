@@ -105,7 +105,7 @@ internal static partial class TxdExtractor {
                 }
             }
 
-            SegmentScanner scanner = new(data, txdFilePath);
+            var scanner = new SegmentScanner(data, txdFilePath);
             (List<Segment> segments, int totalTextures) = scanner.CollectSegments();
             if (segments.Count == 0) {
                 return 0;

@@ -24,10 +24,10 @@ public static class Program {
     /* :: :: Main :: START :: */
     [STAThread]
     public static async System.Threading.Tasks.Task<int> Main(string[] args) {
-        var cts = new System.Threading.CancellationTokenSource();
+        using var cancellationToken = new System.Threading.CancellationTokenSource();
         System.Console.CancelKeyPress += (_, e) => {
             e.Cancel = true;
-            cts.Cancel();
+            cancellationToken.Cancel();
             Core.Diagnostics.Log("Global Cancellation Requested (Ctrl+C)");
         };
 
@@ -88,7 +88,7 @@ public static class Program {
             if (isGui) {
                 Core.Diagnostics.Trace("Launching GUI Interface...");
                 //return Interface.GUI.GuiBootstrapper.Run(Engine); // ;; gui flow step1 ;;
-                return await UI.init(args, "gui", cts.Token);
+                return await UI.init(args, "gui", cancellationToken.Token);
             }
 
             // Logic:
@@ -96,8 +96,8 @@ public static class Program {
             if (isTui) {
                 Core.Diagnostics.Trace("Launching TUI Interface...");
                 //Interface.Terminal.TUI TUI = new Interface.Terminal.TUI(Engine);
-                //return await TUI.RunInteractiveMenuAsync(cts.Token);
-                return await UI.init(args, "tui", cts.Token);
+                //return await TUI.RunInteractiveMenuAsync(cancellationToken.Token);
+                return await UI.init(args, "tui", cancellationToken.Token);
             }
 
             // Logic:
@@ -105,8 +105,8 @@ public static class Program {
             if (isCli) {
                 Core.Diagnostics.Trace("Launching CLI Interface...");
                 //Interface.Terminal.CLI CLI = new Interface.Terminal.CLI(Engine);
-                //return await CLI.RunAsync(args, cts.Token);
-                return await UI.init(args, "cli", cts.Token);
+                //return await CLI.RunAsync(args, cancellationToken.Token);
+                return await UI.init(args, "cli", cancellationToken.Token);
             }
             EngineSdk.Error("No valid interface mode selected.");
             Core.Diagnostics.Bug("No valid interface mode selected.");
@@ -122,7 +122,7 @@ public static class Program {
             if (System.OperatingSystem.IsWindows()) {
                 ConsoleHelper.FreeConsole();
             }
-            cts.Dispose();
+            //cancellationToken.Dispose();
         }
     }
 

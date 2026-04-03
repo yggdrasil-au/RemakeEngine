@@ -1,26 +1,27 @@
 
 namespace EngineNet.Interface.GUI.Pages;
 
+using Core.Data;
+
 public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     /* :: :: Vars :: START :: */
     private readonly string _moduleName;
 
-    private readonly List<Core.Data.PreparedOperation> _initOperations = new();
+    private readonly List<Core.Data.PreparedOperation> _initOperations = new List<PreparedOperation>();
 
     private class SessionState {
         public bool HasNavigatedOnce { get; set; }
         public bool DontAskAgain { get; set; }
-        public bool AutoRunInit { get; set; }
+        //public bool AutoRunInit { get; set; }
     }
-    private static readonly Dictionary<string, SessionState> _moduleStates = new();
+    private static readonly Dictionary<string, SessionState> _moduleStates = new Dictionary<string, SessionState>();
 
     private SessionState CurrentState {
         get {
-            if (!_moduleStates.TryGetValue(_moduleName, out var state)) {
-                state = new SessionState();
-                _moduleStates[_moduleName] = state;
-            }
+            if (_moduleStates.TryGetValue(_moduleName, out var state)) return state;
+            state = new SessionState();
+            _moduleStates[_moduleName] = state;
             return state;
         }
     }
@@ -100,7 +101,6 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     /* :: :: Constructors :: END :: */
     // //
     /* :: :: Methods :: START :: */
-
     private async void OnLoaded(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e) {
         if (_initOperations.Count == 0 || GuiBootstrapper.MiniEngine is null) {
             IsExecutionEnabled = true;
@@ -139,7 +139,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
         if (response.DontAskAgain) {
             state.DontAskAgain = true;
-            state.AutoRunInit = response.Result;
+            //state.AutoRunInit = response.Result;
         }
 
         if (response.Result) {
@@ -165,7 +165,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
             // Gather module info from multiple sources
             Dictionary<string, Core.Data.GameModuleInfo> modules = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
-            Core.Data.GameModuleInfo? m = modules.TryGetValue(_moduleName, out Core.Data.GameModuleInfo? mm) ? mm : null;
+            Core.Data.GameModuleInfo? m = modules.GetValueOrDefault(_moduleName);
             if (m is not null) {
                 Title = string.IsNullOrWhiteSpace(m.Title) ? m.Name : m.Title;
                 ExePath = m.ExePath;
@@ -174,7 +174,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 IsInstalled = m.IsInstalled;
                 IsRegistered = m.IsRegistered;
                 IsUnverified = m.IsUnverified;
-                IsUnbuilt = m.IsInstalled && !m.IsBuilt;
+                IsUnbuilt = m is { IsInstalled: true, IsBuilt: false };
                 Image = ResolveCoverBitmap(gameRoot: GameRoot);
             } else {
                 Title = _moduleName;
@@ -291,7 +291,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             await EngineOperationRunner.RunAsync(
                 moduleName: ModuleName,
                 operationName: "Initialization Ops",
-                executor: async (onOutput, onEvent, stdin) => {
+                executor: async (_, onEvent, stdin) => {
                     Core.UI.EngineSdk.LocalEventSink = e => onEvent(e);
                     Core.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
 
@@ -343,10 +343,10 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             await EngineOperationRunner.RunAsync(
                 moduleName: ModuleName,
                 operationName: "Play",
-                executor: async (onOutput, onEvent, stdin) => {
+                executor: async (_, onEvent, stdin) => {
                     // Temporarily redirect engine events/output for this launch
                     var previousSink = Core.UI.EngineSdk.LocalEventSink;
-                    var previousMute = Core.UI.EngineSdk.MuteStdoutWhenLocalSink;
+                    bool previousMute = Core.UI.EngineSdk.MuteStdoutWhenLocalSink;
                     var previousIn = System.Console.In;
 
                     Core.UI.EngineSdk.LocalEventSink = e => onEvent(e);
@@ -469,7 +469,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             await EngineOperationRunner.RunAsync(
                 moduleName: ModuleName,
                 operationName: $"Download {ModuleName}",
-                executor: async (onOutput, onEvent, stdin) => {
+                executor: async (onOutput, onEvent, _) => {
                     onEvent(new Dictionary<string, object?> { ["event"] = "start", ["name"] = ModuleName, ["url"] = RegistryUrl });
                     bool result = await System.Threading.Tasks.Task.Run(function: () => GuiBootstrapper.MiniEngine.GitService_CloneModule(RegistryUrl!));
                     onOutput(result ? $"Download complete for {ModuleName}." : $"Download failed for {ModuleName}.", result ? "stdout" : "stderr");
@@ -509,52 +509,41 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             return;
         }
 
-        Core.Services.OperationsService.PromptHandler handler = async request => {
+        async Task<PromptResponse> Handler(PromptRequest request) {
             switch (request.Type) {
                 case "confirm": {
                     bool defVal = request.DefaultValue is bool b && b;
-                    bool? res = await OperationOutputService.Instance.RequestConfirmPromptAsync(
-                        title: request.Title,
-                        message: request.Title,
-                        defaultValue: defVal
-                    );
+                    bool? res = await OperationOutputService.Instance.RequestConfirmPromptAsync(title: request.Title, message: request.Title, defaultValue: defVal);
                     if (res == null) {
                         return Core.Data.PromptResponse.Cancelled();
                     }
+
                     return Core.Data.PromptResponse.FromValue(res.Value);
                 }
                 case "select": {
                     string hint = request.Choices.Count > 0
                         ? $"Choices: {string.Join(", ", request.Choices.Select(choice => choice.Label))}"
                         : "No choices provided";
-                    string? v = await OperationOutputService.Instance.RequestTextPromptAsync(
-                        title: request.Title,
-                        message: hint,
-                        defaultValue: request.DefaultValue?.ToString(),
-                        secret: request.IsSecret
-                    );
+                    string? v = await OperationOutputService.Instance.RequestTextPromptAsync(title: request.Title, message: hint, defaultValue: request.DefaultValue?.ToString(), secret: request.IsSecret);
                     if (string.IsNullOrWhiteSpace(v)) {
                         return request.DefaultValue is not null
                             ? Core.Data.PromptResponse.UseDefaultValue()
                             : Core.Data.PromptResponse.FromValue(string.Empty);
                     }
+
                     return Core.Data.PromptResponse.FromValue(v);
                 }
                 case "checkbox": {
                     string hint = request.Choices.Count > 0
                         ? $"Enter comma-separated values (Choices: {string.Join(", ", request.Choices.Select(choice => choice.Label))})"
                         : "Enter comma-separated values";
-                    string? v = await OperationOutputService.Instance.RequestTextPromptAsync(
-                        title: request.Title,
-                        message: hint,
-                        defaultValue: null,
-                        secret: request.IsSecret
-                    );
+                    string? v = await OperationOutputService.Instance.RequestTextPromptAsync(title: request.Title, message: hint, defaultValue: null, secret: request.IsSecret);
 
                     if (string.IsNullOrWhiteSpace(v)) {
                         if (request.DefaultValue is IList<object?>) {
                             return Core.Data.PromptResponse.UseDefaultValue();
                         }
+
                         return Core.Data.PromptResponse.FromValue(new List<object?>());
                     }
 
@@ -563,28 +552,25 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                     foreach (string s in parts) {
                         list.Add(s);
                     }
+
                     return Core.Data.PromptResponse.FromValue(list);
                 }
-                case "text":
+                //case "text":
                 default: {
                     string? def = request.DefaultValue?.ToString();
-                    string? v = await OperationOutputService.Instance.RequestTextPromptAsync(
-                        title: request.Title,
-                        message: request.Title,
-                        defaultValue: def,
-                        secret: request.IsSecret
-                    );
+                    string? v = await OperationOutputService.Instance.RequestTextPromptAsync(title: request.Title, message: request.Title, defaultValue: def, secret: request.IsSecret);
                     if (string.IsNullOrWhiteSpace(v)) {
                         return request.DefaultValue is not null
                             ? Core.Data.PromptResponse.UseDefaultValue()
                             : Core.Data.PromptResponse.FromValue(string.Empty);
                     }
+
                     return Core.Data.PromptResponse.FromValue(v);
                 }
             }
-        };
+        }
 
-        await GuiBootstrapper.MiniEngine.OperationsService_CollectAnswersAsync(op, answers, handler, defaultsOnly);
+        await GuiBootstrapper.MiniEngine.OperationsService_CollectAnswersAsync(op, answers, Handler, defaultsOnly);
     }
 
     /* :: :: Methods :: END :: */

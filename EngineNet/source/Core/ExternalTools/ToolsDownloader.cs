@@ -8,14 +8,14 @@ namespace EngineNet.Core.ExternalTools;
 
 internal sealed class ToolsDownloader {
     private readonly string _rootPath;
-    private readonly string _centralRepoJsonPath;
+    //private readonly string _centralRepoJsonPath;
 
     internal ToolsDownloader(string rootPath, string centralRepoJsonPath) {
         _rootPath = rootPath;
-        _centralRepoJsonPath = centralRepoJsonPath;
+        //_centralRepoJsonPath = centralRepoJsonPath;
     }
 
-    internal async System.Threading.Tasks.Task<bool> ProcessAsync(string moduleTomlPath, bool force, IDictionary<string, object?>? context = null, System.Threading.CancellationToken cancellationToken = default) {
+    internal async System.Threading.Tasks.Task<bool> ProcessAsync(string moduleTomlPath, bool force, IDictionary<string, object?>? context = null, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         Core.UI.EngineSdk.PrintLine(string.Empty);
         Core.UI.EngineSdk.PrintLine($"=== Tools Downloader - manifest: {moduleTomlPath} ===", System.ConsoleColor.DarkCyan);
         if (!System.IO.File.Exists(moduleTomlPath)) {
@@ -35,7 +35,7 @@ internal sealed class ToolsDownloader {
         Dictionary<string, object?> lockData = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
         if (System.IO.File.Exists(lockPath)) {
             try {
-                using var doc = System.Text.Json.JsonDocument.Parse(await System.IO.File.ReadAllTextAsync(lockPath));
+                using var doc = System.Text.Json.JsonDocument.Parse(await System.IO.File.ReadAllTextAsync(lockPath, cancellationToken));
                 lockData = ConvertToDeepDictionary(doc.RootElement);
             } catch (System.Text.Json.JsonException ex) {
                 Core.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Failed to parse lockfile '{lockPath}'.", ex);
@@ -53,7 +53,7 @@ internal sealed class ToolsDownloader {
         http.DefaultRequestHeaders.UserAgent.ParseAdd("GameOpsTool/2.0");
 
         foreach (Dictionary<string, object?> dep in toolsList) {
-            string? toolName = (dep.TryGetValue("name", out object? n1) ? n1 : dep.TryGetValue("Name", out object? n2) ? n2 : null)?.ToString();
+            string? toolName = (dep.TryGetValue("name", out object? n1) ? n1 : dep.GetValueOrDefault("Name"))?.ToString();
             string? version = dep.TryGetValue("version", out object? v) ? v?.ToString() : null;
             if (string.IsNullOrWhiteSpace(toolName) || string.IsNullOrWhiteSpace(version)) {
                 continue;
@@ -81,7 +81,7 @@ internal sealed class ToolsDownloader {
                 }
             }
 
-            if (!TryLookupPlatform(central, toolName, version, platform, out string? url, out string? sha256, out string? checksumSource, out object? platformData)) {
+            if (!TryLookupPlatform(central, toolName, version, platform, out string url, out string sha256, out string? checksumSource, out object? platformData)) {
                 Core.UI.EngineSdk.PrintLine($"1 ERROR: Not in registry for platform '{platform}'.", System.ConsoleColor.Red);
                 continue;
             }
@@ -92,7 +92,7 @@ internal sealed class ToolsDownloader {
                 Core.UI.EngineSdk.Warn($"{toolName} {version}: fields 'destination' and 'unpack_destination' are deprecated and ignored. Using centralized tool paths under EngineApps/Tools.");
             }
 
-            bool unpack = dep.TryGetValue("unpack", out object? u) && u is bool b && b;
+            bool unpack = dep.TryGetValue("unpack", out object? u) && u is true;
 
             string centralToolsRoot = GetCentralToolsRoot(_rootPath);
             string installFolderName = BuildToolInstallFolderName(toolName, version, platform);
@@ -110,7 +110,7 @@ internal sealed class ToolsDownloader {
                 Core.UI.EngineSdk.Info("Archive exists. Skipping download (use force to re-download).");
             } else {
                 Core.UI.EngineSdk.Info("Downloading...");
-                using System.Net.Http.HttpResponseMessage resp = await http.GetAsync(url, System.Net.Http.HttpCompletionOption.ResponseHeadersRead);
+                using System.Net.Http.HttpResponseMessage resp = await http.GetAsync(url, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                 resp.EnsureSuccessStatusCode();
 
                 // Try to get the real filename from Content-Disposition header or final URL after redirects
@@ -135,7 +135,7 @@ internal sealed class ToolsDownloader {
                 long contentLength = resp.Content.Headers.ContentLength ?? -1;
 
                 await using System.IO.FileStream outFs = System.IO.File.Create(archivePath);
-                await using System.IO.Stream inStream = await resp.Content.ReadAsStreamAsync();
+                await using System.IO.Stream inStream = await resp.Content.ReadAsStreamAsync(cancellationToken);
 
                 using (var progress = new Core.UI.EngineSdk.PanelProgress(
                     total: contentLength > 0 ? contentLength : 1,
@@ -158,7 +158,7 @@ internal sealed class ToolsDownloader {
                 if (!checksumMatch && !string.IsNullOrWhiteSpace(checksumSource)) {
                     Core.UI.EngineSdk.Info($"Primary checksum mismatch. Checking upstream source: {checksumSource}");
                     try {
-                        string remoteSums = await http.GetStringAsync(checksumSource);
+                        string remoteSums = await http.GetStringAsync(checksumSource, cancellationToken);
                         string? remoteHash = ParseUpstreamChecksum(remoteSums, fileName);
 
                         if (!string.IsNullOrWhiteSpace(remoteHash)) {
@@ -233,7 +233,7 @@ internal sealed class ToolsDownloader {
             Core.UI.EngineSdk.Info($"Lockfile updated for {toolName} {version}.");
         }
 
-        await System.IO.File.WriteAllTextAsync(lockPath, System.Text.Json.JsonSerializer.Serialize(lockData, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+        await System.IO.File.WriteAllTextAsync(lockPath, System.Text.Json.JsonSerializer.Serialize(lockData, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }), cancellationToken);
         Core.UI.EngineSdk.Info($"Lockfile written: {lockPath}");
         return true;
     }
@@ -361,22 +361,24 @@ internal sealed class ToolsDownloader {
     }
 
     private static object? GetProperty(object? obj, string key) {
-        if (obj is System.Text.Json.JsonElement elem && elem.ValueKind == System.Text.Json.JsonValueKind.Object) {
-            if (elem.TryGetProperty(key, out System.Text.Json.JsonElement val)) return val;
-        } else if (obj is IDictionary<string, object?> dict) {
-            if (dict.TryGetValue(key, out object? val)) return val;
+        switch (obj) {
+            case System.Text.Json.JsonElement { ValueKind: System.Text.Json.JsonValueKind.Object } elem when elem.TryGetProperty(key, out System.Text.Json.JsonElement val):
+                return val;
+            case IDictionary<string, object?> dict when dict.TryGetValue(key, out object? val):
+                return val;
+            default:
+                return null;
         }
-        return null;
     }
 
     private static string? GetStringProperty(object? obj, string key) {
         object? val = GetProperty(obj, key);
-        if (val is System.Text.Json.JsonElement elem && elem.ValueKind == System.Text.Json.JsonValueKind.String) return elem.GetString();
+        if (val is System.Text.Json.JsonElement { ValueKind: System.Text.Json.JsonValueKind.String } elem) return elem.GetString();
         return val?.ToString();
     }
 
     private static IEnumerable<KeyValuePair<string, object?>> GetProperties(object? obj) {
-        if (obj is System.Text.Json.JsonElement elem && elem.ValueKind == System.Text.Json.JsonValueKind.Object) {
+        if (obj is System.Text.Json.JsonElement { ValueKind: System.Text.Json.JsonValueKind.Object } elem) {
             foreach (var prop in elem.EnumerateObject()) yield return new KeyValuePair<string, object?>(prop.Name, prop.Value);
         } else if (obj is IDictionary<string, object?> dict) {
             foreach (var kvp in dict) yield return kvp;
@@ -422,43 +424,27 @@ internal sealed class ToolsDownloader {
         return string.Equals(got, expected, System.StringComparison.OrdinalIgnoreCase);
     }
 
-    private static List<string> ExtractArchive(string archivePath, string destination) {
+    private static void ExtractArchive(string archivePath, string destination) {
         string ext = System.IO.Path.GetExtension(archivePath).ToLowerInvariant();
-        List<string> extractedFiles = new List<string>();
 
-        if (ext == ".zip") {
-            using var archive = ZipFile.OpenRead(archivePath);
-            foreach (var entry in archive.Entries) {
-                if (!string.IsNullOrEmpty(entry.Name)) {
-                    extractedFiles.Add(System.IO.Path.GetFullPath(System.IO.Path.Combine(destination, entry.FullName)));
-                }
+        switch (ext) {
+            case ".zip":
+                // ZipFile.ExtractToDirectory handles the directory creation and overwriting internally.
+                ZipFile.ExtractToDirectory(archivePath, destination, overwriteFiles: true);
+                return;
+            case ".7z": {
+                using var archive = SevenZipArchive.Open(archivePath);
+                var opts = new ExtractionOptions {
+                    ExtractFullPath = true,
+                    Overwrite = true
+                };
+                archive.WriteToDirectory(destination, opts);
+
+                return;
             }
-            ZipFile.ExtractToDirectory(archivePath, destination, overwriteFiles: true);
-            return extractedFiles;
+            default:
+                throw new NotSupportedException($"Archive format not supported for auto-unpack: {ext}");
         }
-
-        if (ext == ".7z") {
-            using var archive = SevenZipArchive.Open(archivePath);
-            foreach (var entry in archive.Entries) {
-                if (!entry.IsDirectory) {
-                    if (string.IsNullOrWhiteSpace(entry.Key)) {
-                        continue;
-                    }
-                    extractedFiles.Add(System.IO.Path.GetFullPath(System.IO.Path.Combine(destination, entry.Key)));
-                }
-            }
-            // Extract with full paths and overwrite if present
-            var opts = new ExtractionOptions
-            {
-                ExtractFullPath = true,
-                Overwrite = true
-            };
-            archive.WriteToDirectory(destination, opts);
-            return extractedFiles;
-        }
-
-        // Add more formats later if desired (e.g., .tar, .tar.gz via SharpCompress)
-        throw new NotSupportedException($"Archive format not supported for auto-unpack: {ext}");
     }
 
     /// <summary>
@@ -545,7 +531,7 @@ internal sealed class ToolsDownloader {
         }
 
         char[] invalid = System.IO.Path.GetInvalidFileNameChars();
-        var chars = value.Select(c => invalid.Contains(c) ? '_' : c).ToArray();
+        char[] chars = value.Select(c => invalid.Contains(c) ? '_' : c).ToArray();
         return new string(chars).Trim();
     }
 
@@ -575,29 +561,6 @@ internal sealed class ToolsDownloader {
         return foundPath;
     }
 
-    private static string? FindExe(List<string> files, string toolName, object? platformData) {
-        string? exeName = GetStringProperty(platformData, "exe_name");
-        string? foundPath = null;
-
-        if (!string.IsNullOrWhiteSpace(exeName)) {
-            foundPath = SearchForFile(files, exeName);
-        }
-
-        if (string.IsNullOrWhiteSpace(foundPath)) {
-            foundPath = SearchForFile(files, $"{toolName}.exe")
-                ?? SearchForFile(files, toolName)
-                ?? SearchForFile(files, $"{toolName}*.exe") // Fallback for versioned executables like Godot
-                ?? SearchForFile(files, $"*{toolName}*.exe")
-                ?? SearchForFile(files, $"*{toolName}*");
-        }
-
-        if (!string.IsNullOrWhiteSpace(foundPath)) {
-            ApplyExecutablePermissions(foundPath);
-        }
-
-        return foundPath;
-    }
-
     /// <summary>
     /// Searches for a file by name pattern using safe recursion and best-effort matching.
     /// </summary>
@@ -613,15 +576,6 @@ internal sealed class ToolsDownloader {
             return System.IO.Directory.EnumerateFiles(root, pattern, options).FirstOrDefault();
         } catch {
             Core.Diagnostics.Bug($"[ToolsDownloader] Could not search for file '{pattern}' in: {root}");
-            return null;
-        }
-    }
-
-    private static string? SearchForFile(List<string> files, string pattern) {
-        try {
-            return files.FirstOrDefault(f => System.IO.Enumeration.FileSystemName.MatchesSimpleExpression(pattern, System.IO.Path.GetFileName(f), ignoreCase: true));
-        } catch {
-            Core.Diagnostics.Bug($"[ToolsDownloader] Could not search for file '{pattern}' in extracted files list");
             return null;
         }
     }

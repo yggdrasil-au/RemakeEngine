@@ -8,33 +8,31 @@ internal static partial class TxdExtractor {
     /// Extracts textures and metadata from TXD inputs. Supports a single positional input path and optional --output_dir.
     /// </summary>
     /// <param name="args">CLI-style args: [input_path] [--output_dir DIR]</param>
+    /// <param name="cancellationToken"></param>
     /// <returns>True if extraction completed successfully.</returns>
     internal static bool Run(List<string> args, System.Threading.CancellationToken cancellationToken) {
         // TODO: implement Cancelation Token handling
         try {
             Options options = Parse(args);
-            TxdExporter exporter = new();
+            var exporter = new TxdExporter();
 
             // Assemble file list and set up progress tracking
             List<string> files = EnumerateTxdFiles(options.InputPath);
             int processed = 0, ok = 0, skip = 0, err = 0;
 
-            // --- CHANGED ---
             Core.UI.EngineSdk.SdkConsoleProgress.ActiveProcess? currentJob = null;
-            using System.Threading.CancellationTokenSource cts = new();
+            using var cts = new CancellationTokenSource();
             System.Threading.Tasks.Task progress = Core.UI.EngineSdk.SdkConsoleProgress.StartPanel(
                 total: files.Count,
                 snapshot: () => (System.Threading.Volatile.Read(ref processed), System.Threading.Volatile.Read(ref ok), System.Threading.Volatile.Read(ref skip), System.Threading.Volatile.Read(ref err)),
                 activeSnapshot: () => currentJob is null ? new List<Core.UI.EngineSdk.SdkConsoleProgress.ActiveProcess>() : new List<Core.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> { currentJob },
                 label: "Extracting TXD",
                 token: cts.Token);
-            // --- END CHANGED ---
 
             foreach (string txdFile in files) {
                 try {
-                    // --- CHANGED ---
                     currentJob = new Core.UI.EngineSdk.SdkConsoleProgress.ActiveProcess { Tool = "txd", File = System.IO.Path.GetFileName(txdFile), StartedUtc = System.DateTime.UtcNow };
-                    // --- END CHANGED ---
+
 
                     string? outputBase = options.OutputDirectory;
                     if (string.IsNullOrEmpty(outputBase)) {
@@ -60,7 +58,7 @@ internal static partial class TxdExtractor {
 
             cts.Cancel();
             try {
-                progress.Wait();
+                progress.Wait(cancellationToken);
             } catch (System.AggregateException ex) {
                 Core.Diagnostics.Bug("[TxdExtractor::Run()] Progress task wait failed.", ex);
                 Core.Diagnostics.Bug("[TxdExtractor] Progress task cancelled.");

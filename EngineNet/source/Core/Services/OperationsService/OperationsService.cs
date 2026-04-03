@@ -29,6 +29,9 @@ internal sealed class OperationsService {
     /// Loads operations from an ops file and prepares structured metadata for UI consumption.
     /// </summary>
     /// <param name="opsFile"></param>
+    /// <param name="currentGame"></param>
+    /// <param name="games"></param>
+    /// <param name="engineConfig"></param>
     /// <returns></returns>
     internal PreparedOperations LoadAndPrepare(
         string opsFile,
@@ -199,7 +202,7 @@ internal sealed class OperationsService {
 
             string title = ResolvePromptTitle(prompt, name);
             bool isSecret = TryGetBool(prompt, out bool secretValue, "secret", "Secret") && secretValue;
-            IReadOnlyList<PromptChoice> choices = ResolvePromptChoices(prompt, type);
+            IReadOnlyList<PromptChoice> choices = ResolvePromptChoices(prompt);
 
             PromptRequest request = new PromptRequest(
                 name: name,
@@ -244,7 +247,7 @@ internal sealed class OperationsService {
         return string.IsNullOrWhiteSpace(title) ? fallbackName : title;
     }
 
-    private IReadOnlyList<PromptChoice> ResolvePromptChoices(IDictionary<string, object?> prompt, string type) {
+    private IReadOnlyList<PromptChoice> ResolvePromptChoices(IDictionary<string, object?> prompt) {
         List<PromptChoice> choices = new List<PromptChoice>();
 
         if (TryGetString(prompt, out string? provider, "choices_provider") && provider == "registry_modules") {
@@ -307,7 +310,7 @@ internal sealed class OperationsService {
         return type switch {
             "confirm" => false,
             "checkbox" => new List<object?>(),
-            "select" => null,
+            //"select" => null,
             _ => null
         };
     }

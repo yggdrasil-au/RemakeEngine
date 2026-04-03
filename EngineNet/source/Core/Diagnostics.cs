@@ -24,7 +24,7 @@ internal static class Diagnostics {
     private static StreamWriter? _pythonLogWriter; // Just Diagnostics.PythonLog
     private static StreamWriter? _bugWriter;   // Just Diagnostics.Bug
     private static StreamWriter? _tuiLogWriter; // Scrollback history
-    private static readonly object _lock = new();
+    private static readonly object _lock = new object();
 
     internal static void Initialize(bool isGui, bool isTui) {
         string logDirectory = string.Empty;
@@ -256,7 +256,7 @@ internal static class Diagnostics {
 
     /// <summary>
     /// Logs a bug message and optional exception to exception.log and trace.log
-    /// Use within catch blocks, it doesnt need to be an actual bug just an exception
+    /// Use within catch blocks, it doesn't need to be an actual bug just an exception
     /// </summary>
     /// <param name="message"></param>
     /// <param name="ex"></param>
@@ -341,7 +341,7 @@ internal static class Diagnostics {
     }
 
 
-    // mirrors Diagnostics but for loggin via Lua scripts
+    // mirrors Diagnostics but for logging via Lua scripts
     // find todo in LuaScriptAction.cs for next steps
     internal static class LuaLogger {
         /// <summary>

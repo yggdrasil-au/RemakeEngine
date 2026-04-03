@@ -5,6 +5,10 @@ internal static class RemoteFallbacks {
     private const string RepoName = "RemakeEngine";
     private static readonly string[] BranchCandidates = new[] { "main", "master" };
 
+    private static readonly HttpClient Http = new System.Net.Http.HttpClient {
+        Timeout = System.TimeSpan.FromSeconds(20),
+    };
+
     /// <summary>
     /// If <paramref name="localPath"/> is missing, attempts to download the file asynchronously from the
     /// RemakeEngine GitHub repository at <paramref name="repoRelativePath"/> using raw URLs.
@@ -18,12 +22,10 @@ internal static class RemoteFallbacks {
 
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(localPath)) ?? ".");
 
-            using System.Net.Http.HttpClient http = new System.Net.Http.HttpClient();
-            http.Timeout = System.TimeSpan.FromSeconds(20);
             foreach (string branch in BranchCandidates) {
                 string url = $"https://raw.githubusercontent.com/{RepoOwner}/{RepoName}/{branch}/{repoRelativePath.Replace('\\', '/')}";
                 try {
-                    System.Net.Http.HttpResponseMessage resp = await http.GetAsync(url);
+                    System.Net.Http.HttpResponseMessage resp = await Http.GetAsync(url);
                     if (!resp.IsSuccessStatusCode) {
                         continue;
                     }
