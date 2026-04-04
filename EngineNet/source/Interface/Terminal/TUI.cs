@@ -76,11 +76,11 @@ public partial class TUI {
                 // Map selection index to actual module key
                 if (gidx >= 0 && gidx < gameKeyMap.Count) {
                     gameName = gameKeyMap[gidx];
-                    Shared.Diagnostics.Trace($"[TUI::RunInteractiveMenuAsync()] Selected game: {gameName}");
+                    Shared.IO.Diagnostics.Trace($"[TUI::RunInteractiveMenuAsync()] Selected game: {gameName}");
                 } else {
                     // Fallback: treat selection as raw name
                     gameName = gsel;
-                    Shared.Diagnostics.Trace($"[TUI::RunInteractiveMenuAsync()] Warning: could not map selected index {gidx} to module key; using raw selection '{gsel}'");
+                    Shared.IO.Diagnostics.Trace($"[TUI::RunInteractiveMenuAsync()] Warning: could not map selected index {gidx} to module key; using raw selection '{gsel}'");
                 }
                 break; // exit game selection loop
             }
@@ -90,14 +90,14 @@ public partial class TUI {
             Core.Data.GameModuleInfo? info = null;
             // check the module exists in combined modules dictionary
             if (!allAvailableModules.TryGetValue(gameName, out var moduleInfo) || (info = moduleInfo) is null) {
-                Shared.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game not found.");
+                Shared.IO.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game not found.");
                 // return to menu selection
                 //return 1;
                 return await RunInteractiveMenuAsync(msg: "Selected game not found. Please choose again.");
             }
             // load operations list from ops_file
             if (info.OpsFile is null) {
-                Shared.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game is missing ops_file.");
+                Shared.IO.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game is missing ops_file.");
                 //return 1;
                 return await RunInteractiveMenuAsync(msg: "Selected game is missing operations file. Please choose again.");
             }
@@ -109,16 +109,16 @@ public partial class TUI {
             );
             if (!preparedOps.IsLoaded) {
                 string message = preparedOps.ErrorMessage ?? "Failed to load operations list.";
-                Shared.Diagnostics.Log($"[TUI::RunInteractiveMenuAsync()] {message}");
+                Shared.IO.Diagnostics.Log($"[TUI::RunInteractiveMenuAsync()] {message}");
                 System.Console.WriteLine($"{message} Press any key to exit...");
                 SafeReadKey(true);
-                Shared.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Exiting due to failed ops load.");
+                Shared.IO.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Exiting due to failed ops load.");
                 return 1;
             }
 
             if (preparedOps.Warnings.Count > 0) {
                 foreach (string warning in preparedOps.Warnings) {
-                    Shared.Diagnostics.Log($"[TUI::RunInteractiveMenuAsync()] Warning: {warning}");
+                    Shared.IO.Diagnostics.Log($"[TUI::RunInteractiveMenuAsync()] Warning: {warning}");
                 }
             }
 
@@ -137,7 +137,7 @@ public partial class TUI {
                 }
                 initStopwatch.Stop();
                 //didRunInit = true;
-                Shared.Diagnostics.Trace($"[TUI::RunInteractiveMenuAsync()] Completed init operations for {gameName} in {FormatElapsed(initStopwatch.Elapsed)}. Success: {okAllInit}");
+                Shared.IO.Diagnostics.Trace($"[TUI::RunInteractiveMenuAsync()] Completed init operations for {gameName} in {FormatElapsed(initStopwatch.Elapsed)}. Success: {okAllInit}");
                 System.Console.WriteLine(okAllInit
                     ? $"Initialization completed successfully. Time: {FormatElapsed(initStopwatch.Elapsed)}. Press any key to continue..."
                     : $"One or more init operations failed. Time: {FormatElapsed(initStopwatch.Elapsed)}. Press any key to continue...");
@@ -203,11 +203,11 @@ public partial class TUI {
                     System.Console.WriteLine($"Launching game '{gameName}'...\n");
 
                     // Route in-process SDK events (e.g. from Lua scripts) to our terminal renderer
-                    System.Action<Dictionary<string, object?>>? prevSink = Shared.UI.EngineSdk.LocalEventSink;
-                    bool prevMute = Shared.UI.EngineSdk.MuteStdoutWhenLocalSink;
+                    System.Action<Dictionary<string, object?>>? prevSink = Shared.IO.UI.EngineSdk.LocalEventSink;
+                    bool prevMute = Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink;
 
-                    Shared.UI.EngineSdk.LocalEventSink = Utils.OnEvent;
-                    Shared.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
+                    Shared.IO.UI.EngineSdk.LocalEventSink = Utils.OnEvent;
+                    Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
 
                     try {
                         bool launched = await Engine.GameLauncher_LaunchGameAsync(name: gameName);
@@ -215,8 +215,8 @@ public partial class TUI {
                             ? "\nGame finished or launched successfully. Press any key to continue..."
                             : "\nFailed to launch game. Press any key to continue...");
                     } finally {
-                        Shared.UI.EngineSdk.LocalEventSink = prevSink;
-                        Shared.UI.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
+                        Shared.IO.UI.EngineSdk.LocalEventSink = prevSink;
+                        Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
                     }
 
                     SafeReadKey(true);
@@ -253,7 +253,7 @@ public partial class TUI {
                         continue;
                     } catch (System.Exception ex) {
                         TuiRenderer.Log($"Error: {ex.Message}", ConsoleColor.Red);
-                        Shared.Diagnostics.Bug($"[TUI::RunAll()] Error during Run All: {ex.Message}");
+                        Shared.IO.Diagnostics.Bug($"[TUI::RunAll()] Error during Run All: {ex.Message}");
                         TuiRenderer.WaitForKey();
                         continue;
                     } finally {
@@ -296,7 +296,7 @@ public partial class TUI {
                 }
             }
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug($"[TUI::RunInteractiveMenuAsync()] Error: {ex}");
+            Shared.IO.Diagnostics.Bug($"[TUI::RunInteractiveMenuAsync()] Error: {ex}");
             System.Console.WriteLine($"Error: {ex.Message}\nPress any key to exit...");
             SafeReadKey(true);
             return -1;

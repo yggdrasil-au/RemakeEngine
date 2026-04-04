@@ -10,17 +10,17 @@ internal static class Progress {
     /// </summary>
     /// <param name="_LuaWorld"></param>
     internal static void CreateProgressModule(LuaWorld _LuaWorld) {
-        Shared.UI.EngineSdk.ScriptProgress? activeScriptProgress = null;
+        Shared.IO.UI.EngineSdk.ScriptProgress? activeScriptProgress = null;
 
-        // progress.new(total, id, label) -> Shared.UI.EngineSdk.PanelProgress userdata
-        _LuaWorld.Progress["new"] = (System.Func<int, string?, string?, Shared.UI.EngineSdk.PanelProgress>)((total, id, label) => {
+        // progress.new(total, id, label) -> Shared.IO.UI.EngineSdk.PanelProgress userdata
+        _LuaWorld.Progress["new"] = (System.Func<int, string?, string?, Shared.IO.UI.EngineSdk.PanelProgress>)((total, id, label) => {
             string pid = string.IsNullOrEmpty(id) ? "p1" : id;
-            return new Shared.UI.EngineSdk.PanelProgress(total, pid, label);
+            return new Shared.IO.UI.EngineSdk.PanelProgress(total, pid, label);
         });
 
-        // progress.start(total, label) -> Shared.UI.EngineSdk.ScriptProgress userdata
-        _LuaWorld.Progress["start"] = (System.Func<int, string?, Shared.UI.EngineSdk.ScriptProgress>)((total, label) => {
-            activeScriptProgress = new Shared.UI.EngineSdk.ScriptProgress(total, "s1", label);
+        // progress.start(total, label) -> Shared.IO.UI.EngineSdk.ScriptProgress userdata
+        _LuaWorld.Progress["start"] = (System.Func<int, string?, Shared.IO.UI.EngineSdk.ScriptProgress>)((total, label) => {
+            activeScriptProgress = new Shared.IO.UI.EngineSdk.ScriptProgress(total, "s1", label);
             return activeScriptProgress;
         });
 
@@ -29,7 +29,7 @@ internal static class Progress {
             if (activeScriptProgress != null) {
                 activeScriptProgress.Update(1, label);
                 if (!string.IsNullOrEmpty(label)) {
-                    Shared.UI.EngineSdk.PrintLine($"[Step {activeScriptProgress.Current}/{activeScriptProgress.Total}] {label}", System.ConsoleColor.Magenta);
+                    Shared.IO.UI.EngineSdk.PrintLine($"[Step {activeScriptProgress.Current}/{activeScriptProgress.Total}] {label}", System.ConsoleColor.Magenta);
                 }
             }
         });

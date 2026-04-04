@@ -4,7 +4,7 @@ using System.Linq;
 
 using Avalonia;
 
-using EngineNet.Shared.UI;
+using EngineNet.Core.Abstractions;
 using EngineNet.Core.Data;
 
 namespace EngineNet;
@@ -34,7 +34,7 @@ public static class Program {
         System.ConsoleCancelEventHandler cancelHandler = (_, e) => {
             e.Cancel = true;
             shutdownCancellationController.Cancel();
-            Shared.Diagnostics.Log("Global Cancellation Requested (Ctrl+C)");
+            Shared.IO.Diagnostics.Log("Global Cancellation Requested (Ctrl+C)");
         };
         System.Console.CancelKeyPress += cancelHandler;
 
@@ -66,15 +66,17 @@ public static class Program {
             isCli = !isGui && !isTui;
 
             // :: Initialize the Logger
-            Shared.Diagnostics.Initialize(rootPath, isGui, isTui);
+            Shared.IO.Diagnostics.Initialize(rootPath, isGui, isTui);
 
-            Shared.Diagnostics.Trace($"Starting EngineNet in {(isGui ? "GUI" : isTui ? "TUI" : "CLI")} mode. Root Path: {rootPath}");
+            IScriptActionDispatcher scriptActionDispatcher = new EngineNet.ScriptEngines.ScriptActionDispatcher();
+
+            Shared.IO.Diagnostics.Trace($"Starting EngineNet in {(isGui ? "GUI" : isTui ? "TUI" : "CLI")} mode. Root Path: {rootPath}");
 
             // If user requested TUI/CLI but we failed to attach (e.g. shortcut double-click),
             // we must manually allocate a new console window or they will see nothing.
             if ((isTui || isCli) && !hasConsole && System.OperatingSystem.IsWindows()) {
                 ConsoleHelper.AllocConsole();
-                Shared.Diagnostics.Trace("Allocated new console window for TUI/CLI mode.");
+                Shared.IO.Diagnostics.Trace("Allocated new console window for TUI/CLI mode.");
             }
 
             Core.Main.ConfigureRuntime(
@@ -82,10 +84,10 @@ public static class Program {
                 isGui: isGui,
                 isTui: isTui,
                 isCli: isCli,
-                engineFactory: InitialiseEngine
+                engineFactory: () => InitialiseEngine(scriptActionDispatcher)
             );
 
-            Engine ??= await InitialiseEngine();
+            Engine ??= await InitialiseEngine(scriptActionDispatcher);
 
             EngineNet.Interface.Main UI = new Interface.Main(Engine);
 
@@ -93,7 +95,7 @@ public static class Program {
             // - No remaining args -> GUI
             // - One arg "--gui" -> GUI
             if (isGui) {
-                Shared.Diagnostics.Trace("Launching GUI Interface...");
+                Shared.IO.Diagnostics.Trace("Launching GUI Interface...");
                 //return Interface.GUI.GuiBootstrapper.Run(Engine); // ;; gui flow step1 ;;
                 return await UI.init(args, "gui", shutdownCancellationController.Token);
             }
@@ -101,7 +103,7 @@ public static class Program {
             // Logic:
             // - One arg "--tui" -> TUI
             if (isTui) {
-                Shared.Diagnostics.Trace("Launching TUI Interface...");
+                Shared.IO.Diagnostics.Trace("Launching TUI Interface...");
                 //Interface.Terminal.TUI TUI = new Interface.Terminal.TUI(Engine);
                 //return await TUI.RunInteractiveMenuAsync(shutdownCancellationController.Token);
                 return await UI.init(args, "tui", shutdownCancellationController.Token);
@@ -110,23 +112,23 @@ public static class Program {
             // Logic:
             // - Anything else -> CLI (Pass original args so CLI can parse specific commands like 'build', 'run', etc.)
             if (isCli) {
-                Shared.Diagnostics.Trace("Launching CLI Interface...");
+                Shared.IO.Diagnostics.Trace("Launching CLI Interface...");
                 //Interface.Terminal.CLI CLI = new Interface.Terminal.CLI(Engine);
                 //return await CLI.RunAsync(args, shutdownCancellationController.Token);
                 return await UI.init(args, "cli", shutdownCancellationController.Token);
             }
-            EngineSdk.Error("No valid interface mode selected.");
-            Shared.Diagnostics.Bug("No valid interface mode selected.");
+            Shared.IO.UI.EngineSdk.Error("No valid interface mode selected.");
+            Shared.IO.Diagnostics.Bug("No valid interface mode selected.");
             return 1;
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug("Critical Engine Failure in Main", ex);
-            Shared.Diagnostics.Log($"Engine Error: {ex}");
+            Shared.IO.Diagnostics.Bug("Critical Engine Failure in Main", ex);
+            Shared.IO.Diagnostics.Log($"Engine Error: {ex}");
             await System.Console.Error.WriteLineAsync($"Critical Engine Failure: {ex.Message}");
             return 1;
         } finally {
             System.Console.CancelKeyPress -= cancelHandler;
             shutdownCancellationController.Release();
-            Shared.Diagnostics.Close();
+            Shared.IO.Diagnostics.Close();
             // :: Detach console on exit
             if (System.OperatingSystem.IsWindows()) {
                 ConsoleHelper.FreeConsole();
@@ -184,7 +186,7 @@ public static class Program {
                 dir = parent.FullName;
             }
         } catch (System.Exception e) {
-            Shared.Diagnostics.Bug($"Error finding project root: {e.Message}");
+            Shared.IO.Diagnostics.Bug($"Error finding project root: {e.Message}");
         }
         return string.Empty;
     }
@@ -210,7 +212,7 @@ public static class Program {
     /// <summary>
     /// Initialises the engine
     /// </summary>
-    private static async System.Threading.Tasks.Task<EngineNet.Core.Engine.IEngineFace> InitialiseEngine() {
+    private static async System.Threading.Tasks.Task<EngineNet.Core.Engine.IEngineFace> InitialiseEngine(IScriptActionDispatcher scriptActionDispatcher) {
         if (Engine != null) {
             return Engine;
         }
@@ -224,11 +226,11 @@ public static class Program {
         var gameRegistry = new Core.Services.GameRegistry(_registries, _scanner);
 
         var _commandService = new Core.Services.CommandService();
-        var _gameLauncher = new Core.Services.GameLauncher(gameRegistry, tools, engineConfig, _commandService);
+        var _gameLauncher = new Core.Services.GameLauncher(gameRegistry, tools, engineConfig, _commandService, scriptActionDispatcher);
         var _opsLoader = new Core.Services.OperationsLoader();
         var _operationsService = new Core.Services.OperationsService(_opsLoader, gameRegistry);
 
-        var Single = new Core.Operations.Single();
+        var Single = new Core.Operations.Single(scriptActionDispatcher);
 
         EngineNet.Core.Engine.Engine _engine = new EngineNet.Core.Engine.Engine(
             gameRegistry,

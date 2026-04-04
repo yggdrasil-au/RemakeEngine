@@ -18,19 +18,19 @@ public sealed class Main {
         switch (ui) {
             case "gui":
                 // GUI uses the limited mini engine surface; the full engine is only stashed for previewer/bootstrapping.
-                Shared.Diagnostics.Trace("Launching GUI Interface...");
+                Shared.IO.Diagnostics.Trace("Launching GUI Interface...");
                 return Interface.GUI.GuiBootstrapper.Run(miniEngine, cancellationToken);
             case "tui":
-                Shared.Diagnostics.Trace("Launching TUI Interface...");
+                Shared.IO.Diagnostics.Trace("Launching TUI Interface...");
                 Interface.Terminal.TUI TUI = new Interface.Terminal.TUI(miniEngine);
                 return await TUI.RunInteractiveMenuAsync(cancellationToken);
             case "cli":
-                Shared.Diagnostics.Trace("Launching CLI Interface...");
+                Shared.IO.Diagnostics.Trace("Launching CLI Interface...");
                 Interface.Terminal.CLI CLI = new Interface.Terminal.CLI(miniEngine);
                 return await CLI.RunAsync(args, cancellationToken);
             default:
                 System.Console.Error.WriteLine(value: $"No valid interface mode selected. Expected 'gui', 'tui', or 'cli', but got '{ui}'.");
-                Shared.Diagnostics.Bug("No valid interface mode selected.");
+                Shared.IO.Diagnostics.Bug("No valid interface mode selected.");
                 break;
         }
 

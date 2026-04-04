@@ -14,11 +14,12 @@ EngineNet.Shared is the reusable support library for the engine's serialization 
 - `Serialization/Json/`: JSON loading helpers and document-model conversion.
 - `Serialization/Yaml/`: YAML parsing and serialization helpers.
 - `Serialization/DocModelConverter.cs`: shared DOM-to-plain-object conversion helpers.
-- `Diagnostics.cs`: shared logging, trace, and exception logging helper.
+- `IO/Diagnostics.cs`: shared logging, trace, and exception logging helper (namespace `EngineNet.Shared.IO`).
+- `IO/UI/`: engine SDK bridge helpers used by scripts and interfaces for output/events (namespace `EngineNet.Shared.IO.UI`).
 
 ## Relationship To Other Projects
 - `EngineNet.Core` references this library for manifest, config, and tool parsing.
-- `EngineNet.Shared.Diagnostics` is implemented here so runtime logging stays available without a Core-to-Shared cycle.
+- `EngineNet.Shared.IO.Diagnostics` is implemented here so runtime logging stays available without a Core-to-Shared cycle.
 - `EngineNet` references this library transitively through Core and also lists it directly in the solution for clarity.
 
 ## Related Docs

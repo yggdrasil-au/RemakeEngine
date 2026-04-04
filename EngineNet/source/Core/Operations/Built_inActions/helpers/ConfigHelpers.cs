@@ -8,9 +8,9 @@ internal static class ConfigHelpers {
 
         if (targetContext is IDictionary<string, object?> dict) {
             dict[key] = convertedValue;
-            Shared.Diagnostics.Trace($"Updated {group}[{index}].{key} = {convertedValue}");
+            Shared.IO.Diagnostics.Trace($"Updated {group}[{index}].{key} = {convertedValue}");
         } else {
-            Shared.Diagnostics.Trace($"Target context for {group}[{index}] is not a dictionary.");
+            Shared.IO.Diagnostics.Trace($"Target context for {group}[{index}] is not a dictionary.");
         }
     }
 

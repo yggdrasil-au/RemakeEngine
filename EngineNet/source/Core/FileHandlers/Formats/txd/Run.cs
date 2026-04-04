@@ -20,18 +20,18 @@ internal static partial class TxdExtractor {
             List<string> files = EnumerateTxdFiles(options.InputPath);
             int processed = 0, ok = 0, skip = 0, err = 0;
 
-            Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess? currentJob = null;
+            Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess? currentJob = null;
             using var cts = new CancellationTokenSource();
-            System.Threading.Tasks.Task progress = Shared.UI.EngineSdk.SdkConsoleProgress.StartPanel(
+            System.Threading.Tasks.Task progress = Shared.IO.UI.EngineSdk.SdkConsoleProgress.StartPanel(
                 total: files.Count,
                 snapshot: () => (System.Threading.Volatile.Read(ref processed), System.Threading.Volatile.Read(ref ok), System.Threading.Volatile.Read(ref skip), System.Threading.Volatile.Read(ref err)),
-                activeSnapshot: () => currentJob is null ? new List<Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess>() : new List<Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> { currentJob },
+                activeSnapshot: () => currentJob is null ? new List<Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess>() : new List<Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> { currentJob },
                 label: "Extracting TXD",
                 token: cts.Token);
 
             foreach (string txdFile in files) {
                 try {
-                    currentJob = new Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess { Tool = "txd", File = System.IO.Path.GetFileName(txdFile), StartedUtc = System.DateTime.UtcNow };
+                    currentJob = new Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess { Tool = "txd", File = System.IO.Path.GetFileName(txdFile), StartedUtc = System.DateTime.UtcNow };
 
 
                     string? outputBase = options.OutputDirectory;
@@ -48,7 +48,7 @@ internal static partial class TxdExtractor {
                         System.Threading.Interlocked.Increment(ref skip);
                     }
                 } catch (System.Exception ex) {
-                    Shared.Diagnostics.Bug($"[TxdExtractor::Run()] Failed processing txd file '{txdFile}'.", ex);
+                    Shared.IO.Diagnostics.Bug($"[TxdExtractor::Run()] Failed processing txd file '{txdFile}'.", ex);
                     System.Threading.Interlocked.Increment(ref err);
                 } finally {
                     System.Threading.Interlocked.Increment(ref processed);
@@ -60,17 +60,17 @@ internal static partial class TxdExtractor {
             try {
                 progress.Wait(cancellationToken);
             } catch (System.AggregateException ex) {
-                Shared.Diagnostics.Bug("[TxdExtractor::Run()] Progress task wait failed.", ex);
-                Shared.Diagnostics.Bug("[TxdExtractor] Progress task cancelled.");
+                Shared.IO.Diagnostics.Bug("[TxdExtractor::Run()] Progress task wait failed.", ex);
+                Shared.IO.Diagnostics.Bug("[TxdExtractor] Progress task cancelled.");
                 /* ignore */
             }
             return true;
         } catch (TxdExportException ex) {
-            Shared.Diagnostics.Bug("[TxdExtractor::Run()] TXD export exception.", ex);
+            Shared.IO.Diagnostics.Bug("[TxdExtractor::Run()] TXD export exception.", ex);
             Log.Red(ex.Message);
             return false;
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug("[TxdExtractor::Run()] Unhandled TXD extraction error.", ex);
+            Shared.IO.Diagnostics.Bug("[TxdExtractor::Run()] Unhandled TXD extraction error.", ex);
             Log.Red($"Unhandled TXD extraction error: {ex.Message}");
             if (!string.IsNullOrWhiteSpace(ex.StackTrace)) {
                 Log.Gray(ex.StackTrace!);

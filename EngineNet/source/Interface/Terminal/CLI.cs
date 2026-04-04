@@ -24,9 +24,9 @@ internal partial class CLI {
             InlineOperationOptions options = InlineOperationOptions.Parse(args);
 
             if (options.RunAll) {
-                Shared.Diagnostics.Trace("Detected run-all operation invocation.");
+                Shared.IO.Diagnostics.Trace("Detected run-all operation invocation.");
                 if (options.RunOperationSelector is not null) {
-                    Shared.Diagnostics.Log("ERROR: --run_op cannot be combined with --run_all.");
+                    Shared.IO.Diagnostics.Log("ERROR: --run_op cannot be combined with --run_all.");
                     return 2;
                 }
 
@@ -34,19 +34,19 @@ internal partial class CLI {
             }
 
             if (options.RunOperationSelector is not null) {
-                Shared.Diagnostics.Trace("Detected named operation invocation.");
+                Shared.IO.Diagnostics.Trace("Detected named operation invocation.");
                 return await RunSelectedOperationAsync(options, cancellationToken);
             }
 
             // Check for inline operation invocation
             if (IsInlineOperationInvocation(args)) {
-                Shared.Diagnostics.Trace("Detected inline operation invocation.");
+                Shared.IO.Diagnostics.Trace("Detected inline operation invocation.");
                 // Run operation directly from command-line args
                 return await RunInlineOperationAsync(options, cancellationToken);
             }
 
             string cmd = args[0].ToLowerInvariant();
-            Shared.Diagnostics.Trace($"CLI Command: {cmd}");
+            Shared.IO.Diagnostics.Trace($"CLI Command: {cmd}");
             switch (cmd) {
                 case "help":
                 case "-h":
@@ -66,7 +66,7 @@ internal partial class CLI {
              System.Console.WriteLine("\nOperation cancelled by user.");
              return 1;
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug($"CLI Error: {ex}");
+            Shared.IO.Diagnostics.Bug($"CLI Error: {ex}");
             System.Console.WriteLine($"Error: {ex.Message}");
             return -1;
         }
@@ -80,27 +80,27 @@ internal partial class CLI {
     internal async System.Threading.Tasks.Task<int> RunInlineOperationAsync(InlineOperationOptions options, System.Threading.CancellationToken cancellationToken = default) {
         // Validate required options
         if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot)) {
-            Shared.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) is required for inline execution.");
+            Shared.IO.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) is required for inline execution.");
             return 2;
         }
 
         // Validate script option
         if (string.IsNullOrWhiteSpace(options.Script) && !options.OperationFields.ContainsKey("script")) {
-            Shared.Diagnostics.Log("ERROR: --script must be provided for inline execution.");
+            Shared.IO.Diagnostics.Log("ERROR: --script must be provided for inline execution.");
             return 2;
         }
 
         // Find game modules
         Dictionary<string, Core.Data.GameModuleInfo> games = Engine.GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
         if (!TryResolveInlineGame(options, games, out string? gameName)) {
-            Shared.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
+            Shared.IO.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
             return 1;
         }
 
         // Build operation dictionary
         Dictionary<string, object?> op = options.BuildOperation();
         if (!op.TryGetValue("script", out object? scriptObj) || scriptObj is null || string.IsNullOrWhiteSpace(scriptObj.ToString())) {
-            Shared.Diagnostics.Log("ERROR: Inline operation is missing a script path or identifier.");
+            Shared.IO.Diagnostics.Log("ERROR: Inline operation is missing a script path or identifier.");
             return 2;
         }
 
@@ -117,18 +117,18 @@ internal partial class CLI {
     /// <returns></returns>
     internal async System.Threading.Tasks.Task<int> RunSelectedOperationAsync(InlineOperationOptions options, System.Threading.CancellationToken cancellationToken = default) {
         if (options.RunOperationSelector is null) {
-            Shared.Diagnostics.Log("ERROR: --run_op requires an operation name or ID.");
+            Shared.IO.Diagnostics.Log("ERROR: --run_op requires an operation name or ID.");
             return 2;
         }
 
         if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot)) {
-            Shared.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) is required for --run_op.");
+            Shared.IO.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) is required for --run_op.");
             return 2;
         }
 
         Dictionary<string, Core.Data.GameModuleInfo> games = Engine.GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
         if (!TryResolveInlineGame(options, games, out string? gameName)) {
-            Shared.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
+            Shared.IO.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
             return 1;
         }
 
@@ -139,7 +139,7 @@ internal partial class CLI {
         if (!TryResolvePreparedOperation(preparedOps!, options.RunOperationSelector, out Core.Data.PreparedOperation? selectedOp, out string? errorMessage)) {
             if (!string.IsNullOrWhiteSpace(errorMessage)) {
                 System.Console.Error.WriteLine($"ERROR: {errorMessage}");
-                Shared.Diagnostics.Log($"ERROR: {errorMessage}");
+                Shared.IO.Diagnostics.Log($"ERROR: {errorMessage}");
             }
 
             if (preparedOps is not null) {
@@ -161,13 +161,13 @@ internal partial class CLI {
     /// <returns></returns>
     internal async System.Threading.Tasks.Task<int> RunAllOperationsAsync(InlineOperationOptions options, System.Threading.CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot)) {
-            Shared.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) is required for --run_all.");
+            Shared.IO.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) is required for --run_all.");
             return 2;
         }
 
         Dictionary<string, Core.Data.GameModuleInfo> games = Engine.GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
         if (!TryResolveInlineGame(options, games, out string? gameName)) {
-            Shared.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
+            Shared.IO.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
             return 1;
         }
 
@@ -184,10 +184,10 @@ internal partial class CLI {
                 cancellationToken: cancellationToken
             );
 
-            Shared.Diagnostics.Log($"[CLI::RunAllOperationsAsync()] Completed run-all for '{result.Game}' with {result.SucceededOperations}/{result.TotalOperations} successful operations.");
+            Shared.IO.Diagnostics.Log($"[CLI::RunAllOperationsAsync()] Completed run-all for '{result.Game}' with {result.SucceededOperations}/{result.TotalOperations} successful operations.");
             return result.Success ? 0 : 1;
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug($"CLI RunAll Error: {ex}");
+            Shared.IO.Diagnostics.Bug($"CLI RunAll Error: {ex}");
             System.Console.WriteLine($"Error: {ex.Message}");
             return -1;
         }
@@ -283,7 +283,7 @@ internal partial class CLI {
                 }
 
                 string normalized = NormalizeOptionKey(key);
-                Shared.Diagnostics.Log($"DEBUG: Parsing option --{key} (normalized: {normalized}) with value '{value}'");
+                Shared.IO.Diagnostics.Log($"DEBUG: Parsing option --{key} (normalized: {normalized}) with value '{value}'");
                 switch (normalized) {
                     case "game":
                     case "game_module":
@@ -351,16 +351,16 @@ internal partial class CLI {
                         break;
                     case "args":
                         if (value is null) {
-                            Shared.Diagnostics.Log("DEBUG: --args missing value");
+                            Shared.IO.Diagnostics.Log("DEBUG: --args missing value");
                             throw new System.ArgumentException("Option '--args' requires a value.");
                         }
                         foreach (string item in ParseArgsList(value)) {
                             options._args.Add(item);
                         }
 #if DEBUG
-                        Shared.Diagnostics.Log($"DEBUG: --args parsed {options._args.Count} items");
-                        Shared.Diagnostics.Log($"DEBUG: --args items: {string.Join(", ", options._args)}");
-                        Shared.Diagnostics.Log($"DEBUG: --args raw value: {value}");
+                        Shared.IO.Diagnostics.Log($"DEBUG: --args parsed {options._args.Count} items");
+                        Shared.IO.Diagnostics.Log($"DEBUG: --args items: {string.Join(", ", options._args)}");
+                        Shared.IO.Diagnostics.Log($"DEBUG: --args raw value: {value}");
 #endif
                         break;
                     case "answer":

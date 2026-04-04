@@ -46,20 +46,20 @@ public class Utils {
             // Use embedded handlers for engine/lua/js/bms to avoid external dependencies
             if (Core.Utils.ScriptConstants.IsSupported(script_type)) {
                 // Route in-process SDK events to our terminal renderer
-                System.Action<Dictionary<string, object?>>? prevSink = Shared.UI.EngineSdk.LocalEventSink;
-                bool prevMute = Shared.UI.EngineSdk.MuteStdoutWhenLocalSink;
-                Dictionary<string, string> prevAutoResponses = new(Shared.UI.EngineSdk.AutoPromptResponses);
+                System.Action<Dictionary<string, object?>>? prevSink = Shared.IO.UI.EngineSdk.LocalEventSink;
+                bool prevMute = Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink;
+                Dictionary<string, string> prevAutoResponses = new(Shared.IO.UI.EngineSdk.AutoPromptResponses);
                 try {
                     // Set auto-prompt responses if provided
                     if (autoPromptResponses is { Count: > 0 }) {
-                        Shared.UI.EngineSdk.AutoPromptResponses.Clear();
+                        Shared.IO.UI.EngineSdk.AutoPromptResponses.Clear();
                         foreach (KeyValuePair<string, string> kv in autoPromptResponses) {
-                            Shared.UI.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
+                            Shared.IO.UI.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
                         }
                     }
 
-                    Shared.UI.EngineSdk.LocalEventSink = OnEvent;
-                    Shared.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
+                    Shared.IO.UI.EngineSdk.LocalEventSink = OnEvent;
+                    Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
                     return await Engine.RunSingleOperationAsync(
                         game,
                         games,
@@ -69,16 +69,16 @@ public class Utils {
                     );
                 } finally {
                     // Restore previous auto-prompt responses
-                    Shared.UI.EngineSdk.AutoPromptResponses.Clear();
+                    Shared.IO.UI.EngineSdk.AutoPromptResponses.Clear();
                     foreach (KeyValuePair<string, string> kv in prevAutoResponses) {
-                        Shared.UI.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
+                        Shared.IO.UI.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
                     }
 
-                    Shared.UI.EngineSdk.LocalEventSink = prevSink;
-                    Shared.UI.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
+                    Shared.IO.UI.EngineSdk.LocalEventSink = prevSink;
+                    Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
                 }
             } else {
-                Shared.Diagnostics.Log($"[Utils.cs::ExecuteOp()] Routing operation of type '{script_type}' to external command execution");
+                Shared.IO.Diagnostics.Log($"[Utils.cs::ExecuteOp()] Routing operation of type '{script_type}' to external command execution");
             }
 
             // Default: build and execute as external command (e.g., python)
@@ -97,7 +97,7 @@ public class Utils {
                 envOverrides: new Dictionary<string, object?> { ["TERM"] = "dumb" }
             );
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug($"[Utils.cs::ExecuteOp()] Error executing operation: {ex.Message}");
+            Shared.IO.Diagnostics.Bug($"[Utils.cs::ExecuteOp()] Error executing operation: {ex.Message}");
             return false;
         }
     }
@@ -275,7 +275,7 @@ public class Utils {
 
             default:
                 // Log unknown events to debug
-                Shared.Diagnostics.Log($"[Utils.cs::OnEvent()] Unhandled event type: {typ}");
+                Shared.IO.Diagnostics.Log($"[Utils.cs::OnEvent()] Unhandled event type: {typ}");
                 break;
         }
     }
@@ -292,9 +292,9 @@ public class Utils {
         try {
             Dictionary<string, object?> safe = CloneForLogging(evt);
             string json = JsonSerializer.Serialize(safe, s_jsonOpts);
-            Shared.Diagnostics.Log($"[Utils.cs::OnEvent()] {json}");
+            Shared.IO.Diagnostics.Log($"[Utils.cs::OnEvent()] {json}");
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug($"[Utils.cs::OnEvent()] <serialization failed: {ex.Message}>");
+            Shared.IO.Diagnostics.Bug($"[Utils.cs::OnEvent()] <serialization failed: {ex.Message}>");
         }
     }
 
@@ -308,7 +308,7 @@ public class Utils {
             JsonSerializer.Serialize(clone, s_jsonOpts);
             return clone;
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug($"[Utils.cs::CloneForLogging()] Clone serialization catch triggered: {ex}");
+            Shared.IO.Diagnostics.Bug($"[Utils.cs::CloneForLogging()] Clone serialization catch triggered: {ex}");
             Dictionary<string, object?> safe = new Dictionary<string, object?>(clone.Count, System.StringComparer.Ordinal);
             foreach (KeyValuePair<string, object?> kv in clone) {
                 safe[kv.Key] = SafeStringify(kv.Value);

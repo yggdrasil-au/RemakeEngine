@@ -180,13 +180,13 @@ internal static class LuaAction {
     /// <param name="_projectRoot"></param>
     private static void CreateGlobalDiagnostics(LuaWorld _LuaWorld, string _gameRoot, string _projectRoot) {
         // Lua Diagnostics logging methods
-        _LuaWorld.DiagnosticsMethods["Log"] = (System.Action<string>)Shared.Diagnostics.LuaLogger.LuaLog;
-        _LuaWorld.DiagnosticsMethods["Trace"] = (System.Action<string>)Shared.Diagnostics.LuaLogger.LuaTrace;
+        _LuaWorld.DiagnosticsMethods["Log"] = (System.Action<string>)Shared.IO.Diagnostics.LuaLogger.LuaLog;
+        _LuaWorld.DiagnosticsMethods["Trace"] = (System.Action<string>)Shared.IO.Diagnostics.LuaLogger.LuaTrace;
         _LuaWorld.LuaScript.Globals["Diagnostics"] = _LuaWorld.DiagnosticsMethods;
 
         // Final startup logs
-        Shared.Diagnostics.Log($"[LuaScriptAction.cs::SetupCoreFunctions()] Set Game_Root to '{_gameRoot}'");
-        Shared.Diagnostics.Log($"[LuaScriptAction.cs::SetupCoreFunctions()] Set Project_Root to '{_projectRoot}'");
+        Shared.IO.Diagnostics.Log($"[LuaScriptAction.cs::SetupCoreFunctions()] Set Game_Root to '{_gameRoot}'");
+        Shared.IO.Diagnostics.Log($"[LuaScriptAction.cs::SetupCoreFunctions()] Set Project_Root to '{_projectRoot}'");
     }
 
     /// <summary>
@@ -195,22 +195,22 @@ internal static class LuaAction {
     /// <param name="_LuaWorld"></param>
     private static void EngineSdkGlobals(LuaWorld _LuaWorld) {
         // basic outputs for warning and error events
-        _LuaWorld.LuaScript.Globals["warn"] = (System.Action<string>)Shared.UI.EngineSdk.Warn;
-        _LuaWorld.LuaScript.Globals["error"] = (System.Action<string>)Shared.UI.EngineSdk.Error;
+        _LuaWorld.LuaScript.Globals["warn"] = (System.Action<string>)Shared.IO.UI.EngineSdk.Warn;
+        _LuaWorld.LuaScript.Globals["error"] = (System.Action<string>)Shared.IO.UI.EngineSdk.Error;
 
         // emits the prompt query to the engine/ui and returns the user input
         _LuaWorld.LuaScript.Globals["prompt"] = (System.Func<DynValue, DynValue, DynValue, string>)((message, id, secret) => {
             string msg = message.Type == DataType.String ? message.String : message.ToPrintString();
             string pid = id.Type == DataType.Nil || id.Type == DataType.Void ? "q1" : id.Type == DataType.String ? id.String : id.ToPrintString();
             bool sec = secret.Type == DataType.Boolean && secret.Boolean;
-            return Shared.UI.EngineSdk.Prompt(msg, pid, sec);
+            return Shared.IO.UI.EngineSdk.Prompt(msg, pid, sec);
         });
         _LuaWorld.LuaScript.Globals["color_prompt"] = (System.Func<DynValue, DynValue, DynValue, DynValue, string>)((message, color, id, secret) => {
             string msg = message.Type == DataType.String ? message.String : message.ToPrintString();
             string col = color.Type == DataType.String ? color.String : color.ToPrintString();
             string pid = id.Type == DataType.Nil || id.Type == DataType.Void ? "q1" : id.Type == DataType.String ? id.String : id.ToPrintString();
             bool sec = secret.Type == DataType.Boolean && secret.Boolean;
-            return Shared.UI.EngineSdk.color_prompt(msg, col, pid, sec);
+            return Shared.IO.UI.EngineSdk.color_prompt(msg, col, pid, sec);
         });
         _LuaWorld.LuaScript.Globals["colour_prompt"] = _LuaWorld.LuaScript.Globals["color_prompt"]; // (Correct) AU spelling
     }

@@ -74,7 +74,7 @@ internal sealed class ModuleScanner {
     /// about iteration or serialization and don't want the name->info map.
     /// </summary>
     internal Dictionary<string, Data.GameModuleInfo> Modules(ModuleFilter filter) {
-        Shared.Diagnostics.Trace($"[Core :: ModuleScanner.cs::Modules()] Scanning modules with filter {filter}");
+        Shared.IO.Diagnostics.Trace($"[Core :: ModuleScanner.cs::Modules()] Scanning modules with filter {filter}");
         Dictionary<string, Data.GameModuleInfo> all = ScanAllModules();
         IEnumerable<Data.GameModuleInfo> filtered = FilterModules(all.Values, filter);
 
@@ -82,7 +82,7 @@ internal sealed class ModuleScanner {
         Dictionary<string, Data.GameModuleInfo> dict = new Dictionary<string, Data.GameModuleInfo>(StringComparer.OrdinalIgnoreCase);
         foreach (Data.GameModuleInfo info in filtered) {
             dict[info.Name] = info;
-            Shared.Diagnostics.Trace($"[Core :: ModuleScanner.cs::Modules()] Including module: {info.Name} (State: {info.DescribeState()})");
+            Shared.IO.Diagnostics.Trace($"[Core :: ModuleScanner.cs::Modules()] Including module: {info.Name} (State: {info.DescribeState()})");
         }
         return dict;
     }
@@ -194,7 +194,7 @@ internal sealed class ModuleScanner {
             Data.GameModuleInfo info;
             // if not already present (i.e. registered), create a new entry
             if (!result.TryGetValue(name, out info!)) {
-                Shared.Diagnostics.Trace($"[ModuleScanner.cs::ScanAllModules()] Found unregistered but installed module: {name}");
+                Shared.IO.Diagnostics.Trace($"[ModuleScanner.cs::ScanAllModules()] Found unregistered but installed module: {name}");
                 info = new Data.GameModuleInfo {
                     Id = string.Empty, // unknown
                     Name = name, // from directory name
@@ -274,11 +274,11 @@ internal sealed class ModuleScanner {
                         Url = string.Empty
                     };
                     result[name] = info;
-                    Shared.Diagnostics.Trace($"[ModuleScanner.cs::ScanInternalOperations()] Found internal module: {name}");
+                    Shared.IO.Diagnostics.Trace($"[ModuleScanner.cs::ScanInternalOperations()] Found internal module: {name}");
                 }
             }
         } catch (Exception ex) {
-            Shared.Diagnostics.Bug($"[ModuleScanner.cs] Error scanning internal ops: {ex.Message}");
+            Shared.IO.Diagnostics.Bug($"[ModuleScanner.cs] Error scanning internal ops: {ex.Message}");
         }
     }
 

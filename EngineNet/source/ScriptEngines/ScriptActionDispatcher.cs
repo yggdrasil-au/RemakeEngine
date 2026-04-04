@@ -1,14 +1,11 @@
 
-using EngineNet.Core.Data;
-
-
 namespace EngineNet.ScriptEngines;
 
 /// <summary>
 /// Centralized dispatcher for script actions, both embedded (lua/js/python) and external (bms).
 /// This ensures all script actions are created through a single point, allowing for consistent handling
 /// </summary>
-internal sealed class ScriptActionDispatcher {
+public sealed class ScriptActionDispatcher : IScriptActionDispatcher {
 
     // this is used by GameLauncher.cs to run game.toml if game is a script
     // and Runner.RunSingleOperationAsync to run embedded engine operations (lua/js/python)
@@ -18,14 +15,15 @@ internal sealed class ScriptActionDispatcher {
     /// this should be the only way to call any embedded script action
     /// </summary>
     internal static class EmbeddedActionDispatcher {
-        internal static ScriptEngines.IAction? TryCreate(
+        internal static IScriptAction? TryCreate(
             string scriptType,
             string scriptPath,
             IEnumerable<string> args,
             string currentGame,
-            Dictionary<string, GameModuleInfo> games
+            Dictionary<string, GameModuleInfo>? games,
+            string projectRoot
         ) {
-            string t = (scriptType ?? string.Empty).ToLowerInvariant();
+            string t = scriptType.ToLowerInvariant();
             string gameRoot = string.Empty;
             if (games != null && !string.IsNullOrEmpty(currentGame) && games.TryGetValue(currentGame, out GameModuleInfo? info)) {
                 gameRoot = info.GameRoot;
@@ -33,13 +31,13 @@ internal sealed class ScriptActionDispatcher {
 
             switch (t) {
                 case "lua":
-                    return new ScriptEngines.Lua.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: EngineNet.Core.Main.RootPath);
+                    return new ScriptEngines.Lua.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: projectRoot);
                 case "js": case "javascript":
-                    return new ScriptEngines.Js.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: EngineNet.Core.Main.RootPath);
+                    return new ScriptEngines.Js.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: projectRoot);
                 case "python": case "py":
-                    return new ScriptEngines.Python.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: EngineNet.Core.Main.RootPath);
+                    return new ScriptEngines.Python.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: projectRoot);
                 default: {
-                    Shared.Diagnostics.Log($"[EmbeddedActionDispatcher.cs::TryCreate()] Unsupported embedded script type '{scriptType}'");
+                    Shared.IO.Diagnostics.Log($"[EmbeddedActionDispatcher.cs::TryCreate()] Unsupported embedded script type '{scriptType}'");
                     return null;
                 }
             }
@@ -53,37 +51,48 @@ internal sealed class ScriptActionDispatcher {
     /// this should be the only way to call any external script action
     /// </summary>
     internal static class ExternalActionDispatcher {
-        internal static ScriptEngines.IAction? TryCreate(
+        internal static IScriptAction? TryCreate(
             string scriptType,
             string scriptPath,
             string gameRoot,
             string inputDir,
             string outputDir,
-            string? extension
+            string? extension,
+            string projectRoot
         ) {
-            string t = (scriptType ?? string.Empty).ToLowerInvariant();
+            string t = scriptType.ToLowerInvariant();
             switch (t) {
                 case "bms":
                     return new ScriptEngines.qbms.Main(scriptPath: scriptPath, moduleRoot: gameRoot, inputDir: inputDir, outputDir: outputDir, extension: extension);
                 default: {
-                    Shared.Diagnostics.Log($"[ExternalActionDispatcher.cs::TryCreate()] Unsupported external script type '{scriptType}'");
+                    Shared.IO.Diagnostics.Log($"[ExternalActionDispatcher.cs::TryCreate()] Unsupported external script type '{scriptType}'");
                     return null;
                 }
             }
         }
     }
-}
 
-/// <summary>
-/// Represents a single executable step within a game module.
-/// </summary>
-internal interface IAction {
-    /// <summary>
-    /// Executes the action with access to tool resolution services and command execution.
-    /// </summary>
-    /// <param name="tools">Resolver for locating external tools.</param>
-    /// <param name="commandService">Centralized command execution service.</param>
-    /// <param name="cancellationToken">Optional cancellation token.</param>
-    Task ExecuteAsync(Core.ExternalTools.JsonToolResolver tools, Core.Services.CommandService commandService, CancellationToken cancellationToken = default);
+    public IScriptAction? TryCreateEmbedded(
+        string scriptType,
+        string scriptPath,
+        IEnumerable<string> args,
+        string currentGame,
+        Dictionary<string, GameModuleInfo>? games,
+        string projectRoot
+    ) {
+        return EmbeddedActionDispatcher.TryCreate(scriptType, scriptPath, args, currentGame, games, projectRoot);
+    }
+
+    public IScriptAction? TryCreateExternal(
+        string scriptType,
+        string scriptPath,
+        string gameRoot,
+        string inputDir,
+        string outputDir,
+        string? extension,
+        string projectRoot
+    ) {
+        return ExternalActionDispatcher.TryCreate(scriptType, scriptPath, gameRoot, inputDir, outputDir, extension, projectRoot);
+    }
 }
 

@@ -30,6 +30,7 @@
     <ItemGroup>
         <ProjectReference Include="source\Core\EngineNet.Core.csproj" />
         <ProjectReference Include="source\Interface\EngineNet.Interface.csproj" />
+        <ProjectReference Include="source\ScriptEngines\EngineNet.ScriptEngines.csproj" />
         <ProjectReference Include="source\Shared\EngineNet.Shared.csproj" />
     </ItemGroup>
 

@@ -130,7 +130,7 @@ internal sealed class Registries {
 
             string gameToml = System.IO.Path.Combine(dir, "game.toml");
             if (!System.IO.File.Exists(gameToml)) {
-                Shared.Diagnostics.Trace($"[GameRegistry] warning: game '{new System.IO.DirectoryInfo(dir).Name}' is missing game.toml - skipping");
+                Shared.IO.Diagnostics.Trace($"[GameRegistry] warning: game '{new System.IO.DirectoryInfo(dir).Name}' is missing game.toml - skipping");
                 continue; // not installed - requires a valid game.toml
             }
 
@@ -169,7 +169,7 @@ internal sealed class Registries {
                     }
                 }
             } catch {
-                Shared.Diagnostics.Bug($"[GameRegistry] err parsing game.toml for game '{new System.IO.DirectoryInfo(dir).Name}' - skipping");
+                Shared.IO.Diagnostics.Bug($"[GameRegistry] err parsing game.toml for game '{new System.IO.DirectoryInfo(dir).Name}' - skipping");
                 // malformed game.toml - reject
                 continue;
             }

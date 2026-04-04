@@ -17,7 +17,7 @@ internal static class SymLink {
         try {
             if (OperatingSystem.IsWindows()) {
                 if (!CanCreateSymLinks()) {
-                    Shared.UI.EngineSdk.Error(GetFixInstructions());
+                    Shared.IO.UI.EngineSdk.Error(GetFixInstructions());
                     return false;
                 }
             }
@@ -42,8 +42,8 @@ internal static class SymLink {
 
             return true;
         } catch (Exception ex) {
-            Shared.UI.EngineSdk.Error($"create_symlink failed: {ex.Message}");
-            Shared.Diagnostics.LuaInternalCatch($"create_symlink failed with exception: {ex}");
+            Shared.IO.UI.EngineSdk.Error($"create_symlink failed: {ex.Message}");
+            Shared.IO.Diagnostics.LuaInternalCatch($"create_symlink failed with exception: {ex}");
             return false;
         }
     }

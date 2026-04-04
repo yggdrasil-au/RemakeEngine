@@ -167,7 +167,7 @@ internal sealed record AllTexturesView(List<(string Name, ImageFormat Format, by
 
                 textures.Add((textureChunk.Data.Name, imagePayload.ImageFormat, imageRaw.Data));
             } catch (Exception ex) {
-                Shared.Diagnostics.Bug($"[P3dHighLevel::AllTexturesView::FromTree()] Skipping malformed texture branch for '{textureChunk.Data.Name}'.", ex);
+                Shared.IO.Diagnostics.Bug($"[P3dHighLevel::AllTexturesView::FromTree()] Skipping malformed texture branch for '{textureChunk.Data.Name}'.", ex);
                 // Ignore malformed texture branches for high-level projection.
             }
         }

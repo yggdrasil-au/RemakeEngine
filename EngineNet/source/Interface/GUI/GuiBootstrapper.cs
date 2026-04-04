@@ -43,7 +43,7 @@ public static class GuiBootstrapper {
             MiniEngine = miniEngine;
 
             // Ensure events from the engine (including "Play" button actions) reach the GUI
-            Shared.UI.EngineSdk.LocalEventSink = OperationOutputService.Instance.HandleEvent;
+            Shared.IO.UI.EngineSdk.LocalEventSink = OperationOutputService.Instance.HandleEvent;
 
             // 2) Build the app and start the desktop lifetime.
             //    This call blocks until the window closes / lifetime ends.
@@ -54,7 +54,7 @@ public static class GuiBootstrapper {
         } catch (System.Exception ex) {
             // If anything goes wrong during startup or run, print a concise error
             // and return a non-zero exit code to signal failure to the host.
-            Shared.Diagnostics.Bug("GUI error", ex);
+            Shared.IO.Diagnostics.Bug("GUI error", ex);
             System.Console.Error.WriteLine(value: $"GUI error: {ex.Message}");
             return 1;
         }

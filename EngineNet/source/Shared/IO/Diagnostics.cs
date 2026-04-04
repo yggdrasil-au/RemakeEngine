@@ -1,6 +1,6 @@
 #pragma warning disable CS0162 // Unreachable code detected // IsTraceEnabled block is reachable however ide analyzers tend to treat it as always true
 
-namespace EngineNet.Shared;
+namespace EngineNet.Shared.IO;
 
 // Diagnostic logging utility
 internal static class Diagnostics {
@@ -19,11 +19,11 @@ internal static class Diagnostics {
     private static StreamWriter? _traceWriter; // Master log (Everything)
 
     // These writers exist in all builds so logging always works
-    private static StreamWriter? _debugWriter; // Just Shared.Diagnostics.Log / Info
-    private static StreamWriter? _luaLogWriter; // Just Shared.Diagnostics.LuaLog
-    private static StreamWriter? _jsLogWriter; // Just Shared.Diagnostics.JsLog
-    private static StreamWriter? _pythonLogWriter; // Just Shared.Diagnostics.PythonLog
-    private static StreamWriter? _bugWriter;   // Just Shared.Diagnostics.Bug
+    private static StreamWriter? _debugWriter; // Just Shared.IO.Diagnostics.Log / Info
+    private static StreamWriter? _luaLogWriter; // Just Shared.IO.Diagnostics.LuaLog
+    private static StreamWriter? _jsLogWriter; // Just Shared.IO.Diagnostics.JsLog
+    private static StreamWriter? _pythonLogWriter; // Just Shared.IO.Diagnostics.PythonLog
+    private static StreamWriter? _bugWriter;   // Just Shared.IO.Diagnostics.Bug
     private static StreamWriter? _tuiLogWriter; // Scrollback history
     private static readonly object _lock = new object();
 
@@ -302,8 +302,8 @@ internal static class Diagnostics {
             string stack = $"[{timestamp}] [STACK] {ex}";
 
             // 1. Write to specific exception.log
-            Shared.Diagnostics._bugWriter.WriteLine(header);
-            Shared.Diagnostics._bugWriter.WriteLine(stack);
+            Shared.IO.Diagnostics._bugWriter.WriteLine(header);
+            Shared.IO.Diagnostics._bugWriter.WriteLine(stack);
 
             // 2. Write to master trace.log in Debug builds
             WriteTracepublic(header, stack);
@@ -326,8 +326,8 @@ internal static class Diagnostics {
             string stack = $"[{timestamp}] [STACK] {ex}";
 
             // 1. Write to specific exception.log
-            Shared.Diagnostics._bugWriter.WriteLine(header);
-            Shared.Diagnostics._bugWriter.WriteLine(stack);
+            Shared.IO.Diagnostics._bugWriter.WriteLine(header);
+            Shared.IO.Diagnostics._bugWriter.WriteLine(stack);
 
             // 2. Write to master trace.log in Debug builds
             WriteTracepublic(header, stack);
@@ -352,7 +352,7 @@ internal static class Diagnostics {
     // find todo in LuaScriptAction.cs for next steps
     internal static class LuaLogger {
         /// <summary>
-        /// Like the Log method but specifically for logging messages from Lua scripts, using the moonsharp Global Shared.Diagnostics.Log function.
+        /// Like the Log method but specifically for logging messages from Lua scripts, using the moonsharp Global Shared.IO.Diagnostics.Log function.
         /// </summary>
         /// <param name="message"></param>
         internal static void LuaLog(string message) {
@@ -363,7 +363,7 @@ internal static class Diagnostics {
                 string formattedMsg = $"[{timestamp}] [LUA_LOG] {message}";
 
                 // 1. Write to specific lua.log
-                Shared.Diagnostics._luaLogWriter.WriteLine(formattedMsg);
+                Shared.IO.Diagnostics._luaLogWriter.WriteLine(formattedMsg);
 
                 // 2. Write to master trace.log in Debug builds
                 WriteTracepublic(formattedMsg);
@@ -382,7 +382,7 @@ internal static class Diagnostics {
                     string timestamp = DateTime.Now.ToString("HH:mm:ss");
                     string formattedMsg = $"[{timestamp}] [LUA_TRACE] {message}";
                     // Write to trace.log in Debug builds
-                    Shared.Diagnostics._traceWriter.WriteLine(formattedMsg);
+                    Shared.IO.Diagnostics._traceWriter.WriteLine(formattedMsg);
                 }
             } else {
                 // use lua.log
@@ -394,7 +394,7 @@ internal static class Diagnostics {
     // JS Logger, exactly like LuaLogger but for JS scripts
     internal static class JsLogger {
         /// <summary>
-        /// Like the Log method but specifically for logging messages from JS scripts, using the Global Shared.Diagnostics.Log function.
+        /// Like the Log method but specifically for logging messages from JS scripts, using the Global Shared.IO.Diagnostics.Log function.
         /// </summary>
         /// <param name="message"></param>
         internal static void JsLog(string message) {
@@ -405,7 +405,7 @@ internal static class Diagnostics {
                 string formattedMsg = $"[{timestamp}] [JS_LOG] {message}";
 
                 // 1. Write to specific js.log
-                Shared.Diagnostics._jsLogWriter.WriteLine(formattedMsg);
+                Shared.IO.Diagnostics._jsLogWriter.WriteLine(formattedMsg);
 
                 // 2. Write to master trace.log in Debug builds
                 WriteTracepublic(formattedMsg);
@@ -420,7 +420,7 @@ internal static class Diagnostics {
                     string timestamp = DateTime.Now.ToString("HH:mm:ss");
                     string formattedMsg = $"[{timestamp}] [JS_TRACE] {message}";
                     // Write to trace.log in Debug builds
-                    Shared.Diagnostics._traceWriter.WriteLine(formattedMsg);
+                    Shared.IO.Diagnostics._traceWriter.WriteLine(formattedMsg);
                 }
             } else {
                 // use js.log
@@ -432,7 +432,7 @@ internal static class Diagnostics {
     // Python Logger, exactly like LuaLogger but for Python scripts
     internal static class PythonLogger {
         /// <summary>
-        /// Like the Log method but specifically for logging messages from Python scripts, using the Global Shared.Diagnostics.Log function.
+        /// Like the Log method but specifically for logging messages from Python scripts, using the Global Shared.IO.Diagnostics.Log function.
         /// </summary>
         /// <param name="message"></param>
         internal static void PythonLog(string message) {
@@ -443,7 +443,7 @@ internal static class Diagnostics {
                 string formattedMsg = $"[{timestamp}] [PYTHON_LOG] {message}";
 
                 // 1. Write to specific python.log
-                Shared.Diagnostics._pythonLogWriter.WriteLine(formattedMsg);
+                Shared.IO.Diagnostics._pythonLogWriter.WriteLine(formattedMsg);
 
                 // 2. Write to master trace.log in Debug builds
                 WriteTracepublic(formattedMsg);
@@ -458,7 +458,7 @@ internal static class Diagnostics {
                     string timestamp = DateTime.Now.ToString("HH:mm:ss");
                     string formattedMsg = $"[{timestamp}] [PYTHON_TRACE] {message}";
                     // Write to trace.log in Debug builds
-                    Shared.Diagnostics._traceWriter.WriteLine(formattedMsg);
+                    Shared.IO.Diagnostics._traceWriter.WriteLine(formattedMsg);
                 }
             } else {
                 // use python.log

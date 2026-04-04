@@ -52,7 +52,7 @@ internal static partial class TxdExtractor {
                         try {
                             nameValue = Utf8NoBom.GetString(nameBytes).Trim();
                         } catch (System.Exception ex) {
-                            Shared.Diagnostics.Bug($"[TextureSegmentProcessor::ProcessSegment()] Failed to decode name bytes at offset 0x{segmentOriginalStartOffset + nameSigOffset:X}.", ex);
+                            Shared.IO.Diagnostics.Bug($"[TextureSegmentProcessor::ProcessSegment()] Failed to decode name bytes at offset 0x{segmentOriginalStartOffset + nameSigOffset:X}.", ex);
                             nameValue = System.BitConverter.ToString(nameBytes.ToArray()).Replace("-", string.Empty);
                         }
 
@@ -180,7 +180,7 @@ internal static partial class TxdExtractor {
                         } catch (System.IO.IOException ex) {
                             throw new TxdExportException($"          FATAL ERROR: IOError writing {ext.ToUpper()} file {outFile} for '{currentName.Name}': {ex.Message}");
                         } catch (System.Exception ex) {
-                            Shared.Diagnostics.Bug($"[TextureSegmentProcessor] convert/save catch triggered for '{currentName.Name}' to '{outFile}': {ex}");
+                            Shared.IO.Diagnostics.Bug($"[TextureSegmentProcessor] convert/save catch triggered for '{currentName.Name}' to '{outFile}': {ex}");
                             throw new TxdExportException($"          FATAL ERROR: Failed to convert/save {ext.ToUpper()} for '{currentName.Name}': {ex.Message}");
                         }
 

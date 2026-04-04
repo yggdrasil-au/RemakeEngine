@@ -10,8 +10,8 @@ internal partial class InternalOperations {
         }
 
         if (string.IsNullOrWhiteSpace(input)) {
-            Shared.UI.EngineSdk.Error("No input provided.");
-            Shared.Diagnostics.Trace("[Engine.private.cs :: InternalOperations()]] download_module_registry: no input provided");
+            Shared.IO.UI.EngineSdk.Error("No input provided.");
+            Shared.IO.Diagnostics.Trace("[Engine.private.cs :: InternalOperations()]] download_module_registry: no input provided");
             return false;
         }
 
@@ -25,7 +25,7 @@ internal partial class InternalOperations {
         }
 
         if (string.IsNullOrWhiteSpace(url)) {
-            Shared.UI.EngineSdk.Error($"Could not resolve URL for '{input}'.");
+            Shared.IO.UI.EngineSdk.Error($"Could not resolve URL for '{input}'.");
             return false;
         }
 

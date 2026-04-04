@@ -14,7 +14,7 @@ public sealed partial class ProcessRunner {
                 proc.Kill(entireProcessTree: true);
             }
         } catch {
-            Shared.Diagnostics.Bug("Warning: Failed to terminate process.");
+            Shared.IO.Diagnostics.Bug("Warning: Failed to terminate process.");
             /* ignore */
         }
     }
@@ -118,18 +118,18 @@ public sealed partial class ProcessRunner {
              executable.Contains("ffmpeg", System.StringComparison.OrdinalIgnoreCase) ||
              executable.Contains("ImageMagick", System.StringComparison.OrdinalIgnoreCase) ||
              executable.Contains("Lucas_Radcore_Cement_Library_Builder", System.StringComparison.OrdinalIgnoreCase))) {
-            Shared.Diagnostics.Log($"[ProcessRunner.cs::IsApprovedExecutable()] Allowing specific executable in Tools directory: {executable}");
+            Shared.IO.Diagnostics.Log($"[ProcessRunner.cs::IsApprovedExecutable()] Allowing specific executable in Tools directory: {executable}");
             return true;
         } else if (executable.Contains("Tools", System.StringComparison.OrdinalIgnoreCase)) {
-            Shared.Diagnostics.Log($"[ProcessRunner.cs::IsApprovedExecutable()] Allowing executable in Tools directory: {executable}");
+            Shared.IO.Diagnostics.Log($"[ProcessRunner.cs::IsApprovedExecutable()] Allowing executable in Tools directory: {executable}");
             return true;
         } else {
-            Shared.Diagnostics.Log($"[ProcessRunner.cs::IsApprovedExecutable()] executable not in Tools directory: {executable}, disallowing.");
+            Shared.IO.Diagnostics.Log($"[ProcessRunner.cs::IsApprovedExecutable()] executable not in Tools directory: {executable}, disallowing.");
         }
 
         // For unrecognized executables, provide guidance
         onOutput?.Invoke($"SECURITY: Executable '{executable}' is not approved for RemakeEngine. Use registered tools from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" or SDK methods for file operations.", "stderr");
-        Shared.Diagnostics.Log($"[ProcessRunner.cs::IsApprovedExecutable()] Blocked unrecognized executable: {executable}");
+        Shared.IO.Diagnostics.Log($"[ProcessRunner.cs::IsApprovedExecutable()] Blocked unrecognized executable: {executable}");
         return false;
     }
 

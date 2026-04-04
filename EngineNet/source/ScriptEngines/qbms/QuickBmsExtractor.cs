@@ -69,13 +69,13 @@ internal static class QuickBmsExtractor {
 
         // Minimal active job tracking for progress panel
         using System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
-        EngineNet.Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess? current = null;
-        System.Threading.Tasks.Task panel = EngineNet.Shared.UI.EngineSdk.SdkConsoleProgress.StartPanel(
+        EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess? current = null;
+        System.Threading.Tasks.Task panel = EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.StartPanel(
             total: files.Count,
             snapshot: () => (processed, success, 0, errors),
             activeSnapshot: () => {
-                if (current is null) return new List<EngineNet.Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess>();
-                return new List<EngineNet.Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> { current };
+                if (current is null) return new List<EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess>();
+                return new List<EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> { current };
             },
             label: "Extracting Archives",
             token: cts.Token);
@@ -86,7 +86,7 @@ internal static class QuickBmsExtractor {
             System.IO.Directory.CreateDirectory(outputDir);
 
             // Update active job snapshot
-            current = new EngineNet.Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess {
+            current = new EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess {
                 Tool = "quickbms",
                 File = System.IO.Path.GetFileName(file),
                 StartedUtc = System.DateTime.UtcNow
@@ -119,8 +119,8 @@ internal static class QuickBmsExtractor {
         }
 
         cts.Cancel();
-        try { panel.Wait(); } catch {
-            Shared.Diagnostics.Bug("Failed to wait for progress panel");
+        try { panel.Wait(cts.Token); } catch {
+            Shared.IO.Diagnostics.Bug("Failed to wait for progress panel");
             /* ignore */
         }
 
@@ -292,11 +292,19 @@ internal static class QuickBmsExtractor {
         Write(colour, "[quickbms] " + line);
     }
 
-    private static void WriteInfo(string message) => Write(System.ConsoleColor.Cyan, message);
-    private static void WriteWarn(string message) => Write(System.ConsoleColor.Yellow, message);
-    private static void WriteError(string message) => Write(System.ConsoleColor.Red, message);
+    private static void WriteInfo(string message) {
+        Write(System.ConsoleColor.Cyan, message);
+    }
 
-    private static readonly object s_consoleLock = new();
+    private static void WriteWarn(string message) {
+        Write(System.ConsoleColor.Yellow, message);
+    }
+
+    private static void WriteError(string message) {
+        Write(System.ConsoleColor.Red, message);
+    }
+
+    private static readonly Lock s_consoleLock = new Lock();
 
     private static readonly string s_prefix = "[QBMS-Extract] ";
 
@@ -309,7 +317,7 @@ internal static class QuickBmsExtractor {
             message = s_prefix + message;
         }
         lock (s_consoleLock) {
-            Shared.UI.EngineSdk.PrintLine(message, colour);
+            Shared.IO.UI.EngineSdk.PrintLine(message, colour);
         }
     }
 }

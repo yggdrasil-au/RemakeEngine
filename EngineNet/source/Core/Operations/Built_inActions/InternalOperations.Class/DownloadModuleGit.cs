@@ -8,8 +8,8 @@ internal partial class InternalOperations {
             url = u?.ToString();
         }
         if (string.IsNullOrWhiteSpace(url)) {
-            Shared.UI.EngineSdk.Error("No URL provided.");
-            Shared.Diagnostics.Trace("[Engine.private.cs :: InternalOperations()]] download_module_git: no url provided");
+            Shared.IO.UI.EngineSdk.Error("No URL provided.");
+            Shared.IO.Diagnostics.Trace("[Engine.private.cs :: InternalOperations()]] download_module_git: no url provided");
             return false;
         }
         return Utils.GitTools.CloneModule(url, context.CommandService);

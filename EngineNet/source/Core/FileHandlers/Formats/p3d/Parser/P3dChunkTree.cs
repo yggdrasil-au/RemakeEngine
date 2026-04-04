@@ -92,7 +92,7 @@ internal sealed class Chunk {
         try {
             data = ChunkDataFactory.FromChunkType(typ, dataSlice);
         } catch (Exception ex) {
-            Shared.Diagnostics.Bug($"[P3dChunkTree::Parse()] Failed parsing chunk data for '{typ}'.", ex);
+            Shared.IO.Diagnostics.Bug($"[P3dChunkTree::Parse()] Failed parsing chunk data for '{typ}'.", ex);
             string lineage = parent.HasValue ? chunks[parent.Value].GetLineage(chunks) : "Unknown";
             string detail = ex.InnerException?.Message ?? ex.Message;
             throw new P3dParseException($"Error: Could not parse data for {typ}. Lineage Info: {lineage}. Details: {detail}", ex);
@@ -121,7 +121,7 @@ internal sealed class Chunk {
                     int child = Parse(potentialChildrenSlice, chunks, index, childCount);
                     children.Add(child);
                 } catch (Exception ex) {
-                    Shared.Diagnostics.Bug("[P3dChunkTree::Parse()] Failed parsing potential child chunk; stopping child scan.", ex);
+                    Shared.IO.Diagnostics.Bug("[P3dChunkTree::Parse()] Failed parsing potential child chunk; stopping child scan.", ex);
                     break;
                 }
 

@@ -26,10 +26,10 @@ internal static class JsAction {
         //_JSWorld.JsScript.SetValue("sdk", Global.Sdk.CreateSdkModule(_JSWorld, _tools));
         //_JSWorld.JsScript.SetValue("sqlite", Global.Sqlite.CreateSqliteModule(_JSWorld));
 
-        // expose a console object for logging, mapped to EngineSdk.PrintLine
-        _JSWorld.console["log"] = (Action<string>)((message) => Shared.UI.EngineSdk.PrintLine(message));
-        _JSWorld.console["warn"] = (Action<string>)((message) => Shared.UI.EngineSdk.Warn(message));
-        _JSWorld.console["error"] = (Action<string>)((message) => Shared.UI.EngineSdk.Error(message));
+        // expose a console object for logging, mapped to Shared.IO.UI.EngineSdk.PrintLine
+        _JSWorld.console["log"] = (Action<string>)((message) => Shared.IO.UI.EngineSdk.PrintLine(message));
+        _JSWorld.console["warn"] = (Action<string>)((message) => Shared.IO.UI.EngineSdk.Warn(message));
+        _JSWorld.console["error"] = (Action<string>)((message) => Shared.IO.UI.EngineSdk.Error(message));
         _JSWorld.JsScript.SetValue("console", _JSWorld.console);
 
         // Expose a function to resolve tool path
@@ -50,18 +50,18 @@ internal static class JsAction {
         _JSWorld.JsScript.SetValue("script_dir", scriptDir);
 
 
-        // :: start :: methods for emitting engineSDK events from JS scripts ::
+        // :: start :: methods for emitting Shared.IO.UI.EngineSdk. events from JS scripts ::
 
         // basic outputs for warning and error events
-        _JSWorld.JsScript.SetValue("warn", (Action<string>)Shared.UI.EngineSdk.Warn);
-        _JSWorld.JsScript.SetValue("error", (Action<string>)Shared.UI.EngineSdk.Error);
+        _JSWorld.JsScript.SetValue("warn", (Action<string>)Shared.IO.UI.EngineSdk.Warn);
+        _JSWorld.JsScript.SetValue("error", (Action<string>)Shared.IO.UI.EngineSdk.Error);
 
         // emits the prompt query to the engine/ui and returns the user input
         _JSWorld.JsScript.SetValue("prompt", (Func<JsValue, JsValue, JsValue, string>)((message, id, secret) => {
             string msg = message.IsString() ? message.AsString() : message.ToString();
             string pid = (id.IsNull() || id.IsUndefined()) ? "q1" : (id.IsString() ? id.AsString() : id.ToString());
             bool sec = secret.IsBoolean() && secret.AsBoolean();
-            return Shared.UI.EngineSdk.Prompt(msg, pid, sec);
+            return Shared.IO.UI.EngineSdk.Prompt(msg, pid, sec);
         }));
 
         _JSWorld.JsScript.SetValue("color_prompt", (Func<JsValue, JsValue, JsValue, JsValue, string>)((message, color, id, secret) => {
@@ -69,24 +69,24 @@ internal static class JsAction {
             string col = color.IsString() ? color.AsString() : color.ToString();
             string pid = (id.IsNull() || id.IsUndefined()) ? "q1" : (id.IsString() ? id.AsString() : id.ToString());
             bool sec = secret.IsBoolean() && secret.AsBoolean();
-            return Shared.UI.EngineSdk.color_prompt(msg, col, pid, sec);
+            return Shared.IO.UI.EngineSdk.color_prompt(msg, col, pid, sec);
         }));
 
         // Alias for AU/UK spelling
         _JSWorld.JsScript.SetValue("colour_prompt", _JSWorld.JsScript.GetValue("color_prompt"));
 
         // :: Progress System ::
-        Shared.UI.EngineSdk.ScriptProgress? activeScriptProgress = null;
+        Shared.IO.UI.EngineSdk.ScriptProgress? activeScriptProgress = null;
 
-        // progress.new(total, id, label) -> Shared.UI.EngineSdk.PanelProgress userdata
-        _JSWorld.Progress["new"] = (Func<int, string?, string?, Shared.UI.EngineSdk.PanelProgress>)((total, id, label) => {
+        // progress.new(total, id, label) -> Shared.IO.UI.EngineSdk.PanelProgress userdata
+        _JSWorld.Progress["new"] = (Func<int, string?, string?, Shared.IO.UI.EngineSdk.PanelProgress>)((total, id, label) => {
             string pid = string.IsNullOrEmpty(id) ? "p1" : id;
-            return new Shared.UI.EngineSdk.PanelProgress(total, pid, label);
+            return new Shared.IO.UI.EngineSdk.PanelProgress(total, pid, label);
         });
 
-        // progress.start(total, label) -> Shared.UI.EngineSdk.ScriptProgress userdata
-        _JSWorld.Progress["start"] = (Func<int, string?, Shared.UI.EngineSdk.ScriptProgress>)((total, label) => {
-            activeScriptProgress = new Shared.UI.EngineSdk.ScriptProgress(total, "s1", label);
+        // progress.start(total, label) -> Shared.IO.UI.EngineSdk.ScriptProgress userdata
+        _JSWorld.Progress["start"] = (Func<int, string?, Shared.IO.UI.EngineSdk.ScriptProgress>)((total, label) => {
+            activeScriptProgress = new Shared.IO.UI.EngineSdk.ScriptProgress(total, "s1", label);
             return activeScriptProgress;
         });
 
@@ -95,7 +95,7 @@ internal static class JsAction {
             if (activeScriptProgress != null) {
                 activeScriptProgress.Update(1, label);
                 if (!string.IsNullOrEmpty(label)) {
-                    Shared.UI.EngineSdk.PrintLine($"[Step {activeScriptProgress.Current}/{activeScriptProgress.Total}] {label}", ConsoleColor.Magenta);
+                    Shared.IO.UI.EngineSdk.PrintLine($"[Step {activeScriptProgress.Current}/{activeScriptProgress.Total}] {label}", ConsoleColor.Magenta);
                 }
             }
         });
@@ -127,8 +127,8 @@ internal static class JsAction {
 #endif
 
         // :: JS Diagnostics logging ::
-        _JSWorld.DiagnosticsMethods["Log"] = (Action<string>)Shared.Diagnostics.JsLogger.JsLog;
-        _JSWorld.DiagnosticsMethods["Trace"] = (Action<string>)Shared.Diagnostics.JsLogger.JsTrace;
+        _JSWorld.DiagnosticsMethods["Log"] = (Action<string>)Shared.IO.Diagnostics.JsLogger.JsLog;
+        _JSWorld.DiagnosticsMethods["Trace"] = (Action<string>)Shared.IO.Diagnostics.JsLogger.JsTrace;
 
         _JSWorld.JsScript.SetValue("Diagnostics", _JSWorld.DiagnosticsMethods);
 

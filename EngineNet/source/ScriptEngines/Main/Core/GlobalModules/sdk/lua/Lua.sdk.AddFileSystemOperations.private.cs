@@ -7,7 +7,7 @@ internal static partial class Sdk {
     private static void AddFileSystemOperations(LuaWorld _LuaWorld) {
         _LuaWorld.Sdk.Table["find_subdir"] = (string baseDir, string name) => {
             if (!Security.IsAllowedPath(baseDir)) {
-                Shared.UI.EngineSdk.Error($"Access denied: find_subdir baseDir is outside allowed areas ('{baseDir}')");
+                Shared.IO.UI.EngineSdk.Error($"Access denied: find_subdir baseDir is outside allowed areas ('{baseDir}')");
                 return null;
             }
             return ScriptEngines.Global.SdkModule.FileSystemUtils.FindSubdir(baseDir, name);
@@ -15,13 +15,13 @@ internal static partial class Sdk {
         _LuaWorld.Sdk.Table["has_all_subdirs"] = (string baseDir, Table names) => {
             try {
                 if (!Security.IsAllowedPath(baseDir)) {
-                    Shared.UI.EngineSdk.Error($"Access denied: has_all_subdirs baseDir is outside allowed areas ('{baseDir}')");
+                    Shared.IO.UI.EngineSdk.Error($"Access denied: has_all_subdirs baseDir is outside allowed areas ('{baseDir}')");
                     return false;
                 }
                 List<string> list = Lua.Globals.Utils.TableToStringList(names);
                 return ScriptEngines.Global.SdkModule.FileSystemUtils.HasAllSubdirs(baseDir, list);
             } catch (Exception ex) {
-                Shared.Diagnostics.LuaInternalCatch("has_all_subdirs failed with exception: " + ex);
+                Shared.IO.Diagnostics.LuaInternalCatch("has_all_subdirs failed with exception: " + ex);
                 return false;
             }
         };
@@ -114,20 +114,20 @@ internal static partial class Sdk {
                 System.IO.Directory.CreateDirectory(safePath);
                 return true;
             } catch (Exception ex) {
-                Shared.Diagnostics.LuaInternalCatch("mkdir failed with exception: " + ex);
+                Shared.IO.Diagnostics.LuaInternalCatch("mkdir failed with exception: " + ex);
                 return false;
             }
         };
         _LuaWorld.Sdk.Table["ensure_dir"] = (string path) => {
             try {
                 if (!Security.IsAllowedPath(path)) {
-                    Shared.UI.EngineSdk.Error($"Access denied: ensure_dir path is outside allowed areas ('{path}')");
+                    Shared.IO.UI.EngineSdk.Error($"Access denied: ensure_dir path is outside allowed areas ('{path}')");
                     return false;
                 }
                 System.IO.Directory.CreateDirectory(path);
                 return true;
             } catch (Exception ex) {
-                Shared.Diagnostics.LuaInternalCatch("ensure_dir failed with exception: " + ex);
+                Shared.IO.Diagnostics.LuaInternalCatch("ensure_dir failed with exception: " + ex);
                 return false;
             }
         };
@@ -139,14 +139,14 @@ internal static partial class Sdk {
             try {
                 // Security: Validate paths
                 if (!Security.IsAllowedPath(src) || !Security.IsAllowedPath(dst)) {
-                    Shared.UI.EngineSdk.Error($"Access denied: copy_dir src or dst is outside allowed areas (src='{src}', dst='{dst}')");
+                    Shared.IO.UI.EngineSdk.Error($"Access denied: copy_dir src or dst is outside allowed areas (src='{src}', dst='{dst}')");
                     return false;
                 }
                 bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
                 ScriptEngines.Global.SdkModule.FileSystemUtils.CopyDirectory(src, dst, ow);
                 return true;
             } catch (Exception ex) {
-                Shared.Diagnostics.LuaInternalCatch("copy_dir failed with exception: " + ex);
+                Shared.IO.Diagnostics.LuaInternalCatch("copy_dir failed with exception: " + ex);
                 return false;
             }
         };
@@ -154,14 +154,14 @@ internal static partial class Sdk {
             try {
                 // Security: Validate paths
                 if (!Security.IsAllowedPath(src) || !Security.IsAllowedPath(dst)) {
-                    Shared.UI.EngineSdk.Error($"Access denied: move_dir src or dst is outside allowed areas (src='{src}', dst='{dst}')");
+                    Shared.IO.UI.EngineSdk.Error($"Access denied: move_dir src or dst is outside allowed areas (src='{src}', dst='{dst}')");
                     return false;
                 }
                 bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
                 ScriptEngines.Global.SdkModule.FileSystemUtils.MoveDirectory(src, dst, ow);
                 return true;
             } catch (Exception ex) {
-                Shared.Diagnostics.LuaInternalCatch("move_dir failed with exception: " + ex);
+                Shared.IO.Diagnostics.LuaInternalCatch("move_dir failed with exception: " + ex);
                 return false;
             }
         };
@@ -169,7 +169,7 @@ internal static partial class Sdk {
             try {
                 // Security: Validate path prior to deletion
                 if (!Security.IsAllowedPath(path)) {
-                    Shared.UI.EngineSdk.Error($"Access denied: remove_dir path is outside allowed areas ('{path}')");
+                    Shared.IO.UI.EngineSdk.Error($"Access denied: remove_dir path is outside allowed areas ('{path}')");
                     return false;
                 }
                 if (System.IO.Directory.Exists(path)) {
@@ -177,7 +177,7 @@ internal static partial class Sdk {
                 }
                 return true;
             } catch (Exception ex) {
-                Shared.Diagnostics.LuaInternalCatch("remove_dir failed with exception: " + ex);
+                Shared.IO.Diagnostics.LuaInternalCatch("remove_dir failed with exception: " + ex);
                 return false;
             }
         };
@@ -228,7 +228,7 @@ internal static partial class Sdk {
             try {
                 // Security: Validate path prior to deletion
                 if (!Security.TryGetAllowedCanonicalPath(path, out string safePath)) {
-                    Shared.UI.EngineSdk.Error($"Access denied: remove_file path is outside allowed areas ('{path}')");
+                    Shared.IO.UI.EngineSdk.Error($"Access denied: remove_file path is outside allowed areas ('{path}')");
                     return false;
                 }
                 if (ScriptEngines.Global.SdkModule.FileSystemUtils.IsSymlink(safePath) || System.IO.File.Exists(safePath)) {
@@ -243,7 +243,7 @@ internal static partial class Sdk {
                 }
                 return true;
             } catch (Exception ex) {
-                Shared.Diagnostics.LuaInternalCatch("remove_file failed with exception: " + ex);
+                Shared.IO.Diagnostics.LuaInternalCatch("remove_file failed with exception: " + ex);
                 return false;
             }
         };
@@ -265,7 +265,7 @@ internal static partial class Sdk {
                 System.IO.File.Copy(safeSrc, safeDst, ow);
                 return true;
             } catch (Exception ex) {
-                Shared.Diagnostics.LuaInternalCatch("copy_file failed with exception: " + ex);
+                Shared.IO.Diagnostics.LuaInternalCatch("copy_file failed with exception: " + ex);
                 return false;
             }
         };
@@ -281,7 +281,7 @@ internal static partial class Sdk {
                 System.IO.File.WriteAllText(safePath, content);
                 return true;
             } catch (Exception ex) {
-                Shared.Diagnostics.LuaInternalCatch("write_file failed with exception: " + ex);
+                Shared.IO.Diagnostics.LuaInternalCatch("write_file failed with exception: " + ex);
                 return false;
             }
         };
@@ -295,8 +295,8 @@ internal static partial class Sdk {
                 }
                 return System.IO.File.ReadAllText(safePath);
             } catch (Exception ex) {
-                Shared.Diagnostics.Bug("[Lua.sdk.AddFileSystemOperations] read_file catch triggered with exception: " + ex);
-                Shared.Diagnostics.LuaInternalCatch("read_file failed with exception: " + ex);
+                Shared.IO.Diagnostics.Bug("[Lua.sdk.AddFileSystemOperations] read_file catch triggered with exception: " + ex);
+                Shared.IO.Diagnostics.LuaInternalCatch("read_file failed with exception: " + ex);
                 return null;
             }
         };
@@ -316,7 +316,7 @@ internal static partial class Sdk {
                     try {
                         System.IO.File.Move(safeOldPath, safeNewPath, overwrite);
                     } catch (Exception ex) {
-                        Shared.Diagnostics.Bug("[Lua.sdk.AddFileSystemOperations] rename_file fallback catch triggered with exception: " + ex);
+                        Shared.IO.Diagnostics.Bug("[Lua.sdk.AddFileSystemOperations] rename_file fallback catch triggered with exception: " + ex);
                         // Fallback for cross-volume moves (or older .NET targets)
                         System.IO.File.Copy(safeOldPath, safeNewPath, overwrite);
                         System.IO.File.Delete(safeOldPath);
@@ -328,7 +328,7 @@ internal static partial class Sdk {
                 }
                 return false;
             } catch (Exception ex) {
-                Shared.Diagnostics.LuaInternalCatch("rename_file failed with exception: " + ex);
+                Shared.IO.Diagnostics.LuaInternalCatch("rename_file failed with exception: " + ex);
                 return false;
             }
         };
@@ -348,7 +348,7 @@ internal static partial class Sdk {
                             return true;
                         }
                     } catch (Exception ex) {
-                        Shared.Diagnostics.Bug("[Lua.sdk.AddFileSystemOperations] is_writable(file) catch triggered with exception: " + ex);
+                        Shared.IO.Diagnostics.Bug("[Lua.sdk.AddFileSystemOperations] is_writable(file) catch triggered with exception: " + ex);
                         return false;
                     }
                 }
@@ -365,11 +365,11 @@ internal static partial class Sdk {
                         return true;
                     }
                 } catch (Exception ex) {
-                    Shared.Diagnostics.Bug("[Lua.sdk.AddFileSystemOperations] is_writable(directory) catch triggered with exception: " + ex);
+                    Shared.IO.Diagnostics.Bug("[Lua.sdk.AddFileSystemOperations] is_writable(directory) catch triggered with exception: " + ex);
                     return false;
                 }
             } catch (Exception ex) {
-                Shared.Diagnostics.Bug("[Lua.sdk.AddFileSystemOperations] is_writable outer catch triggered with exception: " + ex);
+                Shared.IO.Diagnostics.Bug("[Lua.sdk.AddFileSystemOperations] is_writable outer catch triggered with exception: " + ex);
                 return false;
             }
         };
@@ -397,25 +397,25 @@ internal static partial class Sdk {
                         System.IO.File.Delete(destFull);
                     }
                 } catch (Exception ex) {
-                    Shared.Diagnostics.LuaInternalCatch("Failed to delete existing file or link: " + destFull + " with exception: " + ex);
+                    Shared.IO.Diagnostics.LuaInternalCatch("Failed to delete existing file or link: " + destFull + " with exception: " + ex);
                     /* ignore */
                 }
                 try {
                     ScriptEngines.Global.SdkModule.HardLink.Create(srcFull, destFull);
                     return true;
                 } catch (Exception ex) {
-                    Shared.Diagnostics.LuaInternalCatch("Failed to create hardlink from " + srcFull + " to " + destFull + " with exception: " + ex);
+                    Shared.IO.Diagnostics.LuaInternalCatch("Failed to create hardlink from " + srcFull + " to " + destFull + " with exception: " + ex);
                     return false;
                 }
             } catch (Exception ex) {
-                Shared.Diagnostics.Bug("[Lua.sdk.AddFileSystemOperations] create_hardlink catch triggered with exception: " + ex);
-                Shared.Diagnostics.LuaInternalCatch("create_hardlink failed with exception: " + ex);
+                Shared.IO.Diagnostics.Bug("[Lua.sdk.AddFileSystemOperations] create_hardlink catch triggered with exception: " + ex);
+                Shared.IO.Diagnostics.LuaInternalCatch("create_hardlink failed with exception: " + ex);
                 return false;
             }
         };
         _LuaWorld.Sdk.Table["create_symlink"] = (string source, string destination, bool isDirectory, DynValue overwrite) => {
             if (!Security.IsAllowedPath(source) || !Security.IsAllowedPath(destination)) {
-                Shared.UI.EngineSdk.Error($"Access denied: create_symlink src or dst outside allowed areas (src='{source}', dst='{destination}')");
+                Shared.IO.UI.EngineSdk.Error($"Access denied: create_symlink src or dst outside allowed areas (src='{source}', dst='{destination}')");
                 return false;
             }
             bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;

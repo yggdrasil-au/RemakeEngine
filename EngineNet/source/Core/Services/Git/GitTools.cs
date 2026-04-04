@@ -1,4 +1,3 @@
-using EngineNet.Shared.UI;
 
 namespace EngineNet.Core.Utils;
 
@@ -20,28 +19,28 @@ internal static class GitTools {
         }
 
         if (!IsGitInstalled(commandService)) {
-            EngineSdk.Warn("Git is not installed or not found in PATH.");
-            Shared.Diagnostics.Log("[GitTools.cs::CloneModule()] GitTools: Git is not installed or not found in PATH.");
+            Shared.IO.UI.EngineSdk.Warn("Git is not installed or not found in PATH.");
+            Shared.IO.Diagnostics.Log("[GitTools.cs::CloneModule()] GitTools: Git is not installed or not found in PATH.");
             return false;
         }
         try {
             string repoName = GuessRepoName(url);
             string target = System.IO.Path.Combine(_gamesDir, repoName);
             if (System.IO.Directory.Exists(target)) {
-                EngineSdk.Info($"Directory '{repoName}' already exists. Skipping download.");
+                Shared.IO.UI.EngineSdk.Info($"Directory '{repoName}' already exists. Skipping download.");
                 return true;
             }
 
             System.IO.Directory.CreateDirectory(_gamesDir);
-            EngineSdk.Print($"Downloading '{repoName}' from '{url}'...");
-            EngineSdk.Print($"Target directory: '{target}'");
+            Shared.IO.UI.EngineSdk.Print($"Downloading '{repoName}' from '{url}'...");
+            Shared.IO.UI.EngineSdk.Print($"Target directory: '{target}'");
 
             int rc = -1;
             bool ok = commandService.ExecuteCommand(
                 commandParts: new List<string> { "git", "clone", url, target, "--recurse-submodules" },
                 title: "git clone",
                 onOutput: (line, _) => {
-                    EngineSdk.Print(line);
+                    Shared.IO.UI.EngineSdk.Print(line);
                 },
                 onEvent: evt => {
                     if (evt.TryGetValue("event", out object? kind) && string.Equals(kind?.ToString(), "end", System.StringComparison.OrdinalIgnoreCase)) {
@@ -57,16 +56,16 @@ internal static class GitTools {
             }
 
             if (rc == 0) {
-                EngineSdk.Success($"\nSuccessfully downloaded '{repoName}'.");
+                Shared.IO.UI.EngineSdk.Success($"\nSuccessfully downloaded '{repoName}'.");
                 return true;
             }
-            EngineSdk.Error($"\nFailed to download '{repoName}'. Git exited with code {rc}.");
-            Shared.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Git exited with code {rc}.");
+            Shared.IO.UI.EngineSdk.Error($"\nFailed to download '{repoName}'. Git exited with code {rc}.");
+            Shared.IO.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Git exited with code {rc}.");
             return false;
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug($"[GitTools.cs::CloneModule()] Catch triggered during git clone: {ex}");
-            EngineSdk.Error($"An error occurred during download: {ex.Message}");
-            Shared.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
+            Shared.IO.Diagnostics.Bug($"[GitTools.cs::CloneModule()] Catch triggered during git clone: {ex}");
+            Shared.IO.UI.EngineSdk.Error($"An error occurred during download: {ex.Message}");
+            Shared.IO.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
             return false;
         }
     }
@@ -84,7 +83,7 @@ internal static class GitTools {
             );
             return result.Success;
         } catch {
-            Shared.Diagnostics.Bug("[GitTools.cs::CloneModule()] Exception while checking for git installation.");
+            Shared.IO.Diagnostics.Bug("[GitTools.cs::CloneModule()] Exception while checking for git installation.");
             return false;
         }
     }
@@ -101,7 +100,7 @@ internal static class GitTools {
                 return leaf;
             }
         } catch {
-            Shared.Diagnostics.Bug("[GitTools.cs::CloneModule()] GitTools: Failed to parse URL as URI, falling back to string parsing.");
+            Shared.IO.Diagnostics.Bug("[GitTools.cs::CloneModule()] GitTools: Failed to parse URL as URI, falling back to string parsing.");
             /* fall back to string parsing */
         }
         string tail = url.Replace("\\", "/");

@@ -7,7 +7,7 @@ The ScriptEngines area hosts runtime adapters for embedded languages (Lua, JavaS
 - **External runtimes** wrap tool-driven scripts like `bms`, delegating work to external tooling through a consistent action interface.
 
 ## Dispatch and Actions
-`ScriptActionDispatcher` resolves the requested script type and creates an `IAction` instance. Each action implements `ExecuteAsync` so the engine can run it with tool resolution and cancellation support.
+`ScriptActionDispatcher` resolves the requested script type and creates an `EngineNet.Core.Abstractions.IScriptAction` instance. The folder now builds as its own `EngineNet.ScriptEngines` project, while Core consumes the shared dispatcher contract for composition.
 
 ## Lua API Definitions
 The Lua surface is documented for editor tooling in [../../../EngineApps/Addons/RemakeEngineRuntime/library/api_definitions.lua](../../../EngineApps/Addons/RemakeEngineRuntime/library/api_definitions.lua). Update it when new Lua globals or helpers are exposed.

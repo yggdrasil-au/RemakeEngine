@@ -36,7 +36,7 @@ internal static class MediaConverter {
     }
 
     // Tracks currently running external conversions (for progress panel)
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> s_active = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> s_active = new();
 
     /// <summary>
     /// Converts media files using ffmpeg or vgmstream while preserving directory layout.
@@ -59,26 +59,26 @@ internal static class MediaConverter {
             // check if current required tool exist
             if (string.Equals(opt.Mode, ToolFfmpeg, System.StringComparison.OrdinalIgnoreCase)) {
                 if (!System.IO.File.Exists(opt.FfmpegPath!)) {
-                    Shared.UI.EngineSdk.Error($"ffmpeg executable not found: {opt.FfmpegPath}");
-                    Shared.UI.EngineSdk.Error("Please ensure ffmpeg is installed. You can download it using the 'Download Required Tools' operation.");
+                    Shared.IO.UI.EngineSdk.Error($"ffmpeg executable not found: {opt.FfmpegPath}");
+                    Shared.IO.UI.EngineSdk.Error("Please ensure ffmpeg is installed. You can download it using the 'Download Required Tools' operation.");
                     return false;
                 }
             } else if (string.Equals(opt.Mode, ToolVgmstream, System.StringComparison.OrdinalIgnoreCase)) {
                 if (!System.IO.File.Exists(opt.VgmstreamCli!)) {
-                    Shared.UI.EngineSdk.Error($"vgmstream-cli executable not found: {opt.VgmstreamCli}");
-                    Shared.UI.EngineSdk.Error("Please ensure vgmstream-cli is installed. You can download it using the 'Download Required Tools' operation.");
+                    Shared.IO.UI.EngineSdk.Error($"vgmstream-cli executable not found: {opt.VgmstreamCli}");
+                    Shared.IO.UI.EngineSdk.Error("Please ensure vgmstream-cli is installed. You can download it using the 'Download Required Tools' operation.");
                     return false;
                 }
                 // If using vgmstream with Godot mode, we also need ffmpeg
                 if (opt.GodotCompatible && (string.IsNullOrEmpty(opt.FfmpegPath) || !System.IO.File.Exists(opt.FfmpegPath))) {
-                    Shared.UI.EngineSdk.Error($"ffmpeg executable not found: {opt.FfmpegPath ?? "null"}");
-                    Shared.UI.EngineSdk.Error("vgmstream with --godot-compatible requires ffmpeg for post-processing. Please ensure ffmpeg is installed.");
+                    Shared.IO.UI.EngineSdk.Error($"ffmpeg executable not found: {opt.FfmpegPath ?? "null"}");
+                    Shared.IO.UI.EngineSdk.Error("vgmstream with --godot-compatible requires ffmpeg for post-processing. Please ensure ffmpeg is installed.");
                     return false;
                 }
             }
 
             if (!System.IO.Directory.Exists(opt.Source)) {
-                Shared.UI.EngineSdk.Error($"Source directory not found: {opt.Source}");
+                Shared.IO.UI.EngineSdk.Error($"Source directory not found: {opt.Source}");
                 return false;
             }
             System.IO.Directory.CreateDirectory(opt.Target);
@@ -88,18 +88,18 @@ internal static class MediaConverter {
                 opt.Workers = System.Math.Max(1, (int)System.Math.Floor(cores * 0.75));
             }
 
-            Shared.UI.EngineSdk.Info($"--- Starting {opt.Mode.ToUpperInvariant()} Conversion ---");
+            Shared.IO.UI.EngineSdk.Info($"--- Starting {opt.Mode.ToUpperInvariant()} Conversion ---");
             WriteVerbose(opt.Verbose, $"Using executable: {(opt.Mode == "ffmpeg" ? opt.FfmpegPath : opt.VgmstreamCli)}");
 
             List<string> allFiles = System.IO.Directory.EnumerateFiles(opt.Source, "*" + opt.InputExt, System.IO.SearchOption.AllDirectories)
                                      .Where(p => p.EndsWith(opt.InputExt, System.StringComparison.OrdinalIgnoreCase))
                                      .ToList();
             if (allFiles.Count == 0) {
-                Shared.UI.EngineSdk.Warn($"No '{opt.InputExt}' files found in {opt.Source}.");
+                Shared.IO.UI.EngineSdk.Warn($"No '{opt.InputExt}' files found in {opt.Source}.");
                 return true; // nothing to do
             }
 
-            Shared.UI.EngineSdk.Info($"Found {allFiles.Count} files to process with {opt.Workers} workers.");
+            Shared.IO.UI.EngineSdk.Info($"Found {allFiles.Count} files to process with {opt.Workers} workers.");
 
             int success = 0;
             int skipped = 0;
@@ -112,7 +112,7 @@ internal static class MediaConverter {
                 CancellationToken = cancellationToken
             };
             using System.Threading.CancellationTokenSource progressCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            System.Threading.Tasks.Task progressTask = Shared.UI.EngineSdk.SdkConsoleProgress.StartPanel(
+            System.Threading.Tasks.Task progressTask = Shared.IO.UI.EngineSdk.SdkConsoleProgress.StartPanel(
                 total: allFiles.Count,
                 snapshot: () => (System.Threading.Volatile.Read(ref processed), System.Threading.Volatile.Read(ref success), System.Threading.Volatile.Read(ref skipped), System.Threading.Volatile.Read(ref errors)),
                 activeSnapshot: () => s_active.Values.ToList(), // This now returns List<SdkConsoleProgress.ActiveProcess>
@@ -156,50 +156,50 @@ internal static class MediaConverter {
                             System.Threading.Interlocked.Increment(ref errors);
                             errorList.Add((System.IO.Path.GetFileName(src), msg ?? "unknown error"));
     #if DEBUG
-                            Shared.Diagnostics.Log($"Conversion failed for file {src}: {msg}");
+                            Shared.IO.Diagnostics.Log($"Conversion failed for file {src}: {msg}");
     #endif
                         }
                     } catch (System.Exception ex) {
                         System.Threading.Interlocked.Increment(ref errors);
                         errorList.Add((System.IO.Path.GetFileName(src), ex.Message));
-                        Shared.Diagnostics.Bug($"Conversion error for file {src}: {ex.Message}");
+                        Shared.IO.Diagnostics.Bug($"Conversion error for file {src}: {ex.Message}");
                     } finally {
                         System.Threading.Interlocked.Increment(ref processed);
                     }
                 });
             } catch (System.OperationCanceledException ex) {
-                Shared.Diagnostics.Bug($"[MediaConverter::Run()] Conversion cancelled by user: {ex}");
-                Shared.UI.EngineSdk.Warn("\nConversion cancelled by user.");
+                Shared.IO.Diagnostics.Bug($"[MediaConverter::Run()] Conversion cancelled by user: {ex}");
+                Shared.IO.UI.EngineSdk.Warn("\nConversion cancelled by user.");
             }
 
             progressCts.Cancel();
             try {
                 progressTask.Wait(cancellationToken);
             } catch (System.AggregateException ex) {
-                Shared.Diagnostics.Bug($"[MediaConverter::Run()] Progress task wait failed: {ex}");
-                Shared.Diagnostics.Trace("[MediaConverter] Progress task cancelled.");
+                Shared.IO.Diagnostics.Bug($"[MediaConverter::Run()] Progress task wait failed: {ex}");
+                Shared.IO.Diagnostics.Trace("[MediaConverter] Progress task cancelled.");
                 // ignore
             }
 
-            Shared.UI.EngineSdk.Info("\n--- Conversion Completed ---");
+            Shared.IO.UI.EngineSdk.Info("\n--- Conversion Completed ---");
 
-            Shared.UI.EngineSdk.PrintLine($"Success: {success}", System.ConsoleColor.Green);
-            Shared.UI.EngineSdk.PrintLine($"Skipped: {skipped}", System.ConsoleColor.Yellow);
-            Shared.UI.EngineSdk.PrintLine($"Errors: {errors}", System.ConsoleColor.Red);
+            Shared.IO.UI.EngineSdk.PrintLine($"Success: {success}", System.ConsoleColor.Green);
+            Shared.IO.UI.EngineSdk.PrintLine($"Skipped: {skipped}", System.ConsoleColor.Yellow);
+            Shared.IO.UI.EngineSdk.PrintLine($"Errors: {errors}", System.ConsoleColor.Red);
 
             if (!errorList.IsEmpty) {
-                Shared.UI.EngineSdk.Error("\nEncountered the following errors:");
+                Shared.IO.UI.EngineSdk.Error("\nEncountered the following errors:");
                 foreach ((string file, string msg) in errorList) {
-                    Shared.UI.EngineSdk.PrintLine($" Fail - File: {file}\n    Reason: {msg}", System.ConsoleColor.Red);
+                    Shared.IO.UI.EngineSdk.PrintLine($" Fail - File: {file}\n    Reason: {msg}", System.ConsoleColor.Red);
                 }
                 return false;
             }
 
             return true;
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug($"[MediaConverter.cs::Run()] Media conversion failed: {ex}");
-            Shared.UI.EngineSdk.Error($"Media conversion failed: {ex.Message}");
-            Shared.Diagnostics.Log($"[MediaConverter.cs::Run()] MediaConverter: Exception during media conversion: {ex}");
+            Shared.IO.Diagnostics.Bug($"[MediaConverter.cs::Run()] Media conversion failed: {ex}");
+            Shared.IO.UI.EngineSdk.Error($"Media conversion failed: {ex.Message}");
+            Shared.IO.Diagnostics.Log($"[MediaConverter.cs::Run()] MediaConverter: Exception during media conversion: {ex}");
             return false;
         }
     }
@@ -330,10 +330,10 @@ internal static class MediaConverter {
                                     System.IO.File.Delete(tmpWav);
                                 }
                             } catch (System.IO.IOException ex) {
-                                Shared.Diagnostics.Bug("[MediaConverter::ConvertOne()] Failed to delete temporary WAV file: " + tmpWav + " with exception: " + ex);
+                                Shared.IO.Diagnostics.Bug("[MediaConverter::ConvertOne()] Failed to delete temporary WAV file: " + tmpWav + " with exception: " + ex);
                                 /* ignore */
                             } catch (System.UnauthorizedAccessException ex) {
-                                Shared.Diagnostics.Bug("[MediaConverter::ConvertOne()] Access denied while deleting temporary WAV file: " + tmpWav + " with exception: " + ex);
+                                Shared.IO.Diagnostics.Bug("[MediaConverter::ConvertOne()] Access denied while deleting temporary WAV file: " + tmpWav + " with exception: " + ex);
                                 /* ignore */
                             }
                         }
@@ -350,16 +350,16 @@ internal static class MediaConverter {
 
             return (false, $"Unsupported mode: {opt.Mode}");
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug($"[MediaConverter::ConvertOne()] Conversion failed for '{srcPath}' -> '{destPath}': {ex}");
+            Shared.IO.Diagnostics.Bug($"[MediaConverter::ConvertOne()] Conversion failed for '{srcPath}' -> '{destPath}': {ex}");
             try {
                 if (System.IO.File.Exists(destPath)) {
                     System.IO.File.Delete(destPath);
                 }
             } catch (System.IO.IOException cleanupEx) {
-                Shared.Diagnostics.Bug($"[MediaConverter::ConvertOne()] Failed to clean up destination '{destPath}' after error: {cleanupEx}");
+                Shared.IO.Diagnostics.Bug($"[MediaConverter::ConvertOne()] Failed to clean up destination '{destPath}' after error: {cleanupEx}");
                 /* safe to ignore: best-effort temp file cleanup */
             } catch (System.UnauthorizedAccessException cleanupEx) {
-                Shared.Diagnostics.Bug($"[MediaConverter::ConvertOne()] Access denied during cleanup of '{destPath}': {cleanupEx}");
+                Shared.IO.Diagnostics.Bug($"[MediaConverter::ConvertOne()] Access denied during cleanup of '{destPath}': {cleanupEx}");
                 /* safe to ignore: best-effort temp file cleanup */
             }
             return (false, ex.Message);
@@ -369,20 +369,20 @@ internal static class MediaConverter {
     private static void RegisterActive(string tool, string srcPath) {
         try {
             int key = System.Threading.Thread.CurrentThread.ManagedThreadId;
-            s_active[key] = new Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess {
+            s_active[key] = new Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess {
                 Tool = tool,
                 File = System.IO.Path.GetFileName(srcPath),
                 StartedUtc = System.DateTime.UtcNow
             };
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug($"[MediaConverter::RegisterActive()] Failed to register active process for media conversion: {ex}");
+            Shared.IO.Diagnostics.Bug($"[MediaConverter::RegisterActive()] Failed to register active process for media conversion: {ex}");
             /* ignore */
         }
     }
 
     private static void UnregisterActive() {
         try { s_active.TryRemove(System.Threading.Thread.CurrentThread.ManagedThreadId, out _); } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug($"[MediaConverter::UnregisterActive()] Failed to unregister active process for media conversion: {ex}");
+            Shared.IO.Diagnostics.Bug($"[MediaConverter::UnregisterActive()] Failed to unregister active process for media conversion: {ex}");
             /* ignore */
         }
     }
@@ -399,8 +399,8 @@ internal static class MediaConverter {
             p.StartInfo.CreateNoWindow = true;
             p.StartInfo.RedirectStandardError = !passthroughOutput;
             p.StartInfo.RedirectStandardOutput = !passthroughOutput;
-            try { p.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8; } catch (System.Exception ex) { Shared.Diagnostics.Bug($"[MediaConverter::Exec()] Failed to set stderr encoding for '{fileName}': {ex}"); /* non-critical: default encoding is fine */ }
-            try { p.StartInfo.StandardOutputEncoding = System.Text.Encoding.UTF8; } catch (System.Exception ex) { Shared.Diagnostics.Bug($"[MediaConverter::Exec()] Failed to set stdout encoding for '{fileName}': {ex}"); /* non-critical */ }
+            try { p.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8; } catch (System.Exception ex) { Shared.IO.Diagnostics.Bug($"[MediaConverter::Exec()] Failed to set stderr encoding for '{fileName}': {ex}"); /* non-critical: default encoding is fine */ }
+            try { p.StartInfo.StandardOutputEncoding = System.Text.Encoding.UTF8; } catch (System.Exception ex) { Shared.IO.Diagnostics.Bug($"[MediaConverter::Exec()] Failed to set stdout encoding for '{fileName}': {ex}"); /* non-critical */ }
 
             using var job = System.OperatingSystem.IsWindows() ? new Utils.JobObject() : null;
 
@@ -425,7 +425,7 @@ internal static class MediaConverter {
 
             while (!p.HasExited) {
                 if (cancellationToken.IsCancellationRequested) {
-                    try { p.Kill(true); } catch (System.Exception ex) { Shared.Diagnostics.Bug($"[MediaConverter::Exec()] Failed to kill process '{fileName}' during cancellation: {ex}"); }
+                    try { p.Kill(true); } catch (System.Exception ex) { Shared.IO.Diagnostics.Bug($"[MediaConverter::Exec()] Failed to kill process '{fileName}' during cancellation: {ex}"); }
                     return (false, "cancelled by user");
                 }
                 System.Threading.Thread.Sleep(100);
@@ -450,7 +450,7 @@ internal static class MediaConverter {
             }
             return (false, $"exit code {exitCode}");
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug($"[MediaConverter::Exec()] Process execution failed for '{fileName}': {ex}");
+            Shared.IO.Diagnostics.Bug($"[MediaConverter::Exec()] Process execution failed for '{fileName}': {ex}");
             return (false, ex.Message);
         }
     }
@@ -501,13 +501,13 @@ internal static class MediaConverter {
                 }
             }
         } catch (System.IO.IOException ex) {
-            Shared.Diagnostics.Bug("[MediaConverter::TryReadWavChannels()] IO failure while reading WAV channels from file: " + path + " with exception: " + ex);
+            Shared.IO.Diagnostics.Bug("[MediaConverter::TryReadWavChannels()] IO failure while reading WAV channels from file: " + path + " with exception: " + ex);
             /* ignore parse errors */
         } catch (System.UnauthorizedAccessException ex) {
-            Shared.Diagnostics.Bug("[MediaConverter::TryReadWavChannels()] Access denied while reading WAV channels from file: " + path + " with exception: " + ex);
+            Shared.IO.Diagnostics.Bug("[MediaConverter::TryReadWavChannels()] Access denied while reading WAV channels from file: " + path + " with exception: " + ex);
             /* ignore parse errors */
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug("[MediaConverter::TryReadWavChannels()] Unexpected failure while reading WAV channels from file: " + path + " with exception: " + ex);
+            Shared.IO.Diagnostics.Bug("[MediaConverter::TryReadWavChannels()] Unexpected failure while reading WAV channels from file: " + path + " with exception: " + ex);
             /* ignore parse errors */
         }
         return null;
@@ -582,7 +582,7 @@ internal static class MediaConverter {
                     o.Debug = true;
                     break;
                 default:
-                    Shared.Diagnostics.Trace($"[MediaConverter] Unknown argument: {a}");
+                    Shared.IO.Diagnostics.Trace($"[MediaConverter] Unknown argument: {a}");
                     // ignore unknowns for forward-compat
                     break;
             }
@@ -619,11 +619,11 @@ internal static class MediaConverter {
                         return candidate;
                     }
                 } catch {
-                    Shared.Diagnostics.Bug("Failed to find executable in PATH: " + name);
+                    Shared.IO.Diagnostics.Bug("Failed to find executable in PATH: " + name);
                 }
             }
         } catch {
-            Shared.Diagnostics.Bug("Failed to enumerate PATH directories");
+            Shared.IO.Diagnostics.Bug("Failed to enumerate PATH directories");
         }
         return null;
     }*/
@@ -632,7 +632,7 @@ internal static class MediaConverter {
         if (!enabled) {
             return;
         }
-        Shared.UI.EngineSdk.Info(msg);
+        Shared.IO.UI.EngineSdk.Info(msg);
     }
 
     private static void TryDelete(string path) {
@@ -641,7 +641,7 @@ internal static class MediaConverter {
                 System.IO.File.Delete(path);
             }
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug($"[MediaConverter] Failed to delete source file after conversion: {path}. Error: {ex.Message}");
+            Shared.IO.Diagnostics.Bug($"[MediaConverter] Failed to delete source file after conversion: {path}. Error: {ex.Message}");
         }
     }
 }

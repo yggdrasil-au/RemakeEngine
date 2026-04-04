@@ -22,9 +22,8 @@ EngineNet.Core is the runtime layer behind CLI, TUI, and GUI. For most users and
 - `Shared/`: TOML/JSON/YAML conversion and parsing helpers, diagnostics/logging, and document-model conversion shared with ScriptEngines.
 - `ExternalTools/`: Tool resolution and acquisition support used by script actions and command execution.
 - `FileHandlers/`: Conversion/extraction handlers used by specific built-in operations.
-- `UI/`: Engine SDK bridge used by scripts and interfaces for output/events.
 
-The reusable serialization and diagnostics helpers now live in [../Shared/readme.md](../Shared/readme.md) and are referenced by Core rather than owned by it.
+The reusable serialization, diagnostics, and UI bridge helpers now live in [../Shared/readme.md](../Shared/readme.md) and are referenced by Core rather than owned by it.
 
 ## operations.toml-Centric Execution Path
 1. `Services/OperationsService/OperationsLoader.cs` (`LoadOperations`) parses `operations.toml` or `operations.json` into operation dictionaries and annotates each with `_source_file`.
@@ -34,7 +33,7 @@ The reusable serialization and diagnostics helpers now live in [../Shared/readme
 5. `Utils/Placeholders.cs` (`Resolve`) recursively resolves `{{...}}` placeholders in operation payloads.
 6. `Engine/Operations/Single.cs` (`RunAsync`) executes one operation, including lazy execution of `onsuccess` child operations.
 7. `Engine/Operations/helpers/OpDispatcher.cs` (`DispatchAsync`) handles `script_type = engine` and internal built-in dispatch.
-8. `ScriptEngines/ScriptActionDispatcher.cs` routes embedded (`lua`, `js`, `python`) and external (`bms`, etc.) script actions.
+8. `ScriptEngines/ScriptActionDispatcher.cs` in the separate `EngineNet.ScriptEngines` project routes embedded (`lua`, `js`, `python`) and external (`bms`, etc.) script actions through the shared Core abstraction.
 9. `Engine/Operations/All.cs` (`RunAsync`) handles `init`, `run-all`/`run_all`, and dependency-aware run sequencing.
 
 Typical module author entry point files:

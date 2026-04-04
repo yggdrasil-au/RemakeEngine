@@ -46,7 +46,7 @@ internal static class Security {
             string fullPath = System.IO.Path.GetFullPath(path);
             return CleanPathPrefix(fullPath);
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug("[Security.cs::GetCanonicalFullPath()] catch triggered for path: " + path + " with exception: " + ex);
+            Shared.IO.Diagnostics.Bug("[Security.cs::GetCanonicalFullPath()] catch triggered for path: " + path + " with exception: " + ex);
             return CleanPathPrefix(path).Replace('/', System.IO.Path.DirectorySeparatorChar);
         }
     }
@@ -127,7 +127,7 @@ internal static class Security {
             }
             return CleanPathPrefix(rootResult ?? full);
         } catch {
-            Shared.Diagnostics.Bug("DetermineApprovalRoot: Failed to determine root for path: " + path);
+            Shared.IO.Diagnostics.Bug("DetermineApprovalRoot: Failed to determine root for path: " + path);
             return CleanPathPrefix(path);
         }
     }
@@ -179,7 +179,7 @@ internal static class Security {
 
         if (IsForbiddenPath(NormalizeLowerFullPath(path))) {
             canonicalPath = string.Empty;
-            Shared.UI.EngineSdk.Error($"Access denied: File path '{path}' is a protected system or engine path");
+            Shared.IO.UI.EngineSdk.Error($"Access denied: File path '{path}' is a protected system or engine path");
             return false;
         }
 
@@ -187,14 +187,14 @@ internal static class Security {
         string root = DetermineApprovalRoot(path);
         string msg = $"Permission requested: Allow this script to access external path '\"{root}\"'?";
 
-        bool allowed = Shared.UI.EngineSdk.Confirm(msg, "ext_path_access", false);
+        bool allowed = Shared.IO.UI.EngineSdk.Confirm(msg, "ext_path_access", false);
 
         if (allowed) {
             try {
                 string normalized = NormalizeLowerFullPath(root).TrimEnd(System.IO.Path.DirectorySeparatorChar);
                 UserApprovedRoots.Add(normalized);
             } catch {
-                Shared.Diagnostics.Bug("[Security.cs::EnsurePathAllowedWithPrompt()] Failed to normalize and approve path: " + root);
+                Shared.IO.Diagnostics.Bug("[Security.cs::EnsurePathAllowedWithPrompt()] Failed to normalize and approve path: " + root);
                 /* ignore */
             }
 
@@ -207,7 +207,7 @@ internal static class Security {
         }
 
         canonicalPath = string.Empty;
-        Shared.UI.EngineSdk.Error($"Access denied: File path '{path}' is outside allowed workspace areas");
+        Shared.IO.UI.EngineSdk.Error($"Access denied: File path '{path}' is outside allowed workspace areas");
         return false;
     }
 
@@ -233,7 +233,7 @@ internal static class Security {
                 return true;
             }
         } catch (Exception ex) {
-            Shared.Diagnostics.Trace("[Security.cs::IsApprovedExecutable()] Tool resolution failed for: " + exeName + " with exception: " + ex);
+            Shared.IO.Diagnostics.Trace("[Security.cs::IsApprovedExecutable()] Tool resolution failed for: " + exeName + " with exception: " + ex);
             /* Tool resolution may fail, continue with other checks */
         }
 
@@ -271,7 +271,7 @@ internal static class Security {
              executable.Contains("Lucas_Radcore_Cement_Library_Builder", System.StringComparison.OrdinalIgnoreCase))) {
             return true;
         } else if (executable.Contains("Tools", System.StringComparison.OrdinalIgnoreCase)) {
-            Shared.Diagnostics.Log($"[Security.cs::IsApprovedExecutable()] Allowing executable in Tools directory: {executable}");
+            Shared.IO.Diagnostics.Log($"[Security.cs::IsApprovedExecutable()] Allowing executable in Tools directory: {executable}");
             return true;
         }
 
@@ -286,7 +286,7 @@ internal static class Security {
         canonicalPath = string.Empty;
 
         if (string.IsNullOrWhiteSpace(path)) {
-            //Shared.Diagnostics.Trace("[Security.cs::IsAllowedPath()] Denying access to empty or whitespace path");
+            //Shared.IO.Diagnostics.Trace("[Security.cs::IsAllowedPath()] Denying access to empty or whitespace path");
             return false;
         }
 
@@ -295,13 +295,13 @@ internal static class Security {
             
             // Deny explicitly forbidden paths immediately
             if (IsForbiddenPath(normalizedPath)) {
-                Shared.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Path '{normalizedPath}' is forbidden");
+                Shared.IO.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Path '{normalizedPath}' is forbidden");
                 return false;
             }
 
             string fullPath = GetCanonicalFullPath(path);
-            //Shared.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Checking path '{fullPath}'");
-            //Shared.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Normalized path '{normalizedPath}'");
+            //Shared.IO.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Checking path '{fullPath}'");
+            //Shared.IO.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Normalized path '{normalizedPath}'");
 
             // First, allow any user-approved roots for this session
             foreach (string approved in UserApprovedRoots) {
@@ -317,8 +317,8 @@ internal static class Security {
                 ? currentDir
                 : NormalizeLowerFullPath(EngineNet.Core.Main.RootPath);
 
-            //Shared.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Current directory '{currentDir}'");
-            //Shared.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Project root '{projectRoot}'");
+            //Shared.IO.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Current directory '{currentDir}'");
+            //Shared.IO.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Project root '{projectRoot}'");
 
             // Allowed path patterns (case-insensitive)
             // Note: We check full path starts with these patterns to allow subdirectories,
@@ -340,11 +340,11 @@ internal static class Security {
             // Allow if path starts with any allowed pattern
             foreach (string allowedPattern in allowedPatterns) {
                 if (IsPathWithinBoundary(normalizedPath, allowedPattern)) {
-                    //Shared.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Path '{normalizedPath}' starts with allowed pattern '{allowedPattern}'");
+                    //Shared.IO.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Path '{normalizedPath}' starts with allowed pattern '{allowedPattern}'");
                     canonicalPath = ResolveCanonicalPathForIo(fullPath);
                     return true;
                 } else {
-                    Shared.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Path '{normalizedPath}' does not start with allowed pattern '{allowedPattern}'");
+                    Shared.IO.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Path '{normalizedPath}' does not start with allowed pattern '{allowedPattern}'");
                 }
             }
 
@@ -352,7 +352,7 @@ internal static class Security {
             try {
                 string? check = fullPath;
                 string? root = System.IO.Path.GetPathRoot(check);
-                Shared.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Checking symlinks for path '{check}'");
+                Shared.IO.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Checking symlinks for path '{check}'");
 
                 while (!string.IsNullOrEmpty(check) && !string.Equals(check, root, System.StringComparison.OrdinalIgnoreCase)) {
                     if (System.IO.Directory.Exists(check)) {
@@ -380,7 +380,7 @@ internal static class Security {
                 }
             } catch (Exception ex) {
                 /* ignore */
-                Shared.Diagnostics.Bug("IsAllowedPath: Failed to resolve symlink for path: " + fullPath + " with exception: " + ex);
+                Shared.IO.Diagnostics.Bug("IsAllowedPath: Failed to resolve symlink for path: " + fullPath + " with exception: " + ex);
             }
 
             // Additional check: allow relative paths within current directory
@@ -390,7 +390,7 @@ internal static class Security {
 
             return false; // Default deny for unrecognized absolute paths
         } catch (Exception ex) {
-            Shared.Diagnostics.Bug("IsAllowedPath: Failed to check path: " + path + " with exception: " + ex);
+            Shared.IO.Diagnostics.Bug("IsAllowedPath: Failed to check path: " + path + " with exception: " + ex);
             return false; // Path parsing errors = deny
         }
     }

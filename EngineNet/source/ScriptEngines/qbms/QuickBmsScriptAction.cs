@@ -1,9 +1,7 @@
 
-using EngineNet.Shared.Serialization.Toml;
-
 namespace EngineNet.ScriptEngines.qbms;
 
-public sealed class Main : ScriptEngines.IAction {
+public sealed class Main : IScriptAction {
     private readonly string _scriptPath;   // path to .bms
     private readonly string _moduleRoot;   // Game_Root
     private readonly string _inputDir;

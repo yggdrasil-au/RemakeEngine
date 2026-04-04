@@ -14,7 +14,7 @@ internal static partial class FolderRenamer {
         try {
             options = Parse(args);
         } catch (System.ArgumentException ex) {
-            Shared.Diagnostics.Bug("[FolderRenamer::Run()] Invalid arguments.", ex);
+            Shared.IO.Diagnostics.Bug("[FolderRenamer::Run()] Invalid arguments.", ex);
             WriteError(ex.Message);
             return false;
         }

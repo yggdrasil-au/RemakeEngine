@@ -130,7 +130,7 @@ public static class TuiRenderer {
     /// </summary>
     public static void Log(string message, ConsoleColor color = ConsoleColor.Gray) {
         // Write to our dedicated DEBUG log file
-        Shared.Diagnostics.TuiLog(message);
+        Shared.IO.Diagnostics.TuiLog(message);
 
         if (!_isActive) {
             // Fallback if renderer isn't active

@@ -3,6 +3,7 @@
 using EngineNet.Core.ExternalTools;
 using EngineNet.Core.Utils;
 using EngineNet.Core.Data;
+using EngineNet.Core.Abstractions;
 
 namespace EngineNet.Core.Services;
 
@@ -16,6 +17,7 @@ internal class GameLauncher {
     private readonly ExternalTools.JsonToolResolver _toolResolver;
     private readonly EngineConfig _config;
     private readonly CommandService _commandService;
+    private readonly IScriptActionDispatcher _scriptActionDispatcher;
     private readonly string _rootPath = Main.RootPath;
 
     /* :: :: Constructors :: START :: */
@@ -27,11 +29,13 @@ internal class GameLauncher {
     /// <param name="toolResolver">The tool resolver for finding external tools (e.g., Godot).</param>
     /// <param name="config">The global engine configuration.</param>
     /// <param name="commandService">The command service for executing processes.</param>
-    internal GameLauncher(GameRegistry gameRegistry, ExternalTools.JsonToolResolver toolResolver, EngineConfig config, CommandService commandService) {
+    /// <param name="scriptActionDispatcher">Dispatcher used to resolve embedded script actions.</param>
+    internal GameLauncher(GameRegistry gameRegistry, ExternalTools.JsonToolResolver toolResolver, EngineConfig config, CommandService commandService, IScriptActionDispatcher scriptActionDispatcher) {
         this._gameRegistry = gameRegistry;
         this._toolResolver = toolResolver;
         this._config = config;
         this._commandService = commandService;
+        this._scriptActionDispatcher = scriptActionDispatcher;
     }
 
     /* :: :: Constructors :: END :: */
@@ -54,7 +58,7 @@ internal class GameLauncher {
         try {
             ctx = Core.Utils.ExecutionContextBuilder.Build(currentGame: name, games: games, engineConfig: _config.Data);
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug($"[GameLauncher] err building context for game '{name}': {ex}");
+            Shared.IO.Diagnostics.Bug($"[GameLauncher] err building context for game '{name}': {ex}");
             ctx = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase) {
                 ["Game_Root"] = root,
                 ["Project_Root"] = this._rootPath
@@ -97,15 +101,15 @@ internal class GameLauncher {
                     }
                 }
             } else {
-                Shared.Diagnostics.Trace($"[GameLauncher] no game.toml found for game '{name}' at expected path: {gameToml}");
+                Shared.IO.Diagnostics.Trace($"[GameLauncher] no game.toml found for game '{name}' at expected path: {gameToml}");
             }
         } catch (System.IO.IOException ex) {
             /* keep fallback behavior: malformed or unreadable toml should not block launch */
-            Shared.Diagnostics.Bug($"[GameLauncher] IO error parsing game.toml for game '{name}': {ex}");
+            Shared.IO.Diagnostics.Bug($"[GameLauncher] IO error parsing game.toml for game '{name}': {ex}");
         } catch (System.UnauthorizedAccessException ex) {
-            Shared.Diagnostics.Bug($"[GameLauncher] Access denied parsing game.toml for game '{name}': {ex}");
+            Shared.IO.Diagnostics.Bug($"[GameLauncher] Access denied parsing game.toml for game '{name}': {ex}");
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug($"[GameLauncher] Unexpected error parsing game.toml for game '{name}': {ex}");
+            Shared.IO.Diagnostics.Bug($"[GameLauncher] Unexpected error parsing game.toml for game '{name}': {ex}");
         }
 
         // if lua script exists, run it
@@ -114,23 +118,24 @@ internal class GameLauncher {
                 string ext = System.IO.Path.GetExtension(scriptPath).TrimStart('.').ToLowerInvariant();
 
                 // Use the dispatcher to create the correct action (Lua, JS, or Python)
-                var action = EngineNet.ScriptEngines.ScriptActionDispatcher.EmbeddedActionDispatcher.TryCreate(
+                var action = this._scriptActionDispatcher.TryCreateEmbedded(
                     scriptType: ext,
                     scriptPath: scriptPath,
                     args: System.Array.Empty<string>(), // Launching a game usually implies no args, or you could parse them from toml
                     currentGame: name,
-                    games: games
+                    games: games,
+                    projectRoot: this._rootPath
                 );
 
                 if (action != null) {
-                    Shared.Diagnostics.Trace($"[GameLauncher] executing {ext} script '{scriptPath}' for game '{name}'");
+                    Shared.IO.Diagnostics.Trace($"[GameLauncher] executing {ext} script '{scriptPath}' for game '{name}'");
                     await action.ExecuteAsync(tools: this._toolResolver, commandService: this._commandService);
                     return true;
                 } else {
-                    Shared.Diagnostics.Log($"[GameLauncher] Unsupported script type '{ext}' in '{scriptPath}'");
+                    Shared.IO.Diagnostics.Log($"[GameLauncher] Unsupported script type '{ext}' in '{scriptPath}'");
                 }
             } catch (System.Exception ex) {
-                Shared.Diagnostics.Bug($"[GameLauncher] err executing script '{scriptPath}' for game '{name}': {ex.Message}");
+                Shared.IO.Diagnostics.Bug($"[GameLauncher] err executing script '{scriptPath}' for game '{name}': {ex.Message}");
                 return false;
             }
         }
@@ -148,7 +153,7 @@ internal class GameLauncher {
                     UseShellExecute = false
                 });
             } catch (System.Exception ex) {
-                Shared.Diagnostics.Bug($"[GameLauncher] err launching godot project '{godotProject}' for game '{name}': {ex}");
+                Shared.IO.Diagnostics.Bug($"[GameLauncher] err launching godot project '{godotProject}' for game '{name}': {ex}");
                 return false;
             }
         }
@@ -164,7 +169,7 @@ internal class GameLauncher {
                 UseShellExecute = true
             });
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug($"[GameLauncher] err launching exe '{exe}' for game '{name}': {ex}");
+            Shared.IO.Diagnostics.Bug($"[GameLauncher] err launching exe '{exe}' for game '{name}': {ex}");
             return false;
         }
     }

@@ -6,16 +6,16 @@ using IronPython.Hosting;
 namespace EngineNet.ScriptEngines.Python;
 
 internal class PyProgressProxy {
-    internal Shared.UI.EngineSdk.ScriptProgress? ActiveScriptProgress { get; set; }
+    internal Shared.IO.UI.EngineSdk.ScriptProgress? ActiveScriptProgress { get; set; }
 
-    internal Func<int, string?, string?, Shared.UI.EngineSdk.PanelProgress>? NewFunc { get; set; }
-    internal Func<int, string?, Shared.UI.EngineSdk.ScriptProgress>? StartFunc { get; set; }
+    internal Func<int, string?, string?, Shared.IO.UI.EngineSdk.PanelProgress>? NewFunc { get; set; }
+    internal Func<int, string?, Shared.IO.UI.EngineSdk.ScriptProgress>? StartFunc { get; set; }
     internal Action<string?>? StepAction { get; set; }
     internal Action<int>? AddStepsAction { get; set; }
     internal Action? FinishAction { get; set; }
 
-    internal Shared.UI.EngineSdk.PanelProgress @new(int total, string? id = null, string? label = null) => NewFunc!(total, id, label);
-    internal Shared.UI.EngineSdk.ScriptProgress start(int total, string? label = null) => StartFunc!(total, label);
+    internal Shared.IO.UI.EngineSdk.PanelProgress @new(int total, string? id = null, string? label = null) => NewFunc!(total, id, label);
+    internal Shared.IO.UI.EngineSdk.ScriptProgress start(int total, string? label = null) => StartFunc!(total, label);
     internal void step(string? label = null) => StepAction!(label);
     internal void add_steps(int count) => AddStepsAction!(count);
     internal void finish() => FinishAction!();
@@ -48,11 +48,11 @@ internal static class PyAction {
         string projectRoot,
         string scriptPath
     ) {
-        world.PythonScope.SetVariable("print", (Action<object>)((o) => Shared.UI.EngineSdk.PrintLine(o?.ToString() ?? "", ConsoleColor.White)));
-        world.PythonScope.SetVariable("PrintLine", (Action<string>)((message) => Shared.UI.EngineSdk.PrintLine(message, ConsoleColor.White)));
-        world.PythonScope.SetVariable("PrintLineColor", (Action<string, ConsoleColor>)((message, color) => Shared.UI.EngineSdk.PrintLine(message, color)));
-        world.PythonScope.SetVariable("warn", (Action<string>)Shared.UI.EngineSdk.Warn);
-        world.PythonScope.SetVariable("error", (Action<string>)Shared.UI.EngineSdk.Error);
+        world.PythonScope.SetVariable("print", (Action<object>)((o) => Shared.IO.UI.EngineSdk.PrintLine(o?.ToString() ?? "", ConsoleColor.White)));
+        world.PythonScope.SetVariable("PrintLine", (Action<string>)((message) => Shared.IO.UI.EngineSdk.PrintLine(message, ConsoleColor.White)));
+        world.PythonScope.SetVariable("PrintLineColor", (Action<string, ConsoleColor>)((message, color) => Shared.IO.UI.EngineSdk.PrintLine(message, color)));
+        world.PythonScope.SetVariable("warn", (Action<string>)Shared.IO.UI.EngineSdk.Warn);
+        world.PythonScope.SetVariable("error", (Action<string>)Shared.IO.UI.EngineSdk.Error);
 
         // Expose a function to resolve tool path
         world.PythonScope.SetVariable("tool", (Func<string, string, string>)((id, ver) => tools.ResolveToolPath(id, ver)));
@@ -72,11 +72,11 @@ internal static class PyAction {
 
         // emits the prompt query to the engine/ui and returns the user input
         world.PythonScope.SetVariable("prompt", (Func<string, string, bool, string>)((message, id, secret) => {
-            return Shared.UI.EngineSdk.Prompt(message, id ?? "q1", secret);
+            return Shared.IO.UI.EngineSdk.Prompt(message, id ?? "q1", secret);
         }));
 
         world.PythonScope.SetVariable("color_prompt", (Func<string, string, string, bool, string>)((message, color, id, secret) => {
-            return Shared.UI.EngineSdk.color_prompt(message, color, id ?? "q1", secret);
+            return Shared.IO.UI.EngineSdk.color_prompt(message, color, id ?? "q1", secret);
         }));
 
         // Alias for AU/UK spelling
@@ -85,15 +85,15 @@ internal static class PyAction {
         // :: Progress System ::
         var progressProxy = new PyProgressProxy();
 
-        // progress.new(total, id, label) -> Shared.UI.EngineSdk.PanelProgress userdata
+        // progress.new(total, id, label) -> Shared.IO.UI.EngineSdk.PanelProgress userdata
         progressProxy.NewFunc = (total, id, label) => {
             string pid = string.IsNullOrEmpty(id) ? "p1" : id;
-            return new Shared.UI.EngineSdk.PanelProgress(total, pid, label ?? "");
+            return new Shared.IO.UI.EngineSdk.PanelProgress(total, pid, label ?? "");
         };
 
-        // progress.start(total, label) -> Shared.UI.EngineSdk.ScriptProgress userdata
+        // progress.start(total, label) -> Shared.IO.UI.EngineSdk.ScriptProgress userdata
         progressProxy.StartFunc = (total, label) => {
-            progressProxy.ActiveScriptProgress = new Shared.UI.EngineSdk.ScriptProgress(total, "s1", label ?? "");
+            progressProxy.ActiveScriptProgress = new Shared.IO.UI.EngineSdk.ScriptProgress(total, "s1", label ?? "");
             return progressProxy.ActiveScriptProgress;
         };
 
@@ -102,7 +102,7 @@ internal static class PyAction {
             if (progressProxy.ActiveScriptProgress != null) {
                 progressProxy.ActiveScriptProgress.Update(1, label ?? "");
                 if (!string.IsNullOrEmpty(label)) {
-                    Shared.UI.EngineSdk.PrintLine($"[Step {progressProxy.ActiveScriptProgress.Current}/{progressProxy.ActiveScriptProgress.Total}] {label}", ConsoleColor.Magenta);
+                    Shared.IO.UI.EngineSdk.PrintLine($"[Step {progressProxy.ActiveScriptProgress.Current}/{progressProxy.ActiveScriptProgress.Total}] {label}", ConsoleColor.Magenta);
                 }
             }
         };
@@ -133,8 +133,8 @@ internal static class PyAction {
 
         // :: Python Diagnostics logging ::
         var diagnosticsProxy = new PyDiagnosticsProxy();
-        diagnosticsProxy.LogAction = (Action<string>)Shared.Diagnostics.PythonLogger.PythonLog;
-        diagnosticsProxy.TraceAction = (Action<string>)Shared.Diagnostics.PythonLogger.PythonTrace;
+        diagnosticsProxy.LogAction = (Action<string>)Shared.IO.Diagnostics.PythonLogger.PythonLog;
+        diagnosticsProxy.TraceAction = (Action<string>)Shared.IO.Diagnostics.PythonLogger.PythonTrace;
 
         world.PythonScope.SetVariable("Diagnostics", diagnosticsProxy);
 

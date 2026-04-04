@@ -29,7 +29,7 @@ internal static partial class Sdk {
                 using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(json);
                 return Lua.Globals.Utils.JsonElementToDynValue(_LuaWorld.LuaScript, doc.RootElement);
             } catch (Exception ex) {
-                Shared.Diagnostics.LuaInternalCatch("sdk.text.json.decode failed: " + ex);
+                Shared.IO.Diagnostics.LuaInternalCatch("sdk.text.json.decode failed: " + ex);
                 return DynValue.Nil;
             }
         });

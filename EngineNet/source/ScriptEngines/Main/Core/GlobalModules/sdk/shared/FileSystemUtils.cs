@@ -18,8 +18,8 @@ internal static class FileSystemUtils {
             System.IO.FileSystemInfo info = GetInfo(path);
             return info.Exists || info.LinkTarget != null;
         } catch (Exception ex) {
-            Shared.Diagnostics.Bug("[FileSystemUtils] path_exists_including_links catch triggered for path: " + path + " with exception: " + ex);
-            Shared.Diagnostics.LuaInternalCatch("path_exists_including_links failed for path: " + path + " with exception: " + ex);
+            Shared.IO.Diagnostics.Bug("[FileSystemUtils] path_exists_including_links catch triggered for path: " + path + " with exception: " + ex);
+            Shared.IO.Diagnostics.LuaInternalCatch("path_exists_including_links failed for path: " + path + " with exception: " + ex);
             return false;
         }
     }
@@ -29,7 +29,7 @@ internal static class FileSystemUtils {
             System.IO.FileSystemInfo info = GetInfo(path);
             return info.LinkTarget != null || info.Attributes.HasFlag(System.IO.FileAttributes.ReparsePoint);
         } catch (Exception ex) {
-            Shared.Diagnostics.LuaInternalCatch("is_symlink failed for path: " + path + " with exception: " + ex);
+            Shared.IO.Diagnostics.LuaInternalCatch("is_symlink failed for path: " + path + " with exception: " + ex);
             return false;
         }
     }
@@ -38,7 +38,7 @@ internal static class FileSystemUtils {
         try {
             return System.IO.Path.GetFullPath(path);
         } catch (Exception ex) {
-            Shared.Diagnostics.LuaInternalCatch("real_path failed for path: " + path + " with exception: " + ex);
+            Shared.IO.Diagnostics.LuaInternalCatch("real_path failed for path: " + path + " with exception: " + ex);
             return null;
         }
     }
@@ -48,7 +48,7 @@ internal static class FileSystemUtils {
             System.IO.FileSystemInfo info = GetInfo(path);
             return info.LinkTarget;
         } catch (Exception ex) {
-            Shared.Diagnostics.LuaInternalCatch("read_link failed for path: " + path + " with exception: " + ex);
+            Shared.IO.Diagnostics.LuaInternalCatch("read_link failed for path: " + path + " with exception: " + ex);
             return null;
         }
     }
@@ -76,25 +76,25 @@ internal static class FileSystemUtils {
                 throw new System.IO.IOException($"Destination already exists: {destDir}");
             }
             // We'll merge by copy then delete source
-            Shared.UI.EngineSdk.Print($"Merging '{sourceDir}' into existing '{destDir}'...");
+            Shared.IO.UI.EngineSdk.Print($"Merging '{sourceDir}' into existing '{destDir}'...");
             CopyDirectory(sourceDir, destDir, overwrite: true, progressLabel: $"Merging {sourceDir} to {destDir}...");
-            Shared.UI.EngineSdk.Print("Deleting source after merge...");
+            Shared.IO.UI.EngineSdk.Print("Deleting source after merge...");
             System.IO.Directory.Delete(sourceDir, recursive: true);
-            Shared.UI.EngineSdk.Print("Move complete.");
+            Shared.IO.UI.EngineSdk.Print("Move complete.");
             return;
         }
 
         try {
-            Shared.UI.EngineSdk.Print($"Moving directory '{sourceDir}' -> '{destDir}' (fast move) ...", newline: false);
+            Shared.IO.UI.EngineSdk.Print($"Moving directory '{sourceDir}' -> '{destDir}' (fast move) ...", newline: false);
             System.IO.Directory.Move(sourceDir, destDir);
-            Shared.UI.EngineSdk.Print(" done.", newline: true);
+            Shared.IO.UI.EngineSdk.Print(" done.", newline: true);
         } catch {
             // Fallback to copy+delete for cross-device moves
-            Shared.UI.EngineSdk.Print("Fast move not available; falling back to copy...", newline: true);
+            Shared.IO.UI.EngineSdk.Print("Fast move not available; falling back to copy...", newline: true);
             CopyDirectory(sourceDir, destDir, overwrite: true, progressLabel: $"Moving {sourceDir} to {destDir}...");
-            Shared.UI.EngineSdk.Print("Deleting source after copy...", newline: true);
+            Shared.IO.UI.EngineSdk.Print("Deleting source after copy...", newline: true);
             System.IO.Directory.Delete(sourceDir, recursive: true);
-            Shared.UI.EngineSdk.Print("Move complete.");
+            Shared.IO.UI.EngineSdk.Print("Move complete.");
         }
     }
 
@@ -138,13 +138,13 @@ internal static class FileSystemUtils {
         int total = files.Count;
         //int current = 0;
 
-        using Shared.UI.EngineSdk.PanelProgress? progress = total > 0
-            ? new Shared.UI.EngineSdk.PanelProgress(total, id: "fs_copy", label: progressLabel ?? $"Copying {total} files...")
+        using Shared.IO.UI.EngineSdk.PanelProgress? progress = total > 0
+            ? new Shared.IO.UI.EngineSdk.PanelProgress(total, id: "fs_copy", label: progressLabel ?? $"Copying {total} files...")
             : null;
 
         // Write initial line
         if (total > 0) {
-            Shared.UI.EngineSdk.Print($"Copying {total} files from '{srcRoot}' to '{dstRoot}'...");
+            Shared.IO.UI.EngineSdk.Print($"Copying {total} files from '{srcRoot}' to '{dstRoot}'...");
         }
 
         // Copy files with progress
@@ -182,7 +182,7 @@ internal static class FileSystemUtils {
                 }
             }
         } catch {
-            Shared.Diagnostics.Bug($"[ConfigHelpers] Failed to enumerate directories under '{baseDir}'");
+            Shared.IO.Diagnostics.Bug($"[ConfigHelpers] Failed to enumerate directories under '{baseDir}'");
         }
         return null;
     }

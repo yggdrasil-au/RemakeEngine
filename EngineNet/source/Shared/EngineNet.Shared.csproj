@@ -19,6 +19,9 @@
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
             <_Parameter1>EngineNet.Core</_Parameter1>
         </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>EngineNet.ScriptEngines</_Parameter1>
+        </AssemblyAttribute>
     </ItemGroup>
 
 

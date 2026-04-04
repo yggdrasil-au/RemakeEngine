@@ -1,14 +1,12 @@
 // lua interpreter
 using MoonSharp.Interpreter;
 
-using EngineNet.Core;
-
 namespace EngineNet.ScriptEngines.Lua;
 
 /// <summary>
 /// entry point for executing a Lua script, called from EngineNet.ScriptEngines.Helpers.EmbeddedActionDispatcher
 /// </summary>
-internal sealed class Main : IAction {
+internal sealed class Main : IScriptAction {
 
     private readonly string _scriptPath;
     private readonly string[] _args;
@@ -77,16 +75,16 @@ internal sealed class Main : IAction {
             LuaAction.CreateGlobals(LuaWorld, contextualTools, commandService, this._args, this._gameRoot, this._projectRoot, this._scriptPath);
 
             // Register UserData types
-            UserData.RegisterType<Shared.UI.EngineSdk.PanelProgress>();
-            UserData.RegisterType<Shared.UI.EngineSdk.ScriptProgress>();
+            UserData.RegisterType<Shared.IO.UI.EngineSdk.PanelProgress>();
+            UserData.RegisterType<Shared.IO.UI.EngineSdk.ScriptProgress>();
             UserData.RegisterType<Global.SqliteHandle>();
 
             // Signal GUI that a script is active so the bottom panel can reflect activity even without progress events
-            Shared.UI.EngineSdk.ScriptActiveStart(scriptPath: this._scriptPath);
+            Shared.IO.UI.EngineSdk.ScriptActiveStart(scriptPath: this._scriptPath);
 
 #if DEBUG
-            Shared.UI.EngineSdk.PrintLine($"Running lua script '{this._scriptPath}' with {this._args.Length} args...");
-            Shared.UI.EngineSdk.PrintLine($"input args: {string.Join(", ", this._args)}");
+            Shared.IO.UI.EngineSdk.PrintLine($"Running lua script '{this._scriptPath}' with {this._args.Length} args...");
+            Shared.IO.UI.EngineSdk.PrintLine($"input args: {string.Join(", ", this._args)}");
 #endif
 
             // ::
@@ -110,23 +108,23 @@ internal sealed class Main : IAction {
                 executionError = new System.InvalidOperationException($"Lua script exited with non-zero code {exitCode}.");
             }
         } catch (Exception ex) {
-            Shared.Diagnostics.Bug("[Lua.cs::Execute()] Lua script catch triggered: " + ex);
+            Shared.IO.Diagnostics.Bug("[Lua.cs::Execute()] Lua script catch triggered: " + ex);
             Exception finalException = ex;
             if (IsMoonSharpIteratorPrepNullReference(ex)) {
                 string compatibilityMessage = "Lua compatibility limitation: MoonSharp can throw a CLR NullReferenceException when preparing 'for ... in' iteration over tables/__iterator in this runtime. Use pairs()/ipairs() instead of direct table iterators.";
                 finalException = new InvalidOperationException(compatibilityMessage, ex);
-                Shared.UI.EngineSdk.PrintLine(message: compatibilityMessage, color: System.ConsoleColor.Yellow);
-                Shared.Diagnostics.LuaInternalCatch("Lua iterator compatibility guard triggered: " + ex);
+                Shared.IO.UI.EngineSdk.PrintLine(message: compatibilityMessage, color: System.ConsoleColor.Yellow);
+                Shared.IO.Diagnostics.LuaInternalCatch("Lua iterator compatibility guard triggered: " + ex);
             }
 
-            Shared.Diagnostics.LuaInternalCatch("Lua script threw an exception: " + finalException);
-            Shared.UI.EngineSdk.PrintLine(message: $"Lua script threw an exception: {finalException}", color: System.ConsoleColor.Red);
+            Shared.IO.Diagnostics.LuaInternalCatch("Lua script threw an exception: " + finalException);
+            Shared.IO.UI.EngineSdk.PrintLine(message: $"Lua script threw an exception: {finalException}", color: System.ConsoleColor.Red);
             exitCode = 1;
             executionError = finalException;
         } finally {
             LuaWorld?.DisposeOpenDisposables();
 
-            Shared.UI.EngineSdk.ScriptActiveEnd(success: ok, exitCode: exitCode);
+            Shared.IO.UI.EngineSdk.ScriptActiveEnd(success: ok, exitCode: exitCode);
         }
 
         if (!ok) {

@@ -49,8 +49,8 @@ internal class LuaWorld {
     // //
     /* :: :: Fields :: START :: */
 
-    private readonly List<System.IDisposable> _openDisposables = new();
-    private readonly object _openDisposablesLock = new();
+    private readonly List<System.IDisposable> _openDisposables = new List<IDisposable>();
+    private readonly Lock _openDisposablesLock = new Lock();
 
     /* :: :: Fields :: END :: */
     // //
@@ -171,7 +171,7 @@ internal class LuaWorld {
     /// <summary>
     /// Tracks a disposable resource created for this Lua execution.
     /// </summary>
-    internal void RegisterDisposable(System.IDisposable disposable) {
+    internal void RegisterDisposable(System.IDisposable? disposable) {
         if (disposable == null) {
             return;
         }
@@ -184,7 +184,7 @@ internal class LuaWorld {
     /// <summary>
     /// Removes a disposable resource from tracking once it has been closed.
     /// </summary>
-    internal void UnregisterDisposable(System.IDisposable disposable) {
+    internal void UnregisterDisposable(System.IDisposable? disposable) {
         if (disposable == null) {
             return;
         }
@@ -208,7 +208,7 @@ internal class LuaWorld {
             try {
                 disposable.Dispose();
             } catch (Exception ex) {
-                Shared.Diagnostics.LuaInternalCatch("DisposeOpenDisposables failed with exception: " + ex);
+                Shared.IO.Diagnostics.LuaInternalCatch("DisposeOpenDisposables failed with exception: " + ex);
             }
         }
     }

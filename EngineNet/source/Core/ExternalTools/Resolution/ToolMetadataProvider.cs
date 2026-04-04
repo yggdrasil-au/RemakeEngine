@@ -53,16 +53,16 @@ internal static class ToolMetadataProvider {
                     }
                 }
             } catch (System.Text.Json.JsonException ex) {
-                Shared.Diagnostics.Bug($"[ToolMetadataProvider] JSON parse error reading lockfile '{jsonPath}'.", ex);
+                Shared.IO.Diagnostics.Bug($"[ToolMetadataProvider] JSON parse error reading lockfile '{jsonPath}'.", ex);
                 /* ignore parse errors and fallback */
             } catch (System.IO.IOException ex) {
-                Shared.Diagnostics.Bug($"[ToolMetadataProvider] IO error reading lockfile '{jsonPath}'.", ex);
+                Shared.IO.Diagnostics.Bug($"[ToolMetadataProvider] IO error reading lockfile '{jsonPath}'.", ex);
                 /* ignore parse errors and fallback */
             } catch (System.UnauthorizedAccessException ex) {
-                Shared.Diagnostics.Bug($"[ToolMetadataProvider] Access denied reading lockfile '{jsonPath}'.", ex);
+                Shared.IO.Diagnostics.Bug($"[ToolMetadataProvider] Access denied reading lockfile '{jsonPath}'.", ex);
                 /* ignore parse errors and fallback */
             } catch (System.ArgumentException ex) {
-                Shared.Diagnostics.Bug($"[ToolMetadataProvider] Invalid lockfile path '{jsonPath}'.", ex);
+                Shared.IO.Diagnostics.Bug($"[ToolMetadataProvider] Invalid lockfile path '{jsonPath}'.", ex);
                 /* ignore parse errors and fallback */
             }
         }

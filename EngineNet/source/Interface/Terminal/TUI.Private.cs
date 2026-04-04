@@ -28,7 +28,7 @@ public partial class TUI {
                 System.Console.Clear();
             }
         } catch (System.Exception e) {
-            Shared.Diagnostics.Bug($"[TUI.private.cs::SafeClear()] Error clearing console: {e.Message}");
+            Shared.IO.Diagnostics.Bug($"[TUI.private.cs::SafeClear()] Error clearing console: {e.Message}");
         }
     }
 
@@ -44,7 +44,7 @@ public partial class TUI {
                 return System.Console.ReadKey(intercept);
             }
         } catch (System.Exception e) {
-            Shared.Diagnostics.Bug($"[TUI.private.cs::SafeReadKey()] Error reading key: {e.Message}");
+            Shared.IO.Diagnostics.Bug($"[TUI.private.cs::SafeReadKey()] Error reading key: {e.Message}");
             // ignore
         }
         return new System.ConsoleKeyInfo('\0', 0, false, false, false);
@@ -60,7 +60,7 @@ public partial class TUI {
                 System.Console.CursorVisible = visible;
             }
         } catch (System.Exception e) {
-            Shared.Diagnostics.Bug($"[TUI.private.cs::SafeSetCursorVisible()] Error setting cursor visibility: {e.Message}");
+            Shared.IO.Diagnostics.Bug($"[TUI.private.cs::SafeSetCursorVisible()] Error setting cursor visibility: {e.Message}");
             // ignore
         }
     }
@@ -89,7 +89,7 @@ public partial class TUI {
 
             return true;
         } catch {
-            Shared.Diagnostics.Bug("[TUI.private.cs::CanUseInteractiveMenu()] Error checking console capabilities.");
+            Shared.IO.Diagnostics.Bug("[TUI.private.cs::CanUseInteractiveMenu()] Error checking console capabilities.");
             return false;
         }
     }
@@ -197,7 +197,7 @@ public partial class TUI {
                 }
             }
         } catch (System.Exception) {
-            Shared.Diagnostics.Bug("[TUI.private.cs::SelectFromMenu()] Error in SelectFromMenu");
+            Shared.IO.Diagnostics.Bug("[TUI.private.cs::SelectFromMenu()] Error in SelectFromMenu");
             return -1;
         }
     }
@@ -282,7 +282,7 @@ public partial class TUI {
                 System.Console.WriteLine("Invalid selection. Please enter a valid number.");
             }
         } catch (System.Exception) {
-            Shared.Diagnostics.Bug("[TUI.private.cs::SelectFromMenuFallback()] Error in SelectFromMenuFallback");
+            Shared.IO.Diagnostics.Bug("[TUI.private.cs::SelectFromMenuFallback()] Error in SelectFromMenuFallback");
             return -1;
         }
     }
@@ -414,7 +414,7 @@ public partial class TUI {
 
             return await Engine.OperationsService_CollectAnswersAsync(op, answers, handler, defaultsOnly);
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug($"[TUI.private.cs::PromptUser()] Error during interactive prompts: {ex.Message}");
+            Shared.IO.Diagnostics.Bug($"[TUI.private.cs::PromptUser()] Error during interactive prompts: {ex.Message}");
             return false;
         }
     }

@@ -25,21 +25,21 @@ internal static class OpDispatcher {
         System.Threading.CancellationToken cancellationToken = default
     ) {
         if (!executableOperation.TryGetValue("script", out object? s) || s is null) {
-            Shared.Diagnostics.Log("[Engine.private.cs :: Operations()] Missing 'script' value in engine operation");
+            Shared.IO.Diagnostics.Log("[Engine.private.cs :: Operations()] Missing 'script' value in engine operation");
             return false;
         }
 
         // 'executableOperation' is already fully resolved from Runner.RunSingleOperationAsync!
         //IDictionary<string, object?> executableOperation = executableOperation;
 
-        Shared.Diagnostics.Log($"[Engine.private.cs :: Operations()]] engine operation script: {s}");
+        Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] engine operation script: {s}");
 
         // ensure internal ops are from allowed dirs
         string? type = executableOperation.TryGetValue("script_type", out object? st) ? st?.ToString()?.ToLowerInvariant() : null;
         if (type == "internal") {
             string? sourceFile = executableOperation.TryGetValue("_source_file", out object? sf) ? sf?.ToString() : null;
             if (string.IsNullOrWhiteSpace(sourceFile)) {
-                Shared.UI.EngineSdk.Error("Internal operation blocked: Missing source file context.");
+                Shared.IO.UI.EngineSdk.Error("Internal operation blocked: Missing source file context.");
                 return false;
             }
             string allowedDir = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "EngineApps", "Registries", "ops");
@@ -47,7 +47,7 @@ internal static class OpDispatcher {
             string fullAllowed = System.IO.Path.GetFullPath(allowedDir);
 
             if (!fullSource.StartsWith(fullAllowed, System.StringComparison.OrdinalIgnoreCase)) {
-                Shared.UI.EngineSdk.Error($"Internal operation blocked: Source '{sourceFile}' is not in allowed directory '{allowedDir}'.");
+                Shared.IO.UI.EngineSdk.Error($"Internal operation blocked: Source '{sourceFile}' is not in allowed directory '{allowedDir}'.");
                 return false;
             }
         }
@@ -65,7 +65,7 @@ internal static class OpDispatcher {
         // Determine action
         string? action = s.ToString()?.ToLowerInvariant();
 
-        Shared.Diagnostics.Log($"[Engine.private.cs :: Operations()]] Executing engine action: {action}");
+        Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] Executing engine action: {action}");
         switch (action) {
             // internal modules
             case "download_module_git": {
@@ -97,7 +97,7 @@ internal static class OpDispatcher {
                 return Built_inActions.BuiltInOperations.rename_folders(operationArgs);
             }
             default: {
-                Shared.Diagnostics.Log($"[Engine.private.cs :: Operations()]] Unknown engine action: {action}");
+                Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] Unknown engine action: {action}");
                 return false;
             }
         }

@@ -3,6 +3,12 @@ namespace EngineNet.Core.Operations;
 
 internal sealed class Single {
 
+    private readonly Core.Abstractions.IScriptActionDispatcher _scriptActionDispatcher;
+
+    internal Single(Core.Abstractions.IScriptActionDispatcher scriptActionDispatcher) {
+        this._scriptActionDispatcher = scriptActionDispatcher;
+    }
+
     // used to run a single op by both runallasync and direct operation execution in the GUI/TUI
 
     /// <summary>
@@ -44,7 +50,7 @@ internal sealed class Single {
         string[] args = parts.Skip(2).ToArray();
 
         if (scriptType is null) {
-            Shared.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Missing script_type for operation with script '{scriptPath}'");
+            Shared.IO.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Missing script_type for operation with script '{scriptPath}'");
             return false;
         }
 
@@ -56,14 +62,14 @@ internal sealed class Single {
                     try {
                         string? action = executableOperation.TryGetValue("script", out object? s) ? s?.ToString() : null;
                         string? title = executableOperation.TryGetValue("Name", out object? n) ? n?.ToString() ?? action : action;
-                        Shared.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Executing engine operation {title} ({action})");
-                        Shared.UI.EngineSdk.PrintLine(message: $"\n>>> Engine operation: {title}");
+                        Shared.IO.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Executing engine operation {title} ({action})");
+                        Shared.IO.UI.EngineSdk.PrintLine(message: $"\n>>> Engine operation: {title}");
                         // delegate engine type handling to ExecuteEngineOperationAsync
                         //var op_dispatcher = new helpers.OpDispatcher();
                         result = await helpers.OpDispatcher.DispatchAsync(executableOperation, promptAnswers, currentGame, games, Context, cancellationToken);
                     } catch (System.Exception ex) {
-                        Shared.Diagnostics.Bug($"[Single.cs::RunAsync()] Engine operation catch triggered: {ex}");
-                        Shared.UI.EngineSdk.PrintLine($"engine ERROR: {ex.Message}");
+                        Shared.IO.Diagnostics.Bug($"[Single.cs::RunAsync()] Engine operation catch triggered: {ex}");
+                        Shared.IO.UI.EngineSdk.PrintLine($"engine ERROR: {ex.Message}");
                         result = false;
                     }
                     break;
@@ -79,26 +85,27 @@ internal sealed class Single {
                             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                         }
 
-                        var action = ScriptEngines.ScriptActionDispatcher.ExternalActionDispatcher.TryCreate(
+                        var action = this._scriptActionDispatcher.TryCreateExternal(
                             scriptType: scriptType,
                             scriptPath: scriptPath,
                             gameRoot: gameInfo.GameRoot,
                             inputDir: inputDir,
                             outputDir: outputDir,
-                            extension: extension
+                            extension: extension,
+                            projectRoot: Core.Main.RootPath
                         );
 
                         if (action is null) {
                             result = false;
-                            Shared.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Unsupported external script type '{scriptType}'");
+                            Shared.IO.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Unsupported external script type '{scriptType}'");
                             break;
                         }
 
                         await action.ExecuteAsync(Context.ToolResolver, Context.CommandService, cancellationToken);
                         result = true;
                     } catch (System.Exception ex) {
-                        Shared.Diagnostics.Bug($"[Single.cs::RunAsync()] External action catch triggered: {ex}");
-                        Shared.UI.EngineSdk.PrintLine($"bms engine ERROR: {ex.Message}");
+                        Shared.IO.Diagnostics.Bug($"[Single.cs::RunAsync()] External action catch triggered: {ex}");
+                        Shared.IO.UI.EngineSdk.PrintLine($"bms engine ERROR: {ex.Message}");
                         result = false;
                     }
                     break;
@@ -108,38 +115,39 @@ internal sealed class Single {
                     try {
                         // create the action with the dispatcher
                         IEnumerable<string> argsEnum = args;
-                        ScriptEngines.IAction? act = ScriptEngines.ScriptActionDispatcher.EmbeddedActionDispatcher.TryCreate(
+                        Core.Abstractions.IScriptAction? act = this._scriptActionDispatcher.TryCreateEmbedded(
                             scriptType: scriptType,
                             scriptPath: scriptPath,
                             args: argsEnum,
                             currentGame: currentGame,
-                            games: games
+                            games: games,
+                            projectRoot: Core.Main.RootPath
                         );
                         // null act means unsupported script type
                         if (act is null) {
                             result = false;
-                            Shared.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Unsupported embedded script type '{scriptType}'");
+                            Shared.IO.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Unsupported embedded script type '{scriptType}'");
                             break;
                         }
                         // execute the action
                         await act.ExecuteAsync(Context.ToolResolver, Context.CommandService, cancellationToken);
                         result = true;
                     } catch (System.Exception ex) {
-                        Shared.Diagnostics.Bug($"[Single.cs::RunAsync()] Embedded action catch triggered for '{scriptType}': {ex}");
-                        Shared.UI.EngineSdk.PrintLine($"{scriptType} engine ERROR: {ex.Message}");
+                        Shared.IO.Diagnostics.Bug($"[Single.cs::RunAsync()] Embedded action catch triggered for '{scriptType}': {ex}");
+                        Shared.IO.UI.EngineSdk.PrintLine($"{scriptType} engine ERROR: {ex.Message}");
                         result = false;
                     }
                     break;
                 }
                 default: {
                     // not supported
-                    Shared.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Unsupported script type '{scriptType}'");
+                    Shared.IO.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Unsupported script type '{scriptType}'");
                     break;
                 }
             }
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug($"[RunSingleAsync.cs::RunSingleOperationAsync()] err running single op: {ex.Message}");
-            Shared.UI.EngineSdk.PrintLine($"operation ERROR: {ex.Message}");
+            Shared.IO.Diagnostics.Bug($"[RunSingleAsync.cs::RunSingleOperationAsync()] err running single op: {ex.Message}");
+            Shared.IO.UI.EngineSdk.PrintLine($"operation ERROR: {ex.Message}");
             result = false;
         }
 

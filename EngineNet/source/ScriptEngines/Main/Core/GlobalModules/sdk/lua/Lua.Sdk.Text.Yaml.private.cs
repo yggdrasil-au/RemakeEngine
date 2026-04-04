@@ -20,7 +20,7 @@ internal static partial class Sdk {
                 object plain = Shared.Serialization.Yaml.YamlHelpers.ParseDocumentToPlainObject(yaml);
                 return Lua.Globals.Utils.ToDynValue(_LuaWorld.LuaScript, plain);
             } catch (Exception ex) {
-                Shared.Diagnostics.LuaInternalCatch("sdk.text.yaml.decode failed: " + ex);
+                Shared.IO.Diagnostics.LuaInternalCatch("sdk.text.yaml.decode failed: " + ex);
                 return DynValue.Nil;
             }
         });

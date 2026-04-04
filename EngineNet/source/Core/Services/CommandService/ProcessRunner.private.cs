@@ -27,7 +27,7 @@ public sealed partial class ProcessRunner {
     /// Execute a command line and stream output until completion or cancellation.
     /// </summary>
     /// <param name="commandParts">Executable followed by its arguments. Must contain at least one item (the executable).</param>
-    /// <param name="opTitle">Human-readable operation title used in Shared.Diagnostics.</param>
+    /// <param name="opTitle">Human-readable operation title used in Shared.IO.Diagnostics.</param>
     /// <param name="onOutput">Optional callback for stdout/stderr lines.</param>
     /// <param name="onEvent">Optional callback for structured events.</param>
     /// <param name="stdinProvider">Optional provider for prompt responses.</param>
@@ -56,18 +56,18 @@ public sealed partial class ProcessRunner {
 
         // Verbose: show exactly what will be executed
         try {
-            Shared.Diagnostics.Log(string.Empty);
-            Shared.Diagnostics.Log("Executing command:");
-            Shared.Diagnostics.Log("  " + FormatCommand(commandParts));
-            Shared.Diagnostics.Log($"  cwd: {System.IO.Directory.GetCurrentDirectory()}");
+            Shared.IO.Diagnostics.Log(string.Empty);
+            Shared.IO.Diagnostics.Log("Executing command:");
+            Shared.IO.Diagnostics.Log("  " + FormatCommand(commandParts));
+            Shared.IO.Diagnostics.Log($"  cwd: {System.IO.Directory.GetCurrentDirectory()}");
             if (envOverrides is { Count: > 0 }) {
-                Shared.Diagnostics.Log("  env overrides:");
+                Shared.IO.Diagnostics.Log("  env overrides:");
                 foreach (KeyValuePair<string, object?> kv in envOverrides) {
-                    Shared.Diagnostics.Log($"    {kv.Key}={kv.Value}");
+                    Shared.IO.Diagnostics.Log($"    {kv.Key}={kv.Value}");
                 }
             }
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug("[ProcessRunner::Execute()] Failed to write verbose command diagnostics: " + ex);
+            Shared.IO.Diagnostics.Bug("[ProcessRunner::Execute()] Failed to write verbose command diagnostics: " + ex);
             /* ignore formatting errors */
         }
 
@@ -118,20 +118,20 @@ public sealed partial class ProcessRunner {
                     proc.StandardInput.WriteLine(text ?? string.Empty);
                     proc.StandardInput.Flush();
                 } catch (System.IO.IOException ex) {
-                    Shared.Diagnostics.Bug("[ProcessRunner.cs::Execute()] IO error writing to child stdin: " + ex);
+                    Shared.IO.Diagnostics.Bug("[ProcessRunner.cs::Execute()] IO error writing to child stdin: " + ex);
                     /* ignore */
                 } catch (System.ObjectDisposedException ex) {
-                    Shared.Diagnostics.Bug("[ProcessRunner.cs::Execute()] Child stdin disposed while writing: " + ex);
+                    Shared.IO.Diagnostics.Bug("[ProcessRunner.cs::Execute()] Child stdin disposed while writing: " + ex);
                     /* ignore */
                 } catch (System.InvalidOperationException ex) {
-                    Shared.Diagnostics.Bug("[ProcessRunner.cs::Execute()] Child stdin unavailable while writing: " + ex);
+                    Shared.IO.Diagnostics.Bug("[ProcessRunner.cs::Execute()] Child stdin unavailable while writing: " + ex);
                     /* ignore */
                 }
             }
 
             string? HandleLine(string line, string streamName) {
-                /*if (line.StartsWith(Shared.UI.EngineSdk.Prefix, System.StringComparison.Ordinal)) {
-                    string payload = line.Substring(Shared.UI.EngineSdk.Prefix.Length).Trim();
+                /*if (line.StartsWith(Shared.IO.UI.EngineSdk.Prefix, System.StringComparison.Ordinal)) {
+                    string payload = line.Substring(Shared.IO.UI.EngineSdk.Prefix.Length).Trim();
                     try {
                         Dictionary<string, object?> evt = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(payload) ?? new();
                         if (evt.TryGetValue("event", out object? evType) && (evType?.ToString() ?? "") == "prompt") {
@@ -173,7 +173,7 @@ public sealed partial class ProcessRunner {
                     try {
                         ans = stdinProvider?.Invoke();
                     } catch (System.Exception ex) {
-                        Shared.Diagnostics.Bug("[ProcessRunner] stdinProvider catch triggered while awaiting prompt: " + ex);
+                        Shared.IO.Diagnostics.Bug("[ProcessRunner] stdinProvider catch triggered while awaiting prompt: " + ex);
                         ans = string.Empty;
                     }
                     SendToChild(ans);
@@ -190,7 +190,7 @@ public sealed partial class ProcessRunner {
                     try {
                         ans = stdinProvider?.Invoke();
                     } catch (System.Exception ex) {
-                        Shared.Diagnostics.Bug("[ProcessRunner] stdinProvider catch triggered while draining output: " + ex);
+                        Shared.IO.Diagnostics.Bug("[ProcessRunner] stdinProvider catch triggered while draining output: " + ex);
                         ans = string.Empty;
                     }
                     SendToChild(ans);
@@ -206,16 +206,16 @@ public sealed partial class ProcessRunner {
                 return false;
             }
         } catch (System.OperationCanceledException ex) {
-            Shared.Diagnostics.Bug("[ProcessRunner::Execute()] Operation cancelled: " + ex);
+            Shared.IO.Diagnostics.Bug("[ProcessRunner::Execute()] Operation cancelled: " + ex);
             TryTerminate(proc);
             onEvent?.Invoke(new Dictionary<string, object?> { ["event"] = "end", ["success"] = false, ["exit_code"] = 130 });
             return false;
         } catch (System.IO.FileNotFoundException ex) {
-            Shared.Diagnostics.Bug("[ProcessRunner::Execute()] Command or script not found: " + ex);
+            Shared.IO.Diagnostics.Bug("[ProcessRunner::Execute()] Command or script not found: " + ex);
             onEvent?.Invoke(new Dictionary<string, object?> { ["event"] = "error", ["kind"] = "FileNotFoundError", ["message"] = "Command or script not found." });
             return false;
         } catch (System.Exception ex) {
-            Shared.Diagnostics.Bug("[ProcessRunner::Execute()] Unexpected process runner exception: " + ex);
+            Shared.IO.Diagnostics.Bug("[ProcessRunner::Execute()] Unexpected process runner exception: " + ex);
             onEvent?.Invoke(new Dictionary<string, object?> { ["event"] = "error", ["kind"] = "Exception", ["message"] = ex.Message });
             return false;
         } finally {
@@ -223,7 +223,7 @@ public sealed partial class ProcessRunner {
                 proc.OutputDataReceived -= outHandler;
                 proc.ErrorDataReceived -= errHandler;
             } catch (System.Exception ex) {
-                Shared.Diagnostics.Bug("[ProcessRunner::Execute()] Failed to detach event handlers: " + ex);
+                Shared.IO.Diagnostics.Bug("[ProcessRunner::Execute()] Failed to detach event handlers: " + ex);
                 /* ignore */
             }
         }

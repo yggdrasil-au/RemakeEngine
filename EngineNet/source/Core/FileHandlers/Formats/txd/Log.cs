@@ -31,14 +31,14 @@ internal static partial class TxdExtractor {
 
         private static void Write(System.ConsoleColor colour, string message, bool isError = false) {
             lock (Sync) {
-                Shared.Diagnostics.Log(message);
+                Shared.IO.Diagnostics.Log(message);
             }
             return;
         }
     }
 
     private static void DebugLog(string message) {
-        Shared.Diagnostics.Log(message);
+        Shared.IO.Diagnostics.Log(message);
     }
 
 }
