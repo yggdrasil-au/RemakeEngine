@@ -79,7 +79,7 @@ public class Utils {
                     Core.UI.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
                 }
             } else {
-                Core.Diagnostics.Log($"[Utils.cs::ExecuteOp()] Routing operation of type '{script_type}' to external command execution");
+                Shared.Diagnostics.Log($"[Utils.cs::ExecuteOp()] Routing operation of type '{script_type}' to external command execution");
             }
 
             // Default: build and execute as external command (e.g., python)
@@ -98,7 +98,7 @@ public class Utils {
                 envOverrides: new Dictionary<string, object?> { ["TERM"] = "dumb" }
             );
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"[Utils.cs::ExecuteOp()] Error executing operation: {ex.Message}");
+            Shared.Diagnostics.Bug($"[Utils.cs::ExecuteOp()] Error executing operation: {ex.Message}");
             return false;
         }
     }
@@ -276,7 +276,7 @@ public class Utils {
 
             default:
                 // Log unknown events to debug
-                Core.Diagnostics.Log($"[Utils.cs::OnEvent()] Unhandled event type: {typ}");
+                Shared.Diagnostics.Log($"[Utils.cs::OnEvent()] Unhandled event type: {typ}");
                 break;
         }
     }
@@ -293,9 +293,9 @@ public class Utils {
         try {
             Dictionary<string, object?> safe = CloneForLogging(evt);
             string json = JsonSerializer.Serialize(safe, s_jsonOpts);
-            Core.Diagnostics.Log($"[Utils.cs::OnEvent()] {json}");
+            Shared.Diagnostics.Log($"[Utils.cs::OnEvent()] {json}");
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"[Utils.cs::OnEvent()] <serialization failed: {ex.Message}>");
+            Shared.Diagnostics.Bug($"[Utils.cs::OnEvent()] <serialization failed: {ex.Message}>");
         }
     }
 
@@ -309,7 +309,7 @@ public class Utils {
             JsonSerializer.Serialize(clone, s_jsonOpts);
             return clone;
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"[Utils.cs::CloneForLogging()] Clone serialization catch triggered: {ex}");
+            Shared.Diagnostics.Bug($"[Utils.cs::CloneForLogging()] Clone serialization catch triggered: {ex}");
             Dictionary<string, object?> safe = new Dictionary<string, object?>(clone.Count, System.StringComparer.Ordinal);
             foreach (KeyValuePair<string, object?> kv in clone) {
                 safe[kv.Key] = SafeStringify(kv.Value);

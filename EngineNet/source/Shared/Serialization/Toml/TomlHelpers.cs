@@ -1,7 +1,7 @@
 
 using System.Collections;
 
-namespace EngineNet.Core.Serialization.Toml;
+namespace EngineNet.Shared.Serialization.Toml;
 
 /// <summary>
 /// Reusable TOML read/write utilities built on Tomlyn.
@@ -85,67 +85,64 @@ internal static class TomlHelpers {
     }
 
     private static Tomlyn.Model.TomlTable ConvertPlainToTomlTable(object? data) {
-        if (data is null)
-            return new Tomlyn.Model.TomlTable();
-
-        if (data is Tomlyn.Model.TomlTable t)
-            return t;
-
-        if (data is IDictionary rawDict) {
-            var table = new Tomlyn.Model.TomlTable();
-            foreach (DictionaryEntry entry in rawDict) {
-                //if (entry.Key is null)
-                //    continue;
-                string key = entry.Key.ToString()!;
-                var val = ConvertPlainToTomlValue(entry.Value);
-                if (val != null)
-                    table[key] = val;
+        switch (data) {
+            case null:
+                return new Tomlyn.Model.TomlTable();
+            case Tomlyn.Model.TomlTable t:
+                return t;
+            case IDictionary rawDict: {
+                var table = new Tomlyn.Model.TomlTable();
+                foreach (DictionaryEntry entry in rawDict) {
+                    //if (entry.Key is null)
+                    //    continue;
+                    string key = entry.Key.ToString()!;
+                    object? val = ConvertPlainToTomlValue(entry.Value);
+                    if (val != null) {
+                        table[key] = val;
+                    }
+                }
+                return table;
             }
-            return table;
         }
-
         if (data is IEnumerable enumerable and not string) {
             // If the root is a list, wrap it under a single key "root"? Better to coerce into a table
             // For our purposes we expect a table at the root. Create a table with a single key if needed.
             var table = new Tomlyn.Model.TomlTable();
-            var rootVal = ConvertPlainToTomlValue(enumerable);
+            object? rootVal = ConvertPlainToTomlValue(enumerable);
             if (rootVal != null)
                 table["root"] = rootVal;
             return table;
         }
-
         // Primitive at root -> put under "value"
         var t2 = new Tomlyn.Model.TomlTable();
-        var v2 = ConvertPlainToTomlValue(data);
+        object? v2 = ConvertPlainToTomlValue(data);
         if (v2 != null)
             t2["value"] = v2;
         return t2;
     }
 
     private static object? ConvertPlainToTomlValue(object? value) {
-        if (value is null)
-            return null;
-
-        // Preserve supported primitives as-is.
-        // Lua-specific double-to-int normalization is handled at the Lua boundary in LuaUtilities.cs
-        if (value is string || value is bool || value is int || value is long || value is double || value is float || value is System.DateTime || value is System.DateTimeOffset)
-            return value;
-
-        if (value is Tomlyn.Model.TomlTable || value is Tomlyn.Model.TomlArray || value is Tomlyn.Model.TomlTableArray)
-            return value;
-
-        // IDictionary -> Tomlyn.Model.TomlTable
-        if (value is IDictionary dict) {
-            var table = new Tomlyn.Model.TomlTable();
-            foreach (DictionaryEntry entry in dict) {
-                //if (entry.Key is null)
-                //    continue;
-                string key = entry.Key.ToString()!;
-                object? val = ConvertPlainToTomlValue(entry.Value);
-                if (val != null)
-                    table[key] = val;
+        switch (value) {
+            case null:
+                return null;
+            // Preserve supported primitives as-is.
+            // Lua-specific double-to-int normalization is handled at the Lua boundary in LuaUtilities.cs
+            case string or bool or int or long or double or float or System.DateTime or System.DateTimeOffset:
+            case Tomlyn.Model.TomlTable or Tomlyn.Model.TomlArray or Tomlyn.Model.TomlTableArray:
+                return value;
+            // IDictionary -> Tomlyn.Model.TomlTable
+            case IDictionary dict: {
+                var table = new Tomlyn.Model.TomlTable();
+                foreach (DictionaryEntry entry in dict) {
+                    //if (entry.Key is null)
+                    //    continue;
+                    string key = entry.Key.ToString()!;
+                    object? val = ConvertPlainToTomlValue(entry.Value);
+                    if (val != null)
+                        table[key] = val;
+                }
+                return table;
             }
-            return table;
         }
 
         // IEnumerable -> Tomlyn.Model.TomlArray or Tomlyn.Model.TomlTableArray (arrays of tables)
@@ -160,7 +157,7 @@ internal static class TomlHelpers {
                 return taa;
             } else {
                 var arr = new Tomlyn.Model.TomlArray();
-                foreach (var entryValue in items.Select(ConvertPlainToTomlValue)) {
+                foreach (object? entryValue in items.Select(ConvertPlainToTomlValue)) {
                     arr.Add(entryValue ?? string.Empty);
                 }
                 return arr;

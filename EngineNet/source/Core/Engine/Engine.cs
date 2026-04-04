@@ -22,7 +22,7 @@ internal sealed class Engine : IEngineFace{
         Core.Services.OperationsService OperationsService,
         Core.ExternalTools.JsonToolResolver toolResolver,
         Data.EngineConfig engineConfig,
-        EngineNet.Core.Engine.Operations.Single Runner
+        EngineNet.Core.Operations.Single Runner
     ) {
         this.GameLauncher = gameLauncher;
         OperationContext operationContext = new OperationContext(

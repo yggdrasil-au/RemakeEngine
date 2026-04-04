@@ -1,6 +1,6 @@
 
 
-using EngineNet.Core.Serialization.Toml;
+using EngineNet.Shared.Serialization.Toml;
 
 namespace EngineNet.Core.Utils;
 
@@ -62,7 +62,7 @@ internal static class ExecutionContextBuilder {
                 }
             }
         } catch {
-            Core.Diagnostics.Bug($"[ExecutionContextBuilder] err reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Combine(gdict.GameRoot, "config.toml")}'.");
+            Shared.Diagnostics.Bug($"[ExecutionContextBuilder] err reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Combine(gdict.GameRoot, "config.toml")}'.");
             /* ignore bad/missing toml */
         }
 

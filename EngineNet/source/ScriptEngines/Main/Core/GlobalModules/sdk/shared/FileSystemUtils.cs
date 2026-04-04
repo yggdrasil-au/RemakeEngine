@@ -18,8 +18,8 @@ internal static class FileSystemUtils {
             System.IO.FileSystemInfo info = GetInfo(path);
             return info.Exists || info.LinkTarget != null;
         } catch (Exception ex) {
-            Core.Diagnostics.Bug("[FileSystemUtils] path_exists_including_links catch triggered for path: " + path + " with exception: " + ex);
-            Core.Diagnostics.LuaInternalCatch("path_exists_including_links failed for path: " + path + " with exception: " + ex);
+            Shared.Diagnostics.Bug("[FileSystemUtils] path_exists_including_links catch triggered for path: " + path + " with exception: " + ex);
+            Shared.Diagnostics.LuaInternalCatch("path_exists_including_links failed for path: " + path + " with exception: " + ex);
             return false;
         }
     }
@@ -29,7 +29,7 @@ internal static class FileSystemUtils {
             System.IO.FileSystemInfo info = GetInfo(path);
             return info.LinkTarget != null || info.Attributes.HasFlag(System.IO.FileAttributes.ReparsePoint);
         } catch (Exception ex) {
-            Core.Diagnostics.LuaInternalCatch("is_symlink failed for path: " + path + " with exception: " + ex);
+            Shared.Diagnostics.LuaInternalCatch("is_symlink failed for path: " + path + " with exception: " + ex);
             return false;
         }
     }
@@ -38,7 +38,7 @@ internal static class FileSystemUtils {
         try {
             return System.IO.Path.GetFullPath(path);
         } catch (Exception ex) {
-            Core.Diagnostics.LuaInternalCatch("real_path failed for path: " + path + " with exception: " + ex);
+            Shared.Diagnostics.LuaInternalCatch("real_path failed for path: " + path + " with exception: " + ex);
             return null;
         }
     }
@@ -48,7 +48,7 @@ internal static class FileSystemUtils {
             System.IO.FileSystemInfo info = GetInfo(path);
             return info.LinkTarget;
         } catch (Exception ex) {
-            Core.Diagnostics.LuaInternalCatch("read_link failed for path: " + path + " with exception: " + ex);
+            Shared.Diagnostics.LuaInternalCatch("read_link failed for path: " + path + " with exception: " + ex);
             return null;
         }
     }
@@ -182,7 +182,7 @@ internal static class FileSystemUtils {
                 }
             }
         } catch {
-            Core.Diagnostics.Bug($"[ConfigHelpers] Failed to enumerate directories under '{baseDir}'");
+            Shared.Diagnostics.Bug($"[ConfigHelpers] Failed to enumerate directories under '{baseDir}'");
         }
         return null;
     }

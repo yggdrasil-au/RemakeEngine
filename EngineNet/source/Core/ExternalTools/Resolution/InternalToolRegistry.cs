@@ -17,7 +17,7 @@ internal static class InternalToolRegistry {
         var registry = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
 
         if (!Directory.Exists(ToolsRegistryRoot)) {
-            Diagnostics.Trace($"[InternalToolRegistry] Tools registry root not found: {ToolsRegistryRoot}");
+            Shared.Diagnostics.Trace($"[InternalToolRegistry] Tools registry root not found: {ToolsRegistryRoot}");
             return registry;
         }
 
@@ -33,8 +33,8 @@ internal static class InternalToolRegistry {
                         MergeDictionaries(toolData, fileData);
                     }
                 } catch (Exception ex) {
-                    Diagnostics.Bug($"[InternalToolRegistry] Error parsing registry fragment '{jsonFile}'.", ex);
-                    Diagnostics.Log($"[InternalToolRegistry] Error parsing {jsonFile}: {ex.Message}");
+                    Shared.Diagnostics.Bug($"[InternalToolRegistry] Error parsing registry fragment '{jsonFile}'.", ex);
+                    Shared.Diagnostics.Log($"[InternalToolRegistry] Error parsing {jsonFile}: {ex.Message}");
                 }
             }
 

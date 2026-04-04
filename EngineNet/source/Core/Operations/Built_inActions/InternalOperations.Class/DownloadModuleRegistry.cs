@@ -1,8 +1,8 @@
 
-namespace EngineNet.Core.Engine.operations.Built_inActions;
+namespace EngineNet.Core.Operations.Built_inActions;
 internal partial class InternalOperations {
 
-    internal bool DownloadModuleRegistry(Core.Data.PromptAnswers promptAnswers, EngineContext context) {
+    internal bool DownloadModuleRegistry(Core.Data.PromptAnswers promptAnswers, Engine.EngineContext context) {
 
         string? input = null;
         if (promptAnswers.TryGetValue("url", out object? u)) {
@@ -11,7 +11,7 @@ internal partial class InternalOperations {
 
         if (string.IsNullOrWhiteSpace(input)) {
             Core.UI.EngineSdk.Error("No input provided.");
-            Core.Diagnostics.Trace("[Engine.private.cs :: InternalOperations()]] download_module_registry: no input provided");
+            Shared.Diagnostics.Trace("[Engine.private.cs :: InternalOperations()]] download_module_registry: no input provided");
             return false;
         }
 

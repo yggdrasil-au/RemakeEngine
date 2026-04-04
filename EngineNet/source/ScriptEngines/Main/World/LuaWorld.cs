@@ -208,7 +208,7 @@ internal class LuaWorld {
             try {
                 disposable.Dispose();
             } catch (Exception ex) {
-                Core.Diagnostics.LuaInternalCatch("DisposeOpenDisposables failed with exception: " + ex);
+                Shared.Diagnostics.LuaInternalCatch("DisposeOpenDisposables failed with exception: " + ex);
             }
         }
     }

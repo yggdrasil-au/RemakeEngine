@@ -15,7 +15,7 @@ internal static class Helpers {
                 ValidateSourceDir(dir);
                 return true;
             } catch (Exception ex) {
-                Core.Diagnostics.LuaInternalCatch("validate_source_dir failed with exception: " + ex);
+                Shared.Diagnostics.LuaInternalCatch("validate_source_dir failed with exception: " + ex);
                 return false;
             }
         }
@@ -69,7 +69,7 @@ internal static class Helpers {
 
                 return null;
             } catch (Exception ex) {
-                Core.Diagnostics.LuaInternalCatch("FileAttributes helper failed with exception: " + ex);
+                Shared.Diagnostics.LuaInternalCatch("FileAttributes helper failed with exception: " + ex);
                 return null;
             }
         }
@@ -93,7 +93,7 @@ internal static class Helpers {
 
                 return names;
             } catch (Exception ex) {
-                Core.Diagnostics.LuaInternalCatch("list_dir helper failed with exception: " + ex);
+                Shared.Diagnostics.LuaInternalCatch("list_dir helper failed with exception: " + ex);
                 return null;
             }
         }
@@ -112,7 +112,7 @@ internal static class Helpers {
                 byte[] hash = System.Security.Cryptography.SHA1.HashData(fs);
                 return System.Convert.ToHexString(hash).ToLowerInvariant();
             } catch (Exception ex) {
-                Core.Diagnostics.LuaInternalCatch("sha1_file failed with exception: " + ex);
+                Shared.Diagnostics.LuaInternalCatch("sha1_file failed with exception: " + ex);
                 return null;
             }
         }
@@ -122,7 +122,7 @@ internal static class Helpers {
                 byte[] data = System.Security.Cryptography.MD5.HashData(System.Text.Encoding.UTF8.GetBytes(text ?? string.Empty));
                 return System.Convert.ToHexString(data).ToLowerInvariant();
             } catch (Exception ex) {
-                Core.Diagnostics.LuaInternalCatch("md5 failed with exception: " + ex);
+                Shared.Diagnostics.LuaInternalCatch("md5 failed with exception: " + ex);
                 return string.Empty;
             }
         }
@@ -136,7 +136,7 @@ internal static class Helpers {
         try {
             System.Threading.Thread.Sleep(System.TimeSpan.FromSeconds(seconds));
         }  catch (Exception ex) {
-            Core.Diagnostics.LuaInternalCatch("sleep failed with exception: " + ex);
+            Shared.Diagnostics.LuaInternalCatch("sleep failed with exception: " + ex);
         }
     }
 
@@ -161,7 +161,7 @@ internal static class Helpers {
                 return false;
             } catch (System.Exception ex) {
                 Core.UI.EngineSdk.Error($"Archive extraction failed: {ex.Message}"); // output directly to UI, consider returning error to lua instead
-                Core.Diagnostics.LuaInternalCatch("extract_archive failed with exception: " + ex);
+                Shared.Diagnostics.LuaInternalCatch("extract_archive failed with exception: " + ex);
                 return false;
             }
         }
@@ -194,7 +194,7 @@ internal static class Helpers {
                 return false;
             } catch (System.Exception ex) {
                 Core.UI.EngineSdk.Error($"Archive creation failed: {ex.Message}");
-                Core.Diagnostics.LuaInternalCatch("create_archive failed with exception: " + ex);
+                Shared.Diagnostics.LuaInternalCatch("create_archive failed with exception: " + ex);
                 return false;
             }
         }
@@ -210,11 +210,11 @@ internal static class Helpers {
                     Core.UI.EngineSdk.Error($"Access denied: toml_read_file path is outside allowed areas ('{path}')");
                     return null; //DynValue.Nil;
                 }
-                object? obj = Core.Serialization.Toml.TomlHelpers.ParseFileToPlainObject(path);
+                object? obj = Shared.Serialization.Toml.TomlHelpers.ParseFileToPlainObject(path);
                 return obj;
             } catch (System.Exception ex) {
                 Core.UI.EngineSdk.Error($"TOML read failed: {ex.Message}");
-                Core.Diagnostics.LuaInternalCatch("toml_read_file failed with exception: " + ex);
+                Shared.Diagnostics.LuaInternalCatch("toml_read_file failed with exception: " + ex);
                 return null; //DynValue.Nil;
             }
         }
@@ -226,11 +226,11 @@ internal static class Helpers {
                     Core.UI.EngineSdk.Error($"Access denied: toml_write_file path is outside allowed areas ('{path}')");
                     return;
                 }
-                Core.Serialization.Toml.TomlHelpers.WriteTomlFile(path, obj);
+                Shared.Serialization.Toml.TomlHelpers.WriteTomlFile(path, obj);
             } catch (System.Exception ex) {
-                Core.Diagnostics.Bug("[helpers.cs::Toml_Write_File] catch triggered with exception: " + ex);
+                Shared.Diagnostics.Bug("[helpers.cs::Toml_Write_File] catch triggered with exception: " + ex);
                 Core.UI.EngineSdk.Error($"TOML write failed: {ex.Message}");
-                Core.Diagnostics.LuaInternalCatch("toml_write_file failed with exception: " + ex);
+                Shared.Diagnostics.LuaInternalCatch("toml_write_file failed with exception: " + ex);
             }
         }
 
@@ -245,11 +245,11 @@ internal static class Helpers {
                     return null;
                 }
 
-                object obj = Core.Serialization.Yaml.YamlHelpers.ParseFileToPlainObject(path);
+                object obj = Shared.Serialization.Yaml.YamlHelpers.ParseFileToPlainObject(path);
                 return obj;
             } catch (System.Exception ex) {
                 Core.UI.EngineSdk.Error($"YAML read failed: {ex.Message}");
-                Core.Diagnostics.LuaInternalCatch("yaml_read_file failed with exception: " + ex);
+                Shared.Diagnostics.LuaInternalCatch("yaml_read_file failed with exception: " + ex);
                 return null;
             }
         }
@@ -262,10 +262,10 @@ internal static class Helpers {
                     return;
                 }
 
-                Core.Serialization.Yaml.YamlHelpers.WriteYamlFile(path, obj);
+                Shared.Serialization.Yaml.YamlHelpers.WriteYamlFile(path, obj);
             } catch (System.Exception ex) {
                 Core.UI.EngineSdk.Error($"YAML write failed: {ex.Message}");
-                Core.Diagnostics.LuaInternalCatch("yaml_write_file failed with exception: " + ex);
+                Shared.Diagnostics.LuaInternalCatch("yaml_write_file failed with exception: " + ex);
             }
         }
     }

@@ -115,6 +115,7 @@ RemakeEngine/
       Tools/                  # Tool dependency definitions
       ops/                    # Internal operation definitions for built-in actions (eg git download of Modules)
   EngineNet/                  # C# core engine and CLI entry point
+    source/Shared/            # Reusable serialization helpers and shared engine utilities
   schemas/                    # JSON schemas
   RemakeEngine.slnx           # Solution
 ```
@@ -122,6 +123,7 @@ RemakeEngine/
 ## Where To Look Next
 - [EngineNet/readme.md](EngineNet/readme.md) for the .NET entry point and project layout.
 - [EngineNet/source/Core/readme.md](EngineNet/source/Core/readme.md) for engine runtime responsibilities.
+- [EngineNet/source/Shared/readme.md](EngineNet/source/Shared/readme.md) for reusable serialization helpers shared by Core and ScriptEngines.
 - [EngineNet/source/Interface/readme.md](EngineNet/source/Interface/readme.md) for GUI/TUI/CLI behavior.
 - [EngineNet/source/ScriptEngines/Readme.md](EngineNet/source/ScriptEngines/Readme.md) for embedded and external script runtimes.
 - [schemas/operations.toml.md](schemas/operations.toml.md) for the operations manifest guide.

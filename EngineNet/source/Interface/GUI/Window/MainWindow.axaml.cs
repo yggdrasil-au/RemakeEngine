@@ -61,7 +61,7 @@ public partial class MainWindow:Window {
                 bottom.DataContext = OperationOutputService.Instance;
             }
         } catch {
-            Core.Diagnostics.Bug("GUI :: MainWindow.axaml.cs::TryWireBottomPanel() Failed to wire bottom panel");
+            Shared.Diagnostics.Bug("GUI :: MainWindow.axaml.cs::TryWireBottomPanel() Failed to wire bottom panel");
         }
     }
 
@@ -72,7 +72,7 @@ public partial class MainWindow:Window {
                 overlay.DataContext = OperationOutputService.Instance;
             }
         } catch {
-            Core.Diagnostics.Bug("GUI :: MainWindow.axaml.cs::TryWirePromptOverlay() Failed to wire prompt overlay");
+            Shared.Diagnostics.Bug("GUI :: MainWindow.axaml.cs::TryWirePromptOverlay() Failed to wire prompt overlay");
         }
     }
 

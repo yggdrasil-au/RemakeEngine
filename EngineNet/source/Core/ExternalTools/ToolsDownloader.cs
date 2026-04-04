@@ -2,20 +2,13 @@ using System.IO.Compression;
 using SharpCompress.Archives;
 using SharpCompress.Archives.SevenZip;
 using SharpCompress.Common;
-using EngineNet.Core.Serialization.Toml;
+using EngineNet.Shared.Serialization.Toml;
 
 namespace EngineNet.Core.ExternalTools;
 
-internal sealed class ToolsDownloader {
-    private readonly string _rootPath;
-    //private readonly string _centralRepoJsonPath;
+internal static class ToolsDownloader {
 
-    internal ToolsDownloader(string rootPath, string centralRepoJsonPath) {
-        _rootPath = rootPath;
-        //_centralRepoJsonPath = centralRepoJsonPath;
-    }
-
-    internal async System.Threading.Tasks.Task<bool> ProcessAsync(string moduleTomlPath, bool force, IDictionary<string, object?>? context = null, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
+    internal static async System.Threading.Tasks.Task<bool> ProcessAsync(string moduleTomlPath, string _rootPath, bool force, IDictionary<string, object?>? context = null, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         Core.UI.EngineSdk.PrintLine(string.Empty);
         Core.UI.EngineSdk.PrintLine($"=== Tools Downloader - manifest: {moduleTomlPath} ===", System.ConsoleColor.DarkCyan);
         if (!System.IO.File.Exists(moduleTomlPath)) {
@@ -38,13 +31,13 @@ internal sealed class ToolsDownloader {
                 using var doc = System.Text.Json.JsonDocument.Parse(await System.IO.File.ReadAllTextAsync(lockPath, cancellationToken));
                 lockData = ConvertToDeepDictionary(doc.RootElement);
             } catch (System.Text.Json.JsonException ex) {
-                Core.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Failed to parse lockfile '{lockPath}'.", ex);
+                Shared.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Failed to parse lockfile '{lockPath}'.", ex);
                 Core.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
             } catch (System.IO.IOException ex) {
-                Core.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] IO error loading lockfile '{lockPath}'.", ex);
+                Shared.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] IO error loading lockfile '{lockPath}'.", ex);
                 Core.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
             } catch (System.UnauthorizedAccessException ex) {
-                Core.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Access denied loading lockfile '{lockPath}'.", ex);
+                Shared.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Access denied loading lockfile '{lockPath}'.", ex);
                 Core.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
             }
         }
@@ -174,7 +167,7 @@ internal sealed class ToolsDownloader {
                             Core.UI.EngineSdk.Warn($"Could not find entry for '{fileName}' in upstream checksums.");
                         }
                     } catch (Exception ex) {
-                        Core.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Failed to fetch/parse upstream checksums from '{checksumSource}'.", ex);
+                        Shared.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Failed to fetch/parse upstream checksums from '{checksumSource}'.", ex);
                         Core.UI.EngineSdk.Warn($"Failed to fetch/parse upstream checksums: {ex.Message}");
                     }
                 }
@@ -200,7 +193,7 @@ internal sealed class ToolsDownloader {
                 } catch (NotSupportedException nse) {
                     Core.UI.EngineSdk.Warn($"{nse.Message} Leaving archive as-is.");
                 } catch (Exception ex) {
-                    Core.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Failed to unpack archive '{archivePath}' to '{installDir}'.", ex);
+                    Shared.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Failed to unpack archive '{archivePath}' to '{installDir}'.", ex);
                     Core.UI.EngineSdk.PrintLine($"1 ERROR: Failed to unpack '{archivePath}': {ex.Message}", System.ConsoleColor.Red);
                 }
 
@@ -245,11 +238,7 @@ internal sealed class ToolsDownloader {
         return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
     }
 
-    private static async System.Threading.Tasks.Task CopyStreamWithProgressAsync(
-        System.IO.Stream input,
-        System.IO.Stream output,
-        Core.UI.EngineSdk.PanelProgress progress
-    ) {
+    private static async System.Threading.Tasks.Task CopyStreamWithProgressAsync(System.IO.Stream input, System.IO.Stream output, Core.UI.EngineSdk.PanelProgress progress) {
         const int BufferSize = 81920;
         byte[] buffer = new byte[BufferSize];
         int read;
@@ -284,7 +273,8 @@ internal sealed class ToolsDownloader {
         out string url,
         out string sha256,
         out string? checksumSource,
-        out object? platformData) {
+        out object? platformData
+    ) {
         url = string.Empty;
         sha256 = string.Empty;
         checksumSource = null;
@@ -378,10 +368,15 @@ internal sealed class ToolsDownloader {
     }
 
     private static IEnumerable<KeyValuePair<string, object?>> GetProperties(object? obj) {
-        if (obj is System.Text.Json.JsonElement { ValueKind: System.Text.Json.JsonValueKind.Object } elem) {
-            foreach (var prop in elem.EnumerateObject()) yield return new KeyValuePair<string, object?>(prop.Name, prop.Value);
-        } else if (obj is IDictionary<string, object?> dict) {
-            foreach (var kvp in dict) yield return kvp;
+        switch (obj) {
+            case System.Text.Json.JsonElement { ValueKind: System.Text.Json.JsonValueKind.Object } elem: {
+                foreach (var prop in elem.EnumerateObject()) yield return new KeyValuePair<string, object?>(prop.Name, prop.Value);
+                break;
+            }
+            case IDictionary<string, object?> dict: {
+                foreach (var kvp in dict) yield return kvp;
+                break;
+            }
         }
     }
 
@@ -406,11 +401,7 @@ internal sealed class ToolsDownloader {
     }
 
     private static List<object?> ConvertArray(System.Text.Json.JsonElement element) {
-        var list = new List<object?>();
-        foreach (var item in element.EnumerateArray()) {
-            list.Add(ConvertValue(item));
-        }
-        return list;
+        return element.EnumerateArray().Select(ConvertValue).ToList();
     }
 
     private static bool VerifySha256(string filePath, string expected) {
@@ -575,7 +566,7 @@ internal sealed class ToolsDownloader {
 
             return System.IO.Directory.EnumerateFiles(root, pattern, options).FirstOrDefault();
         } catch {
-            Core.Diagnostics.Bug($"[ToolsDownloader] Could not search for file '{pattern}' in: {root}");
+            Shared.Diagnostics.Bug($"[ToolsDownloader] Could not search for file '{pattern}' in: {root}");
             return null;
         }
     }
@@ -594,7 +585,7 @@ internal sealed class ToolsDownloader {
             System.IO.File.SetUnixFileMode(path, newMode);
             Core.UI.EngineSdk.Info($"Applied executable permissions to: {path}");
         } catch (Exception ex) {
-            Core.Diagnostics.Bug($"[ToolsDownloader::ApplyExecutablePermissions()] Failed to set executable permissions for '{path}'.", ex);
+            Shared.Diagnostics.Bug($"[ToolsDownloader::ApplyExecutablePermissions()] Failed to set executable permissions for '{path}'.", ex);
             Core.UI.EngineSdk.Warn($"Could not set executable bit on {path}: {ex.Message}");
         }
     }

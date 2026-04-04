@@ -1,9 +1,9 @@
-namespace EngineNet.Core.Engine.operations.Built_inActions;
+namespace EngineNet.Core.Operations.Built_inActions;
 
 internal class Helpers {
 
     internal static Dictionary<string, object?> BuildOperationContext(
-        EngineContext context,
+        Engine.EngineContext context,
         string currentGame,
         Dictionary<string, Core.Data.GameModuleInfo> games
     ) {

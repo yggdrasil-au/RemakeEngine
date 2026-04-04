@@ -248,7 +248,7 @@ internal static class ProcessExecution {
                     if (!silentRun) {
                         string? color = type == "stderr" ? "red" : null;
                         Core.UI.EngineSdk.Print(msg, color, true);
-                        Core.Diagnostics.Log($"[ProcessRunner][{type}] {msg}");
+                        Shared.Diagnostics.Log($"[ProcessRunner][{type}] {msg}");
                     }
                 },
                 onEvent: evt => {

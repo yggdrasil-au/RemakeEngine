@@ -43,7 +43,7 @@ internal static class SymLink {
             return true;
         } catch (Exception ex) {
             Core.UI.EngineSdk.Error($"create_symlink failed: {ex.Message}");
-            Core.Diagnostics.LuaInternalCatch($"create_symlink failed with exception: {ex}");
+            Shared.Diagnostics.LuaInternalCatch($"create_symlink failed with exception: {ex}");
             return false;
         }
     }

@@ -127,8 +127,8 @@ internal static class JsAction {
 #endif
 
         // :: JS Diagnostics logging ::
-        _JSWorld.DiagnosticsMethods["Log"] = (Action<string>)Core.Diagnostics.JsLogger.JsLog;
-        _JSWorld.DiagnosticsMethods["Trace"] = (Action<string>)Core.Diagnostics.JsLogger.JsTrace;
+        _JSWorld.DiagnosticsMethods["Log"] = (Action<string>)Shared.Diagnostics.JsLogger.JsLog;
+        _JSWorld.DiagnosticsMethods["Trace"] = (Action<string>)Shared.Diagnostics.JsLogger.JsTrace;
 
         _JSWorld.JsScript.SetValue("Diagnostics", _JSWorld.DiagnosticsMethods);
 

@@ -21,7 +21,7 @@ internal static class GitTools {
 
         if (!IsGitInstalled(commandService)) {
             EngineSdk.Warn("Git is not installed or not found in PATH.");
-            Core.Diagnostics.Log("[GitTools.cs::CloneModule()] GitTools: Git is not installed or not found in PATH.");
+            Shared.Diagnostics.Log("[GitTools.cs::CloneModule()] GitTools: Git is not installed or not found in PATH.");
             return false;
         }
         try {
@@ -61,12 +61,12 @@ internal static class GitTools {
                 return true;
             }
             EngineSdk.Error($"\nFailed to download '{repoName}'. Git exited with code {rc}.");
-            Core.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Git exited with code {rc}.");
+            Shared.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Git exited with code {rc}.");
             return false;
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"[GitTools.cs::CloneModule()] Catch triggered during git clone: {ex}");
+            Shared.Diagnostics.Bug($"[GitTools.cs::CloneModule()] Catch triggered during git clone: {ex}");
             EngineSdk.Error($"An error occurred during download: {ex.Message}");
-            Core.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
+            Shared.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
             return false;
         }
     }
@@ -84,7 +84,7 @@ internal static class GitTools {
             );
             return result.Success;
         } catch {
-            Core.Diagnostics.Bug("[GitTools.cs::CloneModule()] Exception while checking for git installation.");
+            Shared.Diagnostics.Bug("[GitTools.cs::CloneModule()] Exception while checking for git installation.");
             return false;
         }
     }
@@ -101,7 +101,7 @@ internal static class GitTools {
                 return leaf;
             }
         } catch {
-            Core.Diagnostics.Bug("[GitTools.cs::CloneModule()] GitTools: Failed to parse URL as URI, falling back to string parsing.");
+            Shared.Diagnostics.Bug("[GitTools.cs::CloneModule()] GitTools: Failed to parse URL as URI, falling back to string parsing.");
             /* fall back to string parsing */
         }
         string tail = url.Replace("\\", "/");

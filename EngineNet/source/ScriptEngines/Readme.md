@@ -15,5 +15,6 @@ The Lua surface is documented for editor tooling in [../../../EngineApps/Addons/
 ## Related Docs
 - [../../readme.md](../../readme.md)
 - [../../../Readme.md](../../../Readme.md)
+- [../Shared/readme.md](../Shared/readme.md)
 - [../Core/readme.md](../Core/readme.md)
 - [../Interface/readme.md](../Interface/readme.md)

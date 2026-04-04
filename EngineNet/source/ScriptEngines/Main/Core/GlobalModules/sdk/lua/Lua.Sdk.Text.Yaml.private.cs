@@ -11,16 +11,16 @@ internal static partial class Sdk {
         // opts is accepted for API parity with sdk.text.json.encode, but formatting is currently default.
         _LuaWorld.Sdk.Text.Yaml["encode"] = (System.Func<DynValue, DynValue, string>)((val, opts) => {
             object? obj = Lua.Globals.Utils.FromDynValue(val);
-            return Core.Serialization.Yaml.YamlHelpers.WriteDocument(obj);
+            return Shared.Serialization.Yaml.YamlHelpers.WriteDocument(obj);
         });
 
         // sdk.text.yaml.decode(yaml)
         _LuaWorld.Sdk.Text.Yaml["decode"] = (System.Func<string, DynValue>)((yaml) => {
             try {
-                object plain = Core.Serialization.Yaml.YamlHelpers.ParseDocumentToPlainObject(yaml);
+                object plain = Shared.Serialization.Yaml.YamlHelpers.ParseDocumentToPlainObject(yaml);
                 return Lua.Globals.Utils.ToDynValue(_LuaWorld.LuaScript, plain);
             } catch (Exception ex) {
-                Core.Diagnostics.LuaInternalCatch("sdk.text.yaml.decode failed: " + ex);
+                Shared.Diagnostics.LuaInternalCatch("sdk.text.yaml.decode failed: " + ex);
                 return DynValue.Nil;
             }
         });

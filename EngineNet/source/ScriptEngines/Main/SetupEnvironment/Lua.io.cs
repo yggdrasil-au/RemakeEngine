@@ -78,7 +78,7 @@ internal static partial class SetupEnvironment {
                             }
                             return null;
                         } catch (Exception ex) {
-                            Core.Diagnostics.LuaInternalCatch("io.read failed with exception: " + ex);
+                            Shared.Diagnostics.LuaInternalCatch("io.read failed with exception: " + ex);
                             return null;
                         }
                     };
@@ -96,7 +96,7 @@ internal static partial class SetupEnvironment {
 
                             return fs.Seek(offset.Value, origin);
                         } catch(Exception ex) {
-                            Core.Diagnostics.LuaInternalCatch("io.seek failed with exception: " + ex);
+                            Shared.Diagnostics.LuaInternalCatch("io.seek failed with exception: " + ex);
                             return null;
                         }
                     });
@@ -114,7 +114,7 @@ internal static partial class SetupEnvironment {
                                 writer.Flush();
                             }
                         } catch (Exception ex) {
-                            Core.Diagnostics.LuaInternalCatch("io.write failed with exception: " + ex);
+                            Shared.Diagnostics.LuaInternalCatch("io.write failed with exception: " + ex);
                         }
                     };
                     InstanceHandle["close"] =() => {
@@ -124,14 +124,14 @@ internal static partial class SetupEnvironment {
                                 fs.Dispose();
                             }
                         } catch (Exception ex) {
-                            Core.Diagnostics.LuaInternalCatch("io.close failed with exception: " + ex);
+                            Shared.Diagnostics.LuaInternalCatch("io.close failed with exception: " + ex);
                         }
                     };
                     InstanceHandle["flush"] = () => {
                         try {
                             fs?.Flush();
                         } catch (Exception ex) {
-                            Core.Diagnostics.LuaInternalCatch("io.flush failed with exception: " + ex);
+                            Shared.Diagnostics.LuaInternalCatch("io.flush failed with exception: " + ex);
                         }
                     };
                     return DynValue.NewTable(InstanceHandle);
@@ -143,10 +143,10 @@ internal static partial class SetupEnvironment {
                         _LuaWorld.UnregisterDisposable(fs);
                         fs.Dispose();
                     } catch (Exception disposeEx) {
-                        Core.Diagnostics.LuaInternalCatch("io.open cleanup failed with exception: " + disposeEx);
+                        Shared.Diagnostics.LuaInternalCatch("io.open cleanup failed with exception: " + disposeEx);
                     }
                 }
-                Core.Diagnostics.LuaInternalCatch("io.open failed with exception: " + ex);
+                Shared.Diagnostics.LuaInternalCatch("io.open failed with exception: " + ex);
                 return DynValue.NewTuple(DynValue.Nil, DynValue.NewString("io.open failed with exception: " + ex.Message));
             }
         };

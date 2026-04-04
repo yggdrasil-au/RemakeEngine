@@ -68,6 +68,7 @@ Like the TUI, the GUI is **file-driven**. It parses `operations.toml` to generat
 ## Related Docs
 - [../../readme.md](../../readme.md)
 - [../../../Readme.md](../../../Readme.md)
+- [../Shared/readme.md](../Shared/readme.md)
 - [../Core/readme.md](../Core/readme.md)
 - [../ScriptEngines/Readme.md](../ScriptEngines/Readme.md)
 

@@ -204,7 +204,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                     GameRoot = gameInfo.GameRoot;
                 }
             } else {
-                Core.Diagnostics.Log($"Load: No game info found for module {_moduleName}.");
+                Shared.Diagnostics.Log($"Load: No game info found for module {_moduleName}.");
             }
 
             if (!string.IsNullOrWhiteSpace(opsFile) && System.IO.File.Exists(path: opsFile)) {
@@ -215,13 +215,13 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                     engineConfig: GuiBootstrapper.MiniEngine.EngineConfig_Data
                 );
                 if (!preparedOps.IsLoaded) {
-                    Core.Diagnostics.Log($"Load: Failed to load operations list for module {_moduleName} from ops file '{opsFile}'. {preparedOps.ErrorMessage}");
+                    Shared.Diagnostics.Log($"Load: Failed to load operations list for module {_moduleName} from ops file '{opsFile}'. {preparedOps.ErrorMessage}");
                     return;
                 }
 
                 if (preparedOps.Warnings.Count > 0) {
                     foreach (string warning in preparedOps.Warnings) {
-                        Core.Diagnostics.Log($"[ModulePage::Load()] Warning: {warning}");
+                        Shared.Diagnostics.Log($"[ModulePage::Load()] Warning: {warning}");
                         OperationOutputService.Instance.AddOutput($"Validation: {warning}", "stderr");
                     }
                 }
@@ -240,7 +240,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                     Operations.Add(item: new OpRow { Name = displayName, ScriptType = scriptType, ScriptPath = scriptPath, Op = op.Operation });
                 }
             } else {
-                Core.Diagnostics.Log($"Load: Ops file not found for module {_moduleName} at path '{opsFile}'.");
+                Shared.Diagnostics.Log($"Load: Ops file not found for module {_moduleName} at path '{opsFile}'.");
             }
 
             Raise(nameof(Title));
@@ -258,7 +258,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             Raise(nameof(RegistryUrl));
         } catch (System.Exception ex) {
             OperationOutputService.Instance.AddOutput(text: $"Module load failed: {ex.Message}", stream: "stderr");
-            Core.Diagnostics.Bug($"Load: {ex}");
+            Shared.Diagnostics.Bug($"Load: {ex}");
         }
     }
 
@@ -272,7 +272,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         try {
             return System.IO.File.Exists(path: pick) ? new Bitmap(pick) : null;
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"ResolveCoverBitmap: Failed to load bitmap from {pick}. {ex}");
+            Shared.Diagnostics.Bug($"ResolveCoverBitmap: Failed to load bitmap from {pick}. {ex}");
             return null;
         }
     }
@@ -318,7 +318,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                             System.Console.SetIn(previous);
                         } catch (Exception ex) {
                             System.Console.SetIn(previous);
-                            Core.Diagnostics.Bug($"ExecuteInitOperationsAsync: Failed to restore Console.In. {ex}");
+                            Shared.Diagnostics.Bug($"ExecuteInitOperationsAsync: Failed to restore Console.In. {ex}");
                         }
                     }
                 }
@@ -326,7 +326,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         } catch (System.OperationCanceledException) {
             OperationOutputService.Instance.AddOutput(text: "Init operations cancelled by user.", stream: "stderr");
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"ExecuteInitOperationsAsync: {ex}");
+            Shared.Diagnostics.Bug($"ExecuteInitOperationsAsync: {ex}");
             OperationOutputService.Instance.AddOutput(text: $"Init operations failed: {ex.Message}", stream: "stderr");
         } finally {
             IsRunning = false;
@@ -363,7 +363,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 }
             );
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"PlayAsync: {ex}");
+            Shared.Diagnostics.Bug($"PlayAsync: {ex}");
             OperationOutputService.Instance.AddOutput(text: $"Launch failed: {ex.Message}", stream: "stderr");
         }
     }
@@ -389,7 +389,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         } catch (System.OperationCanceledException) {
             OperationOutputService.Instance.AddOutput(text: "Operation cancelled by user.", stream: "stderr");
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"RunAllAsync: {ex}");
+            Shared.Diagnostics.Bug($"RunAllAsync: {ex}");
             OperationOutputService.Instance.AddOutput(text: $"Run All failed: {ex.Message}", stream: "stderr");
         } finally {
             IsRunning = false;
@@ -442,7 +442,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                             System.Console.SetIn(previous);
                         } catch (Exception ex) {
                             System.Console.SetIn(previous);
-                            Core.Diagnostics.Bug($"RunOpAsync: Failed to restore Console.In. {ex}");
+                            Shared.Diagnostics.Bug($"RunOpAsync: Failed to restore Console.In. {ex}");
                         }
                     }
                 }
@@ -451,7 +451,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         } catch (System.OperationCanceledException) {
             OperationOutputService.Instance.AddOutput(text: "Operation cancelled by user.", stream: "stderr");
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"RunOpAsync: {ex}");
+            Shared.Diagnostics.Bug($"RunOpAsync: {ex}");
             OperationOutputService.Instance.AddOutput(text: $"Operation failed: {ex.Message}", stream: "stderr");
         } finally {
             IsRunning = false;
@@ -479,7 +479,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             );
             Load();
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"DownloadAsync: {ex}");
+            Shared.Diagnostics.Bug($"DownloadAsync: {ex}");
             OperationOutputService.Instance.AddOutput(text: $"Download failed: {ex.Message}", stream: "stderr");
         }
     }
@@ -493,7 +493,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             }
             GuiBootstrapper.MiniEngine.CommandService_OpenFolder(path);
         } catch {
-            Core.Diagnostics.Bug("OpenFolderAsync: Failed to open folder.");
+            Shared.Diagnostics.Bug("OpenFolderAsync: Failed to open folder.");
         }
         await System.Threading.Tasks.Task.CompletedTask;
     }

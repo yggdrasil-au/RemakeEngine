@@ -28,7 +28,7 @@ public static class Program {
         System.Console.CancelKeyPress += (_, e) => {
             e.Cancel = true;
             cancellationToken.Cancel();
-            Core.Diagnostics.Log("Global Cancellation Requested (Ctrl+C)");
+            Shared.Diagnostics.Log("Global Cancellation Requested (Ctrl+C)");
         };
 
         try {
@@ -59,15 +59,15 @@ public static class Program {
             isCli = !isGui && !isTui;
 
             // :: Initialize the Logger
-            Core.Diagnostics.Initialize(isGui, isTui);
+            Shared.Diagnostics.Initialize(Program.rootPath, isGui, isTui);
 
-            Core.Diagnostics.Trace($"Starting EngineNet in {(isGui ? "GUI" : isTui ? "TUI" : "CLI")} mode. Root Path: {rootPath}");
+            Shared.Diagnostics.Trace($"Starting EngineNet in {(isGui ? "GUI" : isTui ? "TUI" : "CLI")} mode. Root Path: {rootPath}");
 
             // If user requested TUI/CLI but we failed to attach (e.g. shortcut double-click),
             // we must manually allocate a new console window or they will see nothing.
             if ((isTui || isCli) && !hasConsole && System.OperatingSystem.IsWindows()) {
                 ConsoleHelper.AllocConsole();
-                Core.Diagnostics.Trace("Allocated new console window for TUI/CLI mode.");
+                Shared.Diagnostics.Trace("Allocated new console window for TUI/CLI mode.");
             }
 
             Core.Main.ConfigureRuntime(
@@ -86,7 +86,7 @@ public static class Program {
             // - No remaining args -> GUI
             // - One arg "--gui" -> GUI
             if (isGui) {
-                Core.Diagnostics.Trace("Launching GUI Interface...");
+                Shared.Diagnostics.Trace("Launching GUI Interface...");
                 //return Interface.GUI.GuiBootstrapper.Run(Engine); // ;; gui flow step1 ;;
                 return await UI.init(args, "gui", cancellationToken.Token);
             }
@@ -94,7 +94,7 @@ public static class Program {
             // Logic:
             // - One arg "--tui" -> TUI
             if (isTui) {
-                Core.Diagnostics.Trace("Launching TUI Interface...");
+                Shared.Diagnostics.Trace("Launching TUI Interface...");
                 //Interface.Terminal.TUI TUI = new Interface.Terminal.TUI(Engine);
                 //return await TUI.RunInteractiveMenuAsync(cancellationToken.Token);
                 return await UI.init(args, "tui", cancellationToken.Token);
@@ -103,21 +103,21 @@ public static class Program {
             // Logic:
             // - Anything else -> CLI (Pass original args so CLI can parse specific commands like 'build', 'run', etc.)
             if (isCli) {
-                Core.Diagnostics.Trace("Launching CLI Interface...");
+                Shared.Diagnostics.Trace("Launching CLI Interface...");
                 //Interface.Terminal.CLI CLI = new Interface.Terminal.CLI(Engine);
                 //return await CLI.RunAsync(args, cancellationToken.Token);
                 return await UI.init(args, "cli", cancellationToken.Token);
             }
             EngineSdk.Error("No valid interface mode selected.");
-            Core.Diagnostics.Bug("No valid interface mode selected.");
+            Shared.Diagnostics.Bug("No valid interface mode selected.");
             return 1;
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug("Critical Engine Failure in Main", ex);
-            Core.Diagnostics.Log($"Engine Error: {ex}");
+            Shared.Diagnostics.Bug("Critical Engine Failure in Main", ex);
+            Shared.Diagnostics.Log($"Engine Error: {ex}");
             await System.Console.Error.WriteLineAsync($"Critical Engine Failure: {ex.Message}");
             return 1;
         } finally {
-            Core.Diagnostics.Close();
+            Shared.Diagnostics.Close();
             // :: Detach console on exit
             if (System.OperatingSystem.IsWindows()) {
                 ConsoleHelper.FreeConsole();
@@ -176,7 +176,7 @@ public static class Program {
                 dir = parent.FullName;
             }
         } catch (System.Exception e) {
-            Core.Diagnostics.Bug($"Error finding project root: {e.Message}");
+            Shared.Diagnostics.Bug($"Error finding project root: {e.Message}");
         }
         return string.Empty;
     }
@@ -200,7 +200,7 @@ public static class Program {
             var _opsLoader = new Core.Services.OperationsLoader();
             var _operationsService = new Core.Services.OperationsService(_opsLoader, gameRegistry);
 
-            var Single = new Core.Engine.Operations.Single();
+            var Single = new Core.Operations.Single();
 
             EngineNet.Core.Engine.Engine _engine = new EngineNet.Core.Engine.Engine(
                 gameRegistry,

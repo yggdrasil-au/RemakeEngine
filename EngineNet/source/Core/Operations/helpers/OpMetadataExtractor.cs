@@ -1,5 +1,5 @@
 
-namespace EngineNet.Core.Engine.Operations.helpers;
+namespace EngineNet.Core.Operations.helpers;
 
 internal class OpMetadataExtractor {
 

@@ -1,5 +1,5 @@
 
-namespace EngineNet.Core.Engine.Operations.helpers;
+namespace EngineNet.Core.Operations.helpers;
 
 internal static class OpDispatcher {
 
@@ -21,18 +21,18 @@ internal static class OpDispatcher {
         Core.Data.PromptAnswers promptAnswers,
         string currentGame,
         Dictionary<string, Core.Data.GameModuleInfo> games,
-        EngineContext context,
+        Engine.EngineContext context,
         System.Threading.CancellationToken cancellationToken = default
     ) {
         if (!executableOperation.TryGetValue("script", out object? s) || s is null) {
-            Core.Diagnostics.Log("[Engine.private.cs :: Operations()] Missing 'script' value in engine operation");
+            Shared.Diagnostics.Log("[Engine.private.cs :: Operations()] Missing 'script' value in engine operation");
             return false;
         }
 
         // 'executableOperation' is already fully resolved from Runner.RunSingleOperationAsync!
         //IDictionary<string, object?> executableOperation = executableOperation;
 
-        Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] engine operation script: {s}");
+        Shared.Diagnostics.Log($"[Engine.private.cs :: Operations()]] engine operation script: {s}");
 
         // ensure internal ops are from allowed dirs
         string? type = executableOperation.TryGetValue("script_type", out object? st) ? st?.ToString()?.ToLowerInvariant() : null;
@@ -65,39 +65,39 @@ internal static class OpDispatcher {
         // Determine action
         string? action = s.ToString()?.ToLowerInvariant();
 
-        Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] Executing engine action: {action}");
+        Shared.Diagnostics.Log($"[Engine.private.cs :: Operations()]] Executing engine action: {action}");
         switch (action) {
             // internal modules
             case "download_module_git": {
-                return new operations.Built_inActions.InternalOperations().DownloadModuleGit(promptAnswers, context);
+                return new Built_inActions.InternalOperations().DownloadModuleGit(promptAnswers, context);
             }
             case "download_module_registry": {
-                return new operations.Built_inActions.InternalOperations().DownloadModuleRegistry(promptAnswers, context);
+                return new Built_inActions.InternalOperations().DownloadModuleRegistry(promptAnswers, context);
             }
 
             // Built-in actions
             case "config": {
-                return operations.Built_inActions.BuiltInOperations.config(executableOperation, currentGame, games);
+                return Built_inActions.BuiltInOperations.config(executableOperation, currentGame, games);
             }
 
 
             case "download-tools": {
-                return await operations.Built_inActions.BuiltInOperations.DownloadTools(operationArgs);
+                return await Built_inActions.BuiltInOperations.DownloadTools(operationArgs);
             }
             case "format-extract": {
-                return operations.Built_inActions.BuiltInOperations.format_extract(operationArgs);
+                return Built_inActions.BuiltInOperations.format_extract(operationArgs);
             }
             case "format-convert": {
-                return operations.Built_inActions.BuiltInOperations.format_convert(operationArgs);
+                return Built_inActions.BuiltInOperations.format_convert(operationArgs);
             }
             case "validate-files": {
-                return operations.Built_inActions.BuiltInOperations.validate_files(operationArgs);
+                return Built_inActions.BuiltInOperations.validate_files(operationArgs);
             }
             case "rename-folders": {
-                return operations.Built_inActions.BuiltInOperations.rename_folders(operationArgs);
+                return Built_inActions.BuiltInOperations.rename_folders(operationArgs);
             }
             default: {
-                Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] Unknown engine action: {action}");
+                Shared.Diagnostics.Log($"[Engine.private.cs :: Operations()]] Unknown engine action: {action}");
                 return false;
             }
         }
@@ -117,7 +117,7 @@ internal class OperationArgs {
     internal readonly Core.Data.PromptAnswers promptAnswers;
     internal readonly string currentGame;
     internal readonly Dictionary<string, Core.Data.GameModuleInfo> games;
-    internal readonly EngineContext context;
+    internal readonly Engine.EngineContext context;
     internal readonly System.Threading.CancellationToken cancellationToken;
 
     internal OperationArgs(
@@ -125,7 +125,7 @@ internal class OperationArgs {
         Core.Data.PromptAnswers promptAnswers,
         string currentGame,
         Dictionary<string, Core.Data.GameModuleInfo> games,
-        EngineContext context,
+        Engine.EngineContext context,
         System.Threading.CancellationToken cancellationToken
     ) {
         this.op = op;

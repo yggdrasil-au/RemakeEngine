@@ -120,7 +120,7 @@ internal static class QuickBmsExtractor {
 
         cts.Cancel();
         try { panel.Wait(); } catch {
-            Core.Diagnostics.Bug("Failed to wait for progress panel");
+            Shared.Diagnostics.Bug("Failed to wait for progress panel");
             /* ignore */
         }
 

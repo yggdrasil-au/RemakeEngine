@@ -48,7 +48,7 @@ internal static partial class TxdExtractor {
                         System.Threading.Interlocked.Increment(ref skip);
                     }
                 } catch (System.Exception ex) {
-                    Core.Diagnostics.Bug($"[TxdExtractor::Run()] Failed processing txd file '{txdFile}'.", ex);
+                    Shared.Diagnostics.Bug($"[TxdExtractor::Run()] Failed processing txd file '{txdFile}'.", ex);
                     System.Threading.Interlocked.Increment(ref err);
                 } finally {
                     System.Threading.Interlocked.Increment(ref processed);
@@ -60,17 +60,17 @@ internal static partial class TxdExtractor {
             try {
                 progress.Wait(cancellationToken);
             } catch (System.AggregateException ex) {
-                Core.Diagnostics.Bug("[TxdExtractor::Run()] Progress task wait failed.", ex);
-                Core.Diagnostics.Bug("[TxdExtractor] Progress task cancelled.");
+                Shared.Diagnostics.Bug("[TxdExtractor::Run()] Progress task wait failed.", ex);
+                Shared.Diagnostics.Bug("[TxdExtractor] Progress task cancelled.");
                 /* ignore */
             }
             return true;
         } catch (TxdExportException ex) {
-            Core.Diagnostics.Bug("[TxdExtractor::Run()] TXD export exception.", ex);
+            Shared.Diagnostics.Bug("[TxdExtractor::Run()] TXD export exception.", ex);
             Log.Red(ex.Message);
             return false;
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug("[TxdExtractor::Run()] Unhandled TXD extraction error.", ex);
+            Shared.Diagnostics.Bug("[TxdExtractor::Run()] Unhandled TXD extraction error.", ex);
             Log.Red($"Unhandled TXD extraction error: {ex.Message}");
             if (!string.IsNullOrWhiteSpace(ex.StackTrace)) {
                 Log.Gray(ex.StackTrace!);

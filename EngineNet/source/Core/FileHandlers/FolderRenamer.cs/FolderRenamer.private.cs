@@ -116,7 +116,7 @@ internal static partial class FolderRenamer {
             WriteSuccess($"Loaded {map.Count} rename entries from database.");
             return map;
         } catch (Microsoft.Data.Sqlite.SqliteException ex) {
-            Core.Diagnostics.Bug($"[FolderRenamer::LoadFromDatabase()] SQLite error reading '{dbPath}'.", ex);
+            Shared.Diagnostics.Bug($"[FolderRenamer::LoadFromDatabase()] SQLite error reading '{dbPath}'.", ex);
             WriteError($"SQLite error while reading {dbPath}: {ex.Message}");
             return null;
         }
@@ -159,11 +159,11 @@ internal static partial class FolderRenamer {
             WriteSuccess($"Loaded {map.Count} rename entries from JSON.");
             return map;
         } catch (System.Text.Json.JsonException ex) {
-            Core.Diagnostics.Bug($"[FolderRenamer::LoadFromJson()] JSON parse error in '{jsonPath}'.", ex);
+            Shared.Diagnostics.Bug($"[FolderRenamer::LoadFromJson()] JSON parse error in '{jsonPath}'.", ex);
             WriteError($"Error decoding JSON from {jsonPath}: {ex.Message}");
             return null;
         } catch (System.IO.IOException ex) {
-            Core.Diagnostics.Bug($"[FolderRenamer::LoadFromJson()] IO error reading '{jsonPath}'.", ex);
+            Shared.Diagnostics.Bug($"[FolderRenamer::LoadFromJson()] IO error reading '{jsonPath}'.", ex);
             WriteError($"Error reading JSON file {jsonPath}: {ex.Message}");
             return null;
         }
@@ -182,11 +182,11 @@ internal static partial class FolderRenamer {
         try {
             items = System.IO.Directory.GetFileSystemEntries(directoryPath);
         } catch (System.UnauthorizedAccessException ex) {
-            Core.Diagnostics.Bug($"[FolderRenamer::RenameDirectories()] Access denied listing directory '{directoryPath}'.", ex);
+            Shared.Diagnostics.Bug($"[FolderRenamer::RenameDirectories()] Access denied listing directory '{directoryPath}'.", ex);
             WriteError($"Permission denied when reading directory: {directoryPath}");
             return false;
         } catch (System.IO.IOException ex) {
-            Core.Diagnostics.Bug($"[FolderRenamer::RenameDirectories()] IO error listing directory '{directoryPath}'.", ex);
+            Shared.Diagnostics.Bug($"[FolderRenamer::RenameDirectories()] IO error listing directory '{directoryPath}'.", ex);
             WriteError($"Error listing directory '{directoryPath}': {ex.Message}");
             return false;
         }
@@ -223,11 +223,11 @@ internal static partial class FolderRenamer {
                 WriteSuccess($"Successfully renamed '{itemName}' to '{newName}'.");
                 renamed += 1;
             } catch (System.IO.IOException ex) {
-                Core.Diagnostics.Bug($"[FolderRenamer::RenameDirectories()] IO error renaming '{itemPath}' to '{newPath}'.", ex);
+                Shared.Diagnostics.Bug($"[FolderRenamer::RenameDirectories()] IO error renaming '{itemPath}' to '{newPath}'.", ex);
                 WriteError($"Error renaming '{itemName}' to '{newName}': {ex.Message}");
                 skipped += 1;
             } catch (System.UnauthorizedAccessException ex) {
-                Core.Diagnostics.Bug($"[FolderRenamer::RenameDirectories()] Access denied renaming '{itemPath}' to '{newPath}'.", ex);
+                Shared.Diagnostics.Bug($"[FolderRenamer::RenameDirectories()] Access denied renaming '{itemPath}' to '{newPath}'.", ex);
                 WriteError($"Permission denied renaming '{itemName}': {ex.Message}");
                 skipped += 1;
             }
@@ -244,7 +244,7 @@ internal static partial class FolderRenamer {
         try {
             return System.IO.Path.GetFullPath(path);
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug("[FolderRenamer::NormalizePath()] Failed to normalize path.", ex);
+            Shared.Diagnostics.Bug("[FolderRenamer::NormalizePath()] Failed to normalize path.", ex);
             return path;
         }
     }
@@ -274,9 +274,9 @@ internal static partial class FolderRenamer {
 
     private static void TraceError(string message) {
         try {
-            Core.Diagnostics.Log(message);
+            Shared.Diagnostics.Log(message);
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug("[FolderRenamer::TraceError()] Failed to write diagnostic message.", ex);
+            Shared.Diagnostics.Bug("[FolderRenamer::TraceError()] Failed to write diagnostic message.", ex);
             // ignore trace failures for best-effort logging
         }
     }

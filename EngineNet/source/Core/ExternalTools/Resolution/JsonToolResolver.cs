@@ -88,14 +88,14 @@ public class JsonToolResolver {
                     }
                 }
             } catch (System.Text.Json.JsonException ex) {
-                Core.Diagnostics.Bug($"[JsonToolResolver] JSON parse error loading tools from {found}.", ex);
-                Core.Diagnostics.Log($"[JsonToolResolver] Error loading tools from {found}: {ex.Message}");
+                Shared.Diagnostics.Bug($"[JsonToolResolver] JSON parse error loading tools from {found}.", ex);
+                Shared.Diagnostics.Log($"[JsonToolResolver] Error loading tools from {found}: {ex.Message}");
             } catch (System.IO.IOException ex) {
-                Core.Diagnostics.Bug($"[JsonToolResolver] IO error loading tools from {found}.", ex);
-                Core.Diagnostics.Log($"[JsonToolResolver] Error loading tools from {found}: {ex.Message}");
+                Shared.Diagnostics.Bug($"[JsonToolResolver] IO error loading tools from {found}.", ex);
+                Shared.Diagnostics.Log($"[JsonToolResolver] Error loading tools from {found}: {ex.Message}");
             } catch (System.UnauthorizedAccessException ex) {
-                Core.Diagnostics.Bug($"[JsonToolResolver] Access denied loading tools from {found}.", ex);
-                Core.Diagnostics.Log($"[JsonToolResolver] Error loading tools from {found}: {ex.Message}");
+                Shared.Diagnostics.Bug($"[JsonToolResolver] Access denied loading tools from {found}.", ex);
+                Shared.Diagnostics.Log($"[JsonToolResolver] Error loading tools from {found}: {ex.Message}");
             }
         }
     }

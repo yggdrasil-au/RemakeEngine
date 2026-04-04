@@ -1,6 +1,6 @@
 
 
-namespace EngineNet.Core.Serialization;
+namespace EngineNet.Shared.Serialization;
 
 /// <summary>
 /// Utilities to convert JSON/TOML DOM nodes into case-insensitive

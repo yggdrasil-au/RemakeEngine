@@ -5,6 +5,7 @@ EngineNet is the .NET 10 entry point for the Remake Engine. It wires runtime con
 ## What This Project Contains
 - Program entry point for argument parsing, console management, and UI selection.
 - Core runtime services, data models, and operation execution pipeline.
+- Shared serialization helpers in `source/Shared` used by Core and ScriptEngines.
 - Interface layer for GUI, TUI, and CLI experiences.
 - Script runtime dispatchers for embedded and external scripts.
 
@@ -25,6 +26,7 @@ dotnet run -c Release --framework net10.0 --project EngineNet -- --game_module "
 
 ## Related Docs
 - [Readme.md](../Readme.md) Repo overview and contribution guidelines.
-- [source/Interface/readme.md](source/Interface/readme.md) Interface layer for GUI, TUI, and CLI experiences.
+- [source/Shared/readme.md](source/Shared/readme.md) Reusable TOML, JSON, and YAML helpers shared across the engine.
 - [source/Core/readme.md](source/Core/readme.md) Core runtime services, data models, and operation pipeline.
+- [source/Interface/readme.md](source/Interface/readme.md) Interface layer for GUI, TUI, and CLI experiences.
 - [source/ScriptEngines/Readme.md](source/ScriptEngines/Readme.md) ScriptEngines

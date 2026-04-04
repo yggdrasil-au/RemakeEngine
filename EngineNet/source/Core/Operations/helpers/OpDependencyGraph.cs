@@ -1,5 +1,5 @@
 
-namespace EngineNet.Core.Engine.Operations.helpers;
+namespace EngineNet.Core.Operations.helpers;
 
 /// <summary>
 /// Builds, validates, and visualizes the operation dependency graph.
@@ -16,22 +16,22 @@ internal class OpDependencyGraph {
     }
 
     /// <summary>
-    /// Prints the graph status and structure to Diagnostics.Trace.
+    /// Prints the graph status and structure to Shared.Diagnostics.Trace.
     /// </summary>
     internal void PrintGraphToTrace() {
-        Diagnostics.Trace("=== [Dependency Graph Builder] ===");
+        Shared.Diagnostics.Trace("=== [Dependency Graph Builder] ===");
 
         if (!IsValid) {
-            Diagnostics.Trace("[DependencyGraph] Graph is INVALID. Parallel features would be disabled.");
-            Diagnostics.Trace("[DependencyGraph] Errors:");
+            Shared.Diagnostics.Trace("[DependencyGraph] Graph is INVALID. Parallel features would be disabled.");
+            Shared.Diagnostics.Trace("[DependencyGraph] Errors:");
             foreach (var err in Errors) {
-                Diagnostics.Trace($"  => {err}");
+                Shared.Diagnostics.Trace($"  => {err}");
             }
-            Diagnostics.Trace("==================================");
+            Shared.Diagnostics.Trace("==================================");
             return;
         }
 
-        Diagnostics.Trace("[DependencyGraph] Graph is VALID. Dependency Map:");
+        Shared.Diagnostics.Trace("[DependencyGraph] Graph is VALID. Dependency Map:");
 
         foreach (var node in _nodes.Values) {
             string line = $"  [{node.Id}]";
@@ -42,9 +42,9 @@ internal class OpDependencyGraph {
                 line += " (No dependencies)";
             }
 
-            Diagnostics.Trace(line);
+            Shared.Diagnostics.Trace(line);
         }
-        Diagnostics.Trace("==================================");
+        Shared.Diagnostics.Trace("==================================");
     }
 
     private void BuildGraph(List<Dictionary<string, object?>> operations) {
@@ -142,7 +142,7 @@ internal class OpDependencyGraph {
         if (!op.TryGetValue(key, out object? value) || value is null) return false;
         if (value is bool b) return b;
         if (value is string s) return bool.TryParse(s, out bool parsed) && parsed;
-        try { return Convert.ToInt32(value) != 0; } catch (System.Exception ex) { Core.Diagnostics.Bug($"[OpDependencyGraph::IsFlagSet()] Failed to convert flag '{key}' value '{value}' to boolean.", ex); return false; }
+        try { return Convert.ToInt32(value) != 0; } catch (System.Exception ex) { Shared.Diagnostics.Bug($"[OpDependencyGraph::IsFlagSet()] Failed to convert flag '{key}' value '{value}' to boolean.", ex); return false; }
     }
 
     private bool HasCycles() {

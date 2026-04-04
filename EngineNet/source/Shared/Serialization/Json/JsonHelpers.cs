@@ -1,5 +1,5 @@
 
-namespace EngineNet.Core.Serialization.Json;
+namespace EngineNet.Shared.Serialization.Json;
 
 internal sealed class JsonHelpers {
 
@@ -16,7 +16,7 @@ internal sealed class JsonHelpers {
                 using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(fs);
 
                 if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object) {
-                    return Core.Serialization.DocModelConverter.FromJsonObject(obj: doc.RootElement);
+                    return Shared.Serialization.DocModelConverter.FromJsonObject(obj: doc.RootElement);
                 }
 
                 fs.Position = 0; // Rewind stream for a second read
@@ -26,13 +26,13 @@ internal sealed class JsonHelpers {
                 return dict ?? new Dictionary<string, object?>();
             }
         } catch (System.Text.Json.JsonException ex) {
-            Core.Diagnostics.Bug($"[JsonHelpers] JSON parsing error for file '{filePath}': {ex}");
+            Shared.Diagnostics.Bug($"[JsonHelpers] JSON parsing error for file '{filePath}': {ex}");
         } catch (System.IO.IOException ex) {
-            Core.Diagnostics.Bug($"[JsonHelpers] IO error reading file '{filePath}': {ex}");
+            Shared.Diagnostics.Bug($"[JsonHelpers] IO error reading file '{filePath}': {ex}");
         } catch (System.UnauthorizedAccessException ex) {
-            Core.Diagnostics.Bug($"[JsonHelpers] Access denied reading JSON file '{filePath}': {ex}");
+            Shared.Diagnostics.Bug($"[JsonHelpers] Access denied reading JSON file '{filePath}': {ex}");
         } catch (System.ArgumentException ex) {
-            Core.Diagnostics.Bug($"[JsonHelpers] Invalid JSON file path '{filePath}': {ex}");
+            Shared.Diagnostics.Bug($"[JsonHelpers] Invalid JSON file path '{filePath}': {ex}");
         }
 
         // Step 8: Missing file or error path -> empty config (safe default).

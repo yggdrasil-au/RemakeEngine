@@ -13,7 +13,7 @@ internal static class Main {
     internal static bool Run(List<string> args, System.Threading.CancellationToken cancellationToken) {
         try {
             if (args.Count == 0) {
-                Core.Diagnostics.Log("[p3d] Usage: p3d <file-or-directory> [--recurse] [--list] [-o|--out folder] [--parse-only] [--export gltf|obj] [--mode parse|list|gltf|obj]");
+                Shared.Diagnostics.Log("[p3d] Usage: p3d <file-or-directory> [--recurse] [--list] [-o|--out folder] [--parse-only] [--export gltf|obj] [--mode parse|list|gltf|obj]");
                 Core.UI.EngineSdk.PrintLine("Usage: p3d <file-or-directory> [--recurse] [--list] [-o|--out folder] [--parse-only] [--export gltf|obj] [--mode parse|list|gltf|obj]");
                 return false;
             }
@@ -21,12 +21,12 @@ internal static class Main {
             P3dRunOptions options = ParseOptions(args);
             P3dRunMode mode = ResolveMode(options);
 
-            Core.Diagnostics.Log(UnsupportedRootParityNote);
+            Shared.Diagnostics.Log(UnsupportedRootParityNote);
 
             bool requireRecursiveFlag = mode != P3dRunMode.ParseOnly;
             List<string> files = EnumerateP3dFiles(options.InputPath, options.Recurse, requireRecursiveFlag);
             if (files.Count == 0) {
-                Core.Diagnostics.Log($"[p3d] No .p3d files found for '{options.InputPath}'.");
+                Shared.Diagnostics.Log($"[p3d] No .p3d files found for '{options.InputPath}'.");
                 Core.UI.EngineSdk.PrintLine($"No .p3d files found for '{options.InputPath}'.", System.ConsoleColor.Red);
                 return false;
             }
@@ -42,7 +42,7 @@ internal static class Main {
 
                     switch (mode) {
                         case P3dRunMode.ParseOnly:
-                            Core.Diagnostics.Log($"[p3d] OK {System.IO.Path.GetFileName(file)} | chunks={chunks.Count}");
+                            Shared.Diagnostics.Log($"[p3d] OK {System.IO.Path.GetFileName(file)} | chunks={chunks.Count}");
                             Core.UI.EngineSdk.PrintLine($"[OK] {System.IO.Path.GetFileName(file)} | chunks={chunks.Count}", System.ConsoleColor.Green);
                             break;
                         case P3dRunMode.ListHighLevel:
@@ -54,7 +54,7 @@ internal static class Main {
                             }
 
                             P3dGltfExporter.ExportAllToGltf(file, chunks, options.OutputDirectory);
-                            Core.Diagnostics.Log($"[p3d] Exported {System.IO.Path.GetFileName(file)}");
+                            Shared.Diagnostics.Log($"[p3d] Exported {System.IO.Path.GetFileName(file)}");
                             Core.UI.EngineSdk.PrintLine($"[OK] Exported {System.IO.Path.GetFileName(file)}", System.ConsoleColor.Green);
                             break;
                         case P3dRunMode.ExportObj:
@@ -63,17 +63,17 @@ internal static class Main {
                             }
 
                             P3dObjExporter.ExportAllToObj(file, chunks, options.OutputDirectory);
-                            Core.Diagnostics.Log($"[p3d] Exported OBJ {System.IO.Path.GetFileName(file)}");
+                            Shared.Diagnostics.Log($"[p3d] Exported OBJ {System.IO.Path.GetFileName(file)}");
                             Core.UI.EngineSdk.PrintLine($"[OK] Exported OBJ {System.IO.Path.GetFileName(file)}", System.ConsoleColor.Green);
                             break;
                     }
 
                     success++;
                 } catch (Exception ex) {
-                    Core.Diagnostics.Bug($"[p3d] Per-file processing failed for '{file}'.", ex);
+                    Shared.Diagnostics.Bug($"[p3d] Per-file processing failed for '{file}'.", ex);
                     failed++;
                     string details = ex.InnerException is null ? ex.Message : $"{ex.Message} | {ex.InnerException.Message}";
-                    Core.Diagnostics.Log($"[p3d] FAIL {System.IO.Path.GetFileName(file)} | {details}");
+                    Shared.Diagnostics.Log($"[p3d] FAIL {System.IO.Path.GetFileName(file)} | {details}");
                     Core.UI.EngineSdk.PrintLine($"[FAIL] {System.IO.Path.GetFileName(file)} | {details}", System.ConsoleColor.Red);
                 }
             }
@@ -86,32 +86,32 @@ internal static class Main {
                 _ => "unknown",
             };
 
-            Core.Diagnostics.Log($"[p3d] Completed ({modeName}) | success={success} failed={failed} total={files.Count}");
+            Shared.Diagnostics.Log($"[p3d] Completed ({modeName}) | success={success} failed={failed} total={files.Count}");
             System.ConsoleColor summaryColor = failed == 0 ? System.ConsoleColor.Green : System.ConsoleColor.Red;
             Core.UI.EngineSdk.PrintLine($"[p3d] Completed ({modeName}) | success={success} failed={failed} total={files.Count}", summaryColor);
             return failed == 0;
         } catch (Exception ex) {
-            Core.Diagnostics.Bug($"[p3d] Run catch triggered: {ex}");
+            Shared.Diagnostics.Bug($"[p3d] Run catch triggered: {ex}");
             string details = ex.InnerException is null ? ex.Message : $"{ex.Message} | {ex.InnerException.Message}";
-            Core.Diagnostics.Log($"Error: {details}");
+            Shared.Diagnostics.Log($"Error: {details}");
             Core.UI.EngineSdk.PrintLine($"Error: {details}", System.ConsoleColor.Red);
             return false;
         }
     }
 
     private static void ListHighLevelTypes(string file, IReadOnlyList<Chunk> chunks) {
-        Core.Diagnostics.Log($"[p3d] Listing {System.IO.Path.GetFileName(file)}");
+        Shared.Diagnostics.Log($"[p3d] Listing {System.IO.Path.GetFileName(file)}");
         Core.UI.EngineSdk.PrintLine($"Listing {System.IO.Path.GetFileName(file)}");
         List<HighLevelType> highLevelTypes = P3dHighLevel.ParseHighLevelTypes(chunks);
 
         foreach (HighLevelType highLevelType in highLevelTypes) {
             switch (highLevelType) {
                 case HighLevelType.MeshType meshType:
-                    Core.Diagnostics.Log($"Mesh: {meshType.Mesh.Name}");
+                    Shared.Diagnostics.Log($"Mesh: {meshType.Mesh.Name}");
                     Core.UI.EngineSdk.PrintLine($"Mesh: {meshType.Mesh.Name}");
                     break;
                 case HighLevelType.SkinType skinType:
-                    Core.Diagnostics.Log($"Skin: {skinType.Skin.Name}");
+                    Shared.Diagnostics.Log($"Skin: {skinType.Skin.Name}");
                     Core.UI.EngineSdk.PrintLine($"Skin: {skinType.Skin.Name}");
                     break;
             }

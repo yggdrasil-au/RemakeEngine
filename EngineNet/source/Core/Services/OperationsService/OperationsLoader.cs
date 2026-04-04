@@ -18,7 +18,7 @@ internal class OperationsLoader {
             // Determine file type by extension
             string ext = System.IO.Path.GetExtension(opsFile);
             if (ext.Equals(".toml", System.StringComparison.OrdinalIgnoreCase)) {
-                object root = Core.Serialization.Toml.TomlHelpers.ParseFileToPlainObject(opsFile);
+                object root = Shared.Serialization.Toml.TomlHelpers.ParseFileToPlainObject(opsFile);
                 List<Dictionary<string, object?>> list = new List<Dictionary<string, object?>>();
 
                 // root is a TomlTable (dictionary-like)
@@ -44,7 +44,7 @@ internal class OperationsLoader {
                         }
                     }
                 }
-                Diagnostics.Trace($"[OperationsLoader] loaded {list.Count} operations from ops file '{opsFile}'.");
+                Shared.Diagnostics.Trace($"[OperationsLoader] loaded {list.Count} operations from ops file '{opsFile}'.");
                 return list;
             }
 
@@ -60,7 +60,7 @@ internal class OperationsLoader {
                         list.Add(map);
                     }
                 }
-                Diagnostics.Trace($"[OperationsLoader] loaded {list.Count} operations from ops file '{opsFile}'.");
+                Shared.Diagnostics.Trace($"[OperationsLoader] loaded {list.Count} operations from ops file '{opsFile}'.");
                 return list;
             }
 
@@ -79,22 +79,22 @@ internal class OperationsLoader {
                         }
                     }
                 }
-                Diagnostics.Trace($"[OperationsLoader] flattened grouped ops file '{opsFile}' into {flat.Count} operations.");
+                Shared.Diagnostics.Trace($"[OperationsLoader] flattened grouped ops file '{opsFile}' into {flat.Count} operations.");
                 return flat;
             }
 
             // Unknown format
-            Diagnostics.Log($"[OperationsLoader] unknown ops file format: '{opsFile}'");
+            Shared.Diagnostics.Log($"[OperationsLoader] unknown ops file format: '{opsFile}'");
             return new List<Dictionary<string, object?>>();
         } catch (System.Exception ex) {
-            Diagnostics.Bug($"[OperationsLoader] err loading ops file '{opsFile}': {ex.Message}");
+            Shared.Diagnostics.Bug($"[OperationsLoader] err loading ops file '{opsFile}': {ex.Message}");
             return null;
         }
     }
 }
 
 internal sealed class Operations {
-    internal static Dictionary<string, object?> ToMap(Tomlyn.Model.TomlTable table) => Serialization.DocModelConverter.FromTomlTable(table);
+    internal static Dictionary<string, object?> ToMap(Tomlyn.Model.TomlTable table) => Shared.Serialization.DocModelConverter.FromTomlTable(table);
 
-    internal static Dictionary<string, object?> ToMap(System.Text.Json.JsonElement obj) => Serialization.DocModelConverter.FromJsonObject(obj);
+    internal static Dictionary<string, object?> ToMap(System.Text.Json.JsonElement obj) => Shared.Serialization.DocModelConverter.FromJsonObject(obj);
 }

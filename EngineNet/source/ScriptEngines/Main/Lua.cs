@@ -110,16 +110,16 @@ internal sealed class Main : IAction {
                 executionError = new System.InvalidOperationException($"Lua script exited with non-zero code {exitCode}.");
             }
         } catch (Exception ex) {
-            Core.Diagnostics.Bug("[Lua.cs::Execute()] Lua script catch triggered: " + ex);
+            Shared.Diagnostics.Bug("[Lua.cs::Execute()] Lua script catch triggered: " + ex);
             Exception finalException = ex;
             if (IsMoonSharpIteratorPrepNullReference(ex)) {
                 string compatibilityMessage = "Lua compatibility limitation: MoonSharp can throw a CLR NullReferenceException when preparing 'for ... in' iteration over tables/__iterator in this runtime. Use pairs()/ipairs() instead of direct table iterators.";
                 finalException = new InvalidOperationException(compatibilityMessage, ex);
                 Core.UI.EngineSdk.PrintLine(message: compatibilityMessage, color: System.ConsoleColor.Yellow);
-                Diagnostics.LuaInternalCatch("Lua iterator compatibility guard triggered: " + ex);
+                Shared.Diagnostics.LuaInternalCatch("Lua iterator compatibility guard triggered: " + ex);
             }
 
-            Diagnostics.LuaInternalCatch("Lua script threw an exception: " + finalException);
+            Shared.Diagnostics.LuaInternalCatch("Lua script threw an exception: " + finalException);
             Core.UI.EngineSdk.PrintLine(message: $"Lua script threw an exception: {finalException}", color: System.ConsoleColor.Red);
             exitCode = 1;
             executionError = finalException;

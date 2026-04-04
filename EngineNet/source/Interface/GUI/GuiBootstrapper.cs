@@ -54,7 +54,7 @@ public static class GuiBootstrapper {
         } catch (System.Exception ex) {
             // If anything goes wrong during startup or run, print a concise error
             // and return a non-zero exit code to signal failure to the host.
-            Core.Diagnostics.Bug("GUI error", ex);
+            Shared.Diagnostics.Bug("GUI error", ex);
             System.Console.Error.WriteLine(value: $"GUI error: {ex.Message}");
             return 1;
         }

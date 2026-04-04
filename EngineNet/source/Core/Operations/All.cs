@@ -1,5 +1,5 @@
 
-namespace EngineNet.Core.Engine.Operations;
+namespace EngineNet.Core.Operations;
 
 public sealed record RunAllResult(string Game, bool Success, int TotalOperations, int SucceededOperations);
 
@@ -30,7 +30,7 @@ internal sealed class All {
         System.Threading.CancellationToken cancellationToken = default
     ) {
 
-        Core.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Starting RunAllAsync for game '{gameName}', onOutput: {(onOutput is null ? "null" : "set")}, onEvent: {(onEvent is null ? "null" : "set")}, stdinProvider: {(stdinProvider is null ? "null" : "set")}");
+        Shared.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Starting RunAllAsync for game '{gameName}', onOutput: {(onOutput is null ? "null" : "set")}, onEvent: {(onEvent is null ? "null" : "set")}, stdinProvider: {(stdinProvider is null ? "null" : "set")}");
 
         if (string.IsNullOrWhiteSpace(gameName)) {
             throw new System.ArgumentException("Game name is required.", nameof(gameName));
@@ -57,7 +57,7 @@ internal sealed class All {
         dependencyGraph.PrintGraphToTrace();
 
         if (!dependencyGraph.IsValid) {
-            Core.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Warning: Dependency graph is invalid. See trace.log for details.");
+            Shared.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Warning: Dependency graph is invalid. See trace.log for details.");
         }
         // ----------------------------------
 
@@ -130,10 +130,10 @@ internal sealed class All {
                     if (Core.Utils.ScriptConstants.IsSupported(scriptType)) {
                         ok = await Context.OperationContext.Single.RunAsync(gameName, games, op, promptAnswers, Context, cancellationToken).ConfigureAwait(false);
                     } else if (string.IsNullOrEmpty(scriptType)) {
-                        Core.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Skipping operation '{currentOperation.Value}' due to null or empty script type");
+                        Shared.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Skipping operation '{currentOperation.Value}' due to null or empty script type");
                         overallSuccess = false;
                     } else {
-                        Core.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Skipping operation '{currentOperation.Value}' due to unsupported script type '{scriptType}'");
+                        Shared.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Skipping operation '{currentOperation.Value}' due to unsupported script type '{scriptType}'");
                         overallSuccess = false;
                     }
                 } catch (System.Exception ex) {
@@ -142,7 +142,7 @@ internal sealed class All {
                         [key: "name"] = currentOperation.Value,
                         [key: "message"] = ex.Message
                     });
-                    Core.Diagnostics.Bug($"[RunAll.cs::RunAllAsync()] err running op '{currentOperation.Value}': {ex.Message}");
+                    Shared.Diagnostics.Bug($"[RunAll.cs::RunAllAsync()] err running op '{currentOperation.Value}': {ex.Message}");
                 }
 
                 overallSuccess &= ok;
@@ -163,7 +163,7 @@ internal sealed class All {
             }
 
             currentOperation.Value = string.Empty;
-            Core.Diagnostics.Trace($"[RunAll.cs::RunAllAsync()] finished running all operations for game '{gameName}'");
+            Shared.Diagnostics.Trace($"[RunAll.cs::RunAllAsync()] finished running all operations for game '{gameName}'");
         }
 
         EmitSequenceEvent(onEvent, "run-all-complete", gameName, new Dictionary<string, object?> {
@@ -249,7 +249,7 @@ internal sealed class All {
         try {
             return System.Convert.ToInt32(value) != 0;
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"[All.cs::IsFlagSet()] Failed to convert flag '{key}' value '{value}' to boolean.", ex);
+            Shared.Diagnostics.Bug($"[All.cs::IsFlagSet()] Failed to convert flag '{key}' value '{value}' to boolean.", ex);
             return false;
         }
     }

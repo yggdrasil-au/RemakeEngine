@@ -19,10 +19,12 @@ EngineNet.Core is the runtime layer behind CLI, TUI, and GUI. For most users and
 - `Services/`: High-level orchestration services (operations loading/prompts, command execution, game registry, launcher, git).
 - `Data/`: Shared runtime data models used by interfaces and services.
 - `Utils/`: Cross-cutting helpers, especially execution context and placeholder resolution.
-- `Serialization/`: TOML/JSON/YAML conversion and parsing used by operation and config loading.
+- `Shared/`: TOML/JSON/YAML conversion and parsing helpers, diagnostics/logging, and document-model conversion shared with ScriptEngines.
 - `ExternalTools/`: Tool resolution and acquisition support used by script actions and command execution.
 - `FileHandlers/`: Conversion/extraction handlers used by specific built-in operations.
 - `UI/`: Engine SDK bridge used by scripts and interfaces for output/events.
+
+The reusable serialization and diagnostics helpers now live in [../Shared/readme.md](../Shared/readme.md) and are referenced by Core rather than owned by it.
 
 ## operations.toml-Centric Execution Path
 1. `Services/OperationsService/OperationsLoader.cs` (`LoadOperations`) parses `operations.toml` or `operations.json` into operation dictionaries and annotates each with `_source_file`.
@@ -46,7 +48,7 @@ Call-through targets from `MiniEngineFace`:
 - Registry methods forward to `Engine.Context.GameRegistry`.
 - Operation preparation and prompt collection forward to `Engine.Context.OperationContext.OperationsService`.
 - Single operation execution forwards to `Engine.RunSingleOperationAsync`.
-- Run-all execution forwards to `EngineNet.Core.Engine.Operations.All.RunAsync`.
+- Run-all execution forwards to `EngineNet.Core.Operations.All.RunAsync`.
 - Command build/execute methods forward to `Engine.Context.CommandService`.
 - Game launch forwards to `Engine.GameLauncher`.
 - Module clone forwards to `Engine.Context.GitService`.
@@ -84,7 +86,7 @@ These files are the core touchpoints for loading, preparing, and executing opera
 - [Engine/Operations/helpers/OpDispatcher.cs](Engine/Operations/helpers/OpDispatcher.cs): dispatch pivot for engine/internal operations and built-in actions.
 - [Utils/ExecutionContextBuilder.cs](Utils/ExecutionContextBuilder.cs): merges engine/module state into placeholder context.
 - [Utils/Placeholders.cs](Utils/Placeholders.cs): recursive `{{key}}` resolution behavior.
-- [Serialization/Toml/TomlHelpers.cs](Serialization/Toml/TomlHelpers.cs): TOML parsing for operation/config inputs; this is the serialization path that directly affects operation execution.
+- [../Shared/Serialization/Toml/TomlHelpers.cs](../Shared/Serialization/Toml/TomlHelpers.cs): TOML parsing for operation/config inputs; this is the shared serialization path that directly affects operation execution.
 - [Services/CommandService/CommandService.cs](Services/CommandService/CommandService.cs): turns operation data into executable command plans.
 - [Services/CommandService/ProcessRunner.public.cs](Services/CommandService/ProcessRunner.public.cs): process execution and executable validation path.
 - [Engine/Operations/helpers/OpDependencyGraph.cs](Engine/Operations/helpers/OpDependencyGraph.cs): dependency validation and diagnostics for operation graphs.
@@ -94,6 +96,7 @@ For user-facing workflow docs, prioritize the files above over generic serializa
 ## Related Docs
 - [../../readme.md](../../readme.md)
 - [../../../Readme.md](../../../Readme.md)
+- [../Shared/readme.md](../Shared/readme.md)
 - [../Interface/readme.md](../Interface/readme.md)
 - [../ScriptEngines/Readme.md](../ScriptEngines/Readme.md)
 - [../../../schemas/operations.toml.md](../../../schemas/operations.toml.md)

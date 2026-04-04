@@ -2,7 +2,7 @@ using System.Collections;
 
 using YamlDotNet.Serialization;
 
-namespace EngineNet.Core.Serialization.Yaml;
+namespace EngineNet.Shared.Serialization.Yaml;
 
 /// <summary>
 /// Reusable YAML read/write utilities built on YamlDotNet.

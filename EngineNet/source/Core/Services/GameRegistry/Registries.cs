@@ -40,7 +40,7 @@ internal sealed class Registries {
         }
 
         var instance = new Registries(gamesRel, modulesRel);
-        instance._modules = Core.Serialization.Json.JsonHelpers.LoadJsonFile(instance._modulesRegistryPath);
+        instance._modules = Shared.Serialization.Json.JsonHelpers.LoadJsonFile(instance._modulesRegistryPath);
         return instance;
     }
 
@@ -49,7 +49,7 @@ internal sealed class Registries {
     /// The games registry is not cached in memory, so it does not require refreshing - it is read from disk on each access to ensure it reflects the current state of installed/downloaded games.
     /// This design choice prioritizes accuracy for game discovery while allowing efficient caching for module information that is less likely to change frequently.
     /// </summary>
-    internal void RefreshModules() => _modules = Core.Serialization.Json.JsonHelpers.LoadJsonFile(_modulesRegistryPath);
+    internal void RefreshModules() => _modules = Shared.Serialization.Json.JsonHelpers.LoadJsonFile(_modulesRegistryPath);
 
     /// <summary>
     /// Gets the registered modules from the modules registry. The returned dictionary is case-insensitive for module names.
@@ -130,7 +130,7 @@ internal sealed class Registries {
 
             string gameToml = System.IO.Path.Combine(dir, "game.toml");
             if (!System.IO.File.Exists(gameToml)) {
-                Core.Diagnostics.Trace($"[GameRegistry] warning: game '{new System.IO.DirectoryInfo(dir).Name}' is missing game.toml - skipping");
+                Shared.Diagnostics.Trace($"[GameRegistry] warning: game '{new System.IO.DirectoryInfo(dir).Name}' is missing game.toml - skipping");
                 continue; // not installed - requires a valid game.toml
             }
 
@@ -169,7 +169,7 @@ internal sealed class Registries {
                     }
                 }
             } catch {
-                Core.Diagnostics.Bug($"[GameRegistry] err parsing game.toml for game '{new System.IO.DirectoryInfo(dir).Name}' - skipping");
+                Shared.Diagnostics.Bug($"[GameRegistry] err parsing game.toml for game '{new System.IO.DirectoryInfo(dir).Name}' - skipping");
                 // malformed game.toml - reject
                 continue;
             }

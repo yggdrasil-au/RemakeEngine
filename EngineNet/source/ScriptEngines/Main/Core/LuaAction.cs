@@ -180,13 +180,13 @@ internal static class LuaAction {
     /// <param name="_projectRoot"></param>
     private static void CreateGlobalDiagnostics(LuaWorld _LuaWorld, string _gameRoot, string _projectRoot) {
         // Lua Diagnostics logging methods
-        _LuaWorld.DiagnosticsMethods["Log"] = (System.Action<string>)Core.Diagnostics.LuaLogger.LuaLog;
-        _LuaWorld.DiagnosticsMethods["Trace"] = (System.Action<string>)Core.Diagnostics.LuaLogger.LuaTrace;
+        _LuaWorld.DiagnosticsMethods["Log"] = (System.Action<string>)Shared.Diagnostics.LuaLogger.LuaLog;
+        _LuaWorld.DiagnosticsMethods["Trace"] = (System.Action<string>)Shared.Diagnostics.LuaLogger.LuaTrace;
         _LuaWorld.LuaScript.Globals["Diagnostics"] = _LuaWorld.DiagnosticsMethods;
 
         // Final startup logs
-        Core.Diagnostics.Log($"[LuaScriptAction.cs::SetupCoreFunctions()] Set Game_Root to '{_gameRoot}'");
-        Core.Diagnostics.Log($"[LuaScriptAction.cs::SetupCoreFunctions()] Set Project_Root to '{_projectRoot}'");
+        Shared.Diagnostics.Log($"[LuaScriptAction.cs::SetupCoreFunctions()] Set Game_Root to '{_gameRoot}'");
+        Shared.Diagnostics.Log($"[LuaScriptAction.cs::SetupCoreFunctions()] Set Project_Root to '{_projectRoot}'");
     }
 
     /// <summary>

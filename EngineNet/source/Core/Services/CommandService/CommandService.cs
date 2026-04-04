@@ -49,14 +49,14 @@ public class CommandService {
 
             if (timeoutMs.HasValue) {
                 if (!process.WaitForExit(timeoutMs.Value)) {
-                    try { process.Kill(entireProcessTree: true); } catch (Exception ex) { Diagnostics.Bug($"[CommandService::RunProcess()] Failed to kill timed-out process '{executable}': {ex}"); /* ignore */ }
+                    try { process.Kill(entireProcessTree: true); } catch (Exception ex) { Shared.Diagnostics.Bug($"[CommandService::RunProcess()] Failed to kill timed-out process '{executable}': {ex}"); /* ignore */ }
                     throw new Exception($"Process '{executable}' timed out after {timeoutMs.Value} ms");
                 }
             } else {
                 process.WaitForExit();
             }
         } catch (Exception ex) {
-            Diagnostics.Bug($"[CommandService::RunProcess()] Failed to run process '{executable}': {ex}");
+            Shared.Diagnostics.Bug($"[CommandService::RunProcess()] Failed to run process '{executable}': {ex}");
             throw new Exception($"Failed to run process '{executable}': {ex.Message}");
         }
 
@@ -93,7 +93,7 @@ public class CommandService {
         }
 
         p.Exited += (_, _) => {
-            try { mp.ExitTcs.TrySetResult(p.ExitCode); } catch (Exception ex) { Diagnostics.Bug($"[CommandService::SpawnProcess()] Failed setting ExitTcs result for '{executable}': {ex}"); /* ignore */ }
+            try { mp.ExitTcs.TrySetResult(p.ExitCode); } catch (Exception ex) { Shared.Diagnostics.Bug($"[CommandService::SpawnProcess()] Failed setting ExitTcs result for '{executable}': {ex}"); /* ignore */ }
         };
 
         if (!p.Start()) {
@@ -128,7 +128,7 @@ public class CommandService {
                 mp.ExitTcs.Task.Wait(Timeout.Infinite);
             }
         } catch (Exception ex) {
-            Diagnostics.Bug($"[CommandService::WaitProcess()] Wait failed for pid {pid}: {ex}");
+            Shared.Diagnostics.Bug($"[CommandService::WaitProcess()] Wait failed for pid {pid}: {ex}");
             /* ignore wait errors */
         }
 
@@ -137,8 +137,8 @@ public class CommandService {
 
     public bool CloseProcess(int pid) {
         if (!_spawnedProcesses.TryRemove(pid, out ManagedProcess? mp)) return false;
-        try { if (!mp.Process.HasExited) mp.Process.Kill(true); } catch (Exception ex) { Diagnostics.Bug($"[CommandService] CloseProcess kill catch triggered for pid {pid}: {ex}"); /* ignore */ }
-        try { mp.Process.Dispose(); } catch (Exception ex) { Diagnostics.Bug($"[CommandService] CloseProcess dispose catch triggered for pid {pid}: {ex}"); /* ignore */ }
+        try { if (!mp.Process.HasExited) mp.Process.Kill(true); } catch (Exception ex) { Shared.Diagnostics.Bug($"[CommandService] CloseProcess kill catch triggered for pid {pid}: {ex}"); /* ignore */ }
+        try { mp.Process.Dispose(); } catch (Exception ex) { Shared.Diagnostics.Bug($"[CommandService] CloseProcess dispose catch triggered for pid {pid}: {ex}"); /* ignore */ }
         return true;
     }
 
@@ -169,7 +169,7 @@ public class CommandService {
             Process.Start(psi);
             return true;
         } catch (Exception ex) {
-            Diagnostics.Bug($"[CommandService] Error launching detached process '{executable}': {ex.Message}");
+            Shared.Diagnostics.Bug($"[CommandService] Error launching detached process '{executable}': {ex.Message}");
             return false;
         }
     }
@@ -189,7 +189,7 @@ public class CommandService {
             }
             Process.Start(psi);
         } catch (Exception ex) {
-            Diagnostics.Bug($"[CommandService] Failed to open folder: {ex.Message}");
+            Shared.Diagnostics.Bug($"[CommandService] Failed to open folder: {ex.Message}");
         }
     }
 
@@ -247,12 +247,12 @@ public class CommandService {
                     }
                 } else {
                     // Fallback or error
-                    Diagnostics.Bug("[CommandService] No terminal emulator found on Linux/macOS.");
+                    Shared.Diagnostics.Bug("[CommandService] No terminal emulator found on Linux/macOS.");
                     return new ProcessResult { Success = false, ExitCode = -1 };
                 }
             }
         } catch (Exception ex) {
-            Diagnostics.Bug($"[CommandService] Failed to start new terminal: {ex.Message}");
+            Shared.Diagnostics.Bug($"[CommandService] Failed to start new terminal: {ex.Message}");
             return new ProcessResult { Success = false, ExitCode = -1 };
         }
 

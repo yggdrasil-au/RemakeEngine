@@ -1,5 +1,5 @@
 
-using EngineNet.Core.Serialization.Toml;
+using EngineNet.Shared.Serialization.Toml;
 
 namespace EngineNet.ScriptEngines;
 

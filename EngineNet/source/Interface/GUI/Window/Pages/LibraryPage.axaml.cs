@@ -53,7 +53,7 @@ public partial class LibraryPage:UserControl {
 
             Load();
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"[GUI :: LibraryPage.axaml.cs::LibraryPage()::constructor] Error during initialization: {ex}");
+            Shared.Diagnostics.Bug($"[GUI :: LibraryPage.axaml.cs::LibraryPage()::constructor] Error during initialization: {ex}");
         }
     }
 
@@ -68,17 +68,17 @@ public partial class LibraryPage:UserControl {
         try {
             Items.Clear(); // reset
             if (GuiBootstrapper.MiniEngine == null) {
-                Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] Load() aborted: GuiBootstrapper.MiniEngine is null.");
+                Shared.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] Load() aborted: GuiBootstrapper.MiniEngine is null.");
                 throw new System.InvalidOperationException(message: "Engine is not initialized.");
             }
 
             var modules = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Utils.ModuleFilter.Installed);
 #if DEBUG
-            Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] Found {modules.Count} modules.");
+            Shared.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] Found {modules.Count} modules.");
             // list all modules
             foreach (var kv in modules) {
                 var m = kv.Value;
-                Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()]   Module: {m.Name}, Installed: {m.IsInstalled}, Built: {m.IsBuilt}, Unverified: {m.IsUnverified}, Registered: {m.IsRegistered}");
+                Shared.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()]   Module: {m.Name}, Installed: {m.IsInstalled}, Built: {m.IsBuilt}, Unverified: {m.IsUnverified}, Registered: {m.IsRegistered}");
             }
 #endif
             foreach (var item in modules.Values.Select(m => (
@@ -92,7 +92,7 @@ public partial class LibraryPage:UserControl {
                 IsUnverified: m.IsUnverified
             ))) {
                 if (string.IsNullOrWhiteSpace(item.GameRoot)) {
-                    Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load(): Module '{item.Name}' has no game root defined.");
+                    Shared.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load(): Module '{item.Name}' has no game root defined.");
                 }
 
                 bool isBuilt = item.IsBuilt;
@@ -118,7 +118,7 @@ public partial class LibraryPage:UserControl {
             }
 
             if (Items.Count == 0) {
-                Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] No games found. Adding placeholder row.");
+                Shared.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] No games found. Adding placeholder row.");
                 Items.Add(item: new Row {
                     Title = "No games found.",
                     ModuleName = "",
@@ -127,7 +127,7 @@ public partial class LibraryPage:UserControl {
                 });
             }
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"[GUI :: LibraryPage.axaml.cs::Load()] Exception during Load(): {ex}");
+            Shared.Diagnostics.Bug($"[GUI :: LibraryPage.axaml.cs::Load()] Exception during Load(): {ex}");
             Items.Add(item: new Row {
                 Title = "Error loading games.",
                 ModuleName = "",
@@ -144,7 +144,7 @@ public partial class LibraryPage:UserControl {
     /// <returns>
     private Bitmap? ResolveCoverUri(string? gameRoot) {
         if (GuiBootstrapper.MiniEngine == null) {
-            Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() aborted: GuiBootstrapper.MiniEngine is null.");
+            Shared.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() aborted: GuiBootstrapper.MiniEngine is null.");
             throw new System.InvalidOperationException(message: "Engine is not initialized.");
         }
         if (string.IsNullOrWhiteSpace(gameRoot)) {
@@ -153,7 +153,7 @@ public partial class LibraryPage:UserControl {
         // 1) try <game_root>/icon.png
         string? icon = null;
         if (string.IsNullOrWhiteSpace(gameRoot)) {
-            Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() aborted: gameRoot is null/whitespace; skipping icon.png.");
+            Shared.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() aborted: gameRoot is null/whitespace; skipping icon.png.");
         } else {
             icon = System.IO.Path.Combine(gameRoot, "icon.png");
         }
@@ -166,10 +166,10 @@ public partial class LibraryPage:UserControl {
             pick = icon;
         } else {
             if (System.IO.File.Exists(placeholder)) {
-                Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() Using placeholder image at '{placeholder}'.");
+                Shared.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() Using placeholder image at '{placeholder}'.");
                 pick = placeholder;
             } else {
-                Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() Placeholder missing at '{placeholder}'. Returning URI may reference a non-existent file.");
+                Shared.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() Placeholder missing at '{placeholder}'. Returning URI may reference a non-existent file.");
                 // Keep the same behavior as original (still set to placeholder path even if missing)
                 pick = placeholder;
             }
@@ -179,11 +179,11 @@ public partial class LibraryPage:UserControl {
             try {
                 return new Bitmap(pick); // Load the image
             } catch (System.Exception ex) {
-                Core.Diagnostics.Bug($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() Failed to load bitmap at '{pick}': {ex.Message}");
+                Shared.Diagnostics.Bug($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() Failed to load bitmap at '{pick}': {ex.Message}");
                 return null; // Return null if loading fails
             }
         } else {
-            Core.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() Image file missing at '{pick}'.");
+            Shared.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() Image file missing at '{pick}'.");
             return null; // Return null if no file exists
         }
     }

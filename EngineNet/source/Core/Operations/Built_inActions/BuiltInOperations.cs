@@ -1,6 +1,6 @@
-using EngineNet.Core.Serialization.Toml;
+using EngineNet.Shared.Serialization.Toml;
 
-namespace EngineNet.Core.Engine.operations.Built_inActions;
+namespace EngineNet.Core.Operations.Built_inActions;
 
 internal class BuiltInOperations {
 
@@ -46,7 +46,7 @@ internal class BuiltInOperations {
                 Core.UI.EngineSdk.PrintLine(dump);
                 return true;
             } catch (System.Exception ex) {
-                Core.Diagnostics.Bug($"Failed to read config structure: {ex.Message}");
+                Shared.Diagnostics.Bug($"Failed to read config structure: {ex.Message}");
                 return false;
             }
         }
@@ -54,7 +54,7 @@ internal class BuiltInOperations {
         // Check file existence
         if (!System.IO.File.Exists(configPath)) {
             // create if missing
-            Core.Diagnostics.Trace($"Config file does not exist at {configPath}, creating new.");
+            Shared.Diagnostics.Trace($"Config file does not exist at {configPath}, creating new.");
             System.IO.File.Create(configPath).Close();
         }
 
@@ -65,7 +65,7 @@ internal class BuiltInOperations {
             if (docObj is IDictionary<string, object?> dict) {
                 doc = dict;
             } else {
-                Core.Diagnostics.Trace($"Creating new config structure for {configPath}");
+                Shared.Diagnostics.Trace($"Creating new config structure for {configPath}");
                 doc = new Dictionary<string, object?>();
             }
 
@@ -103,14 +103,14 @@ internal class BuiltInOperations {
             return true;
 
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"Failed to update config: {ex.Message}");
+            Shared.Diagnostics.Bug($"Failed to update config: {ex.Message}");
             return false;
         }
     }
 
 
     internal static bool format_convert(Operations.helpers.OperationArgs operationArgs) {
-        Core.Diagnostics.Log("[Engine.private.cs :: Operations()]] format-convert");
+        Shared.Diagnostics.Log("[Engine.private.cs :: Operations()]] format-convert");
 
         // 1. Determine tool - check both 'tool' field and '-m'/'--mode' in args
         string? tool = operationArgs.op.TryGetValue("tool", out object? ft) 
@@ -118,11 +118,11 @@ internal class BuiltInOperations {
 
     #if DEBUG
         if (operationArgs.op.TryGetValue("args", out object? argsDebugObj)) {
-            Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: args type = {argsDebugObj?.GetType().FullName ?? "null"}");
+            Shared.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: args type = {argsDebugObj?.GetType().FullName ?? "null"}");
             if (argsDebugObj is System.Collections.IList argsDebugList) {
-                Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: args count = {argsDebugList.Count}");
+                Shared.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: args count = {argsDebugList.Count}");
                 for (int i = 0; i < argsDebugList.Count; i++) {
-                    Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: args[{i}] = '{argsDebugList[i]}'");
+                    Shared.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: args[{i}] = '{argsDebugList[i]}'");
                 }
             }
         }
@@ -135,14 +135,14 @@ internal class BuiltInOperations {
                     string arg = argsList[i]?.ToString() ?? string.Empty;
                     if (arg == "-m" || arg == "--mode") {
                         tool = argsList[i + 1]?.ToString()?.ToLowerInvariant();
-                        Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: extracted tool from args: '{tool}'");
+                        Shared.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: extracted tool from args: '{tool}'");
                         break;
                     }
                 }
             }
         }
 
-        Core.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: final tool = '{tool}'");
+        Shared.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: final tool = '{tool}'");
 
         // 3. Prepare Execution Context
         Dictionary<string, object?> ctx = Helpers.BuildOperationContext(operationArgs.context, operationArgs.currentGame, operationArgs.games);
@@ -153,21 +153,21 @@ internal class BuiltInOperations {
             case "ffmpeg":
             case "vgmstream":
                 Core.UI.EngineSdk.PrintLine("\n>>> Built-in media conversion");
-                Core.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running media conversion with args: {string.Join(' ', args)}");
+                Shared.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running media conversion with args: {string.Join(' ', args)}");
                 return FileHandlers.MediaConverter.Run(operationArgs.context.ToolResolver, args, operationArgs.cancellationToken);
 
             case "imagemagick":
                 Core.UI.EngineSdk.PrintLine("\n>>> Built-in image conversion");
-                Core.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running image conversion with args: {string.Join(' ', args)}");
+                Shared.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running image conversion with args: {string.Join(' ', args)}");
                 return FileHandlers.ImageMagickConverter.Run(operationArgs.context.ToolResolver, args, operationArgs.cancellationToken);
 
             case "p3d":
                 Core.UI.EngineSdk.PrintLine("\n>>> Built-in p3d conversion");
-                Core.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running p3d conversion with args: {string.Join(' ', args)}");
+                Shared.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running p3d conversion with args: {string.Join(' ', args)}");
                 return FileHandlers.Formats.p3d.Main.Run(args, operationArgs.cancellationToken);
 
             default:
-                Core.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: unknown tool '{tool}'");
+                Shared.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: unknown tool '{tool}'");
                 Core.UI.EngineSdk.PrintLine($"ERROR: format-convert requires a valid tool. Found: '{tool ?? "(null)"}'");
                 Core.UI.EngineSdk.PrintLine("Supported tools: ffmpeg, vgmstream, ImageMagick, p3d");
                 Core.UI.EngineSdk.PrintLine("Specify tool with --tool parameter or -m/--mode in args.");
@@ -198,8 +198,7 @@ internal class BuiltInOperations {
         }
 
         // execute
-        ExternalTools.ToolsDownloader dl = new ExternalTools.ToolsDownloader(EngineNet.Core.Main.RootPath, "");
-        await dl.ProcessAsync(resolvedManifest, force, ctx, operationArgs.cancellationToken);
+        await ExternalTools.ToolsDownloader.ProcessAsync(resolvedManifest, EngineNet.Core.Main.RootPath,force, ctx, operationArgs.cancellationToken);
         return true;
     }
 

@@ -18,19 +18,19 @@ public sealed class Main {
         switch (ui) {
             case "gui":
                 // GUI uses the limited mini engine surface; the full engine is only stashed for previewer/bootstrapping.
-                Core.Diagnostics.Trace("Launching GUI Interface...");
+                Shared.Diagnostics.Trace("Launching GUI Interface...");
                 return Interface.GUI.GuiBootstrapper.Run(miniEngine, cancellationToken);
             case "tui":
-                Core.Diagnostics.Trace("Launching TUI Interface...");
+                Shared.Diagnostics.Trace("Launching TUI Interface...");
                 Interface.Terminal.TUI TUI = new Interface.Terminal.TUI(miniEngine);
                 return await TUI.RunInteractiveMenuAsync(cancellationToken);
             case "cli":
-                Core.Diagnostics.Trace("Launching CLI Interface...");
+                Shared.Diagnostics.Trace("Launching CLI Interface...");
                 Interface.Terminal.CLI CLI = new Interface.Terminal.CLI(miniEngine);
                 return await CLI.RunAsync(args, cancellationToken);
             default:
                 System.Console.Error.WriteLine(value: $"No valid interface mode selected. Expected 'gui', 'tui', or 'cli', but got '{ui}'.");
-                Core.Diagnostics.Bug("No valid interface mode selected.");
+                Shared.Diagnostics.Bug("No valid interface mode selected.");
                 break;
         }
 
@@ -116,14 +116,14 @@ public sealed class Main {
             return await Engine.GameLauncher.LaunchGameAsync(name);
         }
 
-        public async System.Threading.Tasks.Task<Core.Engine.Operations.RunAllResult> RunAllAsync(
+        public async System.Threading.Tasks.Task<Core.Operations.RunAllResult> RunAllAsync(
             string gameName,
             Core.ProcessRunner.OutputHandler? onOutput = null,
             Core.ProcessRunner.EventHandler? onEvent = null,
             Core.ProcessRunner.StdinProvider? stdinProvider = null,
             System.Threading.CancellationToken cancellationToken = default
         ) {
-            return await EngineNet.Core.Engine.Operations.All.RunAsync(gameName, Engine.Context, onOutput, onEvent, stdinProvider, cancellationToken);
+            return await EngineNet.Core.Operations.All.RunAsync(gameName, Engine.Context, onOutput, onEvent, stdinProvider, cancellationToken);
         }
 
         public void CommandService_OpenFolder(string path) {
@@ -187,7 +187,7 @@ internal interface MiniEngineFace {
 
     internal Task<bool> GameLauncher_LaunchGameAsync(string name);
 
-    internal Task<Core.Engine.Operations.RunAllResult> RunAllAsync(
+    internal Task<Core.Operations.RunAllResult> RunAllAsync(
         string gameName,
         Core.ProcessRunner.OutputHandler? onOutput = null,
         Core.ProcessRunner.EventHandler? onEvent = null,

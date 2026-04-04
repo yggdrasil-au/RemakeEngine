@@ -14,7 +14,7 @@ internal partial class CLI {
             }
             return 0;
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"Error listing games: {ex}");
+            Shared.Diagnostics.Bug($"Error listing games: {ex}");
             return -1;
         }
     }
@@ -41,7 +41,7 @@ internal partial class CLI {
 
             if (preparedOps.InitOperations.Count == 0 && preparedOps.RegularOperations.Count == 0) {
                 System.Console.WriteLine($"No operations found for game '{game}'.");
-                Core.Diagnostics.Log($"No operations found in ops_file '{opsFile}' for game '{game}'.");
+                Shared.Diagnostics.Log($"No operations found in ops_file '{opsFile}' for game '{game}'.");
                 return 0;
             }
 
@@ -58,13 +58,13 @@ internal partial class CLI {
 
             return 0;
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"Error listing operations for game '{game}': {ex}");
+            Shared.Diagnostics.Bug($"Error listing operations for game '{game}': {ex}");
             return -1;
         }
     }
 
     private static void PrintHelp() {
-        Core.Diagnostics.Trace("Displaying CLI help.");
+        Shared.Diagnostics.Trace("Displaying CLI help.");
         System.Console.WriteLine(@"RemakeEngine
         TUI Usage:
             engine --tui (to launch terminal ui menu)
@@ -305,7 +305,7 @@ internal partial class CLI {
 
     private static void WriteUserError(string message) {
         System.Console.Error.WriteLine($"ERROR: {message}");
-        Core.Diagnostics.Log($"ERROR: {message}");
+        Shared.Diagnostics.Log($"ERROR: {message}");
     }
 
     private static void WriteOperationSelectionHint(string gameName, Core.Data.PreparedOperations preparedOps) {
@@ -390,7 +390,7 @@ internal partial class CLI {
         }
 
         foreach (string warning in preparedOps.Warnings) {
-            Core.Diagnostics.Log($"[CLI] Warning for '{game}' ({opsFile}): {warning}");
+            Shared.Diagnostics.Log($"[CLI] Warning for '{game}' ({opsFile}): {warning}");
         }
 
         System.Console.ForegroundColor = System.ConsoleColor.Yellow;

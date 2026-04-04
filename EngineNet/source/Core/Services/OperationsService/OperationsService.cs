@@ -61,7 +61,7 @@ internal sealed class OperationsService {
             try {
                 ctx = Core.Utils.ExecutionContextBuilder.Build(currentGame, games, engineConfig);
             } catch (System.Exception ex) {
-                Core.Diagnostics.Bug($"[OperationsService::LoadAndPrepare()] Failed building context for game '{currentGame}'.", ex);
+                Shared.Diagnostics.Bug($"[OperationsService::LoadAndPrepare()] Failed building context for game '{currentGame}'.", ex);
                 /* ignore context build failure for menu rendering */
             }
         }
@@ -336,7 +336,7 @@ internal sealed class OperationsService {
             value = System.Convert.ToInt64(raw);
             return true;
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"[OperationsService::TryGetLong()] Failed to parse operation id value '{raw}'.", ex);
+            Shared.Diagnostics.Bug($"[OperationsService::TryGetLong()] Failed to parse operation id value '{raw}'.", ex);
             return false;
         }
     }

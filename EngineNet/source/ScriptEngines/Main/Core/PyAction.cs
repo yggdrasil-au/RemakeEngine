@@ -133,8 +133,8 @@ internal static class PyAction {
 
         // :: Python Diagnostics logging ::
         var diagnosticsProxy = new PyDiagnosticsProxy();
-        diagnosticsProxy.LogAction = (Action<string>)Core.Diagnostics.PythonLogger.PythonLog;
-        diagnosticsProxy.TraceAction = (Action<string>)Core.Diagnostics.PythonLogger.PythonTrace;
+        diagnosticsProxy.LogAction = (Action<string>)Shared.Diagnostics.PythonLogger.PythonLog;
+        diagnosticsProxy.TraceAction = (Action<string>)Shared.Diagnostics.PythonLogger.PythonTrace;
 
         world.PythonScope.SetVariable("Diagnostics", diagnosticsProxy);
 

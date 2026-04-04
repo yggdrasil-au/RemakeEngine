@@ -1,16 +1,16 @@
 
-namespace EngineNet.Core.Engine.operations.Built_inActions;
+namespace EngineNet.Core.Operations.Built_inActions;
 
 internal static class ConfigHelpers {
     internal static void ApplyUpdate(IDictionary<string, object?> doc, string group, int index, string key, string value, string? typeHint) {
-        object? convertedValue = ConvertValue(value, typeHint);
-        var targetContext = EnsureGroupEntry(doc, group, index);
+        object convertedValue = ConvertValue(value, typeHint);
+        object targetContext = EnsureGroupEntry(doc, group, index);
 
         if (targetContext is IDictionary<string, object?> dict) {
             dict[key] = convertedValue;
-            Core.Diagnostics.Trace($"Updated {group}[{index}].{key} = {convertedValue}");
+            Shared.Diagnostics.Trace($"Updated {group}[{index}].{key} = {convertedValue}");
         } else {
-            Core.Diagnostics.Trace($"Target context for {group}[{index}] is not a dictionary.");
+            Shared.Diagnostics.Trace($"Target context for {group}[{index}] is not a dictionary.");
         }
     }
 
@@ -88,7 +88,7 @@ internal static class ConfigHelpers {
             case "double":
                 if (double.TryParse(raw, out double d)) return d;
                 throw new System.Exception($"Value '{raw}' cannot be parsed as float");
-            case "auto":
+            //case "auto":
             default:
                 string s = raw.Trim();
                 string sl = s.ToLowerInvariant();

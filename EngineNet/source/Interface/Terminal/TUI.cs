@@ -76,11 +76,11 @@ public partial class TUI {
                 // Map selection index to actual module key
                 if (gidx >= 0 && gidx < gameKeyMap.Count) {
                     gameName = gameKeyMap[gidx];
-                    Core.Diagnostics.Trace($"[TUI::RunInteractiveMenuAsync()] Selected game: {gameName}");
+                    Shared.Diagnostics.Trace($"[TUI::RunInteractiveMenuAsync()] Selected game: {gameName}");
                 } else {
                     // Fallback: treat selection as raw name
                     gameName = gsel;
-                    Core.Diagnostics.Trace($"[TUI::RunInteractiveMenuAsync()] Warning: could not map selected index {gidx} to module key; using raw selection '{gsel}'");
+                    Shared.Diagnostics.Trace($"[TUI::RunInteractiveMenuAsync()] Warning: could not map selected index {gidx} to module key; using raw selection '{gsel}'");
                 }
                 break; // exit game selection loop
             }
@@ -90,14 +90,14 @@ public partial class TUI {
             Core.Data.GameModuleInfo? info = null;
             // check the module exists in combined modules dictionary
             if (!allAvailableModules.TryGetValue(gameName, out var moduleInfo) || (info = moduleInfo) is null) {
-                Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game not found.");
+                Shared.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game not found.");
                 // return to menu selection
                 //return 1;
                 return await RunInteractiveMenuAsync(msg: "Selected game not found. Please choose again.");
             }
             // load operations list from ops_file
             if (info.OpsFile is null) {
-                Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game is missing ops_file.");
+                Shared.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game is missing ops_file.");
                 //return 1;
                 return await RunInteractiveMenuAsync(msg: "Selected game is missing operations file. Please choose again.");
             }
@@ -109,16 +109,16 @@ public partial class TUI {
             );
             if (!preparedOps.IsLoaded) {
                 string message = preparedOps.ErrorMessage ?? "Failed to load operations list.";
-                Core.Diagnostics.Log($"[TUI::RunInteractiveMenuAsync()] {message}");
+                Shared.Diagnostics.Log($"[TUI::RunInteractiveMenuAsync()] {message}");
                 System.Console.WriteLine($"{message} Press any key to exit...");
                 SafeReadKey(true);
-                Core.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Exiting due to failed ops load.");
+                Shared.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Exiting due to failed ops load.");
                 return 1;
             }
 
             if (preparedOps.Warnings.Count > 0) {
                 foreach (string warning in preparedOps.Warnings) {
-                    Core.Diagnostics.Log($"[TUI::RunInteractiveMenuAsync()] Warning: {warning}");
+                    Shared.Diagnostics.Log($"[TUI::RunInteractiveMenuAsync()] Warning: {warning}");
                 }
             }
 
@@ -137,7 +137,7 @@ public partial class TUI {
                 }
                 initStopwatch.Stop();
                 //didRunInit = true;
-                Core.Diagnostics.Trace($"[TUI::RunInteractiveMenuAsync()] Completed init operations for {gameName} in {FormatElapsed(initStopwatch.Elapsed)}. Success: {okAllInit}");
+                Shared.Diagnostics.Trace($"[TUI::RunInteractiveMenuAsync()] Completed init operations for {gameName} in {FormatElapsed(initStopwatch.Elapsed)}. Success: {okAllInit}");
                 System.Console.WriteLine(okAllInit
                     ? $"Initialization completed successfully. Time: {FormatElapsed(initStopwatch.Elapsed)}. Press any key to continue..."
                     : $"One or more init operations failed. Time: {FormatElapsed(initStopwatch.Elapsed)}. Press any key to continue...");
@@ -234,7 +234,7 @@ public partial class TUI {
                         // 2. Pass our custom StdinProvider that works with the Renderer
                         Core.ProcessRunner.StdinProvider rendererInput = () => TuiRenderer.ReadLineCustom("Input >", false);
 
-                        Core.Engine.Operations.RunAllResult result = await Engine.RunAllAsync(
+                        Core.Operations.RunAllResult result = await Engine.RunAllAsync(
                             gameName,
                             onOutput: Utils.OnOutput, // Make sure OnOutput calls OnEvent -> TuiRenderer
                             onEvent: Utils.OnEvent,
@@ -253,7 +253,7 @@ public partial class TUI {
                         continue;
                     } catch (System.Exception ex) {
                         TuiRenderer.Log($"Error: {ex.Message}", ConsoleColor.Red);
-                        Core.Diagnostics.Bug($"[TUI::RunAll()] Error during Run All: {ex.Message}");
+                        Shared.Diagnostics.Bug($"[TUI::RunAll()] Error during Run All: {ex.Message}");
                         TuiRenderer.WaitForKey();
                         continue;
                     } finally {
@@ -296,7 +296,7 @@ public partial class TUI {
                 }
             }
         } catch (System.Exception ex) {
-            Core.Diagnostics.Bug($"[TUI::RunInteractiveMenuAsync()] Error: {ex}");
+            Shared.Diagnostics.Bug($"[TUI::RunInteractiveMenuAsync()] Error: {ex}");
             System.Console.WriteLine($"Error: {ex.Message}\nPress any key to exit...");
             SafeReadKey(true);
             return -1;
