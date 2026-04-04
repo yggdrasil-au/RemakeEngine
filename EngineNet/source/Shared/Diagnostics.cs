@@ -1,8 +1,5 @@
 #pragma warning disable CS0162 // Unreachable code detected // IsTraceEnabled block is reachable however ide analyzers tend to treat it as always true
 
-
-using System.Diagnostics;
-
 namespace EngineNet.Shared;
 
 // Diagnostic logging utility

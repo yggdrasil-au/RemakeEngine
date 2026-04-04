@@ -2,6 +2,7 @@ using System.Numerics;
 
 namespace EngineNet.Core.FileHandlers.Formats.p3d;
 
+
 internal static class P3dHighLevel {
     internal static List<HighLevelType> ParseHighLevelTypes(IReadOnlyList<Chunk> tree) {
         List<HighLevelType> types = new();
@@ -68,9 +69,9 @@ internal sealed record ShaderView(
                     shader = shader with { Specular = param.ColourValue };
                 } else if (param.Param == "EMIS" && param.ValueKind == ShaderParamValueKind.Colour) {
                     shader = shader with { Emissive = param.ColourValue };
-                 }
-             }
-         }
+                }
+            }
+        }
 
         return shader;
     }

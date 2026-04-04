@@ -1,13 +1,14 @@
-using System.Text;
+
 
 namespace EngineNet.Interface.Terminal;
+
 
 /// <summary>
 /// A split-screen renderer that manages a scrollable log area and a fixed status area.
 /// Prevents cursor race conditions and visual artifacts.
 /// </summary>
 public static class TuiRenderer {
-    private static readonly object _lock = new();
+    private static readonly Lock _lock = new();
     private static bool _isActive;
 
     public static bool IsActive => _isActive;

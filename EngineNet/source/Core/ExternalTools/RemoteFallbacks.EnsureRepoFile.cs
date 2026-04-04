@@ -1,3 +1,7 @@
+
+using System.Net.Http;
+
+
 namespace EngineNet.Core.ExternalTools;
 
 internal static class RemoteFallbacks {

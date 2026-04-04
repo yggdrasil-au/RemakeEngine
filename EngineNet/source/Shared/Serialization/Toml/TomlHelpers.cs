@@ -1,7 +1,6 @@
 
-using System.Collections;
-
 namespace EngineNet.Shared.Serialization.Toml;
+
 
 /// <summary>
 /// Reusable TOML read/write utilities built on Tomlyn.

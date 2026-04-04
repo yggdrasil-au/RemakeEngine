@@ -1,8 +1,7 @@
 
-using System.Collections;
-using System.Text.Json;
 
 namespace EngineNet.Interface.Terminal;
+
 
 /// <summary>
 /// Utility methods for CLI/TUI handling, can also be used by GUI if needed

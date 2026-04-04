@@ -5,7 +5,7 @@
         <Nullable>enable</Nullable>
         <OutputType>Library</OutputType>
         <LangVersion>latest</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
+        <ImplicitUsings>disable</ImplicitUsings>
         <DebugType>embedded</DebugType>
     </PropertyGroup>
 

@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
 using Avalonia;
 
 using EngineNet.Core.UI;
@@ -12,7 +16,6 @@ public static class Program {
     private static bool isGui {get; set;}
     private static bool isTui {get; set;}
     private static bool isCli {get; set;}
-
 
     /* :: :: Vars :: START :: */
     public static AppBuilder BuildAvaloniaApp()  {
@@ -39,18 +42,18 @@ public static class Program {
             }
 
             // 1. Parse Args to separate the Root path from the Mode flags
-            ParsedArgs parsedArgs = Program.ParseArguments(args);
+            ParsedArgs parsedArgs = ParseArguments(args);
 
             // 2. Resolve Root Path
             if (parsedArgs.ExplicitRoot != null) {
                 rootPath = parsedArgs.ExplicitRoot;
             } else {
-                string foundRoot = Program.TryFindProjectRoot(System.IO.Directory.GetCurrentDirectory());
+                string foundRoot = TryFindProjectRoot(System.IO.Directory.GetCurrentDirectory());
                 if (!string.IsNullOrEmpty(foundRoot)) {
                     rootPath = foundRoot;
                 } else {
-                    foundRoot = Program.TryFindProjectRoot(System.AppContext.BaseDirectory);
-                    Program.rootPath = !string.IsNullOrEmpty(foundRoot) ? foundRoot : System.IO.Directory.GetCurrentDirectory();
+                    foundRoot = TryFindProjectRoot(System.AppContext.BaseDirectory);
+                    rootPath = !string.IsNullOrEmpty(foundRoot) ? foundRoot : System.IO.Directory.GetCurrentDirectory();
                 }
             }
 
@@ -59,7 +62,7 @@ public static class Program {
             isCli = !isGui && !isTui;
 
             // :: Initialize the Logger
-            Shared.Diagnostics.Initialize(Program.rootPath, isGui, isTui);
+            Shared.Diagnostics.Initialize(rootPath, isGui, isTui);
 
             Shared.Diagnostics.Trace($"Starting EngineNet in {(isGui ? "GUI" : isTui ? "TUI" : "CLI")} mode. Root Path: {rootPath}");
 
@@ -71,16 +74,16 @@ public static class Program {
             }
 
             Core.Main.ConfigureRuntime(
-                rootPath: Program.rootPath,
-                isGui: Program.isGui,
-                isTui: Program.isTui,
-                isCli: Program.isCli,
-                engineFactory: Program.InitialiseEngine
+                rootPath: rootPath,
+                isGui: isGui,
+                isTui: isTui,
+                isCli: isCli,
+                engineFactory: InitialiseEngine
             );
 
-            Program.Engine ??= await Program.InitialiseEngine();
+            Engine ??= await InitialiseEngine();
 
-            var UI = new Interface.Main(Engine);
+            EngineNet.Interface.Main UI = new Interface.Main(Engine);
 
             // Logic:
             // - No remaining args -> GUI
@@ -186,38 +189,39 @@ public static class Program {
     /// Initialises the engine
     /// </summary>
     private static async System.Threading.Tasks.Task<EngineNet.Core.Engine.IEngineFace> InitialiseEngine() {
-        if (Engine == null) {
-            var tools = new Core.ExternalTools.JsonToolResolver();
-            var engineConfig = new EngineConfig();
-
-            var _registries = await Core.Utils.Registries.CreateAsync();
-            var _scanner = new Core.Utils.ModuleScanner(_registries);
-
-            var gameRegistry = new Core.Services.GameRegistry(_registries, _scanner);
-
-            var _commandService = new Core.Services.CommandService();
-            var _gameLauncher = new Core.Services.GameLauncher(gameRegistry, tools, engineConfig, _commandService);
-            var _opsLoader = new Core.Services.OperationsLoader();
-            var _operationsService = new Core.Services.OperationsService(_opsLoader, gameRegistry);
-
-            var Single = new Core.Operations.Single();
-
-            EngineNet.Core.Engine.Engine _engine = new EngineNet.Core.Engine.Engine(
-                gameRegistry,
-                _gameLauncher,
-                _opsLoader,
-                _commandService,
-                _operationsService,
-
-                tools,
-
-                engineConfig,
-
-                Single
-            );
-            return _engine;
+        if (Engine != null) {
+            return Engine;
         }
-        return Engine;
+
+        var tools = new Core.ExternalTools.JsonToolResolver();
+        var engineConfig = new EngineConfig();
+
+        var _registries = await Core.Utils.Registries.CreateAsync();
+        var _scanner = new Core.Utils.ModuleScanner(_registries);
+
+        var gameRegistry = new Core.Services.GameRegistry(_registries, _scanner);
+
+        var _commandService = new Core.Services.CommandService();
+        var _gameLauncher = new Core.Services.GameLauncher(gameRegistry, tools, engineConfig, _commandService);
+        var _opsLoader = new Core.Services.OperationsLoader();
+        var _operationsService = new Core.Services.OperationsService(_opsLoader, gameRegistry);
+
+        var Single = new Core.Operations.Single();
+
+        EngineNet.Core.Engine.Engine _engine = new EngineNet.Core.Engine.Engine(
+            gameRegistry,
+            _gameLauncher,
+            _opsLoader,
+            _commandService,
+            _operationsService,
+
+            tools,
+
+            engineConfig,
+
+            Single
+        );
+        return _engine;
     }
 
     /// <summary>
