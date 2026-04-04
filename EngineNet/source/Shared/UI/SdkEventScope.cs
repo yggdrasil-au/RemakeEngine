@@ -1,4 +1,4 @@
-namespace EngineNet.Core.UI;
+namespace EngineNet.Shared.UI;
 
 /// <summary>
 /// Disposable scope to set EngineSdk.LocalEventSink, MuteStdoutWhenLocalSink
@@ -13,27 +13,27 @@ internal sealed class SdkEventScope:System.IDisposable {
         System.Action<Dictionary<string, object?>>? sink,
         bool muteStdout,
         IDictionary<string, string>? autoPromptResponses) {
-        _prevSink = Core.UI.EngineSdk.LocalEventSink;
-        _prevMute = Core.UI.EngineSdk.MuteStdoutWhenLocalSink;
-        _prevAuto = new Dictionary<string, string>(Core.UI.EngineSdk.AutoPromptResponses, System.StringComparer.OrdinalIgnoreCase);
+        _prevSink = Shared.UI.EngineSdk.LocalEventSink;
+        _prevMute = Shared.UI.EngineSdk.MuteStdoutWhenLocalSink;
+        _prevAuto = new Dictionary<string, string>(Shared.UI.EngineSdk.AutoPromptResponses, System.StringComparer.OrdinalIgnoreCase);
 
-        Core.UI.EngineSdk.LocalEventSink = sink;
-        Core.UI.EngineSdk.MuteStdoutWhenLocalSink = muteStdout;
+        Shared.UI.EngineSdk.LocalEventSink = sink;
+        Shared.UI.EngineSdk.MuteStdoutWhenLocalSink = muteStdout;
 
         if (autoPromptResponses != null) {
-            Core.UI.EngineSdk.AutoPromptResponses.Clear();
+            Shared.UI.EngineSdk.AutoPromptResponses.Clear();
             foreach (KeyValuePair<string, string> kv in autoPromptResponses) {
-                Core.UI.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
+                Shared.UI.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
             }
         }
     }
 
     public void Dispose() {
-        Core.UI.EngineSdk.LocalEventSink = _prevSink;
-        Core.UI.EngineSdk.MuteStdoutWhenLocalSink = _prevMute;
-        Core.UI.EngineSdk.AutoPromptResponses.Clear();
+        Shared.UI.EngineSdk.LocalEventSink = _prevSink;
+        Shared.UI.EngineSdk.MuteStdoutWhenLocalSink = _prevMute;
+        Shared.UI.EngineSdk.AutoPromptResponses.Clear();
         foreach (KeyValuePair<string, string> kv in _prevAuto) {
-            Core.UI.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
+            Shared.UI.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
         }
     }
 }

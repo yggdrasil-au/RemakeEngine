@@ -7,7 +7,7 @@ internal static partial class Sdk {
     private static void AddFileSystemOperations(LuaWorld _LuaWorld) {
         _LuaWorld.Sdk.Table["find_subdir"] = (string baseDir, string name) => {
             if (!Security.IsAllowedPath(baseDir)) {
-                Core.UI.EngineSdk.Error($"Access denied: find_subdir baseDir is outside allowed areas ('{baseDir}')");
+                Shared.UI.EngineSdk.Error($"Access denied: find_subdir baseDir is outside allowed areas ('{baseDir}')");
                 return null;
             }
             return ScriptEngines.Global.SdkModule.FileSystemUtils.FindSubdir(baseDir, name);
@@ -15,7 +15,7 @@ internal static partial class Sdk {
         _LuaWorld.Sdk.Table["has_all_subdirs"] = (string baseDir, Table names) => {
             try {
                 if (!Security.IsAllowedPath(baseDir)) {
-                    Core.UI.EngineSdk.Error($"Access denied: has_all_subdirs baseDir is outside allowed areas ('{baseDir}')");
+                    Shared.UI.EngineSdk.Error($"Access denied: has_all_subdirs baseDir is outside allowed areas ('{baseDir}')");
                     return false;
                 }
                 List<string> list = Lua.Globals.Utils.TableToStringList(names);
@@ -121,7 +121,7 @@ internal static partial class Sdk {
         _LuaWorld.Sdk.Table["ensure_dir"] = (string path) => {
             try {
                 if (!Security.IsAllowedPath(path)) {
-                    Core.UI.EngineSdk.Error($"Access denied: ensure_dir path is outside allowed areas ('{path}')");
+                    Shared.UI.EngineSdk.Error($"Access denied: ensure_dir path is outside allowed areas ('{path}')");
                     return false;
                 }
                 System.IO.Directory.CreateDirectory(path);
@@ -139,7 +139,7 @@ internal static partial class Sdk {
             try {
                 // Security: Validate paths
                 if (!Security.IsAllowedPath(src) || !Security.IsAllowedPath(dst)) {
-                    Core.UI.EngineSdk.Error($"Access denied: copy_dir src or dst is outside allowed areas (src='{src}', dst='{dst}')");
+                    Shared.UI.EngineSdk.Error($"Access denied: copy_dir src or dst is outside allowed areas (src='{src}', dst='{dst}')");
                     return false;
                 }
                 bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
@@ -154,7 +154,7 @@ internal static partial class Sdk {
             try {
                 // Security: Validate paths
                 if (!Security.IsAllowedPath(src) || !Security.IsAllowedPath(dst)) {
-                    Core.UI.EngineSdk.Error($"Access denied: move_dir src or dst is outside allowed areas (src='{src}', dst='{dst}')");
+                    Shared.UI.EngineSdk.Error($"Access denied: move_dir src or dst is outside allowed areas (src='{src}', dst='{dst}')");
                     return false;
                 }
                 bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
@@ -169,7 +169,7 @@ internal static partial class Sdk {
             try {
                 // Security: Validate path prior to deletion
                 if (!Security.IsAllowedPath(path)) {
-                    Core.UI.EngineSdk.Error($"Access denied: remove_dir path is outside allowed areas ('{path}')");
+                    Shared.UI.EngineSdk.Error($"Access denied: remove_dir path is outside allowed areas ('{path}')");
                     return false;
                 }
                 if (System.IO.Directory.Exists(path)) {
@@ -228,7 +228,7 @@ internal static partial class Sdk {
             try {
                 // Security: Validate path prior to deletion
                 if (!Security.TryGetAllowedCanonicalPath(path, out string safePath)) {
-                    Core.UI.EngineSdk.Error($"Access denied: remove_file path is outside allowed areas ('{path}')");
+                    Shared.UI.EngineSdk.Error($"Access denied: remove_file path is outside allowed areas ('{path}')");
                     return false;
                 }
                 if (ScriptEngines.Global.SdkModule.FileSystemUtils.IsSymlink(safePath) || System.IO.File.Exists(safePath)) {
@@ -415,7 +415,7 @@ internal static partial class Sdk {
         };
         _LuaWorld.Sdk.Table["create_symlink"] = (string source, string destination, bool isDirectory, DynValue overwrite) => {
             if (!Security.IsAllowedPath(source) || !Security.IsAllowedPath(destination)) {
-                Core.UI.EngineSdk.Error($"Access denied: create_symlink src or dst outside allowed areas (src='{source}', dst='{destination}')");
+                Shared.UI.EngineSdk.Error($"Access denied: create_symlink src or dst outside allowed areas (src='{source}', dst='{destination}')");
                 return false;
             }
             bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;

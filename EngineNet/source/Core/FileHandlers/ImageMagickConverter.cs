@@ -5,7 +5,7 @@ namespace EngineNet.Core.FileHandlers;
 
 /// <summary>
 /// Batch image converter powered by ImageMagick (magick.exe).
-/// Preserves directory layout, supports parallel workers, and reports via Core.UI.EngineSdk.
+/// Preserves directory layout, supports parallel workers, and reports via Shared.UI.EngineSdk.
 /// 
 /// Required args:
 ///   --source DIR           Source directory
@@ -29,7 +29,7 @@ internal static class ImageMagickConverter {
     private const string ImageMagickName = "ImageMagick";
 
     // Tracks currently running external conversions (for progress panel)
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, Core.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> s_active = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> s_active = new();
 
     private sealed class Options {
         internal string Source = string.Empty;
@@ -65,13 +65,13 @@ internal static class ImageMagickConverter {
                 opt.MagickPath = Which("magick.exe") ?? Which("magick") ?? opt.MagickPath;
             }
             if (string.IsNullOrWhiteSpace(opt.MagickPath) || !File.Exists(opt.MagickPath!)) {
-                Core.UI.EngineSdk.Error($"ImageMagick executable not found: {opt.MagickPath ?? "(null)"}");
-                Core.UI.EngineSdk.Warn("Please install ImageMagick or use the 'Download Required Tools' operation.");
+                Shared.UI.EngineSdk.Error($"ImageMagick executable not found: {opt.MagickPath ?? "(null)"}");
+                Shared.UI.EngineSdk.Warn("Please install ImageMagick or use the 'Download Required Tools' operation.");
                 return false;
             }
 
             if (!Directory.Exists(opt.Source)) {
-                Core.UI.EngineSdk.Error($"Source directory not found: {opt.Source}");
+                Shared.UI.EngineSdk.Error($"Source directory not found: {opt.Source}");
                 return false;
             }
             Directory.CreateDirectory(opt.Target);
@@ -85,14 +85,14 @@ internal static class ImageMagickConverter {
                 .Where(p => p.EndsWith(opt.InputExt, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            Core.UI.EngineSdk.Info($"--- Starting ImageMagick Conversion ---");
-            Core.UI.EngineSdk.Info($"Using executable: {opt.MagickPath}");
+            Shared.UI.EngineSdk.Info($"--- Starting ImageMagick Conversion ---");
+            Shared.UI.EngineSdk.Info($"Using executable: {opt.MagickPath}");
             if (allFiles.Count == 0) {
-                Core.UI.EngineSdk.Warn($"No '{opt.InputExt}' files found in {opt.Source}.");
+                Shared.UI.EngineSdk.Warn($"No '{opt.InputExt}' files found in {opt.Source}.");
                 return true;
             }
 
-            Core.UI.EngineSdk.Info($"Found {allFiles.Count} file(s) to process with {opt.Workers} workers.");
+            Shared.UI.EngineSdk.Info($"Found {allFiles.Count} file(s) to process with {opt.Workers} workers.");
 
             int success = 0;
             int skipped = 0;
@@ -107,7 +107,7 @@ internal static class ImageMagickConverter {
 
             // --- ADDED PROGRESS PANEL (from MediaConverter) ---
             using System.Threading.CancellationTokenSource progressCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            System.Threading.Tasks.Task progressTask = Core.UI.EngineSdk.SdkConsoleProgress.StartPanel(
+            System.Threading.Tasks.Task progressTask = Shared.UI.EngineSdk.SdkConsoleProgress.StartPanel(
                 total: allFiles.Count,
                 snapshot: () => (System.Threading.Volatile.Read(ref processed), System.Threading.Volatile.Read(ref success), System.Threading.Volatile.Read(ref skipped), System.Threading.Volatile.Read(ref errors)),
                 activeSnapshot: () => s_active.Values.ToList(),
@@ -148,7 +148,7 @@ internal static class ImageMagickConverter {
                 });
             } catch (OperationCanceledException ex) {
                 Shared.Diagnostics.Bug("[ImageMagickConverter::Run()] Conversion cancelled by user.", ex);
-                Core.UI.EngineSdk.Warn("\nConversion cancelled by user.");
+                Shared.UI.EngineSdk.Warn("\nConversion cancelled by user.");
             }
 
             // --- ADDED PROGRESS STOP (from MediaConverter) ---
@@ -163,19 +163,19 @@ internal static class ImageMagickConverter {
 
 
             // Final summary
-            Core.UI.EngineSdk.Info("\n--- Conversion Completed ---");
-            Core.UI.EngineSdk.Info($"Success: {success} | Skipped: {skipped} | Errors: {errors}");
+            Shared.UI.EngineSdk.Info("\n--- Conversion Completed ---");
+            Shared.UI.EngineSdk.Info($"Success: {success} | Skipped: {skipped} | Errors: {errors}");
             if (!errorList.IsEmpty) {
-                Core.UI.EngineSdk.Error("\nEncountered the following errors:");
+                Shared.UI.EngineSdk.Error("\nEncountered the following errors:");
                 foreach (var (file, msg) in errorList) {
-                    Core.UI.EngineSdk.Error($" Fail - File: {file}\n    Reason: {msg}");
+                    Shared.UI.EngineSdk.Error($" Fail - File: {file}\n    Reason: {msg}");
                 }
             }
 
             return errors == 0;
         } catch (Exception ex) {
             Shared.Diagnostics.Bug("[ImageMagickConverter::Run()] Unhandled conversion failure.", ex);
-            Core.UI.EngineSdk.Error($"ImageMagick conversion failed: {ex.Message}");
+            Shared.UI.EngineSdk.Error($"ImageMagick conversion failed: {ex.Message}");
             return false;
         }
     }
@@ -237,7 +237,7 @@ internal static class ImageMagickConverter {
     private static void RegisterActive(string tool, string srcPath) {
         try {
             int key = System.Threading.Thread.CurrentThread.ManagedThreadId;
-            s_active[key] = new Core.UI.EngineSdk.SdkConsoleProgress.ActiveProcess {
+            s_active[key] = new Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess {
                 Tool = tool,
                 File = System.IO.Path.GetFileName(srcPath),
                 StartedUtc = System.DateTime.UtcNow

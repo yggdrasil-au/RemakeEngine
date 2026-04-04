@@ -130,8 +130,8 @@ public sealed partial class ProcessRunner {
             }
 
             string? HandleLine(string line, string streamName) {
-                /*if (line.StartsWith(Core.UI.EngineSdk.Prefix, System.StringComparison.Ordinal)) {
-                    string payload = line.Substring(Core.UI.EngineSdk.Prefix.Length).Trim();
+                /*if (line.StartsWith(Shared.UI.EngineSdk.Prefix, System.StringComparison.Ordinal)) {
+                    string payload = line.Substring(Shared.UI.EngineSdk.Prefix.Length).Trim();
                     try {
                         Dictionary<string, object?> evt = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(payload) ?? new();
                         if (evt.TryGetValue("event", out object? evType) && (evType?.ToString() ?? "") == "prompt") {

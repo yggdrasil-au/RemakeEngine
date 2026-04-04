@@ -371,7 +371,7 @@ internal static class FileValidator {
 
     private static void Write(System.ConsoleColor colour, string message) {
         lock (ConsoleLock) {
-            UI.EngineSdk.PrintLine(Format(message), colour);
+            Shared.UI.EngineSdk.PrintLine(Format(message), colour);
         }
     }
 

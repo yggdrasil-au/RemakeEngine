@@ -77,16 +77,16 @@ internal sealed class Main : IAction {
             LuaAction.CreateGlobals(LuaWorld, contextualTools, commandService, this._args, this._gameRoot, this._projectRoot, this._scriptPath);
 
             // Register UserData types
-            UserData.RegisterType<Core.UI.EngineSdk.PanelProgress>();
-            UserData.RegisterType<Core.UI.EngineSdk.ScriptProgress>();
+            UserData.RegisterType<Shared.UI.EngineSdk.PanelProgress>();
+            UserData.RegisterType<Shared.UI.EngineSdk.ScriptProgress>();
             UserData.RegisterType<Global.SqliteHandle>();
 
             // Signal GUI that a script is active so the bottom panel can reflect activity even without progress events
-            Core.UI.EngineSdk.ScriptActiveStart(scriptPath: this._scriptPath);
+            Shared.UI.EngineSdk.ScriptActiveStart(scriptPath: this._scriptPath);
 
 #if DEBUG
-            Core.UI.EngineSdk.PrintLine($"Running lua script '{this._scriptPath}' with {this._args.Length} args...");
-            Core.UI.EngineSdk.PrintLine($"input args: {string.Join(", ", this._args)}");
+            Shared.UI.EngineSdk.PrintLine($"Running lua script '{this._scriptPath}' with {this._args.Length} args...");
+            Shared.UI.EngineSdk.PrintLine($"input args: {string.Join(", ", this._args)}");
 #endif
 
             // ::
@@ -115,18 +115,18 @@ internal sealed class Main : IAction {
             if (IsMoonSharpIteratorPrepNullReference(ex)) {
                 string compatibilityMessage = "Lua compatibility limitation: MoonSharp can throw a CLR NullReferenceException when preparing 'for ... in' iteration over tables/__iterator in this runtime. Use pairs()/ipairs() instead of direct table iterators.";
                 finalException = new InvalidOperationException(compatibilityMessage, ex);
-                Core.UI.EngineSdk.PrintLine(message: compatibilityMessage, color: System.ConsoleColor.Yellow);
+                Shared.UI.EngineSdk.PrintLine(message: compatibilityMessage, color: System.ConsoleColor.Yellow);
                 Shared.Diagnostics.LuaInternalCatch("Lua iterator compatibility guard triggered: " + ex);
             }
 
             Shared.Diagnostics.LuaInternalCatch("Lua script threw an exception: " + finalException);
-            Core.UI.EngineSdk.PrintLine(message: $"Lua script threw an exception: {finalException}", color: System.ConsoleColor.Red);
+            Shared.UI.EngineSdk.PrintLine(message: $"Lua script threw an exception: {finalException}", color: System.ConsoleColor.Red);
             exitCode = 1;
             executionError = finalException;
         } finally {
             LuaWorld?.DisposeOpenDisposables();
 
-            Core.UI.EngineSdk.ScriptActiveEnd(success: ok, exitCode: exitCode);
+            Shared.UI.EngineSdk.ScriptActiveEnd(success: ok, exitCode: exitCode);
         }
 
         if (!ok) {

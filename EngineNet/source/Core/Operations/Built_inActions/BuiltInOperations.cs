@@ -35,15 +35,15 @@ internal class BuiltInOperations {
         // --list functionality
         if (opts.List) {
             if (!System.IO.File.Exists(configPath)) {
-                Core.UI.EngineSdk.Error($"Config file does not exist at {configPath}");
+                Shared.UI.EngineSdk.Error($"Config file does not exist at {configPath}");
                 return false;
             }
             try {
                 // Parse and re-serialize to show structure (matching behavior of listing the TOML structure)
                 object docObj = TomlHelpers.ParseFileToPlainObject(configPath);
                 string dump = TomlHelpers.WriteDocument(docObj);
-                Core.UI.EngineSdk.PrintLine($"Config file: {configPath}");
-                Core.UI.EngineSdk.PrintLine(dump);
+                Shared.UI.EngineSdk.PrintLine($"Config file: {configPath}");
+                Shared.UI.EngineSdk.PrintLine(dump);
                 return true;
             } catch (System.Exception ex) {
                 Shared.Diagnostics.Bug($"Failed to read config structure: {ex.Message}");
@@ -74,7 +74,7 @@ internal class BuiltInOperations {
                 foreach (var set in opts.Sets) {
                     ConfigHelpers.ApplyUpdate(doc, opts.Group, opts.Index, set.Key, set.Value, set.TypeHint);
                     string msg = $"Updated {opts.Group}[{(opts.Index == 0 ? 1 : opts.Index)}].{set.Key} = {ConfigHelpers.ConvertValue(set.Value, set.TypeHint)}";
-                    Core.UI.EngineSdk.PrintLine(msg, System.ConsoleColor.Green);
+                    Shared.UI.EngineSdk.PrintLine(msg, System.ConsoleColor.Green);
                 }
             } else {
                 // Single set
@@ -82,23 +82,23 @@ internal class BuiltInOperations {
                     // Check if we are just lacking args but not in list mode
                     // Lua checks: if not opts.group or not opts.key then return 1
                     if (string.IsNullOrEmpty(opts.Group) || string.IsNullOrEmpty(opts.Key)) {
-                        Core.UI.EngineSdk.Error("Missing --group/--key for set operation");
+                        Shared.UI.EngineSdk.Error("Missing --group/--key for set operation");
                         return false;
                     }
                     if (opts.Value == null) {
-                        Core.UI.EngineSdk.Error("Missing --value for set operation");
+                        Shared.UI.EngineSdk.Error("Missing --value for set operation");
                         return false;
                     }
                 } else {
                     ConfigHelpers.ApplyUpdate(doc, opts.Group, opts.Index, opts.Key, opts.Value, opts.TypeHint);
                     string msg = $"Updated {opts.Group}[{(opts.Index == 0 ? 1 : opts.Index)}].{opts.Key} = {ConfigHelpers.ConvertValue(opts.Value, opts.TypeHint)}";
-                    Core.UI.EngineSdk.PrintLine(msg, System.ConsoleColor.Green);
+                    Shared.UI.EngineSdk.PrintLine(msg, System.ConsoleColor.Green);
                 }
             }
 
             // Write back
             TomlHelpers.WriteTomlFile(configPath, doc);
-            // Core.UI.EngineSdk.PrintLine($"Updated config at {configPath}", System.ConsoleColor.Green);
+            // Shared.UI.EngineSdk.PrintLine($"Updated config at {configPath}", System.ConsoleColor.Green);
             // Lua prints the specific updates. The above loops print the updates.
             return true;
 
@@ -152,25 +152,25 @@ internal class BuiltInOperations {
         switch (tool) {
             case "ffmpeg":
             case "vgmstream":
-                Core.UI.EngineSdk.PrintLine("\n>>> Built-in media conversion");
+                Shared.UI.EngineSdk.PrintLine("\n>>> Built-in media conversion");
                 Shared.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running media conversion with args: {string.Join(' ', args)}");
                 return FileHandlers.MediaConverter.Run(operationArgs.context.ToolResolver, args, operationArgs.cancellationToken);
 
             case "imagemagick":
-                Core.UI.EngineSdk.PrintLine("\n>>> Built-in image conversion");
+                Shared.UI.EngineSdk.PrintLine("\n>>> Built-in image conversion");
                 Shared.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running image conversion with args: {string.Join(' ', args)}");
                 return FileHandlers.ImageMagickConverter.Run(operationArgs.context.ToolResolver, args, operationArgs.cancellationToken);
 
             case "p3d":
-                Core.UI.EngineSdk.PrintLine("\n>>> Built-in p3d conversion");
+                Shared.UI.EngineSdk.PrintLine("\n>>> Built-in p3d conversion");
                 Shared.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running p3d conversion with args: {string.Join(' ', args)}");
                 return FileHandlers.Formats.p3d.Main.Run(args, operationArgs.cancellationToken);
 
             default:
                 Shared.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: unknown tool '{tool}'");
-                Core.UI.EngineSdk.PrintLine($"ERROR: format-convert requires a valid tool. Found: '{tool ?? "(null)"}'");
-                Core.UI.EngineSdk.PrintLine("Supported tools: ffmpeg, vgmstream, ImageMagick, p3d");
-                Core.UI.EngineSdk.PrintLine("Specify tool with --tool parameter or -m/--mode in args.");
+                Shared.UI.EngineSdk.PrintLine($"ERROR: format-convert requires a valid tool. Found: '{tool ?? "(null)"}'");
+                Shared.UI.EngineSdk.PrintLine("Supported tools: ffmpeg, vgmstream, ImageMagick, p3d");
+                Shared.UI.EngineSdk.PrintLine("Specify tool with --tool parameter or -m/--mode in args.");
                 return false;
         }
     }
@@ -216,16 +216,16 @@ internal class BuiltInOperations {
         switch (format) {
             case "p3d": {
                 // in future will be specifically for converting p3d into there core component files (meshes, textures, shaders, etc)
-                Core.UI.EngineSdk.PrintLine("\n>>> Built-in P3D extraction");
-                Core.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
+                Shared.UI.EngineSdk.PrintLine("\n>>> Built-in P3D extraction");
+                Shared.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
                 return FileHandlers.Formats.p3d.Main.Run(args, operationArgs.cancellationToken);
             } case "txd": {
-                Core.UI.EngineSdk.PrintLine("\n>>> Built-in TXD extraction");
-                Core.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
+                Shared.UI.EngineSdk.PrintLine("\n>>> Built-in TXD extraction");
+                Shared.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
                 return FileHandlers.Formats.txd.TxdExtractor.Run(args, operationArgs.cancellationToken);
             } default: {
-                Core.UI.EngineSdk.PrintLine($"ERROR: format-extract does not support format '{format}'");
-                Core.UI.EngineSdk.PrintLine("Supported formats: p3d, txd");
+                Shared.UI.EngineSdk.PrintLine($"ERROR: format-extract does not support format '{format}'");
+                Shared.UI.EngineSdk.PrintLine("Supported formats: p3d, txd");
                 return false;
             }
         }
@@ -238,9 +238,9 @@ internal class BuiltInOperations {
         List<string> args = Helpers.ResolveOperationArgs(operationArgs.op, ctx);
 
         // execute
-        Core.UI.EngineSdk.PrintLine("\n>>> Built-in folder rename");
+        Shared.UI.EngineSdk.PrintLine("\n>>> Built-in folder rename");
 
-        Core.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
+        Shared.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
         bool ok = FileHandlers.FolderRenamer.Run(args, operationArgs.cancellationToken);
         return ok;
     }
@@ -268,15 +268,15 @@ internal class BuiltInOperations {
         }
         // if less than 2 args, print message and return false
         if (args.Count < 2) {
-            Core.UI.EngineSdk.PrintLine("validate-files requires a database path and base directory.");
+            Shared.UI.EngineSdk.PrintLine("validate-files requires a database path and base directory.");
             return false;
         }
 
 
 
         // execute
-        Core.UI.EngineSdk.PrintLine("\n>>> Built-in file validation");
-        Core.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
+        Shared.UI.EngineSdk.PrintLine("\n>>> Built-in file validation");
+        Shared.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
         bool ok = helpers.FileValidator.Run(args, operationArgs.cancellationToken);
         return ok;
     }

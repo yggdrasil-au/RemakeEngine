@@ -9,16 +9,16 @@ namespace EngineNet.Core.ExternalTools;
 internal static class ToolsDownloader {
 
     internal static async System.Threading.Tasks.Task<bool> ProcessAsync(string moduleTomlPath, string _rootPath, bool force, IDictionary<string, object?>? context = null, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
-        Core.UI.EngineSdk.PrintLine(string.Empty);
-        Core.UI.EngineSdk.PrintLine($"=== Tools Downloader - manifest: {moduleTomlPath} ===", System.ConsoleColor.DarkCyan);
+        Shared.UI.EngineSdk.PrintLine(string.Empty);
+        Shared.UI.EngineSdk.PrintLine($"=== Tools Downloader - manifest: {moduleTomlPath} ===", System.ConsoleColor.DarkCyan);
         if (!System.IO.File.Exists(moduleTomlPath)) {
             throw new System.IO.FileNotFoundException("Tools manifest not found", moduleTomlPath);
         }
 
         string platform = GetPlatformIdentifier();
-        Core.UI.EngineSdk.Info($"Platform: {platform}");
+        Shared.UI.EngineSdk.Info($"Platform: {platform}");
         List<Dictionary<string, object?>> toolsList = TomlHelpers.ReadTools(moduleTomlPath);
-        Core.UI.EngineSdk.Info($"Found {toolsList.Count} tool entries.");
+        Shared.UI.EngineSdk.Info($"Found {toolsList.Count} tool entries.");
 
         // Aggregate registry from modular blocks
         Dictionary<string, object?> central = InternalToolRegistry.Assemble();
@@ -32,13 +32,13 @@ internal static class ToolsDownloader {
                 lockData = ConvertToDeepDictionary(doc.RootElement);
             } catch (System.Text.Json.JsonException ex) {
                 Shared.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Failed to parse lockfile '{lockPath}'.", ex);
-                Core.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
+                Shared.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
             } catch (System.IO.IOException ex) {
                 Shared.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] IO error loading lockfile '{lockPath}'.", ex);
-                Core.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
+                Shared.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
             } catch (System.UnauthorizedAccessException ex) {
                 Shared.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Access denied loading lockfile '{lockPath}'.", ex);
-                Core.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
+                Shared.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
             }
         }
 
@@ -52,8 +52,8 @@ internal static class ToolsDownloader {
                 continue;
             }
 
-            Core.UI.EngineSdk.PrintLine(string.Empty);
-            Core.UI.EngineSdk.PrintLine($"Processing: {toolName} {version}", System.ConsoleColor.Cyan);
+            Shared.UI.EngineSdk.PrintLine(string.Empty);
+            Shared.UI.EngineSdk.PrintLine($"Processing: {toolName} {version}", System.ConsoleColor.Cyan);
 
             // Check if version is already fully installed
             if (!force && lockData.TryGetValue(toolName, out object? existingToolObj)) {
@@ -68,21 +68,21 @@ internal static class ToolsDownloader {
                     }
 
                     if (existsFully) {
-                        Core.UI.EngineSdk.Info($"{toolName} {version} is already installed and exists fully. Skipping.");
+                        Shared.UI.EngineSdk.Info($"{toolName} {version} is already installed and exists fully. Skipping.");
                         continue;
                     }
                 }
             }
 
             if (!TryLookupPlatform(central, toolName, version, platform, out string url, out string sha256, out string? checksumSource, out object? platformData)) {
-                Core.UI.EngineSdk.PrintLine($"1 ERROR: Not in registry for platform '{platform}'.", System.ConsoleColor.Red);
+                Shared.UI.EngineSdk.PrintLine($"1 ERROR: Not in registry for platform '{platform}'.", System.ConsoleColor.Red);
                 continue;
             }
-            Core.UI.EngineSdk.Info($"URL: {url}");
+            Shared.UI.EngineSdk.Info($"URL: {url}");
 
             // Paths are centralized under ProjectRoot/EngineApps/Tools so tools are sharable across modules.
             if (dep.ContainsKey("destination") || dep.ContainsKey("unpack_destination")) {
-                Core.UI.EngineSdk.Warn($"{toolName} {version}: fields 'destination' and 'unpack_destination' are deprecated and ignored. Using centralized tool paths under EngineApps/Tools.");
+                Shared.UI.EngineSdk.Warn($"{toolName} {version}: fields 'destination' and 'unpack_destination' are deprecated and ignored. Using centralized tool paths under EngineApps/Tools.");
             }
 
             bool unpack = dep.TryGetValue("unpack", out object? u) && u is true;
@@ -96,13 +96,13 @@ internal static class ToolsDownloader {
             // Initial filename from URL (may be incorrect for redirects)
             string fileName = System.IO.Path.GetFileName(new System.Uri(url).AbsolutePath);
             string archivePath = System.IO.Path.Combine(downloadDir, fileName);
-            Core.UI.EngineSdk.Info($"Download dir: {downloadDir}");
+            Shared.UI.EngineSdk.Info($"Download dir: {downloadDir}");
 
             if (!force && System.IO.File.Exists(archivePath)) {
-                Core.UI.EngineSdk.Info($"Archive: {archivePath}");
-                Core.UI.EngineSdk.Info("Archive exists. Skipping download (use force to re-download).");
+                Shared.UI.EngineSdk.Info($"Archive: {archivePath}");
+                Shared.UI.EngineSdk.Info("Archive exists. Skipping download (use force to re-download).");
             } else {
-                Core.UI.EngineSdk.Info("Downloading...");
+                Shared.UI.EngineSdk.Info("Downloading...");
                 using System.Net.Http.HttpResponseMessage resp = await http.GetAsync(url, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                 resp.EnsureSuccessStatusCode();
 
@@ -123,61 +123,61 @@ internal static class ToolsDownloader {
                     archivePath = System.IO.Path.Combine(downloadDir, fileName);
                 }
 
-                Core.UI.EngineSdk.Info($"Archive: {archivePath}");
+                Shared.UI.EngineSdk.Info($"Archive: {archivePath}");
 
                 long contentLength = resp.Content.Headers.ContentLength ?? -1;
 
                 await using System.IO.FileStream outFs = System.IO.File.Create(archivePath);
                 await using System.IO.Stream inStream = await resp.Content.ReadAsStreamAsync(cancellationToken);
 
-                using (var progress = new Core.UI.EngineSdk.PanelProgress(
+                using (var progress = new Shared.UI.EngineSdk.PanelProgress(
                     total: contentLength > 0 ? contentLength : 1,
                     id: "download",
                     label: $"Downloading {fileName}")) {
                     await CopyStreamWithProgressAsync(inStream, outFs, progress);
                 }
-                Core.UI.EngineSdk.Info("Download complete.");
+                Shared.UI.EngineSdk.Info("Download complete.");
             }
             string currentChecksum = ComputeSha256(archivePath);
             if (string.IsNullOrWhiteSpace(sha256)) {
-                Core.UI.EngineSdk.Warn("No checksum provided - skipping verification.");
+                Shared.UI.EngineSdk.Warn("No checksum provided - skipping verification.");
                 // output the current archive checksum
 
-                Core.UI.EngineSdk.Info($"Current checksum: {currentChecksum}");
+                Shared.UI.EngineSdk.Info($"Current checksum: {currentChecksum}");
             } else {
-                Core.UI.EngineSdk.Info("Verifying checksum");
+                Shared.UI.EngineSdk.Info("Verifying checksum");
                 bool checksumMatch = VerifySha256(archivePath, sha256);
 
                 if (!checksumMatch && !string.IsNullOrWhiteSpace(checksumSource)) {
-                    Core.UI.EngineSdk.Info($"Primary checksum mismatch. Checking upstream source: {checksumSource}");
+                    Shared.UI.EngineSdk.Info($"Primary checksum mismatch. Checking upstream source: {checksumSource}");
                     try {
                         string remoteSums = await http.GetStringAsync(checksumSource, cancellationToken);
                         string? remoteHash = ParseUpstreamChecksum(remoteSums, fileName);
 
                         if (!string.IsNullOrWhiteSpace(remoteHash)) {
-                            Core.UI.EngineSdk.Info($"Found upstream checksum for {fileName}: {remoteHash}");
+                            Shared.UI.EngineSdk.Info($"Found upstream checksum for {fileName}: {remoteHash}");
                             if (string.Equals(currentChecksum, remoteHash, StringComparison.OrdinalIgnoreCase)) {
-                                Core.UI.EngineSdk.Info("Upstream checksum matched. Proceeding.");
+                                Shared.UI.EngineSdk.Info("Upstream checksum matched. Proceeding.");
                                 checksumMatch = true;
                                 sha256 = remoteHash;
                             } else {
-                                Core.UI.EngineSdk.Warn($"Upstream checksum mismatch. Expected {remoteHash}, got {currentChecksum}");
+                                Shared.UI.EngineSdk.Warn($"Upstream checksum mismatch. Expected {remoteHash}, got {currentChecksum}");
                             }
                         } else {
-                            Core.UI.EngineSdk.Warn($"Could not find entry for '{fileName}' in upstream checksums.");
+                            Shared.UI.EngineSdk.Warn($"Could not find entry for '{fileName}' in upstream checksums.");
                         }
                     } catch (Exception ex) {
                         Shared.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Failed to fetch/parse upstream checksums from '{checksumSource}'.", ex);
-                        Core.UI.EngineSdk.Warn($"Failed to fetch/parse upstream checksums: {ex.Message}");
+                        Shared.UI.EngineSdk.Warn($"Failed to fetch/parse upstream checksums: {ex.Message}");
                     }
                 }
 
                 if (!checksumMatch) {
-                    Core.UI.EngineSdk.PrintLine("1 ERROR: Checksum mismatch. Skipping further steps for this tool.", System.ConsoleColor.Red);
-                    Core.UI.EngineSdk.Info($"Current checksum: {currentChecksum}");
+                    Shared.UI.EngineSdk.PrintLine("1 ERROR: Checksum mismatch. Skipping further steps for this tool.", System.ConsoleColor.Red);
+                    Shared.UI.EngineSdk.Info($"Current checksum: {currentChecksum}");
                     continue;
                 }
-                Core.UI.EngineSdk.Info("Checksum OK.");
+                Shared.UI.EngineSdk.Info("Checksum OK.");
             }
 
             string? exePath = null;
@@ -187,23 +187,23 @@ internal static class ToolsDownloader {
                 }
                 System.IO.Directory.CreateDirectory(installDir);
 
-                Core.UI.EngineSdk.Info($"Unpacking to: {installDir}");
+                Shared.UI.EngineSdk.Info($"Unpacking to: {installDir}");
                 try {
                     ExtractArchiveToInstallLayout(archivePath, installDir);
                 } catch (NotSupportedException nse) {
-                    Core.UI.EngineSdk.Warn($"{nse.Message} Leaving archive as-is.");
+                    Shared.UI.EngineSdk.Warn($"{nse.Message} Leaving archive as-is.");
                 } catch (Exception ex) {
                     Shared.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Failed to unpack archive '{archivePath}' to '{installDir}'.", ex);
-                    Core.UI.EngineSdk.PrintLine($"1 ERROR: Failed to unpack '{archivePath}': {ex.Message}", System.ConsoleColor.Red);
+                    Shared.UI.EngineSdk.PrintLine($"1 ERROR: Failed to unpack '{archivePath}': {ex.Message}", System.ConsoleColor.Red);
                 }
 
                 // Try to find an exe in the centralized install path (best-effort)
                 exePath = FindExe(installDir, toolName, platformData);
                 
                 if (!string.IsNullOrWhiteSpace(exePath)) {
-                    Core.UI.EngineSdk.Info($"Detected executable: {exePath}");
+                    Shared.UI.EngineSdk.Info($"Detected executable: {exePath}");
                 } else {
-                    Core.UI.EngineSdk.Warn("Could not detect an executable automatically.");
+                    Shared.UI.EngineSdk.Warn("Could not detect an executable automatically.");
                 }
             }
 
@@ -223,11 +223,11 @@ internal static class ToolsDownloader {
                 ["sha256"] = sha256,
                 ["source_url"] = url
             };
-            Core.UI.EngineSdk.Info($"Lockfile updated for {toolName} {version}.");
+            Shared.UI.EngineSdk.Info($"Lockfile updated for {toolName} {version}.");
         }
 
         await System.IO.File.WriteAllTextAsync(lockPath, System.Text.Json.JsonSerializer.Serialize(lockData, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }), cancellationToken);
-        Core.UI.EngineSdk.Info($"Lockfile written: {lockPath}");
+        Shared.UI.EngineSdk.Info($"Lockfile written: {lockPath}");
         return true;
     }
 
@@ -238,7 +238,7 @@ internal static class ToolsDownloader {
         return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
     }
 
-    private static async System.Threading.Tasks.Task CopyStreamWithProgressAsync(System.IO.Stream input, System.IO.Stream output, Core.UI.EngineSdk.PanelProgress progress) {
+    private static async System.Threading.Tasks.Task CopyStreamWithProgressAsync(System.IO.Stream input, System.IO.Stream output, Shared.UI.EngineSdk.PanelProgress progress) {
         const int BufferSize = 81920;
         byte[] buffer = new byte[BufferSize];
         int read;
@@ -583,10 +583,10 @@ internal static class ToolsDownloader {
             System.IO.UnixFileMode currentMode = System.IO.File.GetUnixFileMode(path);
             System.IO.UnixFileMode newMode = currentMode | System.IO.UnixFileMode.UserExecute | System.IO.UnixFileMode.GroupExecute;
             System.IO.File.SetUnixFileMode(path, newMode);
-            Core.UI.EngineSdk.Info($"Applied executable permissions to: {path}");
+            Shared.UI.EngineSdk.Info($"Applied executable permissions to: {path}");
         } catch (Exception ex) {
             Shared.Diagnostics.Bug($"[ToolsDownloader::ApplyExecutablePermissions()] Failed to set executable permissions for '{path}'.", ex);
-            Core.UI.EngineSdk.Warn($"Could not set executable bit on {path}: {ex.Message}");
+            Shared.UI.EngineSdk.Warn($"Could not set executable bit on {path}: {ex.Message}");
         }
     }
 }

@@ -1,5 +1,5 @@
 
-namespace EngineNet.Core.UI;
+namespace EngineNet.Shared.UI;
 
 /// <summary>
 /// Engine SDK for emitting structured events to the UI from anywhere in the engine or Lua scripts.

@@ -23,7 +23,7 @@ internal static class P3dObjExporter {
                     break;
                 case HighLevelType.SkinType skinType:
                     Shared.Diagnostics.Log($"[p3d] Warning: OBJ does not support skeletons/weights. Exporting skin '{skinType.Skin.Name}' as static mesh.");
-                    Core.UI.EngineSdk.PrintLine($"[p3d] Warning: OBJ does not support skeletons/weights. Exporting skin '{skinType.Skin.Name}' as static mesh.", ConsoleColor.Yellow);
+                    Shared.UI.EngineSdk.PrintLine($"[p3d] Warning: OBJ does not support skeletons/weights. Exporting skin '{skinType.Skin.Name}' as static mesh.", ConsoleColor.Yellow);
                     ExportMeshOrSkin(destinationFolder, skinType.Skin.Name, skinType.Skin.PrimGroups, skinType.Skin.Shaders, skinType.Skin.Textures);
                     break;
             }

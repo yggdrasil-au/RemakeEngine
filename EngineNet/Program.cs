@@ -4,10 +4,12 @@ using System.Linq;
 
 using Avalonia;
 
-using EngineNet.Core.UI;
+using EngineNet.Shared.UI;
 using EngineNet.Core.Data;
 
 namespace EngineNet;
+
+using System.Threading;
 
 public static class Program {
 
@@ -27,12 +29,14 @@ public static class Program {
     /* :: :: Main :: START :: */
     [STAThread]
     public static async System.Threading.Tasks.Task<int> Main(string[] args) {
-        using var cancellationToken = new System.Threading.CancellationTokenSource();
-        System.Console.CancelKeyPress += (_, e) => {
+        var shutdownCancellationController = new ShutdownCancellationController();
+
+        System.ConsoleCancelEventHandler cancelHandler = (_, e) => {
             e.Cancel = true;
-            cancellationToken.Cancel();
+            shutdownCancellationController.Cancel();
             Shared.Diagnostics.Log("Global Cancellation Requested (Ctrl+C)");
         };
+        System.Console.CancelKeyPress += cancelHandler;
 
         try {
             // Try to attach to the parent console (CMD/PowerShell) so stdout works.
@@ -91,7 +95,7 @@ public static class Program {
             if (isGui) {
                 Shared.Diagnostics.Trace("Launching GUI Interface...");
                 //return Interface.GUI.GuiBootstrapper.Run(Engine); // ;; gui flow step1 ;;
-                return await UI.init(args, "gui", cancellationToken.Token);
+                return await UI.init(args, "gui", shutdownCancellationController.Token);
             }
 
             // Logic:
@@ -99,8 +103,8 @@ public static class Program {
             if (isTui) {
                 Shared.Diagnostics.Trace("Launching TUI Interface...");
                 //Interface.Terminal.TUI TUI = new Interface.Terminal.TUI(Engine);
-                //return await TUI.RunInteractiveMenuAsync(cancellationToken.Token);
-                return await UI.init(args, "tui", cancellationToken.Token);
+                //return await TUI.RunInteractiveMenuAsync(shutdownCancellationController.Token);
+                return await UI.init(args, "tui", shutdownCancellationController.Token);
             }
 
             // Logic:
@@ -108,8 +112,8 @@ public static class Program {
             if (isCli) {
                 Shared.Diagnostics.Trace("Launching CLI Interface...");
                 //Interface.Terminal.CLI CLI = new Interface.Terminal.CLI(Engine);
-                //return await CLI.RunAsync(args, cancellationToken.Token);
-                return await UI.init(args, "cli", cancellationToken.Token);
+                //return await CLI.RunAsync(args, shutdownCancellationController.Token);
+                return await UI.init(args, "cli", shutdownCancellationController.Token);
             }
             EngineSdk.Error("No valid interface mode selected.");
             Shared.Diagnostics.Bug("No valid interface mode selected.");
@@ -120,6 +124,8 @@ public static class Program {
             await System.Console.Error.WriteLineAsync($"Critical Engine Failure: {ex.Message}");
             return 1;
         } finally {
+            System.Console.CancelKeyPress -= cancelHandler;
+            shutdownCancellationController.Release();
             Shared.Diagnostics.Close();
             // :: Detach console on exit
             if (System.OperatingSystem.IsWindows()) {
@@ -181,6 +187,23 @@ public static class Program {
             Shared.Diagnostics.Bug($"Error finding project root: {e.Message}");
         }
         return string.Empty;
+    }
+
+    /// <summary>
+    /// Owns the shutdown cancellation source without exposing the disposable source directly to event handlers.
+    /// </summary>
+    private sealed class ShutdownCancellationController {
+        private readonly System.Threading.CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+
+        public System.Threading.CancellationToken Token => cancellationTokenSource.Token;
+
+        public void Cancel() {
+            cancellationTokenSource.Cancel();
+        }
+
+        public void Release() {
+            cancellationTokenSource.Dispose();
+        }
     }
 
 

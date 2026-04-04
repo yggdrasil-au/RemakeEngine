@@ -292,8 +292,8 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 moduleName: ModuleName,
                 operationName: "Initialization Ops",
                 executor: async (_, onEvent, stdin) => {
-                    Core.UI.EngineSdk.LocalEventSink = e => onEvent(e);
-                    Core.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
+                    Shared.UI.EngineSdk.LocalEventSink = e => onEvent(e);
+                    Shared.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
 
                     System.IO.TextReader previous = System.Console.In;
                     try {
@@ -345,19 +345,19 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 operationName: "Play",
                 executor: async (_, onEvent, stdin) => {
                     // Temporarily redirect engine events/output for this launch
-                    var previousSink = Core.UI.EngineSdk.LocalEventSink;
-                    bool previousMute = Core.UI.EngineSdk.MuteStdoutWhenLocalSink;
+                    var previousSink = Shared.UI.EngineSdk.LocalEventSink;
+                    bool previousMute = Shared.UI.EngineSdk.MuteStdoutWhenLocalSink;
                     var previousIn = System.Console.In;
 
-                    Core.UI.EngineSdk.LocalEventSink = e => onEvent(e);
-                    Core.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
+                    Shared.UI.EngineSdk.LocalEventSink = e => onEvent(e);
+                    Shared.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
 
                     try {
                         System.Console.SetIn(new GuiStdinRedirectReader(provider: stdin));
                         return await GuiBootstrapper.MiniEngine.GameLauncher_LaunchGameAsync(name: ModuleName);
                     } finally {
-                        Core.UI.EngineSdk.LocalEventSink = previousSink;
-                        Core.UI.EngineSdk.MuteStdoutWhenLocalSink = previousMute;
+                        Shared.UI.EngineSdk.LocalEventSink = previousSink;
+                        Shared.UI.EngineSdk.MuteStdoutWhenLocalSink = previousMute;
                         System.Console.SetIn(previousIn);
                     }
                 }
@@ -423,8 +423,8 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 moduleName: ModuleName,
                 operationName: row.Name,
                 executor: async (_, onEvent, stdin) => {
-                    Core.UI.EngineSdk.LocalEventSink = e => onEvent(e);
-                    Core.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
+                    Shared.UI.EngineSdk.LocalEventSink = e => onEvent(e);
+                    Shared.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
 
                     System.IO.TextReader previous = System.Console.In;
                     try {

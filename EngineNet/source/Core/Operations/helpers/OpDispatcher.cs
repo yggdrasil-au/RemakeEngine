@@ -39,7 +39,7 @@ internal static class OpDispatcher {
         if (type == "internal") {
             string? sourceFile = executableOperation.TryGetValue("_source_file", out object? sf) ? sf?.ToString() : null;
             if (string.IsNullOrWhiteSpace(sourceFile)) {
-                Core.UI.EngineSdk.Error("Internal operation blocked: Missing source file context.");
+                Shared.UI.EngineSdk.Error("Internal operation blocked: Missing source file context.");
                 return false;
             }
             string allowedDir = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "EngineApps", "Registries", "ops");
@@ -47,7 +47,7 @@ internal static class OpDispatcher {
             string fullAllowed = System.IO.Path.GetFullPath(allowedDir);
 
             if (!fullSource.StartsWith(fullAllowed, System.StringComparison.OrdinalIgnoreCase)) {
-                Core.UI.EngineSdk.Error($"Internal operation blocked: Source '{sourceFile}' is not in allowed directory '{allowedDir}'.");
+                Shared.UI.EngineSdk.Error($"Internal operation blocked: Source '{sourceFile}' is not in allowed directory '{allowedDir}'.");
                 return false;
             }
         }

@@ -20,18 +20,18 @@ internal static partial class TxdExtractor {
             List<string> files = EnumerateTxdFiles(options.InputPath);
             int processed = 0, ok = 0, skip = 0, err = 0;
 
-            Core.UI.EngineSdk.SdkConsoleProgress.ActiveProcess? currentJob = null;
+            Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess? currentJob = null;
             using var cts = new CancellationTokenSource();
-            System.Threading.Tasks.Task progress = Core.UI.EngineSdk.SdkConsoleProgress.StartPanel(
+            System.Threading.Tasks.Task progress = Shared.UI.EngineSdk.SdkConsoleProgress.StartPanel(
                 total: files.Count,
                 snapshot: () => (System.Threading.Volatile.Read(ref processed), System.Threading.Volatile.Read(ref ok), System.Threading.Volatile.Read(ref skip), System.Threading.Volatile.Read(ref err)),
-                activeSnapshot: () => currentJob is null ? new List<Core.UI.EngineSdk.SdkConsoleProgress.ActiveProcess>() : new List<Core.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> { currentJob },
+                activeSnapshot: () => currentJob is null ? new List<Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess>() : new List<Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> { currentJob },
                 label: "Extracting TXD",
                 token: cts.Token);
 
             foreach (string txdFile in files) {
                 try {
-                    currentJob = new Core.UI.EngineSdk.SdkConsoleProgress.ActiveProcess { Tool = "txd", File = System.IO.Path.GetFileName(txdFile), StartedUtc = System.DateTime.UtcNow };
+                    currentJob = new Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess { Tool = "txd", File = System.IO.Path.GetFileName(txdFile), StartedUtc = System.DateTime.UtcNow };
 
 
                     string? outputBase = options.OutputDirectory;

@@ -38,7 +38,7 @@ internal static partial class Sdk {
                     newline = nl.Boolean;
                 }
             }
-            Core.UI.EngineSdk.Print(message, color, newline);
+            Shared.UI.EngineSdk.Print(message, color, newline);
             return DynValue.Nil;
         });
         _LuaWorld.Sdk.Table["color_print"] = DynValue.NewCallback(colorPrintFunc);

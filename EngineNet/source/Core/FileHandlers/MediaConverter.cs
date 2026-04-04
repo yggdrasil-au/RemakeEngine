@@ -36,7 +36,7 @@ internal static class MediaConverter {
     }
 
     // Tracks currently running external conversions (for progress panel)
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, Core.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> s_active = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> s_active = new();
 
     /// <summary>
     /// Converts media files using ffmpeg or vgmstream while preserving directory layout.
@@ -59,26 +59,26 @@ internal static class MediaConverter {
             // check if current required tool exist
             if (string.Equals(opt.Mode, ToolFfmpeg, System.StringComparison.OrdinalIgnoreCase)) {
                 if (!System.IO.File.Exists(opt.FfmpegPath!)) {
-                    Core.UI.EngineSdk.Error($"ffmpeg executable not found: {opt.FfmpegPath}");
-                    Core.UI.EngineSdk.Error("Please ensure ffmpeg is installed. You can download it using the 'Download Required Tools' operation.");
+                    Shared.UI.EngineSdk.Error($"ffmpeg executable not found: {opt.FfmpegPath}");
+                    Shared.UI.EngineSdk.Error("Please ensure ffmpeg is installed. You can download it using the 'Download Required Tools' operation.");
                     return false;
                 }
             } else if (string.Equals(opt.Mode, ToolVgmstream, System.StringComparison.OrdinalIgnoreCase)) {
                 if (!System.IO.File.Exists(opt.VgmstreamCli!)) {
-                    Core.UI.EngineSdk.Error($"vgmstream-cli executable not found: {opt.VgmstreamCli}");
-                    Core.UI.EngineSdk.Error("Please ensure vgmstream-cli is installed. You can download it using the 'Download Required Tools' operation.");
+                    Shared.UI.EngineSdk.Error($"vgmstream-cli executable not found: {opt.VgmstreamCli}");
+                    Shared.UI.EngineSdk.Error("Please ensure vgmstream-cli is installed. You can download it using the 'Download Required Tools' operation.");
                     return false;
                 }
                 // If using vgmstream with Godot mode, we also need ffmpeg
                 if (opt.GodotCompatible && (string.IsNullOrEmpty(opt.FfmpegPath) || !System.IO.File.Exists(opt.FfmpegPath))) {
-                    Core.UI.EngineSdk.Error($"ffmpeg executable not found: {opt.FfmpegPath ?? "null"}");
-                    Core.UI.EngineSdk.Error("vgmstream with --godot-compatible requires ffmpeg for post-processing. Please ensure ffmpeg is installed.");
+                    Shared.UI.EngineSdk.Error($"ffmpeg executable not found: {opt.FfmpegPath ?? "null"}");
+                    Shared.UI.EngineSdk.Error("vgmstream with --godot-compatible requires ffmpeg for post-processing. Please ensure ffmpeg is installed.");
                     return false;
                 }
             }
 
             if (!System.IO.Directory.Exists(opt.Source)) {
-                Core.UI.EngineSdk.Error($"Source directory not found: {opt.Source}");
+                Shared.UI.EngineSdk.Error($"Source directory not found: {opt.Source}");
                 return false;
             }
             System.IO.Directory.CreateDirectory(opt.Target);
@@ -88,18 +88,18 @@ internal static class MediaConverter {
                 opt.Workers = System.Math.Max(1, (int)System.Math.Floor(cores * 0.75));
             }
 
-            Core.UI.EngineSdk.Info($"--- Starting {opt.Mode.ToUpperInvariant()} Conversion ---");
+            Shared.UI.EngineSdk.Info($"--- Starting {opt.Mode.ToUpperInvariant()} Conversion ---");
             WriteVerbose(opt.Verbose, $"Using executable: {(opt.Mode == "ffmpeg" ? opt.FfmpegPath : opt.VgmstreamCli)}");
 
             List<string> allFiles = System.IO.Directory.EnumerateFiles(opt.Source, "*" + opt.InputExt, System.IO.SearchOption.AllDirectories)
                                      .Where(p => p.EndsWith(opt.InputExt, System.StringComparison.OrdinalIgnoreCase))
                                      .ToList();
             if (allFiles.Count == 0) {
-                Core.UI.EngineSdk.Warn($"No '{opt.InputExt}' files found in {opt.Source}.");
+                Shared.UI.EngineSdk.Warn($"No '{opt.InputExt}' files found in {opt.Source}.");
                 return true; // nothing to do
             }
 
-            Core.UI.EngineSdk.Info($"Found {allFiles.Count} files to process with {opt.Workers} workers.");
+            Shared.UI.EngineSdk.Info($"Found {allFiles.Count} files to process with {opt.Workers} workers.");
 
             int success = 0;
             int skipped = 0;
@@ -112,7 +112,7 @@ internal static class MediaConverter {
                 CancellationToken = cancellationToken
             };
             using System.Threading.CancellationTokenSource progressCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            System.Threading.Tasks.Task progressTask = Core.UI.EngineSdk.SdkConsoleProgress.StartPanel(
+            System.Threading.Tasks.Task progressTask = Shared.UI.EngineSdk.SdkConsoleProgress.StartPanel(
                 total: allFiles.Count,
                 snapshot: () => (System.Threading.Volatile.Read(ref processed), System.Threading.Volatile.Read(ref success), System.Threading.Volatile.Read(ref skipped), System.Threading.Volatile.Read(ref errors)),
                 activeSnapshot: () => s_active.Values.ToList(), // This now returns List<SdkConsoleProgress.ActiveProcess>
@@ -169,7 +169,7 @@ internal static class MediaConverter {
                 });
             } catch (System.OperationCanceledException ex) {
                 Shared.Diagnostics.Bug($"[MediaConverter::Run()] Conversion cancelled by user: {ex}");
-                Core.UI.EngineSdk.Warn("\nConversion cancelled by user.");
+                Shared.UI.EngineSdk.Warn("\nConversion cancelled by user.");
             }
 
             progressCts.Cancel();
@@ -181,16 +181,16 @@ internal static class MediaConverter {
                 // ignore
             }
 
-            Core.UI.EngineSdk.Info("\n--- Conversion Completed ---");
+            Shared.UI.EngineSdk.Info("\n--- Conversion Completed ---");
 
-            UI.EngineSdk.PrintLine($"Success: {success}", System.ConsoleColor.Green);
-            UI.EngineSdk.PrintLine($"Skipped: {skipped}", System.ConsoleColor.Yellow);
-            UI.EngineSdk.PrintLine($"Errors: {errors}", System.ConsoleColor.Red);
+            Shared.UI.EngineSdk.PrintLine($"Success: {success}", System.ConsoleColor.Green);
+            Shared.UI.EngineSdk.PrintLine($"Skipped: {skipped}", System.ConsoleColor.Yellow);
+            Shared.UI.EngineSdk.PrintLine($"Errors: {errors}", System.ConsoleColor.Red);
 
             if (!errorList.IsEmpty) {
-                Core.UI.EngineSdk.Error("\nEncountered the following errors:");
+                Shared.UI.EngineSdk.Error("\nEncountered the following errors:");
                 foreach ((string file, string msg) in errorList) {
-                    UI.EngineSdk.PrintLine($" Fail - File: {file}\n    Reason: {msg}", System.ConsoleColor.Red);
+                    Shared.UI.EngineSdk.PrintLine($" Fail - File: {file}\n    Reason: {msg}", System.ConsoleColor.Red);
                 }
                 return false;
             }
@@ -198,7 +198,7 @@ internal static class MediaConverter {
             return true;
         } catch (System.Exception ex) {
             Shared.Diagnostics.Bug($"[MediaConverter.cs::Run()] Media conversion failed: {ex}");
-            Core.UI.EngineSdk.Error($"Media conversion failed: {ex.Message}");
+            Shared.UI.EngineSdk.Error($"Media conversion failed: {ex.Message}");
             Shared.Diagnostics.Log($"[MediaConverter.cs::Run()] MediaConverter: Exception during media conversion: {ex}");
             return false;
         }
@@ -369,7 +369,7 @@ internal static class MediaConverter {
     private static void RegisterActive(string tool, string srcPath) {
         try {
             int key = System.Threading.Thread.CurrentThread.ManagedThreadId;
-            s_active[key] = new Core.UI.EngineSdk.SdkConsoleProgress.ActiveProcess {
+            s_active[key] = new Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess {
                 Tool = tool,
                 File = System.IO.Path.GetFileName(srcPath),
                 StartedUtc = System.DateTime.UtcNow
@@ -632,7 +632,7 @@ internal static class MediaConverter {
         if (!enabled) {
             return;
         }
-        Core.UI.EngineSdk.Info(msg);
+        Shared.UI.EngineSdk.Info(msg);
     }
 
     private static void TryDelete(string path) {

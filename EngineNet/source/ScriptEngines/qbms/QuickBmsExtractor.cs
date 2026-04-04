@@ -69,13 +69,13 @@ internal static class QuickBmsExtractor {
 
         // Minimal active job tracking for progress panel
         using System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
-        EngineNet.Core.UI.EngineSdk.SdkConsoleProgress.ActiveProcess? current = null;
-        System.Threading.Tasks.Task panel = EngineNet.Core.UI.EngineSdk.SdkConsoleProgress.StartPanel(
+        EngineNet.Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess? current = null;
+        System.Threading.Tasks.Task panel = EngineNet.Shared.UI.EngineSdk.SdkConsoleProgress.StartPanel(
             total: files.Count,
             snapshot: () => (processed, success, 0, errors),
             activeSnapshot: () => {
-                if (current is null) return new List<EngineNet.Core.UI.EngineSdk.SdkConsoleProgress.ActiveProcess>();
-                return new List<EngineNet.Core.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> { current };
+                if (current is null) return new List<EngineNet.Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess>();
+                return new List<EngineNet.Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> { current };
             },
             label: "Extracting Archives",
             token: cts.Token);
@@ -86,7 +86,7 @@ internal static class QuickBmsExtractor {
             System.IO.Directory.CreateDirectory(outputDir);
 
             // Update active job snapshot
-            current = new EngineNet.Core.UI.EngineSdk.SdkConsoleProgress.ActiveProcess {
+            current = new EngineNet.Shared.UI.EngineSdk.SdkConsoleProgress.ActiveProcess {
                 Tool = "quickbms",
                 File = System.IO.Path.GetFileName(file),
                 StartedUtc = System.DateTime.UtcNow
@@ -309,7 +309,7 @@ internal static class QuickBmsExtractor {
             message = s_prefix + message;
         }
         lock (s_consoleLock) {
-            Core.UI.EngineSdk.PrintLine(message, colour);
+            Shared.UI.EngineSdk.PrintLine(message, colour);
         }
     }
 }

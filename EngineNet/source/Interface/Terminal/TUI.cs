@@ -203,11 +203,11 @@ public partial class TUI {
                     System.Console.WriteLine($"Launching game '{gameName}'...\n");
 
                     // Route in-process SDK events (e.g. from Lua scripts) to our terminal renderer
-                    System.Action<Dictionary<string, object?>>? prevSink = Core.UI.EngineSdk.LocalEventSink;
-                    bool prevMute = Core.UI.EngineSdk.MuteStdoutWhenLocalSink;
+                    System.Action<Dictionary<string, object?>>? prevSink = Shared.UI.EngineSdk.LocalEventSink;
+                    bool prevMute = Shared.UI.EngineSdk.MuteStdoutWhenLocalSink;
 
-                    Core.UI.EngineSdk.LocalEventSink = Utils.OnEvent;
-                    Core.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
+                    Shared.UI.EngineSdk.LocalEventSink = Utils.OnEvent;
+                    Shared.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
 
                     try {
                         bool launched = await Engine.GameLauncher_LaunchGameAsync(name: gameName);
@@ -215,8 +215,8 @@ public partial class TUI {
                             ? "\nGame finished or launched successfully. Press any key to continue..."
                             : "\nFailed to launch game. Press any key to continue...");
                     } finally {
-                        Core.UI.EngineSdk.LocalEventSink = prevSink;
-                        Core.UI.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
+                        Shared.UI.EngineSdk.LocalEventSink = prevSink;
+                        Shared.UI.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
                     }
 
                     SafeReadKey(true);

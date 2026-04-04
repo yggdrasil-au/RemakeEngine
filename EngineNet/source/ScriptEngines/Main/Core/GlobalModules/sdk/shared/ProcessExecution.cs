@@ -35,7 +35,7 @@ internal static class ProcessExecution {
     private static bool ValidateArgPaths(IEnumerable<string> args, string? cwd) {
         if (!string.IsNullOrEmpty(cwd)) {
             if (!EngineNet.ScriptEngines.Security.IsAllowedPath(cwd)) {
-                Core.UI.EngineSdk.Error($"Access denied: working directory outside allowed areas ('{cwd}')");
+                Shared.UI.EngineSdk.Error($"Access denied: working directory outside allowed areas ('{cwd}')");
                 return false;
             }
         }
@@ -49,7 +49,7 @@ internal static class ProcessExecution {
             candidate = candidate.Trim('"', '\'', ' ');
             if (!LooksLikePath(candidate)) continue;
             if (!EngineNet.ScriptEngines.Security.IsAllowedPath(candidate)) {
-                Core.UI.EngineSdk.Error($"Access denied: process argument references path outside allowed areas ('{candidate}')");
+                Shared.UI.EngineSdk.Error($"Access denied: process argument references path outside allowed areas ('{candidate}')");
                 return false;
             }
         }
@@ -247,7 +247,7 @@ internal static class ProcessExecution {
                 onOutput: (msg, type) => {
                     if (!silentRun) {
                         string? color = type == "stderr" ? "red" : null;
-                        Core.UI.EngineSdk.Print(msg, color, true);
+                        Shared.UI.EngineSdk.Print(msg, color, true);
                         Shared.Diagnostics.Log($"[ProcessRunner][{type}] {msg}");
                     }
                 },

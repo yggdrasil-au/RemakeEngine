@@ -46,20 +46,20 @@ public class Utils {
             // Use embedded handlers for engine/lua/js/bms to avoid external dependencies
             if (Core.Utils.ScriptConstants.IsSupported(script_type)) {
                 // Route in-process SDK events to our terminal renderer
-                System.Action<Dictionary<string, object?>>? prevSink = Core.UI.EngineSdk.LocalEventSink;
-                bool prevMute = Core.UI.EngineSdk.MuteStdoutWhenLocalSink;
-                Dictionary<string, string> prevAutoResponses = new(Core.UI.EngineSdk.AutoPromptResponses);
+                System.Action<Dictionary<string, object?>>? prevSink = Shared.UI.EngineSdk.LocalEventSink;
+                bool prevMute = Shared.UI.EngineSdk.MuteStdoutWhenLocalSink;
+                Dictionary<string, string> prevAutoResponses = new(Shared.UI.EngineSdk.AutoPromptResponses);
                 try {
                     // Set auto-prompt responses if provided
                     if (autoPromptResponses is { Count: > 0 }) {
-                        Core.UI.EngineSdk.AutoPromptResponses.Clear();
+                        Shared.UI.EngineSdk.AutoPromptResponses.Clear();
                         foreach (KeyValuePair<string, string> kv in autoPromptResponses) {
-                            Core.UI.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
+                            Shared.UI.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
                         }
                     }
 
-                    Core.UI.EngineSdk.LocalEventSink = OnEvent;
-                    Core.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
+                    Shared.UI.EngineSdk.LocalEventSink = OnEvent;
+                    Shared.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
                     return await Engine.RunSingleOperationAsync(
                         game,
                         games,
@@ -69,13 +69,13 @@ public class Utils {
                     );
                 } finally {
                     // Restore previous auto-prompt responses
-                    Core.UI.EngineSdk.AutoPromptResponses.Clear();
+                    Shared.UI.EngineSdk.AutoPromptResponses.Clear();
                     foreach (KeyValuePair<string, string> kv in prevAutoResponses) {
-                        Core.UI.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
+                        Shared.UI.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
                     }
 
-                    Core.UI.EngineSdk.LocalEventSink = prevSink;
-                    Core.UI.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
+                    Shared.UI.EngineSdk.LocalEventSink = prevSink;
+                    Shared.UI.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
                 }
             } else {
                 Shared.Diagnostics.Log($"[Utils.cs::ExecuteOp()] Routing operation of type '{script_type}' to external command execution");

@@ -43,7 +43,7 @@ public static class GuiBootstrapper {
             MiniEngine = miniEngine;
 
             // Ensure events from the engine (including "Play" button actions) reach the GUI
-            Core.UI.EngineSdk.LocalEventSink = OperationOutputService.Instance.HandleEvent;
+            Shared.UI.EngineSdk.LocalEventSink = OperationOutputService.Instance.HandleEvent;
 
             // 2) Build the app and start the desktop lifetime.
             //    This call blocks until the window closes / lifetime ends.

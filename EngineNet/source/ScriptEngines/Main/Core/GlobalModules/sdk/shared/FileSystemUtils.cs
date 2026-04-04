@@ -76,25 +76,25 @@ internal static class FileSystemUtils {
                 throw new System.IO.IOException($"Destination already exists: {destDir}");
             }
             // We'll merge by copy then delete source
-            Core.UI.EngineSdk.Print($"Merging '{sourceDir}' into existing '{destDir}'...");
+            Shared.UI.EngineSdk.Print($"Merging '{sourceDir}' into existing '{destDir}'...");
             CopyDirectory(sourceDir, destDir, overwrite: true, progressLabel: $"Merging {sourceDir} to {destDir}...");
-            Core.UI.EngineSdk.Print("Deleting source after merge...");
+            Shared.UI.EngineSdk.Print("Deleting source after merge...");
             System.IO.Directory.Delete(sourceDir, recursive: true);
-            Core.UI.EngineSdk.Print("Move complete.");
+            Shared.UI.EngineSdk.Print("Move complete.");
             return;
         }
 
         try {
-            Core.UI.EngineSdk.Print($"Moving directory '{sourceDir}' -> '{destDir}' (fast move) ...", newline: false);
+            Shared.UI.EngineSdk.Print($"Moving directory '{sourceDir}' -> '{destDir}' (fast move) ...", newline: false);
             System.IO.Directory.Move(sourceDir, destDir);
-            Core.UI.EngineSdk.Print(" done.", newline: true);
+            Shared.UI.EngineSdk.Print(" done.", newline: true);
         } catch {
             // Fallback to copy+delete for cross-device moves
-            Core.UI.EngineSdk.Print("Fast move not available; falling back to copy...", newline: true);
+            Shared.UI.EngineSdk.Print("Fast move not available; falling back to copy...", newline: true);
             CopyDirectory(sourceDir, destDir, overwrite: true, progressLabel: $"Moving {sourceDir} to {destDir}...");
-            Core.UI.EngineSdk.Print("Deleting source after copy...", newline: true);
+            Shared.UI.EngineSdk.Print("Deleting source after copy...", newline: true);
             System.IO.Directory.Delete(sourceDir, recursive: true);
-            Core.UI.EngineSdk.Print("Move complete.");
+            Shared.UI.EngineSdk.Print("Move complete.");
         }
     }
 
@@ -138,13 +138,13 @@ internal static class FileSystemUtils {
         int total = files.Count;
         //int current = 0;
 
-        using Core.UI.EngineSdk.PanelProgress? progress = total > 0
-            ? new Core.UI.EngineSdk.PanelProgress(total, id: "fs_copy", label: progressLabel ?? $"Copying {total} files...")
+        using Shared.UI.EngineSdk.PanelProgress? progress = total > 0
+            ? new Shared.UI.EngineSdk.PanelProgress(total, id: "fs_copy", label: progressLabel ?? $"Copying {total} files...")
             : null;
 
         // Write initial line
         if (total > 0) {
-            Core.UI.EngineSdk.Print($"Copying {total} files from '{srcRoot}' to '{dstRoot}'...");
+            Shared.UI.EngineSdk.Print($"Copying {total} files from '{srcRoot}' to '{dstRoot}'...");
         }
 
         // Copy files with progress

@@ -9,7 +9,7 @@ internal static class Helpers {
             try {
                 // Security: Validate path is within allowed areas
                 if (!Security.IsAllowedPath(dir)) {
-                    Core.UI.EngineSdk.Error($"Access denied: validate_source_dir path is outside allowed areas ('{dir}')");
+                    Shared.UI.EngineSdk.Error($"Access denied: validate_source_dir path is outside allowed areas ('{dir}')");
                     return false;
                 }
                 ValidateSourceDir(dir);
@@ -147,7 +147,7 @@ internal static class Helpers {
             try {
                 // Security: Validate paths are within allowed workspace areas
                 if (!Security.IsAllowedPath(archivePath) || !Security.IsAllowedPath(destDir)) {
-                    Core.UI.EngineSdk.Error($"Access denied: Archive operations restricted to workspace areas. Attempted: {archivePath} -> {destDir}");
+                    Shared.UI.EngineSdk.Error($"Access denied: Archive operations restricted to workspace areas. Attempted: {archivePath} -> {destDir}");
                     return false;
                 }
 
@@ -157,10 +157,10 @@ internal static class Helpers {
                     return true;
                 }
                 // For other formats, suggest using approved tools
-                Core.UI.EngineSdk.Error($"Unsupported archive format '{ext}'. Use 7z tool from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" for other formats.");
+                Shared.UI.EngineSdk.Error($"Unsupported archive format '{ext}'. Use 7z tool from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" for other formats.");
                 return false;
             } catch (System.Exception ex) {
-                Core.UI.EngineSdk.Error($"Archive extraction failed: {ex.Message}"); // output directly to UI, consider returning error to lua instead
+                Shared.UI.EngineSdk.Error($"Archive extraction failed: {ex.Message}"); // output directly to UI, consider returning error to lua instead
                 Shared.Diagnostics.LuaInternalCatch("extract_archive failed with exception: " + ex);
                 return false;
             }
@@ -170,7 +170,7 @@ internal static class Helpers {
             try {
                 // Security: Validate paths are within allowed workspace areas
                 if (!Security.IsAllowedPath(srcPath) || !Security.IsAllowedPath(archivePath)) {
-                    Core.UI.EngineSdk.Error($"Access denied: Archive operations restricted to workspace areas. Attempted: {srcPath} -> {archivePath}");
+                    Shared.UI.EngineSdk.Error($"Access denied: Archive operations restricted to workspace areas. Attempted: {srcPath} -> {archivePath}");
                     return false;
                 }
 
@@ -190,10 +190,10 @@ internal static class Helpers {
                     return true;
                 }
                 // For other formats, suggest using approved tools
-                Core.UI.EngineSdk.Error($"Unsupported archive type '{type}'. Use 7z tool from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" for other formats.");
+                Shared.UI.EngineSdk.Error($"Unsupported archive type '{type}'. Use 7z tool from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" for other formats.");
                 return false;
             } catch (System.Exception ex) {
-                Core.UI.EngineSdk.Error($"Archive creation failed: {ex.Message}");
+                Shared.UI.EngineSdk.Error($"Archive creation failed: {ex.Message}");
                 Shared.Diagnostics.LuaInternalCatch("create_archive failed with exception: " + ex);
                 return false;
             }
@@ -207,13 +207,13 @@ internal static class Helpers {
             try {
                 // Security: Validate path is within allowed areas
                 if (!Security.IsAllowedPath(path)) {
-                    Core.UI.EngineSdk.Error($"Access denied: toml_read_file path is outside allowed areas ('{path}')");
+                    Shared.UI.EngineSdk.Error($"Access denied: toml_read_file path is outside allowed areas ('{path}')");
                     return null; //DynValue.Nil;
                 }
                 object? obj = Shared.Serialization.Toml.TomlHelpers.ParseFileToPlainObject(path);
                 return obj;
             } catch (System.Exception ex) {
-                Core.UI.EngineSdk.Error($"TOML read failed: {ex.Message}");
+                Shared.UI.EngineSdk.Error($"TOML read failed: {ex.Message}");
                 Shared.Diagnostics.LuaInternalCatch("toml_read_file failed with exception: " + ex);
                 return null; //DynValue.Nil;
             }
@@ -223,13 +223,13 @@ internal static class Helpers {
             try {
                 // Security: Validate path is within allowed areas
                 if (!Security.IsAllowedPath(path)) {
-                    Core.UI.EngineSdk.Error($"Access denied: toml_write_file path is outside allowed areas ('{path}')");
+                    Shared.UI.EngineSdk.Error($"Access denied: toml_write_file path is outside allowed areas ('{path}')");
                     return;
                 }
                 Shared.Serialization.Toml.TomlHelpers.WriteTomlFile(path, obj);
             } catch (System.Exception ex) {
                 Shared.Diagnostics.Bug("[helpers.cs::Toml_Write_File] catch triggered with exception: " + ex);
-                Core.UI.EngineSdk.Error($"TOML write failed: {ex.Message}");
+                Shared.UI.EngineSdk.Error($"TOML write failed: {ex.Message}");
                 Shared.Diagnostics.LuaInternalCatch("toml_write_file failed with exception: " + ex);
             }
         }
@@ -241,14 +241,14 @@ internal static class Helpers {
             try {
                 // Security: Validate path is within allowed areas
                 if (!Security.IsAllowedPath(path)) {
-                    Core.UI.EngineSdk.Error($"Access denied: yaml_read_file path is outside allowed areas ('{path}')");
+                    Shared.UI.EngineSdk.Error($"Access denied: yaml_read_file path is outside allowed areas ('{path}')");
                     return null;
                 }
 
                 object obj = Shared.Serialization.Yaml.YamlHelpers.ParseFileToPlainObject(path);
                 return obj;
             } catch (System.Exception ex) {
-                Core.UI.EngineSdk.Error($"YAML read failed: {ex.Message}");
+                Shared.UI.EngineSdk.Error($"YAML read failed: {ex.Message}");
                 Shared.Diagnostics.LuaInternalCatch("yaml_read_file failed with exception: " + ex);
                 return null;
             }
@@ -258,13 +258,13 @@ internal static class Helpers {
             try {
                 // Security: Validate path is within allowed areas
                 if (!Security.IsAllowedPath(path)) {
-                    Core.UI.EngineSdk.Error($"Access denied: yaml_write_file path is outside allowed areas ('{path}')");
+                    Shared.UI.EngineSdk.Error($"Access denied: yaml_write_file path is outside allowed areas ('{path}')");
                     return;
                 }
 
                 Shared.Serialization.Yaml.YamlHelpers.WriteYamlFile(path, obj);
             } catch (System.Exception ex) {
-                Core.UI.EngineSdk.Error($"YAML write failed: {ex.Message}");
+                Shared.UI.EngineSdk.Error($"YAML write failed: {ex.Message}");
                 Shared.Diagnostics.LuaInternalCatch("yaml_write_file failed with exception: " + ex);
             }
         }

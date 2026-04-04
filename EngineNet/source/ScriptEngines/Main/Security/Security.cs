@@ -179,7 +179,7 @@ internal static class Security {
 
         if (IsForbiddenPath(NormalizeLowerFullPath(path))) {
             canonicalPath = string.Empty;
-            Core.UI.EngineSdk.Error($"Access denied: File path '{path}' is a protected system or engine path");
+            Shared.UI.EngineSdk.Error($"Access denied: File path '{path}' is a protected system or engine path");
             return false;
         }
 
@@ -187,7 +187,7 @@ internal static class Security {
         string root = DetermineApprovalRoot(path);
         string msg = $"Permission requested: Allow this script to access external path '\"{root}\"'?";
 
-        bool allowed = Core.UI.EngineSdk.Confirm(msg, "ext_path_access", false);
+        bool allowed = Shared.UI.EngineSdk.Confirm(msg, "ext_path_access", false);
 
         if (allowed) {
             try {
@@ -207,7 +207,7 @@ internal static class Security {
         }
 
         canonicalPath = string.Empty;
-        Core.UI.EngineSdk.Error($"Access denied: File path '{path}' is outside allowed workspace areas");
+        Shared.UI.EngineSdk.Error($"Access denied: File path '{path}' is outside allowed workspace areas");
         return false;
     }
 

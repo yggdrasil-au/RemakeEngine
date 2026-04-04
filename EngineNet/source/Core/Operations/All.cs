@@ -89,8 +89,8 @@ internal sealed class All {
         }
 
         OperationState currentOperation = new OperationState();
-        using Core.UI.SdkEventScope? sdkScope = onEvent is not null
-            ? new Core.UI.SdkEventScope(
+        using Shared.UI.SdkEventScope? sdkScope = onEvent is not null
+            ? new Shared.UI.SdkEventScope(
                 sink: evt => {
                     Dictionary<string, object?> payload = CloneEvent(evt);
                     payload["game"] = gameName;

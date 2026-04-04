@@ -8,7 +8,7 @@ internal partial class InternalOperations {
             url = u?.ToString();
         }
         if (string.IsNullOrWhiteSpace(url)) {
-            Core.UI.EngineSdk.Error("No URL provided.");
+            Shared.UI.EngineSdk.Error("No URL provided.");
             Shared.Diagnostics.Trace("[Engine.private.cs :: InternalOperations()]] download_module_git: no url provided");
             return false;
         }

@@ -57,13 +57,13 @@ internal sealed class Single {
                         string? action = executableOperation.TryGetValue("script", out object? s) ? s?.ToString() : null;
                         string? title = executableOperation.TryGetValue("Name", out object? n) ? n?.ToString() ?? action : action;
                         Shared.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Executing engine operation {title} ({action})");
-                        Core.UI.EngineSdk.PrintLine(message: $"\n>>> Engine operation: {title}");
+                        Shared.UI.EngineSdk.PrintLine(message: $"\n>>> Engine operation: {title}");
                         // delegate engine type handling to ExecuteEngineOperationAsync
                         //var op_dispatcher = new helpers.OpDispatcher();
                         result = await helpers.OpDispatcher.DispatchAsync(executableOperation, promptAnswers, currentGame, games, Context, cancellationToken);
                     } catch (System.Exception ex) {
                         Shared.Diagnostics.Bug($"[Single.cs::RunAsync()] Engine operation catch triggered: {ex}");
-                        Core.UI.EngineSdk.PrintLine($"engine ERROR: {ex.Message}");
+                        Shared.UI.EngineSdk.PrintLine($"engine ERROR: {ex.Message}");
                         result = false;
                     }
                     break;
@@ -98,7 +98,7 @@ internal sealed class Single {
                         result = true;
                     } catch (System.Exception ex) {
                         Shared.Diagnostics.Bug($"[Single.cs::RunAsync()] External action catch triggered: {ex}");
-                        Core.UI.EngineSdk.PrintLine($"bms engine ERROR: {ex.Message}");
+                        Shared.UI.EngineSdk.PrintLine($"bms engine ERROR: {ex.Message}");
                         result = false;
                     }
                     break;
@@ -126,7 +126,7 @@ internal sealed class Single {
                         result = true;
                     } catch (System.Exception ex) {
                         Shared.Diagnostics.Bug($"[Single.cs::RunAsync()] Embedded action catch triggered for '{scriptType}': {ex}");
-                        Core.UI.EngineSdk.PrintLine($"{scriptType} engine ERROR: {ex.Message}");
+                        Shared.UI.EngineSdk.PrintLine($"{scriptType} engine ERROR: {ex.Message}");
                         result = false;
                     }
                     break;
@@ -139,7 +139,7 @@ internal sealed class Single {
             }
         } catch (System.Exception ex) {
             Shared.Diagnostics.Bug($"[RunSingleAsync.cs::RunSingleOperationAsync()] err running single op: {ex.Message}");
-            Core.UI.EngineSdk.PrintLine($"operation ERROR: {ex.Message}");
+            Shared.UI.EngineSdk.PrintLine($"operation ERROR: {ex.Message}");
             result = false;
         }
 
