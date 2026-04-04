@@ -41,7 +41,7 @@ public sealed class Main {
 
         // Expose only the methods that the UI can use, in a safe and simple shape.
 
-        public Dictionary<string, Core.Data.GameModuleInfo> GameRegistry_GetModules(Core.Utils.ModuleFilter filter) {
+        public Dictionary<string, Core.Data.GameModuleInfo> GameRegistry_GetModules(Core.Data.ModuleFilter filter) {
             return Engine.Context.GameRegistry.GetModules(filter);
         }
 
@@ -135,7 +135,7 @@ public sealed class Main {
 
 internal interface MiniEngineFace {
 
-    internal Dictionary<string, Core.Data.GameModuleInfo> GameRegistry_GetModules(Core.Utils.ModuleFilter filter);
+    internal Dictionary<string, Core.Data.GameModuleInfo> GameRegistry_GetModules(Core.Data.ModuleFilter filter);
 
     /// <summary>
     /// Gets all registered modules from the registry.

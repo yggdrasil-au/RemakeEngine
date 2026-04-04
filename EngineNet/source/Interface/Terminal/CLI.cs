@@ -91,7 +91,7 @@ internal partial class CLI {
         }
 
         // Find game modules
-        Dictionary<string, Core.Data.GameModuleInfo> games = Engine.GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
+        Dictionary<string, Core.Data.GameModuleInfo> games = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
         if (!TryResolveInlineGame(options, games, out string? gameName)) {
             Shared.IO.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
             return 1;
@@ -126,7 +126,7 @@ internal partial class CLI {
             return 2;
         }
 
-        Dictionary<string, Core.Data.GameModuleInfo> games = Engine.GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
+        Dictionary<string, Core.Data.GameModuleInfo> games = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
         if (!TryResolveInlineGame(options, games, out string? gameName)) {
             Shared.IO.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
             return 1;
@@ -165,7 +165,7 @@ internal partial class CLI {
             return 2;
         }
 
-        Dictionary<string, Core.Data.GameModuleInfo> games = Engine.GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
+        Dictionary<string, Core.Data.GameModuleInfo> games = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
         if (!TryResolveInlineGame(options, games, out string? gameName)) {
             Shared.IO.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
             return 1;

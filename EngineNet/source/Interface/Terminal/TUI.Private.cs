@@ -297,8 +297,8 @@ public partial class TUI {
     }*/
 
     /*private (List<string> choices, HashSet<int> disabled) GetRegistryModulesChoices() {
-        var registered = Engine.GameRegistry_GetModules(Core.Utils.ModuleFilter.Registered);
-        var installed = Engine.GameRegistry_GetModules(Core.Utils.ModuleFilter.Installed);
+        var registered = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.Registered);
+        var installed = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.Installed);
 
         List<string> choices = new();
         HashSet<int> disabled = new();

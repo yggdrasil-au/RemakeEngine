@@ -23,9 +23,9 @@ public partial class TUI {
     public async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync(System.Threading.CancellationToken cancellationToken = default, string? msg = null) {
         try {
             // get all modules that exist on disk
-            Dictionary<string, Core.Data.GameModuleInfo> modules = Engine.GameRegistry_GetModules(Core.Utils.ModuleFilter.Installed);
+            Dictionary<string, Core.Data.GameModuleInfo> modules = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.Installed);
             // get public modules
-            Dictionary<string, Core.Data.GameModuleInfo> internalModules = Engine.GameRegistry_GetModules(Core.Utils.ModuleFilter.Internal);
+            Dictionary<string, Core.Data.GameModuleInfo> internalModules = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.Internal);
 
             // Create a combined dictionary for lookup and execution
             Dictionary<string, Core.Data.GameModuleInfo> allAvailableModules = new(modules);

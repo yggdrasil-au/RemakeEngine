@@ -36,7 +36,7 @@ internal sealed class All {
             throw new System.ArgumentException("Game name is required.", nameof(gameName));
         }
 
-        Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games = Context.GameRegistry.GetModules(Core.Utils.ModuleFilter.All);
+        Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games = Context.GameRegistry.GetModules(Core.Data.ModuleFilter.All);
         if (!games.TryGetValue(gameName, out EngineNet.Core.Data.GameModuleInfo? gameInfo)) {
             throw new KeyNotFoundException($"Game '{gameName}' not found.");
         }

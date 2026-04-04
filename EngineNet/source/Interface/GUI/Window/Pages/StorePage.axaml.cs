@@ -90,7 +90,7 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
             IReadOnlyDictionary<string, object?> modules = GuiBootstrapper.MiniEngine.GameRegistry_GetRegisteredModules();
 
             // Get already downloaded games
-            Dictionary<string, Core.Data.GameModuleInfo> downloadedGames = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Utils.ModuleFilter.Installed);
+            Dictionary<string, Core.Data.GameModuleInfo> downloadedGames = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Data.ModuleFilter.Installed);
 
             foreach (KeyValuePair<string, object?> kv in modules) {
                 string moduleName = kv.Key;

@@ -4,7 +4,7 @@ internal partial class CLI {
 
     private int ListGames() {
         try {
-            Dictionary<string, Core.Data.GameModuleInfo> modules = Engine.GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Data.GameModuleInfo> modules = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
             if (modules.Count == 0) {
                 System.Console.WriteLine("No modules found.");
                 return 0;
@@ -22,7 +22,7 @@ internal partial class CLI {
     private int ListOps(string game) {
         try {
             // Find the game module
-            Dictionary<string, Core.Data.GameModuleInfo> modules = Engine.GameRegistry_GetModules(Core.Utils.ModuleFilter.All);
+            Dictionary<string, Core.Data.GameModuleInfo> modules = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
             if (!modules.TryGetValue(game, out Core.Data.GameModuleInfo? mod)) {
                 System.Console.WriteLine($"Game '{game}' not found.");
                 return 1;

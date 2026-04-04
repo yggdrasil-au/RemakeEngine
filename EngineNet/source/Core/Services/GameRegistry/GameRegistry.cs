@@ -19,7 +19,7 @@ internal class GameRegistry {
         _scanner = scanner;
     }
 
-    internal Dictionary<string, Core.Data.GameModuleInfo> GetModules(Core.Utils.ModuleFilter filter) {
+    internal Dictionary<string, Core.Data.GameModuleInfo> GetModules(Core.Data.ModuleFilter filter) {
         return _scanner.Modules(filter);
     }
 
