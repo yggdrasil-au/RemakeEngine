@@ -1,6 +1,7 @@
 <Solution>
 	<Project Path="EngineNet/EngineNet.csproj" />
 	<Project Path="EngineNet/source/Core/EngineNet.Core.csproj" />
+	<Project Path="EngineNet/source/Core/FileHandlers/Formats/EngineNet.Formats.csproj" />
 	<Project Path="EngineNet/source/Interface/EngineNet.Interface.csproj" />
 	<Project Path="EngineNet/source/ScriptEngines/EngineNet.ScriptEngines.csproj" />
 	<Project Path="EngineNet/source/Shared/EngineNet.Shared.csproj" />

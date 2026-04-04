@@ -1,5 +1,15 @@
 # Engine TODO List
 
+
+## TESTS
+current testing is primarily manual with some lua scripts for ensuring api functionality
+todo:
+implement unit tests for all surfaces that are not already covered by the lua tests
+and introduce automated powershell test scripts to run both unit tests and lua tests together, run by vscode launch configurations and/or github actions?
+research avalonia gui unit testing
+avoid massive unit tests, i dont want tests to be as complicated as the project itself, focus on testing fundemental Core functionality and edge cases rather than trying to cover every possible scenario, especially as the codebase is still undergoing rapid development and refactoring
+
+
 ## Engine
 
 
