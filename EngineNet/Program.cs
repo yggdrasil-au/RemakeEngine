@@ -125,7 +125,6 @@ public static class Program {
             if (System.OperatingSystem.IsWindows()) {
                 ConsoleHelper.FreeConsole();
             }
-            //cancellationToken.Dispose();
         }
     }
 
