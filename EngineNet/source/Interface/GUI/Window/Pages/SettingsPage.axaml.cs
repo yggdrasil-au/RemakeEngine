@@ -1,6 +1,3 @@
-using System.ComponentModel;
-
-using Avalonia.Controls;
 
 namespace EngineNet.Interface.GUI.Pages;
 
@@ -10,18 +7,18 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
     public string ProjectRoot { get; set; } = EngineNet.Core.Main.RootPath;
     public string Status { get; set; } = String.Empty;
 
-    /** :: :: Vars :: END :: **/
+    //** :: :: Vars :: END :: **/
     //
-    /** :: :: Constructors :: START :: **/
+    //** :: :: Constructors :: START :: **/
 
     public SettingsPage() {
         InitializeComponent();
         DataContext = this;
     }
 
-    /** :: :: Constructors :: END :: **/
+    //** :: :: Constructors :: END :: **/
     //
-    // ** :: :: Methods :: START :: **/
+    //** :: :: Methods :: START :: **/
 
     private event PropertyChangedEventHandler? _propertyChanged;
 
@@ -43,6 +40,6 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
         }
     }
 
-    /** :: :: Methods :: END :: **/
+    //** :: :: Methods :: END :: **/
 
 }

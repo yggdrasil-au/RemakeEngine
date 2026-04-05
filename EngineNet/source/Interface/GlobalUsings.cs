@@ -11,8 +11,9 @@ global using System.Threading.Tasks;
 global using System.Collections.Generic;
 global using System.Collections.ObjectModel;
 
-
+global using Avalonia;
 global using Avalonia.Controls;
+global using Avalonia.Interactivity;
 global using Avalonia.Media.Imaging;
 
 

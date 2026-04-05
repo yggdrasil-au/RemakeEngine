@@ -1,9 +1,4 @@
 
-using System.Collections.ObjectModel;
-
-using Avalonia.Controls;
-using Avalonia.Media.Imaging;
-
 namespace EngineNet.Interface.GUI.Pages;
 
 /// <summary>

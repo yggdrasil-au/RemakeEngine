@@ -13,6 +13,7 @@ internal partial class CLI {
     /// Run the CLI
     /// </summary>
     /// <param name="args"></param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
     internal async System.Threading.Tasks.Task<int> RunAsync(string[] args, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         try {
