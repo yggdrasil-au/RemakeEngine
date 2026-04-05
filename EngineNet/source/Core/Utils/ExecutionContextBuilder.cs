@@ -23,7 +23,7 @@ internal static class ExecutionContextBuilder {
     /// <exception cref="KeyNotFoundException">Thrown when the game specified by <paramref name="currentGame"/> is not found in <paramref name="games"/>.</exception>
     internal static Dictionary<string, object?> Build(
         string currentGame,
-        Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
+        Core.Data.GameModules games,
         IDictionary<string, object?> engineConfig
     ) {
         if (string.IsNullOrWhiteSpace(currentGame)) {

@@ -19,7 +19,7 @@ public sealed class CommandBuilder {
     /// <exception cref="KeyNotFoundException">Thrown when the game is unknown.</exception>
     internal List<string> Build(
         string currentGame,
-        Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
+        Core.Data.GameModules games,
         IDictionary<string, object?> engineConfig,
         IDictionary<string, object?> op,
         EngineNet.Core.Data.PromptAnswers promptAnswers

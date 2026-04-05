@@ -14,7 +14,7 @@ internal partial class CLI {
     /// </summary>
     /// <param name="args"></param>
     /// <returns></returns>
-    internal async System.Threading.Tasks.Task<int> RunAsync(string[] args, System.Threading.CancellationToken cancellationToken = default) {
+    internal async System.Threading.Tasks.Task<int> RunAsync(string[] args, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         try {
             if (args.Length == 0) {
                 PrintHelp();
@@ -75,9 +75,10 @@ internal partial class CLI {
     /// <summary>
     /// Run an operation based on command-line arguments.
     /// </summary>
-    /// <param name="args"></param>
+    /// <param name="options"></param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    internal async System.Threading.Tasks.Task<int> RunInlineOperationAsync(InlineOperationOptions options, System.Threading.CancellationToken cancellationToken = default) {
+    internal async System.Threading.Tasks.Task<int> RunInlineOperationAsync(InlineOperationOptions options, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         // Validate required options
         if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot)) {
             Shared.IO.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) is required for inline execution.");
@@ -91,7 +92,7 @@ internal partial class CLI {
         }
 
         // Find game modules
-        Dictionary<string, Core.Data.GameModuleInfo> games = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
+        Core.Data.GameModules games = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
         if (!TryResolveInlineGame(options, games, out string? gameName)) {
             Shared.IO.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
             return 1;
@@ -115,7 +116,7 @@ internal partial class CLI {
     /// <param name="options"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    internal async System.Threading.Tasks.Task<int> RunSelectedOperationAsync(InlineOperationOptions options, System.Threading.CancellationToken cancellationToken = default) {
+    internal async System.Threading.Tasks.Task<int> RunSelectedOperationAsync(InlineOperationOptions options, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         if (options.RunOperationSelector is null) {
             Shared.IO.Diagnostics.Log("ERROR: --run_op requires an operation name or ID.");
             return 2;
@@ -126,7 +127,7 @@ internal partial class CLI {
             return 2;
         }
 
-        Dictionary<string, Core.Data.GameModuleInfo> games = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
+        Core.Data.GameModules games = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
         if (!TryResolveInlineGame(options, games, out string? gameName)) {
             Shared.IO.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
             return 1;
@@ -159,13 +160,13 @@ internal partial class CLI {
     /// <param name="options"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    internal async System.Threading.Tasks.Task<int> RunAllOperationsAsync(InlineOperationOptions options, System.Threading.CancellationToken cancellationToken = default) {
+    internal async System.Threading.Tasks.Task<int> RunAllOperationsAsync(InlineOperationOptions options, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot)) {
             Shared.IO.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) is required for --run_all.");
             return 2;
         }
 
-        Dictionary<string, Core.Data.GameModuleInfo> games = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
+        Core.Data.GameModules games = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
         if (!TryResolveInlineGame(options, games, out string? gameName)) {
             Shared.IO.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
             return 1;

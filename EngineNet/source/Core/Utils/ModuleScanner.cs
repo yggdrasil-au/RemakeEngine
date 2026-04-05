@@ -32,13 +32,15 @@ internal sealed class ModuleScanner {
     /// Why not just always return Dictionary? Because sometimes you might only care
     /// about iteration or serialization and don't want the name->info map.
     /// </summary>
-    internal Dictionary<string, Data.GameModuleInfo> Modules(ModuleFilter filter) {
+    internal Core.Data.GameModules Modules(ModuleFilter filter) {
         Shared.IO.Diagnostics.Trace($"[Core :: ModuleScanner.cs::Modules()] Scanning modules with filter {filter}");
-        Dictionary<string, Data.GameModuleInfo> all = ScanAllModules();
+        Core.Data.GameModules all = ScanAllModules();
         IEnumerable<Data.GameModuleInfo> filtered = FilterModules(all.Values, filter);
 
         // Re-key into a new dictionary in case filter removed some.
-        Dictionary<string, Data.GameModuleInfo> dict = new Dictionary<string, Data.GameModuleInfo>(StringComparer.OrdinalIgnoreCase);
+        // No need to pass StringComparer anymore; it's handled by the GameModules constructor!
+        Core.Data.GameModules dict = new GameModules();
+
         foreach (Data.GameModuleInfo info in filtered) {
             dict[info.Name] = info;
             Shared.IO.Diagnostics.Trace($"[Core :: ModuleScanner.cs::Modules()] Including module: {info.Name} (State: {info.DescribeState()})");
@@ -81,7 +83,7 @@ internal sealed class ModuleScanner {
             throw new ArgumentNullException(nameof(selector));
         }
 
-        Dictionary<string, Data.GameModuleInfo> all = ScanAllModules();
+        Core.Data.GameModules all = ScanAllModules();
         IEnumerable<Data.GameModuleInfo> filtered = FilterModules(all.Values, filter);
 
         return selector(filtered);
@@ -95,8 +97,8 @@ internal sealed class ModuleScanner {
     /// Scans registry and file system (by delegating to Registries)
     /// and returns the superset of modules.
     /// </summary>
-    private Dictionary<string, Data.GameModuleInfo> ScanAllModules() {
-        Dictionary<string, Data.GameModuleInfo> result = new Dictionary<string, Data.GameModuleInfo>(StringComparer.OrdinalIgnoreCase);
+    private Core.Data.GameModules ScanAllModules() {
+        Core.Data.GameModules result = new Core.Data.GameModules();
 
         // 1. Get all modules known to the central registry
         IReadOnlyDictionary<string, object?> registered = _registries.GetRegisteredModules();
@@ -210,7 +212,7 @@ internal sealed class ModuleScanner {
     /// scans for the internal operations
     /// </summary>
     /// <param name="result"></param>
-    private void ScanInternalOperations(Dictionary<string, Data.GameModuleInfo> result) {
+    private void ScanInternalOperations(Core.Data.GameModules result) {
         try {
             string opsDir = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "EngineApps", "Registries", "ops");
             if (!System.IO.Directory.Exists(opsDir)) return;

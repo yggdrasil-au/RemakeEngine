@@ -4,7 +4,7 @@ internal partial class CLI {
 
     private int ListGames() {
         try {
-            Dictionary<string, Core.Data.GameModuleInfo> modules = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
+            Core.Data.GameModules modules = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
             if (modules.Count == 0) {
                 System.Console.WriteLine("No modules found.");
                 return 0;
@@ -22,7 +22,7 @@ internal partial class CLI {
     private int ListOps(string game) {
         try {
             // Find the game module
-            Dictionary<string, Core.Data.GameModuleInfo> modules = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
+            Core.Data.GameModules modules = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
             if (!modules.TryGetValue(game, out Core.Data.GameModuleInfo? mod)) {
                 System.Console.WriteLine($"Game '{game}' not found.");
                 return 1;
@@ -84,7 +84,7 @@ internal partial class CLI {
         return args.Length <= index ? throw new System.ArgumentException(error) : args[index];
     }
 
-    private static bool TryResolveInlineGame(InlineOperationOptions options, Dictionary<string, Core.Data.GameModuleInfo> games, out string? resolvedName) {
+    private static bool TryResolveInlineGame(InlineOperationOptions options, Core.Data.GameModules games, out string? resolvedName) {
         resolvedName = null;
         string GameRoot;
 
@@ -170,7 +170,7 @@ internal partial class CLI {
         return false;
     }
 
-    private static bool TryResolveGameByRegisteredId(Dictionary<string, Core.Data.GameModuleInfo> games, string identifier, out string? resolvedName) {
+    private static bool TryResolveGameByRegisteredId(Core.Data.GameModules games, string identifier, out string? resolvedName) {
         resolvedName = null;
 
         if (!long.TryParse(identifier, out long requestedId)) {
@@ -198,7 +198,7 @@ internal partial class CLI {
 
     private bool TryLoadPreparedOperations(
         string gameName,
-        Dictionary<string, Core.Data.GameModuleInfo> games,
+        Core.Data.GameModules games,
         string? opsFileOverride,
         out Core.Data.PreparedOperations? preparedOps,
         out int exitCode
@@ -402,7 +402,7 @@ internal partial class CLI {
         System.Console.WriteLine();
     }
 
-    private static void ApplyGameOverrides(Dictionary<string, Core.Data.GameModuleInfo> games, string gameName, string? preferredRoot, string? opsFile) {
+    private static void ApplyGameOverrides(Core.Data.GameModules games, string gameName, string? preferredRoot, string? opsFile) {
         if (!games.TryGetValue(gameName, out Core.Data.GameModuleInfo? moduleInfo)) {
             return;
         }

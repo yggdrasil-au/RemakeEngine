@@ -29,3 +29,15 @@ public sealed class GameModuleInfo {
         return string.Join(", ", states);
     }
 }
+
+/// <summary>
+/// A case-insensitive collection of game modules.
+/// </summary>
+public sealed class GameModules : Dictionary<string, GameModuleInfo> {
+    // Default constructor now automatically handles the Case-Insensitivity
+    public GameModules() : base(StringComparer.OrdinalIgnoreCase) { }
+
+    // Allow passing an existing collection if needed
+    public GameModules(IDictionary<string, GameModuleInfo> dictionary) : base(dictionary, StringComparer.OrdinalIgnoreCase) { }
+}
+

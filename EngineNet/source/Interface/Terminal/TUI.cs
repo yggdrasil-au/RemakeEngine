@@ -23,12 +23,12 @@ public partial class TUI {
     public async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync(System.Threading.CancellationToken cancellationToken = default, string? msg = null) {
         try {
             // get all modules that exist on disk
-            Dictionary<string, Core.Data.GameModuleInfo> modules = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.Installed);
+            Core.Data.GameModules modules = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.Installed);
             // get public modules
-            Dictionary<string, Core.Data.GameModuleInfo> internalModules = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.Internal);
+            Core.Data.GameModules internalModules = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.Internal);
 
             // Create a combined dictionary for lookup and execution
-            Dictionary<string, Core.Data.GameModuleInfo> allAvailableModules = new(modules);
+            Core.Data.GameModules allAvailableModules = new(modules);
             foreach (var kv in internalModules) {
                 // Internal modules overwrite installed if there's a name collision
                 allAvailableModules[kv.Key] = kv.Value;

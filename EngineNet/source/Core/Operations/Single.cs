@@ -23,7 +23,7 @@ internal sealed class Single {
     /// <returns></returns>
     internal async System.Threading.Tasks.Task<bool> RunAsync(
         string currentGame,
-        Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
+        Core.Data.GameModules games,
         IDictionary<string, object?> op,
         Core.Data.PromptAnswers promptAnswers,
         Engine.EngineContext Context,

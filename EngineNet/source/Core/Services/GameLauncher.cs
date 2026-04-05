@@ -52,7 +52,7 @@ internal class GameLauncher {
         string gameToml = System.IO.Path.Combine(root, "game.toml");
 
         // Build placeholder context for resolution
-        Dictionary<string, Data.GameModuleInfo> games = _gameRegistry.GetModules(ModuleFilter.All);
+        Core.Data.GameModules games = _gameRegistry.GetModules(ModuleFilter.All);
         //ExecutionContextBuilder ctxBuilder = new ExecutionContextBuilder();
         Dictionary<string, object?> ctx;
         try {

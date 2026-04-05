@@ -29,6 +29,6 @@ internal partial class InternalOperations {
             return false;
         }
 
-        return Utils.GitTools.CloneModule(url, context.CommandService);
+        return Core.Utils.GitTools.CloneModule(url, context.CommandService);
     }
 }

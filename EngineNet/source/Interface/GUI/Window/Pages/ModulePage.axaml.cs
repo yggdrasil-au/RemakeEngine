@@ -164,7 +164,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             _initOperations.Clear();
 
             // Gather module info from multiple sources
-            Dictionary<string, Core.Data.GameModuleInfo> modules = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
+            Core.Data.GameModules modules = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
             Core.Data.GameModuleInfo? m = modules.GetValueOrDefault(_moduleName);
             if (m is not null) {
                 Title = string.IsNullOrWhiteSpace(m.Title) ? m.Name : m.Title;
@@ -193,7 +193,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
             // Load operations if ops_file exists
             string? opsFile = null;
-            Dictionary<string, Core.Data.GameModuleInfo> games = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
+            Core.Data.GameModules games = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
             if (games.TryGetValue(_moduleName, out Core.Data.GameModuleInfo? gameInfo)) {
                 opsFile = gameInfo.OpsFile;
                 if (string.IsNullOrWhiteSpace(ExePath)) {
@@ -286,7 +286,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         Raise(nameof(CanStop));
 
         try {
-            Dictionary<string, Core.Data.GameModuleInfo> games = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
+            Core.Data.GameModules games = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
 
             await EngineOperationRunner.RunAsync(
                 moduleName: ModuleName,
@@ -413,7 +413,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         Raise(nameof(CanStop));
 
         try {
-            Dictionary<string, Core.Data.GameModuleInfo> games = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
+            Core.Data.GameModules games = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
 
             Core.Data.PromptAnswers promptAnswers = new Core.Data.PromptAnswers();
             await CollectAnswersForOperationAsync(op: row.Op, answers: promptAnswers);

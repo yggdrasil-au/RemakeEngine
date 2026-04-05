@@ -46,7 +46,7 @@ internal sealed class Engine : IEngineFace{
     // run single operation (used by GUI/TUI and RunAllAsync)
     public async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
         string currentGame,
-        Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
+        Core.Data.GameModules games,
         IDictionary<string, object?> op,
         Data.PromptAnswers promptAnswers,
         System.Threading.CancellationToken cancellationToken = default
@@ -61,7 +61,7 @@ internal sealed class Engine : IEngineFace{
 }
 
 public interface IEngineFace {
-    public Task<bool> RunSingleOperationAsync(string currentGame, Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games, IDictionary<string, object?> op, Data.PromptAnswers promptAnswers, CancellationToken cancellationToken = default);
+    public Task<bool> RunSingleOperationAsync(string currentGame, Core.Data.GameModules games, IDictionary<string, object?> op, Data.PromptAnswers promptAnswers, CancellationToken cancellationToken = default(CancellationToken));
     public bool CloneModule(string url);
     internal Core.Services.GameLauncher GameLauncher { get; }
     internal EngineContext Context { get; }

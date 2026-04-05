@@ -36,7 +36,7 @@ internal sealed class OperationsService {
     internal PreparedOperations LoadAndPrepare(
         string opsFile,
         string? currentGame = null,
-        Dictionary<string, Data.GameModuleInfo>? games = null,
+        Core.Data.GameModules? games = null,
         IDictionary<string, object?>? engineConfig = null
     ) {
         PreparedOperations result = new PreparedOperations();
@@ -251,8 +251,8 @@ internal sealed class OperationsService {
         List<PromptChoice> choices = new List<PromptChoice>();
 
         if (TryGetString(prompt, out string? provider, "choices_provider") && provider == "registry_modules") {
-            Dictionary<string, Data.GameModuleInfo> registered = _gameRegistry.GetModules(ModuleFilter.Registered);
-            Dictionary<string, Data.GameModuleInfo> installed = _gameRegistry.GetModules(ModuleFilter.Installed);
+            Core.Data.GameModules registered = _gameRegistry.GetModules(ModuleFilter.Registered);
+            Core.Data.GameModules installed = _gameRegistry.GetModules(ModuleFilter.Installed);
             choices.AddRange(registered.Keys.Select(key => new PromptChoice(label: key, isDisabled: installed.ContainsKey(key))));
             return choices;
         }

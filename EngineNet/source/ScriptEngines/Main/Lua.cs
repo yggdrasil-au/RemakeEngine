@@ -39,7 +39,7 @@ internal sealed class Main : IScriptAction {
     }
 
     //
-    public async Task ExecuteAsync(Core.ExternalTools.JsonToolResolver tools, Core.Services.CommandService commandService, CancellationToken cancellationToken = default) {
+    public async Task ExecuteAsync(Core.ExternalTools.JsonToolResolver tools, Core.Services.CommandService commandService, CancellationToken cancellationToken = default(CancellationToken)) {
         bool ok = false;
         int exitCode = 0;
         System.Exception? executionError = null;

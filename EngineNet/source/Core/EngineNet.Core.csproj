@@ -10,15 +10,12 @@
 
     <ItemGroup>
         <PackageReference Include="SharpCompress" Version="1.0.0" />
+        <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.5" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\Shared\EngineNet.Shared.csproj" />
-        <ProjectReference Include="FileHandlers\Formats\EngineNet.Formats.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <Compile Remove="FileHandlers\Formats\**\*.cs" />
+        <ProjectReference Include="..\GameFormats\EngineNet.GameFormats.csproj" />
     </ItemGroup>
 
     <ItemGroup>

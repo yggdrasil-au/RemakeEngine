@@ -7,14 +7,14 @@ internal class BuiltInOperations {
     internal static bool config(
         IDictionary<string, object?> op,
         string currentGame,
-        Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games
+        Core.Data.GameModules games
     ) {
         // Parse arguments
         var argsList = op.TryGetValue("args", out object? argsObj) && argsObj is IList<object?> list
             ? list.Select(x => x?.ToString() ?? "").ToList()
             : new List<string>();
 
-        var opts = ConfigHelpers.ParseArgs(argsList);
+        var opts = Utils.ConfigHelpers.ParseArgs(argsList);
 
         string? configPath = opts.ConfigPath;
         if (string.IsNullOrEmpty(configPath)) {
@@ -72,8 +72,8 @@ internal class BuiltInOperations {
             // Handle Multi-set
             if (opts.Sets.Count > 0) {
                 foreach (var set in opts.Sets) {
-                    ConfigHelpers.ApplyUpdate(doc, opts.Group, opts.Index, set.Key, set.Value, set.TypeHint);
-                    string msg = $"Updated {opts.Group}[{(opts.Index == 0 ? 1 : opts.Index)}].{set.Key} = {ConfigHelpers.ConvertValue(set.Value, set.TypeHint)}";
+                    Utils.ConfigHelpers.ApplyUpdate(doc, opts.Group, opts.Index, set.Key, set.Value, set.TypeHint);
+                    string msg = $"Updated {opts.Group}[{(opts.Index == 0 ? 1 : opts.Index)}].{set.Key} = {Utils.ConfigHelpers.ConvertValue(set.Value, set.TypeHint)}";
                     Shared.IO.UI.EngineSdk.PrintLine(msg, System.ConsoleColor.Green);
                 }
             } else {
@@ -90,8 +90,8 @@ internal class BuiltInOperations {
                         return false;
                     }
                 } else {
-                    ConfigHelpers.ApplyUpdate(doc, opts.Group, opts.Index, opts.Key, opts.Value, opts.TypeHint);
-                    string msg = $"Updated {opts.Group}[{(opts.Index == 0 ? 1 : opts.Index)}].{opts.Key} = {ConfigHelpers.ConvertValue(opts.Value, opts.TypeHint)}";
+                    Utils.ConfigHelpers.ApplyUpdate(doc, opts.Group, opts.Index, opts.Key, opts.Value, opts.TypeHint);
+                    string msg = $"Updated {opts.Group}[{(opts.Index == 0 ? 1 : opts.Index)}].{opts.Key} = {Utils.ConfigHelpers.ConvertValue(opts.Value, opts.TypeHint)}";
                     Shared.IO.UI.EngineSdk.PrintLine(msg, System.ConsoleColor.Green);
                 }
             }
@@ -145,8 +145,8 @@ internal class BuiltInOperations {
         Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: final tool = '{tool}'");
 
         // 3. Prepare Execution Context
-        Dictionary<string, object?> ctx = Helpers.BuildOperationContext(operationArgs.context, operationArgs.currentGame, operationArgs.games);
-        List<string> args = Helpers.ResolveOperationArgs(operationArgs.op, ctx);
+        Dictionary<string, object?> ctx = Utils.Helpers.BuildOperationContext(operationArgs.context, operationArgs.currentGame, operationArgs.games);
+        List<string> args = Utils.Helpers.ResolveOperationArgs(operationArgs.op, ctx);
 
         // 4. Execute via Switch
         switch (tool) {
@@ -154,17 +154,17 @@ internal class BuiltInOperations {
             case "vgmstream":
                 Shared.IO.UI.EngineSdk.PrintLine("\n>>> Built-in media conversion");
                 Shared.IO.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running media conversion with args: {string.Join(' ', args)}");
-                return FileHandlers.MediaConverter.Run(operationArgs.context.ToolResolver, args, operationArgs.cancellationToken);
+                return Core.Media.AvTools.Run(operationArgs.context.ToolResolver, args, operationArgs.cancellationToken);
 
             case "imagemagick":
                 Shared.IO.UI.EngineSdk.PrintLine("\n>>> Built-in image conversion");
                 Shared.IO.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running image conversion with args: {string.Join(' ', args)}");
-                return FileHandlers.ImageMagickConverter.Run(operationArgs.context.ToolResolver, args, operationArgs.cancellationToken);
+                return Core.Media.ImageMagickConverter.Run(operationArgs.context.ToolResolver, args, operationArgs.cancellationToken);
 
             case "p3d":
                 Shared.IO.UI.EngineSdk.PrintLine("\n>>> Built-in p3d conversion");
                 Shared.IO.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running p3d conversion with args: {string.Join(' ', args)}");
-                return FileHandlers.Formats.p3d.Main.Run(args, operationArgs.cancellationToken);
+                return EngineNet.GameFormats.p3d.P3dExtractor.Run(args, operationArgs.cancellationToken);
 
             default:
                 Shared.IO.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: unknown tool '{tool}'");
@@ -179,13 +179,13 @@ internal class BuiltInOperations {
         Operations.helpers.OperationArgs operationArgs
     ) {
         // Expect a 'tools_manifest' value (path), or fallback to first arg
-        string? manifest = Helpers.GetFieldOrFirstArgRawValue(operationArgs.op, "tools_manifest");
+        string? manifest = Utils.Helpers.GetFieldOrFirstArgRawValue(operationArgs.op, "tools_manifest");
 
         if (string.IsNullOrWhiteSpace(manifest)) {
             return false;
         }
-        Dictionary<string, object?> ctx = Helpers.BuildOperationContext(operationArgs.context, operationArgs.currentGame, operationArgs.games);
-        string resolvedManifest = Helpers.ResolveOperationValue(operationArgs.op, "tools_manifest", ctx, fallbackToRawValue: true)
+        Dictionary<string, object?> ctx = Utils.Helpers.BuildOperationContext(operationArgs.context, operationArgs.currentGame, operationArgs.games);
+        string resolvedManifest = Utils.Helpers.ResolveOperationValue(operationArgs.op, "tools_manifest", ctx, fallbackToRawValue: true)
             ?? Core.Utils.Placeholders.Resolve(manifest, ctx)?.ToString()
             ?? manifest;
 
@@ -209,8 +209,8 @@ internal class BuiltInOperations {
         string? format = operationArgs.op.TryGetValue("format", out object? ft)
             ? ft?.ToString()?.ToLowerInvariant() : null;
 
-        Dictionary<string, object?> ctx = Helpers.BuildOperationContext(operationArgs.context, operationArgs.currentGame, operationArgs.games);
-        List<string> args = Helpers.ResolveOperationArgs(operationArgs.op, ctx);
+        Dictionary<string, object?> ctx = Utils.Helpers.BuildOperationContext(operationArgs.context, operationArgs.currentGame, operationArgs.games);
+        List<string> args = Utils.Helpers.ResolveOperationArgs(operationArgs.op, ctx);
 
         // execute
         switch (format) {
@@ -218,11 +218,11 @@ internal class BuiltInOperations {
                 // in future will be specifically for converting p3d into there core component files (meshes, textures, shaders, etc)
                 Shared.IO.UI.EngineSdk.PrintLine("\n>>> Built-in P3D extraction");
                 Shared.IO.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
-                return FileHandlers.Formats.p3d.Main.Run(args, operationArgs.cancellationToken);
+                return EngineNet.GameFormats.p3d.P3dExtractor.Run(args, operationArgs.cancellationToken);
             } case "txd": {
                 Shared.IO.UI.EngineSdk.PrintLine("\n>>> Built-in TXD extraction");
                 Shared.IO.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
-                return FileHandlers.Formats.txd.TxdExtractor.Run(args, operationArgs.cancellationToken);
+                return EngineNet.GameFormats.txd.TxdExtractor.Run(args, operationArgs.cancellationToken);
             } default: {
                 Shared.IO.UI.EngineSdk.PrintLine($"ERROR: format-extract does not support format '{format}'");
                 Shared.IO.UI.EngineSdk.PrintLine("Supported formats: p3d, txd");
@@ -234,22 +234,22 @@ internal class BuiltInOperations {
     internal static bool rename_folders(
         Operations.helpers.OperationArgs operationArgs
     ) {
-        Dictionary<string, object?> ctx = Helpers.BuildOperationContext(operationArgs.context, operationArgs.currentGame, operationArgs.games);
-        List<string> args = Helpers.ResolveOperationArgs(operationArgs.op, ctx);
+        Dictionary<string, object?> ctx = Utils.Helpers.BuildOperationContext(operationArgs.context, operationArgs.currentGame, operationArgs.games);
+        List<string> args = Utils.Helpers.ResolveOperationArgs(operationArgs.op, ctx);
 
         // execute
         Shared.IO.UI.EngineSdk.PrintLine("\n>>> Built-in folder rename");
 
         Shared.IO.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
-        bool ok = FileHandlers.FolderRenamer.Run(args, operationArgs.cancellationToken);
+        bool ok = Utils.FolderRenamer.Run(args, operationArgs.cancellationToken);
         return ok;
     }
 
     internal static bool validate_files(
         Operations.helpers.OperationArgs operationArgs
     ) {
-        Dictionary<string, object?> ctx = Helpers.BuildOperationContext(operationArgs.context, operationArgs.currentGame, operationArgs.games);
-        string? resolvedDbPath = Helpers.ResolveOperationValue(operationArgs.op, "db", ctx);
+        Dictionary<string, object?> ctx = Utils.Helpers.BuildOperationContext(operationArgs.context, operationArgs.currentGame, operationArgs.games);
+        string? resolvedDbPath = Utils.Helpers.ResolveOperationValue(operationArgs.op, "db", ctx);
 
         // create args list
         List<string> args = new List<string>();
@@ -257,7 +257,7 @@ internal class BuiltInOperations {
         if (!string.IsNullOrWhiteSpace(resolvedDbPath)) {
             args.Add(resolvedDbPath);
         }
-        List<string> resolvedArgs = Helpers.ResolveOperationArgs(operationArgs.op, ctx);
+        List<string> resolvedArgs = Utils.Helpers.ResolveOperationArgs(operationArgs.op, ctx);
         for (int i = 0; i < resolvedArgs.Count; i++) {
             string value = resolvedArgs[i];
             if (!string.IsNullOrWhiteSpace(resolvedDbPath) && args.Count == 1 && i == 0 && string.Equals(args[0], value, System.StringComparison.OrdinalIgnoreCase)) {
@@ -277,7 +277,7 @@ internal class BuiltInOperations {
         // execute
         Shared.IO.UI.EngineSdk.PrintLine("\n>>> Built-in file validation");
         Shared.IO.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
-        bool ok = helpers.FileValidator.Run(args, operationArgs.cancellationToken);
+        bool ok = Utils.FileValidator.Run(args, operationArgs.cancellationToken);
         return ok;
     }
 

@@ -12,6 +12,6 @@ internal partial class InternalOperations {
             Shared.IO.Diagnostics.Trace("[Engine.private.cs :: InternalOperations()]] download_module_git: no url provided");
             return false;
         }
-        return Utils.GitTools.CloneModule(url, context.CommandService);
+        return Core.Utils.GitTools.CloneModule(url, context.CommandService);
     }
 }

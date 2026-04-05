@@ -20,7 +20,7 @@ internal static class OpDispatcher {
         IDictionary<string, object?> executableOperation,
         Core.Data.PromptAnswers promptAnswers,
         string currentGame,
-        Dictionary<string, Core.Data.GameModuleInfo> games,
+        Core.Data.GameModules games,
         Engine.EngineContext context,
         System.Threading.CancellationToken cancellationToken = default
     ) {
@@ -116,7 +116,7 @@ internal class OperationArgs {
     internal readonly IDictionary<string, object?> op;
     internal readonly Core.Data.PromptAnswers promptAnswers;
     internal readonly string currentGame;
-    internal readonly Dictionary<string, Core.Data.GameModuleInfo> games;
+    internal readonly Core.Data.GameModules games;
     internal readonly Engine.EngineContext context;
     internal readonly System.Threading.CancellationToken cancellationToken;
 
@@ -124,7 +124,7 @@ internal class OperationArgs {
         IDictionary<string, object?> op,
         Core.Data.PromptAnswers promptAnswers,
         string currentGame,
-        Dictionary<string, Core.Data.GameModuleInfo> games,
+        Core.Data.GameModules games,
         Engine.EngineContext context,
         System.Threading.CancellationToken cancellationToken
     ) {

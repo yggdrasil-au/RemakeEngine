@@ -14,7 +14,7 @@ public class CommandService {
     private readonly ConcurrentDictionary<int, ManagedProcess> _spawnedProcesses = new ConcurrentDictionary<int, ManagedProcess>();
     private int _nextPid;
 
-    public List<string> BuildCommand(string currentGame, Dictionary<string, Data.GameModuleInfo> games, IDictionary<string, object?> engineData, IDictionary<string, object?> op, Data.PromptAnswers promptAnswers) {
+    public List<string> BuildCommand(string currentGame, Core.Data.GameModules games, IDictionary<string, object?> engineData, IDictionary<string, object?> op, Data.PromptAnswers promptAnswers) {
         return _builder.Build(currentGame, games, engineData, op, promptAnswers);
     }
 

@@ -41,7 +41,7 @@ public sealed class Main {
 
         // Expose only the methods that the UI can use, in a safe and simple shape.
 
-        public Dictionary<string, Core.Data.GameModuleInfo> GameRegistry_GetModules(Core.Data.ModuleFilter filter) {
+        public Core.Data.GameModules GameRegistry_GetModules(Core.Data.ModuleFilter filter) {
             return Engine.Context.GameRegistry.GetModules(filter);
         }
 
@@ -69,7 +69,7 @@ public sealed class Main {
         public Core.Data.PreparedOperations OperationsService_LoadAndPrepare(
             string opsFile,
             string? currentGame = null,
-            Dictionary<string, Core.Data.GameModuleInfo>? games = null,
+            Core.Data.GameModules? games = null,
             IDictionary<string, object?>? engineConfig = null
         ) {
             return Engine.Context.OperationContext.OperationsService.LoadAndPrepare(opsFile, currentGame, games, engineConfig);
@@ -88,18 +88,18 @@ public sealed class Main {
 
         public async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
             string currentGame,
-            Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
+            Core.Data.GameModules games,
             IDictionary<string, object?> op,
             Core.Data.PromptAnswers promptAnswers,
             System.Threading.CancellationToken cancellationToken = default
         ) {
             return await Engine.RunSingleOperationAsync(currentGame, games, op, promptAnswers, cancellationToken: cancellationToken);
         }
-        public List<string> CommandService_BuildCommand(string currentGame, Dictionary<string, Core.Data.GameModuleInfo> games, IDictionary<string, object?> engineData, IDictionary<string, object?> op, Core.Data.PromptAnswers promptAnswers) {
+        public List<string> CommandService_BuildCommand(string currentGame, Core.Data.GameModules games, IDictionary<string, object?> engineData, IDictionary<string, object?> op, Core.Data.PromptAnswers promptAnswers) {
             return Engine.Context.CommandService.BuildCommand(currentGame, games, engineData, op, promptAnswers);
         }
 
-        public bool CommandService_ExecuteCommand(IList<string> commandParts, string title, Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, IDictionary<string, object?>? envOverrides = null, CancellationToken cancellationToken = default) {
+        public bool CommandService_ExecuteCommand(IList<string> commandParts, string title, Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, IDictionary<string, object?>? envOverrides = null, CancellationToken cancellationToken = default(CancellationToken)) {
             return Engine.Context.CommandService.ExecuteCommand(commandParts, title, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, envOverrides: envOverrides, cancellationToken: cancellationToken);
         }
 
@@ -135,7 +135,7 @@ public sealed class Main {
 
 internal interface MiniEngineFace {
 
-    internal Dictionary<string, Core.Data.GameModuleInfo> GameRegistry_GetModules(Core.Data.ModuleFilter filter);
+    internal Core.Data.GameModules GameRegistry_GetModules(Core.Data.ModuleFilter filter);
 
     /// <summary>
     /// Gets all registered modules from the registry.
@@ -155,7 +155,7 @@ internal interface MiniEngineFace {
     Core.Data.PreparedOperations OperationsService_LoadAndPrepare(
         string opsFile,
         string? currentGame = null,
-        Dictionary<string, Core.Data.GameModuleInfo>? games = null,
+        Core.Data.GameModules? games = null,
         IDictionary<string, object?>? engineConfig = null
     );
 
@@ -168,15 +168,15 @@ internal interface MiniEngineFace {
 
     internal System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
         string currentGame,
-        Dictionary<string, Core.Data.GameModuleInfo> games,
+        Core.Data.GameModules games,
         IDictionary<string, object?> op,
         Core.Data.PromptAnswers promptAnswers,
         System.Threading.CancellationToken cancellationToken = default
     );
 
-    internal List<string> CommandService_BuildCommand(string currentGame, Dictionary<string, Core.Data.GameModuleInfo> games, IDictionary<string, object?> engineData, IDictionary<string, object?> op, Core.Data.PromptAnswers promptAnswers);
+    internal List<string> CommandService_BuildCommand(string currentGame, Core.Data.GameModules games, IDictionary<string, object?> engineData, IDictionary<string, object?> op, Core.Data.PromptAnswers promptAnswers);
 
-    internal bool CommandService_ExecuteCommand(IList<string> commandParts, string title, Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, IDictionary<string, object?>? envOverrides = null, CancellationToken cancellationToken = default);
+    internal bool CommandService_ExecuteCommand(IList<string> commandParts, string title, Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, IDictionary<string, object?>? envOverrides = null, CancellationToken cancellationToken = default(CancellationToken));
 
     internal Task<bool> OperationsService_CollectAnswersAsync(
         Dictionary<string, object?> op,

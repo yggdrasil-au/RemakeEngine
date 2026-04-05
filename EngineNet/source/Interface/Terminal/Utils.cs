@@ -34,7 +34,7 @@ public class Utils {
     internal async System.Threading.Tasks.Task<bool> ExecuteOpAsync(
         MiniEngineFace Engine,
         string game,
-        Dictionary<string, EngineNet.Core.Data.GameModuleInfo> games,
+        Core.Data.GameModules games,
         Dictionary<string, object?> op,
         Core.Data.PromptAnswers promptAnswers,
         Dictionary<string, string>? autoPromptResponses = null,
