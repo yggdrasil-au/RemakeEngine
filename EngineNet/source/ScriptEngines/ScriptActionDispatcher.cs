@@ -20,7 +20,7 @@ public sealed class ScriptActionDispatcher : IScriptActionDispatcher {
             string scriptPath,
             IEnumerable<string> args,
             string currentGame,
-            Dictionary<string, GameModuleInfo>? games,
+            Core.Data.GameModules? games,
             string projectRoot
         ) {
             string t = scriptType.ToLowerInvariant();
@@ -77,7 +77,7 @@ public sealed class ScriptActionDispatcher : IScriptActionDispatcher {
         string scriptPath,
         IEnumerable<string> args,
         string currentGame,
-        Dictionary<string, GameModuleInfo>? games,
+        Core.Data.GameModules? games,
         string projectRoot
     ) {
         return EmbeddedActionDispatcher.TryCreate(scriptType, scriptPath, args, currentGame, games, projectRoot);

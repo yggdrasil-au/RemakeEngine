@@ -32,12 +32,14 @@ public sealed class GameModuleInfo {
 
 /// <summary>
 /// A case-insensitive collection of game modules.
+/// to replace the previous Dictionary*string, GameModuleInfo> with a more specific type that enforces case-insensitivity and provides better semantics for handling game modules.
 /// </summary>
 public sealed class GameModules : Dictionary<string, GameModuleInfo> {
     // Default constructor now automatically handles the Case-Insensitivity
+    // used in moduleScanner
     public GameModules() : base(StringComparer.OrdinalIgnoreCase) { }
 
-    // Allow passing an existing collection if needed
+    // Allow passing an existing collection, used in TUI
     public GameModules(IDictionary<string, GameModuleInfo> dictionary) : base(dictionary, StringComparer.OrdinalIgnoreCase) { }
 }
 
