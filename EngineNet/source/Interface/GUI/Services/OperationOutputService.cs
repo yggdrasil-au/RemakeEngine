@@ -1,8 +1,8 @@
-using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.ComponentModel;
 using System.Runtime.CompilerServices;
+
 using Avalonia.Threading;
+
 using EngineNet.Interface.GUI.Models;
 
 namespace EngineNet.Interface.GUI.Services;
@@ -14,7 +14,7 @@ namespace EngineNet.Interface.GUI.Services;
 public sealed class OperationOutputService : INotifyPropertyChanged {
     public static OperationOutputService Instance { get; } = new OperationOutputService();
 
-    private readonly object _lock = new object();
+    private readonly Lock _lock = new Lock();
 
     public OperationOutputService() {
         Lines.CollectionChanged += OnLinesCollectionChanged;
@@ -780,9 +780,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
         }
 
         if (value is System.IConvertible convertible) {
-            try {
-                return convertible.ToDouble(null);
-            } catch { }
+            return convertible.ToDouble(null);
         }
 
         if (value is string s && double.TryParse(s, out double parsed)) {
@@ -798,25 +796,6 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
         }
 
         return value[..System.Math.Max(0, max - 1)] + "…";
-    }
-
-    /// <summary>
-    /// Clear all output.
-    /// </summary>
-    public void Clear() {
-        global::Avalonia.Threading.Dispatcher.UIThread.Post(() => {
-            Lines.Clear();
-            ActiveJobs.Clear();
-            ResetProgressPanelTracking();
-            ActiveJobCount = 0;
-            ActiveJobsSummary = "Active: none";
-            CurrentSpinner = string.Empty;
-            ProgressLabel = string.Empty;
-            ProgressSummaryLine = string.Empty;
-            ProgressPercent = 0;
-            IsProgressPanelActive = false;
-            CurrentOperation = null;
-        });
     }
 
     /// <summary>

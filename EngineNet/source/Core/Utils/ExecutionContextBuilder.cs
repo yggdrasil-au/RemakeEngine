@@ -32,7 +32,8 @@ internal static class ExecutionContextBuilder {
 
         Dictionary<string, object?> ctx = new Dictionary<string, object?>(engineConfig, System.StringComparer.OrdinalIgnoreCase);
 
-        if (!games.TryGetValue(currentGame, out EngineNet.Core.Data.GameModuleInfo? g) || g is not Data.GameModuleInfo gdict) {
+        if (!games.TryGetValue(currentGame, out EngineNet.Core.Data.GameModuleInfo? g) ||
+            g is not Data.GameModuleInfo gdict) {
             throw new KeyNotFoundException(message: $"Unknown game '{currentGame}'.");
         }
 
@@ -47,9 +48,11 @@ internal static class ExecutionContextBuilder {
         if (!ctx.TryGetValue(key: "RemakeEngine", out object? re) || re is not IDictionary<string, object?> reDict) {
             ctx[key: "RemakeEngine"] = reDict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
         }
+
         if (!reDict.TryGetValue(key: "Config", out object? cfg) || cfg is not IDictionary<string, object?> cfgDict) {
             reDict[key: "Config"] = cfgDict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
         }
+
         cfgDict[key: "module_path"] = gdict.GameRoot;
         cfgDict[key: "project_path"] = EngineNet.Shared.State.RootPath;
 
@@ -61,9 +64,16 @@ internal static class ExecutionContextBuilder {
                     ctx[kv.Key] = kv.Value;
                 }
             }
-        } catch {
-            Shared.IO.Diagnostics.Bug($"[ExecutionContextBuilder] err reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Combine(gdict.GameRoot, "config.toml")}'.");
-            /* ignore bad/missing toml */
+        } catch (System.IO.IOException ex) {
+            Shared.IO.Diagnostics.Bug($"[ExecutionContextBuilder] IOException reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Combine(gdict.GameRoot, "config.toml")}': {ex}");
+        } catch (System.UnauthorizedAccessException ex) {
+            Shared.IO.Diagnostics.Bug($"[ExecutionContextBuilder] UnauthorizedAccessException reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Combine(gdict.GameRoot, "config.toml")}': {ex}");
+        } catch (System.ArgumentException ex) {
+            Shared.IO.Diagnostics.Bug($"[ExecutionContextBuilder] ArgumentException reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Combine(gdict.GameRoot, "config.toml")}': {ex}");
+        } catch (System.NotSupportedException ex) {
+            Shared.IO.Diagnostics.Bug($"[ExecutionContextBuilder] NotSupportedException reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Combine(gdict.GameRoot, "config.toml")}': {ex}");
+        } catch (System.Security.SecurityException ex) {
+            Shared.IO.Diagnostics.Bug($"[ExecutionContextBuilder] SecurityException reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Combine(gdict.GameRoot, "config.toml")}': {ex}");
         }
 
         return ctx;

@@ -122,5 +122,6 @@
     "[csharp]": {
         "editor.formatOnType": false
     },
+    "editor.formatOnPaste": false,
 }
 

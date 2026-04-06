@@ -13,6 +13,10 @@
         <ProjectReference Include="..\Core\EngineNet.Core.csproj" />
     </ItemGroup>
 
+    <PropertyGroup>
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    </PropertyGroup>
+
     <ItemGroup>
         <!-- GUI (Avalonia) -->
         <PackageReference Include="Avalonia" Version="11.3.12" />

@@ -485,16 +485,12 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private async System.Threading.Tasks.Task OpenFolderAsync() {
-        try {
-            if (GuiBootstrapper.MiniEngine is null) return;
-            string? path = GuiBootstrapper.MiniEngine.GameRegistry_GetGamePath(name: ModuleName);
-            if (string.IsNullOrWhiteSpace(path) || !System.IO.Directory.Exists(path: path)) {
-                return;
-            }
-            GuiBootstrapper.MiniEngine.CommandService_OpenFolder(path);
-        } catch {
-            Shared.IO.Diagnostics.Bug("OpenFolderAsync: Failed to open folder.");
+        if (GuiBootstrapper.MiniEngine is null) return;
+        string? path = GuiBootstrapper.MiniEngine.GameRegistry_GetGamePath(name: ModuleName);
+        if (string.IsNullOrWhiteSpace(path) || !System.IO.Directory.Exists(path: path)) {
+            return;
         }
+        GuiBootstrapper.MiniEngine.CommandService_OpenFolder(path);
         await System.Threading.Tasks.Task.CompletedTask;
     }
 

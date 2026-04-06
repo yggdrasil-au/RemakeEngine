@@ -2,7 +2,6 @@
 namespace EngineNet.ScriptEngines.qbms;
 
 /// <summary>
-/// Provides a built-in replacement for EnginePy\FormatHandlers\bms_extract.py.
 /// Wraps QuickBMS execution for matching files while mirroring the original CLI options.
 /// </summary>
 internal static class QuickBmsExtractor {

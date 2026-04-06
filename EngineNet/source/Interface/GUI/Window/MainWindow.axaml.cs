@@ -52,24 +52,16 @@ public partial class MainWindow:Window {
     }
 
     private void TryWireBottomPanel() {
-        try {
-            var bottom = this.FindControl<Border>("BottomPanel");
-            if (bottom != null) {
-                bottom.DataContext = OperationOutputService.Instance;
-            }
-        } catch {
-            Shared.IO.Diagnostics.Bug("GUI :: MainWindow.axaml.cs::TryWireBottomPanel() Failed to wire bottom panel");
+        var bottom = this.FindControl<Border>("BottomPanel");
+        if (bottom != null) {
+            bottom.DataContext = OperationOutputService.Instance;
         }
     }
 
     private void TryWirePromptOverlay() {
-        try {
-            var overlay = this.FindControl<Border>("PromptOverlay");
-            if (overlay != null) {
-                overlay.DataContext = OperationOutputService.Instance;
-            }
-        } catch {
-            Shared.IO.Diagnostics.Bug("GUI :: MainWindow.axaml.cs::TryWirePromptOverlay() Failed to wire prompt overlay");
+        var overlay = this.FindControl<Border>("PromptOverlay");
+        if (overlay != null) {
+            overlay.DataContext = OperationOutputService.Instance;
         }
     }
 

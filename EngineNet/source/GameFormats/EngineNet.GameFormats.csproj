@@ -3,8 +3,8 @@
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <OutputType>Library</OutputType>
-        <AssemblyName>EngineNet.Core.Formats</AssemblyName>
-        <RootNamespace>EngineNet.Core.FileHandlers.Formats</RootNamespace>
+        <AssemblyName>EngineNet.Formats</AssemblyName>
+        <RootNamespace>EngineNet.Formats</RootNamespace>
         <LangVersion>latest</LangVersion>
         <ImplicitUsings>disable</ImplicitUsings>
         <DebugType>embedded</DebugType>
@@ -19,5 +19,9 @@
     <ItemGroup>
         <ProjectReference Include="..\Shared\EngineNet.Shared.csproj" />
     </ItemGroup>
+
+    <PropertyGroup>
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    </PropertyGroup>
 
 </Project>

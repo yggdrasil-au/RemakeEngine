@@ -609,25 +609,6 @@ internal static class AvTools {
         return string.IsNullOrWhiteSpace(ext) ? ext : ext.StartsWith('.') ? ext : "." + ext;
     }
 
-    /*public static string? Which(string name) {
-        try {
-            string path = System.Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-            foreach (string dir in path.Split(System.IO.Path.PathSeparator)) {
-                try {
-                    string candidate = System.IO.Path.Combine(dir, name);
-                    if (System.IO.File.Exists(candidate)) {
-                        return candidate;
-                    }
-                } catch {
-                    Shared.IO.Diagnostics.Bug("Failed to find executable in PATH: " + name);
-                }
-            }
-        } catch {
-            Shared.IO.Diagnostics.Bug("Failed to enumerate PATH directories");
-        }
-        return null;
-    }*/
-
     private static void WriteVerbose(bool enabled, string msg) {
         if (!enabled) {
             return;

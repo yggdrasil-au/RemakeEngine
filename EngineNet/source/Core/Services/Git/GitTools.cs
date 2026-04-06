@@ -3,7 +3,6 @@ namespace EngineNet.Core.Utils;
 
 /// <summary>
 /// Lightweight Git helper to clone game modules into the local registry.
-/// Mirrors LegacyEnginePy/Core/git_tools.py behavior.
 /// </summary>
 internal static class GitTools {
 
@@ -23,6 +22,7 @@ internal static class GitTools {
             Shared.IO.Diagnostics.Log("[GitTools.cs::CloneModule()] GitTools: Git is not installed or not found in PATH.");
             return false;
         }
+
         try {
             string repoName = GuessRepoName(url);
             string target = System.IO.Path.Combine(_gamesDir, repoName);
@@ -39,12 +39,12 @@ internal static class GitTools {
             bool ok = commandService.ExecuteCommand(
                 commandParts: new List<string> { "git", "clone", url, target, "--recurse-submodules" },
                 title: "git clone",
-                onOutput: (line, _) => {
-                    Shared.IO.UI.EngineSdk.Print(line);
-                },
+                onOutput: (line, _) => { Shared.IO.UI.EngineSdk.Print(line); },
                 onEvent: evt => {
-                    if (evt.TryGetValue("event", out object? kind) && string.Equals(kind?.ToString(), "end", System.StringComparison.OrdinalIgnoreCase)) {
-                        if (evt.TryGetValue("exit_code", out object? code) && int.TryParse(code?.ToString(), out int parsed)) {
+                    if (evt.TryGetValue("event", out object? kind) && string.Equals(kind?.ToString(), "end",
+                            System.StringComparison.OrdinalIgnoreCase)) {
+                        if (evt.TryGetValue("exit_code", out object? code) &&
+                            int.TryParse(code?.ToString(), out int parsed)) {
                             rc = parsed;
                         }
                     }
@@ -59,12 +59,36 @@ internal static class GitTools {
                 Shared.IO.UI.EngineSdk.Success($"\nSuccessfully downloaded '{repoName}'.");
                 return true;
             }
+
             Shared.IO.UI.EngineSdk.Error($"\nFailed to download '{repoName}'. Git exited with code {rc}.");
             Shared.IO.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Git exited with code {rc}.");
             return false;
-        } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[GitTools.cs::CloneModule()] Catch triggered during git clone: {ex}");
-            Shared.IO.UI.EngineSdk.Error($"An error occurred during download: {ex.Message}");
+        } catch (System.IO.IOException ex) {
+            Shared.IO.Diagnostics.Bug($"[GitTools.cs::CloneModule()] IOException triggered during git clone: {ex}");
+            Shared.IO.UI.EngineSdk.Error($"An IO error occurred during download: {ex.Message}");
+            Shared.IO.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
+            return false;
+        } catch (System.UnauthorizedAccessException ex) {
+            Shared.IO.Diagnostics.Bug(
+                $"[GitTools.cs::CloneModule()] UnauthorizedAccessException triggered during git clone: {ex}");
+            Shared.IO.UI.EngineSdk.Error($"Access denied during download: {ex.Message}");
+            Shared.IO.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
+            return false;
+        } catch (System.ArgumentException ex) {
+            Shared.IO.Diagnostics.Bug($"[GitTools.cs::CloneModule()] ArgumentException triggered during git clone: {ex}");
+            Shared.IO.UI.EngineSdk.Error($"An argument error occurred during download: {ex.Message}");
+            Shared.IO.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
+            return false;
+        } catch (System.InvalidOperationException ex) {
+            Shared.IO.Diagnostics.Bug(
+                $"[GitTools.cs::CloneModule()] InvalidOperationException triggered during git clone: {ex}");
+            Shared.IO.UI.EngineSdk.Error($"An invalid operation occurred during download: {ex.Message}");
+            Shared.IO.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
+            return false;
+        } catch (System.NotSupportedException ex) {
+            Shared.IO.Diagnostics.Bug(
+                $"[GitTools.cs::CloneModule()] NotSupportedException triggered during git clone: {ex}");
+            Shared.IO.UI.EngineSdk.Error($"A path format is not supported during download: {ex.Message}");
             Shared.IO.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
             return false;
         }
@@ -82,8 +106,17 @@ internal static class GitTools {
                 captureStderr: true
             );
             return result.Success;
-        } catch {
-            Shared.IO.Diagnostics.Bug("[GitTools.cs::CloneModule()] Exception while checking for git installation.");
+        } catch (System.ComponentModel.Win32Exception ex) {
+            Shared.IO.Diagnostics.Bug(
+                $"[GitTools.cs::IsGitInstalled()] Win32Exception while checking for git installation. Executable likely missing: {ex}");
+            return false;
+        } catch (System.InvalidOperationException ex) {
+            Shared.IO.Diagnostics.Bug(
+                $"[GitTools.cs::IsGitInstalled()] InvalidOperationException while checking for git installation: {ex}");
+            return false;
+        } catch (System.PlatformNotSupportedException ex) {
+            Shared.IO.Diagnostics.Bug(
+                $"[GitTools.cs::IsGitInstalled()] PlatformNotSupportedException while checking for git installation: {ex}");
             return false;
         }
     }
@@ -99,10 +132,14 @@ internal static class GitTools {
             if (!string.IsNullOrWhiteSpace(leaf)) {
                 return leaf;
             }
-        } catch {
-            Shared.IO.Diagnostics.Bug("[GitTools.cs::CloneModule()] GitTools: Failed to parse URL as URI, falling back to string parsing.");
-            /* fall back to string parsing */
+        } catch (System.UriFormatException ex) {
+            Shared.IO.Diagnostics.Bug(
+                $"[GitTools.cs::GuessRepoName()] UriFormatException: Failed to parse URL as URI, falling back to string parsing. Exception: {ex}");
+        } catch (System.ArgumentNullException ex) {
+            Shared.IO.Diagnostics.Bug(
+                $"[GitTools.cs::GuessRepoName()] ArgumentNullException: Passed URL was null, falling back to string parsing. Exception: {ex}");
         }
+
         string tail = url.Replace("\\", "/");
         int idx = tail.LastIndexOf('/');
         string name = idx >= 0 ? tail.Substring(idx + 1) : tail;

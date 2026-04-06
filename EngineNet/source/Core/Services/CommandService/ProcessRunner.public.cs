@@ -13,9 +13,14 @@ public sealed partial class ProcessRunner {
             if (!proc.HasExited) {
                 proc.Kill(entireProcessTree: true);
             }
-        } catch {
-            Shared.IO.Diagnostics.Bug("Warning: Failed to terminate process.");
-            /* ignore */
+        } catch (System.InvalidOperationException) {
+            // Process has already exited between the check and the Kill call
+        } catch (System.ComponentModel.Win32Exception ex) {
+            // Access denied or the process is already terminating
+            Shared.IO.Diagnostics.Bug($"[ToolsDownloader] Win32 error terminating process: {ex.Message}");
+        } catch (System.NotSupportedException) {
+            // entireProcessTree: true is not supported on some older/specific platforms
+            proc.Kill();
         }
     }
 

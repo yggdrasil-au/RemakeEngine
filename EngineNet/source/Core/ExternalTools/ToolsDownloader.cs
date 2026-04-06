@@ -556,19 +556,24 @@ internal static class ToolsDownloader {
     /// Searches for a file by name pattern using safe recursion and best-effort matching.
     /// </summary>
     private static string? SearchForFile(string root, string pattern) {
-        try {
-            var options = new System.IO.EnumerationOptions {
-                RecurseSubdirectories = true,
-                IgnoreInaccessible = true,
-                MatchCasing = System.IO.MatchCasing.CaseInsensitive,
-                MaxRecursionDepth = 5
-            };
+        var options = new System.IO.EnumerationOptions {
+            RecurseSubdirectories = true,
+            IgnoreInaccessible = true,
+            MatchCasing = System.IO.MatchCasing.CaseInsensitive,
+            MaxRecursionDepth = 5
+        };
 
+        try {
             return System.IO.Directory.EnumerateFiles(root, pattern, options).FirstOrDefault();
-        } catch {
-            Shared.IO.Diagnostics.Bug($"[ToolsDownloader] Could not search for file '{pattern}' in: {root}");
-            return null;
+        } catch (System.IO.DirectoryNotFoundException) {
+            Shared.IO.Diagnostics.Bug($"[ToolsDownloader] Root directory does not exist: {root}");
+        } catch (System.ArgumentException ex) {
+            Shared.IO.Diagnostics.Bug($"[ToolsDownloader] Invalid path or pattern: {ex.Message}");
+        } catch (System.IO.IOException ex) {
+            Shared.IO.Diagnostics.Bug($"[ToolsDownloader] IO error searching '{pattern}' in {root}: {ex.Message}");
         }
+
+        return null;
     }
 
     /// <summary>
@@ -581,12 +586,18 @@ internal static class ToolsDownloader {
 
         try {
             System.IO.UnixFileMode currentMode = System.IO.File.GetUnixFileMode(path);
-            System.IO.UnixFileMode newMode = currentMode | System.IO.UnixFileMode.UserExecute | System.IO.UnixFileMode.GroupExecute;
+            System.IO.UnixFileMode newMode =
+                currentMode | System.IO.UnixFileMode.UserExecute | System.IO.UnixFileMode.GroupExecute;
             System.IO.File.SetUnixFileMode(path, newMode);
             Shared.IO.UI.EngineSdk.Info($"Applied executable permissions to: {path}");
-        } catch (Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[ToolsDownloader::ApplyExecutablePermissions()] Failed to set executable permissions for '{path}'.", ex);
-            Shared.IO.UI.EngineSdk.Warn($"Could not set executable bit on {path}: {ex.Message}");
+        } catch (System.UnauthorizedAccessException ex) {
+            // Specifically for "Permission Denied" errors when calling SetUnixFileMode
+            Shared.IO.Diagnostics.Bug($"[ToolsDownloader] Access denied setting permissions for '{path}'.", ex);
+            Shared.IO.UI.EngineSdk.Warn($"Insufficient permissions to set executable bit on {path}");
+        } catch (System.IO.IOException ex) {
+            // Covers File Not Found or general IO issues
+            Shared.IO.Diagnostics.Bug($"[ToolsDownloader] IO error while updating permissions for '{path}'.", ex);
+            Shared.IO.UI.EngineSdk.Warn($"Could not update permissions for {path}: {ex.Message}");
         }
     }
 }

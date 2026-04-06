@@ -137,15 +137,19 @@ public class CommandService {
 
     public bool CloseProcess(int pid) {
         if (!_spawnedProcesses.TryRemove(pid, out ManagedProcess? mp)) return false;
-        try { if (!mp.Process.HasExited) mp.Process.Kill(true); } catch (Exception ex) { Shared.IO.Diagnostics.Bug($"[CommandService] CloseProcess kill catch triggered for pid {pid}: {ex}"); /* ignore */ }
-        try { mp.Process.Dispose(); } catch (Exception ex) { Shared.IO.Diagnostics.Bug($"[CommandService] CloseProcess dispose catch triggered for pid {pid}: {ex}"); /* ignore */ }
-        return true;
-    }
+        try {
+            if (!mp.Process.HasExited) mp.Process.Kill(true);
+        } catch (Exception ex) {
+            Shared.IO.Diagnostics.Bug($"[CommandService] CloseProcess kill catch triggered for pid {pid}: {ex}"); /* ignore */
+        }
 
-    public bool LaunchDetached(string executable, IEnumerable<string> args, string? cwd) {
-        return LaunchDetached(executable, args, cwd, new DetachedLaunchOptions {
-            UseShellExecute = true
-        });
+        try {
+            mp.Process.Dispose();
+        } catch (Exception ex) {
+            Shared.IO.Diagnostics.Bug($"[CommandService] CloseProcess dispose catch triggered for pid {pid}: {ex}"); /* ignore */
+        }
+
+        return true;
     }
 
     public bool LaunchDetached(string executable, IEnumerable<string> args, string? cwd, DetachedLaunchOptions options) {
@@ -168,8 +172,20 @@ public class CommandService {
             }
             Process.Start(psi);
             return true;
-        } catch (Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[CommandService] Error launching detached process '{executable}': {ex.Message}");
+        } catch (System.ComponentModel.Win32Exception ex) {
+            Shared.IO.Diagnostics.Bug($"[CommandService] Win32Exception launching detached process '{executable}': {ex}");
+            return false;
+        } catch (System.ObjectDisposedException ex) {
+            Shared.IO.Diagnostics.Bug($"[CommandService] ObjectDisposedException launching detached process '{executable}': {ex}");
+            return false;
+        } catch (System.IO.FileNotFoundException ex) {
+            Shared.IO.Diagnostics.Bug($"[CommandService] FileNotFoundException launching detached process '{executable}': {ex}");
+            return false;
+        } catch (System.InvalidOperationException ex) {
+            Shared.IO.Diagnostics.Bug($"[CommandService] InvalidOperationException launching detached process '{executable}': {ex}");
+            return false;
+        } catch (System.PlatformNotSupportedException ex) {
+            Shared.IO.Diagnostics.Bug($"[CommandService] PlatformNotSupportedException launching detached process '{executable}': {ex}");
             return false;
         }
     }
@@ -188,8 +204,14 @@ public class CommandService {
                 psi.Arguments = $"\"{path}\"";
             }
             Process.Start(psi);
-        } catch (Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[CommandService] Failed to open folder: {ex.Message}");
+        } catch (System.ComponentModel.Win32Exception ex) {
+            Shared.IO.Diagnostics.Bug($"[CommandService] Win32Exception failed to open folder '{path}': {ex}");
+        } catch (System.ObjectDisposedException ex) {
+            Shared.IO.Diagnostics.Bug($"[CommandService] ObjectDisposedException failed to open folder '{path}': {ex}");
+        } catch (System.InvalidOperationException ex) {
+            Shared.IO.Diagnostics.Bug($"[CommandService] InvalidOperationException failed to open folder '{path}': {ex}");
+        } catch (System.PlatformNotSupportedException ex) {
+            Shared.IO.Diagnostics.Bug($"[CommandService] PlatformNotSupportedException failed to open folder '{path}': {ex}");
         }
     }
 

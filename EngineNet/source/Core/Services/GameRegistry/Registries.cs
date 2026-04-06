@@ -49,7 +49,9 @@ internal sealed class Registries {
     /// The games registry is not cached in memory, so it does not require refreshing - it is read from disk on each access to ensure it reflects the current state of installed/downloaded games.
     /// This design choice prioritizes accuracy for game discovery while allowing efficient caching for module information that is less likely to change frequently.
     /// </summary>
-    internal void RefreshModules() => _modules = Shared.Serialization.Json.JsonHelpers.LoadJsonFile(_modulesRegistryPath);
+    internal void RefreshModules() {
+        _modules = Shared.Serialization.Json.JsonHelpers.LoadJsonFile(_modulesRegistryPath);
+    }
 
     /// <summary>
     /// Gets the registered modules from the modules registry. The returned dictionary is case-insensitive for module names.
@@ -120,7 +122,8 @@ internal sealed class Registries {
             string? ops = null;
             if (System.IO.File.Exists(opsToml)) {
                 ops = opsToml;
-            } else if (System.IO.File.Exists(opsJson)) {
+            }
+            else if (System.IO.File.Exists(opsJson)) {
                 ops = opsJson;
             }
 
@@ -130,7 +133,8 @@ internal sealed class Registries {
 
             string gameToml = System.IO.Path.Combine(dir, "game.toml");
             if (!System.IO.File.Exists(gameToml)) {
-                Shared.IO.Diagnostics.Trace($"[GameRegistry] warning: game '{new System.IO.DirectoryInfo(dir).Name}' is missing game.toml - skipping");
+                Shared.IO.Diagnostics.Trace(
+                    $"[GameRegistry] warning: game '{new System.IO.DirectoryInfo(dir).Name}' is missing game.toml - skipping");
                 continue; // not installed - requires a valid game.toml
             }
 
@@ -144,6 +148,7 @@ internal sealed class Registries {
                     if (line.Length == 0 || line.StartsWith("#")) {
                         continue;
                     }
+
                     // ignore tables/arrays
                     if (line.StartsWith("[") && line.EndsWith("]")) {
                         continue;
@@ -156,21 +161,42 @@ internal sealed class Registries {
 
                     string key = line.Substring(0, eq).Trim();
                     string valRaw = line.Substring(eq + 1).Trim();
-                    string? val = valRaw.StartsWith("\"") && valRaw.EndsWith("\"") ? valRaw.Substring(1, valRaw.Length - 2) : valRaw;
 
-                    if (key.Equals("exe", System.StringComparison.OrdinalIgnoreCase) || key.Equals("executable", System.StringComparison.OrdinalIgnoreCase)) {
+                    // Note: valRaw.Length >= 2 prevents an ArgumentOutOfRangeException if valRaw is exactly "\""
+                    string val = valRaw.Length >= 2 && valRaw.StartsWith("\"") && valRaw.EndsWith("\"")
+                        ? valRaw.Substring(1, valRaw.Length - 2)
+                        : valRaw;
+
+                    if (key.Equals("exe", System.StringComparison.OrdinalIgnoreCase) ||
+                        key.Equals("executable", System.StringComparison.OrdinalIgnoreCase)) {
                         exePath = val;
-                    } else if (key.Equals("lua", System.StringComparison.OrdinalIgnoreCase) || key.Equals("lua_script", System.StringComparison.OrdinalIgnoreCase) || key.Equals("script", System.StringComparison.OrdinalIgnoreCase)) {
+                    }
+                    else if (key.Equals("lua", System.StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("lua_script", System.StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("script", System.StringComparison.OrdinalIgnoreCase)) {
                         luaPath = val;
-                    } else if (key.Equals("godot", System.StringComparison.OrdinalIgnoreCase) || key.Equals("godot_project", System.StringComparison.OrdinalIgnoreCase) || key.Equals("project", System.StringComparison.OrdinalIgnoreCase)) {
+                    }
+                    else if (key.Equals("godot", System.StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("godot_project", System.StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("project", System.StringComparison.OrdinalIgnoreCase)) {
                         godotPath = val;
-                    } else if (key.Equals("title", System.StringComparison.OrdinalIgnoreCase) || key.Equals("name", System.StringComparison.OrdinalIgnoreCase)) {
+                    }
+                    else if (key.Equals("title", System.StringComparison.OrdinalIgnoreCase) ||
+                            key.Equals("name", System.StringComparison.OrdinalIgnoreCase)) {
                         title = val;
                     }
                 }
-            } catch {
-                Shared.IO.Diagnostics.Bug($"[GameRegistry] err parsing game.toml for game '{new System.IO.DirectoryInfo(dir).Name}' - skipping");
-                // malformed game.toml - reject
+            }
+            catch (System.IO.IOException ex) {
+                Shared.IO.Diagnostics.Bug($"[GameRegistry] IO error reading game.toml for '{new System.IO.DirectoryInfo(dir).Name}': {ex.Message} - skipping");
+                continue;
+            }
+            catch (System.UnauthorizedAccessException ex) {
+                Shared.IO.Diagnostics.Bug($"[GameRegistry] Access denied reading game.toml for '{new System.IO.DirectoryInfo(dir).Name}': {ex.Message} - skipping");
+                continue;
+            }
+            catch (System.ArgumentOutOfRangeException ex) {
+                Shared.IO.Diagnostics.Bug($"[GameRegistry] Malformed syntax in game.toml for '{new System.IO.DirectoryInfo(dir).Name}': {ex.Message} - skipping");
                 continue;
             }
 
@@ -187,11 +213,13 @@ internal sealed class Registries {
                 string full = PathHelper.ResolveRelativePath(dir, resolved);
                 if (System.IO.File.Exists(full)) finalEntryPoint = full;
             }
+
             if (finalEntryPoint == null && !string.IsNullOrWhiteSpace(luaPath)) {
                 string resolved = Placeholders.Resolve(luaPath, ctx)?.ToString() ?? luaPath;
                 string full = PathHelper.ResolveRelativePath(dir, resolved);
                 if (System.IO.File.Exists(full)) finalEntryPoint = full;
             }
+
             if (finalEntryPoint == null && !string.IsNullOrWhiteSpace(godotPath)) {
                 string resolved = Placeholders.Resolve(godotPath, ctx)?.ToString() ?? godotPath;
                 string full = PathHelper.ResolveRelativePath(dir, resolved);

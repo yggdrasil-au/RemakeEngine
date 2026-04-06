@@ -20,4 +20,8 @@
         <ProjectReference Include="..\Shared\EngineNet.Shared.csproj" />
     </ItemGroup>
 
+    <PropertyGroup>
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    </PropertyGroup>
+
 </Project>
