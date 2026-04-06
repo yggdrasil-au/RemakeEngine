@@ -12,6 +12,8 @@ internal sealed class Engine : IEngineFace{
     public Core.Services.GameLauncher GameLauncher { get; }
     public Core.Engine.EngineContext Context { get; }
 
+    public OperationContext OperationContext { get; }
+
     /* :: :: Vars :: End :: */
 
     internal Engine(
@@ -25,17 +27,16 @@ internal sealed class Engine : IEngineFace{
         EngineNet.Core.Operations.Single Runner
     ) {
         this.GameLauncher = gameLauncher;
-        OperationContext operationContext = new OperationContext(
-            OperationsService,
-            OperationsLoader,
-            Runner
-        );
         this.Context = new Core.Engine.EngineContext(
             gameRegistry,
             commandService,
             toolResolver,
-            engineConfig,
-            operationContext
+            engineConfig
+        );
+        this.OperationContext = new OperationContext(
+            OperationsService,
+            OperationsLoader,
+            Runner
         );
     }
 
@@ -51,10 +52,10 @@ internal sealed class Engine : IEngineFace{
         Data.PromptAnswers promptAnswers,
         System.Threading.CancellationToken cancellationToken = default
     ) {
-        return await this.Context.OperationContext.Single.RunAsync(currentGame, games, op, promptAnswers, this.Context, cancellationToken);
+        return await this.OperationContext.Single.RunAsync(currentGame, games, op, promptAnswers, this.Context, this.OperationContext, cancellationToken);
     }
 
-    public bool CloneModule(string url) {
+    public bool CloneModule(string url, System.Threading.CancellationToken cancellationToken = default) {
         return Utils.GitTools.CloneModule(url, this.Context.CommandService);
     }
 
@@ -62,7 +63,8 @@ internal sealed class Engine : IEngineFace{
 
 public interface IEngineFace {
     public Task<bool> RunSingleOperationAsync(string currentGame, Core.Data.GameModules games, IDictionary<string, object?> op, Data.PromptAnswers promptAnswers, CancellationToken cancellationToken = default(CancellationToken));
-    public bool CloneModule(string url);
-    internal Core.Services.GameLauncher GameLauncher { get; }
-    internal EngineContext Context { get; }
+    public bool CloneModule(string url, CancellationToken cancellationToken = default(CancellationToken));
+    public Core.Services.GameLauncher GameLauncher { get; }
+    public EngineContext Context { get; }
+    public OperationContext OperationContext { get; }
 }

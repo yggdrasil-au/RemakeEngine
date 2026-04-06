@@ -3,16 +3,16 @@ namespace EngineNet.Core.Data;
 /// <summary>
 /// Represents a prepared operation with resolved metadata.
 /// </summary>
-internal sealed class PreparedOperation {
-    internal Dictionary<string, object?> Operation { get; }
-    internal string DisplayName { get; }
-    internal long? OperationId { get; }
-    internal bool HasDuplicateId { get; }
-    internal bool HasInvalidId { get; }
-    internal string? ScriptPath { get; }
-    internal string? ScriptType { get; }
+public sealed class PreparedOperation {
+    public Dictionary<string, object?> Operation { get; }
+    public string DisplayName { get; }
+    public long? OperationId { get; }
+    public bool HasDuplicateId { get; }
+    public bool HasInvalidId { get; }
+    public string? ScriptPath { get; }
+    public string? ScriptType { get; }
 
-    internal PreparedOperation(
+    public PreparedOperation(
         Dictionary<string, object?> operation,
         string displayName,
         long? operationId,

@@ -1,6 +1,6 @@
 namespace EngineNet.Core.Utils;
 
-internal static class ScriptConstants {
+public static class ScriptConstants {
     // direct C# execution of specific methods accessable to any module
     internal const string TypeEngine   = "engine";
 
@@ -69,7 +69,7 @@ internal static class ScriptConstants {
     /// <summary>
     /// Checks if the provided script type string is a valid, supported type.
     /// </summary>
-    internal static bool IsSupported(string? script_type) {
+    public static bool IsSupported(string? script_type) {
         return !string.IsNullOrWhiteSpace(script_type) && _supportedTypes.Contains(script_type);
     }
 }

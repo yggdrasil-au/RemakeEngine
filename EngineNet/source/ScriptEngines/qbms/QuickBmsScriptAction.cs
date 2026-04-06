@@ -49,8 +49,8 @@ public sealed class Main : IScriptAction {
         } catch { /* ignore parse issues; best-effort */ }
 
         // Resolve QuickBMS exe and version via provider (tool lockfile or resolver)
-        //Core.ExternalTools.ToolMetadataProvider provider = new Core.ExternalTools.ToolMetadataProvider(projectRoot: EngineNet.Core.Main.RootPath, resolver: tools);
-        (string? installedExe, string? installedVersion) = Core.ExternalTools.ToolMetadataProvider.ResolveExeAndVersion(toolId: "QuickBMS", EngineNet.Core.Main.RootPath, tools);
+        //Core.ExternalTools.ToolMetadataProvider provider = new Core.ExternalTools.ToolMetadataProvider(projectRoot: EngineNet.Core.Lib.RootPath, resolver: tools);
+        (string? installedExe, string? installedVersion) = Core.ExternalTools.ToolMetadataProvider.ResolveExeAndVersion(toolId: "QuickBMS", EngineNet.Core.Lib.RootPath, tools);
 
         // Enforce required version (if declared)
         if (!string.IsNullOrWhiteSpace(requiredVersion)) {

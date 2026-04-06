@@ -29,7 +29,7 @@ public sealed class Main {
                 Interface.Terminal.CLI CLI = new Interface.Terminal.CLI(miniEngine);
                 return await CLI.RunAsync(args, cancellationToken);
             default:
-                System.Console.Error.WriteLine(value: $"No valid interface mode selected. Expected 'gui', 'tui', or 'cli', but got '{ui}'.");
+                await System.Console.Error.WriteLineAsync(value: $"No valid interface mode selected. Expected 'gui', 'tui', or 'cli', but got '{ui}'.");
                 Shared.IO.Diagnostics.Bug("No valid interface mode selected.");
                 break;
         }
@@ -72,12 +72,10 @@ public sealed class Main {
             Core.Data.GameModules? games = null,
             IDictionary<string, object?>? engineConfig = null
         ) {
-            return Engine.Context.OperationContext.OperationsService.LoadAndPrepare(opsFile, currentGame, games, engineConfig);
+            return Engine.OperationContext.OperationsService.LoadAndPrepare(opsFile, currentGame, games, engineConfig);
         }
 
-        public IDictionary<string, object?> EngineConfig_Data {
-            get => Engine.Context.EngineConfig.Data;
-        }
+        public IDictionary<string, object?> EngineConfig_Data => Engine.Context.EngineConfig.Data;
 
         /// <summary>
         /// Clones a module repository from the registry URL.
@@ -91,7 +89,7 @@ public sealed class Main {
             Core.Data.GameModules games,
             IDictionary<string, object?> op,
             Core.Data.PromptAnswers promptAnswers,
-            System.Threading.CancellationToken cancellationToken = default
+            System.Threading.CancellationToken cancellationToken = default(CancellationToken)
         ) {
             return await Engine.RunSingleOperationAsync(currentGame, games, op, promptAnswers, cancellationToken: cancellationToken);
         }
@@ -109,7 +107,7 @@ public sealed class Main {
             Core.Services.OperationsService.PromptHandler handler,
             bool defaultsOnly = false
         ) {
-            return await Engine.Context.OperationContext.OperationsService.CollectAnswersAsync(op, answers, handler, defaultsOnly);
+            return await Engine.OperationContext.OperationsService.CollectAnswersAsync(op, answers, handler, defaultsOnly);
         }
 
         public async Task<bool> GameLauncher_LaunchGameAsync(string name) {
@@ -121,9 +119,9 @@ public sealed class Main {
             Core.ProcessRunner.OutputHandler? onOutput = null,
             Core.ProcessRunner.EventHandler? onEvent = null,
             Core.ProcessRunner.StdinProvider? stdinProvider = null,
-            System.Threading.CancellationToken cancellationToken = default
+            System.Threading.CancellationToken cancellationToken = default(CancellationToken)
         ) {
-            return await EngineNet.Core.Operations.All.RunAsync(gameName, Engine.Context, onOutput, onEvent, stdinProvider, cancellationToken);
+            return await EngineNet.Core.Operations.All.RunAsync(gameName, Engine.Context, Engine.OperationContext, onOutput, onEvent, stdinProvider, cancellationToken);
         }
 
         public void CommandService_OpenFolder(string path) {
@@ -171,7 +169,7 @@ internal interface MiniEngineFace {
         Core.Data.GameModules games,
         IDictionary<string, object?> op,
         Core.Data.PromptAnswers promptAnswers,
-        System.Threading.CancellationToken cancellationToken = default
+        System.Threading.CancellationToken cancellationToken = default(CancellationToken)
     );
 
     internal List<string> CommandService_BuildCommand(string currentGame, Core.Data.GameModules games, IDictionary<string, object?> engineData, IDictionary<string, object?> op, Core.Data.PromptAnswers promptAnswers);
@@ -192,7 +190,7 @@ internal interface MiniEngineFace {
         Core.ProcessRunner.OutputHandler? onOutput = null,
         Core.ProcessRunner.EventHandler? onEvent = null,
         Core.ProcessRunner.StdinProvider? stdinProvider = null,
-        System.Threading.CancellationToken cancellationToken = default
+        System.Threading.CancellationToken cancellationToken = default(CancellationToken)
     );
 
     internal void CommandService_OpenFolder(string path);

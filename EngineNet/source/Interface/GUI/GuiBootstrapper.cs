@@ -37,7 +37,7 @@ public static class GuiBootstrapper {
         try {
             // 1) Stash the engine so App.OnFrameworkInitializationCompleted (or similar)
             //    can pull it to compose view models and support the previewer.
-            Engine = EngineNet.Core.Main.InitialiseEngineAsync().GetAwaiter().GetResult(); // only used in avalonia previewer
+            Engine = EngineNet.Core.Lib.InitialiseEngineAsync().GetAwaiter().GetResult(); // only used in avalonia previewer
             MiniEngine = miniEngine;
 
             // Ensure events from the engine (including "Play" button actions) reach the GUI

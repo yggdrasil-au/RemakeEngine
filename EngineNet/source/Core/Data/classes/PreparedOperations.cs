@@ -4,10 +4,10 @@ namespace EngineNet.Core.Data;
 /// Prepared operations data for UI consumption.
 /// </summary>
 public sealed class PreparedOperations {
-    internal bool IsLoaded { get; set; }
-    internal string? ErrorMessage { get; set; }
-    internal List<PreparedOperation> InitOperations { get; } = new List<PreparedOperation>();
-    internal List<PreparedOperation> RegularOperations { get; } = new List<PreparedOperation>();
-    internal bool HasRunAll { get; set; }
-    internal List<string> Warnings { get; } = new List<string>();
+    public bool IsLoaded { get; set; }
+    public string? ErrorMessage { get; set; }
+    public List<PreparedOperation> InitOperations { get; } = new List<PreparedOperation>();
+    public List<PreparedOperation> RegularOperations { get; } = new List<PreparedOperation>();
+    public bool HasRunAll { get; set; }
+    public List<string> Warnings { get; } = new List<string>();
 }

@@ -7,7 +7,7 @@ namespace EngineNet.Core.Services;
 /// <summary>
 /// Provides shared operations loading, validation, and prompt-flow logic for all interfaces.
 /// </summary>
-internal sealed class OperationsService {
+public sealed class OperationsService {
 
     /* :: :: Vars :: START :: */
     private readonly OperationsLoader _loader;
@@ -16,7 +16,7 @@ internal sealed class OperationsService {
     // //
     /* :: :: Constructors :: START :: */
 
-    internal OperationsService(OperationsLoader loader, GameRegistry gameRegistry) {
+    public OperationsService(OperationsLoader loader, GameRegistry gameRegistry) {
         _loader = loader;
         _gameRegistry = gameRegistry;
     }
@@ -33,7 +33,7 @@ internal sealed class OperationsService {
     /// <param name="games"></param>
     /// <param name="engineConfig"></param>
     /// <returns></returns>
-    internal PreparedOperations LoadAndPrepare(
+    public PreparedOperations LoadAndPrepare(
         string opsFile,
         string? currentGame = null,
         Core.Data.GameModules? games = null,
@@ -165,7 +165,7 @@ internal sealed class OperationsService {
     /// <param name="promptHandler"></param>
     /// <param name="defaultsOnly"></param>
     /// <returns></returns>
-    internal async Task<bool> CollectAnswersAsync(
+    public async Task<bool> CollectAnswersAsync(
         Dictionary<string, object?> op,
         PromptAnswers answers,
         PromptHandler promptHandler,

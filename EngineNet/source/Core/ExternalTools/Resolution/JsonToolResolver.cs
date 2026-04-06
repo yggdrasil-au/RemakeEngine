@@ -16,7 +16,7 @@ public class JsonToolResolver {
     private System.DateTime _lastWriteTime;
 
     public JsonToolResolver() {
-        _lockfilePath = ToolLockfile.GetPath(EngineNet.Core.Main.RootPath);
+        _lockfilePath = ToolLockfile.GetPath(EngineNet.Core.Lib.RootPath);
         Load();
     }
 
@@ -121,19 +121,18 @@ public class JsonToolResolver {
         return null;
     }
 
-    internal virtual string ResolveToolPath(string toolId, string? version = null) {
+    public virtual string ResolveToolPath(string toolId, string? version = null) {
         Load();
 
-        if (_tools.TryGetValue(toolId, out var versions)) {
-            if (version != null && versions.TryGetValue(version, out string? path)) {
-                return path;
-            }
+        if (!_tools.TryGetValue(toolId, out var versions)) return toolId;
+        if (version != null && versions.TryGetValue(version, out string? path)) {
+            return path;
+        }
 
-            // If no version specified or not found, try to find the "latest"
-            // For now, just pick the last one available (which should be latest if added chronologically)
-            if (versions.Count > 0) {
-                return versions.Values.Last();
-            }
+        // If no version specified or not found, try to find the "latest"
+        // For now, just pick the last one available (which should be latest if added chronologically)
+        if (versions.Count > 0) {
+            return versions.Values.Last();
         }
 
         return toolId;

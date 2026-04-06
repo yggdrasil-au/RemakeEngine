@@ -30,10 +30,10 @@ internal sealed class Registries {
         string Module_registry = System.IO.Path.Combine("EngineApps", "Registries", "Modules", "Main.json");
 
         // Preferred locations (relative to working root)
-        string gamesRel = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "EngineApps", "Games");
-        string modulesRel = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, Module_registry);
+        string gamesRel = System.IO.Path.Combine(EngineNet.Core.Lib.RootPath, "EngineApps", "Games");
+        string modulesRel = System.IO.Path.Combine(EngineNet.Core.Lib.RootPath, Module_registry);
 
-        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(modulesRel) ?? EngineNet.Core.Main.RootPath);
+        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(modulesRel) ?? EngineNet.Core.Lib.RootPath);
 
         if (!System.IO.File.Exists(modulesRel)) {
             await Core.ExternalTools.RemoteFallbacks.EnsureRepoFileAsync(Module_registry, modulesRel);
@@ -177,7 +177,7 @@ internal sealed class Registries {
             // Prepare resolution context
             var ctx = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase) {
                 ["Game_Root"] = dir,
-                ["Project_Root"] = EngineNet.Core.Main.RootPath
+                ["Project_Root"] = EngineNet.Core.Lib.RootPath
             };
 
             // Resolve and validate entry points (Priority: EXE > Lua > Godot)

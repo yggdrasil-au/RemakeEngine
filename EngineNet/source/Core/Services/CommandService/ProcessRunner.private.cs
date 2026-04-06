@@ -34,7 +34,7 @@ public sealed partial class ProcessRunner {
     /// <param name="envOverrides">Optional environment variables to inject/override for the child.</param>
     /// <param name="cancellationToken">Token to abort execution.</param>
     /// <returns>True on zero exit code; false otherwise.</returns>
-    internal bool Execute(
+    public bool Execute(
         IList<string> commandParts,
         string opTitle,
         OutputHandler? onOutput = null,

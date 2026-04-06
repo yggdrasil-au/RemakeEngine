@@ -178,7 +178,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 Image = ResolveCoverBitmap(gameRoot: GameRoot);
             } else {
                 Title = _moduleName;
-                Image = ResolveCoverBitmap(gameRoot: EngineNet.Core.Main.RootPath);
+                Image = ResolveCoverBitmap(gameRoot: EngineNet.Core.Lib.RootPath);
             }
 
             // Registry info (URL)
@@ -267,7 +267,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             return null;
         }
         string? icon = string.IsNullOrWhiteSpace(gameRoot) ? null : System.IO.Path.Combine(path1: gameRoot, path2: "icon.png");
-        string placeholder = System.IO.Path.Combine(path1: EngineNet.Core.Main.RootPath, path2: "placeholder.png");
+        string placeholder = System.IO.Path.Combine(path1: EngineNet.Core.Lib.RootPath, path2: "placeholder.png");
         string pick = (!string.IsNullOrWhiteSpace(icon) && System.IO.File.Exists(path: icon)) ? icon : placeholder;
         try {
             return System.IO.File.Exists(path: pick) ? new Bitmap(pick) : null;
@@ -500,7 +500,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     private bool IsDownloaded() {
         if (GuiBootstrapper.MiniEngine is null) return false;
-        string path = System.IO.Path.Combine(path1: EngineNet.Core.Main.RootPath, path2: System.IO.Path.Combine("EngineApps", "Games", _moduleName));
+        string path = System.IO.Path.Combine(path1: EngineNet.Core.Lib.RootPath, path2: System.IO.Path.Combine("EngineApps", "Games", _moduleName));
         return System.IO.Directory.Exists(path: path);
     }
 

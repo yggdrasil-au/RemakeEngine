@@ -23,7 +23,7 @@ internal class BuiltInOperations {
                 configPath = System.IO.Path.Combine(gameInfo.GameRoot, "config.toml");
             } else {
                 // Fallback
-                configPath = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "config.toml");
+                configPath = System.IO.Path.Combine(EngineNet.Core.Lib.RootPath, "config.toml");
             }
         }
 
@@ -198,7 +198,7 @@ internal class BuiltInOperations {
         }
 
         // execute
-        await ExternalTools.ToolsDownloader.ProcessAsync(resolvedManifest, EngineNet.Core.Main.RootPath,force, ctx, operationArgs.cancellationToken);
+        await ExternalTools.ToolsDownloader.ProcessAsync(resolvedManifest, EngineNet.Core.Lib.RootPath,force, ctx, operationArgs.cancellationToken);
         return true;
     }
 

@@ -79,7 +79,7 @@ public static class Program {
                 Shared.IO.Diagnostics.Trace("Allocated new console window for TUI/CLI mode.");
             }
 
-            Core.Main.ConfigureRuntime(
+            Core.Lib.ConfigureRuntime(
                 rootPath: rootPath,
                 isGui: isGui,
                 isTui: isTui,
@@ -151,15 +151,16 @@ public static class Program {
         var result = new ParsedArgs();
         for (int i = 0; i < args.Length; i++) {
             bool isRootFlag = args[i].Equals("--root", System.StringComparison.OrdinalIgnoreCase);
+            bool hasRootValue = isRootFlag
+                && i + 1 < args.Length
+                && !args[i + 1].StartsWith("--", System.StringComparison.Ordinal);
 
-            if (isRootFlag && i + 1 < args.Length) {
-                // Found --root and a value exists next to it
+            if (hasRootValue) {
+                // Found --root and a non-flag value exists next to it.
                 result.ExplicitRoot = args[i + 1];
                 i++; // Skip the value argument in the next loop
-            }
-            else {
-                // Determine if this is a loose --root without a value (CLI error case usually, but we treat as arg here)
-                // or just a normal argument
+            } else {
+                // Skip loose --root tokens and keep all other arguments in order.
                 if (!isRootFlag) {
                     result.Remaining.Add(args[i]);
                 }

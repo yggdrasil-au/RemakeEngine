@@ -6,10 +6,10 @@ namespace EngineNet.Core.Services;
 /// Provides a registry for discovering and managing game information within the engine.
 /// This class is responsible for locating game modules, built games, and their associated files.
 /// </summary>
-internal class GameRegistry {
+public class GameRegistry {
     private readonly Core.Utils.ModuleScanner _scanner;
     internal readonly Core.Utils.Registries _registries;
-    private readonly string _rootPath = EngineNet.Core.Main.RootPath;
+    private readonly string _rootPath = EngineNet.Core.Lib.RootPath;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GameRegistry"/> class.
@@ -19,7 +19,7 @@ internal class GameRegistry {
         _scanner = scanner;
     }
 
-    internal Core.Data.GameModules GetModules(Core.Data.ModuleFilter filter) {
+    public Core.Data.GameModules GetModules(Core.Data.ModuleFilter filter) {
         return _scanner.Modules(filter);
     }
 
@@ -38,7 +38,7 @@ internal class GameRegistry {
     /// </summary>
     /// <param name="name">The name of the game.</param>
     /// <returns>The root directory path of the game if found; otherwise, null.</returns>
-    internal string? GetGamePath(string name) {
+    public string? GetGamePath(string name) {
         // Prefer installed location first, then fall back to downloaded location
         if (_registries.DiscoverBuiltGames().TryGetValue(name, out GameInfo? gi))
             return gi.GameRoot;
@@ -46,11 +46,11 @@ internal class GameRegistry {
         return System.IO.Directory.Exists(dir) ? dir : null;
     }
 
-    internal IReadOnlyDictionary<string, object?> GetRegisteredModules() {
+    public IReadOnlyDictionary<string, object?> GetRegisteredModules() {
         return _registries.GetRegisteredModules();
     }
 
-    internal void RefreshModules() {
+    public void RefreshModules() {
         _registries.RefreshModules();
     }
 }

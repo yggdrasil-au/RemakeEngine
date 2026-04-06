@@ -1,7 +1,7 @@
 
 namespace EngineNet.Shared.Serialization.Json;
 
-internal sealed class JsonHelpers {
+public sealed class JsonHelpers {
 
     /// <summary>
     /// Loads a JSON file and returns its contents as a dictionary.
@@ -9,7 +9,7 @@ internal sealed class JsonHelpers {
     /// </summary>
     /// <param name="filePath"></param>
     /// <returns></returns>
-    internal static Dictionary<string, object?> LoadJsonFile(string filePath) {
+    public static Dictionary<string, object?> LoadJsonFile(string filePath) {
         try {
             if (System.IO.File.Exists(filePath)) {
                 using System.IO.FileStream fs = System.IO.File.OpenRead(filePath);

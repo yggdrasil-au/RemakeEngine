@@ -37,8 +37,8 @@ internal static class ExecutionContextBuilder {
         }
 
         ctx[key: "Game_Root"] = gdict.GameRoot;
-        ctx[key: "Project_Root"] = EngineNet.Core.Main.RootPath;
-        ctx[key: "Registry_Root"] = System.IO.Path.Combine(EngineNet.Core.Main.RootPath, "EngineApps");
+        ctx[key: "Project_Root"] = EngineNet.Core.Lib.RootPath;
+        ctx[key: "Registry_Root"] = System.IO.Path.Combine(EngineNet.Core.Lib.RootPath, "EngineApps");
         ctx[key: "Game"] = new Dictionary<string, object?> {
             [key: "RootPath"] = gdict.GameRoot,
             [key: "Name"] = currentGame,
@@ -51,7 +51,7 @@ internal static class ExecutionContextBuilder {
             reDict[key: "Config"] = cfgDict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
         }
         cfgDict[key: "module_path"] = gdict.GameRoot;
-        cfgDict[key: "project_path"] = EngineNet.Core.Main.RootPath;
+        cfgDict[key: "project_path"] = EngineNet.Core.Lib.RootPath;
 
         try {
             string cfgPath = System.IO.Path.Combine(gdict.GameRoot, "config.toml");

@@ -3,7 +3,7 @@ namespace EngineNet.Core.Operations;
 
 public sealed record RunAllResult(string Game, bool Success, int TotalOperations, int SucceededOperations);
 
-internal sealed class All {
+public sealed class All {
 
     // this is the meathod used to execute the run all ops by both GUI and TUI
 
@@ -12,6 +12,7 @@ internal sealed class All {
     /// </summary>
     /// <param name="gameName"></param>
     /// <param name="Context"></param>
+    /// <param name="OperationContext"></param>
     /// <param name="onOutput"></param>
     /// <param name="onEvent"></param>
     /// <param name="stdinProvider"></param>
@@ -21,13 +22,14 @@ internal sealed class All {
     /// <exception cref="KeyNotFoundException"></exception>
     /// <exception cref="System.IO.FileNotFoundException"></exception>
     /// <exception cref="System.Exception"></exception>
-    internal static async System.Threading.Tasks.Task<RunAllResult> RunAsync(
+    public static async System.Threading.Tasks.Task<RunAllResult> RunAsync(
         string gameName,
         Core.Engine.EngineContext Context,
+        Core.Engine.OperationContext OperationContext,
         Core.ProcessRunner.OutputHandler? onOutput = null,
         Core.ProcessRunner.EventHandler? onEvent = null,
         Core.ProcessRunner.StdinProvider? stdinProvider = null,
-        System.Threading.CancellationToken cancellationToken = default
+        System.Threading.CancellationToken cancellationToken = default(CancellationToken)
     ) {
 
         Shared.IO.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Starting RunAllAsync for game '{gameName}', onOutput: {(onOutput is null ? "null" : "set")}, onEvent: {(onEvent is null ? "null" : "set")}, stdinProvider: {(stdinProvider is null ? "null" : "set")}");
@@ -45,7 +47,7 @@ internal sealed class All {
             throw new System.IO.FileNotFoundException($"Operations file for '{gameName}' is missing.", gameInfo.OpsFile);
         }
 
-        List<Dictionary<string, object?>>? allOps = Context.OperationContext.OperationsLoader.LoadOperations(gameInfo.OpsFile);
+        List<Dictionary<string, object?>>? allOps = OperationContext.OperationsLoader.LoadOperations(gameInfo.OpsFile);
         if (allOps is null) {
             throw new System.Exception($"Failed to load operations file for '{gameName}'.");
         }
@@ -128,7 +130,7 @@ internal sealed class All {
                     string? scriptType = GetScriptType(op);
                     // ensure script type is valid
                     if (Core.Utils.ScriptConstants.IsSupported(scriptType)) {
-                        ok = await Context.OperationContext.Single.RunAsync(gameName, games, op, promptAnswers, Context, cancellationToken).ConfigureAwait(false);
+                        ok = await OperationContext.Single.RunAsync(gameName, games, op, promptAnswers, Context,OperationContext, cancellationToken).ConfigureAwait(false);
                     } else if (string.IsNullOrEmpty(scriptType)) {
                         Shared.IO.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Skipping operation '{currentOperation.Value}' due to null or empty script type");
                         overallSuccess = false;

@@ -12,13 +12,13 @@ namespace EngineNet.Core.Services;
 /// It resolves game metadata, execution paths, and handles different launch types
 /// such as direct executables, Lua scripts, or Godot project files.
 /// </summary>
-internal class GameLauncher {
+public class GameLauncher {
     private readonly GameRegistry _gameRegistry;
     private readonly ExternalTools.JsonToolResolver _toolResolver;
     private readonly EngineConfig _config;
     private readonly CommandService _commandService;
     private readonly IScriptActionDispatcher _scriptActionDispatcher;
-    private readonly string _rootPath = Main.RootPath;
+    private readonly string _rootPath = Lib.RootPath;
 
     /* :: :: Constructors :: START :: */
 
@@ -47,7 +47,7 @@ internal class GameLauncher {
     /// </summary>
     /// <param name="name">The unique identifier of the game module to launch.</param>
     /// <returns>A task that represents the asynchronous launch operation, returning <c>true</c> if the launch was successful; otherwise, <c>false</c>.</returns>
-    internal async Task<bool> LaunchGameAsync(string name) {
+    public async Task<bool> LaunchGameAsync(string name) {
         string root = _gameRegistry.GetGamePath(name) ?? this._rootPath;
         string gameToml = System.IO.Path.Combine(root, "game.toml");
 

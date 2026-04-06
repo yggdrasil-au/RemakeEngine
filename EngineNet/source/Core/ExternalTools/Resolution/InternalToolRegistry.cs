@@ -7,7 +7,7 @@ namespace EngineNet.Core.ExternalTools;
 /// Scans EngineApps/Registries/Tools/ and deep-merges all JSON files found in each subfolder.
 /// </summary>
 internal static class InternalToolRegistry {
-    private static readonly string ToolsRegistryRoot = Path.Combine(EngineNet.Core.Main.RootPath, "EngineApps", "Registries", "Tools");
+    private static readonly string ToolsRegistryRoot = Path.Combine(EngineNet.Core.Lib.RootPath, "EngineApps", "Registries", "Tools");
 
     /// <summary>
     /// Aggregates all tool definitions from the registry folder into a single result object.

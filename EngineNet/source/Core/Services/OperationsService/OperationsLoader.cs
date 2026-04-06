@@ -3,7 +3,7 @@ using System.Collections;
 
 namespace EngineNet.Core.Services;
 
-internal class OperationsLoader {
+public class OperationsLoader {
 
     /// <summary>
     /// Loads operations from a specified file, supporting both JSON and TOML formats.

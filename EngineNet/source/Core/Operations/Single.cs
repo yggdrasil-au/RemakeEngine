@@ -1,7 +1,7 @@
 
 namespace EngineNet.Core.Operations;
 
-internal sealed class Single {
+public sealed class Single {
 
     private readonly Core.Abstractions.IScriptActionDispatcher _scriptActionDispatcher;
 
@@ -19,6 +19,7 @@ internal sealed class Single {
     /// <param name="op"></param>
     /// <param name="promptAnswers"></param>
     /// <param name="Context"></param>
+    /// <param name="OperationContext"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     internal async System.Threading.Tasks.Task<bool> RunAsync(
@@ -27,7 +28,8 @@ internal sealed class Single {
         IDictionary<string, object?> op,
         Core.Data.PromptAnswers promptAnswers,
         Engine.EngineContext Context,
-        System.Threading.CancellationToken cancellationToken = default
+        Core.Engine.OperationContext OperationContext,
+        System.Threading.CancellationToken cancellationToken = default(CancellationToken)
     ) {
         // Keep the incoming operation metadata raw so nested on-success operations are
         // resolved only when each child actually executes.
@@ -92,7 +94,7 @@ internal sealed class Single {
                             inputDir: inputDir,
                             outputDir: outputDir,
                             extension: extension,
-                            projectRoot: Core.Main.RootPath
+                            projectRoot: Core.Lib.RootPath
                         );
 
                         if (action is null) {
@@ -121,7 +123,7 @@ internal sealed class Single {
                             args: argsEnum,
                             currentGame: currentGame,
                             games: games,
-                            projectRoot: Core.Main.RootPath
+                            projectRoot: Core.Lib.RootPath
                         );
                         // null act means unsupported script type
                         if (act is null) {
@@ -155,7 +157,7 @@ internal sealed class Single {
         if (result && helpers.OpMetadataExtractor.ExtractSuccessActions(rawOperation, out List<Dictionary<string, object?>>? followUps) && followUps is not null) {
             foreach (Dictionary<string, object?> childOp in followUps) {
                 if (cancellationToken.IsCancellationRequested) break;
-                bool ok = await Context.OperationContext.Single.RunAsync(currentGame: currentGame, games: games, op: childOp, promptAnswers: promptAnswers, Context: Context, cancellationToken);
+                bool ok = await OperationContext.Single.RunAsync( currentGame, games, op: childOp, promptAnswers, Context, OperationContext, cancellationToken);
                 if (!ok) {
                     result = false; // propagate failure from any onsuccess step
                 }

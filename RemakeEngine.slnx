@@ -1,4 +1,6 @@
 <Solution>
+	<Project Path="EngineNetTest/EngineNetTest.csproj" />
+
 	<Project Path="EngineNet/EngineNet.csproj" />
 	<Project Path="EngineNet/source/Core/EngineNet.Core.csproj" />
 	<Project Path="EngineNet/source/GameFormats/EngineNet.GameFormats.csproj" />

@@ -8,8 +8,8 @@ namespace EngineNet.Shared.Serialization.Yaml;
 /// - Sequences -> List(object)
 /// - Scalars -> primitive CLR types
 /// </summary>
-internal static class YamlHelpers {
-    internal static object ParseFileToPlainObject(string path) {
+public static class YamlHelpers {
+    public static object ParseFileToPlainObject(string path) {
         string text = System.IO.File.Exists(path) ? System.IO.File.ReadAllText(path) : string.Empty;
 
         if (string.IsNullOrWhiteSpace(text)) {
@@ -19,7 +19,7 @@ internal static class YamlHelpers {
         return ParseDocumentToPlainObject(text);
     }
 
-    internal static object ParseDocumentToPlainObject(string text) {
+    public static object ParseDocumentToPlainObject(string text) {
         if (string.IsNullOrWhiteSpace(text)) {
             return new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
         }
@@ -30,13 +30,13 @@ internal static class YamlHelpers {
         return plain ?? new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
     }
 
-    internal static void WriteYamlFile(string path, object? data) {
+    public static void WriteYamlFile(string path, object? data) {
         string document = WriteDocument(data);
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path) ?? ".");
         System.IO.File.WriteAllText(path, document);
     }
 
-    internal static string WriteDocument(object? data) {
+    public static string WriteDocument(object? data) {
         object serializableRoot = ConvertPlainToYaml(data) ?? new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
         ISerializer serializer = new SerializerBuilder().Build();
         return serializer.Serialize(serializableRoot);

@@ -136,9 +136,9 @@ internal static class Security {
         if (string.IsNullOrWhiteSpace(normalizedPath)) return false;
 
         string currentDir = NormalizeLowerFullPath(System.IO.Directory.GetCurrentDirectory());
-        string projectRoot = string.IsNullOrWhiteSpace(EngineNet.Core.Main.RootPath)
+        string projectRoot = string.IsNullOrWhiteSpace(EngineNet.Core.Lib.RootPath)
             ? currentDir
-            : NormalizeLowerFullPath(EngineNet.Core.Main.RootPath);
+            : NormalizeLowerFullPath(EngineNet.Core.Lib.RootPath);
 
         List<string> forbiddenPatterns = new List<string> {
             "/etc", "/bin", "/sbin",
@@ -313,9 +313,9 @@ internal static class Security {
 
             // Get current working directory and common workspace patterns
             string currentDir = NormalizeLowerFullPath(System.IO.Directory.GetCurrentDirectory());
-            string projectRoot = string.IsNullOrWhiteSpace(EngineNet.Core.Main.RootPath)
+            string projectRoot = string.IsNullOrWhiteSpace(EngineNet.Core.Lib.RootPath)
                 ? currentDir
-                : NormalizeLowerFullPath(EngineNet.Core.Main.RootPath);
+                : NormalizeLowerFullPath(EngineNet.Core.Lib.RootPath);
 
             //Shared.IO.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Current directory '{currentDir}'");
             //Shared.IO.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Project root '{projectRoot}'");

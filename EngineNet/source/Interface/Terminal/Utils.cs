@@ -202,7 +202,7 @@ public class Utils {
             case "progress_panel_start": {
                 lock (s_consoleLock) {
                     s_activePanels++;
-                    if (!EngineNet.Core.Main.IsCli && !TuiRenderer.IsActive) {
+                    if (!EngineNet.Core.Lib.IsCli && !TuiRenderer.IsActive) {
                         TuiRenderer.Initialize();
                         s_rendererInitializedByEvent = true;
                     }
@@ -215,7 +215,7 @@ public class Utils {
                 List<string> lines = BuildTuiProgressLines(evt);
                 lock (s_consoleLock) {
                     s_panelStatus[id] = lines;
-                    if (EngineNet.Core.Main.IsCli) {
+                    if (EngineNet.Core.Lib.IsCli) {
                         if (lines.Count > 0) {
                             try {
                                 int w;
@@ -239,7 +239,7 @@ public class Utils {
                 lock (s_consoleLock) {
                     if (s_panelStatus.TryGetValue(id, out var lastLines) && lastLines.Count > 0) {
                         // Log the FIRST line (the progress bar) to the log area so it sticks in history
-                        if (EngineNet.Core.Main.IsCli) {
+                        if (EngineNet.Core.Lib.IsCli) {
                             System.Console.WriteLine(); // Newline to clear the fixed \r line
                         } else {
                             TuiRenderer.Log(lastLines[0], ConsoleColor.Cyan);
@@ -248,13 +248,13 @@ public class Utils {
 
                     s_activePanels--;
                     s_panelStatus.Remove(id);
-                    if (!EngineNet.Core.Main.IsCli) {
+                    if (!EngineNet.Core.Lib.IsCli) {
                         UpdateTuiStatus();
                     }
 
                     if (s_activePanels <= 0) {
                         s_activePanels = 0; // clamp
-                        if (!EngineNet.Core.Main.IsCli && s_rendererInitializedByEvent) {
+                        if (!EngineNet.Core.Lib.IsCli && s_rendererInitializedByEvent) {
                             TuiRenderer.Shutdown();
                             s_rendererInitializedByEvent = false;
                         }

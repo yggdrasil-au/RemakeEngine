@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" Version="4.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\EngineNet\EngineNet.csproj" />
+        <ProjectReference Include="..\EngineNet\source\Core\EngineNet.Core.csproj" />
+        <ProjectReference Include="..\EngineNet\source\Interface\EngineNet.Interface.csproj" />
+        <ProjectReference Include="..\EngineNet\source\ScriptEngines\EngineNet.ScriptEngines.csproj" />
+        <ProjectReference Include="..\EngineNet\source\Shared\EngineNet.Shared.csproj" />
+    </ItemGroup>
+
+</Project>

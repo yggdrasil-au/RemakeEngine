@@ -4,17 +4,17 @@ namespace EngineNet.Shared.Serialization;
 
 /// <summary>
 /// Utilities to convert JSON/TOML DOM nodes into case-insensitive
-/// Dictionary<string, object?> and List<object?> models used by the engine.
+/// Dictionary*string, object?> and List*object?> models used by the engine.
 /// Centralizes number/boolean/string handling to avoid drift.
 /// </summary>
-internal static class DocModelConverter {
+public static class DocModelConverter {
 
     /// <summary>
-    /// Converts a System.Text.Json.JsonElement of kind Object into a Dictionary<string, object?> with case-insensitive keys.
+    /// Converts a System.Text.Json.JsonElement of kind Object into a Dictionary*string, object?> with case-insensitive keys.
     /// </summary>
     /// <param name="obj"></param>
     /// <returns></returns>
-    internal static Dictionary<string, object?> FromJsonObject(System.Text.Json.JsonElement obj) {
+    public static Dictionary<string, object?> FromJsonObject(System.Text.Json.JsonElement obj) {
         Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
         foreach (System.Text.Json.JsonProperty p in obj.EnumerateObject()) {
             dict[p.Name] = FromJsonElement(p.Value);
@@ -28,7 +28,7 @@ internal static class DocModelConverter {
     /// </summary>
     /// <param name="el"></param>
     /// <returns></returns>
-    internal static object? FromJsonElement(System.Text.Json.JsonElement el) {
+    public static object? FromJsonElement(System.Text.Json.JsonElement el) {
         switch (el.ValueKind) {
             case System.Text.Json.JsonValueKind.Object:
                 return FromJsonObject(el);
@@ -58,13 +58,13 @@ internal static class DocModelConverter {
     }
 
     /// <summary>
-    /// Converts a Tomlyn.Model.TomlTable into a Dictionary<string, object?> with case-insensitive keys.
+    /// Converts a Tomlyn.Model.TomlTable into a Dictionary*string, object?> with case-insensitive keys.
     /// Recursively converts nested tables and arrays into corresponding Dictionary and List models.
     /// Handles TOML types like strings, numbers, booleans, tables, arrays, and table arrays.
     /// </summary>
     /// <param name="table"></param>
     /// <returns></returns>
-    internal static Dictionary<string, object?> FromTomlTable(Tomlyn.Model.TomlTable table) {
+    public static Dictionary<string, object?> FromTomlTable(Tomlyn.Model.TomlTable table) {
         Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
         foreach (KeyValuePair<string, object> kv in table) {
             dict[kv.Key] = FromTomlValue(kv.Value);
@@ -73,11 +73,11 @@ internal static class DocModelConverter {
     }
 
     /// <summary>
-    /// Recursively converts a TOML value (which can be a primitive, TomlTable, TomlArray, or TomlTableArray) into a corresponding C# object model (string, long, double, bool, Dictionary<string, object?>, List<object?>).
+    /// Recursively converts a TOML value (which can be a primitive, TomlTable, TomlArray, or TomlTableArray) into a corresponding C# object model (string, long, double, bool, Dictionary*string, object?>, List*object?>).
     /// </summary>
     /// <param name="value"></param>
     /// <returns></returns>
-    internal static object? FromTomlValue(object? value) {
+    public static object? FromTomlValue(object? value) {
         if (value is null) {
             return null;
         }

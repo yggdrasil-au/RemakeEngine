@@ -45,7 +45,7 @@ The interface layer only calls Core through the `MiniEngineFace` contract in `so
 
 Call-through targets from `MiniEngineFace`:
 - Registry methods forward to `Engine.Context.GameRegistry`.
-- Operation preparation and prompt collection forward to `Engine.Context.OperationContext.OperationsService`.
+- Operation preparation and prompt collection forward to `Engine.OperationContext.OperationsService`.
 - Single operation execution forwards to `Engine.RunSingleOperationAsync`.
 - Run-all execution forwards to `EngineNet.Core.Operations.All.RunAsync`.
 - Command build/execute methods forward to `Engine.Context.CommandService`.
