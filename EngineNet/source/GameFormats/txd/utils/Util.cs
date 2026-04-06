@@ -1,16 +1,16 @@
-namespace EngineNet.GameFormats.txd;
+namespace EngineNet.GameFormats.txd.utils;
 
-internal static partial class TxdExtractor {
+public static class Util {
 
-    private static List<string> EnumerateTxdFiles(string inputPathAbs) {
+    internal static List<string> EnumerateTxdFiles(string inputPathAbs) {
         if (!System.IO.File.Exists(inputPathAbs) && !System.IO.Directory.Exists(inputPathAbs)) {
-            throw new TxdExportException($"Error: Input path '{inputPathAbs}' does not exist.");
+            throw new Sys.TxdExportException($"Error: Input path '{inputPathAbs}' does not exist.");
         }
 
         List<string> txdFilesToProcess = new List<string>();
         if (System.IO.File.Exists(inputPathAbs)) {
             if (!inputPathAbs.EndsWith(".txd", System.StringComparison.OrdinalIgnoreCase)) {
-                throw new TxdExportException($"Error: Input file '{inputPathAbs}' is not a .txd file.");
+                throw new Sys.TxdExportException($"Error: Input file '{inputPathAbs}' is not a .txd file.");
             }
             txdFilesToProcess.Add(inputPathAbs);
         } else {
@@ -18,16 +18,16 @@ internal static partial class TxdExtractor {
                 txdFilesToProcess.Add(file);
             }
             if (txdFilesToProcess.Count == 0) {
-                throw new TxdExportException($"No .txd files found in directory '{inputPathAbs}'.");
+                throw new Sys.TxdExportException($"No .txd files found in directory '{inputPathAbs}'.");
             }
         }
 
         return txdFilesToProcess;
     }
 
-    private static Options Parse(IList<string> args) {
+    internal static Options Parse(IList<string> args) {
         if (args is null || args.Count == 0) {
-            throw new TxdExportException("Missing input path argument for TXD extraction.");
+            throw new Sys.TxdExportException("Missing input path argument for TXD extraction.");
         }
 
         Options options = new();
@@ -41,7 +41,7 @@ internal static partial class TxdExtractor {
                 case "-o":
                 case "--output_dir": {
                     if (i + 1 >= args.Count) {
-                        throw new TxdExportException($"Option '{current}' expects a value.");
+                        throw new Sys.TxdExportException($"Option '{current}' expects a value.");
                     }
 
                     options.OutputDirectory = args[++i];
@@ -49,7 +49,7 @@ internal static partial class TxdExtractor {
                 }
                 case "--source": {
                     if (i + 1 >= args.Count) {
-                        throw new TxdExportException($"Option '{current}' expects a value.");
+                        throw new Sys.TxdExportException($"Option '{current}' expects a value.");
                     }
 
                     options.InputPath = args[++i];
@@ -57,32 +57,32 @@ internal static partial class TxdExtractor {
                 }
                 case "--output-ext": {
                     if (i + 1 >= args.Count) {
-                        throw new TxdExportException($"Option '{current}' expects a value.");
+                        throw new Sys.TxdExportException($"Option '{current}' expects a value.");
                     }
 
                     string ext = args[++i].ToLowerInvariant();
                     options.OutputExtension = ext.TrimStart('.');
                     if (options.OutputExtension != "dds" && options.OutputExtension != "png") {
-                        throw new TxdExportException($"Unsupported output extension '{ext}'. Allowed: dds, png.");
+                        throw new Sys.TxdExportException($"Unsupported output extension '{ext}'. Allowed: dds, png.");
                     }
 
                     break;
                 }
                 default: {
                     if (current.StartsWith('-')) {
-                        throw new TxdExportException($"Unknown argument '{current}'.");
+                        throw new Sys.TxdExportException($"Unknown argument '{current}'.");
                     }
 
                     options.InputPath = string.IsNullOrEmpty(options.InputPath)
                         ? current
-                        : throw new TxdExportException($"Unexpected extra positional argument '{current}'.");
+                        : throw new Sys.TxdExportException($"Unexpected extra positional argument '{current}'.");
                     break;
                 }
             }
         }
 
         if (string.IsNullOrWhiteSpace(options.InputPath)) {
-            throw new TxdExportException("Missing input path argument for TXD extraction.");
+            throw new Sys.TxdExportException("Missing input path argument for TXD extraction.");
         }
 
         options.InputPath = System.IO.Path.GetFullPath(options.InputPath);
@@ -93,7 +93,7 @@ internal static partial class TxdExtractor {
         return options;
     }
 
-    private static int MortonEncode2D(int x, int y) {
+    internal static int MortonEncode2D(int x, int y) {
         x = (x | (x << 8)) & 0x00FF00FF;
         x = (x | (x << 4)) & 0x0F0F0F0F;
         x = (x | (x << 2)) & 0x33333333;
@@ -107,10 +107,10 @@ internal static partial class TxdExtractor {
         return x | (y << 1);
     }
 
-    private static byte[]? UnswizzleData(System.ReadOnlySpan<byte> swizzledData, int width, int height, int bytesPerPixel) {
+    internal static byte[]? UnswizzleData(System.ReadOnlySpan<byte> swizzledData, int width, int height, int bytesPerPixel) {
         int linearSize = width * height * bytesPerPixel;
         if (swizzledData.IsEmpty || swizzledData.Length < linearSize) {
-            Log.Yellow($"      Warning: Swizzled data length ({swizzledData.Length}) is less than expected ({linearSize}) for {width}x{height}@{bytesPerPixel}bpp. Skipping unswizzle.");
+            utils.Log.Yellow($"      Warning: Swizzled data length ({swizzledData.Length}) is less than expected ({linearSize}) for {width}x{height}@{bytesPerPixel}bpp. Skipping unswizzle.");
             return null;
         }
 
@@ -132,7 +132,7 @@ internal static partial class TxdExtractor {
         return linear;
     }
 
-    private static string? SanitizeFilename(string name) {
+    internal static string? SanitizeFilename(string name) {
         if (string.IsNullOrWhiteSpace(name)) {
             return null;
         }
@@ -148,7 +148,7 @@ internal static partial class TxdExtractor {
         return string.IsNullOrWhiteSpace(cleaned) ? null : cleaned;
     }
 
-    private static int CalculateDxtLevelSize(int width, int height, string fourcc) {
+    internal static int CalculateDxtLevelSize(int width, int height, string fourcc) {
         if (width <= 0 || height <= 0) {
             return 0;
         }
@@ -164,7 +164,7 @@ internal static partial class TxdExtractor {
         return blocksWide * blocksHigh * bytesPerBlock;
     }
 
-    private static int CountOccurrences(System.ReadOnlySpan<byte> data, System.ReadOnlySpan<byte> pattern) {
+    internal static int CountOccurrences(System.ReadOnlySpan<byte> data, System.ReadOnlySpan<byte> pattern) {
         if (pattern.IsEmpty || data.IsEmpty || pattern.Length > data.Length) {
             return 0;
         }
@@ -183,7 +183,7 @@ internal static partial class TxdExtractor {
         return count;
     }
 
-    private static int IndexOf(System.ReadOnlySpan<byte> data, System.ReadOnlySpan<byte> pattern, int start) {
+    internal static int IndexOf(System.ReadOnlySpan<byte> data, System.ReadOnlySpan<byte> pattern, int start) {
         if (pattern.IsEmpty)
             return start <= data.Length ? start : -1;
 
@@ -194,7 +194,7 @@ internal static partial class TxdExtractor {
         return pos == -1 ? -1 : start + pos;
     }
 
-    private static bool StartsWith(System.ReadOnlySpan<byte> data, int offset, System.ReadOnlySpan<byte> pattern) {
+    internal static bool StartsWith(System.ReadOnlySpan<byte> data, int offset, System.ReadOnlySpan<byte> pattern) {
         return pattern.IsEmpty || (offset >= 0 && offset + pattern.Length <= data.Length && System.MemoryExtensions.SequenceEqual(data.Slice(offset, pattern.Length), pattern));
     }
 

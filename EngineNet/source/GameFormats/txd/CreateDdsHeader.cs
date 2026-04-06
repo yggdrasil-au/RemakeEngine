@@ -1,8 +1,8 @@
 namespace EngineNet.GameFormats.txd;
 
-internal static partial class TxdExtractor {
+public static class CreateDdsHeader {
 
-    private static byte[] CreateDdsHeaderDxt(int width, int height, int mipMapCountFromFile, string fourcc) {
+    internal static byte[] Dxt(int width, int height, int mipMapCountFromFile, string fourcc) {
         byte[] buffer = new byte[128];
         using System.IO.MemoryStream ms = new(buffer);
         using System.IO.BinaryWriter writer = new(ms, System.Text.Encoding.ASCII, leaveOpen: true);
@@ -20,7 +20,7 @@ internal static partial class TxdExtractor {
         }
 
         int dwMipMapCount = mipMapCountFromFile > 0 ? mipMapCountFromFile : 1;
-        int linearSize = CalculateDxtLevelSize(width, height, fourcc);
+        int linearSize = utils.Util.CalculateDxtLevelSize(width, height, fourcc);
 
         writer.Write(System.Text.Encoding.ASCII.GetBytes("DDS "));
         writer.Write(124);
@@ -66,7 +66,7 @@ internal static partial class TxdExtractor {
         return buffer;
     }
 
-    private static byte[] CreateDdsHeaderRgba(int width, int height, int mipMapCount) {
+    internal static byte[] Rgba(int width, int height, int mipMapCount) {
         byte[] buffer = new byte[128];
         using System.IO.MemoryStream ms = new(buffer);
         using System.IO.BinaryWriter writer = new(ms, System.Text.Encoding.ASCII, leaveOpen: true);

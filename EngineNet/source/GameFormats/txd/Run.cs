@@ -1,11 +1,11 @@
 namespace EngineNet.GameFormats.txd;
 
-internal static partial class TxdExtractor {
+public static class Extractor {
 
-    private static readonly System.Text.Encoding Utf8NoBom = new System.Text.UTF8Encoding(false, false);
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> s_active = new();
+    internal static readonly System.Text.Encoding Utf8NoBom = new System.Text.UTF8Encoding(false, false);
+    internal static readonly System.Collections.Concurrent.ConcurrentDictionary<int, Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> s_active = new();
 
-    private sealed class ProgressState {
+    internal sealed class ProgressState {
         internal int Processed;
         internal int Ok;
         internal int Skip;
@@ -18,14 +18,14 @@ internal static partial class TxdExtractor {
     /// <param name="args">CLI-style args: [input_path] [--output_dir DIR]</param>
     /// <param name="cancellationToken">Cancellation signal propagated by the caller.</param>
     /// <returns>True if extraction completed successfully.</returns>
-    internal static bool Run(List<string> args, System.Threading.CancellationToken cancellationToken) {
+    public static bool Run(List<string> args, System.Threading.CancellationToken cancellationToken) {
 
         try {
-            Options options = Parse(args);
+            Options options = utils.Util.Parse(args);
             var exporter = new TxdExporter();
 
             // Assemble file list and set up progress tracking
-            List<string> files = EnumerateTxdFiles(options.InputPath);
+            List<string> files = utils.Util.EnumerateTxdFiles(options.InputPath);
             ProgressState progressState = new ProgressState();
 
             using CancellationTokenSource progressCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -62,7 +62,7 @@ internal static partial class TxdExtractor {
                 } catch (System.OperationCanceledException) {
                     throw;
                 } catch (System.Exception ex) {
-                    Shared.IO.Diagnostics.Bug($"[TxdExtractor::Run()] Failed processing txd file '{txdFile}'.", ex);
+                    Shared.IO.Diagnostics.Bug($"[Extractor::Run()] Failed processing txd file '{txdFile}'.", ex);
                     System.Threading.Interlocked.Increment(ref progressState.Err);
                 } finally {
                     UnregisterActive();
@@ -74,23 +74,23 @@ internal static partial class TxdExtractor {
             try {
                 progress.Wait(cancellationToken);
             } catch (System.AggregateException ex) {
-                Shared.IO.Diagnostics.Bug("[TxdExtractor::Run()] Progress task wait failed.", ex);
-                Shared.IO.Diagnostics.Bug("[TxdExtractor] Progress task cancelled.");
+                Shared.IO.Diagnostics.Bug("[Extractor::Run()] Progress task wait failed.", ex);
+                Shared.IO.Diagnostics.Bug("[Extractor] Progress task cancelled.");
                 /* ignore */
             }
             return true;
         } catch (System.OperationCanceledException) {
-            Log.Gray("TXD extraction cancelled.");
+            utils.Log.Gray("TXD extraction cancelled.");
             return false;
-        } catch (TxdExportException ex) {
-            Shared.IO.Diagnostics.Bug("[TxdExtractor::Run()] TXD export exception.", ex);
-            Log.Red(ex.Message);
+        } catch (Sys.TxdExportException ex) {
+            Shared.IO.Diagnostics.Bug("[Extractor::Run()] TXD export exception.", ex);
+            utils.Log.Red(ex.Message);
             return false;
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug("[TxdExtractor::Run()] Unhandled TXD extraction error.", ex);
-            Log.Red($"Unhandled TXD extraction error: {ex.Message}");
+            Shared.IO.Diagnostics.Bug("[Extractor::Run()] Unhandled TXD extraction error.", ex);
+            utils.Log.Red($"Unhandled TXD extraction error: {ex.Message}");
             if (!string.IsNullOrWhiteSpace(ex.StackTrace)) {
-                Log.Gray(ex.StackTrace!);
+                utils.Log.Gray(ex.StackTrace!);
             }
 
             return false;
@@ -102,7 +102,7 @@ internal static partial class TxdExtractor {
     /// </summary>
     /// <param name="tool">The tool label shown in the progress panel.</param>
     /// <param name="srcPath">Source file currently being processed.</param>
-    private static void RegisterActive(string tool, string srcPath) {
+    internal static void RegisterActive(string tool, string srcPath) {
         try {
             int key = System.Threading.Thread.CurrentThread.ManagedThreadId;
             s_active[key] = new Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess {
@@ -111,7 +111,7 @@ internal static partial class TxdExtractor {
                 StartedUtc = System.DateTime.UtcNow
             };
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug("[TxdExtractor::RegisterActive()] Failed to register active process.", ex);
+            Shared.IO.Diagnostics.Bug("[Extractor::RegisterActive()] Failed to register active process.", ex);
             /* ignore */
         }
     }
@@ -119,11 +119,11 @@ internal static partial class TxdExtractor {
     /// <summary>
     /// Removes the current thread's active TXD job from progress tracking.
     /// </summary>
-    private static void UnregisterActive() {
+    internal static void UnregisterActive() {
         try {
             s_active.TryRemove(System.Threading.Thread.CurrentThread.ManagedThreadId, out _);
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug("[TxdExtractor::UnregisterActive()] Failed to unregister active process.", ex);
+            Shared.IO.Diagnostics.Bug("[Extractor::UnregisterActive()] Failed to unregister active process.", ex);
             /* ignore */
         }
     }

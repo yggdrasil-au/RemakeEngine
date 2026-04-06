@@ -1,6 +1,6 @@
 namespace EngineNet.GameFormats.p3d;
 
-internal static class P3dExtractor {
+public static class P3dExtractor {
 
     private const string UnsupportedRootParityNote = "[p3d] Note: Parser parity is currently aligned with p3dtoolsRust root handling. Unsupported root variants (for example DataFileCompressed) are intentionally reported as unsupported.";
 
@@ -10,7 +10,7 @@ internal static class P3dExtractor {
     /// Limitation: To maintain parity with p3dtoolsRust, only DataFile root chunks are currently supported.
     /// Compressed/root variants (for example DataFileCompressed) are expected to fail with an unsupported message.
     /// </summary>
-    internal static bool Run(List<string> args, System.Threading.CancellationToken cancellationToken) {
+    public static bool Run(List<string> args, System.Threading.CancellationToken cancellationToken) {
         try {
             if (args.Count == 0) {
                 Shared.IO.Diagnostics.Log("[p3d] Usage: p3d <file-or-directory> [--recurse] [--list] [-o|--out folder] [--parse-only] [--export gltf|obj] [--mode parse|list|gltf|obj]");

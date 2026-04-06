@@ -113,7 +113,7 @@ internal class BuiltInOperations {
         Shared.IO.Diagnostics.Log("[Engine.private.cs :: Operations()]] format-convert");
 
         // 1. Determine tool - check both 'tool' field and '-m'/'--mode' in args
-        string? tool = operationArgs.op.TryGetValue("tool", out object? ft) 
+        string? tool = operationArgs.op.TryGetValue("tool", out object? ft)
             ? ft?.ToString()?.ToLowerInvariant() : null;
 
     #if DEBUG
@@ -222,7 +222,7 @@ internal class BuiltInOperations {
             } case "txd": {
                 Shared.IO.UI.EngineSdk.PrintLine("\n>>> Built-in TXD extraction");
                 Shared.IO.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
-                return EngineNet.GameFormats.txd.TxdExtractor.Run(args, operationArgs.cancellationToken);
+                return EngineNet.GameFormats.txd.Extractor.Run(args, operationArgs.cancellationToken);
             } default: {
                 Shared.IO.UI.EngineSdk.PrintLine($"ERROR: format-extract does not support format '{format}'");
                 Shared.IO.UI.EngineSdk.PrintLine("Supported formats: p3d, txd");

@@ -7,23 +7,12 @@ namespace EngineNet.Interface.GUI;
 /// construct view models and start the UI loop.
 /// </summary>
 public static class GuiBootstrapper {
-    /// <summary>
-    /// Engine instance provided by the host application at startup.
-    /// Stored only for previewer/bootstrapping; GUI pages should use <see cref="MiniEngine" />.
-    /// </summary>
-    public static Core.Engine.IEngineFace Engine {
-        get; private set;
-    } = null!;
 
     internal static MiniEngineFace MiniEngine { get; set; } = null!;
 
     /// <summary>
     /// Launches the Avalonia desktop application with the provided engine.
     /// </summary>
-    /// <param name="engine">
-    /// An application-specific engine/service root passed to the UI layer.
-    /// Typically used to construct the MainViewModel and other services.
-    /// </param>
     /// <param name="miniEngine">
     /// A simplified interface to the engine, exposing only the methods needed by the UI.
     /// </param>
@@ -35,19 +24,12 @@ public static class GuiBootstrapper {
     /// </returns>
     internal static int Run(MiniEngineFace miniEngine, System.Threading.CancellationToken cancellationToken) {
         try {
-            // 1) Stash the engine so App.OnFrameworkInitializationCompleted (or similar)
-            //    can pull it to compose view models and support the previewer.
-            //Engine = EngineNet.Shared.State.InitialiseEngineAsync().GetAwaiter().GetResult(); // only used in avalonia previewer
             MiniEngine = miniEngine;
 
-            // Ensure events from the engine (including "Play" button actions) reach the GUI
             Shared.IO.UI.EngineSdk.LocalEventSink = OperationOutputService.Instance.HandleEvent;
 
-            // 2) Build the app and start the desktop lifetime.
-            //    This call blocks until the window closes / lifetime ends.
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(System.Array.Empty<string>());
 
-            // 3) If we reached here without exceptions, return success.
             return 0;
         } catch (System.Exception ex) {
             // If anything goes wrong during startup or run, print a concise error
