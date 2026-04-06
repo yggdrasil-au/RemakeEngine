@@ -318,36 +318,31 @@ internal static class ToolsDownloader {
         return false;
     }
 
-    /// <summary>
-    /// Parses a checksum list and returns the SHA256 hash for the given file name when present.
-    /// </summary>
     private static string? ParseUpstreamChecksum(string content, string fileName) {
         if (string.IsNullOrWhiteSpace(content)) return null;
 
-        string[] lines = content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-        foreach (string line in lines) {
-            string trimmed = line.Trim();
-            if (string.IsNullOrWhiteSpace(trimmed)) continue;
+        return content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Trim())
+            .Where(trimmed => !string.IsNullOrWhiteSpace(trimmed))
+            .Select(trimmed => {
+                string[] parts = trimmed.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                return new { trimmed, parts };
+            })
+            .Where(x => x.parts is [{ Length: 64 }, var _, ..])
+            .Select(x => {
+                string hash = x.parts[0];
+                string rest = x.trimmed.Substring(x.trimmed.IndexOf(hash, StringComparison.Ordinal) + hash.Length).Trim();
 
-            string[] parts = trimmed.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length < 2) continue;
+                if (rest.StartsWith("*", StringComparison.Ordinal))
+                    rest = rest.Substring(1);
 
-            string hash = parts[0];
-            if (hash.Length != 64) continue;
-
-            string rest = trimmed.Substring(trimmed.IndexOf(hash, StringComparison.Ordinal) + hash.Length).Trim();
-            if (rest.StartsWith("*", StringComparison.Ordinal)) {
-                rest = rest.Substring(1);
-            }
-
-            if (rest.Equals(fileName, StringComparison.OrdinalIgnoreCase)
-                || rest.EndsWith($"/{fileName}", StringComparison.OrdinalIgnoreCase)
-                || rest.EndsWith($"\\{fileName}", StringComparison.OrdinalIgnoreCase)) {
-                return hash.ToLowerInvariant();
-            }
-        }
-
-        return null;
+                return new { Hash = hash, FileName = rest };
+            })
+            .FirstOrDefault(x =>
+                x.FileName.Equals(fileName, StringComparison.OrdinalIgnoreCase) ||
+                x.FileName.EndsWith($"/{fileName}", StringComparison.OrdinalIgnoreCase) ||
+                x.FileName.EndsWith($"\\{fileName}", StringComparison.OrdinalIgnoreCase))
+            ?.Hash.ToLowerInvariant();
     }
 
     private static object? GetProperty(object? obj, string key) {

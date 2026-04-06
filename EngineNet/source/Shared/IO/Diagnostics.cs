@@ -27,10 +27,6 @@ public static class Diagnostics {
     private static StreamWriter? _tuiLogWriter; // Scrollback history
     private static readonly object _lock = new object();
 
-    public static void Initialize(bool isGui, bool isTui) {
-        Initialize(System.IO.Directory.GetCurrentDirectory(), isGui, isTui);
-    }
-
     public static void Initialize(string rootPath, bool isGui, bool isTui) {
         _rootPath = string.IsNullOrWhiteSpace(rootPath) ? System.IO.Directory.GetCurrentDirectory() : rootPath;
 
@@ -52,18 +48,16 @@ public static class Diagnostics {
             logDirectory = CreateSessionLogDirectory(logDir);
 
             // 3. Define Paths
-            string tracePath = System.IO.Path.Combine(logDirectory, "trace.log");
             string debugPath = System.IO.Path.Combine(logDirectory, "debug.log");
             string luaLogPath = System.IO.Path.Combine(logDirectory, "lua.log");
             string jsLogPath = System.IO.Path.Combine(logDirectory, "js.log");
             string pythonLogPath = System.IO.Path.Combine(logDirectory, "python.log");
             string bugPath = System.IO.Path.Combine(logDirectory, "exception.log");
-            string tuiLogPath = System.IO.Path.Combine(logDirectory, "tui_history.log");
 
             // 4. Open Streams (Shared access allowed)
             // Trace Writer (Master) - Debug builds only
             if (IsTraceEnabled) {
-                var fsTrace = new FileStream(tracePath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+                var fsTrace = new FileStream(System.IO.Path.Combine(logDirectory, "trace.log"), FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
                 _traceWriter = new StreamWriter(fsTrace) { AutoFlush = true };
             }
 
@@ -89,7 +83,7 @@ public static class Diagnostics {
 
 #if DEBUG
             if (isTui) {
-                var fsTui = new FileStream(tuiLogPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+                var fsTui = new FileStream(System.IO.Path.Combine(logDirectory, "tui_history.log"), FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
                 _tuiLogWriter = new StreamWriter(fsTui) { AutoFlush = true };
             }
 #endif
@@ -127,16 +121,15 @@ public static class Diagnostics {
             DirectoryInfo directoryInfo = new DirectoryInfo(logDir);
 
             foreach (DirectoryInfo subDir in directoryInfo.GetDirectories()) {
-                if (subDir.LastWriteTime < threshold) {
-                    try {
-                        subDir.Delete(true);
-                    } catch (System.IO.IOException ex) {
-                        Bug($"[Diagnostics::CleanLogDirectory()] Failed to delete log folder '{subDir.FullName}'.", ex);
-                        // Folder might be locked by another process; skip it for now.
-                    } catch (System.UnauthorizedAccessException ex) {
-                        Bug($"[Diagnostics::CleanLogDirectory()] Access denied deleting log folder '{subDir.FullName}'.", ex);
-                        // Folder might be locked by another process; skip it for now.
-                    }
+                if (subDir.LastWriteTime >= threshold) continue;
+                try {
+                    subDir.Delete(true);
+                } catch (System.IO.IOException ex) {
+                    Bug($"[Diagnostics::CleanLogDirectory()] Failed to delete log folder '{subDir.FullName}'.", ex);
+                    // Folder might be locked by another process; skip it for now.
+                } catch (System.UnauthorizedAccessException ex) {
+                    Bug($"[Diagnostics::CleanLogDirectory()] Access denied deleting log folder '{subDir.FullName}'.", ex);
+                    // Folder might be locked by another process; skip it for now.
                 }
             }
         } catch (System.IO.IOException ex) {

@@ -90,17 +90,17 @@ public sealed partial class ProcessRunner {
         proc.StartInfo = psi;
         proc.EnableRaisingEvents = true;
 
-        System.Collections.Concurrent.BlockingCollection<(string stream, string line)> q =
-            new System.Collections.Concurrent.BlockingCollection<(string stream, string line)>(boundedCapacity: 1000);
+        // todo fix captured variable used in outer scope 'q'
+        using var q = new System.Collections.Concurrent.BlockingCollection<(string stream, string line)>(boundedCapacity: 1000);
 
         System.Diagnostics.DataReceivedEventHandler outHandler = (_, e) => {
             if (e.Data != null) {
-                q.Add(("stdout", e.Data));
+                q.Add(("stdout", e.Data), cancellationToken);
             }
         };
         System.Diagnostics.DataReceivedEventHandler errHandler = (_, e) => {
             if (e.Data != null) {
-                q.Add(("stderr", e.Data));
+                q.Add(("stderr", e.Data), cancellationToken);
             }
         };
 
@@ -160,23 +160,18 @@ public sealed partial class ProcessRunner {
                     awaitingPrompt = true;
                 }
 
-                if (awaitingPrompt && !proc.HasExited) {
-                    string? ans = string.Empty;
-                    try {
-                        ans = stdinProvider?.Invoke();
-                    }
-                    catch (System.IO.IOException ex) {
-                        Shared.IO.Diagnostics.Bug("[ProcessRunner] IO error in stdinProvider while awaiting prompt: " +
-                                                ex.Message);
-                    }
-                    catch (System.InvalidOperationException ex) {
-                        Shared.IO.Diagnostics.Bug(
-                            "[ProcessRunner] Invalid operation in stdinProvider while awaiting prompt: " + ex.Message);
-                    }
-
-                    SendToChild(ans);
-                    awaitingPrompt = false;
+                if (!awaitingPrompt || proc.HasExited) continue;
+                string? ans = string.Empty;
+                try {
+                    ans = stdinProvider?.Invoke();
+                } catch (System.IO.IOException ex) {
+                    Shared.IO.Diagnostics.Bug("[ProcessRunner] IO error in stdinProvider while awaiting prompt: " + ex.Message);
+                } catch (System.InvalidOperationException ex) {
+                    Shared.IO.Diagnostics.Bug("[ProcessRunner] Invalid operation in stdinProvider while awaiting prompt: " + ex.Message);
                 }
+
+                SendToChild(ans);
+                awaitingPrompt = false;
             }
 
             // Drain any remaining
@@ -187,14 +182,10 @@ public sealed partial class ProcessRunner {
                 string? ans = string.Empty;
                 try {
                     ans = stdinProvider?.Invoke();
-                }
-                catch (System.IO.IOException ex) {
-                    Shared.IO.Diagnostics.Bug("[ProcessRunner] IO error in stdinProvider while draining output: " +
-                                            ex.Message);
-                }
-                catch (System.InvalidOperationException ex) {
-                    Shared.IO.Diagnostics.Bug("[ProcessRunner] Invalid operation in stdinProvider while draining output: " +
-                                            ex.Message);
+                } catch (System.IO.IOException ex) {
+                    Shared.IO.Diagnostics.Bug("[ProcessRunner] IO error in stdinProvider while draining output: " + ex.Message);
+                } catch (System.InvalidOperationException ex) {
+                    Shared.IO.Diagnostics.Bug("[ProcessRunner] Invalid operation in stdinProvider while draining output: " + ex.Message);
                 }
 
                 SendToChild(ans);

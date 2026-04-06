@@ -278,11 +278,15 @@ internal static class ImageMagickConverter {
                 outBuf = new System.Text.StringBuilder(8 * 1024);
                 p.ErrorDataReceived += (_, e) => {
                     if (e.Data == null) return;
-                    lock (errBuf!) errBuf!.AppendLine(e.Data);
+                    lock (errBuf!) {
+                        errBuf!.AppendLine(e.Data);
+                    }
                 };
                 p.OutputDataReceived += (_, e) => {
                     if (e.Data == null) return;
-                    lock (outBuf!) outBuf!.AppendLine(e.Data);
+                    lock (outBuf!) {
+                        outBuf!.AppendLine(e.Data);
+                    }
                 };
                 try { p.BeginErrorReadLine(); } catch (Exception ex) { Shared.IO.Diagnostics.Bug($"[ImageMagickConverter] BeginErrorReadLine catch triggered: {ex}"); }
                 try { p.BeginOutputReadLine(); } catch (Exception ex) { Shared.IO.Diagnostics.Bug($"[ImageMagickConverter] BeginOutputReadLine catch triggered: {ex}"); }

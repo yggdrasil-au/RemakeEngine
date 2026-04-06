@@ -122,10 +122,9 @@ public partial class TUI {
                 // Try to find any selectable index if the first one was invalid
                 index = -1;
                 for (int i = 0; i < items.Count; i++) {
-                    if (items[i] != "---------------" && !(disabledIndices?.Contains(i) ?? false)) {
-                        index = i;
-                        break;
-                    }
+                    if (items[i] == "---------------" || (disabledIndices?.Contains(i) ?? false)) continue;
+                    index = i;
+                    break;
                 }
             }
 
@@ -211,7 +210,7 @@ public partial class TUI {
     /// <returns></returns>
     private static int SelectFromNumberedMenu(IList<string> items, bool highlightSeparators, HashSet<int>? disabledIndices = null) {
         try {
-            List<int> selectable = new();
+            List<int> selectable = new List<int>();
 
             System.Console.WriteLine();
             System.Console.WriteLine("Terminal is too small for the interactive menu. Enter the option number instead:");
@@ -258,22 +257,13 @@ public partial class TUI {
                 }
 
                 if (int.TryParse(input.Trim(), out int choice) && choice >= 1 && choice <= (displayIndex - 1)) {
-                    int actualIndex = choice - 1; // This is a bit tricky since we skip seps but not disabled in display numbering
-                    // Let's adjust selectable logic to be more robust or just find the item by display index if we displayed it
-                    // Actually, the current `selectable` logic only adds non-sep and non-disabled items.
-                    // But `displayIndex` increments for disabled too.
-                    // Let's re-think:
-
-                    // Simple approach: find the i where line wasn't sep and was matching display index
                     int currentDisplay = 1;
                     for (int i = 0; i < items.Count; i++) {
                         if (items[i] == "---------------") continue;
                         if (currentDisplay == choice) {
-                            if (disabledIndices?.Contains(i) ?? false) {
-                                System.Console.WriteLine("That option is already downloaded and cannot be selected.");
-                                break;
-                            }
-                            return i;
+                            if (!(disabledIndices?.Contains(i) ?? false)) return i;
+                            System.Console.WriteLine("That option is already downloaded and cannot be selected.");
+                            break;
                         }
                         currentDisplay++;
                     }
@@ -287,39 +277,10 @@ public partial class TUI {
         }
     }
 
-    /*private string PromptText(string title) {
-        System.Console.Write($"{title}: ");
-        try {
-            return System.Console.ReadLine() ?? string.Empty;
-        } catch {
-            return string.Empty;
-        }
-    }*/
-
-    /*private (List<string> choices, HashSet<int> disabled) GetRegistryModulesChoices() {
-        var registered = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.Registered);
-        var installed = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.Installed);
-
-        List<string> choices = new();
-        HashSet<int> disabled = new();
-
-        foreach (var kv in registered) {
-            choices.Add(kv.Key);
-            if (installed.ContainsKey(kv.Key)) {
-                disabled.Add(choices.Count - 1);
-            }
-        }
-
-        return (choices, disabled);
-    }*/
 
     private async Task<bool> CollectAnswersForOperation(Dictionary<string, object?> op, Core.Data.PromptAnswers answers, bool defaultsOnly) {
         try {
-            if (Engine is null) {
-                return false;
-            }
-
-            Core.Services.OperationsService.PromptHandler handler = request => {
+            Core.Services.OperationsService.PromptHandler handler = static request => {
                 switch (request.Type) {
                     case "select": {
                         List<string> choicesList = request.Choices.Select(choice => choice.Label).ToList();
@@ -351,19 +312,17 @@ public partial class TUI {
                             return Task.FromResult(Core.Data.PromptResponse.Cancelled());
                         }
 
-                        if (int.TryParse(input, out int choiceIdx) && choiceIdx >= 1 && choiceIdx <= choicesList.Count) {
-                            int actualIdx = choiceIdx - 1;
-                            if (disabled.Contains(actualIdx)) {
-                                TuiRenderer.Log("Selected item is disabled.", ConsoleColor.Red);
-                                return Task.FromResult(Core.Data.PromptResponse.Cancelled());
-                            }
+                        if (!int.TryParse(input, out int choiceIdx) || choiceIdx < 1 || choiceIdx > choicesList.Count)
+                            return Task.FromResult(Core.Data.PromptResponse.Cancelled());
+                        int actualIdx = choiceIdx - 1;
+                        if (!disabled.Contains(actualIdx))
                             return Task.FromResult(Core.Data.PromptResponse.FromValue(choicesList[actualIdx]));
-                        }
-
+                        TuiRenderer.Log("Selected item is disabled.", ConsoleColor.Red);
                         return Task.FromResult(Core.Data.PromptResponse.Cancelled());
+
                     }
                     case "confirm": {
-                        bool defVal = request.DefaultValue is bool b && b;
+                        bool defVal = request.DefaultValue is true;
                         string defHint = defVal ? "Y" : "N";
                         string c = TuiRenderer.ReadLineCustom($"{request.Title} [y/N] (default {defHint}) >", false);
 
@@ -400,14 +359,13 @@ public partial class TUI {
                     default: {
                         string v = TuiRenderer.ReadLineCustom($"{request.Title} >", false);
 
-                        if (string.IsNullOrWhiteSpace(v)) {
-                            if (request.DefaultValue is not null) {
-                                return Task.FromResult(Core.Data.PromptResponse.UseDefaultValue());
-                            }
-                            return Task.FromResult(Core.Data.PromptResponse.FromValue(string.Empty));
+                        if (!string.IsNullOrWhiteSpace(v))
+                            return Task.FromResult(Core.Data.PromptResponse.FromValue(v));
+                        if (request.DefaultValue is not null) {
+                            return Task.FromResult(Core.Data.PromptResponse.UseDefaultValue());
                         }
+                        return Task.FromResult(Core.Data.PromptResponse.FromValue(string.Empty));
 
-                        return Task.FromResult(Core.Data.PromptResponse.FromValue(v));
                     }
                 }
             };
@@ -424,26 +382,31 @@ public partial class TUI {
     /// </summary>
     private static string? ReadLineWithCancel(out bool cancelled) {
         cancelled = false;
-        System.Text.StringBuilder sb = new();
+        System.Text.StringBuilder sb = new StringBuilder();
         while (true) {
             var key = SafeReadKey(intercept: true);
-            if (key.Key == System.ConsoleKey.Enter) {
-                System.Console.WriteLine();
-                return sb.ToString();
-            }
-            if (key.Key == System.ConsoleKey.Escape) {
-                cancelled = true;
-                System.Console.WriteLine();
-                return null;
-            }
-            if (key.Key == System.ConsoleKey.Backspace) {
-                if (sb.Length > 0) {
+            switch (key.Key) {
+                case System.ConsoleKey.Enter:
+                    System.Console.WriteLine();
+                    return sb.ToString();
+                case System.ConsoleKey.Escape:
+                    cancelled = true;
+                    System.Console.WriteLine();
+                    return null;
+                case System.ConsoleKey.Backspace when sb.Length <= 0:
+                    continue;
+                case System.ConsoleKey.Backspace:
                     sb.Remove(sb.Length - 1, 1);
                     System.Console.Write("\b \b");
+                    break;
+                default: {
+                    if (!char.IsControl(key.KeyChar)) {
+                        sb.Append(key.KeyChar);
+                        System.Console.Write(key.KeyChar);
+                    }
+
+                    break;
                 }
-            } else if (!char.IsControl(key.KeyChar)) {
-                sb.Append(key.KeyChar);
-                System.Console.Write(key.KeyChar);
             }
         }
     }

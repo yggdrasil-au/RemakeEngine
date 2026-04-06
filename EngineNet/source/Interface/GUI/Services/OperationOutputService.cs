@@ -746,9 +746,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
         }
 
         if (value is System.IConvertible convertible) {
-            try {
-                return convertible.ToInt32(null);
-            } catch { }
+            return convertible.ToInt32(null);
         }
 
         if (value is string s && int.TryParse(s, out int parsed)) {
