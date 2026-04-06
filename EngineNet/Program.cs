@@ -79,12 +79,14 @@ public static class Program {
                 Shared.IO.Diagnostics.Trace("Allocated new console window for TUI/CLI mode.");
             }
 
-            Core.Lib.ConfigureRuntime(
+            Shared.State.ConfigureRuntime(
                 rootPath: rootPath,
                 isGui: isGui,
                 isTui: isTui,
-                isCli: isCli,
-                engineFactory: () => InitialiseEngine(scriptActionDispatcher)
+                isCli: isCli
+                // cannot be exposed in Shared.State as it would create a circular dependency with Core
+                // fornow avalonia previewer wont work with real engine
+                //engineFactory: () => InitialiseEngine(scriptActionDispatcher)
             );
 
             Engine ??= await InitialiseEngine(scriptActionDispatcher);

@@ -1,10 +1,12 @@
-namespace EngineNet.Core;
+using System.Threading.Tasks;
+
+namespace EngineNet.Shared;
 
 /// <summary>
 /// Runtime state shared by Core and Interface after project separation.
 /// The entry executable configures these values during startup.
 /// </summary>
-public static class Lib {
+public static class State {
     public static string RootPath {
         get; private set;
     } = string.Empty;
@@ -21,32 +23,32 @@ public static class Lib {
         get; private set;
     }
 
-    private static Func<Task<EngineNet.Core.Engine.IEngineFace>>? EngineFactory {
+    /*private static Func<Task<EngineNet.Core.Engine.IEngineFace>>? EngineFactory {
         get; set;
-    }
+    }*/
 
     /// <summary>
     /// Configures runtime state from the host entry point.
     /// </summary>
-    public static void ConfigureRuntime(string rootPath, bool isGui, bool isTui, bool isCli, Func<Task<EngineNet.Core.Engine.IEngineFace>>? engineFactory = null) {
+    public static void ConfigureRuntime(string rootPath, bool isGui, bool isTui, bool isCli/*, Func<Task<EngineNet.Core.Engine.IEngineFace>>? engineFactory = null*/) {
         RootPath = rootPath;
         IsGui = isGui;
         IsTui = isTui;
         IsCli = isCli;
 
-        if (engineFactory != null) {
+        /*if (engineFactory != null) {
             EngineFactory = engineFactory;
-        }
+        }*/
     }
 
     /// <summary>
     /// Creates an engine using the configured host factory.
     /// </summary>
-    public static async Task<EngineNet.Core.Engine.IEngineFace> InitialiseEngineAsync() {
+    /*public static async Task<EngineNet.Core.Engine.IEngineFace> InitialiseEngineAsync() {
         if (EngineFactory == null) {
             throw new InvalidOperationException("EngineFactory is not configured. Call ConfigureRuntime from the entry point first.");
         }
 
         return await EngineFactory();
-    }
+    }*/
 }

@@ -18,7 +18,7 @@ public class GameLauncher {
     private readonly EngineConfig _config;
     private readonly CommandService _commandService;
     private readonly IScriptActionDispatcher _scriptActionDispatcher;
-    private readonly string _rootPath = Lib.RootPath;
+    private readonly string _rootPath = Shared.State.RootPath;
 
     /* :: :: Constructors :: START :: */
 

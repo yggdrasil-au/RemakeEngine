@@ -8,7 +8,7 @@ namespace EngineNet.Core.Utils;
 internal static class GitTools {
 
     /* :: :: Constructor, Var :: START :: */
-    private static readonly string _gamesDir = System.IO.Path.Combine(EngineNet.Core.Lib.RootPath, "EngineApps", "Games");
+    private static readonly string _gamesDir = System.IO.Path.Combine(EngineNet.Shared.State.RootPath, "EngineApps", "Games");
 
     /* :: :: Constructor, Var :: END :: */
     //

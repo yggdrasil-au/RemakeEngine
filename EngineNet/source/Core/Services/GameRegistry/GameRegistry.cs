@@ -9,7 +9,7 @@ namespace EngineNet.Core.Services;
 public class GameRegistry {
     private readonly Core.Utils.ModuleScanner _scanner;
     internal readonly Core.Utils.Registries _registries;
-    private readonly string _rootPath = EngineNet.Core.Lib.RootPath;
+    private readonly string _rootPath = EngineNet.Shared.State.RootPath;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GameRegistry"/> class.

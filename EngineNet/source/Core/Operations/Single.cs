@@ -94,7 +94,7 @@ public sealed class Single {
                             inputDir: inputDir,
                             outputDir: outputDir,
                             extension: extension,
-                            projectRoot: Core.Lib.RootPath
+                            projectRoot: Shared.State.RootPath
                         );
 
                         if (action is null) {
@@ -123,7 +123,7 @@ public sealed class Single {
                             args: argsEnum,
                             currentGame: currentGame,
                             games: games,
-                            projectRoot: Core.Lib.RootPath
+                            projectRoot: Shared.State.RootPath
                         );
                         // null act means unsupported script type
                         if (act is null) {

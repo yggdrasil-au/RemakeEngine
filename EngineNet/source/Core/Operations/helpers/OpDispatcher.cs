@@ -42,7 +42,7 @@ internal static class OpDispatcher {
                 Shared.IO.UI.EngineSdk.Error("Internal operation blocked: Missing source file context.");
                 return false;
             }
-            string allowedDir = System.IO.Path.Combine(EngineNet.Core.Lib.RootPath, "EngineApps", "Registries", "ops");
+            string allowedDir = System.IO.Path.Combine(EngineNet.Shared.State.RootPath, "EngineApps", "Registries", "ops");
             string fullSource = System.IO.Path.GetFullPath(sourceFile);
             string fullAllowed = System.IO.Path.GetFullPath(allowedDir);
 
