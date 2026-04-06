@@ -16,40 +16,35 @@ public static class ToolMetadataProvider {
                 JsonDocument doc = System.Text.Json.JsonDocument.Parse(System.IO.File.OpenRead(jsonPath));
 
                 if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object) {
-                    foreach (System.Text.Json.JsonProperty prop in doc.RootElement.EnumerateObject()) {
-                        if (!prop.Name.Equals(toolId, System.StringComparison.OrdinalIgnoreCase)) continue;
-
+                    foreach (JsonProperty prop in doc.RootElement.EnumerateObject().Where(prop => prop.Name.Equals(toolId, System.StringComparison.OrdinalIgnoreCase))) {
                         // Accept string or { exe, version }
                         if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.String) {
                             string? exeStr = prop.Value.GetString();
                             return (ResolveRelative(jsonPath, exeStr), null);
                         }
 
-                        if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Object) {
-                            string? exe = null;
-                            string? version = null;
+                        if (prop.Value.ValueKind != System.Text.Json.JsonValueKind.Object) continue;
+                        string? exe = null;
+                        string? version = null;
 
-                            // check if this is versioned structure: { "tool": { "1.0": { "exe": "..." } } }
-                            // we just take the first version for now if not specified
-                            foreach (var vProp in prop.Value.EnumerateObject()) {
-                                if (vProp.Value.ValueKind == System.Text.Json.JsonValueKind.Object) {
-                                    if (vProp.Value.TryGetProperty("exe", out System.Text.Json.JsonElement exeEl) && exeEl.ValueKind == System.Text.Json.JsonValueKind.String) {
-                                        exe = ResolveRelative(jsonPath, exeEl.GetString());
-                                        version = vProp.Name;
-                                        return (exe, version);
-                                    }
-                                }
-                            }
-
-                            // fallback to { exe, version } format
-                            if (prop.Value.TryGetProperty("exe", out System.Text.Json.JsonElement exeEl2) && exeEl2.ValueKind == System.Text.Json.JsonValueKind.String) {
-                                exe = ResolveRelative(jsonPath, exeEl2.GetString());
-                            }
-                            if (prop.Value.TryGetProperty("version", out System.Text.Json.JsonElement verEl) && verEl.ValueKind == System.Text.Json.JsonValueKind.String) {
-                                version = verEl.GetString();
-                            }
+                        // check if this is versioned structure: { "tool": { "1.0": { "exe": "..." } } }
+                        // we just take the first version for now if not specified
+                        foreach (JsonProperty vProp in prop.Value.EnumerateObject().Where(vProp => vProp.Value.ValueKind == System.Text.Json.JsonValueKind.Object)) {
+                            if (!vProp.Value.TryGetProperty("exe", out System.Text.Json.JsonElement exeEl) ||
+                                exeEl.ValueKind != System.Text.Json.JsonValueKind.String) continue;
+                            exe = ResolveRelative(jsonPath, exeEl.GetString());
+                            version = vProp.Name;
                             return (exe, version);
                         }
+
+                        // fallback to { exe, version } format
+                        if (prop.Value.TryGetProperty("exe", out System.Text.Json.JsonElement exeEl2) && exeEl2.ValueKind == System.Text.Json.JsonValueKind.String) {
+                            exe = ResolveRelative(jsonPath, exeEl2.GetString());
+                        }
+                        if (prop.Value.TryGetProperty("version", out System.Text.Json.JsonElement verEl) && verEl.ValueKind == System.Text.Json.JsonValueKind.String) {
+                            version = verEl.GetString();
+                        }
+                        return (exe, version);
                     }
                 }
             } catch (System.Text.Json.JsonException ex) {

@@ -69,6 +69,7 @@ internal static class QuickBmsExtractor {
         // Minimal active job tracking for progress panel
         using System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
         EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess? current = null;
+        // todo fix Captured variable is modified in the outer scope, s
         System.Threading.Tasks.Task panel = EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.StartPanel(
             total: files.Count,
             snapshot: () => (processed, success, 0, errors),
@@ -212,17 +213,17 @@ internal static class QuickBmsExtractor {
         foreach (string target in options.Targets) {
             if (System.IO.Directory.Exists(target)) {
                 foreach (string file in System.IO.Directory.EnumerateFiles(target, "*", SearchOption.AllDirectories)) {
-                    if (matchesAll || file.EndsWith(normalizedExtension, System.StringComparison.OrdinalIgnoreCase)) {
-                        if (seen.Add(file)) {
-                            yield return file;
-                        }
+                    if (!matchesAll && !file.EndsWith(normalizedExtension, System.StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    if (seen.Add(file)) {
+                        yield return file;
                     }
                 }
             } else if (System.IO.File.Exists(target)) {
-                if (matchesAll || target.EndsWith(normalizedExtension, System.StringComparison.OrdinalIgnoreCase)) {
-                    if (seen.Add(target)) {
-                        yield return target;
-                    }
+                if (!matchesAll &&
+                    !target.EndsWith(normalizedExtension, System.StringComparison.OrdinalIgnoreCase)) continue;
+                if (seen.Add(target)) {
+                    yield return target;
                 }
             } else {
                 WriteWarn($"Target path not found: {target}");

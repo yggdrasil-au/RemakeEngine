@@ -79,10 +79,10 @@ internal static partial class Sdk {
             }
 
             // 4. Windows Long Path Support (\\\\?\\ prefix)
-            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)) {
-                if (result.Length > 255 && result.Length >= 2 && char.IsLetter(result[0]) && result[1] == ':' && !result.StartsWith(@"\\?\")) {
-                    result = @"\\?\" + result;
-                }
+            if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices
+                    .OSPlatform.Windows)) return result;
+            if (result.Length > 255 && result.Length >= 2 && char.IsLetter(result[0]) && result[1] == ':' && !result.StartsWith(@"\\?\")) {
+                result = @"\\?\" + result;
             }
 
             return result;
@@ -211,12 +211,15 @@ internal static partial class Sdk {
             if (string.IsNullOrEmpty(path)) return false;
 
             if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)) {
-                // Windows drive: ^%a:[/\\]
-                if (path.Length >= 3 && char.IsLetter(path[0]) && path[1] == ':' && (path[2] == '/' || path[2] == '\\')) return true;
-                // Windows UNC: ^\\\\
-                if (path.Length >= 2 && path[0] == '\\' && path[1] == '\\') return true;
-                // Unix root / or Windows root \
-                if (path.Length >= 1 && (path[0] == '/' || path[0] == '\\')) return true;
+                switch (path.Length) {
+                    // Windows drive: ^%a:[/\\]
+                    case >= 3 when char.IsLetter(path[0]) && path[1] == ':' && (path[2] == '/' || path[2] == '\\'):
+                    // Windows UNC: ^\\\\
+                    case >= 2 when path[0] == '\\' && path[1] == '\\':
+                    // Unix root / or Windows root \
+                    case >= 1 when (path[0] == '/' || path[0] == '\\'):
+                        return true;
+                }
             } else {
                 // Unix root /
                 if (path.Length >= 1 && path[0] == '/') return true;

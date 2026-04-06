@@ -94,13 +94,11 @@ internal static class Security {
     private static string CleanPathPrefix(string path) {
         if (string.IsNullOrWhiteSpace(path)) return path;
         // Strip Win32 long path prefix if present (\\?\ and \\?\UNC\)
-        if (path.StartsWith(@"\\?\", StringComparison.Ordinal)) {
-            if (path.StartsWith(@"\\?\UNC\", StringComparison.OrdinalIgnoreCase)) {
-                return @"\\" + path.Substring(8);
-            }
-            return path.Substring(4);
+        if (!path.StartsWith(@"\\?\", StringComparison.Ordinal)) return path;
+        if (path.StartsWith(@"\\?\UNC\", StringComparison.OrdinalIgnoreCase)) {
+            return @"\\" + path.Substring(8);
         }
-        return path;
+        return path.Substring(4);
     }
 
     private static string NormalizeLowerFullPath(string path) {
@@ -162,14 +160,7 @@ internal static class Security {
             forbiddenPatterns.Add(System.Environment.GetFolderPath(System.Environment.SpecialFolder.CommonApplicationData).ToLowerInvariant());
         }
 
-        foreach (string forbiddenPattern in forbiddenPatterns) {
-            if (string.IsNullOrWhiteSpace(forbiddenPattern)) continue;
-            string normalizedForbidden = NormalizeBoundaryPattern(forbiddenPattern);
-            if (IsPathWithinBoundary(normalizedPath, normalizedForbidden)) {
-                return true;
-            }
-        }
-        return false;
+        return (from forbiddenPattern in forbiddenPatterns where !string.IsNullOrWhiteSpace(forbiddenPattern) select NormalizeBoundaryPattern(forbiddenPattern)).Any(normalizedForbidden => IsPathWithinBoundary(normalizedPath, normalizedForbidden));
     }
 
     internal static bool TryGetAllowedCanonicalPathWithPrompt(string path, out string canonicalPath) {

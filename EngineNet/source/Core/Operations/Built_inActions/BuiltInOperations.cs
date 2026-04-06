@@ -129,18 +129,17 @@ internal class BuiltInOperations {
     #endif
 
         // 2. If tool not specified, try to extract from args
-        if (string.IsNullOrWhiteSpace(tool) && operationArgs.op.TryGetValue("args", out object? argsObj)) {
-            if (argsObj is System.Collections.IList argsList) {
-                for (int i = 0; i < argsList.Count - 1; i++) {
-                    string arg = argsList[i]?.ToString() ?? string.Empty;
-                    if (arg == "-m" || arg == "--mode") {
-                        tool = argsList[i + 1]?.ToString()?.ToLowerInvariant();
-                        Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: extracted tool from args: '{tool}'");
-                        break;
-                    }
-                }
+        if (string.IsNullOrWhiteSpace(tool) && operationArgs.op.TryGetValue("args", out object? argsObj)
+            && (argsObj is System.Collections.IList argsList)) {
+            for (int i = 0; i < argsList.Count - 1; i++) {
+                string arg = argsList[i]?.ToString() ?? string.Empty;
+                if (arg != "-m" && arg != "--mode") continue;
+                tool = argsList[i + 1]?.ToString()?.ToLowerInvariant();
+                Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: extracted tool from args: '{tool}'");
+                break;
             }
         }
+
 
         Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: final tool = '{tool}'");
 

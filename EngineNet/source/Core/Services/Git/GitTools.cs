@@ -41,12 +41,11 @@ internal static class GitTools {
                 title: "git clone",
                 onOutput: (line, _) => { Shared.IO.UI.EngineSdk.Print(line); },
                 onEvent: evt => {
-                    if (evt.TryGetValue("event", out object? kind) && string.Equals(kind?.ToString(), "end",
-                            System.StringComparison.OrdinalIgnoreCase)) {
-                        if (evt.TryGetValue("exit_code", out object? code) &&
-                            int.TryParse(code?.ToString(), out int parsed)) {
-                            rc = parsed;
-                        }
+                    if (!evt.TryGetValue("event", out object? kind) || !string.Equals(kind?.ToString(), "end",
+                            System.StringComparison.OrdinalIgnoreCase)) return;
+                    if (evt.TryGetValue("exit_code", out object? code) &&
+                        int.TryParse(code?.ToString(), out int parsed)) {
+                        rc = parsed;
                     }
                 }
             );

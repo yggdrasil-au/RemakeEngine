@@ -27,76 +27,78 @@ public class JsonToolResolver {
         string? found = System.IO.File.Exists(_lockfilePath) ? _lockfilePath : null;
 
         if (found == null) {
-            if (_loadedFile != null) {
-                _tools.Clear();
-                _loadedFile = null;
-            }
+            if (_loadedFile == null) return;
+            _tools.Clear();
+            _loadedFile = null;
             return;
         }
 
         bool isNewFile = !string.Equals(found, _loadedFile, System.StringComparison.OrdinalIgnoreCase);
         System.DateTime writeTime = System.IO.File.GetLastWriteTimeUtc(found);
 
-        if (isNewFile || writeTime > _lastWriteTime) {
-            _tools.Clear();
-            _loadedFile = found;
-            _lastWriteTime = writeTime;
+        if (!isNewFile && writeTime <= _lastWriteTime) return;
+        _tools.Clear();
+        _loadedFile = found;
+        _lastWriteTime = writeTime;
 
-            try {
-                string _baseDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(found)) ?? System.IO.Directory.GetCurrentDirectory();
-                using System.IO.FileStream stream = System.IO.File.OpenRead(found);
-                using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(stream);
+        try {
+            string _baseDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(found)) ?? System.IO.Directory.GetCurrentDirectory();
+            using System.IO.FileStream stream = System.IO.File.OpenRead(found);
+            using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(stream);
 
-                if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object) {
-                    foreach (System.Text.Json.JsonProperty toolProp in doc.RootElement.EnumerateObject()) {
-                        string toolName = toolProp.Name;
-                        var versions = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+            if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object) return;
+            foreach (System.Text.Json.JsonProperty toolProp in doc.RootElement.EnumerateObject()) {
+                string toolName = toolProp.Name;
+                var versions = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
 
-                        if (toolProp.Value.ValueKind == System.Text.Json.JsonValueKind.Object) {
-                            // Check if this is the new versioned structure or the old flat structure
-                            bool isVersioned = false;
-                            foreach (System.Text.Json.JsonProperty vProp in toolProp.Value.EnumerateObject()) {
-                                // If sub-key is an object and contains an 'exe' or 'version', it's likely versioned
-                                if (vProp.Value.ValueKind == System.Text.Json.JsonValueKind.Object) {
-                                    string? path = ExtractPath(vProp.Value);
-                                    if (path != null) {
-                                        versions[vProp.Name] = ResolvePath(_baseDir, path);
-                                        isVersioned = true;
-                                    }
-                                }
-                            }
-
-                            if (!isVersioned) {
-                                // Fallback to old flat structure: { "ToolName": { "exe": "...", "version": "..." } }
-                                string? path = ExtractPath(toolProp.Value);
-                                if (path != null) {
-                                    string version = "1.0.0";
-                                    if (toolProp.Value.TryGetProperty("version", out System.Text.Json.JsonElement v) && v.ValueKind == System.Text.Json.JsonValueKind.String) {
-                                        version = v.GetString() ?? "1.0.0";
-                                    }
-                                    versions[version] = ResolvePath(_baseDir, path);
-                                }
-                            }
-                        } else if (toolProp.Value.ValueKind == System.Text.Json.JsonValueKind.String) {
-                            // legacy simple mapping: { "ToolName": "path/to/exe" }
-                            versions["1.0.0"] = ResolvePath(_baseDir, toolProp.Value.GetString() ?? string.Empty);
+                switch (toolProp.Value.ValueKind) {
+                    case System.Text.Json.JsonValueKind.Object: {
+                        // Check if this is the new versioned structure or the old flat structure
+                        bool isVersioned = false;
+                        foreach (System.Text.Json.JsonProperty vProp in toolProp.Value.EnumerateObject()) {
+                            // If sub-key is an object and contains an 'exe' or 'version', it's likely versioned
+                            if (vProp.Value.ValueKind != System.Text.Json.JsonValueKind.Object) continue;
+                            string? path = ExtractPath(vProp.Value);
+                            if (path == null) continue;
+                            versions[vProp.Name] = ResolvePath(_baseDir, path);
+                            isVersioned = true;
                         }
 
-                        if (versions.Count > 0) {
-                            _tools[toolName] = versions;
+                        if (!isVersioned) {
+                            // Fallback to old flat structure: { "ToolName": { "exe": "...", "version": "..." } }
+                            string? path = ExtractPath(toolProp.Value);
+                            if (path != null) {
+                                string version = "1.0.0";
+                                if (toolProp.Value.TryGetProperty("version", out System.Text.Json.JsonElement v) && v.ValueKind == System.Text.Json.JsonValueKind.String) {
+                                    version = v.GetString() ?? "1.0.0";
+                                }
+                                versions[version] = ResolvePath(_baseDir, path);
+                            }
                         }
+
+                        break;
                     }
+                    case System.Text.Json.JsonValueKind.String:
+                        // legacy simple mapping: { "ToolName": "path/to/exe" }
+                        versions["1.0.0"] = ResolvePath(_baseDir, toolProp.Value.GetString() ?? string.Empty);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
                 }
-            } catch (System.Text.Json.JsonException ex) {
-                Shared.IO.Diagnostics.Bug($"[JsonToolResolver] JSON parse error loading tools from {found}.", ex);
-                Shared.IO.Diagnostics.Log($"[JsonToolResolver] Error loading tools from {found}: {ex.Message}");
-            } catch (System.IO.IOException ex) {
-                Shared.IO.Diagnostics.Bug($"[JsonToolResolver] IO error loading tools from {found}.", ex);
-                Shared.IO.Diagnostics.Log($"[JsonToolResolver] Error loading tools from {found}: {ex.Message}");
-            } catch (System.UnauthorizedAccessException ex) {
-                Shared.IO.Diagnostics.Bug($"[JsonToolResolver] Access denied loading tools from {found}.", ex);
-                Shared.IO.Diagnostics.Log($"[JsonToolResolver] Error loading tools from {found}: {ex.Message}");
+
+                if (versions.Count > 0) {
+                    _tools[toolName] = versions;
+                }
             }
+        } catch (System.Text.Json.JsonException ex) {
+            Shared.IO.Diagnostics.Bug($"[JsonToolResolver] JSON parse error loading tools from {found}.", ex);
+            Shared.IO.Diagnostics.Log($"[JsonToolResolver] Error loading tools from {found}: {ex.Message}");
+        } catch (System.IO.IOException ex) {
+            Shared.IO.Diagnostics.Bug($"[JsonToolResolver] IO error loading tools from {found}.", ex);
+            Shared.IO.Diagnostics.Log($"[JsonToolResolver] Error loading tools from {found}: {ex.Message}");
+        } catch (System.UnauthorizedAccessException ex) {
+            Shared.IO.Diagnostics.Bug($"[JsonToolResolver] Access denied loading tools from {found}.", ex);
+            Shared.IO.Diagnostics.Log($"[JsonToolResolver] Error loading tools from {found}: {ex.Message}");
         }
     }
 
@@ -113,7 +115,7 @@ public class JsonToolResolver {
         if (value.ValueKind != System.Text.Json.JsonValueKind.Object) return null;
 
         string[] possibleKeys = { "exe", "path", "command" };
-        foreach (var key in possibleKeys) {
+        foreach (string key in possibleKeys) {
             if (value.TryGetProperty(key, out System.Text.Json.JsonElement elem) && elem.ValueKind == System.Text.Json.JsonValueKind.String) {
                 return elem.GetString();
             }

@@ -1,6 +1,9 @@
 
 namespace EngineNet.Core.Media;
 
+using System.Collections.Concurrent;
+using Shared.IO.UI;
+
 /// <summary>
 /// Built-in media converter that mirrors Tools/ffmpeg-vgmstream/convert.py behavior.
 /// Supports mode=ffmpeg|vgmstream with type=audio|video and preserves directory structure.
@@ -36,7 +39,8 @@ internal static class AvTools {
     }
 
     // Tracks currently running external conversions (for progress panel)
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> s_active = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> s_active =
+        new ConcurrentDictionary<int, EngineSdk.SdkConsoleProgress.ActiveProcess>();
 
     /// <summary>
     /// Converts media files using ffmpeg or vgmstream while preserving directory layout.
@@ -92,8 +96,8 @@ internal static class AvTools {
             WriteVerbose(opt.Verbose, $"Using executable: {(opt.Mode == "ffmpeg" ? opt.FfmpegPath : opt.VgmstreamCli)}");
 
             List<string> allFiles = System.IO.Directory.EnumerateFiles(opt.Source, "*" + opt.InputExt, System.IO.SearchOption.AllDirectories)
-                                     .Where(p => p.EndsWith(opt.InputExt, System.StringComparison.OrdinalIgnoreCase))
-                                     .ToList();
+                                    .Where(p => p.EndsWith(opt.InputExt, System.StringComparison.OrdinalIgnoreCase))
+                                    .ToList();
             if (allFiles.Count == 0) {
                 Shared.IO.UI.EngineSdk.Warn($"No '{opt.InputExt}' files found in {opt.Source}.");
                 return true; // nothing to do
@@ -187,7 +191,9 @@ internal static class AvTools {
             Shared.IO.UI.EngineSdk.PrintLine($"Skipped: {skipped}", System.ConsoleColor.Yellow);
             Shared.IO.UI.EngineSdk.PrintLine($"Errors: {errors}", System.ConsoleColor.Red);
 
-            if (!errorList.IsEmpty) {
+            if (errorList.IsEmpty){
+                return true;
+            } else {
                 Shared.IO.UI.EngineSdk.Error("\nEncountered the following errors:");
                 foreach ((string file, string msg) in errorList) {
                     Shared.IO.UI.EngineSdk.PrintLine($" Fail - File: {file}\n    Reason: {msg}", System.ConsoleColor.Red);
@@ -195,7 +201,6 @@ internal static class AvTools {
                 return false;
             }
 
-            return true;
         } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"[MediaConverter.cs::Run()] Media conversion failed: {ex}");
             Shared.IO.UI.EngineSdk.Error($"Media conversion failed: {ex.Message}");
@@ -417,8 +422,14 @@ internal static class AvTools {
             if (!passthroughOutput) {
                 errBuf = new System.Text.StringBuilder(8 * 1024);
                 outBuf = new System.Text.StringBuilder(8 * 1024);
-                p.OutputDataReceived += (_, e) => { if (e.Data != null) { lock (outBuf!) { outBuf!.Append(e.Data); } } };
-                p.ErrorDataReceived += (_, e) => { if (e.Data != null) { lock (errBuf!) { errBuf!.Append(e.Data); } } };
+                p.OutputDataReceived += (_, e) => {
+                    if (e.Data == null) return;
+                    lock (outBuf!) { outBuf!.Append(e.Data); }
+                };
+                p.ErrorDataReceived += (_, e) => {
+                    if (e.Data == null) return;
+                    lock (errBuf!) { errBuf!.Append(e.Data); }
+                };
                 p.BeginOutputReadLine();
                 p.BeginErrorReadLine();
             }
@@ -439,16 +450,14 @@ internal static class AvTools {
                 return (true, null);
             }
 
-            if (!passthroughOutput) {
-                string err = errBuf?.ToString() ?? string.Empty;
-                if (string.IsNullOrWhiteSpace(err)) {
-                    err = outBuf?.ToString() ?? string.Empty;
-                }
-
-                string msg = string.IsNullOrWhiteSpace(err) ? $"exit code {exitCode}" : err.Trim();
-                return (false, msg);
+            if (passthroughOutput) return (false, $"exit code {exitCode}");
+            string err = errBuf?.ToString() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(err)) {
+                err = outBuf?.ToString() ?? string.Empty;
             }
-            return (false, $"exit code {exitCode}");
+
+            string msg = string.IsNullOrWhiteSpace(err) ? $"exit code {exitCode}" : err.Trim();
+            return (false, msg);
         } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"[MediaConverter::Exec()] Process execution failed for '{fileName}': {ex}");
             return (false, ex.Message);

@@ -53,10 +53,8 @@ public sealed class Main : IScriptAction {
         (string? installedExe, string? installedVersion) = Core.ExternalTools.ToolMetadataProvider.ResolveExeAndVersion(toolId: "QuickBMS", EngineNet.Shared.State.RootPath, tools);
 
         // Enforce required version (if declared)
-        if (!string.IsNullOrWhiteSpace(requiredVersion)) {
-            if (string.IsNullOrWhiteSpace(installedVersion) || !string.Equals(installedVersion, requiredVersion, System.StringComparison.OrdinalIgnoreCase)) {
-                throw new System.InvalidOperationException($"Missing QuickBMS {requiredVersion} - please run the 'Download Tools' operation. {Core.ExternalTools.ToolLockfile.ToolLockfileName} shows '{installedVersion ?? "<not installed>"}'.");
-            }
+        if ((!string.IsNullOrWhiteSpace(requiredVersion) && string.IsNullOrWhiteSpace(installedVersion)) || !string.Equals(installedVersion, requiredVersion, System.StringComparison.OrdinalIgnoreCase)) {
+            throw new System.InvalidOperationException($"Missing QuickBMS {requiredVersion} - please run the 'Download Tools' operation. {Core.ExternalTools.ToolLockfile.ToolLockfileName} shows '{installedVersion ?? "<not installed>"}'.");
         }
 
         // Resolve exe path (prefer tool lockfile; fallback to tool resolver)

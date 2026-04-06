@@ -15,11 +15,9 @@ internal static class SymLink {
     /// </summary>
     internal static bool Create(string source, string destination, bool isDirectory, bool overwrite) {
         try {
-            if (OperatingSystem.IsWindows()) {
-                if (!CanCreateSymLinks()) {
-                    Shared.IO.UI.EngineSdk.Error(GetFixInstructions());
-                    return false;
-                }
+            if (OperatingSystem.IsWindows() && !CanCreateSymLinks()) {
+                Shared.IO.UI.EngineSdk.Error(GetFixInstructions());
+                return false;
             }
 
             string destFull = System.IO.Path.GetFullPath(destination);
@@ -94,7 +92,7 @@ internal static class SymLink {
         const string keyName = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock";
         const string valueName = "AllowDevelopmentWithoutDevLicense";
         try {
-            var val = Registry.GetValue(keyName, valueName, 0);
+            object? val = Registry.GetValue(keyName, valueName, 0);
             return val != null && (int)val == 1;
         } catch {
             return false;
@@ -117,7 +115,7 @@ internal static class SymLink {
                 return false;
             }
 
-            uint tokenInfoLength = 0;
+            uint tokenInfoLength;
             GetTokenInformation(hToken, TokenInformationClass.TokenPrivileges, IntPtr.Zero, 0, out tokenInfoLength);
 
             IntPtr tokenInfo = Marshal.AllocHGlobal((int)tokenInfoLength);

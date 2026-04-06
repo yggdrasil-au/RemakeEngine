@@ -82,7 +82,7 @@ internal static class ImageMagickConverter {
                 .Where(p => p.EndsWith(opt.InputExt, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            Shared.IO.UI.EngineSdk.Info($"--- Starting ImageMagick Conversion ---");
+            Shared.IO.UI.EngineSdk.Info("--- Starting ImageMagick Conversion ---");
             Shared.IO.UI.EngineSdk.Info($"Using executable: {opt.MagickPath}");
             if (allFiles.Count == 0) {
                 Shared.IO.UI.EngineSdk.Warn($"No '{opt.InputExt}' files found in {opt.Source}.");
@@ -102,7 +102,6 @@ internal static class ImageMagickConverter {
                 CancellationToken = cancellationToken
             };
 
-            // --- ADDED PROGRESS PANEL (from MediaConverter) ---
             using System.Threading.CancellationTokenSource progressCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             System.Threading.Tasks.Task progressTask = Shared.IO.UI.EngineSdk.SdkConsoleProgress.StartPanel(
                 total: allFiles.Count,
@@ -110,8 +109,6 @@ internal static class ImageMagickConverter {
                 activeSnapshot: () => s_active.Values.ToList(),
                 label: "Converting Images",
                 token: progressCts.Token);
-            // --- END ADD ---
-
             try {
                 System.Threading.Tasks.Parallel.ForEach(allFiles, po, src => {
                     try {
@@ -279,8 +276,14 @@ internal static class ImageMagickConverter {
             if (!passthroughOutput) {
                 errBuf = new System.Text.StringBuilder(8 * 1024);
                 outBuf = new System.Text.StringBuilder(8 * 1024);
-                p.ErrorDataReceived += (_, e) => { if (e.Data != null) lock (errBuf!) errBuf!.AppendLine(e.Data); };
-                p.OutputDataReceived += (_, e) => { if (e.Data != null) lock (outBuf!) outBuf!.AppendLine(e.Data); };
+                p.ErrorDataReceived += (_, e) => {
+                    if (e.Data == null) return;
+                    lock (errBuf!) errBuf!.AppendLine(e.Data);
+                };
+                p.OutputDataReceived += (_, e) => {
+                    if (e.Data == null) return;
+                    lock (outBuf!) outBuf!.AppendLine(e.Data);
+                };
                 try { p.BeginErrorReadLine(); } catch (Exception ex) { Shared.IO.Diagnostics.Bug($"[ImageMagickConverter] BeginErrorReadLine catch triggered: {ex}"); }
                 try { p.BeginOutputReadLine(); } catch (Exception ex) { Shared.IO.Diagnostics.Bug($"[ImageMagickConverter] BeginOutputReadLine catch triggered: {ex}"); }
             }
@@ -297,16 +300,14 @@ internal static class ImageMagickConverter {
                 return (true, null);
             }
 
-            if (!passthroughOutput) {
-                string err = errBuf?.ToString() ?? string.Empty;
-                if (string.IsNullOrWhiteSpace(err)) {
-                    err = outBuf?.ToString() ?? string.Empty;
-                }
-                string msg = string.IsNullOrWhiteSpace(err) ? $"exit code {p.ExitCode}" : err.Trim();
-                return (false, msg);
+            if (passthroughOutput) return (false, $"exit code {p.ExitCode}");
+            string err = errBuf?.ToString() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(err)) {
+                err = outBuf?.ToString() ?? string.Empty;
             }
+            string msg = string.IsNullOrWhiteSpace(err) ? $"exit code {p.ExitCode}" : err.Trim();
+            return (false, msg);
 
-            return (false, $"exit code {p.ExitCode}");
         } catch (Exception ex) {
             Shared.IO.Diagnostics.Bug($"[ImageMagickConverter::Exec()] Process execution failed for '{fileName}'.", ex);
             return (false, ex.Message);
@@ -437,27 +438,6 @@ internal static class ImageMagickConverter {
 
     private static string EnsureDot(string ext) {
         return string.IsNullOrWhiteSpace(ext) ? ext : (ext.StartsWith('.') ? ext : "." + ext);
-    }
-
-    private static string? Which(string name) {
-        try {
-            string path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-            foreach (string dir in path.Split(Path.PathSeparator)) {
-                try {
-                    string candidate = Path.Combine(dir, name);
-                    if (File.Exists(candidate)) {
-                        return candidate;
-                    }
-                } catch (Exception ex) {
-                    Shared.IO.Diagnostics.Bug($"[ImageMagickConverter::Which()] Failed searching PATH entry '{dir}' for '{name}'.", ex);
-                    /* ignore */
-                }
-            }
-        } catch (Exception ex) {
-            Shared.IO.Diagnostics.Bug("[ImageMagickConverter::Which()] Failed to enumerate PATH entries.", ex);
-            /* ignore */
-        }
-        return null;
     }
 
     private static void TryDelete(string path) {

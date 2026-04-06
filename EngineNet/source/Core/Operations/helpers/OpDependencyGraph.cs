@@ -127,10 +127,9 @@ internal class OpDependencyGraph {
             var deps = GetStringList(current, "depends_on").Concat(GetStringList(current, "depends-on"));
 
             foreach (var depId in deps) {
-                if (idToOpMap.TryGetValue(depId, out var depOp)) {
-                    if (relevant.Add(depOp)) {
-                        queue.Enqueue(depOp);
-                    }
+                if (!idToOpMap.TryGetValue(depId, out var depOp)) continue;
+                if (relevant.Add(depOp)) {
+                    queue.Enqueue(depOp);
                 }
             }
         }

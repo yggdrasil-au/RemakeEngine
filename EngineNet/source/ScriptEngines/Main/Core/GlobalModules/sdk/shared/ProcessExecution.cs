@@ -33,11 +33,9 @@ internal static class ProcessExecution {
     }
 
     private static bool ValidateArgPaths(IEnumerable<string> args, string? cwd) {
-        if (!string.IsNullOrEmpty(cwd)) {
-            if (!EngineNet.ScriptEngines.Security.IsAllowedPath(cwd)) {
-                Shared.IO.UI.EngineSdk.Error($"Access denied: working directory outside allowed areas ('{cwd}')");
-                return false;
-            }
+        if (!string.IsNullOrEmpty(cwd) && !EngineNet.ScriptEngines.Security.IsAllowedPath(cwd)) {
+            Shared.IO.UI.EngineSdk.Error($"Access denied: working directory outside allowed areas ('{cwd}')");
+            return false;
         }
         foreach (string a in args) {
             if (string.IsNullOrEmpty(a)) continue;
@@ -48,10 +46,9 @@ internal static class ProcessExecution {
             }
             candidate = candidate.Trim('"', '\'', ' ');
             if (!LooksLikePath(candidate)) continue;
-            if (!EngineNet.ScriptEngines.Security.IsAllowedPath(candidate)) {
-                Shared.IO.UI.EngineSdk.Error($"Access denied: process argument references path outside allowed areas ('{candidate}')");
-                return false;
-            }
+            if (EngineNet.ScriptEngines.Security.IsAllowedPath(candidate)) continue;
+            Shared.IO.UI.EngineSdk.Error($"Access denied: process argument references path outside allowed areas ('{candidate}')");
+            return false;
         }
         return true;
     }
@@ -64,7 +61,7 @@ internal static class ProcessExecution {
         bool captureStdout = true;
         bool captureStderr = true;
         int? timeoutMs = null;
-        Dictionary<string, string> env = new();
+        Dictionary<string, string> env = new Dictionary<string, string>();
 
         if (options != null) {
             DynValue v = options.Get("cwd");
@@ -89,9 +86,10 @@ internal static class ProcessExecution {
 
         try {
             ProcessResult res = cs.RunProcess(arguments[0], arguments.Skip(1), cwd, env, timeoutMs, captureStdout, captureStderr);
-            Table t = new Table(lua);
-            t["exit_code"] = res.ExitCode;
-            t["success"] = res.Success;
+            Table t = new Table(lua) {
+                ["exit_code"] = res.ExitCode,
+                ["success"] = res.Success
+            };
             if (captureStdout) t["stdout"] = res.Stdout;
             if (captureStderr) t["stderr"] = res.Stderr;
             return DynValue.NewTable(t);
@@ -108,7 +106,7 @@ internal static class ProcessExecution {
         bool newTerminal = false;
         bool keepOpen = false;
         bool wait = true;
-        Dictionary<string, string> env = new();
+        Dictionary<string, string> env = new Dictionary<string, string>();
 
         if (options != null) {
             DynValue v = options.Get("cwd");
@@ -146,7 +144,7 @@ internal static class ProcessExecution {
         string? cwd = null;
         bool captureStdout = true;
         bool captureStderr = true;
-        Dictionary<string, string> env = new();
+        Dictionary<string, string> env = new Dictionary<string, string>();
 
         if (options != null) {
             DynValue v = options.Get("cwd");
@@ -169,8 +167,9 @@ internal static class ProcessExecution {
 
         try {
             int pid = cs.SpawnProcess(parts[0], parts.Skip(1), cwd, env, captureStdout, captureStderr);
-            Table t = new Table(lua);
-            t["pid"] = pid;
+            Table t = new Table(lua) {
+                ["pid"] = pid,
+            };
             return DynValue.NewTable(t);
         } catch (Exception ex) {
             throw new ScriptRuntimeException(ex.Message);
@@ -180,8 +179,9 @@ internal static class ProcessExecution {
     internal static DynValue PollProcess(Script lua, CommandService cs, int pid) {
         try {
             ProcessPollResult res = cs.PollProcess(pid);
-            Table t = new Table(lua);
-            t["running"] = res.Running;
+            Table t = new Table(lua) {
+                ["running"] = res.Running,
+            };
             if (!res.Running) t["exit_code"] = res.ExitCode;
             t["stdout"] = res.StdoutFull;
             t["stderr"] = res.StderrFull;
@@ -198,8 +198,9 @@ internal static class ProcessExecution {
             // Keep parity with previous behavior: wait_process acted as a status check.
             _ = timeoutMs;
             ProcessPollResult res = cs.PollProcess(pid);
-            Table t = new Table(lua);
-            t["running"] = res.Running;
+            Table t = new Table(lua) {
+                ["running"] = res.Running,
+            };
             if (!res.Running) t["exit_code"] = res.ExitCode;
             t["stdout"] = res.StdoutFull;
             t["stderr"] = res.StderrFull;
@@ -224,9 +225,10 @@ internal static class ProcessExecution {
             }
 
             ProcessResult res = cs.RunInNewTerminal(parts[0], parts.Skip(1), cwd, env, keepOpen, wait);
-            Table t = new Table(lua);
-            t["success"] = res.Success;
-            t["exit_code"] = res.ExitCode;
+            Table t = new Table(lua) {
+                ["success"] = res.Success,
+                ["exit_code"] = res.ExitCode,
+            };
             return DynValue.NewTable(t);
         } catch (Exception ex) {
             throw new ScriptRuntimeException(ex.Message);
@@ -245,17 +247,15 @@ internal static class ProcessExecution {
                 commandParts: parts,
                 title: System.IO.Path.GetFileName(parts[0]),
                 onOutput: (msg, type) => {
-                    if (!silentRun) {
-                        string? color = type == "stderr" ? "red" : null;
-                        Shared.IO.UI.EngineSdk.Print(msg, color, true);
-                        Shared.IO.Diagnostics.Log($"[ProcessRunner][{type}] {msg}");
-                    }
+                    if (silentRun) return;
+                    string? color = type == "stderr" ? "red" : null;
+                    Shared.IO.UI.EngineSdk.Print(msg, color, true);
+                    Shared.IO.Diagnostics.Log($"[ProcessRunner][{type}] {msg}");
                 },
                 onEvent: evt => {
-                    if (evt.TryGetValue("event", out object? ev) && string.Equals(ev?.ToString(), "end", System.StringComparison.OrdinalIgnoreCase)) {
-                        if (evt.TryGetValue("exit_code", out object? code) && int.TryParse(code?.ToString(), out int parsed)) {
-                            exitCode = parsed;
-                        }
+                    if (!evt.TryGetValue("event", out object? ev) || !string.Equals(ev?.ToString(), "end", System.StringComparison.OrdinalIgnoreCase)) return;
+                    if (evt.TryGetValue("exit_code", out object? code) && int.TryParse(code?.ToString(), out int parsed)) {
+                        exitCode = parsed;
                     }
                 },
                 envOverrides: envObj
@@ -265,9 +265,10 @@ internal static class ProcessExecution {
                 exitCode = 1;
             }
 
-            Table result = new Table(lua);
-            result["exit_code"] = exitCode >= 0 ? exitCode : (success ? 0 : 1);
-            result["success"] = success && (exitCode == 0 || exitCode == -1);
+            Table result = new Table(lua) {
+                ["exit_code"] = exitCode >= 0 ? exitCode : (success ? 0 : 1),
+                ["success"] = success && (exitCode == 0 || exitCode == -1),
+            };
             return DynValue.NewTable(result);
         } catch (Exception ex) {
             throw new ScriptRuntimeException(ex.Message);
@@ -287,12 +288,6 @@ internal static class ProcessExecution {
             "/usr/bin/xfce4-terminal"
         };
 
-        foreach (string candidate in candidates) {
-            if (System.IO.File.Exists(candidate)) {
-                return true;
-            }
-        }
-
-        return false;
+        return candidates.Any(static candidate => System.IO.File.Exists(candidate));
     }
 }
