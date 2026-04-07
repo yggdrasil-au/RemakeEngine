@@ -131,7 +131,7 @@ internal sealed class Registries {
                 continue;
             }
 
-            string gameToml = System.IO.Path.Combine(dir, "game.toml");
+            string gameToml = System.IO.Path.Join(dir, "game.toml");
             if (!System.IO.File.Exists(gameToml)) {
                 Shared.IO.Diagnostics.Trace(
                     $"[GameRegistry] warning: game '{new System.IO.DirectoryInfo(dir).Name}' is missing game.toml - skipping");

@@ -485,7 +485,7 @@ internal static class ToolsDownloader {
 
         foreach (string subDir in System.IO.Directory.GetDirectories(sourceDir)) {
             string dirName = System.IO.Path.GetFileName(subDir);
-            string targetSubDir = System.IO.Path.Combine(targetDir, dirName);
+            string targetSubDir = System.IO.Path.Join(targetDir, dirName);
             if (System.IO.Directory.Exists(targetSubDir)) {
                 MoveDirectoryContents(subDir, targetSubDir);
                 if (System.IO.Directory.Exists(subDir)) {

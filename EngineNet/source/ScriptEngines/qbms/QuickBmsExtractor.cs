@@ -236,7 +236,7 @@ internal static class QuickBmsExtractor {
         if (!string.IsNullOrWhiteSpace(relativePath) && !relativePath.StartsWith("..")) {
             string? relDir = System.IO.Path.GetDirectoryName(relativePath);
             if (!string.IsNullOrEmpty(relDir) && relDir != ".") {
-                folder = System.IO.Path.Combine(folder, relDir);
+                folder = System.IO.Path.Join(folder, relDir);
             }
         }
         string fileStem = System.IO.Path.GetFileNameWithoutExtension(sourceFile);

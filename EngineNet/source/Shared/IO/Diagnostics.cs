@@ -155,7 +155,7 @@ public static class Diagnostics {
         }
 
         string collisionSuffix = DateTime.Now.ToString("ss");
-        string collisionDirectory = System.IO.Path.Combine(logDir, $"{logSubdir}_{collisionSuffix}");
+        string collisionDirectory = System.IO.Path.Join(logDir, $"{logSubdir}_{collisionSuffix}");
         if (!Directory.Exists(collisionDirectory)) {
             Directory.CreateDirectory(collisionDirectory);
             return collisionDirectory;

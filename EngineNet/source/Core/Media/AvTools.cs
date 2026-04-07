@@ -233,7 +233,7 @@ internal static class AvTools {
                 } else if (string.Equals(opt.Type, TypeAudio, System.StringComparison.OrdinalIgnoreCase)) {
                     if (opt.GodotCompatible) {
                         // Split quad to two stereo files
-                        string basePath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(destPath)!, System.IO.Path.GetFileNameWithoutExtension(destPath));
+                        string basePath = System.IO.Path.Join(System.IO.Path.GetDirectoryName(destPath)!, System.IO.Path.GetFileNameWithoutExtension(destPath));
                         string outFront = basePath + "_front" + opt.OutputExt;
                         string outRear = basePath + "_rear" + opt.OutputExt;
                         List<string> args = new List<string> {
@@ -273,7 +273,7 @@ internal static class AvTools {
                 if (string.Equals(opt.Type, TypeAudio, System.StringComparison.OrdinalIgnoreCase)) {
                     if (opt.GodotCompatible) {
                         // First decode to temp wav via vgmstream, then split via ffmpeg
-                        string tmpWav = System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName() + ".wav");
+                        string tmpWav = System.IO.Path.Join(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName() + ".wav");
                         try {
                             List<string> a1 = new List<string> { "-o", tmpWav, srcPath };
                             RegisterActive("vgmstream", srcPath);
@@ -286,7 +286,7 @@ internal static class AvTools {
                             string ff = opt.FfmpegPath ?? ToolFfmpeg;
                             int? channels = TryReadWavChannels(tmpWav);
                             if (channels == 4) {
-                                string basePath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(destPath)!, System.IO.Path.GetFileNameWithoutExtension(destPath));
+                                string basePath = System.IO.Path.Join(System.IO.Path.GetDirectoryName(destPath)!, System.IO.Path.GetFileNameWithoutExtension(destPath));
                                 string outFront = basePath + "_front" + opt.OutputExt;
                                 string outRear = basePath + "_rear" + opt.OutputExt;
                                 List<string> a2 = new List<string> {

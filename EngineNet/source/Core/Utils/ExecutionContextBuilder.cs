@@ -67,7 +67,7 @@ internal static class ExecutionContextBuilder {
         } catch (System.IO.IOException ex) {
             Shared.IO.Diagnostics.Bug($"[ExecutionContextBuilder] IOException reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Combine(gdict.GameRoot, "config.toml")}': {ex}");
         } catch (System.UnauthorizedAccessException ex) {
-            Shared.IO.Diagnostics.Bug($"[ExecutionContextBuilder] UnauthorizedAccessException reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Combine(gdict.GameRoot, "config.toml")}': {ex}");
+            Shared.IO.Diagnostics.Bug($"[ExecutionContextBuilder] UnauthorizedAccessException reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Join(gdict.GameRoot, "config.toml")}': {ex}");
         } catch (System.ArgumentException ex) {
             Shared.IO.Diagnostics.Bug($"[ExecutionContextBuilder] ArgumentException reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Combine(gdict.GameRoot, "config.toml")}': {ex}");
         } catch (System.NotSupportedException ex) {
