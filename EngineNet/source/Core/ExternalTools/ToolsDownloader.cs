@@ -309,10 +309,9 @@ internal static class ToolsDownloader {
 
             url = GetStringProperty(prop.Value, "url") ?? string.Empty;
             sha256 = GetStringProperty(prop.Value, "sha256") ?? string.Empty;
-            if (!string.IsNullOrEmpty(url)) {
-                platformData = prop.Value;
-                return true;
-            }
+            if (string.IsNullOrEmpty(url)) continue;
+            platformData = prop.Value;
+            return true;
         }
 
         return false;

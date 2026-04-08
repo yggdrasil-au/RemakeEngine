@@ -44,14 +44,6 @@
         "**/.history/**": false
     },
     "files.enableTrash": true,
-    "Lua.codeLens.enable": true,
-    "Lua.completion.callSnippet": "Both",
-    "Lua.doc.regengine": "lua",
-    "Lua.hint.arrayIndex": "Enable",
-    "Lua.runtime.version": "Moonsharp 2.0.0.0",
-    "Lua.workspace.library": [
-        "./EngineApps/api_definitions"
-    ],
     "window.zoomLevel": 0.2,
     "dotnet.formatting.organizeImportsOnFormat": true,
     "dotnet.typeMembers.propertyGenerationBehavior": "preferThrowingProperties",
@@ -119,6 +111,14 @@
     ],
     "Lua.workspace.ignoreSubmodules": false,
     "Lua.workspace.useGitIgnore": false,
+    "Lua.codeLens.enable": true,
+    "Lua.completion.callSnippet": "Both",
+    "Lua.doc.regengine": "lua",
+    "Lua.hint.arrayIndex": "Enable",
+    "Lua.runtime.version": "Moonsharp 2.0.0.0",
+    "Lua.workspace.library": [
+        "./EngineApps/api_definitions"
+    ],
     "[csharp]": {
         "editor.formatOnType": false
     },
