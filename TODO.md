@@ -105,5 +105,6 @@ The **gyan builds** do not work correctly for the **VP6 → OGV conversion** req
 Additional problem:
 
 * The **ffmpeg 8.0 tool definition currently uses "latest build"**, which causes hash verification to fail when the upstream build changes.
-
+the latest build nolonger includes 8.0, and old auto builds are not persistent
+a new solution is required
 

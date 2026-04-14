@@ -64,6 +64,20 @@
 	cli_arg_prefix = "--note"
 
 
+
+[[operation]]
+	init = false
+	run-all = false
+	id = 66666
+	Name = "test_defs.lua"
+	Instructions = ""
+	script_type = "lua"
+	script = "{{Game_Root}}/scripts/test_defs.lua"
+	args = []
+
+
+
+
 [[operation]]
 	run-all = true
 	id = 3

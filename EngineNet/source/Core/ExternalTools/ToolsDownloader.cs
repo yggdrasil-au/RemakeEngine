@@ -1,597 +1,193 @@
-using System.IO.Compression;
-using SharpCompress.Archives;
-using SharpCompress.Archives.SevenZip;
-using SharpCompress.Common;
-using EngineNet.Shared.Serialization.Toml;
+using System.Net.Http;
 
 namespace EngineNet.Core.ExternalTools;
 
 internal static class ToolsDownloader {
 
-    internal static async System.Threading.Tasks.Task<bool> ProcessAsync(string moduleTomlPath, string _rootPath, bool force, IDictionary<string, object?>? context = null, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
+    internal static async Task<bool> ProcessAsync(
+        string moduleTomlPath,
+        string rootPath,
+        bool force,
+        IDictionary<string, object?>? context = null,
+        CancellationToken cancellationToken = default
+    ) {
         Shared.IO.UI.EngineSdk.PrintLine(string.Empty);
         Shared.IO.UI.EngineSdk.PrintLine($"=== Tools Downloader - manifest: {moduleTomlPath} ===", System.ConsoleColor.DarkCyan);
+
         if (!System.IO.File.Exists(moduleTomlPath)) {
             throw new System.IO.FileNotFoundException("Tools manifest not found", moduleTomlPath);
         }
 
         string platform = GetPlatformIdentifier();
         Shared.IO.UI.EngineSdk.Info($"Platform: {platform}");
-        List<Dictionary<string, object?>> toolsList = TomlHelpers.ReadTools(moduleTomlPath);
-        Shared.IO.UI.EngineSdk.Info($"Found {toolsList.Count} tool entries.");
 
-        // Aggregate registry from modular blocks
-        Dictionary<string, object?> central = InternalToolRegistry.Assemble();
+        List<ToolManifestEntry> tools = ToolManifestParser.Load(moduleTomlPath);
+        Shared.IO.UI.EngineSdk.Info($"Found {tools.Count} tool entries.");
 
-        // Lockfile at root Tools folder (centralized name)
-        string lockPath = ToolLockfile.GetPath(_rootPath);
-        Dictionary<string, object?> lockData = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-        if (System.IO.File.Exists(lockPath)) {
-            try {
-                using var doc = System.Text.Json.JsonDocument.Parse(await System.IO.File.ReadAllTextAsync(lockPath, cancellationToken));
-                lockData = ConvertToDeepDictionary(doc.RootElement);
-            } catch (System.Text.Json.JsonException ex) {
-                Shared.IO.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Failed to parse lockfile '{lockPath}'.", ex);
-                Shared.IO.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
-            } catch (System.IO.IOException ex) {
-                Shared.IO.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] IO error loading lockfile '{lockPath}'.", ex);
-                Shared.IO.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
-            } catch (System.UnauthorizedAccessException ex) {
-                Shared.IO.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Access denied loading lockfile '{lockPath}'.", ex);
-                Shared.IO.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
-            }
-        }
+        Dictionary<string, Dictionary<string, RegistryToolVersion>> registry = ToolRegistryResolver.LoadTypedRegistry();
 
-        using System.Net.Http.HttpClient http = new System.Net.Http.HttpClient();
+        string lockPath = ToolLockfile.GetPath(rootPath);
+        Dictionary<string, Dictionary<string, ToolLockfileEntry>> lockData = await ToolLockfileManager.LoadAsync(lockPath, cancellationToken);
+
+        using HttpClient http = new HttpClient();
         http.DefaultRequestHeaders.UserAgent.ParseAdd("GameOpsTool/2.0");
 
-        foreach (Dictionary<string, object?> dep in toolsList) {
-            string? toolName = (dep.TryGetValue("name", out object? n1) ? n1 : dep.GetValueOrDefault("Name"))?.ToString();
-            string? version = dep.TryGetValue("version", out object? v) ? v?.ToString() : null;
-            if (string.IsNullOrWhiteSpace(toolName) || string.IsNullOrWhiteSpace(version)) {
+        ToolArchiveManager archiveManager = new ToolArchiveManager(rootPath);
+        ToolChecksumVerifier checksumVerifier = new ToolChecksumVerifier(http);
+
+        foreach (ToolManifestEntry tool in tools) {
+            Shared.IO.UI.EngineSdk.PrintLine(string.Empty);
+            Shared.IO.UI.EngineSdk.PrintLine($"Processing: {tool.Name} {tool.Version}", System.ConsoleColor.Cyan);
+
+            if (tool.HasDeprecatedDestination) {
+                Shared.IO.UI.EngineSdk.Warn($"{tool.Name} {tool.Version}: fields 'destination' and 'unpack_destination' are deprecated and ignored. Using centralized tool paths under EngineApps/Tools.");
+            }
+
+            if (!force && ToolLockfileManager.IsAlreadyInstalled(lockData, tool.Name, tool.Version)) {
+                Shared.IO.UI.EngineSdk.Info($"{tool.Name} {tool.Version} is already installed and exists fully. Skipping.");
                 continue;
             }
 
-            Shared.IO.UI.EngineSdk.PrintLine(string.Empty);
-            Shared.IO.UI.EngineSdk.PrintLine($"Processing: {toolName} {version}", System.ConsoleColor.Cyan);
-
-            // Check if version is already fully installed
-            if (!force && lockData.TryGetValue(toolName, out object? existingToolObj)) {
-                object? existingVerObj = GetProperty(existingToolObj, version);
-                if (existingVerObj != null) {
-                    string? existingExe = GetStringProperty(existingVerObj, "exe");
-                    string? existingInstallPath = GetStringProperty(existingVerObj, "install_path");
-
-                    bool existsFully = !string.IsNullOrWhiteSpace(existingInstallPath) && System.IO.Directory.Exists(existingInstallPath);
-                    if (existsFully && !string.IsNullOrWhiteSpace(existingExe)) {
-                        existsFully = System.IO.File.Exists(existingExe);
-                    }
-
-                    if (existsFully) {
-                        Shared.IO.UI.EngineSdk.Info($"{toolName} {version} is already installed and exists fully. Skipping.");
-                        continue;
-                    }
-                }
-            }
-
-            if (!TryLookupPlatform(central, toolName, version, platform, out string url, out string sha256, out string? checksumSource, out object? platformData)) {
+            if (!ToolRegistryResolver.TryResolvePlatformData(registry, tool.Name, tool.Version, platform, out RegistryPlatformData platformData, out string? checksumSource)) {
                 Shared.IO.UI.EngineSdk.PrintLine($"1 ERROR: Not in registry for platform '{platform}'.", System.ConsoleColor.Red);
                 continue;
             }
-            Shared.IO.UI.EngineSdk.Info($"URL: {url}");
 
-            // Paths are centralized under ProjectRoot/EngineApps/Tools so tools are sharable across modules.
-            if (dep.ContainsKey("destination") || dep.ContainsKey("unpack_destination")) {
-                Shared.IO.UI.EngineSdk.Warn($"{toolName} {version}: fields 'destination' and 'unpack_destination' are deprecated and ignored. Using centralized tool paths under EngineApps/Tools.");
-            }
+            Shared.IO.UI.EngineSdk.Info($"URL: {platformData.Url}");
 
-            bool unpack = dep.TryGetValue("unpack", out object? u) && u is true;
+            ToolArchivePaths paths = archiveManager.GetPaths(tool.Name, tool.Version, platform);
+            string archivePath = await DownloadToolAsync(http, platformData.Url, paths.DownloadDir, force, cancellationToken);
 
-            string centralToolsRoot = GetCentralToolsRoot(_rootPath);
-            string installFolderName = BuildToolInstallFolderName(toolName, version, platform);
-            string downloadDir = System.IO.Path.Combine(centralToolsRoot, "_archives", installFolderName);
-            string installDir = System.IO.Path.Combine(centralToolsRoot, installFolderName);
-            System.IO.Directory.CreateDirectory(downloadDir);
+            ToolChecksumVerificationResult verification = await checksumVerifier.VerifyAsync(
+                archivePath,
+                platformData.Sha256,
+                checksumSource,
+                cancellationToken
+            );
 
-            // Initial filename from URL (may be incorrect for redirects)
-            string fileName = System.IO.Path.GetFileName(new System.Uri(url).AbsolutePath);
-            string archivePath = System.IO.Path.Combine(downloadDir, fileName);
-            Shared.IO.UI.EngineSdk.Info($"Download dir: {downloadDir}");
-
-            if (!force && System.IO.File.Exists(archivePath)) {
-                Shared.IO.UI.EngineSdk.Info($"Archive: {archivePath}");
-                Shared.IO.UI.EngineSdk.Info("Archive exists. Skipping download (use force to re-download).");
-            } else {
-                Shared.IO.UI.EngineSdk.Info("Downloading...");
-                using System.Net.Http.HttpResponseMessage resp = await http.GetAsync(url, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-                resp.EnsureSuccessStatusCode();
-
-                // Try to get the real filename from Content-Disposition header or final URL after redirects
-                string? realFileName = null;
-                if (resp.Content.Headers.ContentDisposition?.FileName != null) {
-                    realFileName = resp.Content.Headers.ContentDisposition.FileName.Trim('"');
-                    // Decode URL-encoded characters in the filename
-                    realFileName = System.Web.HttpUtility.UrlDecode(realFileName);
-                } else if (resp.RequestMessage?.RequestUri != null) {
-                    // Use the final URL after redirects
-                    realFileName = System.IO.Path.GetFileName(resp.RequestMessage.RequestUri.AbsolutePath);
-                    realFileName = System.Web.HttpUtility.UrlDecode(realFileName);
-                }
-
-                if (!string.IsNullOrWhiteSpace(realFileName) && realFileName != fileName) {
-                    fileName = realFileName;
-                    archivePath = System.IO.Path.Combine(downloadDir, fileName);
-                }
-
-                Shared.IO.UI.EngineSdk.Info($"Archive: {archivePath}");
-
-                long contentLength = resp.Content.Headers.ContentLength ?? -1;
-
-                await using System.IO.FileStream outFs = System.IO.File.Create(archivePath);
-                await using System.IO.Stream inStream = await resp.Content.ReadAsStreamAsync(cancellationToken);
-
-                using (var progress = new Shared.IO.UI.EngineSdk.PanelProgress(
-                    total: contentLength > 0 ? contentLength : 1,
-                    id: "download",
-                    label: $"Downloading {fileName}")) {
-                    await CopyStreamWithProgressAsync(inStream, outFs, progress);
-                }
-                Shared.IO.UI.EngineSdk.Info("Download complete.");
-            }
-            string currentChecksum = ComputeSha256(archivePath);
-            if (string.IsNullOrWhiteSpace(sha256)) {
-                Shared.IO.UI.EngineSdk.Warn("No checksum provided - skipping verification.");
-                // output the current archive checksum
-
-                Shared.IO.UI.EngineSdk.Info($"Current checksum: {currentChecksum}");
-            } else {
-                Shared.IO.UI.EngineSdk.Info("Verifying checksum");
-                bool checksumMatch = VerifySha256(archivePath, sha256);
-
-                if (!checksumMatch && !string.IsNullOrWhiteSpace(checksumSource)) {
-                    Shared.IO.UI.EngineSdk.Info($"Primary checksum mismatch. Checking upstream source: {checksumSource}");
-                    try {
-                        string remoteSums = await http.GetStringAsync(checksumSource, cancellationToken);
-                        string? remoteHash = ParseUpstreamChecksum(remoteSums, fileName);
-
-                        if (!string.IsNullOrWhiteSpace(remoteHash)) {
-                            Shared.IO.UI.EngineSdk.Info($"Found upstream checksum for {fileName}: {remoteHash}");
-                            if (string.Equals(currentChecksum, remoteHash, StringComparison.OrdinalIgnoreCase)) {
-                                Shared.IO.UI.EngineSdk.Info("Upstream checksum matched. Proceeding.");
-                                checksumMatch = true;
-                                sha256 = remoteHash;
-                            } else {
-                                Shared.IO.UI.EngineSdk.Warn($"Upstream checksum mismatch. Expected {remoteHash}, got {currentChecksum}");
-                            }
-                        } else {
-                            Shared.IO.UI.EngineSdk.Warn($"Could not find entry for '{fileName}' in upstream checksums.");
-                        }
-                    } catch (Exception ex) {
-                        Shared.IO.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Failed to fetch/parse upstream checksums from '{checksumSource}'.", ex);
-                        Shared.IO.UI.EngineSdk.Warn($"Failed to fetch/parse upstream checksums: {ex.Message}");
-                    }
-                }
-
-                if (!checksumMatch) {
-                    Shared.IO.UI.EngineSdk.PrintLine("1 ERROR: Checksum mismatch. Skipping further steps for this tool.", System.ConsoleColor.Red);
-                    Shared.IO.UI.EngineSdk.Info($"Current checksum: {currentChecksum}");
-                    continue;
-                }
-                Shared.IO.UI.EngineSdk.Info("Checksum OK.");
+            if (!verification.IsValid) {
+                continue;
             }
 
             string? exePath = null;
-            if (unpack) {
-                if (System.IO.Directory.Exists(installDir)) {
-                    System.IO.Directory.Delete(installDir, recursive: true);
-                }
-                System.IO.Directory.CreateDirectory(installDir);
-
-                Shared.IO.UI.EngineSdk.Info($"Unpacking to: {installDir}");
-                try {
-                    ExtractArchiveToInstallLayout(archivePath, installDir);
-                } catch (NotSupportedException nse) {
-                    Shared.IO.UI.EngineSdk.Warn($"{nse.Message} Leaving archive as-is.");
-                } catch (Exception ex) {
-                    Shared.IO.Diagnostics.Bug($"[ToolsDownloader::ProcessAsync()] Failed to unpack archive '{archivePath}' to '{installDir}'.", ex);
-                    Shared.IO.UI.EngineSdk.PrintLine($"1 ERROR: Failed to unpack '{archivePath}': {ex.Message}", System.ConsoleColor.Red);
-                }
-
-                // Try to find an exe in the centralized install path (best-effort)
-                exePath = FindExe(installDir, toolName, platformData);
-                
-                if (!string.IsNullOrWhiteSpace(exePath)) {
-                    Shared.IO.UI.EngineSdk.Info($"Detected executable: {exePath}");
-                } else {
-                    Shared.IO.UI.EngineSdk.Warn("Could not detect an executable automatically.");
-                }
+            if (tool.Unpack) {
+                exePath = archiveManager.ExtractAndFindExe(archivePath, paths.InstallDir, tool.Name, platformData.ExeName);
             }
 
-            // Update lockfile entry (supports multiple versions per tool)
-            if (!lockData.TryGetValue(toolName, out object? toolObj) || toolObj is not Dictionary<string, object?> toolVersions) {
-                toolVersions = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-                lockData[toolName] = toolVersions;
-            }
-
-            toolVersions[version] = new Dictionary<string, object?> {
-                ["version"] = version,
-                ["platform"] = platform,
-                ["install_path"] = unpack
-                    ? System.IO.Path.GetFullPath(installDir)
-                    : System.IO.Path.GetFullPath(downloadDir),
-                ["exe"] = exePath,
-                ["sha256"] = sha256,
-                ["source_url"] = url
-            };
-            Shared.IO.UI.EngineSdk.Info($"Lockfile updated for {toolName} {version}.");
+            ToolLockfileManager.UpdateEntry(
+                lockData,
+                tool.Name,
+                tool.Version,
+                new ToolLockfileEntry {
+                    Version = tool.Version,
+                    Platform = platform,
+                    InstallPath = tool.Unpack
+                        ? System.IO.Path.GetFullPath(paths.InstallDir)
+                        : System.IO.Path.GetFullPath(paths.DownloadDir),
+                    Exe = exePath,
+                    Sha256 = string.IsNullOrWhiteSpace(verification.VerifiedSha256) ? platformData.Sha256 : verification.VerifiedSha256,
+                    SourceUrl = platformData.Url
+                }
+            );
         }
 
-        await System.IO.File.WriteAllTextAsync(lockPath, System.Text.Json.JsonSerializer.Serialize(lockData, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }), cancellationToken);
-        Shared.IO.UI.EngineSdk.Info($"Lockfile written: {lockPath}");
+        await ToolLockfileManager.SaveAsync(lockPath, lockData, cancellationToken);
         return true;
     }
 
-    private static string ComputeSha256(string filePath) {
-        using var stream = System.IO.File.OpenRead(filePath);
-        using var sha = System.Security.Cryptography.SHA256.Create();
-        byte[] hash = sha.ComputeHash(stream);
-        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+    private static async Task<string> DownloadToolAsync(
+        HttpClient http,
+        string url,
+        string downloadDir,
+        bool force,
+        CancellationToken cancellationToken
+    ) {
+        System.IO.Directory.CreateDirectory(downloadDir);
+
+        string fileName = System.IO.Path.GetFileName(new System.Uri(url).AbsolutePath);
+        string archivePath = System.IO.Path.Combine(downloadDir, fileName);
+        Shared.IO.UI.EngineSdk.Info($"Download dir: {downloadDir}");
+
+        if (!force && System.IO.File.Exists(archivePath)) {
+            Shared.IO.UI.EngineSdk.Info($"Archive: {archivePath}");
+            Shared.IO.UI.EngineSdk.Info("Archive exists. Skipping download (use force to re-download).");
+            return archivePath;
+        }
+
+        Shared.IO.UI.EngineSdk.Info("Downloading...");
+        using HttpResponseMessage response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        string? realFileName = null;
+        if (response.Content.Headers.ContentDisposition?.FileName != null) {
+            realFileName = response.Content.Headers.ContentDisposition.FileName.Trim('"');
+            realFileName = System.Web.HttpUtility.UrlDecode(realFileName);
+        } else if (response.RequestMessage?.RequestUri != null) {
+            realFileName = System.IO.Path.GetFileName(response.RequestMessage.RequestUri.AbsolutePath);
+            realFileName = System.Web.HttpUtility.UrlDecode(realFileName);
+        }
+
+        if (!string.IsNullOrWhiteSpace(realFileName) && !string.Equals(realFileName, fileName, System.StringComparison.OrdinalIgnoreCase)) {
+            fileName = realFileName;
+            archivePath = System.IO.Path.Combine(downloadDir, fileName);
+        }
+
+        Shared.IO.UI.EngineSdk.Info($"Archive: {archivePath}");
+
+        long contentLength = response.Content.Headers.ContentLength ?? -1;
+
+        await using System.IO.FileStream outFs = System.IO.File.Create(archivePath);
+        await using System.IO.Stream inStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+
+        using (Shared.IO.UI.EngineSdk.PanelProgress progress = new Shared.IO.UI.EngineSdk.PanelProgress(
+            total: contentLength > 0 ? contentLength : 1,
+            id: "download",
+            label: $"Downloading {fileName}")) {
+            await CopyStreamWithProgressAsync(inStream, outFs, progress);
+        }
+
+        Shared.IO.UI.EngineSdk.Info("Download complete.");
+        return archivePath;
     }
 
-    private static async System.Threading.Tasks.Task CopyStreamWithProgressAsync(System.IO.Stream input, System.IO.Stream output, Shared.IO.UI.EngineSdk.PanelProgress progress) {
+    private static async Task CopyStreamWithProgressAsync(System.IO.Stream input, System.IO.Stream output, Shared.IO.UI.EngineSdk.PanelProgress progress) {
         const int BufferSize = 81920;
         byte[] buffer = new byte[BufferSize];
         int read;
+
         while ((read = await input.ReadAsync(buffer.AsMemory(0, BufferSize))) > 0) {
             await output.WriteAsync(buffer.AsMemory(0, read));
             progress.Update(read);
         }
-        // Completion is handled by disposing the progress handle.
     }
 
     private static string GetPlatformIdentifier() {
+        System.Runtime.InteropServices.Architecture architecture = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture;
+
         if (System.OperatingSystem.IsWindows()) {
-            System.Runtime.InteropServices.Architecture arch = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture;
-            return arch == System.Runtime.InteropServices.Architecture.X64 ? "win-x64" : "win-x86";
+            return GetWindowsPlatformIdentifier(architecture);
         }
+
         if (System.OperatingSystem.IsLinux()) {
-            System.Runtime.InteropServices.Architecture arch = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture;
-            return arch == System.Runtime.InteropServices.Architecture.X64 ? "linux-x64" : "linux-arm64";
+            return GetLinuxPlatformIdentifier(architecture);
         }
+
         if (System.OperatingSystem.IsMacOS()) {
-            System.Runtime.InteropServices.Architecture arch = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture;
-            return arch == System.Runtime.InteropServices.Architecture.Arm64 ? "macos-arm64" : "macos-x64";
+            return GetMacosPlatformIdentifier(architecture);
         }
+
         return "unknown";
     }
 
-    private static bool TryLookupPlatform(
-        Dictionary<string, object?> central,
-        string tool,
-        string version,
-        string platform,
-        out string url,
-        out string sha256,
-        out string? checksumSource,
-        out object? platformData
-    ) {
-        url = string.Empty;
-        sha256 = string.Empty;
-        checksumSource = null;
-        platformData = null;
-
-        if (!central.TryGetValue(tool, out object? toolObj)) return false;
-
-        object? verObj = GetProperty(toolObj, version);
-        if (verObj == null) return false;
-
-        // Optional upstream checksums block at the version level
-        object? checksumsObj = GetProperty(verObj, "checksums");
-        if (checksumsObj != null) {
-            checksumSource = GetStringProperty(checksumsObj, "source");
-        }
-
-        // exact platform or prefix match
-        object? platObj = GetProperty(verObj, platform);
-        if (platObj != null) {
-            url = GetStringProperty(platObj, "url") ?? string.Empty;
-            sha256 = GetStringProperty(platObj, "sha256") ?? string.Empty;
-            if (!string.IsNullOrEmpty(url)) {
-                platformData = platObj;
-                return true;
-            }
-        }
-
-        // Prefix match
-        var properties = GetProperties(verObj);
-        foreach (var prop in properties) {
-            if (!prop.Key.StartsWith(platform, StringComparison.OrdinalIgnoreCase)) continue;
-
-            url = GetStringProperty(prop.Value, "url") ?? string.Empty;
-            sha256 = GetStringProperty(prop.Value, "sha256") ?? string.Empty;
-            if (string.IsNullOrEmpty(url)) continue;
-            platformData = prop.Value;
-            return true;
-        }
-
-        return false;
+    private static string GetWindowsPlatformIdentifier(System.Runtime.InteropServices.Architecture architecture) {
+        return architecture == System.Runtime.InteropServices.Architecture.X64 ? "win-x64" : "win-x86";
     }
 
-    private static string? ParseUpstreamChecksum(string content, string fileName) {
-        if (string.IsNullOrWhiteSpace(content)) return null;
-
-        return content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-            .Select(line => line.Trim())
-            .Where(trimmed => !string.IsNullOrWhiteSpace(trimmed))
-            .Select(trimmed => {
-                string[] parts = trimmed.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-                return new { trimmed, parts };
-            })
-            .Where(x => x.parts is [{ Length: 64 }, var _, ..])
-            .Select(x => {
-                string hash = x.parts[0];
-                string rest = x.trimmed.Substring(x.trimmed.IndexOf(hash, StringComparison.Ordinal) + hash.Length).Trim();
-
-                if (rest.StartsWith("*", StringComparison.Ordinal))
-                    rest = rest.Substring(1);
-
-                return new { Hash = hash, FileName = rest };
-            })
-            .FirstOrDefault(x =>
-                x.FileName.Equals(fileName, StringComparison.OrdinalIgnoreCase) ||
-                x.FileName.EndsWith($"/{fileName}", StringComparison.OrdinalIgnoreCase) ||
-                x.FileName.EndsWith($"\\{fileName}", StringComparison.OrdinalIgnoreCase))
-            ?.Hash.ToLowerInvariant();
+    private static string GetLinuxPlatformIdentifier(System.Runtime.InteropServices.Architecture architecture) {
+        return architecture == System.Runtime.InteropServices.Architecture.X64 ? "linux-x64" : "linux-arm64";
     }
 
-    private static object? GetProperty(object? obj, string key) {
-        switch (obj) {
-            case System.Text.Json.JsonElement { ValueKind: System.Text.Json.JsonValueKind.Object } elem when elem.TryGetProperty(key, out System.Text.Json.JsonElement val):
-                return val;
-            case IDictionary<string, object?> dict when dict.TryGetValue(key, out object? val):
-                return val;
-            default:
-                return null;
-        }
-    }
-
-    private static string? GetStringProperty(object? obj, string key) {
-        object? val = GetProperty(obj, key);
-        if (val is System.Text.Json.JsonElement { ValueKind: System.Text.Json.JsonValueKind.String } elem) return elem.GetString();
-        return val?.ToString();
-    }
-
-    private static IEnumerable<KeyValuePair<string, object?>> GetProperties(object? obj) {
-        switch (obj) {
-            case System.Text.Json.JsonElement { ValueKind: System.Text.Json.JsonValueKind.Object } elem: {
-                foreach (var prop in elem.EnumerateObject()) yield return new KeyValuePair<string, object?>(prop.Name, prop.Value);
-                break;
-            }
-            case IDictionary<string, object?> dict: {
-                foreach (var kvp in dict) yield return kvp;
-                break;
-            }
-        }
-    }
-
-    private static Dictionary<string, object?> ConvertToDeepDictionary(System.Text.Json.JsonElement element) {
-        var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-        foreach (var property in element.EnumerateObject()) {
-            dict[property.Name] = ConvertValue(property.Value);
-        }
-        return dict;
-    }
-
-    private static object? ConvertValue(System.Text.Json.JsonElement element) {
-        return element.ValueKind switch {
-            System.Text.Json.JsonValueKind.Object => ConvertToDeepDictionary(element),
-            System.Text.Json.JsonValueKind.Array => ConvertArray(element),
-            System.Text.Json.JsonValueKind.String => element.GetString(),
-            System.Text.Json.JsonValueKind.Number => element.TryGetDecimal(out decimal d) ? d : element.GetDouble(),
-            System.Text.Json.JsonValueKind.True => true,
-            System.Text.Json.JsonValueKind.False => false,
-            _ => null
-        };
-    }
-
-    private static List<object?> ConvertArray(System.Text.Json.JsonElement element) {
-        return element.EnumerateArray().Select(ConvertValue).ToList();
-    }
-
-    private static bool VerifySha256(string filePath, string expected) {
-        if (string.IsNullOrWhiteSpace(expected)) {
-            return true;
-        }
-        using System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create();
-        using System.IO.FileStream fs = System.IO.File.OpenRead(filePath);
-        byte[] hash = sha.ComputeHash(fs);
-        string got = System.BitConverter.ToString(hash).Replace("-", string.Empty).ToLowerInvariant();
-        return string.Equals(got, expected, System.StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static void ExtractArchive(string archivePath, string destination) {
-        string ext = System.IO.Path.GetExtension(archivePath).ToLowerInvariant();
-
-        switch (ext) {
-            case ".zip":
-                // ZipFile.ExtractToDirectory handles the directory creation and overwriting internally.
-                ZipFile.ExtractToDirectory(archivePath, destination, overwriteFiles: true);
-                return;
-            case ".7z": {
-                using var archive = SevenZipArchive.Open(archivePath);
-                var opts = new ExtractionOptions {
-                    ExtractFullPath = true,
-                    Overwrite = true
-                };
-                archive.WriteToDirectory(destination, opts);
-
-                return;
-            }
-            default:
-                throw new NotSupportedException($"Archive format not supported for auto-unpack: {ext}");
-        }
-    }
-
-    /// <summary>
-    /// Extracts an archive into an install directory and flattens a single wrapper folder.
-    /// </summary>
-    private static void ExtractArchiveToInstallLayout(string archivePath, string installDir) {
-        string stagingDir = System.IO.Path.Combine(installDir, ".extract-staging");
-        if (System.IO.Directory.Exists(stagingDir)) {
-            System.IO.Directory.Delete(stagingDir, recursive: true);
-        }
-
-        System.IO.Directory.CreateDirectory(stagingDir);
-        try {
-            ExtractArchive(archivePath, stagingDir);
-            PromoteExtractedContent(stagingDir, installDir);
-        } finally {
-            if (System.IO.Directory.Exists(stagingDir)) {
-                System.IO.Directory.Delete(stagingDir, recursive: true);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Moves extracted files into final install root, unwrapping one top-level folder when present.
-    /// </summary>
-    private static void PromoteExtractedContent(string stagingDir, string installDir) {
-        string[] topLevelEntries = System.IO.Directory.GetFileSystemEntries(stagingDir);
-
-        string sourceRoot = stagingDir;
-        if (topLevelEntries.Length == 1 && System.IO.Directory.Exists(topLevelEntries[0])) {
-            sourceRoot = topLevelEntries[0];
-        }
-
-        MoveDirectoryContents(sourceRoot, installDir);
-
-        if (!string.Equals(sourceRoot, stagingDir, StringComparison.OrdinalIgnoreCase) && System.IO.Directory.Exists(sourceRoot)) {
-            System.IO.Directory.Delete(sourceRoot, recursive: true);
-        }
-    }
-
-    /// <summary>
-    /// Recursively moves all files and subdirectories from source to target, merging directories when needed.
-    /// </summary>
-    private static void MoveDirectoryContents(string sourceDir, string targetDir) {
-        System.IO.Directory.CreateDirectory(targetDir);
-
-        foreach (string filePath in System.IO.Directory.GetFiles(sourceDir)) {
-            string fileName = System.IO.Path.GetFileName(filePath);
-            string targetPath = System.IO.Path.Combine(targetDir, fileName);
-            System.IO.File.Move(filePath, targetPath, overwrite: true);
-        }
-
-        foreach (string subDir in System.IO.Directory.GetDirectories(sourceDir)) {
-            string dirName = System.IO.Path.GetFileName(subDir);
-            string targetSubDir = System.IO.Path.Join(targetDir, dirName);
-            if (System.IO.Directory.Exists(targetSubDir)) {
-                MoveDirectoryContents(subDir, targetSubDir);
-                if (System.IO.Directory.Exists(subDir)) {
-                    System.IO.Directory.Delete(subDir, recursive: true);
-                }
-            } else {
-                System.IO.Directory.Move(subDir, targetSubDir);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Returns the shared root folder for third-party tools within the project.
-    /// </summary>
-    private static string GetCentralToolsRoot(string projectRoot) {
-        return System.IO.Path.GetFullPath(System.IO.Path.Combine(projectRoot, "EngineApps", "Tools"));
-    }
-
-    /// <summary>
-    /// Builds a deterministic install folder name: ToolName-Version-Platform.
-    /// </summary>
-    private static string BuildToolInstallFolderName(string toolName, string version, string platform) {
-        return $"{SanitizePathSegment(toolName)}-{SanitizePathSegment(version)}-{SanitizePathSegment(platform)}";
-    }
-
-    private static string SanitizePathSegment(string value) {
-        if (string.IsNullOrWhiteSpace(value)) {
-            return "unknown";
-        }
-
-        char[] invalid = System.IO.Path.GetInvalidFileNameChars();
-        char[] chars = value.Select(c => invalid.Contains(c) ? '_' : c).ToArray();
-        return new string(chars).Trim();
-    }
-
-    /// <summary>
-    /// Finds a likely executable path for the tool and applies Unix +x permissions when needed.
-    /// </summary>
-    private static string? FindExe(string root, string toolName, object? platformData) {
-        string? exeName = GetStringProperty(platformData, "exe_name");
-        string? foundPath = null;
-
-        if (!string.IsNullOrWhiteSpace(exeName)) {
-            foundPath = SearchForFile(root, exeName);
-        }
-
-        if (string.IsNullOrWhiteSpace(foundPath)) {
-            foundPath = SearchForFile(root, $"{toolName}.exe")
-                ?? SearchForFile(root, toolName)
-                ?? SearchForFile(root, $"{toolName}*.exe") // Fallback for versioned executables like Godot
-                ?? SearchForFile(root, $"*{toolName}*.exe")
-                ?? SearchForFile(root, $"*{toolName}*");
-        }
-
-        if (!string.IsNullOrWhiteSpace(foundPath)) {
-            ApplyExecutablePermissions(foundPath);
-        }
-
-        return foundPath;
-    }
-
-    /// <summary>
-    /// Searches for a file by name pattern using safe recursion and best-effort matching.
-    /// </summary>
-    private static string? SearchForFile(string root, string pattern) {
-        var options = new System.IO.EnumerationOptions {
-            RecurseSubdirectories = true,
-            IgnoreInaccessible = true,
-            MatchCasing = System.IO.MatchCasing.CaseInsensitive,
-            MaxRecursionDepth = 5
-        };
-
-        try {
-            return System.IO.Directory.EnumerateFiles(root, pattern, options).FirstOrDefault();
-        } catch (System.IO.DirectoryNotFoundException) {
-            Shared.IO.Diagnostics.Bug($"[ToolsDownloader] Root directory does not exist: {root}");
-        } catch (System.ArgumentException ex) {
-            Shared.IO.Diagnostics.Bug($"[ToolsDownloader] Invalid path or pattern: {ex.Message}");
-        } catch (System.IO.IOException ex) {
-            Shared.IO.Diagnostics.Bug($"[ToolsDownloader] IO error searching '{pattern}' in {root}: {ex.Message}");
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Applies Unix executable permissions when running on non-Windows platforms.
-    /// </summary>
-    private static void ApplyExecutablePermissions(string path) {
-        if (System.OperatingSystem.IsWindows()) {
-            return;
-        }
-
-        try {
-            System.IO.UnixFileMode currentMode = System.IO.File.GetUnixFileMode(path);
-            System.IO.UnixFileMode newMode =
-                currentMode | System.IO.UnixFileMode.UserExecute | System.IO.UnixFileMode.GroupExecute;
-            System.IO.File.SetUnixFileMode(path, newMode);
-            Shared.IO.UI.EngineSdk.Info($"Applied executable permissions to: {path}");
-        } catch (System.UnauthorizedAccessException ex) {
-            // Specifically for "Permission Denied" errors when calling SetUnixFileMode
-            Shared.IO.Diagnostics.Bug($"[ToolsDownloader] Access denied setting permissions for '{path}'.", ex);
-            Shared.IO.UI.EngineSdk.Warn($"Insufficient permissions to set executable bit on {path}");
-        } catch (System.IO.IOException ex) {
-            // Covers File Not Found or general IO issues
-            Shared.IO.Diagnostics.Bug($"[ToolsDownloader] IO error while updating permissions for '{path}'.", ex);
-            Shared.IO.UI.EngineSdk.Warn($"Could not update permissions for {path}: {ex.Message}");
-        }
+    private static string GetMacosPlatformIdentifier(System.Runtime.InteropServices.Architecture architecture) {
+        return architecture == System.Runtime.InteropServices.Architecture.Arm64 ? "macos-arm64" : "macos-x64";
     }
 }

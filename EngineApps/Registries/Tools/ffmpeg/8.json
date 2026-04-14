@@ -1,11 +1,11 @@
 {
     "8.0": {
         "checksums": {
-            "source": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/checksums.sha256"
+            "source": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-31-13-40/checksums.sha256"
         },
         "win-x64": {
-            "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.0-latest-win64-gpl-8.0.zip",
-            "sha256": "E2C7A006CFCB7FBB2D9E7D3E8F351F712561ACD89FE04E110A072E54576AE104"
+            "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-10-31-13-40/ffmpeg-n8.0-30-g71007e6c12-win64-gpl-8.0.zip",
+            "sha256": "05ecc01bb03ef1f4d908c3c982512f07f888848429be6e9662a5a7c558c60b4f"
         }
     }
 }

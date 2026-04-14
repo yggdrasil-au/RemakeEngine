@@ -20,8 +20,18 @@ EngineNet.Core is the runtime layer behind CLI, TUI, and GUI. For most users and
 - `Data/`: Shared runtime data models used by interfaces and services.
 - `Utils/`: Cross-cutting helpers, especially execution context and placeholder resolution.
 - `Shared/`: TOML/JSON/YAML conversion and parsing helpers, diagnostics/logging, and document-model conversion shared with ScriptEngines.
-- `ExternalTools/`: Tool resolution and acquisition support used by script actions and command execution.
+- `ExternalTools/`: Tool manifest parsing, typed lockfile management, registry resolution, archive handling, and checksum verification for shared third-party tools.
 - `FileHandlers/`: Conversion/extraction handlers used by specific built-in operations.
+
+## External Tools Layout
+- `ExternalTools/ToolsDownloader.cs`: thin orchestration entry point for manifest processing, download, verification, and lockfile updates.
+- `ExternalTools/ToolManifestParser.cs`: converts `[[tool]]` manifest rows into typed entries.
+- `ExternalTools/ToolLockfileManager.cs`: loads and saves the canonical typed `Tools.installed.json` lockfile.
+- `ExternalTools/ToolRegistryResolver.cs`: projects merged registry data into typed registry models and resolves platform matches.
+- `ExternalTools/ToolArchiveManager.cs`: central tool paths, extraction, wrapper flattening, executable search, and permission updates.
+- `ExternalTools/ToolChecksumVerifier.cs`: local SHA256 hashing and upstream checksum fallback lookup.
+- `ExternalTools/Resolution/JsonToolResolver.cs`: legacy consumer that now reads the canonical typed lockfile.
+- `ExternalTools/Resolution/ToolMetadataProvider.cs`: resolves executable and version metadata from the canonical typed lockfile.
 
 The reusable serialization, diagnostics, and UI bridge helpers now live in [../Shared/readme.md](../Shared/readme.md) and are referenced by Core rather than owned by it.
 

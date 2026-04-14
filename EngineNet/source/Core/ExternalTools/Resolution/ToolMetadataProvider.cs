@@ -1,10 +1,8 @@
-using System.Text.Json;
-
 namespace EngineNet.Core.ExternalTools;
 
 /// <summary>
-/// Provides metadata for tools (executable path and optional version) by
-/// consulting <see cref="ToolLockfile.ToolLockfileName"/> when available, and falling back to EngineNet.Core.ExternalTools.JsonToolResolver.
+/// Provides metadata for tools (executable path and optional version) by consulting the canonical typed lockfile,
+/// and falling back to <see cref="JsonToolResolver"/> when the tool is not registered there.
 /// </summary>
 public static class ToolMetadataProvider {
 
@@ -12,66 +10,33 @@ public static class ToolMetadataProvider {
         string jsonPath = ToolLockfile.GetPath(_rootPath);
 
         if (System.IO.File.Exists(jsonPath)) {
-            try {
-                JsonDocument doc = System.Text.Json.JsonDocument.Parse(System.IO.File.OpenRead(jsonPath));
-
-                if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object) {
-                    foreach (JsonProperty prop in doc.RootElement.EnumerateObject().Where(prop => prop.Name.Equals(toolId, System.StringComparison.OrdinalIgnoreCase))) {
-                        // Accept string or { exe, version }
-                        if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.String) {
-                            string? exeStr = prop.Value.GetString();
-                            return (ResolveRelative(jsonPath, exeStr), null);
-                        }
-
-                        if (prop.Value.ValueKind != System.Text.Json.JsonValueKind.Object) continue;
-                        string? exe = null;
-                        string? version = null;
-
-                        // check if this is versioned structure: { "tool": { "1.0": { "exe": "..." } } }
-                        // we just take the first version for now if not specified
-                        foreach (JsonProperty vProp in prop.Value.EnumerateObject().Where(vProp => vProp.Value.ValueKind == System.Text.Json.JsonValueKind.Object)) {
-                            if (!vProp.Value.TryGetProperty("exe", out System.Text.Json.JsonElement exeEl) ||
-                                exeEl.ValueKind != System.Text.Json.JsonValueKind.String) continue;
-                            exe = ResolveRelative(jsonPath, exeEl.GetString());
-                            version = vProp.Name;
-                            return (exe, version);
-                        }
-
-                        // fallback to { exe, version } format
-                        if (prop.Value.TryGetProperty("exe", out System.Text.Json.JsonElement exeEl2) && exeEl2.ValueKind == System.Text.Json.JsonValueKind.String) {
-                            exe = ResolveRelative(jsonPath, exeEl2.GetString());
-                        }
-                        if (prop.Value.TryGetProperty("version", out System.Text.Json.JsonElement verEl) && verEl.ValueKind == System.Text.Json.JsonValueKind.String) {
-                            version = verEl.GetString();
-                        }
-                        return (exe, version);
+            Dictionary<string, Dictionary<string, ToolLockfileEntry>> lockData = ToolLockfileManager.Load(jsonPath);
+            if (lockData.TryGetValue(toolId, out Dictionary<string, ToolLockfileEntry>? versions)) {
+                foreach (KeyValuePair<string, ToolLockfileEntry> versionEntry in versions) {
+                    if (string.IsNullOrWhiteSpace(versionEntry.Value.Exe)) {
+                        continue;
                     }
+
+                    string exe = ResolveRelative(jsonPath, versionEntry.Value.Exe);
+                    return (exe, versionEntry.Key);
                 }
-            } catch (System.Text.Json.JsonException ex) {
-                Shared.IO.Diagnostics.Bug($"[ToolMetadataProvider] JSON parse error reading lockfile '{jsonPath}'.", ex);
-                /* ignore parse errors and fallback */
-            } catch (System.IO.IOException ex) {
-                Shared.IO.Diagnostics.Bug($"[ToolMetadataProvider] IO error reading lockfile '{jsonPath}'.", ex);
-                /* ignore parse errors and fallback */
-            } catch (System.UnauthorizedAccessException ex) {
-                Shared.IO.Diagnostics.Bug($"[ToolMetadataProvider] Access denied reading lockfile '{jsonPath}'.", ex);
-                /* ignore parse errors and fallback */
-            } catch (System.ArgumentException ex) {
-                Shared.IO.Diagnostics.Bug($"[ToolMetadataProvider] Invalid lockfile path '{jsonPath}'.", ex);
-                /* ignore parse errors and fallback */
             }
         }
 
-        // Fallback to tool resolver path
         string path = _toolResolver.ResolveToolPath(toolId);
         return (path, null);
     }
 
     private static string ResolveRelative(string jsonPath, string? path) {
-        if (string.IsNullOrWhiteSpace(path)) return string.Empty;
-        if (System.IO.Path.IsPathRooted(path)) return path;
+        if (string.IsNullOrWhiteSpace(path)) {
+            return string.Empty;
+        }
+
+        if (System.IO.Path.IsPathRooted(path)) {
+            return path;
+        }
+
         string baseDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(jsonPath)) ?? System.IO.Directory.GetCurrentDirectory();
         return System.IO.Path.GetFullPath(System.IO.Path.Combine(baseDir, path));
     }
 }
-

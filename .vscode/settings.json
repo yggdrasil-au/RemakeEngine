@@ -79,6 +79,10 @@
         "**/.history": true
     },
     "dotnet.defaultSolution": "RemakeEngine.slnx",
+    "[csharp]": {
+        "editor.formatOnType": false
+    },
+    "editor.formatOnPaste": false,
     "Lua.diagnostics.libraryFiles": "Enable",
     "Lua.hint.enable": true,
     "Lua.completion.maxSuggestCount": 500,
@@ -117,11 +121,16 @@
     "Lua.hint.arrayIndex": "Enable",
     "Lua.runtime.version": "Moonsharp 2.0.0.0",
     "Lua.workspace.library": [
-        "./EngineApps/api_definitions"
+        "${submodules}/remake-engine",
+        "${submodules}/moonsharp",
     ],
-    "[csharp]": {
-        "editor.formatOnType": false
+    "Lua.runtime.builtin": {
+        "basic": "disable",
+        "io": "disable",
+        "os": "disable",
+        "builtin": "disable",
+        "debug": "disable"
     },
-    "editor.formatOnPaste": false,
+    "Lua.workspace.checkThirdParty": "true",
 }
 
