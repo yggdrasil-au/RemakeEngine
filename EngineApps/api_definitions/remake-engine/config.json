@@ -1,0 +1,12 @@
+{
+    "name": "remake-engine",
+    "words": [
+        "Game_Root",
+        "UIMode"
+    ],
+    "settings": {
+        "Lua.workspace.library": [
+            "${submodules}/remake-engine"
+        ]
+    }
+}

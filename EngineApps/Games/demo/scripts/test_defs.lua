@@ -12,6 +12,21 @@ print("  Is CLR4: " .. tostring(_MOONSHARP.is_clr4))
 print("  Is PCL: " .. tostring(_MOONSHARP.is_pcl))
 print("  Banner: " .. tostring(_MOONSHARP.banner))
 
+-- _G globals
+print("\nTesting _G globals:")
+print("  _G.table exists: " .. tostring(type(_G.table) == "table"))
+print("  _G.package exists: " .. tostring(type(_G.package) == "table"))
+
+-- package table exists
+print("\nTesting 'package' table:")
+print("  package exists: " .. tostring(type(package) == "table"))
+print("  package.loaded exists: " .. tostring(type(package.loaded) == "table"))
+print("  package.config exists: " .. tostring(type(package.config) == "string"))
+
+print("package.config value: " .. tostring(package.config))
+
+print("_VERSION: " .. _VERSION)
+
 -- 2. New functions in global namespace
 print("\nTesting Global Namespace Additions:")
 local packed = pack(1, 2, 3)
@@ -92,7 +107,7 @@ print("\nTesting Language differences:")
 -- Unicode escape
 print("  Testing Unicode escape \\u{20AC}:")
 local status, err = pcall(function()
-    local euro = "\u{20AC}"
+    local euro = "\u{20AC}" -- note this escape sequence while not supported in 5.2 is the correct moonsharp syntax
     print("    Result: " .. euro .. " (codepoint: " .. tostring(string.unicode(euro)) .. ")")
     assert(string.unicode(euro) == 8364, "Unicode escape did not produce expected codepoint")
 end)

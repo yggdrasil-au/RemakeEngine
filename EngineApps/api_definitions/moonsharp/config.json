@@ -1,0 +1,11 @@
+{
+    "name": "moonsharp",
+    "words": [
+        "_MOONSHARP"
+    ],
+    "settings": {
+        "Lua.workspace.library": [
+            "${submodules}/moonsharp"
+        ]
+    }
+}

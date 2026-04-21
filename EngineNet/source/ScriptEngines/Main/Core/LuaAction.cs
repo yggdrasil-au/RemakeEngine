@@ -93,29 +93,87 @@ internal static class LuaAction {
         // Methods for emitting engineSDK events (warn, error, prompt)
         EngineSdkGlobals(_LuaWorld);
 
-        // Global path join (soft join, always uses forward slashes)
-        _LuaWorld.LuaScript.Globals["join"] = (System.Func<ScriptExecutionContext, CallbackArguments, DynValue>)((_, args) => {
+        // Global path normalization helpers and path join (soft join, host separator aware)
+        _LuaWorld.LuaScript.Globals["normalize"] = (System.Func<ScriptExecutionContext, CallbackArguments, DynValue>)((_, args) => NormalizePath(args));
+        _LuaWorld.LuaScript.Globals["normalise"] = _LuaWorld.LuaScript.Globals["normalize"];
+        _LuaWorld.LuaScript.Globals["Normalize"] = _LuaWorld.LuaScript.Globals["normalize"];
+
+        // Global path join (soft join, host separator aware)
+        _LuaWorld.LuaScript.Globals["join"] = (System.Func<ScriptExecutionContext, CallbackArguments, DynValue>)((_, args) => JoinPaths(args));
+
+        static DynValue NormalizePath(CallbackArguments args) {
+            if (args.Count == 0) {
+                return DynValue.Nil;
+            }
+
+            return NormalizePathValue(args[0]);
+        }
+
+        static DynValue NormalizePathValue(DynValue value) {
+            if (value.Type == DataType.Nil || value.Type == DataType.Void) {
+                return DynValue.Nil;
+            }
+
+            string path = value.Type == DataType.String ? value.String : value.ToPrintString();
+            if (string.IsNullOrEmpty(path)) {
+                return DynValue.NewString(string.Empty);
+            }
+
+            return DynValue.NewString(NormalizePathString(path));
+        }
+
+        static string NormalizePathString(string path) {
+            char separator = System.IO.Path.DirectorySeparatorChar;
+            var builder = new System.Text.StringBuilder(path.Length);
+            bool previousWasSeparator = false;
+
+            foreach (char character in path) {
+                if (character == '/' || character == '\\') {
+                    if (!previousWasSeparator) {
+                        builder.Append(separator);
+                        previousWasSeparator = true;
+                    }
+                } else {
+                    builder.Append(character);
+                    previousWasSeparator = false;
+                }
+            }
+
+            return builder.ToString();
+        }
+
+        static DynValue JoinPaths(CallbackArguments args) {
+            char separator = System.IO.Path.DirectorySeparatorChar;
             var parts = Enumerable.Range(0, args.Count)
                 .Select(i => args[i])
-                .Where(v => v.Type != DataType.Nil && v.Type != DataType.Void)
-                .Select(v => v.Type == DataType.String ? v.String : v.ToPrintString())
-                .Where(s => !string.IsNullOrEmpty(s))
-                .Select(s => s.Replace("\\", "/"))
+                .Select(NormalizePathValue)
+                .Where(v => v.Type == DataType.String && !string.IsNullOrEmpty(v.String))
+                .Select(v => v.String)
                 .ToList();
 
-            if (parts.Count == 0) return DynValue.NewString("");
+            if (parts.Count == 0) {
+                return DynValue.NewString(string.Empty);
+            }
 
             var sb = new System.Text.StringBuilder();
             for (int i = 0; i < parts.Count; i++) {
-                var p = parts[i];
+                string part = parts[i];
                 if (i > 0) {
-                    p = p.TrimStart('/');
-                    if (sb.Length > 0 && sb[^1] != '/') sb.Append('/');
+                    part = part.TrimStart(separator);
+                    if (part.Length == 0) {
+                        continue;
+                    }
+
+                    if (sb.Length > 0 && sb[^1] != separator) {
+                        sb.Append(separator);
+                    }
                 }
-                sb.Append(p);
+
+                sb.Append(part);
             }
+
             return DynValue.NewString(sb.ToString());
-        });
+        }
 
         // Resolve external tool path
         _LuaWorld.LuaScript.Globals["ResolveToolPath"] = (string id, string? ver) => _tools.ResolveToolPath(id, ver);

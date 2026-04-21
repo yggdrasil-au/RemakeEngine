@@ -1,7 +1,7 @@
 --[[
 Comprehensive Lua feature showcase for the RemakeEngine demo module.
 Demonstrates EVERY C# tool available from LuaScriptAction.cs including:
-- Global functions: tool(), argv, warn/error, prompt(), progress()
+- Global functions: tool(), normalize()/normalise(), argv, warn/error, prompt(), progress()
 - SDK file/directory operations: ensure_dir, path_exists, copy/move operations, etc.
 - SDK symlink operations: create_symlink, is_symlink, realpath, readlink
 - SDK utilities: color_print, sleep, md5, TOML/YAML helpers
@@ -98,10 +98,14 @@ task2:Complete()
 sdk.color_print('green', 'PanelProgress demonstrations complete.')
 
 
---- Global Path Joining (New Engine API) ---
-sdk.color_print('yellow', '--- Global Path Joining ---')
+--- Global Path Normalization and Joining (New Engine API) ---
+sdk.color_print('yellow', '--- Global Path Normalization and Joining ---')
+local normalization_sample = 'C:/Base//Folder\\Child.txt'
+sdk.color_print('cyan', 'normalize: ' .. tostring(normalize(normalization_sample)))
+sdk.color_print('cyan', 'normalise: ' .. tostring(normalise(normalization_sample)))
+
 local demo_path = join(Game_Root, 'TMP', 'lua-demo-comprehensive', 'test.txt')
-sdk.color_print('cyan', 'Standard join: ' .. demo_path)
+sdk.color_print('cyan', 'join normalizes automatically: ' .. demo_path)
 
 local soft_join_path = join('C:/Base/', '/SubDir', '\\File.dat')
 sdk.color_print('cyan', 'Soft join (concatenates absolute segments): ' .. soft_join_path)

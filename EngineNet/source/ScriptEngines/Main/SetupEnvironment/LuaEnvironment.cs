@@ -12,7 +12,7 @@ internal static partial class SetupEnvironment {
     /// <summary>
     /// Disallowed environment variables to prevent information disclosure from Lua.
     /// </summary>
-    private static readonly HashSet<string> DisallowedEnv = new(StringComparer.OrdinalIgnoreCase) {
+    private static readonly HashSet<string> DisallowedEnv = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "TMP", "TEMP", "Path", "OneDrive", "ComSpec", "DriverData", "PSModulePath", "USERNAME", "windir"
     };
 

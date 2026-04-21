@@ -169,6 +169,9 @@ Check(State, "global DEBUG", IsBool(DEBUG), ToText(DEBUG))
 Check(State, "global cpu_count", type(cpu_count) == "number" and cpu_count >= 1, ToText(cpu_count))
 
 Check(State, "global join", type(join) == "function", ToText(join))
+Check(State, "global normalize", type(normalize) == "function", ToText(normalize))
+Check(State, "global normalise", type(normalise) == "function", ToText(normalise))
+Check(State, "global Normalize", type(Normalize) == "function", ToText(Normalize))
 Check(State, "global ResolveToolPath", type(ResolveToolPath) == "function", ToText(ResolveToolPath))
 Check(State, "global tool", type(tool) == "function", ToText(tool))
 Check(State, "global import", type(import) == "function", ToText(import))
@@ -178,6 +181,26 @@ Check(State, "global error", type(error) == "function", ToText(error))
 Check(State, "global prompt", type(prompt) == "function", ToText(prompt))
 Check(State, "global color_prompt", type(color_prompt) == "function", ToText(color_prompt))
 Check(State, "global colour_prompt", type(colour_prompt) == "function", ToText(colour_prompt))
+
+if type(join) == "function" or type(normalize) == "function" or type(normalise) == "function" then
+	local samplePath = "alpha//beta\\gamma"
+
+	if type(normalize) == "function" then
+		local normalized = normalize(samplePath)
+		local expectedSeparator = package.config:sub(1, 1)
+		local unexpectedSeparator = expectedSeparator == "\\" and "/" or "\\"
+		Check(State, "normalize behavior", type(normalized) == "string" and normalized:find(unexpectedSeparator, 1, true) == nil, ToText(normalized))
+	end
+
+	if type(normalise) == "function" and type(normalize) == "function" then
+		Check(State, "normalise alias behavior", normalise(samplePath) == normalize(samplePath), ToText(normalise(samplePath)))
+	end
+
+	if type(join) == "function" and type(normalize) == "function" then
+		local joined = join("alpha//", "/beta", "gamma\\delta")
+		Check(State, "join normalizes automatically", joined == normalize("alpha/beta/gamma\\delta"), ToText(joined))
+	end
+end
 
 Check(State, "global Diagnostics table", IsTable(Diagnostics), ToText(Diagnostics))
 if IsTable(Diagnostics) then
@@ -306,7 +329,8 @@ end
 -- --------------------------------------------------------------------------
 
 local Joined = join("C:/Base/", "/SubDir", "\\File.dat")
-Check(State, "join behavior", Joined == "C:/Base/SubDir/File.dat", Joined)
+local ExpectedJoined = type(normalize) == "function" and normalize("C:/Base/SubDir/File.dat") or Joined
+Check(State, "join behavior", Joined == ExpectedJoined, Joined)
 
 local ToolOk, ToolPath = pcall(function()
 	return tool("ffmpeg")
