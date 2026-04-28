@@ -284,6 +284,7 @@ internal partial class TUI {
     /// <param name="op"></param>
     /// <param name="answers"></param>
     /// <param name="defaultsOnly"></param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
     private async Task<bool> CollectAnswersForOperation(Dictionary<string, object?> op, Core.Data.PromptAnswers answers, bool defaultsOnly, CancellationToken cancellationToken = default(CancellationToken)) {
         try {
@@ -317,7 +318,10 @@ internal partial class TUI {
                             TuiRenderer.Log($"{i + 1}. {choicesList[i]}{(disabled.Contains(i) ? " (Disabled)" : "")}");
                         }
 
-                        string input = TuiRenderer.ReadLineCustom("Selection # >", false);
+                        string? input = TuiRenderer.ReadLineCustom("Selection # >", false);
+
+                        if (input == null) return Task.FromResult(Core.Data.PromptResponse.Cancelled());
+
                         if (string.IsNullOrWhiteSpace(input) || !int.TryParse(input, out int choiceIdx) ||
                             choiceIdx < 1 || choiceIdx > choicesList.Count) {
                             return Task.FromResult(Core.Data.PromptResponse.Cancelled());
@@ -332,7 +336,10 @@ internal partial class TUI {
                     case "confirm": {
                         bool defVal = request.DefaultValue is true;
                         string defHint = defVal ? "Y" : "N";
-                        string c = TuiRenderer.ReadLineCustom($"{request.Title} [y/N] (default {defHint}) >", false);
+                        string? c = TuiRenderer.ReadLineCustom($"{request.Title} [y/N] (default {defHint}) >", false);
+
+                        // Add null check here
+                        if (c == null) return Task.FromResult(Core.Data.PromptResponse.Cancelled());
 
                         if (string.IsNullOrWhiteSpace(c)) {
                             return Task.FromResult(Core.Data.PromptResponse.UseDefaultValue());
@@ -353,7 +360,10 @@ internal partial class TUI {
                             TuiRenderer.Log($"{request.Title} (comma-separated values): ", ConsoleColor.Cyan);
                         }
 
-                        string line = TuiRenderer.ReadLineCustom("Values >", false);
+                        string? line = TuiRenderer.ReadLineCustom("Values >", false);
+
+                        // Add null check here
+                        if (line == null) return Task.FromResult(Core.Data.PromptResponse.Cancelled());
 
                         if (string.IsNullOrWhiteSpace(line)) {
                             if (request.DefaultValue is IList<object?>) {
@@ -369,7 +379,10 @@ internal partial class TUI {
                         return Task.FromResult(Core.Data.PromptResponse.FromValue(selected));
                     }
                     case "text":
-                        string v = TuiRenderer.ReadLineCustom($"{request.Title} >", false);
+                        string? v = TuiRenderer.ReadLineCustom($"{request.Title} >", false);
+
+                        // Add null check here
+                        if (v == null) return Task.FromResult(Core.Data.PromptResponse.Cancelled());
 
                         if (!string.IsNullOrWhiteSpace(v)) {
                             return Task.FromResult(Core.Data.PromptResponse.FromValue(v));
@@ -383,7 +396,10 @@ internal partial class TUI {
                     default: {
                         TuiRenderer.Log($"Unsupported prompt type: {request.Type}", ConsoleColor.Red);
                         // for now assume text
-                        string vv = TuiRenderer.ReadLineCustom($"{request.Title} >", false);
+                        string? vv = TuiRenderer.ReadLineCustom($"{request.Title} >", false);
+
+                        // Add null check here
+                        if (vv == null) return Task.FromResult(Core.Data.PromptResponse.Cancelled());
 
                         if (!string.IsNullOrWhiteSpace(vv)) {
                             return Task.FromResult(Core.Data.PromptResponse.FromValue(vv));

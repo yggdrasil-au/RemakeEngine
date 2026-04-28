@@ -304,7 +304,7 @@ public static class TuiRenderer {
 
     // -- Input Handling Helpers --
 
-    public static string ReadLineCustom(string label, bool isSecret) {
+    public static string? ReadLineCustom(string label, bool isSecret) {
         lock (_lock) {
             _isInputActive = true;
             _promptLabel = label;
@@ -317,24 +317,46 @@ public static class TuiRenderer {
         while (true) {
             var key = Console.ReadKey(true);
 
-            // Check for scroll keys first
-            if (key.Key == ConsoleKey.UpArrow || key.Key == ConsoleKey.DownArrow || 
+            // Add ConsoleKey.Escape to the list of keys we intercept
+            if (key.Key == ConsoleKey.UpArrow || key.Key == ConsoleKey.DownArrow ||
                 key.Key == ConsoleKey.PageUp || key.Key == ConsoleKey.PageDown ||
-                key.Key == ConsoleKey.Home || key.Key == ConsoleKey.End) {
-                
+                key.Key == ConsoleKey.Home || key.Key == ConsoleKey.End ||
+                key.Key == ConsoleKey.Escape) {
                 HandleScrollInput(key);
-                continue; // Skip adding to input buffer
+
+                // If HandleScrollInput triggered a cancellation, break the loop and return null
+                if (_cts != null && _cts.IsCancellationRequested) {
+                    lock (_lock) {
+                        _isInputActive = false;
+                        _inputBuffer = "";
+                        _scrollOffset = 0;
+                    }
+
+                    return null;
+                }
+
+                // If they said 'N' to cancel, PromptCancellation set _isInputActive to false.
+                // We need to ensure it is true again to redraw their in-progress typing.
+                lock (_lock) {
+                    _isInputActive = true;
+                    RenderInputLine();
+                }
+
+                continue;
             }
 
             if (key.Key == ConsoleKey.Enter) {
                 break;
-            } else if (key.Key == ConsoleKey.Backspace) {
+            }
+            else if (key.Key == ConsoleKey.Backspace) {
                 if (input.Length > 0) input.Remove(input.Length - 1, 1);
-            } else if (!char.IsControl(key.KeyChar)) {
+            }
+            else if (!char.IsControl(key.KeyChar)) {
                 input.Append(key.KeyChar);
             }
 
             lock (_lock) {
+                _isInputActive = true; // Ensure active
                 _inputBuffer = isSecret ? new string('*', input.Length) : input.ToString();
                 RenderInputLine();
             }
@@ -345,11 +367,11 @@ public static class TuiRenderer {
             _inputBuffer = "";
             _scrollOffset = 0; // Snap back to bottom on submit
         }
+
         // Echo input to log
         Log($"{label} {input}", ConsoleColor.Cyan);
         return input.ToString();
     }
-
     /// <summary>
     /// Wait for the user to press a key before continuing.
     /// Responds to navigation keys for scrolling without returning.

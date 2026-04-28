@@ -273,15 +273,18 @@ internal partial class TUI {
                     Dictionary<string, object?> op = preparedOps.RegularOperations[opIndex].Operation;
                     var answers = new Core.Data.PromptAnswers();
 
-                    // Initialize Renderer for interactive prompts and execution
-                    TuiRenderer.Initialize();
+                    // Create a linked token source so Escape only cancels this specific operation run
+                    using var opCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+                    // Initialize Renderer for interactive prompts and execution WITH the token source
+                    TuiRenderer.Initialize(opCts);
                     try {
-                        // For manual single-op run, prompt interactively
-                        Task<bool> promptTask = CollectAnswersForOperation(op, answers, defaultsOnly: false, cancellationToken: cancellationToken);
+                        // Pass opCts.Token instead of the parent token
+                        Task<bool> promptTask = CollectAnswersForOperation(op, answers, defaultsOnly: false, cancellationToken: opCts.Token);
                         if (await promptTask) {
                             TuiRenderer.Log($"Running: {selection}\n", ConsoleColor.Cyan);
                             System.Diagnostics.Stopwatch opStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                            bool ok = await new Utils().ExecuteOpAsync(Engine, gameName, allAvailableModules, op, answers, cancellationToken: cancellationToken);
+                            bool ok = await new Utils().ExecuteOpAsync(Engine, gameName, allAvailableModules, op, answers, cancellationToken: opCts.Token);
                             opStopwatch.Stop();
 
                             TuiRenderer.Log(ok
