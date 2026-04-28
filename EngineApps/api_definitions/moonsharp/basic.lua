@@ -13,18 +13,6 @@ arg = {}
 ---@return any ...
 function assert(v, message, ...) end
 
----#if VERSION == 5.1 then
----#DES 'collectgarbage51'
----@overload fun(opt?: "collect")
----@overload fun(opt: "stop")
----@overload fun(opt: "restart")
----@overload fun(opt: "count"): number
----@overload fun(opt: "step", arg: integer): true
----@overload fun(opt: "setpause", arg: integer): integer
----@overload fun(opt: "setstepmul", arg: integer): integer
-function collectgarbage(...) end
----#end
-
 ---#if VERSION == 5.2 then
 ---#DES 'collectgarbage52'
 ---@overload fun(opt?: "collect")
@@ -40,71 +28,14 @@ function collectgarbage(...) end
 function collectgarbage(...) end
 ---#end
 
----#if VERSION == 5.3 then
----#DES 'collectgarbage53'
----@overload fun(opt?: "collect")
----@overload fun(opt: "stop")
----@overload fun(opt: "restart")
----@overload fun(opt: "count"): number
----@overload fun(opt: "step", arg: integer): true
----@overload fun(opt: "setpause", arg: integer): integer
----@overload fun(opt: "setstepmul", arg: integer): integer
----@overload fun(opt: "isrunning"): boolean
-function collectgarbage(...) end
----#end
-
----#if VERSION == 5.4 then
----#DES 'collectgarbage54'
----@overload fun(opt?: "collect")
----@overload fun(opt: "stop")
----@overload fun(opt: "restart")
----@overload fun(opt: "count"): number
----@overload fun(opt: "step", arg: integer): true
----@overload fun(opt: "isrunning"): boolean
----@overload fun(opt: "incremental", pause?: integer, multiplier?: integer, stepsize?: integer)
----@overload fun(opt: "generational", minor?: integer, major?: integer)
-function collectgarbage(...) end
----#end
-
----#if VERSION == 5.5 then
----#DES 'collectgarbage55'
----@overload fun(opt?: "collect")
----@overload fun(opt: "stop")
----@overload fun(opt: "restart")
----@overload fun(opt: "count"): number
----@overload fun(opt: "step", arg: integer): true
----@overload fun(opt: "isrunning"): boolean
----@overload fun(opt: "incremental"): "generational" | "incremental"
----@overload fun(opt: "generational"): "generational" | "incremental"
----@overload fun(opt: "param", arg: "minormul", value?: integer): integer
----@overload fun(opt: "param", arg: "majorminor", value?: integer): integer
----@overload fun(opt: "param", arg: "minormajor", value?: integer): integer
----@overload fun(opt: "param", arg: "pause", value?: integer): integer
----@overload fun(opt: "param", arg: "stepmul", value?: integer): integer
----@overload fun(opt: "param", arg: "stepsize", value?: integer): integer
-function collectgarbage(...) end
----#end
-
 ---#DES 'dofile'
 ---@param filename? string
 ---@return any ...
 function dofile(filename) end
 
----#DES 'error'
----@param message any
----@param level?  integer
-function error(message, level) end
-
 ---#DES '_G'
 ---@class _G
 _G = {}
-
----@version 5.1
----#DES 'getfenv'
----@param f? integer|async fun(...):...
----@return table
----@nodiscard
-function getfenv(f) end
 
 ---#DES 'getmetatable'
 ---@param object any

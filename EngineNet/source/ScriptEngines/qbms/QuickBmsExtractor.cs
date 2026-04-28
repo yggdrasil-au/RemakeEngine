@@ -12,6 +12,7 @@ internal static class QuickBmsExtractor {
         internal string OutputPath = string.Empty;
         internal string Extension = "*";
         internal bool Overwrite;
+        internal int? Workers;
         internal List<string> Targets { get; } = new List<string>();
     }
 
@@ -67,11 +68,11 @@ internal static class QuickBmsExtractor {
             return false;
         }
 
-        WriteInfo($"Starting QuickBMS extraction using script '{options.BmsScript}'.");
-        WriteInfo($"Found {files.Count} file(s) to process.");
+        int workers = options.Workers ?? 1;
 
-        Core.ProcessRunner runner = new Core.ProcessRunner();
-        bool okAll = true;
+        WriteInfo($"Starting QuickBMS extraction using script '{options.BmsScript}'.");
+        WriteInfo($"Found {files.Count} file(s) to process with {workers} worker(s).");
+
         ProgressState progressState = new ProgressState();
 
         // Progress panel tracking uses a stable state container to avoid closure capture issues.
@@ -89,39 +90,49 @@ internal static class QuickBmsExtractor {
             token: cts.Token
         );
 
-        foreach (string file in files) {
-            string relative = GetSafeRelative(options.InputPath, file);
-            string outputDir = BuildOutputDirectory(options.OutputPath, relative, file, extensionLabel);
-            System.IO.Directory.CreateDirectory(outputDir);
+        System.Threading.Tasks.ParallelOptions parallelOptions = new System.Threading.Tasks.ParallelOptions {
+            MaxDegreeOfParallelism = workers,
+            CancellationToken = cancellationToken
+        };
 
-            RegisterActive(tool: "quickbms", srcPath: file);
-            try {
-                List<string> command = new List<string> {
-                    options.QuickBmsExe,
-                    options.Overwrite ? "-o" : "-k",
-                    options.BmsScript,
-                    file,
-                    outputDir
-                };
+        try {
+            System.Threading.Tasks.Parallel.ForEach(files, parallelOptions, file => {
+                string relative = GetSafeRelative(options.InputPath, file);
+                string outputDir = BuildOutputDirectory(options.OutputPath, relative, file, extensionLabel);
+                System.IO.Directory.CreateDirectory(outputDir);
 
-                Dictionary<string, object?> env = new Dictionary<string, object?> { ["TERM"] = "dumb" };
-                bool ok = runner.Execute(
-                    command,
-                    System.IO.Path.GetFileName(file),
-                    onOutput: ForwardProcessOutput,
-                    envOverrides: env);
+                RegisterActive(tool: "quickbms", srcPath: file);
+                try {
+                    Core.ProcessRunner runner = new Core.ProcessRunner();
 
-                if (ok) {
-                    System.Threading.Interlocked.Increment(ref progressState.Ok);
-                } else {
-                    okAll = false;
-                    System.Threading.Interlocked.Increment(ref progressState.Err);
-                    WriteWarn($"QuickBMS reported a failure for '{file}'.");
+                    List<string> command = new List<string> {
+                        options.QuickBmsExe,
+                        options.Overwrite ? "-o" : "-k",
+                        options.BmsScript,
+                        file,
+                        outputDir
+                    };
+
+                    Dictionary<string, object?> env = new Dictionary<string, object?> { ["TERM"] = "dumb" };
+                    bool ok = runner.Execute(
+                        command,
+                        System.IO.Path.GetFileName(file),
+                        onOutput: ForwardProcessOutput,
+                        envOverrides: env);
+
+                    if (ok) {
+                        System.Threading.Interlocked.Increment(ref progressState.Ok);
+                    } else {
+                        System.Threading.Interlocked.Increment(ref progressState.Err);
+                        WriteWarn($"QuickBMS reported a failure for '{file}'.");
+                    }
+                } finally {
+                    UnregisterActive();
+                    System.Threading.Interlocked.Increment(ref progressState.Processed);
                 }
-            } finally {
-                UnregisterActive();
-                System.Threading.Interlocked.Increment(ref progressState.Processed);
-            }
+            });
+        } catch (System.OperationCanceledException) {
+            WriteWarn("QuickBMS extraction cancelled by user.");
         }
 
         cts.Cancel();
@@ -134,7 +145,7 @@ internal static class QuickBmsExtractor {
         }
 
         WriteInfo($"QuickBMS extraction complete. Success: {progressState.Ok}/{files.Count}.");
-        return okAll;
+        return progressState.Err == 0;
     }
 
     /// <summary>
@@ -200,6 +211,12 @@ internal static class QuickBmsExtractor {
                 case "--overwrite":
                     options.Overwrite = true;
                     break;
+                case "-w":
+                case "--workers":
+                    if (int.TryParse(ExpectValue(args, ref i, current), out int w)) {
+                        options.Workers = System.Math.Max(1, w);
+                    }
+                    break;
                 default:
                     if (current.StartsWith('-')) {
                         throw new System.ArgumentException($"Unknown argument '{current}'.");
@@ -228,6 +245,11 @@ internal static class QuickBmsExtractor {
 
         if (string.IsNullOrWhiteSpace(options.Extension)) {
             options.Extension = "*";
+        }
+
+        if (options.Workers is null) {
+            int cores = System.Math.Max(1, System.Environment.ProcessorCount);
+            options.Workers = System.Math.Max(1, (int)System.Math.Floor(cores * 0.75));
         }
 
         if (options.Targets.Count == 0) {

@@ -157,7 +157,7 @@ public class Utils {
         }
     }
 
-    private static string StdinProvider() {
+    private static string? StdinProvider() {
         return TuiRenderer.ReadLineCustom("Input >", false);
     }
 
@@ -204,6 +204,21 @@ public class Utils {
                 string cMsg = evt.TryGetValue("message", out object? cm) ? cm?.ToString() ?? "Confirm?" : "Confirm?";
                 bool def = evt.TryGetValue("default", out object? d) && d is true;
                 TuiRenderer.Log($"? {cMsg} [{(def ? "y/N" : "Y/n")}]", ConsoleColor.Cyan);
+                break;
+            }
+
+            case EngineSdk.Events.ScriptActiveStart: {
+                TuiRenderer.Log($"▶ Starting script: {evt.GetValueOrDefault("name", "Unnamed")}", ConsoleColor.Green);
+                break;
+            }
+
+            case EngineSdk.Events.ScriptProgress: {
+                // todo, add dedicated indicator in the TUI renderer to show overall script/operation progress
+                break;
+            }
+
+            case EngineSdk.Events.ScriptActiveEnd: {
+                TuiRenderer.Log($"◀ Finished script: {evt.GetValueOrDefault("name", "Unnamed")}", ConsoleColor.Green);
                 break;
             }
 

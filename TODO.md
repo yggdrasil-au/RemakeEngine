@@ -13,6 +13,22 @@ avoid massive unit tests, i dont want tests to be as complicated as the project 
 ## Engine
 
 
+TUI
+Choose how to use the source files:
+  1) Copy folder 'PS3_GAME' into local 'EU' (Recommended, Safe)
+  2) Move folder 'PS3_GAME' into local 'EU' (Warning: Deletes originals)
+  3) Use original path 'PS3_GAME' directly (Warning: Tools may modify original files)
+? Choose how to use the source files:
+1) Copy folder 'PS3_GAME' into local 'EU' (Recommended, Safe)
+2) Move folder 'PS3_GAME' into local 'EU' (Warning: Deletes originals)
+3) Use original path 'PS3_GAME' directly (Warning: Tools may modify original files)
+
+Enter your choice (1, 2, or 3):
+
+
+outputs are repeated, likly due to differences in tui and gui
+
+
 consider seperating Core.Formats into a independent csproj lib to prevent bloating the main engine assembly with format-specific tooling
 
 update the new p3d format conversion and extraction tooling
