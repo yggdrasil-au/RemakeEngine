@@ -1,5 +1,6 @@
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using EngineNet.Shared.IO.UI;
 
 namespace EngineNet.Interface.GUI.Pages;
 
@@ -100,13 +101,13 @@ public partial class BuildingPage:UserControl {
         }
 
         Dictionary<string, object?> progressStart = new Dictionary<string, object?> {
-            ["event"] = "progress_panel_start",
+            ["event"] = EngineSdk.Events.ProgressPanelStart,
             ["reserve"] = 6
         };
         svc.HandleEvent(progressStart);
 
         Dictionary<string, object?> progressPayload = new Dictionary<string, object?> {
-            ["event"] = "progress_panel",
+            ["event"] = EngineSdk.Events.ProgressPanel,
             ["label"] = "Packaging",
             ["spinner"] = "/",
             ["active_total"] = 2,

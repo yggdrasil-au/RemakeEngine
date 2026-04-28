@@ -1,3 +1,5 @@
+using EngineNet.Shared.IO.UI;
+
 namespace EngineNet.Interface.GUI.Services;
 
 /// <summary>
@@ -38,13 +40,13 @@ public static class EngineOperationRunner {
             }
 
             string type = typeObj?.ToString() ?? "";
-            if (type == "prompt" || type == "color_prompt" || type == "confirm") {
+            if (type == EngineSdk.Events.Prompt || type == EngineSdk.Events.ColorPrompt || type == EngineSdk.Events.Confirm) {
                 lock (promptLock) {
                     lastPromptType = type;
                     lastPromptMessage = evt.TryGetValue("message", out object? msg) ? msg?.ToString() : "Input required";
                     lastPromptId = evt.TryGetValue("id", out object? idObj) ? idObj?.ToString() : null;
                     lastPromptSecret = evt.TryGetValue("secret", out object? secretObj) && secretObj is bool b && b;
-                    if (type == "confirm") {
+                    if (type == EngineSdk.Events.Confirm) {
                         lastPromptDefault = evt.TryGetValue("default", out object? defObj) && defObj is bool d && d;
                     }
                 }
@@ -77,7 +79,7 @@ public static class EngineOperationRunner {
                 global::Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () => {
                     try {
                         string title = !string.IsNullOrWhiteSpace(promptId) ? promptId : "Input Required";
-                        if (promptType == "confirm") {
+                        if (promptType == EngineSdk.Events.Confirm) {
                             bool? res = await OperationOutputService.Instance.RequestConfirmPromptAsync(title, promptMessage, promptDefault);
                             response = res.HasValue ? (res.Value ? "y" : "n") : string.Empty;
                         } else {

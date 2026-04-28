@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using Avalonia.Threading;
 
 using EngineNet.Interface.GUI.Models;
+using EngineNet.Shared.IO.UI;
 
 namespace EngineNet.Interface.GUI.Services;
 
@@ -26,7 +27,6 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     public ObservableCollection<OutputLine> Lines { get; } = new ObservableCollection<OutputLine>();
 
     private readonly HashSet<OutputLine> _trackedLines = new HashSet<OutputLine>();
-    private string _fullLogText = string.Empty;
     private bool _isFullLogDirty = true;
 
     /// <summary>
@@ -35,79 +35,70 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     public string FullLogText {
         get {
             if (_isFullLogDirty) {
-                _fullLogText = BuildFullLogText();
+                field = BuildFullLogText();
                 _isFullLogDirty = false;
             }
 
-            return _fullLogText;
+            return field;
         }
-    }
+    } = string.Empty;
 
     public ObservableCollection<ActiveJob> ActiveJobs { get; } = new ObservableCollection<ActiveJob>();
 
-    private string? _currentOperation;
     public string? CurrentOperation {
         get {
             lock (_lock) {
-                return _currentOperation;
+                return field;
             }
         }
         private set {
             lock (_lock) {
-                if (!EqualityComparer<string?>.Default.Equals(_currentOperation, value)) {
-                    _currentOperation = value;
-                    OnPropertyChanged();
-                }
+                if (EqualityComparer<string?>.Default.Equals(field, value)) return;
+                field = value;
+                OnPropertyChanged();
             }
         }
     }
 
-    private bool _isProgressPanelActive;
     public bool IsProgressPanelActive {
-        get => _isProgressPanelActive;
-        private set => SetField(ref _isProgressPanelActive, value);
+        get;
+        private set => SetField(ref field, value);
     }
 
-    private string _progressLabel = string.Empty;
+
     public string ProgressLabel {
-        get => _progressLabel;
-        private set => SetField(ref _progressLabel, value);
+        get;
+        private set => SetField(ref field, value);
     }
 
-    private string _progressSummaryLine = string.Empty;
     public string ProgressSummaryLine {
-        get => _progressSummaryLine;
-        private set => SetField(ref _progressSummaryLine, value);
+        get;
+        private set => SetField(ref field, value);
     }
 
-    private double _progressPercent;
     public double ProgressPercent {
-        get => _progressPercent;
-        private set => SetField(ref _progressPercent, value);
+        get;
+        private set => SetField(ref field, value);
     }
 
     // Script activity tracking (stage-based indicator)
     private string _activeScriptName = string.Empty;
-    //private int _activeScriptStages;
-    //private int _activeScriptCurrent;
 
-    private string _activeJobsSummary = "Active: none";
+
     public string ActiveJobsSummary {
-        get => _activeJobsSummary;
-        private set => SetField(ref _activeJobsSummary, value);
-    }
+        get;
+        private set => SetField(ref field, value);
+    } = "Active: none";
 
-    private int _activeJobCount;
     public int ActiveJobCount {
-        get => _activeJobCount;
-        private set => SetField(ref _activeJobCount, value);
+        get;
+        private set => SetField(ref field, value);
     }
 
-    private string _currentSpinner = string.Empty;
     public string CurrentSpinner {
-        get => _currentSpinner;
-        private set => SetField(ref _currentSpinner, value);
-    }
+        get;
+        private set => SetField(ref field, value);
+    } = string.Empty;
 
     private readonly List<OutputLine> _progressPanelLines = new List<OutputLine>();
     private int _progressPanelInsertIndex = -1;
@@ -136,7 +127,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     // --- High-volume output buffering/throttling state ---
     private readonly System.Collections.Concurrent.ConcurrentQueue<OutputLine> _pendingLines = new System.Collections.Concurrent.ConcurrentQueue<OutputLine>();
     private DispatcherTimer? _flushTimer;
-    private readonly object _flushLock = new object();
+    private readonly Lock _flushLock = new Lock();
     private const int FlushBatchMax = 250;
     private const int MaxLines = 5000;
     private const int MaxChars = 200_000;
@@ -163,20 +154,20 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
 
     private void EnsureFlushTimer() {
         lock (_flushLock) {
-            if (!_flushTimerRequested) {
-                _flushTimerRequested = true;
-                global::Avalonia.Threading.Dispatcher.UIThread.Post(() => {
-                    lock (_flushLock) {
-                        if (_flushTimer is null) {
-                            _flushTimer = new DispatcherTimer() { Interval = System.TimeSpan.FromMilliseconds(33) };
-                            _flushTimer.Tick += FlushPending;
-                        }
-                        if (!_flushTimer.IsEnabled) {
-                            _flushTimer.Start();
-                        }
+            if (_flushTimerRequested) return;
+
+            _flushTimerRequested = true;
+            global::Avalonia.Threading.Dispatcher.UIThread.Post(() => {
+                lock (_flushLock) {
+                    if (_flushTimer is null) {
+                        _flushTimer = new DispatcherTimer() { Interval = System.TimeSpan.FromMilliseconds(33) };
+                        _flushTimer.Tick += FlushPending;
                     }
-                });
-            }
+                    if (!_flushTimer.IsEnabled) {
+                        _flushTimer.Start();
+                    }
+                }
+            });
         }
     }
 
@@ -285,7 +276,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
         string? evtType = evtTypeObj?.ToString();
 
         switch (evtType) {
-            case "print":
+            case EngineSdk.Events.Print:
                 string msg = evt.TryGetValue("message", out object? m) ? m?.ToString() ?? string.Empty : string.Empty;
                 string color = evt.TryGetValue("color", out object? c) ? c?.ToString() ?? "Gray" : "Gray";
                 EnqueueLine(new OutputLine {
@@ -296,7 +287,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
                 });
                 break;
 
-                case "warning":
+                case EngineSdk.Events.Warning:
                     string warnMsg = evt.TryGetValue("message", out object? wm) ? wm?.ToString() ?? string.Empty : string.Empty;
                     EnqueueLine(new OutputLine {
                         Timestamp = System.DateTime.Now,
@@ -306,7 +297,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
                     });
                     break;
 
-                case "error":
+                case EngineSdk.Events.Error:
                     string errMsg = evt.TryGetValue("message", out object? em) ? em?.ToString() ?? string.Empty : string.Empty;
                     EnqueueLine(new OutputLine {
                         Timestamp = System.DateTime.Now,
@@ -316,7 +307,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
                     });
                     break;
 
-                case "prompt":
+                case EngineSdk.Events.Prompt:
                     string promptMsg = evt.TryGetValue("message", out object? pm) ? pm?.ToString() ?? string.Empty : string.Empty;
                     EnqueueLine(new OutputLine {
                         Timestamp = System.DateTime.Now,
@@ -326,7 +317,8 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
                     });
                     break;
 
-                case "progress":
+                // this event is removed, replaced by progress panel events
+                /*case EngineSdk.Events.Progress:
                     int current = evt.TryGetValue("current", out object? cur) ? SafeToInt(cur) : 0;
                     int total = evt.TryGetValue("total", out object? tot) ? SafeToInt(tot) : 0;
                     string label = evt.TryGetValue("label", out object? lbl) ? lbl?.ToString() ?? string.Empty : string.Empty;
@@ -336,9 +328,9 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
                         Type = "progress",
                         Color = "Cyan"
                     });
-                    break;
+                    break;*/
 
-                case "start":
+                case EngineSdk.Events.Start:
                     string startContext = FormatEventData(evt);
                     EnqueueLine(new OutputLine {
                         Timestamp = System.DateTime.Now,
@@ -348,7 +340,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
                     });
                     break;
 
-                case "end":
+                case EngineSdk.Events.End:
                     bool success = evt.TryGetValue("success", out object? suc) && suc is bool b && b;
                     EnqueueLine(new OutputLine {
                         Timestamp = System.DateTime.Now,
@@ -358,34 +350,34 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
                     });
                     break;
 
-            case "progress_panel_start":
+            case EngineSdk.Events.ProgressPanelStart:
                 global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleProgressPanelStart());
                 break;
 
-            case "progress_panel":
+            case EngineSdk.Events.ProgressPanel:
                 global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleProgressPanelUpdate(evt));
                 break;
 
-            case "progress_panel_end":
+            case EngineSdk.Events.ProgressPanelEnd:
                 global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleProgressPanelEnd());
                 break;
 
-            case "script_active_start":
+            case EngineSdk.Events.ScriptActiveStart:
                 global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleScriptActiveStart(evt));
                 break;
 
-            case "script_progress":
+            case EngineSdk.Events.ScriptProgress:
                 global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleScriptProgress(evt));
                 break;
 
-            case "script_active_end":
+            case EngineSdk.Events.ScriptActiveEnd:
                 global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleScriptActiveEnd(evt));
                 break;
 
-                case "run-all-start":
-                case "run-all-op-start":
-                case "run-all-op-end":
-                case "run-all-complete":
+                case EngineSdk.Events.RunAllStart:
+                case EngineSdk.Events.RunAllOpStart:
+                case EngineSdk.Events.RunAllOpEnd:
+                case EngineSdk.Events.RunAllComplete:
                     string seqInfo = FormatEventData(evt);
                     EnqueueLine(new OutputLine {
                         Timestamp = System.DateTime.Now,
@@ -600,16 +592,21 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
         List<ProgressJobSnapshot> jobs = new List<ProgressJobSnapshot>();
         if (payload.TryGetValue("active_jobs", out object? aj) && aj is System.Collections.IEnumerable enumerable) {
             foreach (object? jobObj in enumerable) {
-                if (jobObj is Dictionary<string, object?> dictJob) {
-                    jobs.Add(ToSnapshot(dictJob));
-                } else if (jobObj is IReadOnlyDictionary<string, object?> readOnlyJob) {
-                    jobs.Add(ToSnapshot(readOnlyJob.ToDictionary(kv => kv.Key, kv => kv.Value)));
-                } else if (jobObj is System.Text.Json.JsonElement element && element.ValueKind == System.Text.Json.JsonValueKind.Object) {
-                    Dictionary<string, object?> parsed = new Dictionary<string, object?>(System.StringComparer.Ordinal);
-                    foreach (System.Text.Json.JsonProperty prop in element.EnumerateObject()) {
-                        parsed[prop.Name] = prop.Value.ValueKind == System.Text.Json.JsonValueKind.String ? prop.Value.GetString() : prop.Value.ToString();
+                switch (jobObj) {
+                    case Dictionary<string, object?> dictJob:
+                        jobs.Add(ToSnapshot(dictJob));
+                        break;
+                    case IReadOnlyDictionary<string, object?> readOnlyJob:
+                        jobs.Add(ToSnapshot(readOnlyJob.ToDictionary(kv => kv.Key, kv => kv.Value)));
+                        break;
+                    case System.Text.Json.JsonElement element when element.ValueKind == System.Text.Json.JsonValueKind.Object: {
+                        Dictionary<string, object?> parsed = new Dictionary<string, object?>(System.StringComparer.Ordinal);
+                        foreach (System.Text.Json.JsonProperty prop in element.EnumerateObject()) {
+                            parsed[prop.Name] = prop.Value.ValueKind == System.Text.Json.JsonValueKind.String ? prop.Value.GetString() : prop.Value.ToString();
+                        }
+                        jobs.Add(ToSnapshot(parsed));
+                        break;
                     }
-                    jobs.Add(ToSnapshot(parsed));
                 }
             }
         }
@@ -645,31 +642,27 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     }
 
     private static Dictionary<string, object?>? ExtractDictionary(IReadOnlyDictionary<string, object?> payload, string key) {
-        if (!payload.TryGetValue(key, out object? value) || value is null) {
+        if ((!payload.TryGetValue(key, out object? value) || value is null) || (value is not System.Text.Json.JsonElement element || element.ValueKind != System.Text.Json.JsonValueKind.Object)) {
             return null;
         }
 
-        if (value is Dictionary<string, object?> dict) {
-            return dict;
+        switch (value) {
+            case Dictionary<string, object?> dict:
+                return dict;
+            case IReadOnlyDictionary<string, object?> readOnly:
+                return readOnly.ToDictionary(kv => kv.Key, kv => kv.Value);
         }
 
-        if (value is IReadOnlyDictionary<string, object?> readOnly) {
-            return readOnly.ToDictionary(kv => kv.Key, kv => kv.Value);
+        Dictionary<string, object?> parsed = new Dictionary<string, object?>(System.StringComparer.Ordinal);
+        foreach (System.Text.Json.JsonProperty prop in element.EnumerateObject()) {
+            parsed[prop.Name] = prop.Value.ValueKind switch {
+                System.Text.Json.JsonValueKind.Number => prop.Value.GetDouble(),
+                System.Text.Json.JsonValueKind.String => prop.Value.GetString(),
+                _ => prop.Value.ToString()
+            };
         }
+        return parsed;
 
-        if (value is System.Text.Json.JsonElement element && element.ValueKind == System.Text.Json.JsonValueKind.Object) {
-            Dictionary<string, object?> parsed = new Dictionary<string, object?>(System.StringComparer.Ordinal);
-            foreach (System.Text.Json.JsonProperty prop in element.EnumerateObject()) {
-                parsed[prop.Name] = prop.Value.ValueKind == System.Text.Json.JsonValueKind.Number
-                    ? prop.Value.GetDouble()
-                    : prop.Value.ValueKind == System.Text.Json.JsonValueKind.String
-                        ? prop.Value.GetString()
-                        : prop.Value.ToString();
-            }
-            return parsed;
-        }
-
-        return null;
     }
 
     /// <summary>
@@ -816,35 +809,30 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     }
 
     // --- Prompt / Popup State ---
-    private bool _isPromptActive;
     public bool IsPromptActive {
-        get => _isPromptActive;
-        private set => SetField(ref _isPromptActive, value);
+        get;
+        private set => SetField(ref field, value);
     }
 
-    private string _promptTitle = string.Empty;
     public string PromptTitle {
-        get => _promptTitle;
-        private set => SetField(ref _promptTitle, value);
+        get;
+        private set => SetField(ref field, value);
     }
 
-    private string _promptMessage = string.Empty;
     public string PromptMessage {
-        get => _promptMessage;
-        private set => SetField(ref _promptMessage, value);
+        get;
+        private set => SetField(ref field, value);
     }
 
-    private string _promptValue = string.Empty;
     public string PromptValue {
-        get => _promptValue;
-        set => SetField(ref _promptValue, value);
-    }
+        get;
+        set => SetField(ref field, value);
+    } = string.Empty;
 
-    private bool _isConfirmPrompt;
     public bool IsConfirmPrompt {
-        get => _isConfirmPrompt;
+        get;
         private set {
-            if (SetField(ref _isConfirmPrompt, value)) {
+            if (SetField(ref field, value)) {
                 OnPropertyChanged(nameof(IsTextPrompt));
             }
         }
@@ -852,25 +840,24 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
 
     public bool IsTextPrompt => !IsConfirmPrompt;
 
-    private bool _isSecret;
     public bool IsSecret {
-        get => _isSecret;
-        private set => SetField(ref _isSecret, value);
+        get;
+        private set => SetField(ref field, value);
     }
 
     private System.Threading.Tasks.TaskCompletionSource<string?>? _promptTcs;
 
     public async System.Threading.Tasks.Task<string?> RequestTextPromptAsync(string title, string message, string? defaultValue, bool secret) {
         return await Dispatcher.UIThread.InvokeAsync(async () => {
-             PromptTitle = title;
-             PromptMessage = message;
-             PromptValue = defaultValue ?? "";
-             IsSecret = secret;
-             IsConfirmPrompt = false;
-             IsPromptActive = true;
+            PromptTitle = title;
+            PromptMessage = message;
+            PromptValue = defaultValue ?? "";
+            IsSecret = secret;
+            IsConfirmPrompt = false;
+            IsPromptActive = true;
 
-             _promptTcs = new System.Threading.Tasks.TaskCompletionSource<string?>();
-             return await _promptTcs.Task;
+            _promptTcs = new System.Threading.Tasks.TaskCompletionSource<string?>();
+            return await _promptTcs.Task;
         });
     }
 

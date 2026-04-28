@@ -21,6 +21,33 @@ public static class EngineSdk {
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never
     };
 
+    /// <summary>
+    /// Shared registry of structured event names emitted and consumed by the engine.
+    /// Keep this synchronized with the GUI, terminal, and runner code that switches on event payloads.
+    /// </summary>
+    public static class Events {
+        public const string Print = "print";
+        public const string Warning = "warning";
+        public const string Error = "error";
+        public const string Prompt = "prompt";
+        public const string ColorPrompt = "color_prompt";
+        public const string Confirm = "confirm";
+        //public const string Progress = "progress";
+        public const string Start = "start";
+        public const string End = "end";
+        public const string ProgressPanelStart = "progress_panel_start";
+        public const string ProgressPanel = "progress_panel";
+        public const string ProgressPanelEnd = "progress_panel_end";
+        public const string ScriptActiveStart = "script_active_start";
+        public const string ScriptProgress = "script_progress";
+        public const string ScriptActiveEnd = "script_active_end";
+        public const string RunAllStart = "run-all-start";
+        public const string RunAllOpStart = "run-all-op-start";
+        public const string RunAllOpEnd = "run-all-op-end";
+        public const string RunAllOpError = "run-all-op-error";
+        public const string RunAllComplete = "run-all-complete";
+    }
+
     /* :: :: Vars :: END :: */
     //
     /* :: :: Methods :: START :: */
@@ -85,31 +112,31 @@ public static class EngineSdk {
     /// Report a non-fatal warning to the engine UI/log.
     /// </summary>
     public static void Warn(string message) {
-        Emit("warning", new Dictionary<string, object?> { ["message"] = message });
+        Emit(Events.Warning, new Dictionary<string, object?> { ["message"] = message });
     }
 
     /// <summary>
     /// Report an error to the engine UI/log (does not exit the process).
     /// </summary>
     public static void Error(string message) {
-        Emit("error", new Dictionary<string, object?> { ["message"] = message });
+        Emit(Events.Error, new Dictionary<string, object?> { ["message"] = message });
     }
 
     public static string color_prompt(string message, string color, string id = "q1", bool secret = false) {
         // Check for auto-response first
         if (AutoPromptResponses.TryGetValue(id, out string? autoResponse)) {
-            Emit("print", new Dictionary<string, object?> {
+            Emit(Events.Print, new Dictionary<string, object?> {
                 ["message"] = $"? {message}",
                 ["color"] = color
             });
-            Emit("print", new Dictionary<string, object?> {
+            Emit(Events.Print, new Dictionary<string, object?> {
                 ["message"] = $"> {autoResponse} (auto-response)",
                 ["color"] = "yellow"
             });
             return autoResponse;
         }
 
-        Emit("color_prompt", new Dictionary<string, object?> { ["id"] = id, ["message"] = message, ["color"] = color, ["secret"] = secret });
+        Emit(Events.ColorPrompt, new Dictionary<string, object?> { ["id"] = id, ["message"] = message, ["color"] = color, ["secret"] = secret });
         try {
             string? line = System.Console.In.ReadLine();
             return (line ?? string.Empty).TrimEnd('\n');
@@ -133,18 +160,18 @@ public static class EngineSdk {
     public static string Prompt(string message, string id = "q1", bool secret = false) {
         // Check for auto-response first
         if (AutoPromptResponses.TryGetValue(id, out string? autoResponse)) {
-            Emit("print", new Dictionary<string, object?> {
+            Emit(Events.Print, new Dictionary<string, object?> {
                 ["message"] = $"? {message}",
                 ["color"] = "cyan"
             });
-            Emit("print", new Dictionary<string, object?> {
+            Emit(Events.Print, new Dictionary<string, object?> {
                 ["message"] = $"> {autoResponse} (auto-response)",
                 ["color"] = "yellow"
             });
             return autoResponse;
         }
 
-        Emit("prompt", new Dictionary<string, object?> { ["id"] = id, ["message"] = message, ["secret"] = secret });
+        Emit(Events.Prompt, new Dictionary<string, object?> { ["id"] = id, ["message"] = message, ["secret"] = secret });
         try {
             string? line = System.Console.In.ReadLine();
             return (line ?? string.Empty).TrimEnd('\n');
@@ -168,11 +195,11 @@ public static class EngineSdk {
     public static bool Confirm(string message, string id = "q1", bool defaultValue = false) {
         // Check for auto-response first
         if (AutoPromptResponses.TryGetValue(id, out string? autoResponse)) {
-            Emit("print", new Dictionary<string, object?> {
+            Emit(Events.Print, new Dictionary<string, object?> {
                 ["message"] = $"? {message} [y/n]",
                 ["color"] = "cyan"
             });
-            Emit("print", new Dictionary<string, object?> {
+            Emit(Events.Print, new Dictionary<string, object?> {
                 ["message"] = $"> {autoResponse} (auto-response)",
                 ["color"] = "yellow"
             });
@@ -180,7 +207,7 @@ public static class EngineSdk {
                     autoResponse.Trim().Equals("true", System.StringComparison.OrdinalIgnoreCase);
         }
 
-        Emit("confirm", new Dictionary<string, object?> { ["id"] = id, ["message"] = message, ["default"] = defaultValue });
+        Emit(Events.Confirm, new Dictionary<string, object?> { ["id"] = id, ["message"] = message, ["default"] = defaultValue });
         try {
             string? line = System.Console.In.ReadLine();
             if (string.IsNullOrWhiteSpace(line)) return defaultValue;
@@ -210,7 +237,7 @@ public static class EngineSdk {
             ["color"] = string.IsNullOrWhiteSpace(color) ? null : color,
             ["newline"] = newline
         };
-        Emit("print", data);
+        Emit(Events.Print, data);
     }
 
     /// <summary>
@@ -218,13 +245,6 @@ public static class EngineSdk {
     /// </summary>
     public static void PrintLine(string message) {
         Print(message, color: null, newline: true);
-    }
-
-    /// <summary>
-    /// Emit a colored print event with a trailing newline.
-    /// </summary>
-    public static void PrintLine(string message, System.ConsoleColor? color) {
-        Print(message, color?.ToString(), newline: true);
     }
 
     /// <summary>
@@ -293,7 +313,7 @@ public static class EngineSdk {
                 ["total"] = _total,
                 ["label"] = _label
             };
-            Emit("script_progress", data);
+            Emit(Events.ScriptProgress, data);
         }
     }
 
@@ -312,7 +332,7 @@ public static class EngineSdk {
         } catch (System.NotSupportedException ex) {
             Shared.IO.Diagnostics.Bug($"[EngineSdk::ScriptActiveStart()] Unsupported script path '{scriptPath}': {ex}");
         }
-        Emit("script_active_start", new Dictionary<string, object?> {
+        Emit(Events.ScriptActiveStart, new Dictionary<string, object?> {
             ["name"] = string.IsNullOrEmpty(name) ? scriptPath : name,
             ["path"] = scriptPath
         });
@@ -323,7 +343,7 @@ public static class EngineSdk {
     /// should only be called in the main entry point of a script action (e.g., Lua.Main.ExecuteAsync) to indicate that a script has finished.
     /// </summary>
     public static void ScriptActiveEnd(bool success = true, int exitCode = 0) {
-        Emit("script_active_end", new Dictionary<string, object?> {
+        Emit(Events.ScriptActiveEnd, new Dictionary<string, object?> {
             ["success"] = success,
             ["exit_code"] = exitCode
         });
@@ -386,19 +406,15 @@ public static class EngineSdk {
                 if (!_cts.IsCancellationRequested) {
                     _cts.Cancel();
                 }
-                try { _panelTask.Wait(1000); } catch (System.AggregateException ex) {
+                try { _panelTask.Wait(); } catch (System.AggregateException ex) {
                     Shared.IO.Diagnostics.Bug($"[EngineSdk::PanelProgress::Complete()] Failed while waiting for panel task completion: {ex}");
-                    /* ignore */
                 } catch (System.ObjectDisposedException ex) {
                     Shared.IO.Diagnostics.Bug($"[EngineSdk::PanelProgress::Complete()] Panel task disposed while waiting: {ex}");
-                    /* ignore */
                 }
             } catch (System.ObjectDisposedException ex) {
                 Shared.IO.Diagnostics.Bug($"[EngineSdk::PanelProgress::Complete()] Cancellation source disposed: {ex}");
-                /* ignore */
             } catch (System.InvalidOperationException ex) {
                 Shared.IO.Diagnostics.Bug($"[EngineSdk::PanelProgress::Complete()] Failed to cancel panel task: {ex}");
-                /* ignore */
             }
         }
 
@@ -432,7 +448,8 @@ public static class EngineSdk {
             System.Func<List<ActiveProcess>> activeSnapshot,
             string label,
             System.Threading.CancellationToken token,
-            string id = "p1") {
+            string id = "p1"
+        ) {
             return System.Threading.Tasks.Task.Run(() => {
                 // Signal the TUI to prepare for the panel
                 EmitPanelStart(id);
@@ -448,7 +465,7 @@ public static class EngineSdk {
                     data["id"] = id;
 
                     // Emit the event
-                    Emit("progress_panel", data);
+                    Emit(Events.ProgressPanel, data);
 
                     spinnerIndex = (spinnerIndex + 1) & 0x7fffffff;
                     System.Threading.Thread.Sleep(200);
@@ -459,7 +476,7 @@ public static class EngineSdk {
                 List<ActiveProcess> finalAct = activeSnapshot();
                 Dictionary<string, object?> finalData = BuildPanelData(total, finalS, finalAct, ' ', label);
                 finalData["id"] = id;
-                Emit("progress_panel", finalData);
+                Emit(Events.ProgressPanel, finalData);
 
                 // Signal the TUI that the panel is done
                 EmitPanelEnd(id);
@@ -474,11 +491,11 @@ public static class EngineSdk {
             }
             // 1 (progress) + 1 (header/none) + procs (active job lines) + 1 (overflow)
             int reserve = 1 + 1 + procs + 1;
-            Emit("progress_panel_start", new Dictionary<string, object?> { ["reserve"] = reserve, ["id"] = id });
+            Emit(Events.ProgressPanelStart, new Dictionary<string, object?> { ["reserve"] = reserve, ["id"] = id });
         }
 
         private static void EmitPanelEnd(string id) {
-            Emit("progress_panel_end", new Dictionary<string, object?> { ["id"] = id });
+            Emit(Events.ProgressPanelEnd, new Dictionary<string, object?> { ["id"] = id });
         }
 
         private static Dictionary<string, object?> BuildPanelData(long total, (long processed, int ok, int skip, int err) s, List<ActiveProcess> actives, char spinner, string label) {

@@ -1,4 +1,6 @@
 
+using EngineNet.Shared.IO.UI;
+
 namespace EngineNet.Interface.GUI.Pages;
 
 public partial class StorePage:UserControl, INotifyPropertyChanged {
@@ -171,7 +173,7 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
                 $"Download {item.Name}",
                 async (onOutput, onEvent, stdin) => {
                     onEvent(new Dictionary<string, object?> {
-                        ["event"] = "start",
+                        ["event"] = EngineSdk.Events.Start,
                         ["name"] = item.Name,
                         ["url"] = item.Url ?? string.Empty
                     });
@@ -180,7 +182,7 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
 
                     onOutput(result ? $"Download complete for {item.Name}." : $"Download failed for {item.Name}.", result ? "stdout" : "stderr");
                     onEvent(new Dictionary<string, object?> {
-                        ["event"] = "end",
+                        ["event"] = EngineSdk.Events.End,
                         ["success"] = result,
                         ["name"] = item.Name
                     });

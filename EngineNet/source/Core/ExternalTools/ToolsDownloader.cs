@@ -5,6 +5,10 @@ namespace EngineNet.Core.ExternalTools;
 
 internal static class ToolsDownloader {
 
+    private sealed class DownloadProgressState {
+        internal long Processed;
+    }
+
     internal static async Task<bool> ProcessAsync(
         string moduleTomlPath,
         string rootPath,
@@ -136,29 +140,64 @@ internal static class ToolsDownloader {
         IO.Info($"Archive: {archivePath}");
 
         long contentLength = response.Content.Headers.ContentLength ?? -1;
+        long total = contentLength > 0 ? contentLength : 1;
+        DownloadProgressState progressState = new DownloadProgressState();
+        System.Threading.CancellationTokenSource progressCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        System.Threading.Tasks.Task progressTask = EngineSdk.SdkConsoleProgress.StartPanel(
+            total: total,
+            snapshot: () => {
+                long processed = System.Threading.Volatile.Read(ref progressState.Processed);
+                int ok = processed > int.MaxValue ? int.MaxValue : (int)processed;
+                return (processed, ok, 0, 0);
+            },
+            activeSnapshot: () => new List<EngineSdk.SdkConsoleProgress.ActiveProcess>(),
+            label: $"Downloading {fileName}",
+            token: progressCts.Token,
+            id: "download"
+        );
 
         await using System.IO.FileStream outFs = System.IO.File.Create(archivePath);
         await using System.IO.Stream inStream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
-        using (var progress = new EngineSdk.PanelProgress(
-            total: contentLength > 0 ? contentLength : 1,
-            id: "download",
-            label: $"Downloading {fileName}")) {
-            await CopyStreamWithProgressAsync(inStream, outFs, progress);
+        try {
+            await CopyStreamWithProgressAsync(inStream, outFs, progressState, cancellationToken);
+        } finally {
+            try {
+                if (!progressCts.IsCancellationRequested) {
+                    progressCts.Cancel();
+                }
+
+                try {
+                    await progressTask.ConfigureAwait(false);
+                } catch (System.OperationCanceledException) {
+                    /* ignore */
+                } catch (System.AggregateException ex) {
+                    Shared.IO.Diagnostics.Bug("[ToolsDownloader::DownloadToolAsync()] Progress task wait failed.", ex);
+                    /* ignore */
+                } catch (System.ObjectDisposedException ex) {
+                    Shared.IO.Diagnostics.Bug("[ToolsDownloader::DownloadToolAsync()] Progress task disposed while waiting.", ex);
+                    /* ignore */
+                } catch (System.InvalidOperationException ex) {
+                    Shared.IO.Diagnostics.Bug("[ToolsDownloader::DownloadToolAsync()] Progress task wait failed with invalid state.", ex);
+                    /* ignore */
+                }
+            } finally {
+                progressCts.Dispose();
+            }
         }
 
         IO.Info("Download complete.");
         return archivePath;
     }
 
-    private static async Task CopyStreamWithProgressAsync(System.IO.Stream input, System.IO.Stream output, EngineSdk.PanelProgress progress) {
+    private static async Task CopyStreamWithProgressAsync(System.IO.Stream input, System.IO.Stream output, DownloadProgressState progressState, CancellationToken cancellationToken) {
         const int BufferSize = 81920;
         byte[] buffer = new byte[BufferSize];
         int read;
 
-        while ((read = await input.ReadAsync(buffer.AsMemory(0, BufferSize))) > 0) {
-            await output.WriteAsync(buffer.AsMemory(0, read));
-            progress.Update(read);
+        while ((read = await input.ReadAsync(buffer.AsMemory(0, BufferSize), cancellationToken)) > 0) {
+            await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+            System.Threading.Interlocked.Add(ref progressState.Processed, read);
         }
     }
 
@@ -167,13 +206,9 @@ internal static class ToolsDownloader {
 
         if (System.OperatingSystem.IsWindows()) {
             return GetWindowsPlatformIdentifier(architecture);
-        }
-
-        if (System.OperatingSystem.IsLinux()) {
+        } else if (System.OperatingSystem.IsLinux()) {
             return GetLinuxPlatformIdentifier(architecture);
-        }
-
-        if (System.OperatingSystem.IsMacOS()) {
+        } else if (System.OperatingSystem.IsMacOS()) {
             return GetMacosPlatformIdentifier(architecture);
         }
 

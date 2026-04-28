@@ -78,9 +78,10 @@ internal static class QuickBmsExtractor {
                 return new List<EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> { current };
             },
             label: "Extracting Archives",
-            token: cts.Token);
+            token: cts.Token
+        );
 
-        foreach (string? file in files) {
+        foreach (string file in files) {
             string relative = GetSafeRelative(options.InputPath, file);
             string outputDir = BuildOutputDirectory(options.OutputPath, relative, file, extensionLabel);
             System.IO.Directory.CreateDirectory(outputDir);
@@ -121,7 +122,6 @@ internal static class QuickBmsExtractor {
         cts.Cancel();
         try { panel.Wait(cts.Token); } catch {
             Shared.IO.Diagnostics.Bug("Failed to wait for progress panel");
-            /* ignore */
         }
 
         WriteInfo($"QuickBMS extraction complete. Success: {success}/{files.Count}.");

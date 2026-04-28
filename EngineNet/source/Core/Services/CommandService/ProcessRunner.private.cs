@@ -1,3 +1,5 @@
+using EngineNet.Shared.IO.UI;
+
 namespace EngineNet.Core;
 
 /// <summary>
@@ -147,7 +149,7 @@ public sealed partial class ProcessRunner {
                 if (cancellationToken.IsCancellationRequested) {
                     TryTerminate(proc);
                     onEvent?.Invoke(new Dictionary<string, object?>
-                        { ["event"] = "end", ["success"] = false, ["exit_code"] = 130 });
+                        { ["event"] = EngineSdk.Events.End, ["success"] = false, ["exit_code"] = 130 });
                     return false;
                 }
 
@@ -194,30 +196,30 @@ public sealed partial class ProcessRunner {
             int rc = proc.ExitCode;
             bool success = rc == 0;
             onEvent?.Invoke(
-                new Dictionary<string, object?> { ["event"] = "end", ["success"] = success, ["exit_code"] = rc });
+                new Dictionary<string, object?> { ["event"] = EngineSdk.Events.End, ["success"] = success, ["exit_code"] = rc });
             return success;
         } catch (System.OperationCanceledException ex) {
             Shared.IO.Diagnostics.Bug("[ProcessRunner::Execute()] Operation cancelled: " + ex.Message);
             TryTerminate(proc);
             onEvent?.Invoke(new Dictionary<string, object?>
-                { ["event"] = "end", ["success"] = false, ["exit_code"] = 130 });
+                { ["event"] = EngineSdk.Events.End, ["success"] = false, ["exit_code"] = 130 });
             return false;
         } catch (System.IO.FileNotFoundException ex) {
             Shared.IO.Diagnostics.Bug("[ProcessRunner::Execute()] Command or script not found: " + ex.Message);
             onEvent?.Invoke(new Dictionary<string, object?>
-                { ["event"] = "error", ["kind"] = "FileNotFoundError", ["message"] = "Command or script not found." });
+                { ["event"] = EngineSdk.Events.Error, ["kind"] = "FileNotFoundError", ["message"] = "Command or script not found." });
             return false;
         } catch (System.ComponentModel.Win32Exception ex) {
             // Catches OS-level process failures (e.g., Access Denied, bad executable format)
             Shared.IO.Diagnostics.Bug("[ProcessRunner::Execute()] OS error starting or running process: " + ex.Message);
             onEvent?.Invoke(new Dictionary<string, object?>
-                { ["event"] = "error", ["kind"] = "Win32Exception", ["message"] = ex.Message });
+                { ["event"] = EngineSdk.Events.Error, ["kind"] = "Win32Exception", ["message"] = ex.Message });
             return false;
         } catch (System.InvalidOperationException ex) {
             // Catches bad process state operations (e.g., trying to read ExitCode before it exits, though HasExited check mitigates this)
             Shared.IO.Diagnostics.Bug("[ProcessRunner::Execute()] Invalid process state: " + ex.Message);
             onEvent?.Invoke(new Dictionary<string, object?>
-                { ["event"] = "error", ["kind"] = "InvalidOperation", ["message"] = ex.Message });
+                { ["event"] = EngineSdk.Events.Error, ["kind"] = "InvalidOperation", ["message"] = ex.Message });
             return false;
         }
         finally {

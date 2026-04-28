@@ -1,4 +1,5 @@
 
+using EngineNet.Shared.IO.UI;
 
 namespace EngineNet.Interface.Terminal;
 
@@ -38,7 +39,7 @@ public class Utils {
         Dictionary<string, object?> op,
         Core.Data.PromptAnswers promptAnswers,
         Dictionary<string, string>? autoPromptResponses = null,
-        System.Threading.CancellationToken cancellationToken = default
+        System.Threading.CancellationToken cancellationToken = default(CancellationToken)
     ) {
         try {
             string? script_type = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant();
@@ -48,7 +49,7 @@ public class Utils {
                 // Route in-process SDK events to our terminal renderer
                 System.Action<Dictionary<string, object?>>? prevSink = Shared.IO.UI.EngineSdk.LocalEventSink;
                 bool prevMute = Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink;
-                Dictionary<string, string> prevAutoResponses = new(Shared.IO.UI.EngineSdk.AutoPromptResponses);
+                var prevAutoResponses = new Dictionary<string, string>(Shared.IO.UI.EngineSdk.AutoPromptResponses);
                 try {
                     // Set auto-prompt responses if provided
                     if (autoPromptResponses is { Count: > 0 }) {
@@ -156,7 +157,7 @@ public class Utils {
 
     public static void OnOutput(string line, string stream) {
         OnEvent(new Dictionary<string, object?> {
-            ["event"] = "print",
+            ["event"] = EngineSdk.Events.Print,
             ["message"] = line,
             ["color"] = stream == "stderr" ? "red" : "gray"
         });
@@ -172,35 +173,35 @@ public class Utils {
         string? typ = typObj?.ToString();
 
         switch (typ) {
-            case "print":
+            case EngineSdk.Events.Print:
                 string msg = evt.TryGetValue("message", out object? m) ? m?.ToString() ?? "" : "";
                 string colorName = evt.TryGetValue("color", out object? c) ? c?.ToString() ?? "gray" : "gray";
                 TuiRenderer.Log(msg, MapColor(colorName));
                 break;
 
-            case "warning":
+            case EngineSdk.Events.Warning:
                 TuiRenderer.Log($"[WARN] {evt.GetValueOrDefault("message", "")}", ConsoleColor.Yellow);
                 break;
 
-            case "error":
+            case EngineSdk.Events.Error:
                 TuiRenderer.Log($"[ERR] {evt.GetValueOrDefault("message", "")}", ConsoleColor.Red);
                 break;
 
-            case "prompt":
-            case "color_prompt": {
+            case EngineSdk.Events.Prompt:
+            case EngineSdk.Events.ColorPrompt: {
                 string pMsg = evt.TryGetValue("message", out object? pm) ? pm?.ToString() ?? "Input required" : "Input required";
                 TuiRenderer.Log($"? {pMsg}", ConsoleColor.Cyan);
                 break;
             }
 
-            case "confirm": {
+            case EngineSdk.Events.Confirm: {
                 string cMsg = evt.TryGetValue("message", out object? cm) ? cm?.ToString() ?? "Confirm?" : "Confirm?";
                 bool def = evt.TryGetValue("default", out object? d) && d is true;
                 TuiRenderer.Log($"? {cMsg} [{(def ? "y/N" : "Y/n")}]", ConsoleColor.Cyan);
                 break;
             }
 
-            case "progress_panel_start": {
+            case EngineSdk.Events.ProgressPanelStart: {
                 lock (s_consoleLock) {
                     s_activePanels++;
                     if (!EngineNet.Shared.State.IsCli && !TuiRenderer.IsActive) {
@@ -211,7 +212,7 @@ public class Utils {
                 break;
             }
 
-            case "progress_panel": {
+            case EngineSdk.Events.ProgressPanel: {
                 string id = evt.TryGetValue("id", out object? idObj) ? idObj?.ToString() ?? "p1" : "p1";
                 List<string> lines = BuildTuiProgressLines(evt);
                 lock (s_consoleLock) {
@@ -235,7 +236,7 @@ public class Utils {
                 break;
             }
 
-            case "progress_panel_end": {
+            case EngineSdk.Events.ProgressPanelEnd: {
                 string id = evt.TryGetValue("id", out object? idObj) ? idObj?.ToString() ?? "p1" : "p1";
                 lock (s_consoleLock) {
                     if (s_panelStatus.TryGetValue(id, out var lastLines) && lastLines.Count > 0) {
@@ -264,13 +265,13 @@ public class Utils {
                 break;
             }
 
-            case "run-all-op-end":
-            case "run-all-complete":
+            case EngineSdk.Events.RunAllOpEnd:
+            case EngineSdk.Events.RunAllComplete:
                 TuiRenderer.Log($"✔ Operation completed via run-all: {evt.GetValueOrDefault("name", "Unnamed")}", ConsoleColor.Green);
                 break;
 
-            case "run-all-op-start":
-            case "run-all-start":
+            case EngineSdk.Events.RunAllOpStart:
+            case EngineSdk.Events.RunAllStart:
                 TuiRenderer.Log($"✔ Operation started via run-all: {evt.GetValueOrDefault("name", "Unnamed")}", ConsoleColor.Green);
                 break;
 

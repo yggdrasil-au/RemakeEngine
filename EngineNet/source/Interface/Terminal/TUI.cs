@@ -20,7 +20,7 @@ internal partial class TUI {
     /// - appends completion time summaries after operations
     /// </summary>
     /// <returns></returns>
-    public async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync(System.Threading.CancellationToken cancellationToken = default, string? msg = null) {
+    public async System.Threading.Tasks.Task<int> RunInteractiveMenuAsync(System.Threading.CancellationToken cancellationToken = default(CancellationToken), string? msg = null) {
         try {
             // get all modules that exist on disk
             Core.Data.GameModules modules = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.Installed);
@@ -49,7 +49,7 @@ internal partial class TUI {
 
                 // Build menu with states
                 // foreach module, display '<Name> [<isRegistered>, <isInstalled (always true here)>, <isBuilt>]'
-                foreach (var item in modules.Values.Select(m => (Display: $"{m.Name}  [{m.DescribeState()}]", Name: m.Name))) {
+                foreach (var item in modules.Values.Select(m => (Display: $"{m.Name}  [{m.DescribeState()}]", m.Name))) {
                     gameMenu.Add(item.Display);
                     gameKeyMap.Add(item.Name);
                 }
@@ -87,7 +87,7 @@ internal partial class TUI {
 
             // 2) Load operations list and render menu
 
-            Core.Data.GameModuleInfo? info = null;
+            Core.Data.GameModuleInfo? info;
             // check the module exists in combined modules dictionary
             if (!allAvailableModules.TryGetValue(gameName, out var moduleInfo) || (info = moduleInfo) is null) {
                 Shared.IO.Diagnostics.Log("[TUI::RunInteractiveMenuAsync()] Selected game not found.");
@@ -136,7 +136,7 @@ internal partial class TUI {
                     okAllInit &= ok;
                 }
                 initStopwatch.Stop();
-                //didRunInit = true;
+
                 Shared.IO.Diagnostics.Trace($"[TUI::RunInteractiveMenuAsync()] Completed init operations for {gameName} in {FormatElapsed(initStopwatch.Elapsed)}. Success: {okAllInit}");
                 System.Console.WriteLine(okAllInit
                     ? $"Initialization completed successfully. Time: {FormatElapsed(initStopwatch.Elapsed)}. Press any key to continue..."
@@ -191,82 +191,87 @@ internal partial class TUI {
                 }
 
                 string selection = menu[idx];
-                if (selection == "Change Game") {
-                    // Restart the full menu loop by re-picking game
-                    return await RunInteractiveMenuAsync();
-                }
-                if (selection == "Exit") {
-                    return 0;
-                }
-                if (selection == "Play") {
-                    SafeClear();
-                    System.Console.WriteLine($"Launching game '{gameName}'...\n");
+                switch (selection) {
+                    case "Change Game":
+                        // Restart the full menu loop by re-picking game
+                        return await RunInteractiveMenuAsync();
+                    case "Exit":
+                        return 0;
+                    case "Play": {
+                        SafeClear();
+                        System.Console.WriteLine($"Launching game '{gameName}'...\n");
 
-                    // Route in-process SDK events (e.g. from Lua scripts) to our terminal renderer
-                    System.Action<Dictionary<string, object?>>? prevSink = Shared.IO.UI.EngineSdk.LocalEventSink;
-                    bool prevMute = Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink;
+                        // Route in-process SDK events (e.g. from Lua scripts) to our terminal renderer
+                        System.Action<Dictionary<string, object?>>? prevSink = Shared.IO.UI.EngineSdk.LocalEventSink;
+                        bool prevMute = Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink;
 
-                    Shared.IO.UI.EngineSdk.LocalEventSink = Utils.OnEvent;
-                    Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
+                        Shared.IO.UI.EngineSdk.LocalEventSink = Utils.OnEvent;
+                        Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
 
-                    try {
-                        bool launched = await Engine.GameLauncher_LaunchGameAsync(name: gameName);
-                        System.Console.WriteLine(launched
-                            ? "\nGame finished or launched successfully. Press any key to continue..."
-                            : "\nFailed to launch game. Press any key to continue...");
-                    } finally {
-                        Shared.IO.UI.EngineSdk.LocalEventSink = prevSink;
-                        Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
+                        try {
+                            bool launched = await Engine.GameLauncher_LaunchGameAsync(name: gameName);
+                            System.Console.WriteLine(launched
+                                ? "\nGame finished or launched successfully. Press any key to continue..."
+                                : "\nFailed to launch game. Press any key to continue...");
+                        } finally {
+                            Shared.IO.UI.EngineSdk.LocalEventSink = prevSink;
+                            Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
+                        }
+
+                        SafeReadKey(true);
+                        continue;
                     }
+                    case "Run All": {
+                        using var runAllCts = new System.Threading.CancellationTokenSource();
+                        try {
+                            // 1. Initialize Advanced UI
+                            TuiRenderer.Initialize(runAllCts);
+                            TuiRenderer.Log($"Running operations for {gameName}...", ConsoleColor.Cyan);
 
-                    SafeReadKey(true);
-                    continue;
-                }
-                if (selection == "Run All") {
-                    using var runAllCts = new System.Threading.CancellationTokenSource();
-                    try {
-                        // 1. Initialize Advanced UI
-                        TuiRenderer.Initialize(runAllCts);
-                        TuiRenderer.Log($"Running operations for {gameName}...", ConsoleColor.Cyan);
+                            System.Diagnostics.Stopwatch runAllStopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-                        System.Diagnostics.Stopwatch runAllStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                            // 2. Pass our custom StdinProvider that works with the Renderer
+                            Core.ProcessRunner.StdinProvider rendererInput = () => TuiRenderer.ReadLineCustom("Input >", false);
 
-                        // 2. Pass our custom StdinProvider that works with the Renderer
-                        Core.ProcessRunner.StdinProvider rendererInput = () => TuiRenderer.ReadLineCustom("Input >", false);
+                            Core.Operations.RunAllResult result = await Engine.RunAllAsync(
+                                gameName,
+                                onOutput: Utils.OnOutput, // Make sure OnOutput calls OnEvent -> TuiRenderer
+                                onEvent: Utils.OnEvent,
+                                stdinProvider: rendererInput,
+                                cancellationToken: runAllCts.Token
+                            );
+                            runAllStopwatch.Stop();
 
-                        Core.Operations.RunAllResult result = await Engine.RunAllAsync(
-                            gameName,
-                            onOutput: Utils.OnOutput, // Make sure OnOutput calls OnEvent -> TuiRenderer
-                            onEvent: Utils.OnEvent,
-                            stdinProvider: rendererInput,
-                            cancellationToken: runAllCts.Token
-                        );
-                        runAllStopwatch.Stop();
+                            TuiRenderer.Log(result.Success ? "Completed successfully." : "One or more operations failed.",
+                                result.Success ? ConsoleColor.Green : ConsoleColor.Red);
 
-                        TuiRenderer.Log(result.Success ? "Completed successfully." : "One or more operations failed.",
-                                        result.Success ? ConsoleColor.Green : ConsoleColor.Red);
+                            TuiRenderer.Log($"({result.SucceededOperations}/{result.TotalOperations} operations succeeded). Time: {FormatElapsed(runAllStopwatch.Elapsed)}.", ConsoleColor.White);
+                            TuiRenderer.Log("Press any key to continue...", ConsoleColor.White);
+                            TuiRenderer.WaitForKey();
 
-                        TuiRenderer.Log($"({result.SucceededOperations}/{result.TotalOperations} operations succeeded). Time: {FormatElapsed(runAllStopwatch.Elapsed)}.", ConsoleColor.White);
-                        TuiRenderer.Log("Press any key to continue...", ConsoleColor.White);
-                        TuiRenderer.WaitForKey();
+                            continue;
+                        } catch (System.Exception ex) {
+                            TuiRenderer.Log($"Error: {ex.Message}", ConsoleColor.Red);
+                            Shared.IO.Diagnostics.Bug($"[TUI::RunAll()] Error during Run All: {ex.Message}");
+                            TuiRenderer.WaitForKey();
+                            continue;
+                        } finally {
+                            // 3. Return to standard menu mode
+                            TuiRenderer.Shutdown();
+                        }
 
-                        continue;
-                    } catch (System.Exception ex) {
-                        TuiRenderer.Log($"Error: {ex.Message}", ConsoleColor.Red);
-                        Shared.IO.Diagnostics.Bug($"[TUI::RunAll()] Error during Run All: {ex.Message}");
-                        TuiRenderer.WaitForKey();
-                        continue;
-                    } finally {
-                        // 3. Return to standard menu mode
-                        TuiRenderer.Shutdown();
                     }
                 }
 
                 // Otherwise, run a single operation (by index within regular ops)
                 int opIndex = idx - opStartIndex;
-                if (opIndex >= 0 && opIndex < preparedOps.RegularOperations.Count) {
+                if (opIndex < 0 || opIndex >= preparedOps.RegularOperations.Count){
+                    continue; // invalid selection (eg. separator or out of bounds), just refresh menu
+                }
+                // Run the selected operation
+                {
                     Dictionary<string, object?> op = preparedOps.RegularOperations[opIndex].Operation;
-                    Core.Data.PromptAnswers answers = new Core.Data.PromptAnswers();
+                    var answers = new Core.Data.PromptAnswers();
 
                     // Initialize Renderer for interactive prompts and execution
                     TuiRenderer.Initialize();
@@ -276,12 +281,12 @@ internal partial class TUI {
                         if (await promptTask) {
                             TuiRenderer.Log($"Running: {selection}\n", ConsoleColor.Cyan);
                             System.Diagnostics.Stopwatch opStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                            bool ok = await new Utils().ExecuteOpAsync(Engine, gameName, allAvailableModules, op, answers);
+                            bool ok = await new Utils().ExecuteOpAsync(Engine, gameName, allAvailableModules, op, answers, cancellationToken: cancellationToken);
                             opStopwatch.Stop();
 
                             TuiRenderer.Log(ok
-                                ? $"Completed successfully. Time: {FormatElapsed(opStopwatch.Elapsed)}."
-                                : $"Operation failed. Time: {FormatElapsed(opStopwatch.Elapsed)}.",
+                                    ? $"Completed successfully. Time: {FormatElapsed(opStopwatch.Elapsed)}."
+                                    : $"Operation failed. Time: {FormatElapsed(opStopwatch.Elapsed)}.",
                                 ok ? ConsoleColor.Green : ConsoleColor.Red);
 
                             TuiRenderer.Log("Press any key to continue...", ConsoleColor.White);

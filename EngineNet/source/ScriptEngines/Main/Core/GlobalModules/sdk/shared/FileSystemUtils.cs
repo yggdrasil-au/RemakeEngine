@@ -7,6 +7,10 @@ namespace EngineNet.ScriptEngines.Global.SdkModule;
 /// Provides safe file system operations with proper security checks.
 /// </summary>
 internal static class FileSystemUtils {
+    private sealed class CopyProgressState {
+        internal long Processed;
+    }
+
     internal static bool PathExists(string path) => System.IO.Path.Exists(path);
 
     internal static bool PathExistsIncludingLinks(string path) {
@@ -138,27 +142,62 @@ internal static class FileSystemUtils {
         int total = files.Count;
         //int current = 0;
 
-        using Shared.IO.UI.EngineSdk.PanelProgress? progress = total > 0
-            ? new Shared.IO.UI.EngineSdk.PanelProgress(total, id: "fs_copy", label: progressLabel ?? $"Copying {total} files...")
-            : null;
+        CopyProgressState? progressState = total > 0 ? new CopyProgressState() : null;
+        System.Threading.CancellationTokenSource? progressCts = null;
+        System.Threading.Tasks.Task? progressTask = null;
 
         // Write initial line
         if (total > 0) {
             Shared.IO.UI.EngineSdk.Print($"Copying {total} files from '{srcRoot}' to '{dstRoot}'...");
+            progressCts = new System.Threading.CancellationTokenSource();
+            progressTask = Shared.IO.UI.EngineSdk.SdkConsoleProgress.StartPanel(
+                total: total,
+                snapshot: () => {
+                    long processed = System.Threading.Volatile.Read(ref progressState!.Processed);
+                    int ok = processed > int.MaxValue ? int.MaxValue : (int)processed;
+                    return (processed, ok, 0, 0);
+                },
+                activeSnapshot: () => new List<Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess>(),
+                label: progressLabel ?? $"Copying {total} files...",
+                token: progressCts.Token,
+                id: "fs_copy"
+            );
         }
 
-        // Copy files with progress
-        foreach (var item in files.Select(file => (File: file, Target: System.IO.Path.Combine(dstRoot, System.IO.Path.GetRelativePath(srcRoot, file))))) {
-            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(item.Target)!);
-            System.IO.File.Copy(item.File, item.Target, overwrite: true);
+        try {
+            // Copy files with progress
+            foreach (var item in files.Select(file => (File: file, Target: System.IO.Path.Combine(dstRoot, System.IO.Path.GetRelativePath(srcRoot, file))))) {
+                System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(item.Target)!);
+                System.IO.File.Copy(item.File, item.Target, overwrite: true);
 
-            //current++;
-            progress?.Update(1);
-        }
+                //current++;
+                if (progressState != null) {
+                    System.Threading.Interlocked.Increment(ref progressState.Processed);
+                }
+            }
+        } finally {
+            if (progressCts != null && progressTask != null) {
+                try {
+                    if (!progressCts.IsCancellationRequested) {
+                        progressCts.Cancel();
+                    }
 
-        // Finish line
-        if (total > 0) {
-            progress?.Complete();
+                    try {
+                        progressTask.Wait();
+                    } catch (System.AggregateException ex) {
+                        Shared.IO.Diagnostics.Bug("[FileSystemUtils::CopyDirectory()] Progress task wait failed.", ex);
+                        /* ignore */
+                    } catch (System.ObjectDisposedException ex) {
+                        Shared.IO.Diagnostics.Bug("[FileSystemUtils::CopyDirectory()] Progress task disposed while waiting.", ex);
+                        /* ignore */
+                    } catch (System.InvalidOperationException ex) {
+                        Shared.IO.Diagnostics.Bug("[FileSystemUtils::CopyDirectory()] Progress task wait failed with invalid state.", ex);
+                        /* ignore */
+                    }
+                } finally {
+                    progressCts.Dispose();
+                }
+            }
         }
     }
 

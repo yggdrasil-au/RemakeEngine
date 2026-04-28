@@ -2,6 +2,7 @@
 namespace EngineNet.Interface.GUI.Pages;
 
 using Core.Data;
+using EngineNet.Shared.IO.UI;
 
 public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
@@ -470,10 +471,10 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 moduleName: ModuleName,
                 operationName: $"Download {ModuleName}",
                 executor: async (onOutput, onEvent, _) => {
-                    onEvent(new Dictionary<string, object?> { ["event"] = "start", ["name"] = ModuleName, ["url"] = RegistryUrl });
+                    onEvent(new Dictionary<string, object?> { ["event"] = EngineSdk.Events.Start, ["name"] = ModuleName, ["url"] = RegistryUrl });
                     bool result = await System.Threading.Tasks.Task.Run(function: () => GuiBootstrapper.MiniEngine.GitService_CloneModule(RegistryUrl!));
                     onOutput(result ? $"Download complete for {ModuleName}." : $"Download failed for {ModuleName}.", result ? "stdout" : "stderr");
-                    onEvent(new Dictionary<string, object?> { ["event"] = "end", ["success"] = result, ["name"] = ModuleName });
+                    onEvent(new Dictionary<string, object?> { ["event"] = EngineSdk.Events.End, ["success"] = result, ["name"] = ModuleName });
                     return result;
                 }
             );
@@ -507,7 +508,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
         async Task<PromptResponse> Handler(PromptRequest request) {
             switch (request.Type) {
-                case "confirm": {
+                case EngineSdk.Events.Confirm: {
                     bool defVal = request.DefaultValue is bool b && b;
                     bool? res = await OperationOutputService.Instance.RequestConfirmPromptAsync(title: request.Title, message: request.Title, defaultValue: defVal);
                     if (res == null) {

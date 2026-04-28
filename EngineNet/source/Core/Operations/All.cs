@@ -1,4 +1,6 @@
 
+using EngineNet.Shared.IO.UI;
+
 namespace EngineNet.Core.Operations;
 
 public sealed record RunAllResult(string Game, bool Success, int TotalOperations, int SucceededOperations);
@@ -80,7 +82,7 @@ public sealed class All {
             selected.AddRange(allOps);
         }
 
-        EmitSequenceEvent(onEvent, "run-all-start", gameName, new Dictionary<string, object?> {
+        EmitSequenceEvent(onEvent, EngineSdk.Events.RunAllStart, gameName, new Dictionary<string, object?> {
             ["total"] = selected.Count
         });
 
@@ -118,7 +120,7 @@ public sealed class All {
 
                 Dictionary<string, object?> op = selected[index];
                 currentOperation.Value = ResolveOperationName(op);
-                EmitSequenceEvent(onEvent, "run-all-op-start", gameName, new Dictionary<string, object?> {
+                EmitSequenceEvent(onEvent, EngineSdk.Events.RunAllOpStart, gameName, new Dictionary<string, object?> {
                     ["index"] = index,
                     ["total"] = selected.Count,
                     ["name"] = currentOperation.Value
@@ -140,7 +142,7 @@ public sealed class All {
                     }
                 } catch (System.Exception ex) {
                     overallSuccess = false;
-                    EmitSequenceEvent(onEvent, evt: "run-all-op-error", gameName, extras: new Dictionary<string, object?> {
+                    EmitSequenceEvent(onEvent, evt: EngineSdk.Events.RunAllOpError, gameName, extras: new Dictionary<string, object?> {
                         [key: "name"] = currentOperation.Value,
                         [key: "message"] = ex.Message
                     });
@@ -152,7 +154,7 @@ public sealed class All {
                     succeeded++;
                 }
 
-                EmitSequenceEvent(onEvent, "run-all-op-end", gameName, new Dictionary<string, object?> {
+                EmitSequenceEvent(onEvent, EngineSdk.Events.RunAllOpEnd, gameName, new Dictionary<string, object?> {
                     ["index"] = index,
                     ["total"] = selected.Count,
                     ["name"] = currentOperation.Value,
@@ -168,7 +170,7 @@ public sealed class All {
             Shared.IO.Diagnostics.Trace($"[RunAll.cs::RunAllAsync()] finished running all operations for game '{gameName}'");
         }
 
-        EmitSequenceEvent(onEvent, "run-all-complete", gameName, new Dictionary<string, object?> {
+        EmitSequenceEvent(onEvent, EngineSdk.Events.RunAllComplete, gameName, new Dictionary<string, object?> {
             ["success"] = overallSuccess,
             ["total"] = selected.Count,
             ["succeeded"] = succeeded

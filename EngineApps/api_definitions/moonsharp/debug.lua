@@ -69,17 +69,7 @@ function debug.gethook(co) end
 ---@nodiscard
 function debug.getinfo(thread, f, what) end
 
----#if VERSION <= 5.1 and not JIT then
----#DES 'debug.getlocal<5.1'
----@overload fun(level: integer, index: integer):string, any
----@param thread  thread
----@param level   integer
----@param index   integer
----@return string name
----@return any    value
----@nodiscard
-function debug.getlocal(thread, level, index) end
----#else
+---#if VERSION >= 5.2 and not JIT then
 ---#DES 'debug.getlocal>5.2'
 ---@overload fun(f: integer|async fun(...):..., index: integer):string, any
 ---@param thread  thread

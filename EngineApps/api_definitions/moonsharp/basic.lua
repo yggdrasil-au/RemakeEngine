@@ -201,11 +201,6 @@ function next(table, index) end
 function pairs(t) end
 
 ---#DES 'pcall'
----#if VERSION == 5.1 and not JIT then
----@param f     function
----#else
----@param f     async fun(...):...
----#end
 ---@param arg1? any
 ---@param ...   any
 ---@return boolean success

@@ -46,7 +46,9 @@ public sealed class Main : IScriptAction {
                     requiredVersion = v?.ToString();
                 }
             }
-        } catch { /* ignore parse issues; best-effort */ }
+        } catch (System.IO.IOException ex) {
+            throw new System.IO.IOException($"Failed to read Tools.toml at '{toolsToml}' to determine required QuickBMS version.", ex);
+        }
 
         // Resolve QuickBMS exe and version via provider (tool lockfile or resolver)
         //Core.ExternalTools.ToolMetadataProvider provider = new Core.ExternalTools.ToolMetadataProvider(projectRoot: EngineNet.Shared.State.RootPath, resolver: tools);

@@ -60,7 +60,7 @@ public sealed class Single {
         try {
             switch (scriptType) {
                 // for running built-in engine operations (like download-tools) or internal operations (like download_module_git)
-                case var t when Utils.ScriptConstants.IsBuiltIn(t): {
+                case var _ when Utils.ScriptConstants.IsBuiltIn(scriptType): {
                     try {
                         string? action = executableOperation.TryGetValue("script", out object? s) ? s?.ToString() : null;
                         string? title = executableOperation.TryGetValue("Name", out object? n) ? n?.ToString() ?? action : action;
@@ -76,8 +76,8 @@ public sealed class Single {
                     }
                     break;
                 }
-                // for running external script types (like bms)
-                case var t when Utils.ScriptConstants.IsExternal(t): {
+                // for running external script types (like bms) via the external action dispatcher for calling third party tools like QuickBMS
+                case var _ when Utils.ScriptConstants.IsExternal(scriptType): {
                     try {
                         string inputDir = executableOperation.TryGetValue("input", out object? in0) ? in0?.ToString() ?? string.Empty : string.Empty;
                         string outputDir = executableOperation.TryGetValue("output", out object? out0) ? out0?.ToString() ?? string.Empty : string.Empty;
@@ -113,7 +113,7 @@ public sealed class Single {
                     break;
                 }
                 // for running embedded script types (lua, js, python)
-                case var t when Core.Utils.ScriptConstants.IsEmbedded(t): {
+                case var _ when Core.Utils.ScriptConstants.IsEmbedded(scriptType): {
                     try {
                         // create the action with the dispatcher
                         IEnumerable<string> argsEnum = args;
@@ -143,6 +143,7 @@ public sealed class Single {
                 }
                 default: {
                     // not supported
+                    IO.Warn($"operation ERROR: Unsupported script type '{scriptType}'");
                     Shared.IO.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Unsupported script type '{scriptType}'");
                     break;
                 }
@@ -154,13 +155,14 @@ public sealed class Single {
         }
 
         // If the main operation succeeded, run any nested [[operation.onsuccess]] steps
-        if (result && helpers.OpMetadataExtractor.ExtractSuccessActions(rawOperation, out List<Dictionary<string, object?>>? followUps) && followUps is not null) {
-            foreach (Dictionary<string, object?> childOp in followUps) {
-                if (cancellationToken.IsCancellationRequested) break;
-                bool ok = await OperationContext.Single.RunAsync( currentGame, games, op: childOp, promptAnswers, Context, OperationContext, cancellationToken);
-                if (!ok) {
-                    result = false; // propagate failure from any onsuccess step
-                }
+        if (!result || !helpers.OpMetadataExtractor.ExtractSuccessActions(rawOperation, out List<Dictionary<string, object?>>? followUps) || followUps is null) {
+            return result;
+        }
+        foreach (Dictionary<string, object?> childOp in followUps) {
+            if (cancellationToken.IsCancellationRequested) break;
+            bool ok = await OperationContext.Single.RunAsync( currentGame, games, op: childOp, promptAnswers, Context, OperationContext, cancellationToken);
+            if (!ok) {
+                result = false; // propagate failure from any onsuccess step
             }
         }
 
