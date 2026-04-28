@@ -1,7 +1,7 @@
 
 namespace EngineNet.Interface.Terminal;
 
-public partial class TUI {
+internal partial class TUI {
 
     /* :: :: Constructor, Var :: START :: */
     private readonly MiniEngineFace Engine;

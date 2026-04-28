@@ -35,7 +35,7 @@ internal class BuiltInOperations {
         // --list functionality
         if (opts.List) {
             if (!System.IO.File.Exists(configPath)) {
-                Shared.IO.UI.EngineSdk.Error($"Config file does not exist at {configPath}");
+                IO.Error($"Config file does not exist at {configPath}");
                 return false;
             }
             try {
@@ -82,11 +82,11 @@ internal class BuiltInOperations {
                     // Check if we are just lacking args but not in list mode
                     // Lua checks: if not opts.group or not opts.key then return 1
                     if (string.IsNullOrEmpty(opts.Group) || string.IsNullOrEmpty(opts.Key)) {
-                        Shared.IO.UI.EngineSdk.Error("Missing --group/--key for set operation");
+                        IO.Error("Missing --group/--key for set operation");
                         return false;
                     }
                     if (opts.Value == null) {
-                        Shared.IO.UI.EngineSdk.Error("Missing --value for set operation");
+                        IO.Error("Missing --value for set operation");
                         return false;
                     }
                 } else {

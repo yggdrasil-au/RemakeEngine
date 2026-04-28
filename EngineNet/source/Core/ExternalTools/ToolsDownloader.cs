@@ -1,4 +1,5 @@
 using System.Net.Http;
+using EngineNet.Shared.IO.UI;
 
 namespace EngineNet.Core.ExternalTools;
 
@@ -19,10 +20,10 @@ internal static class ToolsDownloader {
         }
 
         string platform = GetPlatformIdentifier();
-        Shared.IO.UI.EngineSdk.Info($"Platform: {platform}");
+        IO.Info($"Platform: {platform}");
 
         List<ToolManifestEntry> tools = ToolManifestParser.Load(moduleTomlPath);
-        Shared.IO.UI.EngineSdk.Info($"Found {tools.Count} tool entries.");
+        IO.Info($"Found {tools.Count} tool entries.");
 
         Dictionary<string, Dictionary<string, RegistryToolVersion>> registry = ToolRegistryResolver.LoadTypedRegistry();
 
@@ -40,11 +41,11 @@ internal static class ToolsDownloader {
             IO.writeLine($"Processing: {tool.Name} {tool.Version}", System.ConsoleColor.Cyan);
 
             if (tool.HasDeprecatedDestination) {
-                Shared.IO.UI.EngineSdk.Warn($"{tool.Name} {tool.Version}: fields 'destination' and 'unpack_destination' are deprecated and ignored. Using centralized tool paths under EngineApps/Tools.");
+                IO.Warn($"{tool.Name} {tool.Version}: fields 'destination' and 'unpack_destination' are deprecated and ignored. Using centralized tool paths under EngineApps/Tools.");
             }
 
             if (!force && ToolLockfileManager.IsAlreadyInstalled(lockData, tool.Name, tool.Version)) {
-                Shared.IO.UI.EngineSdk.Info($"{tool.Name} {tool.Version} is already installed and exists fully. Skipping.");
+                IO.Info($"{tool.Name} {tool.Version} is already installed and exists fully. Skipping.");
                 continue;
             }
 
@@ -53,7 +54,7 @@ internal static class ToolsDownloader {
                 continue;
             }
 
-            Shared.IO.UI.EngineSdk.Info($"URL: {platformData.Url}");
+            IO.Info($"URL: {platformData.Url}");
 
             ToolArchivePaths paths = archiveManager.GetPaths(tool.Name, tool.Version, platform);
             string archivePath = await DownloadToolAsync(http, platformData.Url, paths.DownloadDir, force, cancellationToken);
@@ -106,15 +107,15 @@ internal static class ToolsDownloader {
 
         string fileName = System.IO.Path.GetFileName(new System.Uri(url).AbsolutePath);
         string archivePath = System.IO.Path.Combine(downloadDir, fileName);
-        Shared.IO.UI.EngineSdk.Info($"Download dir: {downloadDir}");
+        IO.Info($"Download dir: {downloadDir}");
 
         if (!force && System.IO.File.Exists(archivePath)) {
-            Shared.IO.UI.EngineSdk.Info($"Archive: {archivePath}");
-            Shared.IO.UI.EngineSdk.Info("Archive exists. Skipping download (use force to re-download).");
+            IO.Info($"Archive: {archivePath}");
+            IO.Info("Archive exists. Skipping download (use force to re-download).");
             return archivePath;
         }
 
-        Shared.IO.UI.EngineSdk.Info("Downloading...");
+        IO.Info("Downloading...");
         using HttpResponseMessage response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         response.EnsureSuccessStatusCode();
 
@@ -132,25 +133,25 @@ internal static class ToolsDownloader {
             archivePath = System.IO.Path.Combine(downloadDir, fileName);
         }
 
-        Shared.IO.UI.EngineSdk.Info($"Archive: {archivePath}");
+        IO.Info($"Archive: {archivePath}");
 
         long contentLength = response.Content.Headers.ContentLength ?? -1;
 
         await using System.IO.FileStream outFs = System.IO.File.Create(archivePath);
         await using System.IO.Stream inStream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
-        using (Shared.IO.UI.EngineSdk.PanelProgress progress = new Shared.IO.UI.EngineSdk.PanelProgress(
+        using (var progress = new EngineSdk.PanelProgress(
             total: contentLength > 0 ? contentLength : 1,
             id: "download",
             label: $"Downloading {fileName}")) {
             await CopyStreamWithProgressAsync(inStream, outFs, progress);
         }
 
-        Shared.IO.UI.EngineSdk.Info("Download complete.");
+        IO.Info("Download complete.");
         return archivePath;
     }
 
-    private static async Task CopyStreamWithProgressAsync(System.IO.Stream input, System.IO.Stream output, Shared.IO.UI.EngineSdk.PanelProgress progress) {
+    private static async Task CopyStreamWithProgressAsync(System.IO.Stream input, System.IO.Stream output, EngineSdk.PanelProgress progress) {
         const int BufferSize = 81920;
         byte[] buffer = new byte[BufferSize];
         int read;

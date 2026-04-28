@@ -25,16 +25,16 @@ internal static class ToolLockfileManager {
             return Normalize(data);
         } catch (JsonException ex) {
             Shared.IO.Diagnostics.Bug($"[ToolLockfileManager.cs::LoadAsync()] Failed to parse lockfile '{lockPath}'.", ex);
-            Shared.IO.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
+            IO.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
         } catch (IOException ex) {
             Shared.IO.Diagnostics.Bug($"[ToolLockfileManager.cs::LoadAsync()] IO error loading lockfile '{lockPath}'.", ex);
-            Shared.IO.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
+            IO.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
         } catch (UnauthorizedAccessException ex) {
             Shared.IO.Diagnostics.Bug($"[ToolLockfileManager.cs::LoadAsync()] Access denied loading lockfile '{lockPath}'.", ex);
-            Shared.IO.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
+            IO.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
         } catch (ArgumentException ex) {
             Shared.IO.Diagnostics.Bug($"[ToolLockfileManager.cs::LoadAsync()] Invalid lockfile path '{lockPath}'.", ex);
-            Shared.IO.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
+            IO.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
         }
 
         return CreateEmpty();
@@ -51,16 +51,16 @@ internal static class ToolLockfileManager {
             return Normalize(data);
         } catch (JsonException ex) {
             Shared.IO.Diagnostics.Bug($"[ToolLockfileManager.cs::Load()] Failed to parse lockfile '{lockPath}'.", ex);
-            Shared.IO.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
+            IO.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
         } catch (IOException ex) {
             Shared.IO.Diagnostics.Bug($"[ToolLockfileManager.cs::Load()] IO error loading lockfile '{lockPath}'.", ex);
-            Shared.IO.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
+            IO.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
         } catch (UnauthorizedAccessException ex) {
             Shared.IO.Diagnostics.Bug($"[ToolLockfileManager.cs::Load()] Access denied loading lockfile '{lockPath}'.", ex);
-            Shared.IO.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
+            IO.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
         } catch (ArgumentException ex) {
             Shared.IO.Diagnostics.Bug($"[ToolLockfileManager.cs::Load()] Invalid lockfile path '{lockPath}'.", ex);
-            Shared.IO.UI.EngineSdk.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
+            IO.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
         }
 
         return CreateEmpty();
@@ -77,7 +77,7 @@ internal static class ToolLockfileManager {
         }
 
         await System.IO.File.WriteAllTextAsync(lockPath, JsonSerializer.Serialize(lockData, WriteOptions), cancellationToken);
-        Shared.IO.UI.EngineSdk.Info($"Lockfile written: {lockPath}");
+        IO.Info($"Lockfile written: {lockPath}");
     }
 
     internal static bool IsAlreadyInstalled(
@@ -113,7 +113,7 @@ internal static class ToolLockfileManager {
         }
 
         versions[version] = newEntry;
-        Shared.IO.UI.EngineSdk.Info($"Lockfile updated for {toolName} {version}.");
+        IO.Info($"Lockfile updated for {toolName} {version}.");
     }
 
     private static Dictionary<string, Dictionary<string, ToolLockfileEntry>> CreateEmpty() {

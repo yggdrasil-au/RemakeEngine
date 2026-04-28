@@ -39,7 +39,7 @@ internal static class AvTools {
     }
 
     // Tracks currently running external conversions (for progress panel)
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> s_active =
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, EngineSdk.SdkConsoleProgress.ActiveProcess> s_active =
         new ConcurrentDictionary<int, EngineSdk.SdkConsoleProgress.ActiveProcess>();
 
     /// <summary>
@@ -63,26 +63,26 @@ internal static class AvTools {
             // check if current required tool exist
             if (string.Equals(opt.Mode, ToolFfmpeg, System.StringComparison.OrdinalIgnoreCase)) {
                 if (!System.IO.File.Exists(opt.FfmpegPath!)) {
-                    Shared.IO.UI.EngineSdk.Error($"ffmpeg executable not found: {opt.FfmpegPath}");
-                    Shared.IO.UI.EngineSdk.Error("Please ensure ffmpeg is installed. You can download it using the 'Download Required Tools' operation.");
+                    IO.Error($"ffmpeg executable not found: {opt.FfmpegPath}");
+                    IO.Error("Please ensure ffmpeg is installed. You can download it using the 'Download Required Tools' operation.");
                     return false;
                 }
             } else if (string.Equals(opt.Mode, ToolVgmstream, System.StringComparison.OrdinalIgnoreCase)) {
                 if (!System.IO.File.Exists(opt.VgmstreamCli!)) {
-                    Shared.IO.UI.EngineSdk.Error($"vgmstream-cli executable not found: {opt.VgmstreamCli}");
-                    Shared.IO.UI.EngineSdk.Error("Please ensure vgmstream-cli is installed. You can download it using the 'Download Required Tools' operation.");
+                    IO.Error($"vgmstream-cli executable not found: {opt.VgmstreamCli}");
+                    IO.Error("Please ensure vgmstream-cli is installed. You can download it using the 'Download Required Tools' operation.");
                     return false;
                 }
                 // If using vgmstream with Godot mode, we also need ffmpeg
                 if (opt.GodotCompatible && (string.IsNullOrEmpty(opt.FfmpegPath) || !System.IO.File.Exists(opt.FfmpegPath))) {
-                    Shared.IO.UI.EngineSdk.Error($"ffmpeg executable not found: {opt.FfmpegPath ?? "null"}");
-                    Shared.IO.UI.EngineSdk.Error("vgmstream with --godot-compatible requires ffmpeg for post-processing. Please ensure ffmpeg is installed.");
+                    IO.Error($"ffmpeg executable not found: {opt.FfmpegPath ?? "null"}");
+                    IO.Error("vgmstream with --godot-compatible requires ffmpeg for post-processing. Please ensure ffmpeg is installed.");
                     return false;
                 }
             }
 
             if (!System.IO.Directory.Exists(opt.Source)) {
-                Shared.IO.UI.EngineSdk.Error($"Source directory not found: {opt.Source}");
+                IO.Error($"Source directory not found: {opt.Source}");
                 return false;
             }
             System.IO.Directory.CreateDirectory(opt.Target);
@@ -92,18 +92,18 @@ internal static class AvTools {
                 opt.Workers = System.Math.Max(1, (int)System.Math.Floor(cores * 0.75));
             }
 
-            Shared.IO.UI.EngineSdk.Info($"--- Starting {opt.Mode.ToUpperInvariant()} Conversion ---");
+            IO.Info($"--- Starting {opt.Mode.ToUpperInvariant()} Conversion ---");
             WriteVerbose(opt.Verbose, $"Using executable: {(opt.Mode == "ffmpeg" ? opt.FfmpegPath : opt.VgmstreamCli)}");
 
             List<string> allFiles = System.IO.Directory.EnumerateFiles(opt.Source, "*" + opt.InputExt, System.IO.SearchOption.AllDirectories)
                                     .Where(p => p.EndsWith(opt.InputExt, System.StringComparison.OrdinalIgnoreCase))
                                     .ToList();
             if (allFiles.Count == 0) {
-                Shared.IO.UI.EngineSdk.Warn($"No '{opt.InputExt}' files found in {opt.Source}.");
+                IO.Warn($"No '{opt.InputExt}' files found in {opt.Source}.");
                 return true; // nothing to do
             }
 
-            Shared.IO.UI.EngineSdk.Info($"Found {allFiles.Count} files to process with {opt.Workers} workers.");
+            IO.Info($"Found {allFiles.Count} files to process with {opt.Workers} workers.");
 
             int success = 0;
             int skipped = 0;
@@ -116,7 +116,7 @@ internal static class AvTools {
                 CancellationToken = cancellationToken
             };
             using System.Threading.CancellationTokenSource progressCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            System.Threading.Tasks.Task progressTask = Shared.IO.UI.EngineSdk.SdkConsoleProgress.StartPanel(
+            System.Threading.Tasks.Task progressTask = EngineSdk.SdkConsoleProgress.StartPanel(
                 total: allFiles.Count,
                 snapshot: () => (System.Threading.Volatile.Read(ref processed), System.Threading.Volatile.Read(ref success), System.Threading.Volatile.Read(ref skipped), System.Threading.Volatile.Read(ref errors)),
                 activeSnapshot: () => s_active.Values.ToList(), // This now returns List<SdkConsoleProgress.ActiveProcess>
@@ -173,7 +173,7 @@ internal static class AvTools {
                 });
             } catch (System.OperationCanceledException ex) {
                 Shared.IO.Diagnostics.Bug($"[MediaConverter::Run()] Conversion cancelled by user: {ex}");
-                Shared.IO.UI.EngineSdk.Warn("\nConversion cancelled by user.");
+                IO.Warn("\nConversion cancelled by user.");
             }
 
             progressCts.Cancel();
@@ -185,7 +185,7 @@ internal static class AvTools {
                 // ignore
             }
 
-            Shared.IO.UI.EngineSdk.Info("\n--- Conversion Completed ---");
+            IO.Info("\n--- Conversion Completed ---");
 
             IO.writeLine($"Success: {success}", System.ConsoleColor.Green);
             IO.writeLine($"Skipped: {skipped}", System.ConsoleColor.Yellow);
@@ -194,7 +194,7 @@ internal static class AvTools {
             if (errorList.IsEmpty){
                 return true;
             } else {
-                Shared.IO.UI.EngineSdk.Error("\nEncountered the following errors:");
+                IO.Error("\nEncountered the following errors:");
                 foreach ((string file, string msg) in errorList) {
                     IO.writeLine($" Fail - File: {file}\n    Reason: {msg}", System.ConsoleColor.Red);
                 }
@@ -203,7 +203,7 @@ internal static class AvTools {
 
         } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"[MediaConverter.cs::Run()] Media conversion failed: {ex}");
-            Shared.IO.UI.EngineSdk.Error($"Media conversion failed: {ex.Message}");
+            IO.Error($"Media conversion failed: {ex.Message}");
             Shared.IO.Diagnostics.Log($"[MediaConverter.cs::Run()] MediaConverter: Exception during media conversion: {ex}");
             return false;
         }
@@ -374,7 +374,7 @@ internal static class AvTools {
     private static void RegisterActive(string tool, string srcPath) {
         try {
             int key = System.Threading.Thread.CurrentThread.ManagedThreadId;
-            s_active[key] = new Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess {
+            s_active[key] = new EngineSdk.SdkConsoleProgress.ActiveProcess {
                 Tool = tool,
                 File = System.IO.Path.GetFileName(srcPath),
                 StartedUtc = System.DateTime.UtcNow
@@ -622,7 +622,7 @@ internal static class AvTools {
         if (!enabled) {
             return;
         }
-        Shared.IO.UI.EngineSdk.Info(msg);
+        IO.Info(msg);
     }
 
     private static void TryDelete(string path) {

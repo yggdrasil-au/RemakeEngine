@@ -24,43 +24,43 @@ internal sealed class ToolChecksumVerifier {
         string currentChecksum = ComputeSha256(archivePath);
 
         if (string.IsNullOrWhiteSpace(expectedSha256)) {
-            Shared.IO.UI.EngineSdk.Warn("No checksum provided - skipping verification.");
-            Shared.IO.UI.EngineSdk.Info($"Current checksum: {currentChecksum}");
+            IO.Warn("No checksum provided - skipping verification.");
+            IO.Info($"Current checksum: {currentChecksum}");
             return new ToolChecksumVerificationResult(true, string.Empty);
         }
 
-        Shared.IO.UI.EngineSdk.Info("Verifying checksum");
+        IO.Info("Verifying checksum");
         if (string.Equals(currentChecksum, expectedSha256, System.StringComparison.OrdinalIgnoreCase)) {
-            Shared.IO.UI.EngineSdk.Info("Checksum OK.");
+            IO.Info("Checksum OK.");
             return new ToolChecksumVerificationResult(true, expectedSha256);
         }
 
         if (!string.IsNullOrWhiteSpace(fallbackSourceUrl)) {
-            Shared.IO.UI.EngineSdk.Info($"Primary checksum mismatch. Checking upstream source: {fallbackSourceUrl}");
+            IO.Info($"Primary checksum mismatch. Checking upstream source: {fallbackSourceUrl}");
             try {
                 string remoteSums = await _http.GetStringAsync(fallbackSourceUrl, cancellationToken);
                 string fileName = System.IO.Path.GetFileName(archivePath);
                 string? remoteHash = ParseUpstreamChecksum(remoteSums, fileName);
 
                 if (!string.IsNullOrWhiteSpace(remoteHash)) {
-                    Shared.IO.UI.EngineSdk.Info($"Found upstream checksum for {fileName}: {remoteHash}");
+                    IO.Info($"Found upstream checksum for {fileName}: {remoteHash}");
                     if (string.Equals(currentChecksum, remoteHash, System.StringComparison.OrdinalIgnoreCase)) {
-                        Shared.IO.UI.EngineSdk.Info("Upstream checksum matched. Proceeding.");
+                        IO.Info("Upstream checksum matched. Proceeding.");
                         return new ToolChecksumVerificationResult(true, remoteHash);
                     }
 
-                    Shared.IO.UI.EngineSdk.Warn($"Upstream checksum mismatch. Expected {remoteHash}, got {currentChecksum}");
+                    IO.Warn($"Upstream checksum mismatch. Expected {remoteHash}, got {currentChecksum}");
                 } else {
-                    Shared.IO.UI.EngineSdk.Warn($"Could not find entry for '{fileName}' in upstream checksums.");
+                    IO.Warn($"Could not find entry for '{fileName}' in upstream checksums.");
                 }
             } catch (System.Net.Http.HttpRequestException ex) {
                 Shared.IO.Diagnostics.Bug($"[ToolChecksumVerifier.cs::VerifyAsync()] Failed to fetch upstream checksums from '{fallbackSourceUrl}'.", ex);
-                Shared.IO.UI.EngineSdk.Warn($"Failed to fetch upstream checksums: {ex.Message}");
+                IO.Warn($"Failed to fetch upstream checksums: {ex.Message}");
             }
         }
 
         IO.writeLine("1 ERROR: Checksum mismatch. Skipping further steps for this tool.", System.ConsoleColor.Red);
-        Shared.IO.UI.EngineSdk.Info($"Current checksum: {currentChecksum}");
+        IO.Info($"Current checksum: {currentChecksum}");
         return new ToolChecksumVerificationResult(false, string.Empty);
     }
 

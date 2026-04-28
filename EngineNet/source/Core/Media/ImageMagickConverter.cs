@@ -1,11 +1,12 @@
 
 using System.Runtime.InteropServices;
+using EngineNet.Shared.IO.UI;
 
 namespace EngineNet.Core.Media;
 
 /// <summary>
 /// Batch image converter powered by ImageMagick (magick.exe).
-/// Preserves directory layout, supports parallel workers, and reports via Shared.IO.UI.EngineSdk.
+/// Preserves directory layout, supports parallel workers, and reports via IO.
 ///
 /// Required args:
 ///   --source DIR           Source directory
@@ -29,7 +30,7 @@ internal static class ImageMagickConverter {
     private const string ImageMagickName = "ImageMagick";
 
     // Tracks currently running external conversions (for progress panel)
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> s_active = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, EngineSdk.SdkConsoleProgress.ActiveProcess> s_active = new();
 
     private sealed class Options {
         internal string Source = string.Empty;
@@ -62,13 +63,13 @@ internal static class ImageMagickConverter {
             opt.MagickPath ??= toolResolver.ResolveToolPath(ImageMagickName);
 
             if (string.IsNullOrWhiteSpace(opt.MagickPath) || !File.Exists(opt.MagickPath!)) {
-                Shared.IO.UI.EngineSdk.Error($"ImageMagick executable not found: {opt.MagickPath ?? "(null)"}");
-                Shared.IO.UI.EngineSdk.Warn("Please install ImageMagick or use the 'Download Required Tools' operation.");
+                IO.Error($"ImageMagick executable not found: {opt.MagickPath ?? "(null)"}");
+                IO.Warn("Please install ImageMagick or use the 'Download Required Tools' operation.");
                 return false;
             }
 
             if (!Directory.Exists(opt.Source)) {
-                Shared.IO.UI.EngineSdk.Error($"Source directory not found: {opt.Source}");
+                IO.Error($"Source directory not found: {opt.Source}");
                 return false;
             }
             Directory.CreateDirectory(opt.Target);
@@ -82,14 +83,14 @@ internal static class ImageMagickConverter {
                 .Where(p => p.EndsWith(opt.InputExt, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            Shared.IO.UI.EngineSdk.Info("--- Starting ImageMagick Conversion ---");
-            Shared.IO.UI.EngineSdk.Info($"Using executable: {opt.MagickPath}");
+            IO.Info("--- Starting ImageMagick Conversion ---");
+            IO.Info($"Using executable: {opt.MagickPath}");
             if (allFiles.Count == 0) {
-                Shared.IO.UI.EngineSdk.Warn($"No '{opt.InputExt}' files found in {opt.Source}.");
+                IO.Warn($"No '{opt.InputExt}' files found in {opt.Source}.");
                 return true;
             }
 
-            Shared.IO.UI.EngineSdk.Info($"Found {allFiles.Count} file(s) to process with {opt.Workers} workers.");
+            IO.Info($"Found {allFiles.Count} file(s) to process with {opt.Workers} workers.");
 
             int success = 0;
             int skipped = 0;
@@ -97,13 +98,13 @@ internal static class ImageMagickConverter {
             int processed = 0;
             var errorList = new System.Collections.Concurrent.ConcurrentBag<(string file, string message)>();
 
-            var po = new System.Threading.Tasks.ParallelOptions { 
+            var po = new System.Threading.Tasks.ParallelOptions {
                 MaxDegreeOfParallelism = opt.Workers ?? 1,
                 CancellationToken = cancellationToken
             };
 
             using System.Threading.CancellationTokenSource progressCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            System.Threading.Tasks.Task progressTask = Shared.IO.UI.EngineSdk.SdkConsoleProgress.StartPanel(
+            System.Threading.Tasks.Task progressTask = EngineSdk.SdkConsoleProgress.StartPanel(
                 total: allFiles.Count,
                 snapshot: () => (System.Threading.Volatile.Read(ref processed), System.Threading.Volatile.Read(ref success), System.Threading.Volatile.Read(ref skipped), System.Threading.Volatile.Read(ref errors)),
                 activeSnapshot: () => s_active.Values.ToList(),
@@ -122,7 +123,7 @@ internal static class ImageMagickConverter {
                             return;
                         }
 
-                        var (ok, msg) = ConvertOne(src, dest, opt, cancellationToken);
+                        (bool ok, string? msg) = ConvertOne(src, dest, opt, cancellationToken);
                         if (ok) {
                             Interlocked.Increment(ref success);
                             if (opt.Replace) {
@@ -142,7 +143,7 @@ internal static class ImageMagickConverter {
                 });
             } catch (OperationCanceledException ex) {
                 Shared.IO.Diagnostics.Bug("[ImageMagickConverter::Run()] Conversion cancelled by user.", ex);
-                Shared.IO.UI.EngineSdk.Warn("\nConversion cancelled by user.");
+                IO.Warn("\nConversion cancelled by user.");
             }
 
             progressCts.Cancel();
@@ -153,19 +154,19 @@ internal static class ImageMagickConverter {
             }
 
             // Final summary
-            Shared.IO.UI.EngineSdk.Info("\n--- Conversion Completed ---");
-            Shared.IO.UI.EngineSdk.Info($"Success: {success} | Skipped: {skipped} | Errors: {errors}");
+            IO.Info("\n--- Conversion Completed ---");
+            IO.Info($"Success: {success} | Skipped: {skipped} | Errors: {errors}");
             if (errorList.IsEmpty) return errors == 0; {
-                Shared.IO.UI.EngineSdk.Error("\nEncountered the following errors:");
+                IO.Error("\nEncountered the following errors:");
                 foreach ((string file, string msg) in errorList) {
-                    Shared.IO.UI.EngineSdk.Error($" Fail - File: {file}\n    Reason: {msg}");
+                    IO.Error($" Fail - File: {file}\n    Reason: {msg}");
                 }
             }
 
             return errors == 0;
         } catch (Exception ex) {
             Shared.IO.Diagnostics.Bug("[ImageMagickConverter::Run()] Unhandled conversion failure.", ex);
-            Shared.IO.UI.EngineSdk.Error($"ImageMagick conversion failed: {ex.Message}");
+            IO.Error($"ImageMagick conversion failed: {ex.Message}");
             return false;
         }
     }
@@ -227,7 +228,7 @@ internal static class ImageMagickConverter {
     private static void RegisterActive(string tool, string srcPath) {
         try {
             int key = System.Threading.Thread.CurrentThread.ManagedThreadId;
-            s_active[key] = new Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess {
+            s_active[key] = new EngineSdk.SdkConsoleProgress.ActiveProcess {
                 Tool = tool,
                 File = System.IO.Path.GetFileName(srcPath),
                 StartedUtc = System.DateTime.UtcNow

@@ -84,35 +84,16 @@ public static class EngineSdk {
     /// <summary>
     /// Report a non-fatal warning to the engine UI/log.
     /// </summary>
-    public static void Warn(string message) => Emit("warning", new Dictionary<string, object?> { ["message"] = message });
+    public static void Warn(string message) {
+        Emit("warning", new Dictionary<string, object?> { ["message"] = message });
+    }
 
     /// <summary>
     /// Report an error to the engine UI/log (does not exit the process).
     /// </summary>
-    public static void Error(string message) => Emit("error", new Dictionary<string, object?> { ["message"] = message });
-
-    /// <summary>
-    /// Informational message (non-warning).
-    /// </summary>
-    public static void Info(string message) => PrintLine(message, color: System.ConsoleColor.Cyan);
-
-    /// <summary>
-    /// Success message (green).
-    /// </summary>
-    public static void Success(string message) => PrintLine(message, color: System.ConsoleColor.Green);
-
-    /// <summary>
-    /// Mark the start of an operation or phase.
-    /// </summary>
-    public static void Start(string? op = null) => Emit("start", op is null ? null : new Dictionary<string, object?> { ["op"] = op });
-
-    /// <summary>
-    /// Mark the end of an operation or phase.
-    /// </summary>
-    public static void End(bool success = true, int exitCode = 0) => Emit(
-        "end",
-        new Dictionary<string, object?> { ["success"] = success, ["exit_code"] = exitCode }
-    );
+    public static void Error(string message) {
+        Emit("error", new Dictionary<string, object?> { ["message"] = message });
+    }
 
     public static string color_prompt(string message, string color, string id = "q1", bool secret = false) {
         // Check for auto-response first
@@ -349,47 +330,7 @@ public static class EngineSdk {
     }
     /* :: :: Script Progress :: END :: */
 
-    // operations progress
-
-    // used to indicate start and end of a single 'operation' or a 'run-all' batch of operations
-    // similar to ScriptProgress but at a higher level
-
-    // start
-    public static void OperationActiveStart(string scriptPath) {
-        string name = string.Empty;
-        try {
-            name = System.IO.Path.GetFileName(scriptPath);
-        } catch (System.ArgumentException ex) {
-            Shared.IO.Diagnostics.Bug($"[EngineSdk::OperationActiveStart()] Invalid operation path '{scriptPath}': {ex}");
-        } catch (System.IO.PathTooLongException ex) {
-            Shared.IO.Diagnostics.Bug($"[EngineSdk::OperationActiveStart()] Operation path too long '{scriptPath}': {ex}");
-        } catch (System.NotSupportedException ex) {
-            Shared.IO.Diagnostics.Bug($"[EngineSdk::OperationActiveStart()] Unsupported operation path '{scriptPath}': {ex}");
-        }
-        Emit("operation_active_start", new Dictionary<string, object?> {
-            ["name"] = string.IsNullOrEmpty(name) ? scriptPath : name,
-            ["path"] = scriptPath
-        });
-    }
-
-    // step
-    public static void OperationStep(string stepLabel) {
-        Emit("operation_step", new Dictionary<string, object?> {
-            ["label"] = stepLabel
-        });
-    }
-
-    // end
-    public static void OperationActiveEnd(bool success = true, int exitCode = 0) {
-        Emit("operation_active_end", new Dictionary<string, object?> {
-            ["success"] = success,
-            ["exit_code"] = exitCode
-        });
-    }
-
-
     //
-
 
 
     // progress indicates the 'progress' of a single lua script, managed by the script itself via PanelProgress handles.
@@ -407,17 +348,14 @@ public static class EngineSdk {
         private readonly System.Threading.Tasks.Task _panelTask;
         private long _processed;
         private readonly long _total;
-        private readonly string _label;
 
-        public long Total => _total;
         public long Current => System.Threading.Volatile.Read(ref _processed);
         public string Id { get; }
-        public string Label => _label;
 
         public PanelProgress(long total, string id = "p1", string? label = null) {
             _total = System.Math.Max(1, total);
             Id = id;
-            _label = label ?? string.Empty;
+            string _label = label ?? string.Empty;
             _processed = 0;
             _cts = new System.Threading.CancellationTokenSource();
             _panelTask = SdkConsoleProgress.StartPanel(
@@ -525,7 +463,7 @@ public static class EngineSdk {
 
                 // Signal the TUI that the panel is done
                 EmitPanelEnd(id);
-            });
+            }, token);
         }
 
         private static void EmitPanelStart(string id) {

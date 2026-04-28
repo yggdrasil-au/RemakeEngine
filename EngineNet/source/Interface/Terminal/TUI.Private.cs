@@ -2,7 +2,7 @@
 namespace EngineNet.Interface.Terminal;
 
 
-public partial class TUI {
+internal partial class TUI {
 
     /// <summary>
     /// Formats elapsed time for completion summaries.
@@ -10,13 +10,11 @@ public partial class TUI {
     private static string FormatElapsed(System.TimeSpan elapsed) {
         if (elapsed.TotalSeconds < 60) {
             return $"{elapsed.TotalSeconds:0.0}s";
-        }
-
-        if (elapsed.TotalMinutes < 60) {
+        } else if (elapsed.TotalMinutes < 60) {
             return $"{elapsed.Minutes}m {elapsed.Seconds:D2}s";
+        } else {
+            return $"{(int)elapsed.TotalHours}h {elapsed.Minutes:D2}m {elapsed.Seconds:D2}s";
         }
-
-        return $"{(int)elapsed.TotalHours}h {elapsed.Minutes:D2}m {elapsed.Seconds:D2}s";
     }
 
     /// <summary>

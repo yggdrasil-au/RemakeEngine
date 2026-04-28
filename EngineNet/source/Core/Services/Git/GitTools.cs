@@ -18,7 +18,7 @@ internal static class GitTools {
         }
 
         if (!IsGitInstalled(commandService)) {
-            Shared.IO.UI.EngineSdk.Warn("Git is not installed or not found in PATH.");
+            IO.Warn("Git is not installed or not found in PATH.");
             Shared.IO.Diagnostics.Log("[GitTools.cs::CloneModule()] GitTools: Git is not installed or not found in PATH.");
             return false;
         }
@@ -27,19 +27,19 @@ internal static class GitTools {
             string repoName = GuessRepoName(url);
             string target = System.IO.Path.Combine(_gamesDir, repoName);
             if (System.IO.Directory.Exists(target)) {
-                Shared.IO.UI.EngineSdk.Info($"Directory '{repoName}' already exists. Skipping download.");
+                IO.Info($"Directory '{repoName}' already exists. Skipping download.");
                 return true;
             }
 
             System.IO.Directory.CreateDirectory(_gamesDir);
-            Shared.IO.UI.EngineSdk.Print($"Downloading '{repoName}' from '{url}'...");
-            Shared.IO.UI.EngineSdk.Print($"Target directory: '{target}'");
+            IO.writeLine($"Downloading '{repoName}' from '{url}'...");
+            IO.writeLine($"Target directory: '{target}'");
 
             int rc = -1;
             bool ok = commandService.ExecuteCommand(
                 commandParts: new List<string> { "git", "clone", url, target, "--recurse-submodules" },
                 title: "git clone",
-                onOutput: (line, _) => { Shared.IO.UI.EngineSdk.Print(line); },
+                onOutput: (line, _) => { IO.writeLine(line); },
                 onEvent: evt => {
                     if (!evt.TryGetValue("event", out object? kind) || !string.Equals(kind?.ToString(), "end",
                             System.StringComparison.OrdinalIgnoreCase)) return;
@@ -55,39 +55,40 @@ internal static class GitTools {
             }
 
             if (rc == 0) {
-                Shared.IO.UI.EngineSdk.Success($"\nSuccessfully downloaded '{repoName}'.");
+                // Success
+                IO.writeLine($"\nSuccessfully downloaded '{repoName}'.", ConsoleColor.Green);
                 return true;
             }
 
-            Shared.IO.UI.EngineSdk.Error($"\nFailed to download '{repoName}'. Git exited with code {rc}.");
+            IO.Error($"\nFailed to download '{repoName}'. Git exited with code {rc}.");
             Shared.IO.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Git exited with code {rc}.");
             return false;
         } catch (System.IO.IOException ex) {
             Shared.IO.Diagnostics.Bug($"[GitTools.cs::CloneModule()] IOException triggered during git clone: {ex}");
-            Shared.IO.UI.EngineSdk.Error($"An IO error occurred during download: {ex.Message}");
+            IO.Error($"An IO error occurred during download: {ex.Message}");
             Shared.IO.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
             return false;
         } catch (System.UnauthorizedAccessException ex) {
             Shared.IO.Diagnostics.Bug(
                 $"[GitTools.cs::CloneModule()] UnauthorizedAccessException triggered during git clone: {ex}");
-            Shared.IO.UI.EngineSdk.Error($"Access denied during download: {ex.Message}");
+            IO.Error($"Access denied during download: {ex.Message}");
             Shared.IO.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
             return false;
         } catch (System.ArgumentException ex) {
             Shared.IO.Diagnostics.Bug($"[GitTools.cs::CloneModule()] ArgumentException triggered during git clone: {ex}");
-            Shared.IO.UI.EngineSdk.Error($"An argument error occurred during download: {ex.Message}");
+            IO.Error($"An argument error occurred during download: {ex.Message}");
             Shared.IO.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
             return false;
         } catch (System.InvalidOperationException ex) {
             Shared.IO.Diagnostics.Bug(
                 $"[GitTools.cs::CloneModule()] InvalidOperationException triggered during git clone: {ex}");
-            Shared.IO.UI.EngineSdk.Error($"An invalid operation occurred during download: {ex.Message}");
+            IO.Error($"An invalid operation occurred during download: {ex.Message}");
             Shared.IO.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
             return false;
         } catch (System.NotSupportedException ex) {
             Shared.IO.Diagnostics.Bug(
                 $"[GitTools.cs::CloneModule()] NotSupportedException triggered during git clone: {ex}");
-            Shared.IO.UI.EngineSdk.Error($"A path format is not supported during download: {ex.Message}");
+            IO.Error($"A path format is not supported during download: {ex.Message}");
             Shared.IO.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
             return false;
         }

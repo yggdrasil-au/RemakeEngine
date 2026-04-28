@@ -30,12 +30,12 @@ internal sealed class ToolArchiveManager {
         }
 
         System.IO.Directory.CreateDirectory(installDir);
-        Shared.IO.UI.EngineSdk.Info($"Unpacking to: {installDir}");
+        IO.Info($"Unpacking to: {installDir}");
 
         try {
             ExtractArchiveToInstallLayout(archivePath, installDir);
         } catch (NotSupportedException ex) {
-            Shared.IO.UI.EngineSdk.Warn($"{ex.Message} Leaving archive as-is.");
+            IO.Warn($"{ex.Message} Leaving archive as-is.");
         } catch (System.IO.IOException ex) {
             Shared.IO.Diagnostics.Bug($"[ToolArchiveManager.cs::ExtractAndFindExe()] Failed to unpack archive '{archivePath}' to '{installDir}'.", ex);
             IO.writeLine($"1 ERROR: Failed to unpack '{archivePath}': {ex.Message}", System.ConsoleColor.Red);
@@ -46,9 +46,9 @@ internal sealed class ToolArchiveManager {
 
         string? exePath = FindExe(installDir, toolName, preferredExeName);
         if (!string.IsNullOrWhiteSpace(exePath)) {
-            Shared.IO.UI.EngineSdk.Info($"Detected executable: {exePath}");
+            IO.Info($"Detected executable: {exePath}");
         } else {
-            Shared.IO.UI.EngineSdk.Warn("Could not detect an executable automatically.");
+            IO.Warn("Could not detect an executable automatically.");
         }
 
         return exePath;
@@ -186,13 +186,13 @@ internal sealed class ToolArchiveManager {
             System.IO.UnixFileMode currentMode = System.IO.File.GetUnixFileMode(path);
             System.IO.UnixFileMode newMode = currentMode | System.IO.UnixFileMode.UserExecute | System.IO.UnixFileMode.GroupExecute;
             System.IO.File.SetUnixFileMode(path, newMode);
-            Shared.IO.UI.EngineSdk.Info($"Applied executable permissions to: {path}");
+            IO.Info($"Applied executable permissions to: {path}");
         } catch (UnauthorizedAccessException ex) {
             Shared.IO.Diagnostics.Bug($"[ToolArchiveManager.cs::ApplyExecutablePermissions()] Access denied setting permissions for '{path}'.", ex);
-            Shared.IO.UI.EngineSdk.Warn($"Insufficient permissions to set executable bit on {path}");
+            IO.Warn($"Insufficient permissions to set executable bit on {path}");
         } catch (System.IO.IOException ex) {
             Shared.IO.Diagnostics.Bug($"[ToolArchiveManager.cs::ApplyExecutablePermissions()] IO error while updating permissions for '{path}'.", ex);
-            Shared.IO.UI.EngineSdk.Warn($"Could not update permissions for {path}: {ex.Message}");
+            IO.Warn($"Could not update permissions for {path}: {ex.Message}");
         }
     }
 
