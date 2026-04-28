@@ -1,6 +1,7 @@
 
 namespace EngineNet.Interface.Terminal;
 
+using Core.Data;
 
 internal partial class TUI {
 
@@ -276,9 +277,19 @@ internal partial class TUI {
     }
 
 
-    private async Task<bool> CollectAnswersForOperation(Dictionary<string, object?> op, Core.Data.PromptAnswers answers, bool defaultsOnly) {
+    /// <summary>
+    /// Collects answers for an operation by processing its prompts and interacting with the user via the console.
+    /// this is where [[operation.prompts]] sections are parsed and executed, allowing for dynamic user input before execution of its operation.
+    /// </summary>
+    /// <param name="op"></param>
+    /// <param name="answers"></param>
+    /// <param name="defaultsOnly"></param>
+    /// <returns></returns>
+    private async Task<bool> CollectAnswersForOperation(Dictionary<string, object?> op, Core.Data.PromptAnswers answers, bool defaultsOnly, CancellationToken cancellationToken = default(CancellationToken)) {
         try {
-            Core.Services.OperationsService.PromptHandler handler = static request => {
+            // This handler will be called for each prompt defined in the operation's "prompts" section. It will present the prompt to the user and collect their input.
+            // this function is used in OperationsService.CollectAnswersAsync, which iterates through all prompts and calls this handler for each, accumulating answers in the provided PromptAnswers object.
+            static Task<PromptResponse> promptHandler(PromptRequest request, CancellationToken cancellationToken) {
                 switch (request.Type) {
                     case "select": {
                         List<string> choicesList = request.Choices.Select(choice => choice.Label).ToList();
@@ -293,6 +304,7 @@ internal partial class TUI {
                             if (request.DefaultValue is not null) {
                                 return Task.FromResult(Core.Data.PromptResponse.UseDefaultValue());
                             }
+
                             return Task.FromResult(Core.Data.PromptResponse.FromValue(null));
                         }
 
@@ -306,18 +318,16 @@ internal partial class TUI {
                         }
 
                         string input = TuiRenderer.ReadLineCustom("Selection # >", false);
-                        if (string.IsNullOrWhiteSpace(input)) {
+                        if (string.IsNullOrWhiteSpace(input) || !int.TryParse(input, out int choiceIdx) ||
+                            choiceIdx < 1 || choiceIdx > choicesList.Count) {
                             return Task.FromResult(Core.Data.PromptResponse.Cancelled());
                         }
 
-                        if (!int.TryParse(input, out int choiceIdx) || choiceIdx < 1 || choiceIdx > choicesList.Count)
-                            return Task.FromResult(Core.Data.PromptResponse.Cancelled());
                         int actualIdx = choiceIdx - 1;
                         if (!disabled.Contains(actualIdx))
                             return Task.FromResult(Core.Data.PromptResponse.FromValue(choicesList[actualIdx]));
                         TuiRenderer.Log("Selected item is disabled.", ConsoleColor.Red);
                         return Task.FromResult(Core.Data.PromptResponse.Cancelled());
-
                     }
                     case "confirm": {
                         bool defVal = request.DefaultValue is true;
@@ -333,11 +343,13 @@ internal partial class TUI {
                     }
                     case "checkbox": {
                         if (request.Choices.Count > 0) {
-                            TuiRenderer.Log($"{request.Title} - choose one or more (comma-separated).", ConsoleColor.Cyan);
+                            TuiRenderer.Log($"{request.Title} - choose one or more (comma-separated).",
+                                ConsoleColor.Cyan);
                             for (int i = 0; i < request.Choices.Count; i++) {
                                 TuiRenderer.Log($"{i + 1}. {request.Choices[i].Label}");
                             }
-                        } else {
+                        }
+                        else {
                             TuiRenderer.Log($"{request.Title} (comma-separated values): ", ConsoleColor.Cyan);
                         }
 
@@ -347,28 +359,46 @@ internal partial class TUI {
                             if (request.DefaultValue is IList<object?>) {
                                 return Task.FromResult(Core.Data.PromptResponse.UseDefaultValue());
                             }
+
                             return Task.FromResult(Core.Data.PromptResponse.FromValue(new List<object?>()));
                         }
 
-                        List<object?> selected = line.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries).Cast<object?>().ToList();
+                        List<object?> selected = line.Split(',',
+                                System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries)
+                            .Cast<object?>().ToList();
                         return Task.FromResult(Core.Data.PromptResponse.FromValue(selected));
                     }
                     case "text":
-                    default: {
                         string v = TuiRenderer.ReadLineCustom($"{request.Title} >", false);
 
-                        if (!string.IsNullOrWhiteSpace(v))
+                        if (!string.IsNullOrWhiteSpace(v)) {
                             return Task.FromResult(Core.Data.PromptResponse.FromValue(v));
+                        }
+
                         if (request.DefaultValue is not null) {
                             return Task.FromResult(Core.Data.PromptResponse.UseDefaultValue());
                         }
-                        return Task.FromResult(Core.Data.PromptResponse.FromValue(string.Empty));
 
+                        return Task.FromResult(Core.Data.PromptResponse.FromValue(string.Empty));
+                    default: {
+                        TuiRenderer.Log($"Unsupported prompt type: {request.Type}", ConsoleColor.Red);
+                        // for now assume text
+                        string vv = TuiRenderer.ReadLineCustom($"{request.Title} >", false);
+
+                        if (!string.IsNullOrWhiteSpace(vv)) {
+                            return Task.FromResult(Core.Data.PromptResponse.FromValue(vv));
+                        }
+
+                        if (request.DefaultValue is not null) {
+                            return Task.FromResult(Core.Data.PromptResponse.UseDefaultValue());
+                        }
+
+                        return Task.FromResult(Core.Data.PromptResponse.FromValue(string.Empty));
                     }
                 }
-            };
+            }
 
-            return await Engine.OperationsService_CollectAnswersAsync(op, answers, handler, defaultsOnly);
+            return await Engine.OperationsService_CollectAnswersAsync(op, answers, promptHandler, defaultsOnly, cancellationToken);
         } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"[TUI.private.cs::PromptUser()] Error during interactive prompts: {ex.Message}");
             return false;

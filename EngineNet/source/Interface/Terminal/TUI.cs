@@ -209,7 +209,7 @@ internal partial class TUI {
                         Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
 
                         try {
-                            bool launched = await Engine.GameLauncher_LaunchGameAsync(name: gameName);
+                            bool launched = await Engine.GameLauncher_LaunchGameAsync(name: gameName, cancellationToken: cancellationToken);
                             System.Console.WriteLine(launched
                                 ? "\nGame finished or launched successfully. Press any key to continue..."
                                 : "\nFailed to launch game. Press any key to continue...");
@@ -277,7 +277,7 @@ internal partial class TUI {
                     TuiRenderer.Initialize();
                     try {
                         // For manual single-op run, prompt interactively
-                        Task<bool> promptTask = CollectAnswersForOperation(op, answers, defaultsOnly: false);
+                        Task<bool> promptTask = CollectAnswersForOperation(op, answers, defaultsOnly: false, cancellationToken: cancellationToken);
                         if (await promptTask) {
                             TuiRenderer.Log($"Running: {selection}\n", ConsoleColor.Cyan);
                             System.Diagnostics.Stopwatch opStopwatch = System.Diagnostics.Stopwatch.StartNew();

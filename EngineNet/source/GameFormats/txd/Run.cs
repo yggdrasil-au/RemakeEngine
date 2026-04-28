@@ -19,7 +19,6 @@ public static class Extractor {
     /// <param name="cancellationToken">Cancellation signal propagated by the caller.</param>
     /// <returns>True if extraction completed successfully.</returns>
     public static bool Run(List<string> args, System.Threading.CancellationToken cancellationToken) {
-
         try {
             Options options = utils.Util.Parse(args);
             var exporter = new TxdExporter();
@@ -39,7 +38,8 @@ public static class Extractor {
                 ),
                 activeSnapshot: () => new List<Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess>(s_active.Values),
                 label: "Extracting TXD",
-                token: progressCts.Token);
+                token: progressCts.Token
+            );
 
             foreach (string txdFile in files) {
                 cancellationToken.ThrowIfCancellationRequested();

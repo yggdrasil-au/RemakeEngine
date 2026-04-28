@@ -78,7 +78,7 @@ public sealed class Main : IScriptAction {
         }
 
         // Run asynchronously to avoid blocking the UI thread
-        bool ok = await System.Threading.Tasks.Task.Run(() => QuickBmsExtractor.Run(extractorArgs), cancellationToken);
+        bool ok = await System.Threading.Tasks.Task.Run(() => QuickBmsExtractor.Run(extractorArgs, cancellationToken), cancellationToken);
         if (!ok) {
             throw new System.InvalidOperationException("QuickBMS extraction failed.");
         }

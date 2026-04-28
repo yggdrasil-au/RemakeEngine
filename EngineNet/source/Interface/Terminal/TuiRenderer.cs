@@ -46,6 +46,8 @@ public static class TuiRenderer {
 
         lock (_lock) {
             _logBuffer.Clear(); // Drop history from previous operations
+            _statusLines.Clear();
+            _statusHeight = 8;
             _scrollOffset = 0;
             _isActive = true;
         }
@@ -66,6 +68,8 @@ public static class TuiRenderer {
         // Completely remove the standard Console.WriteLine loop that dumped history!
         lock (_lock) {
             _logBuffer.Clear(); // Clear memory
+            _statusLines.Clear();
+            _statusHeight = 8;
             _scrollOffset = 0;
         }
         Console.ResetColor();
@@ -142,12 +146,12 @@ public static class TuiRenderer {
 
         lock (_lock) {
             // Split newlines to handle multi-line messages correctly
-            foreach (var line in message.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)) {
+            foreach (string line in message.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)) {
                 _logBuffer.AddLast(new LogEntry { Message = line, Color = color });
 
                 // If the user is actively scrolled up, push the offset up so the view stays pinned
                 if (_scrollOffset > 0) {
-                    _scrollOffset++; 
+                    _scrollOffset++;
                 }
             }
 
@@ -229,11 +233,11 @@ public static class TuiRenderer {
             }
 
             // Draw a subtle indicator if scrolled up
-            if (_scrollOffset > 0 && logAreaHeight > 0) {
-                Console.SetCursorPosition(_width - 15, 0);
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.Write($"[↑ SCROLLED]".PadRight(15));
-            }
+            if (_scrollOffset <= 0 || logAreaHeight <= 0) return;
+
+            Console.SetCursorPosition(_width - 15, 0);
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.Write("[↑ SCROLLED]".PadRight(15));
 
         } catch { /* Resize race condition ignore */ }
     }

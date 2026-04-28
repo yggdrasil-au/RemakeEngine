@@ -506,7 +506,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             return;
         }
 
-        async Task<PromptResponse> Handler(PromptRequest request) {
+        static async Task<PromptResponse> promptHandler(PromptRequest request, CancellationToken cancellationToken) {
             switch (request.Type) {
                 case EngineSdk.Events.Confirm: {
                     bool defVal = request.DefaultValue is bool b && b;
@@ -567,7 +567,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             }
         }
 
-        await GuiBootstrapper.MiniEngine.OperationsService_CollectAnswersAsync(op, answers, Handler, defaultsOnly);
+        await GuiBootstrapper.MiniEngine.OperationsService_CollectAnswersAsync(op, answers, promptHandler, defaultsOnly);
     }
 
     /* :: :: Methods :: END :: */

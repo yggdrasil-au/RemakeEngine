@@ -164,12 +164,14 @@ public sealed class OperationsService {
     /// <param name="answers"></param>
     /// <param name="promptHandler"></param>
     /// <param name="defaultsOnly"></param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public async Task<bool> CollectAnswersAsync(
         Dictionary<string, object?> op,
         PromptAnswers answers,
         PromptHandler promptHandler,
-        bool defaultsOnly = false
+        bool defaultsOnly = false,
+        CancellationToken cancellationToken = default(CancellationToken)
     ) {
         if (!op.TryGetValue("prompts", out object? promptsObj) || promptsObj is not IList<object?> prompts) {
             return true;
@@ -213,7 +215,7 @@ public sealed class OperationsService {
                 isSecret: isSecret
             );
 
-            PromptResponse response = await promptHandler(request).ConfigureAwait(false);
+            PromptResponse response = await promptHandler(request, cancellationToken).ConfigureAwait(false);
             if (response.IsCancelled) {
                 return false;
             }
@@ -375,7 +377,7 @@ public sealed class OperationsService {
     /// <summary>
     /// UI prompt callback signature.
     /// </summary>
-    public delegate Task<PromptResponse> PromptHandler(PromptRequest request);
+    public delegate Task<PromptResponse> PromptHandler(PromptRequest request, CancellationToken cancellationToken);
 
     /* :: :: Nested Types :: END :: */
     // //

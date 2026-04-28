@@ -21,6 +21,12 @@ public class Utils {
     private static readonly Dictionary<string, List<string>> s_panelStatus = new();
     private static bool s_rendererInitializedByEvent;
 
+    private static void ResetProgressState() {
+        s_activePanels = 0;
+        s_panelStatus.Clear();
+        s_rendererInitializedByEvent = false;
+    }
+
     /// <summary>
     /// Execute a single operation in the terminal interface, handling events and output appropriately.
     /// </summary>
@@ -203,11 +209,18 @@ public class Utils {
 
             case EngineSdk.Events.ProgressPanelStart: {
                 lock (s_consoleLock) {
+                    if (s_activePanels <= 0) {
+                        s_panelStatus.Clear();
+                        s_rendererInitializedByEvent = false;
+                    }
+
                     s_activePanels++;
                     if (!EngineNet.Shared.State.IsCli && !TuiRenderer.IsActive) {
                         TuiRenderer.Initialize();
                         s_rendererInitializedByEvent = true;
                     }
+
+                    UpdateTuiStatus();
                 }
                 break;
             }
@@ -255,10 +268,10 @@ public class Utils {
                     }
 
                     if (s_activePanels <= 0) {
-                        s_activePanels = 0; // clamp
-                        if (!EngineNet.Shared.State.IsCli && s_rendererInitializedByEvent) {
+                        bool shouldShutdownRenderer = !EngineNet.Shared.State.IsCli && s_rendererInitializedByEvent;
+                        ResetProgressState();
+                        if (shouldShutdownRenderer) {
                             TuiRenderer.Shutdown();
-                            s_rendererInitializedByEvent = false;
                         }
                     }
                 }

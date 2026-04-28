@@ -37,7 +37,7 @@ public sealed class Main {
         return 0;
     }
 
-    private class MiniEngine(Core.Engine.IEngineFace Engine) : MiniEngineFace {
+    private sealed class MiniEngine(Core.Engine.IEngineFace Engine) : MiniEngineFace {
 
         // Expose only the methods that the UI can use, in a safe and simple shape.
 
@@ -104,14 +104,15 @@ public sealed class Main {
         public async Task<bool> OperationsService_CollectAnswersAsync(
             Dictionary<string, object?> op,
             Core.Data.PromptAnswers answers,
-            Core.Services.OperationsService.PromptHandler handler,
-            bool defaultsOnly = false
+            Core.Services.OperationsService.PromptHandler promptHandler,
+            bool defaultsOnly = false,
+            CancellationToken cancellationToken = default(CancellationToken)
         ) {
-            return await Engine.OperationContext.OperationsService.CollectAnswersAsync(op, answers, handler, defaultsOnly);
+            return await Engine.OperationContext.OperationsService.CollectAnswersAsync(op, answers, promptHandler, defaultsOnly, cancellationToken);
         }
 
-        public async Task<bool> GameLauncher_LaunchGameAsync(string name) {
-            return await Engine.GameLauncher.LaunchGameAsync(name);
+        public async Task<bool> GameLauncher_LaunchGameAsync(string name, CancellationToken cancellationToken = default(CancellationToken)) {
+            return await Engine.GameLauncher.LaunchGameAsync(name, cancellationToken: cancellationToken);
         }
 
         public async System.Threading.Tasks.Task<Core.Operations.RunAllResult> RunAllAsync(
@@ -179,11 +180,12 @@ internal interface MiniEngineFace {
     internal Task<bool> OperationsService_CollectAnswersAsync(
         Dictionary<string, object?> op,
         Core.Data.PromptAnswers answers,
-        Core.Services.OperationsService.PromptHandler handler,
-        bool defaultsOnly = false
+        Core.Services.OperationsService.PromptHandler promptHandler,
+        bool defaultsOnly = false,
+        CancellationToken cancellationToken = default(CancellationToken)
     );
 
-    internal Task<bool> GameLauncher_LaunchGameAsync(string name);
+    internal Task<bool> GameLauncher_LaunchGameAsync(string name, CancellationToken cancellationToken = default(CancellationToken));
 
     internal Task<Core.Operations.RunAllResult> RunAllAsync(
         string gameName,

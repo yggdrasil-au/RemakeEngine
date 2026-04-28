@@ -15,12 +15,22 @@ internal static class QuickBmsExtractor {
         internal List<string> Targets { get; } = new List<string>();
     }
 
+    private sealed class ProgressState {
+        internal int Processed;
+        internal int Ok;
+        internal int Skip;
+        internal int Err;
+    }
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> s_active = new();
+
     /// <summary>
     /// Extracts archives using QuickBMS with a provided .bms script across a set of files.
     /// </summary>
     /// <param name="args">CLI-style args: --quickbms PATH, --script PATH, --input DIR, --output DIR, [--extension EXT], [--overwrite], [targets...]</param>
+    /// <param name="cancellationToken">Cancellation signal propagated by the caller.</param>
     /// <returns>True when all processed files succeeded; false otherwise.</returns>
-    internal static bool Run(IList<string> args) {
+    internal static bool Run(IList<string> args, CancellationToken cancellationToken = default) {
         Options options;
         try {
             options = Parse(args);
@@ -62,21 +72,19 @@ internal static class QuickBmsExtractor {
 
         Core.ProcessRunner runner = new Core.ProcessRunner();
         bool okAll = true;
-        int processed = 0;
-        int success = 0;
-        int errors = 0;
+        ProgressState progressState = new ProgressState();
 
-        // Minimal active job tracking for progress panel
+        // Progress panel tracking uses a stable state container to avoid closure capture issues.
         using System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
-        EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess? current = null;
-        // todo fix Captured variable is modified in the outer scope, s
         System.Threading.Tasks.Task panel = EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.StartPanel(
             total: files.Count,
-            snapshot: () => (processed, success, 0, errors),
-            activeSnapshot: () => {
-                if (current is null) return new List<EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess>();
-                return new List<EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> { current };
-            },
+            snapshot: () => (
+                System.Threading.Volatile.Read(ref progressState.Processed),
+                System.Threading.Volatile.Read(ref progressState.Ok),
+                System.Threading.Volatile.Read(ref progressState.Skip),
+                System.Threading.Volatile.Read(ref progressState.Err)
+            ),
+            activeSnapshot: () => new List<EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess>(s_active.Values),
             label: "Extracting Archives",
             token: cts.Token
         );
@@ -86,46 +94,78 @@ internal static class QuickBmsExtractor {
             string outputDir = BuildOutputDirectory(options.OutputPath, relative, file, extensionLabel);
             System.IO.Directory.CreateDirectory(outputDir);
 
-            // Update active job snapshot
-            current = new EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess {
-                Tool = "quickbms",
-                File = System.IO.Path.GetFileName(file),
-                StartedUtc = System.DateTime.UtcNow
-            };
+            RegisterActive(tool: "quickbms", srcPath: file);
+            try {
+                List<string> command = new List<string> {
+                    options.QuickBmsExe,
+                    options.Overwrite ? "-o" : "-k",
+                    options.BmsScript,
+                    file,
+                    outputDir
+                };
 
-            List<string> command = new List<string> {
-                options.QuickBmsExe,
-                options.Overwrite ? "-o" : "-k",
-                options.BmsScript,
-                file,
-                outputDir
-            };
+                Dictionary<string, object?> env = new Dictionary<string, object?> { ["TERM"] = "dumb" };
+                bool ok = runner.Execute(
+                    command,
+                    System.IO.Path.GetFileName(file),
+                    onOutput: ForwardProcessOutput,
+                    envOverrides: env);
 
-            Dictionary<string, object?> env = new Dictionary<string, object?> { ["TERM"] = "dumb" };
-            bool ok = runner.Execute(
-                command,
-                System.IO.Path.GetFileName(file),
-                onOutput: ForwardProcessOutput,
-                envOverrides: env);
-
-            if (ok) {
-                success++;
-            } else {
-                okAll = false;
-                errors++;
-                WriteWarn($"QuickBMS reported a failure for '{file}'.");
+                if (ok) {
+                    System.Threading.Interlocked.Increment(ref progressState.Ok);
+                } else {
+                    okAll = false;
+                    System.Threading.Interlocked.Increment(ref progressState.Err);
+                    WriteWarn($"QuickBMS reported a failure for '{file}'.");
+                }
+            } finally {
+                UnregisterActive();
+                System.Threading.Interlocked.Increment(ref progressState.Processed);
             }
-            processed++;
-            current = null;
         }
 
         cts.Cancel();
-        try { panel.Wait(cts.Token); } catch {
-            Shared.IO.Diagnostics.Bug("Failed to wait for progress panel");
+        try {
+            panel.Wait();
+        } catch (System.AggregateException ex) {
+            Shared.IO.Diagnostics.Bug("[QuickBmsExtractor::Run()] Progress task wait failed.", ex);
+        } catch (System.Exception ex) {
+            Shared.IO.Diagnostics.Bug("[QuickBmsExtractor::Run()] Progress task wait failed.", ex);
         }
 
-        WriteInfo($"QuickBMS extraction complete. Success: {success}/{files.Count}.");
+        WriteInfo($"QuickBMS extraction complete. Success: {progressState.Ok}/{files.Count}.");
         return okAll;
+    }
+
+    /// <summary>
+    /// Registers the current QuickBMS file in the active progress set.
+    /// </summary>
+    /// <param name="tool">The tool label shown in the progress panel.</param>
+    /// <param name="srcPath">Source file currently being processed.</param>
+    private static void RegisterActive(string tool, string srcPath) {
+        try {
+            int key = System.Threading.Thread.CurrentThread.ManagedThreadId;
+            s_active[key] = new EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess {
+                Tool = tool,
+                File = System.IO.Path.GetFileName(srcPath),
+                StartedUtc = System.DateTime.UtcNow
+            };
+        } catch (System.Exception ex) {
+            Shared.IO.Diagnostics.Bug("[QuickBmsExtractor::RegisterActive()] Failed to register active process.", ex);
+            /* ignore */
+        }
+    }
+
+    /// <summary>
+    /// Removes the current thread's active QuickBMS job from progress tracking.
+    /// </summary>
+    private static void UnregisterActive() {
+        try {
+            s_active.TryRemove(System.Threading.Thread.CurrentThread.ManagedThreadId, out _);
+        } catch (System.Exception ex) {
+            Shared.IO.Diagnostics.Bug("[QuickBmsExtractor::UnregisterActive()] Failed to unregister active process.", ex);
+            /* ignore */
+        }
     }
 
     private static Options Parse(IList<string> args) {

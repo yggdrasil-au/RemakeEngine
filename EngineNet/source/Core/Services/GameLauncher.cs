@@ -46,8 +46,9 @@ public class GameLauncher {
     /// Asynchronously launches a game by its specific module name.
     /// </summary>
     /// <param name="name">The unique identifier of the game module to launch.</param>
+    /// <param name="cancellationToken"></param>
     /// <returns>A task that represents the asynchronous launch operation, returning <c>true</c> if the launch was successful; otherwise, <c>false</c>.</returns>
-    public async Task<bool> LaunchGameAsync(string name) {
+    public async Task<bool> LaunchGameAsync(string name, CancellationToken cancellationToken = default(CancellationToken)) {
         string root = _gameRegistry.GetGamePath(name) ?? this._rootPath;
         string gameToml = System.IO.Path.Combine(root, "game.toml");
 
@@ -71,7 +72,7 @@ public class GameLauncher {
         string? godotProject = null;
         try {
             if (System.IO.File.Exists(gameToml)) {
-                foreach (string line in (await System.IO.File.ReadAllLinesAsync(gameToml)).Select(raw => raw.Trim())) {
+                foreach (string line in (await System.IO.File.ReadAllLinesAsync(gameToml, cancellationToken)).Select(raw => raw.Trim())) {
                     if (line.Length == 0 || line.StartsWith('#')) continue;
                     if (line.StartsWith('[')) continue;
                     int eq = line.IndexOf('=');
@@ -129,7 +130,7 @@ public class GameLauncher {
 
                 if (action != null) {
                     Shared.IO.Diagnostics.Trace($"[GameLauncher] executing {ext} script '{scriptPath}' for game '{name}'");
-                    await action.ExecuteAsync(tools: this._toolResolver, commandService: this._commandService);
+                    await action.ExecuteAsync(tools: this._toolResolver, commandService: this._commandService, cancellationToken: cancellationToken);
                     return true;
                 } else {
                     Shared.IO.Diagnostics.Log($"[GameLauncher] Unsupported script type '{ext}' in '{scriptPath}'");
