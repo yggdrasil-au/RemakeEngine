@@ -77,9 +77,10 @@ public class Utils {
                     Shared.IO.UI.EngineSdk.LocalEventSink = prevSink;
                     Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
                 }
-            } else {
-                Shared.IO.Diagnostics.Log($"[Utils.cs::ExecuteOp()] Routing operation of type '{script_type}' to external command execution");
             }
+
+            Shared.IO.Diagnostics.Log($"[Utils.cs::ExecuteOp()] Routing operation of type '{script_type}' to external command execution");
+
 
             // Default: build and execute as external command (e.g., python)
             List<string> parts = Engine.CommandService_BuildCommand(game, games, Engine.EngineConfig_Data, op, promptAnswers);

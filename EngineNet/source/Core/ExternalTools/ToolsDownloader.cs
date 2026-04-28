@@ -11,8 +11,8 @@ internal static class ToolsDownloader {
         IDictionary<string, object?>? context = null,
         CancellationToken cancellationToken = default
     ) {
-        Shared.IO.UI.EngineSdk.PrintLine(string.Empty);
-        Shared.IO.UI.EngineSdk.PrintLine($"=== Tools Downloader - manifest: {moduleTomlPath} ===", System.ConsoleColor.DarkCyan);
+        IO.writeLine(string.Empty);
+        IO.writeLine($"=== Tools Downloader - manifest: {moduleTomlPath} ===", System.ConsoleColor.DarkCyan);
 
         if (!System.IO.File.Exists(moduleTomlPath)) {
             throw new System.IO.FileNotFoundException("Tools manifest not found", moduleTomlPath);
@@ -36,8 +36,8 @@ internal static class ToolsDownloader {
         ToolChecksumVerifier checksumVerifier = new ToolChecksumVerifier(http);
 
         foreach (ToolManifestEntry tool in tools) {
-            Shared.IO.UI.EngineSdk.PrintLine(string.Empty);
-            Shared.IO.UI.EngineSdk.PrintLine($"Processing: {tool.Name} {tool.Version}", System.ConsoleColor.Cyan);
+            IO.writeLine(string.Empty);
+            IO.writeLine($"Processing: {tool.Name} {tool.Version}", System.ConsoleColor.Cyan);
 
             if (tool.HasDeprecatedDestination) {
                 Shared.IO.UI.EngineSdk.Warn($"{tool.Name} {tool.Version}: fields 'destination' and 'unpack_destination' are deprecated and ignored. Using centralized tool paths under EngineApps/Tools.");
@@ -49,7 +49,7 @@ internal static class ToolsDownloader {
             }
 
             if (!ToolRegistryResolver.TryResolvePlatformData(registry, tool.Name, tool.Version, platform, out RegistryPlatformData platformData, out string? checksumSource)) {
-                Shared.IO.UI.EngineSdk.PrintLine($"1 ERROR: Not in registry for platform '{platform}'.", System.ConsoleColor.Red);
+                IO.writeLine($"1 ERROR: Not in registry for platform '{platform}'.", System.ConsoleColor.Red);
                 continue;
             }
 

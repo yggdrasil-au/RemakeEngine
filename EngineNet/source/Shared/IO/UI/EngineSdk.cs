@@ -94,12 +94,12 @@ public static class EngineSdk {
     /// <summary>
     /// Informational message (non-warning).
     /// </summary>
-    public static void Info(string message) => PrintLine(message, color: "cyan");
+    public static void Info(string message) => PrintLine(message, color: System.ConsoleColor.Cyan);
 
     /// <summary>
     /// Success message (green).
     /// </summary>
-    public static void Success(string message) => PrintLine(message, color: "green");
+    public static void Success(string message) => PrintLine(message, color: System.ConsoleColor.Green);
 
     /// <summary>
     /// Mark the start of an operation or phase.
@@ -233,22 +233,17 @@ public static class EngineSdk {
     }
 
     /// <summary>
-    /// Emit a colored print event using a ConsoleColor.
+    /// Emit a colored print event with a trailing newline.
     /// </summary>
-    public static void Print(string message, System.ConsoleColor color, bool newline = false) {
-        Print(message, color.ToString(), newline);
+    public static void PrintLine(string message) {
+        Print(message, color: null, newline: true);
     }
 
     /// <summary>
     /// Emit a colored print event with a trailing newline.
     /// </summary>
-    public static void PrintLine(string message, string? color = null) {
-        Dictionary<string, object?> data = new Dictionary<string, object?> {
-            ["message"] = message,
-            ["color"] = string.IsNullOrWhiteSpace(color) ? null : color,
-            ["newline"] = true
-        };
-        Emit("print", data);
+    public static void PrintLine(string message, System.ConsoleColor? color) {
+        Print(message, color?.ToString(), newline: true);
     }
 
     /// <summary>

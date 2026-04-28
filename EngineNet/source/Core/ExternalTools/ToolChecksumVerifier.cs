@@ -59,7 +59,7 @@ internal sealed class ToolChecksumVerifier {
             }
         }
 
-        Shared.IO.UI.EngineSdk.PrintLine("1 ERROR: Checksum mismatch. Skipping further steps for this tool.", System.ConsoleColor.Red);
+        IO.writeLine("1 ERROR: Checksum mismatch. Skipping further steps for this tool.", System.ConsoleColor.Red);
         Shared.IO.UI.EngineSdk.Info($"Current checksum: {currentChecksum}");
         return new ToolChecksumVerificationResult(false, string.Empty);
     }

@@ -323,7 +323,7 @@ internal static class FolderRenamer {
 
     private static void Write(System.ConsoleColor color, string message, bool isError = false) {
         string formatted = $"[Rename] {message}";
-        Shared.IO.UI.EngineSdk.PrintLine(formatted, color);
+        IO.writeLine(formatted, color);
         if (isError) {
             TraceError(formatted);
         }

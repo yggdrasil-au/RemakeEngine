@@ -187,16 +187,16 @@ internal static class AvTools {
 
             Shared.IO.UI.EngineSdk.Info("\n--- Conversion Completed ---");
 
-            Shared.IO.UI.EngineSdk.PrintLine($"Success: {success}", System.ConsoleColor.Green);
-            Shared.IO.UI.EngineSdk.PrintLine($"Skipped: {skipped}", System.ConsoleColor.Yellow);
-            Shared.IO.UI.EngineSdk.PrintLine($"Errors: {errors}", System.ConsoleColor.Red);
+            IO.writeLine($"Success: {success}", System.ConsoleColor.Green);
+            IO.writeLine($"Skipped: {skipped}", System.ConsoleColor.Yellow);
+            IO.writeLine($"Errors: {errors}", System.ConsoleColor.Red);
 
             if (errorList.IsEmpty){
                 return true;
             } else {
                 Shared.IO.UI.EngineSdk.Error("\nEncountered the following errors:");
                 foreach ((string file, string msg) in errorList) {
-                    Shared.IO.UI.EngineSdk.PrintLine($" Fail - File: {file}\n    Reason: {msg}", System.ConsoleColor.Red);
+                    IO.writeLine($" Fail - File: {file}\n    Reason: {msg}", System.ConsoleColor.Red);
                 }
                 return false;
             }

@@ -38,10 +38,10 @@ internal sealed class ToolArchiveManager {
             Shared.IO.UI.EngineSdk.Warn($"{ex.Message} Leaving archive as-is.");
         } catch (System.IO.IOException ex) {
             Shared.IO.Diagnostics.Bug($"[ToolArchiveManager.cs::ExtractAndFindExe()] Failed to unpack archive '{archivePath}' to '{installDir}'.", ex);
-            Shared.IO.UI.EngineSdk.PrintLine($"1 ERROR: Failed to unpack '{archivePath}': {ex.Message}", System.ConsoleColor.Red);
+            IO.writeLine($"1 ERROR: Failed to unpack '{archivePath}': {ex.Message}", System.ConsoleColor.Red);
         } catch (UnauthorizedAccessException ex) {
             Shared.IO.Diagnostics.Bug($"[ToolArchiveManager.cs::ExtractAndFindExe()] Access denied unpacking archive '{archivePath}' to '{installDir}'.", ex);
-            Shared.IO.UI.EngineSdk.PrintLine($"1 ERROR: Failed to unpack '{archivePath}': {ex.Message}", System.ConsoleColor.Red);
+            IO.writeLine($"1 ERROR: Failed to unpack '{archivePath}': {ex.Message}", System.ConsoleColor.Red);
         }
 
         string? exePath = FindExe(installDir, toolName, preferredExeName);

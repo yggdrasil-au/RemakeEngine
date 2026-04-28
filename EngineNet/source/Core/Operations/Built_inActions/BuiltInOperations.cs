@@ -42,8 +42,8 @@ internal class BuiltInOperations {
                 // Parse and re-serialize to show structure (matching behavior of listing the TOML structure)
                 object docObj = TomlHelpers.ParseFileToPlainObject(configPath);
                 string dump = TomlHelpers.WriteDocument(docObj);
-                Shared.IO.UI.EngineSdk.PrintLine($"Config file: {configPath}");
-                Shared.IO.UI.EngineSdk.PrintLine(dump);
+                IO.writeLine($"Config file: {configPath}");
+                IO.writeLine(dump);
                 return true;
             } catch (System.Exception ex) {
                 Shared.IO.Diagnostics.Bug($"Failed to read config structure: {ex.Message}");
@@ -74,7 +74,7 @@ internal class BuiltInOperations {
                 foreach (var set in opts.Sets) {
                     Utils.ConfigHelpers.ApplyUpdate(doc, opts.Group, opts.Index, set.Key, set.Value, set.TypeHint);
                     string msg = $"Updated {opts.Group}[{(opts.Index == 0 ? 1 : opts.Index)}].{set.Key} = {Utils.ConfigHelpers.ConvertValue(set.Value, set.TypeHint)}";
-                    Shared.IO.UI.EngineSdk.PrintLine(msg, System.ConsoleColor.Green);
+                    IO.writeLine(msg, System.ConsoleColor.Green);
                 }
             } else {
                 // Single set
@@ -92,13 +92,13 @@ internal class BuiltInOperations {
                 } else {
                     Utils.ConfigHelpers.ApplyUpdate(doc, opts.Group, opts.Index, opts.Key, opts.Value, opts.TypeHint);
                     string msg = $"Updated {opts.Group}[{(opts.Index == 0 ? 1 : opts.Index)}].{opts.Key} = {Utils.ConfigHelpers.ConvertValue(opts.Value, opts.TypeHint)}";
-                    Shared.IO.UI.EngineSdk.PrintLine(msg, System.ConsoleColor.Green);
+                    IO.writeLine(msg, System.ConsoleColor.Green);
                 }
             }
 
             // Write back
             TomlHelpers.WriteTomlFile(configPath, doc);
-            // Shared.IO.UI.EngineSdk.PrintLine($"Updated config at {configPath}", System.ConsoleColor.Green);
+            // IO.writeLine($"Updated config at {configPath}", System.ConsoleColor.Green);
             // Lua prints the specific updates. The above loops print the updates.
             return true;
 
@@ -151,25 +151,25 @@ internal class BuiltInOperations {
         switch (tool) {
             case "ffmpeg":
             case "vgmstream":
-                Shared.IO.UI.EngineSdk.PrintLine("\n>>> Built-in media conversion");
+                IO.writeLine("\n>>> Built-in media conversion");
                 Shared.IO.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running media conversion with args: {string.Join(' ', args)}");
                 return Core.Media.AvTools.Run(operationArgs.context.ToolResolver, args, operationArgs.cancellationToken);
 
             case "imagemagick":
-                Shared.IO.UI.EngineSdk.PrintLine("\n>>> Built-in image conversion");
+                IO.writeLine("\n>>> Built-in image conversion");
                 Shared.IO.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running image conversion with args: {string.Join(' ', args)}");
                 return Core.Media.ImageMagickConverter.Run(operationArgs.context.ToolResolver, args, operationArgs.cancellationToken);
 
             case "p3d":
-                Shared.IO.UI.EngineSdk.PrintLine("\n>>> Built-in p3d conversion");
+                IO.writeLine("\n>>> Built-in p3d conversion");
                 Shared.IO.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running p3d conversion with args: {string.Join(' ', args)}");
                 return EngineNet.GameFormats.p3d.P3dExtractor.Run(args, operationArgs.cancellationToken);
 
             default:
                 Shared.IO.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: unknown tool '{tool}'");
-                Shared.IO.UI.EngineSdk.PrintLine($"ERROR: format-convert requires a valid tool. Found: '{tool ?? "(null)"}'");
-                Shared.IO.UI.EngineSdk.PrintLine("Supported tools: ffmpeg, vgmstream, ImageMagick, p3d");
-                Shared.IO.UI.EngineSdk.PrintLine("Specify tool with --tool parameter or -m/--mode in args.");
+                IO.writeLine($"ERROR: format-convert requires a valid tool. Found: '{tool ?? "(null)"}'");
+                IO.writeLine("Supported tools: ffmpeg, vgmstream, ImageMagick, p3d");
+                IO.writeLine("Specify tool with --tool parameter or -m/--mode in args.");
                 return false;
         }
     }
@@ -215,16 +215,16 @@ internal class BuiltInOperations {
         switch (format) {
             case "p3d": {
                 // in future will be specifically for converting p3d into there core component files (meshes, textures, shaders, etc)
-                Shared.IO.UI.EngineSdk.PrintLine("\n>>> Built-in P3D extraction");
-                Shared.IO.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
+                IO.writeLine("\n>>> Built-in P3D extraction");
+                IO.writeLine($"with args: {string.Join(' ', args)}");
                 return EngineNet.GameFormats.p3d.P3dExtractor.Run(args, operationArgs.cancellationToken);
             } case "txd": {
-                Shared.IO.UI.EngineSdk.PrintLine("\n>>> Built-in TXD extraction");
-                Shared.IO.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
+                IO.writeLine("\n>>> Built-in TXD extraction");
+                IO.writeLine($"with args: {string.Join(' ', args)}");
                 return EngineNet.GameFormats.txd.Extractor.Run(args, operationArgs.cancellationToken);
             } default: {
-                Shared.IO.UI.EngineSdk.PrintLine($"ERROR: format-extract does not support format '{format}'");
-                Shared.IO.UI.EngineSdk.PrintLine("Supported formats: p3d, txd");
+                IO.writeLine($"ERROR: format-extract does not support format '{format}'");
+                IO.writeLine("Supported formats: p3d, txd");
                 return false;
             }
         }
@@ -237,9 +237,9 @@ internal class BuiltInOperations {
         List<string> args = Utils.Helpers.ResolveOperationArgs(operationArgs.op, ctx);
 
         // execute
-        Shared.IO.UI.EngineSdk.PrintLine("\n>>> Built-in folder rename");
+        IO.writeLine("\n>>> Built-in folder rename");
 
-        Shared.IO.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
+        IO.writeLine($"with args: {string.Join(' ', args)}");
         bool ok = Utils.FolderRenamer.Run(args, operationArgs.cancellationToken);
         return ok;
     }
@@ -267,15 +267,15 @@ internal class BuiltInOperations {
         }
         // if less than 2 args, print message and return false
         if (args.Count < 2) {
-            Shared.IO.UI.EngineSdk.PrintLine("validate-files requires a database path and base directory.");
+            IO.writeLine("validate-files requires a database path and base directory.");
             return false;
         }
 
 
 
         // execute
-        Shared.IO.UI.EngineSdk.PrintLine("\n>>> Built-in file validation");
-        Shared.IO.UI.EngineSdk.PrintLine($"with args: {string.Join(' ', args)}");
+        IO.writeLine("\n>>> Built-in file validation");
+        IO.writeLine($"with args: {string.Join(' ', args)}");
         bool ok = Utils.FileValidator.Run(args, operationArgs.cancellationToken);
         return ok;
     }
