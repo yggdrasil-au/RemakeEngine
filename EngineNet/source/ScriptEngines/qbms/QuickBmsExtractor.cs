@@ -76,9 +76,10 @@ internal static class QuickBmsExtractor {
         ProgressState progressState = new ProgressState();
 
         // Progress panel tracking uses a stable state container to avoid closure capture issues.
+        long total = files.Count;
         using System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
         System.Threading.Tasks.Task panel = EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.StartPanel(
-            total: files.Count,
+            total: () => total,
             snapshot: () => (
                 System.Threading.Volatile.Read(ref progressState.Processed),
                 System.Threading.Volatile.Read(ref progressState.Ok),
@@ -86,7 +87,7 @@ internal static class QuickBmsExtractor {
                 System.Threading.Volatile.Read(ref progressState.Err)
             ),
             activeSnapshot: () => new List<EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess>(s_active.Values),
-            label: "Extracting Archives",
+            label: () => "Extracting Archives",
             token: cts.Token
         );
 

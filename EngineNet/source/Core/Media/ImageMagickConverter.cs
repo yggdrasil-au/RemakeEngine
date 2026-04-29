@@ -103,12 +103,13 @@ internal static class ImageMagickConverter {
                 CancellationToken = cancellationToken
             };
 
+            long total = allFiles.Count;
             using System.Threading.CancellationTokenSource progressCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             System.Threading.Tasks.Task progressTask = EngineSdk.SdkConsoleProgress.StartPanel(
-                total: allFiles.Count,
+                total: () => total,
                 snapshot: () => (System.Threading.Volatile.Read(ref processed), System.Threading.Volatile.Read(ref success), System.Threading.Volatile.Read(ref skipped), System.Threading.Volatile.Read(ref errors)),
                 activeSnapshot: () => s_active.Values.ToList(),
-                label: "Converting Images",
+                label: () => "Converting Images",
                 token: progressCts.Token);
             try {
                 System.Threading.Tasks.Parallel.ForEach(allFiles, po, src => {

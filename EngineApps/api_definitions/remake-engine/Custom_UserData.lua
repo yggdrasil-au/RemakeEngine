@@ -69,11 +69,95 @@ local PanelProgress = {}
 ---@param increment? integer The number of steps to advance (default 1).
 function PanelProgress:Update(increment) end
 
+--- Sets the total number of steps for the progress bar.
+---@param total integer
+function PanelProgress:SetTotal(total) end
+
+--- Sets the label shown for the progress bar.
+---@param label string
+function PanelProgress:SetLabel(label) end
+
 --- Marks the progress as complete and closes the panel.
 function PanelProgress:Complete() end
 
 --- Disposes the progress handle (same as Complete()).
 function PanelProgress:Dispose() end
+
+--- Represents a fully controllable console progress panel.
+---@class ConsoleProgress
+---@field Id string The progress id.
+---@field Current integer The current processed count.
+---@field Total integer The total number of steps.
+---@field Ok integer The ok count.
+---@field Skip integer The skip count.
+---@field Err integer The error count.
+---@field Label string|nil The progress label.
+local ConsoleProgress = {}
+
+--- Returns the progress id.
+---@return string
+function ConsoleProgress:GetId() end
+
+--- Returns the total count.
+---@return integer
+function ConsoleProgress:GetTotal() end
+
+--- Returns the processed count.
+---@return integer
+function ConsoleProgress:GetProcessed() end
+
+--- Returns the ok count.
+---@return integer
+function ConsoleProgress:GetOk() end
+
+--- Returns the skip count.
+---@return integer
+function ConsoleProgress:GetSkip() end
+
+--- Returns the error count.
+---@return integer
+function ConsoleProgress:GetErr() end
+
+--- Returns the current label.
+---@return string
+function ConsoleProgress:GetLabel() end
+
+--- Sets the total number of steps for the progress bar.
+---@param total integer
+function ConsoleProgress:SetTotal(total) end
+
+--- Sets the label shown for the progress bar.
+---@param label string
+function ConsoleProgress:SetLabel(label) end
+
+--- Sets all counter stats at once.
+---@param processed integer
+---@param ok integer
+---@param skip integer
+---@param err integer
+function ConsoleProgress:SetStats(processed, ok, skip, err) end
+
+--- Updates the progress counters by the provided increments.
+---@param processed? integer
+---@param ok? integer
+---@param skip? integer
+---@param err? integer
+function ConsoleProgress:Update(processed, ok, skip, err) end
+
+--- Adds a job entry to the active list.
+---@param tool string
+---@param file string
+function ConsoleProgress:AddJob(tool, file) end
+
+--- Removes a job entry by file name.
+---@param file string
+function ConsoleProgress:RemoveJob(file) end
+
+--- Marks the progress as complete and closes the panel.
+function ConsoleProgress:Complete() end
+
+--- Disposes the progress handle (same as Complete()).
+function ConsoleProgress:Dispose() end
 
 --- Represents a progress bar for the currently running script.
 ---@class ScriptProgress

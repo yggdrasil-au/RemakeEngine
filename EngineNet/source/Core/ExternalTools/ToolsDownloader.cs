@@ -144,14 +144,14 @@ internal static class ToolsDownloader {
         DownloadProgressState progressState = new DownloadProgressState();
         System.Threading.CancellationTokenSource progressCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         System.Threading.Tasks.Task progressTask = EngineSdk.SdkConsoleProgress.StartPanel(
-            total: total,
+            total: () => total,
             snapshot: () => {
                 long processed = System.Threading.Volatile.Read(ref progressState.Processed);
                 int ok = processed > int.MaxValue ? int.MaxValue : (int)processed;
                 return (processed, ok, 0, 0);
             },
             activeSnapshot: () => new List<EngineSdk.SdkConsoleProgress.ActiveProcess>(),
-            label: $"Downloading {fileName}",
+            label: () => $"Downloading {fileName}",
             token: progressCts.Token,
             id: "download"
         );

@@ -16,7 +16,7 @@ declare interface PanelProgress {
     /**
      * The total number of generic "items" to process.
      */
-    readonly Total: number;
+    Total: number;
 
     /**
      * The current number of items completed.
@@ -28,7 +28,7 @@ declare interface PanelProgress {
      */
     readonly Id: string;
 
-    readonly Label: string | null;
+    Label: string | null;
 
     /**
      * Signal that the background task is fully complete and destroy the UI element.
@@ -36,10 +36,27 @@ declare interface PanelProgress {
     Complete(): void;
 
     /**
+     * Disposes the progress handle (same as Complete()).
+     */
+    Dispose(): void;
+
+    /**
      * Manually add to the internal processed counter.
      * @param inc Amount to increment (defaults to 1).
      */
     Update(inc?: number): void;
+
+    /**
+     * Sets the total number of items to process.
+     * @param total The total count.
+     */
+    SetTotal(total: number): void;
+
+    /**
+     * Sets the label for the panel.
+     * @param label The label text.
+     */
+    SetLabel(label: string): void;
 }
 
 /**
@@ -63,6 +80,56 @@ declare interface ScriptProgress {
      * Call to indicate script sequence is perfectly complete.
      */
     Complete(): void;
+}
+
+/**
+ * Fully controllable console progress panel.
+ */
+declare interface ConsoleProgress {
+    /** Returns the progress id. */
+    GetId(): string;
+
+    /** Returns the total count. */
+    GetTotal(): number;
+
+    /** Returns the processed count. */
+    GetProcessed(): number;
+
+    /** Returns the ok count. */
+    GetOk(): number;
+
+    /** Returns the skip count. */
+    GetSkip(): number;
+
+    /** Returns the error count. */
+    GetErr(): number;
+
+    /** Returns the current label. */
+    GetLabel(): string;
+
+    /** Sets the total count. */
+    SetTotal(total: number): void;
+
+    /** Sets the label text. */
+    SetLabel(label: string): void;
+
+    /** Sets the counter values. */
+    SetStats(processed: number, ok: number, skip: number, err: number): void;
+
+    /** Updates the counters by the provided increments. */
+    Update(processed?: number, ok?: number, skip?: number, err?: number): void;
+
+    /** Adds an active job entry. */
+    AddJob(tool: string, file: string): void;
+
+    /** Removes an active job entry by file name. */
+    RemoveJob(file: string): void;
+
+    /** Completes and closes the panel. */
+    Complete(): void;
+
+    /** Disposes the progress handle (same as Complete()). */
+    Dispose(): void;
 }
 
 // =============================================================================
@@ -193,38 +260,29 @@ declare namespace Diagnostics {
 
 declare namespace progress {
     /**
-     * Starts an overarching linear script progress cycle (usually bounds the full operational scope).
-     * @param total Amount of absolute discrete ticks.
-     * @param label Top-level script operational label.
-     * @returns Instantiated `ScriptProgress` object class.
+     * Script-wide progress helpers (GUI only).
      */
-    function start(total: number, label?: string): ScriptProgress;
+    namespace script {
+        function start(total: number, label?: string): ScriptProgress;
+        function step(label?: string): void;
+        function add_steps(count: number): void;
+        function finish(): void;
+    }
 
     /**
-     * Construct a brand-new panel process element bound asynchronously to GUI or Terminal display arrays. Used for heavy processing bounds tracking.
-     * @param total Raw ceiling total boundary items.
-     * @param id Tracking ID explicitly necessary in specific contexts bridging tasks.
-     * @param label Progress operation description text.
-     * @returns Concrete instantiated `PanelProgress` userdata implementation link.
+     * Standard panel progress helpers.
      */
-    function _new(total: number, id?: string, label?: string): PanelProgress;
-    export { _new as new };
+    namespace panel {
+        function _new(total: number, id?: string, label?: string): PanelProgress;
+        export { _new as new };
+    }
 
     /**
-     * Automatically applies a native `1` tick advancement upon the global script progress object constructed by `progress.start()`.
-     * @param label Provide updated meta-details around the active script tracking chunk currently firing.
+     * Advanced console panel helpers.
      */
-    function step(label?: string): void;
-
-    /**
-     * Shifts the active boundary total ticks for the global script context object up by parameter parameter `count`.
-     * @param count Raw value to push boundary variable to.
-     */
-    function add_steps(count: number): void;
-
-    /**
-     * Finishes explicitly executing script-wide global tracking procedures.
-     */
-    function finish(): void;
+    namespace console {
+        function _new(total: number, id?: string, label?: string): ConsoleProgress;
+        export { _new as new };
+    }
 }
 

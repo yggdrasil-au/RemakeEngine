@@ -28,8 +28,9 @@ public static class Extractor {
             ProgressState progressState = new ProgressState();
 
             using CancellationTokenSource progressCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            long total = files.Count;
             System.Threading.Tasks.Task progress = Shared.IO.UI.EngineSdk.SdkConsoleProgress.StartPanel(
-                total: files.Count,
+                total: () => total,
                 snapshot: () => (
                     System.Threading.Volatile.Read(ref progressState.Processed),
                     System.Threading.Volatile.Read(ref progressState.Ok),
@@ -37,7 +38,7 @@ public static class Extractor {
                     System.Threading.Volatile.Read(ref progressState.Err)
                 ),
                 activeSnapshot: () => new List<Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess>(s_active.Values),
-                label: "Extracting TXD",
+                label: () => "Extracting TXD",
                 token: progressCts.Token
             );
 

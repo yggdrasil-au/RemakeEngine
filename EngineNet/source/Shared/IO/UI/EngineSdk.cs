@@ -359,27 +359,46 @@ public static class EngineSdk {
     //progress.finish()
 
     /// <summary>
-    /// progress handle now backed by SdkConsoleProgress panel events.
-    /// Provides the same Update(int) API expected by scripts while rendering
-    /// using the improved progress panel in the UI.
+    /// Progress handle now backed by SdkConsoleProgress panel events.
+    /// Provides Update(int) while allowing dynamic total/label updates for the TUI panel.
     /// </summary>
     public sealed class PanelProgress : System.IDisposable {
         private readonly System.Threading.CancellationTokenSource _cts;
         private readonly System.Threading.Tasks.Task _panelTask;
         private long _processed;
-        private readonly long _total;
+        private long _total;
+        private string _label;
 
+        /// <summary>
+        /// Gets the current processed count.
+        /// </summary>
         public long Current => System.Threading.Volatile.Read(ref _processed);
+
+        /// <summary>
+        /// Gets or sets the total item count for the panel.
+        /// </summary>
+        public long Total {
+            get => System.Threading.Interlocked.Read(ref _total);
+            set => System.Threading.Interlocked.Exchange(ref _total, System.Math.Max(1, value));
+        }
+
+        /// <summary>
+        /// Gets or sets the panel label.
+        /// </summary>
+        public string? Label {
+            get => System.Threading.Volatile.Read(ref _label);
+            set => System.Threading.Volatile.Write(ref _label, value ?? string.Empty);
+        }
         public string Id { get; }
 
         public PanelProgress(long total, string id = "p1", string? label = null) {
             _total = System.Math.Max(1, total);
             Id = id;
-            string _label = label ?? string.Empty;
+            _label = label ?? string.Empty;
             _processed = 0;
             _cts = new System.Threading.CancellationTokenSource();
             _panelTask = SdkConsoleProgress.StartPanel(
-                total: _total,
+                total: () => System.Threading.Interlocked.Read(ref _total),
                 snapshot: () => {
                     long p = System.Threading.Volatile.Read(ref _processed);
                     // Use 'ok' equal to processed (clamped to int) for a simple linear flow.
@@ -387,7 +406,7 @@ public static class EngineSdk {
                     return (processed: p, ok, skip: 0, err: 0);
                 },
                 activeSnapshot: () => new List<SdkConsoleProgress.ActiveProcess>(),
-                label: _label,
+                label: () => System.Threading.Volatile.Read(ref _label),
                 token: _cts.Token,
                 id: Id
             );
@@ -396,9 +415,24 @@ public static class EngineSdk {
         public void Update(long inc = 1) {
             long add = System.Math.Max(1, inc);
             long newVal = System.Threading.Interlocked.Add(ref _processed, add);
-            if (newVal > _total) {
-                System.Threading.Interlocked.Exchange(ref _processed, _total);
+            long total = System.Threading.Interlocked.Read(ref _total);
+            if (newVal > total) {
+                System.Threading.Interlocked.Exchange(ref _processed, total);
             }
+        }
+
+        /// <summary>
+        /// Sets the total item count for the panel.
+        /// </summary>
+        public void SetTotal(long total) {
+            System.Threading.Interlocked.Exchange(ref _total, System.Math.Max(1, total));
+        }
+
+        /// <summary>
+        /// Sets the label text for the panel.
+        /// </summary>
+        public void SetLabel(string? label) {
+            System.Threading.Volatile.Write(ref _label, label ?? string.Empty);
         }
 
         public void Complete() {
@@ -440,13 +474,14 @@ public static class EngineSdk {
 
         /// <summary>
         /// Starts a background task that periodically emits progress panel events
-        /// until the token is cancelled.
+        /// until the token is cancelled. Total and label are provided via delegates
+        /// to allow dynamic updates.
         /// </summary>
         public static System.Threading.Tasks.Task StartPanel(
-            long total,
+            System.Func<long> total,
             System.Func<(long processed, int ok, int skip, int err)> snapshot,
             System.Func<List<ActiveProcess>> activeSnapshot,
-            string label,
+            System.Func<string> label,
             System.Threading.CancellationToken token,
             string id = "p1"
         ) {
@@ -459,9 +494,11 @@ public static class EngineSdk {
                 while (!token.IsCancellationRequested) {
                     (long processed, int ok, int skip, int err) s = snapshot();
                     List<ActiveProcess> actives = activeSnapshot();
+                    long totalValue = total();
+                    string labelValue = label();
 
                     // Build the data payload
-                    Dictionary<string, object?> data = BuildPanelData(total, s, actives, spinner[spinnerIndex % spinner.Length], label);
+                    Dictionary<string, object?> data = BuildPanelData(totalValue, s, actives, spinner[spinnerIndex % spinner.Length], labelValue);
                     data["id"] = id;
 
                     // Emit the event
@@ -474,7 +511,9 @@ public static class EngineSdk {
                 // Final event emit
                 (long processed, int ok, int skip, int err) finalS = snapshot();
                 List<ActiveProcess> finalAct = activeSnapshot();
-                Dictionary<string, object?> finalData = BuildPanelData(total, finalS, finalAct, ' ', label);
+                long finalTotal = total();
+                string finalLabel = label();
+                Dictionary<string, object?> finalData = BuildPanelData(finalTotal, finalS, finalAct, ' ', finalLabel);
                 finalData["id"] = id;
                 Emit(Events.ProgressPanel, finalData);
 

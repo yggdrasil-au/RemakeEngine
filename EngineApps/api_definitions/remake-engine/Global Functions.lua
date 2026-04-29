@@ -97,15 +97,23 @@ function require(path) end
 Diagnostics = {}
 
 --- Progress helpers for the current script.
---- the start() method is specifically for script wide progress indicating start to end progress
---- the new() method is for creating independent progress bars that can be stepped and updated separately, useful for nested operations or tracking multiple tasks simultaneously
----@class Progress
----@field new fun(total: integer, id?: string, label?: string): PanelProgress
+--- progress.script is for overall script completion (GUI only).
+--- progress.panel is for standard panel progress bars.
+--- progress.console is for fully controllable panel progress bars.
+---@class ProgressScript
 ---@field start fun(total: integer, label?: string): ScriptProgress
 ---@field step fun(label?: string)
 ---@field add_steps fun(count: integer)
 ---@field finish fun()
-progress = {}
+---@class ProgressPanel
+---@field new fun(total: integer, id?: string, label?: string): PanelProgress
+---@class ProgressConsole
+---@field new fun(total: integer, id?: string, label?: string): ConsoleProgress
+---@class Progress
+---@field script ProgressScript
+---@field panel ProgressPanel
+---@field console ProgressConsole
+progress = { script = {}, panel = {}, console = {} }
 
 
 --- Normalizes path separators to the host OS default.

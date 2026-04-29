@@ -55,25 +55,26 @@ sdk.color_print('white', ' (color vs colour)')
 
 -- Stage-based script progress (for GUI status indicator)
 -- New progress API usage
-progress.start(20, 'Comprehensive Lua API Demo')
+progress.script.start(20, 'Comprehensive Lua API Demo')
 
 sdk.color_print('yellow', '--- Progress Tracking Examples ---')
 -- ❌ INCORRECT: Common progress mistakes
 sdk.color_print('cyan', '❌ INCORRECT progress usage:')
-sdk.color_print('white', "progress.new()  -- Missing required 'total' parameter")
-sdk.color_print('white', "local p = progress.new(100) -- p is now a progress object")
+sdk.color_print('white', "progress.panel.new()  -- Missing required 'total' parameter")
+sdk.color_print('white', "local p = progress.panel.new(100) -- p is now a panel progress object")
 sdk.color_print('white', "p.Update()  -- Wrong: use colon syntax (p:Update())")
 
 -- ✅ CORRECT: Proper progress usage
 sdk.color_print('green', '✅ CORRECT progress usage:')
-sdk.color_print('white', "local p = progress.new(100, 'my-id', 'My Operation') -- For panel")
+sdk.color_print('white', "local p = progress.panel.new(100, 'my-id', 'My Operation') -- For panel")
 sdk.color_print('white', "p:Update()  -- Increment by 1 (default)")
-sdk.color_print('white', "progress.start(10, 'My Stage') -- Start script progress")
-sdk.color_print('white', "progress.step('Next step description') -- Move to next stage")
+sdk.color_print('white', "progress.script.start(10, 'My Stage') -- Start script progress")
+sdk.color_print('white', "progress.script.step('Next step description') -- Move to next stage")
+sdk.color_print('white', "progress.console.new(10, 'my-id', 'My Console Op') -- Advanced panel control")
 
 -- Real demo of PanelProgress
 sdk.color_print('cyan', '--- Running PanelProgress Demo (Visual Progress Bar) ---')
-local demo_p = progress.new(100, 'demo-idx', 'Simulating background asset indexing...')
+local demo_p = progress.panel.new(100, 'demo-idx', 'Simulating background asset indexing...')
 for i = 1, 100 do
     demo_p:Update(1)
     sdk.sleep(0.02) -- Smooth progress
@@ -82,8 +83,8 @@ demo_p:Complete()
 
 -- Concurrent panels demo
 sdk.color_print('cyan', '--- Concurrent PanelProgress Demo ---')
-local task1 = progress.new(50, 'worker-1', 'CPU Intensive Task')
-local task2 = progress.new(50, 'worker-2', 'Network Download Simulation')
+local task1 = progress.panel.new(50, 'worker-1', 'CPU Intensive Task')
+local task2 = progress.panel.new(50, 'worker-2', 'Network Download Simulation')
 
 for i = 1, 50 do
     task1:Update(1)
@@ -96,6 +97,20 @@ task1:Complete()
 task2:Complete()
 
 sdk.color_print('green', 'PanelProgress demonstrations complete.')
+
+-- Real demo of ConsoleProgress (dynamic totals/labels/jobs)
+sdk.color_print('cyan', '--- Running ConsoleProgress Demo (Dynamic Panel) ---')
+local console_p = progress.console.new(10, 'console-demo', 'Preparing console progress...')
+console_p:AddJob('demo', 'console_task')
+for i = 1, 10 do
+    console_p:SetLabel('Console step ' .. i)
+    console_p:Update(1, 1, 0, 0)
+    sdk.sleep(0.02)
+end
+console_p:RemoveJob('console_task')
+console_p:Complete()
+
+sdk.color_print('green', 'ConsoleProgress demonstration complete.')
 
 
 --- Global Path Normalization and Joining (New Engine API) ---
@@ -111,7 +126,7 @@ local soft_join_path = join('C:/Base/', '/SubDir', '\\File.dat')
 sdk.color_print('cyan', 'Soft join (concatenates absolute segments): ' .. soft_join_path)
 
 
-progress.step('Creating directory structure')
+progress.script.step('Creating directory structure')
 
 -- SDK Directory operations
 sdk.ensure_dir(scratch_root)
@@ -120,7 +135,7 @@ sdk.ensure_dir(scratch_root .. '/test_dirs/subdir1')
 sdk.ensure_dir(scratch_root .. '/test_dirs/subdir2')
 sdk.ensure_dir(scratch_root .. '/symlink_test')
 
-progress.step('Testing path existence functions')
+progress.script.step('Testing path existence functions')
 
 -- SDK Path existence checks
 local paths_to_test = {
@@ -139,7 +154,7 @@ for _, path in ipairs(paths_to_test) do
     sdk.color_print('yellow', string.format('Path: %s | exists: %s | lexists: %s | is_dir: %s | is_file: %s', path, tostring(exists), tostring(lexists), tostring(is_dir), tostring(is_file)))
 end
 
-progress.step('Creating test files')
+progress.script.step('Creating test files')
 
 -- Create test files for file operations
 local test_file1 = scratch_root .. '/test_file1.txt'
@@ -160,7 +175,7 @@ else
     sdk.color_print('red', 'Warning: Could not create test file using io.open()')
 end
 
-progress.step('Testing file operations')
+progress.script.step('Testing file operations')
 
 sdk.color_print('yellow', '--- File Operations Examples ---')
 sdk.color_print('white', 'RemakeEngine file operations have specific parameter requirements:')
@@ -211,7 +226,7 @@ local rename_dir_ok = sdk.rename_file(rename_test_dir, rename_dest_dir, true)
 local dir_exists_after = sdk.path_exists(rename_dest_dir)
 sdk.color_print('green', string.format('Dir rename: %s (Writable before: %s, Exists after: %s)', tostring(rename_dir_ok), tostring(dir_writable_before), tostring(dir_exists_after)))
 
-progress.step('Testing directory operations')
+progress.script.step('Testing directory operations')
 
 -- SDK Directory operations
 local test_source_dir = scratch_root .. '/source_dir'
@@ -245,7 +260,7 @@ sdk.color_print('green', 'Found subdir: ' .. tostring(found_subdir))
 local has_all = sdk.has_all_subdirs(scratch_root .. '/test_dirs', {'subdir1', 'subdir2'})
 sdk.color_print('green', 'Has all subdirs: ' .. tostring(has_all))
 
-progress.step('Testing symlink operations')
+progress.script.step('Testing symlink operations')
 
 -- SDK Symlink operations (if supported on platform)
 local symlink_target = test_file1
@@ -273,7 +288,7 @@ else
     sdk.color_print('yellow', '  Note: On Windows, symlinks require Developer Mode or Admin privileges.')
 end
 
-progress.step('Testing MD5 and sleep functions')
+progress.script.step('Testing MD5 and sleep functions')
 
 -- SDK Utility functions
 local test_string = 'RemakeEngine Lua API Test'
@@ -285,7 +300,7 @@ sdk.color_print('yellow', 'Testing sleep function (0.1s)...')
 sdk.sleep(0.1)
 sdk.color_print('yellow', 'Sleep completed!')
 
-progress.step('Testing TOML operations')
+progress.script.step('Testing TOML operations')
 
 -- SDK TOML helpers
 local toml_test_path = scratch_root .. '/test_config.toml'
@@ -317,7 +332,7 @@ if loaded_toml_alt and loaded_toml_alt.demo then
     sdk.color_print('green', 'TOML loaded successfully (alt) - demo version: ' .. tostring(loaded_toml_alt.demo.version))
 end
 
-progress.step('Testing YAML operations')
+progress.script.step('Testing YAML operations')
 
 -- SDK YAML helpers
 local yaml_test_path = scratch_root .. '/test_config.yaml'
@@ -343,7 +358,7 @@ if decoded_yaml and decoded_yaml.demo then
     sdk.color_print('green', 'YAML encode/decode successful - demo version: ' .. tostring(decoded_yaml.demo.version))
 end
 
-progress.step('Testing process execution (run_process)')
+progress.script.step('Testing process execution (run_process)')
 
 -- SDK Process execution - run_process (safer, captures output)
 -- Using 'git --version' as a reliable, cross-platform, approved executable
@@ -361,7 +376,7 @@ if process_result then
     end
 end
 
-progress.step('Testing process execution (exec)')
+progress.script.step('Testing process execution (exec)')
 
 sdk.color_print('yellow', '--- Process Execution Examples ---')
 sdk.color_print('white', 'The RemakeEngine has two process execution methods with different purposes:')
@@ -390,7 +405,7 @@ if exec_result then
     sdk.color_print('cyan', 'exec success: ' .. tostring(exec_result.success))
 end
 
-progress.step('Testing SQLite operations')
+progress.script.step('Testing SQLite operations')
 
 -- SQLite module comprehensive demo
 local sqlite_path = scratch_root .. '/comprehensive_demo.sqlite'
@@ -413,7 +428,9 @@ local features_to_log = {
     {'globals', 'warn()', 'Warning messages'},
     {'globals', 'error()', 'Error messages'},
     {'globals', 'prompt()', 'User input prompts'},
-    {'globals', 'progress()', 'Progress tracking'},
+    {'globals', 'progress.script', 'Script-level progress tracking'},
+    {'globals', 'progress.panel', 'Panel progress tracking'},
+    {'globals', 'progress.console', 'Console progress tracking'},
     {'sdk', 'color_print()', 'Colored terminal output'},
     {'sdk', 'ensure_dir()', 'Directory creation'},
     {'sdk', 'path_exists()', 'Path existence checking'},
@@ -481,7 +498,7 @@ sdk.color_print('yellow', 'Record count after rollback: ' .. count_after_rollbac
 
 db:close()
 
-progress.step('Collecting directory info (engine APIs)')
+progress.script.step('Collecting directory info (engine APIs)')
 
 -- Replace removed lfs usage with engine SDK helpers
 local entries = {}
@@ -504,7 +521,7 @@ for i, entry in ipairs(entries) do
     sdk.color_print('white', string.format('  %d: %s', i, entry))
 end
 
-progress.step('Testing JSON encoding (engine JSON)')
+progress.script.step('Testing JSON encoding (engine JSON)')
 
 -- Use engine-provided JSON helpers under sdk.text.json (encode/decode)
 
@@ -557,13 +574,13 @@ if loaded_json and loaded_json.demo_info then
     sdk.color_print('green', 'JSON loaded successfully - title: ' .. tostring(loaded_json.demo_info.title))
 end
 
-progress.step('Testing warning and error functions')
+progress.script.step('Testing warning and error functions')
 
 -- Demonstrate warning and error functions
 warn('This is a demonstration warning message')
 -- Note: We don't call error() as it would terminate the script
 
-progress.step('Testing tool resolution')
+progress.script.step('Testing tool resolution')
 
 -- Tool resolution demonstration (if any tools are registered)
 local function safe_tool_resolve(tool_name)
@@ -579,7 +596,7 @@ for _, tool_name in ipairs(tools) do
 end
 
 sdk.color_print('green', 'opts.prompt value: ' .. tostring(opts.prompt))
-    progress.step('Testing user prompt')
+    progress.script.step('Testing user prompt')
 if opts.prompt == nil or not opts.prompt then
     -- Prompt demonstration
     -- prompt args (message, id, secret)
@@ -589,7 +606,7 @@ else
     sdk.color_print('green', 'User input received, from arg: ' .. (opts.prompt))
 end
 
-progress.step('Testing security: blocked filesystem and process access')
+progress.script.step('Testing security: blocked filesystem and process access')
 
 if not opts.sec_check then
     sdk.color_print('yellow', '--- Security & Sandboxing Tests Skipped ---')
@@ -685,7 +702,7 @@ else
 end
 
 -- next test gameroot and projectroot globals, compaire to ones pased into args
-progress.step('Testing global variables (Game_Root and Project_Root)')
+progress.script.step('Testing global variables (Game_Root and Project_Root)')
 
 if type(Game_Root) == 'string' then
     sdk.color_print('green', 'Game_Root global is set: ' .. Game_Root)
@@ -722,7 +739,7 @@ if type(script_dir) == 'string' then
 end
 
 
-progress.step('Testing Diagnostics logging')
+progress.script.step('Testing Diagnostics logging')
 
 -- Demonstrate Diagnostics.Log and Diagnostics.Trace
 sdk.color_print('yellow', '--- Diagnostics Logging Examples ---')
@@ -733,6 +750,6 @@ sdk.color_print('yellow', '"This is a trace message from Lua." and should appear
 
 
 -- Final progress update
-progress.step('lua_feature_demo.lua::EOF')
-progress.finish()
+progress.script.step('lua_feature_demo.lua::EOF')
+progress.script.finish()
 

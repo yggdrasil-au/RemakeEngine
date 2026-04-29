@@ -115,12 +115,13 @@ internal static class AvTools {
                 MaxDegreeOfParallelism = opt.Workers ?? 1,
                 CancellationToken = cancellationToken
             };
+            long total = allFiles.Count;
             using System.Threading.CancellationTokenSource progressCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             System.Threading.Tasks.Task progressTask = EngineSdk.SdkConsoleProgress.StartPanel(
-                total: allFiles.Count,
+                total: () => total,
                 snapshot: () => (System.Threading.Volatile.Read(ref processed), System.Threading.Volatile.Read(ref success), System.Threading.Volatile.Read(ref skipped), System.Threading.Volatile.Read(ref errors)),
                 activeSnapshot: () => s_active.Values.ToList(), // This now returns List<SdkConsoleProgress.ActiveProcess>
-                label: "Converting Files",
+                label: () => "Converting Files",
                 token: progressCts.Token
             );
 

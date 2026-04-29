@@ -139,7 +139,7 @@ internal static class FileSystemUtils {
 
         // Prepare files list to compute progress
         List<string> files = System.IO.Directory.EnumerateFiles(srcRoot, "*", System.IO.SearchOption.AllDirectories).ToList();
-        int total = files.Count;
+        long total = files.Count;
         //int current = 0;
 
         CopyProgressState? progressState = total > 0 ? new CopyProgressState() : null;
@@ -151,14 +151,14 @@ internal static class FileSystemUtils {
             Shared.IO.UI.EngineSdk.Print($"Copying {total} files from '{srcRoot}' to '{dstRoot}'...");
             progressCts = new System.Threading.CancellationTokenSource();
             progressTask = Shared.IO.UI.EngineSdk.SdkConsoleProgress.StartPanel(
-                total: total,
+                total: () => total,
                 snapshot: () => {
                     long processed = System.Threading.Volatile.Read(ref progressState!.Processed);
                     int ok = processed > int.MaxValue ? int.MaxValue : (int)processed;
                     return (processed, ok, 0, 0);
                 },
                 activeSnapshot: () => new List<Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess>(),
-                label: progressLabel ?? $"Copying {total} files...",
+                label: () => progressLabel ?? $"Copying {total} files...",
                 token: progressCts.Token,
                 id: "fs_copy"
             );

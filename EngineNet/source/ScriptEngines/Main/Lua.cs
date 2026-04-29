@@ -77,6 +77,7 @@ internal sealed class Main : IScriptAction {
             // Register UserData types
             UserData.RegisterType<Shared.IO.UI.EngineSdk.PanelProgress>();
             UserData.RegisterType<Shared.IO.UI.EngineSdk.ScriptProgress>();
+            UserData.RegisterType<EngineNet.ScriptEngines.Lua.Global.LuaConsoleProgress>();
             UserData.RegisterType<Global.SqliteHandle>();
 
             // Signal GUI that a script is active so the bottom panel can reflect activity even without progress events
