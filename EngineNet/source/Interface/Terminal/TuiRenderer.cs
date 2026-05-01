@@ -8,8 +8,18 @@ namespace EngineNet.Interface.Terminal;
 /// Prevents cursor race conditions and visual artifacts.
 /// </summary>
 public static class TuiRenderer {
+    /// <summary>
+    /// Controls when ESC can request cancellation.
+    /// </summary>
+    public enum CancellationMode {
+        Disabled,
+        PromptsOnly,
+        Full
+    }
+
     private static readonly Lock _lock = new();
     private static bool _isActive;
+    private static CancellationMode _cancellationMode = CancellationMode.Full;
 
     public static bool IsActive => _isActive;
 
@@ -23,6 +33,8 @@ public static class TuiRenderer {
     // State
     private static readonly LinkedList<LogEntry> _logBuffer = new();
     private static readonly List<string> _statusLines = new();
+    private static string? _statusNoticeMessage;
+    private static ConsoleColor _statusNoticeColor = ConsoleColor.Yellow;
     private static string _inputBuffer = "";
     private static string _promptLabel = "";
     private static bool _isInputActive;
@@ -45,10 +57,7 @@ public static class TuiRenderer {
         }
 
         lock (_lock) {
-            _logBuffer.Clear(); // Drop history from previous operations
-            _statusLines.Clear();
-            _statusHeight = 8;
-            _scrollOffset = 0;
+            ResetContextInternal(clearLogs: true);
             _isActive = true;
         }
 
@@ -67,12 +76,81 @@ public static class TuiRenderer {
 
         // Completely remove the standard Console.WriteLine loop that dumped history!
         lock (_lock) {
-            _logBuffer.Clear(); // Clear memory
-            _statusLines.Clear();
-            _statusHeight = 8;
-            _scrollOffset = 0;
+            ResetContextInternal(clearLogs: true);
         }
         Console.ResetColor();
+    }
+
+    /// <summary>
+    /// Clears log/status/input state for a new context.
+    /// </summary>
+    /// <param name="clearLogs">Whether to clear the scrolling log buffer.</param>
+    public static void ResetContext(bool clearLogs = true) {
+        lock (_lock) {
+            ResetContextInternal(clearLogs);
+        }
+
+        if (_isActive) {
+            RenderFull();
+        }
+    }
+
+    /// <summary>
+    /// Clears the status panel and any notice message.
+    /// </summary>
+    public static void ClearStatus() {
+        lock (_lock) {
+            _statusLines.Clear();
+            _statusNoticeMessage = null;
+            RefreshStatusHeight();
+        }
+
+        if (_isActive) {
+            RenderStatus();
+        }
+    }
+
+    /// <summary>
+    /// Sets how ESC behaves for cancellation requests.
+    /// </summary>
+    public static void SetCancellationMode(CancellationMode mode) {
+        lock (_lock) {
+            _cancellationMode = mode;
+        }
+    }
+
+    /// <summary>
+    /// Shows a one-line status notice without clobbering active progress panels.
+    /// </summary>
+    public static void ShowStatusNotice(string message, ConsoleColor color = ConsoleColor.Yellow) {
+        if (!_isActive) {
+            Console.ForegroundColor = color;
+            Console.WriteLine(message);
+            Console.ResetColor();
+            return;
+        }
+
+        lock (_lock) {
+            _statusNoticeMessage = message;
+            _statusNoticeColor = color;
+            RefreshStatusHeight();
+        }
+
+        RenderStatus();
+    }
+
+    private static void ResetContextInternal(bool clearLogs) {
+        if (clearLogs) {
+            _logBuffer.Clear();
+        }
+
+        _statusLines.Clear();
+        _statusNoticeMessage = null;
+        _statusHeight = 8;
+        _scrollOffset = 0;
+        _inputBuffer = "";
+        _promptLabel = "";
+        _isInputActive = false;
     }
 
     private static void StartBackgroundInputListener() {
@@ -93,7 +171,17 @@ public static class TuiRenderer {
     }
 
     private static void HandleScrollInput(ConsoleKeyInfo key) {
-        if (key.Key == ConsoleKey.Escape && _cts != null && !_cts.IsCancellationRequested) {
+        if (key.Key == ConsoleKey.Escape) {
+            if (_cancellationMode == CancellationMode.Disabled || _cts == null || _cts.IsCancellationRequested) {
+                ShowStatusNotice("Operations cannot be canceled.");
+                return;
+            }
+
+            if (_cancellationMode == CancellationMode.PromptsOnly && !_isInputActive) {
+                ShowStatusNotice("Operations cannot be canceled.");
+                return;
+            }
+
             PromptCancellation();
             return;
         }
@@ -177,9 +265,7 @@ public static class TuiRenderer {
             _statusLines.Clear();
             _statusLines.AddRange(lines);
 
-            // Dynamic resizing if status needs more space (clamped)
-            int requestedHeight = lines.Count + 2; // +2 for border/padding
-            _statusHeight = Math.Clamp(requestedHeight, 4, _height / 3);
+            RefreshStatusHeight();
 
             RenderStatus();
         }
@@ -257,10 +343,21 @@ public static class TuiRenderer {
             Console.ForegroundColor = ConsoleColor.DarkGray;
             Console.Write(new string('═', _width));
 
+            bool hasNotice = !string.IsNullOrWhiteSpace(_statusNoticeMessage);
+            int statusLineSlots = _statusHeight - (hasNotice ? 1 : 0);
+
             // Draw Status Lines
             for (int i = 0; i < _statusHeight; i++) {
                 Console.SetCursorPosition(0, statusStartY + 1 + i);
-                if (i < _statusLines.Count) {
+                if (hasNotice && i == _statusHeight - 1) {
+                    Console.ForegroundColor = _statusNoticeColor;
+                    string notice = _statusNoticeMessage ?? string.Empty;
+                    if (notice.Length > _width) notice = notice.Substring(0, _width);
+                    Console.Write(notice.PadRight(_width));
+                    continue;
+                }
+
+                if (i < statusLineSlots && i < _statusLines.Count) {
                     string line = _statusLines[i];
                     Console.ForegroundColor = ConsoleColor.White;
                     // Handle coloring commands if you want to parse them, for now simple:
@@ -329,6 +426,7 @@ public static class TuiRenderer {
                     lock (_lock) {
                         _isInputActive = false;
                         _inputBuffer = "";
+                        _promptLabel = "";
                         _scrollOffset = 0;
                     }
 
@@ -365,6 +463,7 @@ public static class TuiRenderer {
         lock (_lock) {
             _isInputActive = false;
             _inputBuffer = "";
+            _promptLabel = "";
             _scrollOffset = 0; // Snap back to bottom on submit
         }
 
@@ -424,13 +523,14 @@ public static class TuiRenderer {
 
         lock (_lock) {
             _isInputActive = true;
+            _promptLabel = "";
             _inputBuffer = "Are you sure you want to cancel? (y/n): ";
             RenderInputLine();
         }
 
         ConsoleKeyInfo ki = Console.ReadKey(true);
         if (ki.Key == ConsoleKey.Y) {
-            _cts?.Cancel();
+            _cts.Cancel();
             Log("Cancelling operation...", ConsoleColor.Yellow);
         } else {
             Log("Resuming...", ConsoleColor.Cyan);
@@ -439,7 +539,14 @@ public static class TuiRenderer {
         lock (_lock) {
             _isInputActive = false;
             _inputBuffer = "";
+            _promptLabel = "";
             RenderInputLine();
         }
+    }
+
+    private static void RefreshStatusHeight() {
+        int noticeCount = string.IsNullOrWhiteSpace(_statusNoticeMessage) ? 0 : 1;
+        int requestedHeight = _statusLines.Count + noticeCount + 2; // +2 for border/padding
+        _statusHeight = Math.Clamp(requestedHeight, 4, _height / 3);
     }
 }

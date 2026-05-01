@@ -154,6 +154,17 @@ public sealed class Single {
             result = false;
         }
 
+        // log in GameRoot an execution log for each operation execution, with timestamp, operation name, script type, script id (if any), and result (success/failure)
+        try {
+            string logEntry = $"{(executableOperation.TryGetValue("Id", out object? id) ? id?.ToString() : "No ID")} | {System.DateTime.UtcNow:o} | {(result ? "SUCCESS" : "FAILURE")} | {(executableOperation.TryGetValue("Name", out object? n) ? n?.ToString() : "Unnamed Operation")} | {scriptType} | {scriptPath}";
+            if (games.TryGetValue(currentGame, out Core.Data.GameModuleInfo? gameInfo)) {
+                string logPath = System.IO.Path.Combine(gameInfo.GameRoot, "operation_execution.log");
+                await System.IO.File.AppendAllLinesAsync(logPath, new[] { logEntry }, cancellationToken);
+            }
+        } catch (System.Exception ex) {
+            Shared.IO.Diagnostics.Bug($"[RunSingleAsync.cs::RunSingleOperationAsync()] Failed to write execution log: {ex.Message}");
+        }
+
         // If the main operation succeeded, run any nested [[operation.onsuccess]] steps
         if (!result || !helpers.OpMetadataExtractor.ExtractSuccessActions(rawOperation, out List<Dictionary<string, object?>>? followUps) || followUps is null) {
             return result;

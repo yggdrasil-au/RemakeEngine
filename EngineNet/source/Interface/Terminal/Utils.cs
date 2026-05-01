@@ -287,6 +287,8 @@ public class Utils {
                         ResetProgressState();
                         if (shouldShutdownRenderer) {
                             TuiRenderer.Shutdown();
+                        } else if (!EngineNet.Shared.State.IsCli) {
+                            TuiRenderer.ClearStatus();
                         }
                     }
                 }

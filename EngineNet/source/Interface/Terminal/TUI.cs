@@ -1,4 +1,6 @@
 
+using EngineNet.Shared.IO;
+
 namespace EngineNet.Interface.Terminal;
 
 internal partial class TUI {
@@ -132,8 +134,11 @@ internal partial class TUI {
                     Core.Data.PromptAnswers promptAnswers = new Core.Data.PromptAnswers();
                     // Initialization runs non-interactively; use defaults when provided
                     await CollectAnswersForOperation(op.Operation, promptAnswers, defaultsOnly: true);
+                    TuiRenderer.ResetContext(clearLogs: false);
+                    TuiRenderer.SetCancellationMode(TuiRenderer.CancellationMode.Disabled);
                     bool ok = await new Utils().ExecuteOpAsync(Engine, gameName, allAvailableModules, op.Operation, promptAnswers, cancellationToken: cancellationToken);
                     okAllInit &= ok;
+                    TuiRenderer.SetCancellationMode(TuiRenderer.CancellationMode.PromptsOnly);
                 }
                 initStopwatch.Stop();
 
@@ -167,18 +172,77 @@ internal partial class TUI {
                     opStartIndex += 2;
                 }
 
+                // ---------------
+
+                // if operation_execution.log (in gameroot) contains a run of this operation's ID, append '[completed] or '[failed]' to the name (using most recent successful run)
+                // determine based on id number, this can be any numberical value, if no id is present, log as 'No ID' and skip the check
+
+                // first we read the entire log
+                // then filter out old runs of the same operation ID, leaving only the most recent run
+                // then create a dictionary of operation ID to completion status (success/fail) based on the most recent run to be iterated in the next foreach loop
+
+                Dictionary<string, bool> latestOperationStatus = new Dictionary<string, bool>();
+                string logPath = System.IO.Path.Combine(info.GameRoot, "operation_execution.log");
+
+                if (System.IO.File.Exists(logPath)) {
+                    string[] logLines = System.IO.File.ReadAllLines(logPath);
+                    Shared.IO.Diagnostics.Trace(
+                        $"[TUI::RunInteractiveMenuAsync()] Loaded {logLines.Length} lines from operation_execution.log for game {gameName}");
+
+                    foreach (string line in logLines) {
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+
+                        // Expected log format: {Id} | {Timestamp} | {SUCCESS/FAILURE} | {Name} | {ScriptType} | {ScriptPath}
+                        string[] parts = line.Split(" | ");
+                        if (parts.Length >= 3) {
+                            string parsedId = parts[0].Trim();
+
+                            // Skip if no ID was logged
+                            if (parsedId != "No ID") {
+                                bool isSuccess = parts[2].Trim() == "SUCCESS";
+                                // Because logs are appended over time, overwriting the key here guarantees 
+                                // that the dictionary holds only the most recent run's status.
+                                latestOperationStatus[parsedId] = isSuccess;
+                            }
+                        }
+                    }
+                }
+
                 // list regular operations
                 // for each operation, display its "Name" entry if exists, or just display 'unnamed'
                 foreach (Core.Data.PreparedOperation op in preparedOps.RegularOperations) {
                     string name = op.DisplayName;
                     if (op.HasDuplicateId) {
                         name = $"[dup-id] {name}";
-                    } else if (op.HasInvalidId) {
+                    }
+                    else if (op.HasInvalidId) {
                         name = $"[invalid-id] {name}";
+                    }
+
+                    if (op.OperationId.HasValue) {
+                        string idStr = op.OperationId.Value.ToString();
+                        Diagnostics.Trace($"[TUI::RunInteractiveMenuAsync()] Checking completion status for operation ID {idStr}...");
+
+                        // Check our dictionary for the most recent status
+                        if (latestOperationStatus.TryGetValue(idStr, out bool wasSuccessful)) {
+                            if (wasSuccessful) {
+                                name += " [completed]";
+                                Diagnostics.Trace(
+                                    $"[TUI::RunInteractiveMenuAsync()] Found successful recent run for operation ID {idStr}. Marking as completed.");
+                            }
+                            else {
+                                name += " [failed]";
+                                Diagnostics.Trace(
+                                    $"[TUI::RunInteractiveMenuAsync()] Found failed recent run for operation ID {idStr}. Marking as failed.");
+                            }
+                        }
                     }
 
                     menu.Add(item: name);
                 }
+
+                // ---------------
+
                 menu.Add(item: "---------------");
                 menu.Add(item: "Change Game");
                 menu.Add(item: "Exit");
@@ -226,6 +290,8 @@ internal partial class TUI {
                         try {
                             // 1. Initialize Advanced UI
                             TuiRenderer.Initialize(runAllCts);
+                            TuiRenderer.SetCancellationMode(TuiRenderer.CancellationMode.PromptsOnly);
+                            TuiRenderer.ResetContext(clearLogs: false);
                             TuiRenderer.Log($"Running operations for {gameName}...", ConsoleColor.Cyan);
 
                             System.Diagnostics.Stopwatch runAllStopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -257,6 +323,7 @@ internal partial class TUI {
                             continue;
                         } finally {
                             // 3. Return to standard menu mode
+                            TuiRenderer.SetCancellationMode(TuiRenderer.CancellationMode.PromptsOnly);
                             TuiRenderer.Shutdown();
                         }
 
@@ -278,12 +345,15 @@ internal partial class TUI {
 
                     // Initialize Renderer for interactive prompts and execution WITH the token source
                     TuiRenderer.Initialize(opCts);
+                    TuiRenderer.SetCancellationMode(TuiRenderer.CancellationMode.PromptsOnly);
                     try {
                         // Pass opCts.Token instead of the parent token
                         Task<bool> promptTask = CollectAnswersForOperation(op, answers, defaultsOnly: false, cancellationToken: opCts.Token);
                         if (await promptTask) {
                             TuiRenderer.Log($"Running: {selection}\n", ConsoleColor.Cyan);
                             System.Diagnostics.Stopwatch opStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                            TuiRenderer.ResetContext(clearLogs: false);
+                            TuiRenderer.SetCancellationMode(TuiRenderer.CancellationMode.Disabled);
                             bool ok = await new Utils().ExecuteOpAsync(Engine, gameName, allAvailableModules, op, answers, cancellationToken: opCts.Token);
                             opStopwatch.Stop();
 
@@ -299,6 +369,7 @@ internal partial class TUI {
                         TuiRenderer.Log($"Error: {ex.Message}", ConsoleColor.Red);
                         TuiRenderer.WaitForKey();
                     } finally {
+                        TuiRenderer.SetCancellationMode(TuiRenderer.CancellationMode.PromptsOnly);
                         TuiRenderer.Shutdown();
                     }
                 }
