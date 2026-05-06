@@ -29,40 +29,35 @@ internal static class Placeholders {
     /// - Non-collection, non-string values are returned as-is.
     /// </returns>
     internal static object? Resolve(object? value, IDictionary<string, object?> context) {
-        // Nulls are returned unchanged.
-        if (value is null) {
-            return null;
-        }
+        switch (value) {
+            // Nulls are returned unchanged.
+            case null:
+                return null;
+            // If it's a dictionary, resolve each value and return a new dictionary.
+            case IDictionary<string, object?> dict: {
+                // Note: output dictionary uses case-insensitive keys for convenience.
+                Dictionary<string, object?> outDict = new Dictionary<string, object?>(dict.Count, System.StringComparer.OrdinalIgnoreCase);
+                foreach (KeyValuePair<string, object?> kv in dict) {
+                    outDict[kv.Key] = Resolve(kv.Value, context);
+                }
 
-        // If it's a dictionary, resolve each value and return a new dictionary.
-        if (value is IDictionary<string, object?> dict) {
-            // Note: output dictionary uses case-insensitive keys for convenience.
-            Dictionary<string, object?> outDict = new Dictionary<string, object?>(dict.Count, System.StringComparer.OrdinalIgnoreCase);
-            foreach (KeyValuePair<string, object?> kv in dict) {
-                outDict[kv.Key] = Resolve(kv.Value, context); // Recurse into values
+                return outDict;
             }
+            // If it's a list, resolve each element and return a new list.
+            case IList list: {
+                List<object?> outList = new List<object?>(list.Count);
+                outList.AddRange(from object? item in list select Resolve(item, context));
 
-            return outDict;
-        }
-
-        // If it's a list, resolve each element and return a new list.
-        if (value is IList list) {
-            List<object?> outList = new List<object?>(list.Count);
-            foreach (object? item in list) {
-                outList.Add(Resolve(item, context)); // Recurse into items
+                return outList;
             }
-
-            return outList;
+            // If it's a string, replace all placeholder occurrences using the context.
+            case string s:
+                // For each match: try to look up the dotted path; if missing, keep the original token unchanged.
+                return PlaceholderRe.Replace(s, m => Lookup(context, m.Groups[1].Value) ?? m.Value);
+            default:
+                // Any other type is returned unchanged.
+                return value;
         }
-
-        // If it's a string, replace all placeholder occurrences using the context.
-        if (value is string s) {
-            // For each match: try to look up the dotted path; if missing, keep the original token unchanged.
-            return PlaceholderRe.Replace(s, m => Lookup(context, m.Groups[1].Value) ?? m.Value);
-        }
-
-        // Any other type is returned unchanged.
-        return value;
     }
 
     /// <summary>

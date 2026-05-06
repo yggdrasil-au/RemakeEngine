@@ -65,7 +65,7 @@ public sealed class Single {
                         string? action = executableOperation.TryGetValue("script", out object? s) ? s?.ToString() : null;
                         string? title = executableOperation.TryGetValue("Name", out object? n) ? n?.ToString() ?? action : action;
                         Shared.IO.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Executing engine operation {title} ({action})");
-                        IO.writeLine(message: $"\n>>> Engine operation: {title}");
+                        IO.writeLine($"\n>>> Engine operation: {title}");
                         // delegate engine type handling to ExecuteEngineOperationAsync
                         //var op_dispatcher = new helpers.OpDispatcher();
                         result = await helpers.OpDispatcher.DispatchAsync(executableOperation, promptAnswers, currentGame, games, Context, cancellationToken);
@@ -154,6 +154,17 @@ public sealed class Single {
             result = false;
         }
 
+        // If the main operation succeeded, run any nested [[operation.onsuccess]] steps
+        if (result && helpers.OpMetadataExtractor.ExtractSuccessActions(rawOperation, out List<Dictionary<string, object?>>? followUps) && followUps is not null) {
+            // if we have follow-up operations, run them sequentially, propagating cancellation and failure but not short-circuiting on failure of any individual follow-up so all follow-ups get a chance to run regardless of any individual failures
+            foreach (Dictionary<string, object?> childOp in followUps) {
+                if (cancellationToken.IsCancellationRequested) break;
+                bool ok = await OperationContext.Single.RunAsync( currentGame, games, op: childOp, promptAnswers, Context, OperationContext, cancellationToken);
+                if (!ok) {
+                    result = false; // propagate failure from any onsuccess step
+                }
+            }
+        }
         // log in GameRoot an execution log for each operation execution, with timestamp, operation name, script type, script id (if any), and result (success/failure)
         try {
             string logEntry = $"{(executableOperation.TryGetValue("Id", out object? id) ? id?.ToString() : "No ID")} | {System.DateTime.UtcNow:o} | {(result ? "SUCCESS" : "FAILURE")} | {(executableOperation.TryGetValue("Name", out object? n) ? n?.ToString() : "Unnamed Operation")} | {scriptType} | {scriptPath}";
@@ -165,21 +176,16 @@ public sealed class Single {
             Shared.IO.Diagnostics.Bug($"[RunSingleAsync.cs::RunSingleOperationAsync()] Failed to write execution log: {ex.Message}");
         }
 
-        // If the main operation succeeded, run any nested [[operation.onsuccess]] steps
-        if (!result || !helpers.OpMetadataExtractor.ExtractSuccessActions(rawOperation, out List<Dictionary<string, object?>>? followUps) || followUps is null) {
-            return result;
-        }
-        foreach (Dictionary<string, object?> childOp in followUps) {
-            if (cancellationToken.IsCancellationRequested) break;
-            bool ok = await OperationContext.Single.RunAsync( currentGame, games, op: childOp, promptAnswers, Context, OperationContext, cancellationToken);
-            if (!ok) {
-                result = false; // propagate failure from any onsuccess step
-            }
-        }
-
         return result;
     }
 
+    /// <summary>
+    /// Resolves the execution payload for the current operation by resolving placeholders in all top level fields except for nested onsuccess blocks,
+    /// which are resolved at execution time of each child operation.
+    /// </summary>
+    /// <param name="rawOperation"></param>
+    /// <param name="context"></param>
+    /// <returns></returns>
     private static IDictionary<string, object?> ResolveExecutionPayload(
         IDictionary<string, object?> rawOperation,
         IDictionary<string, object?> context
@@ -188,9 +194,39 @@ public sealed class Single {
         executionPayload.Remove("onsuccess");
         executionPayload.Remove("on_success");
 
+        // tmp debug log each in diagnostics trace before resolution
+        foreach (var kvp in executionPayload) {
+            Shared.IO.Diagnostics.Trace($"[Single.cs::ResolveExecutionPayload()] Pre-resolution payload field: {kvp.Key} = {kvp.Value}");
+            // if value is args array, log each arg separately
+            if (kvp.Key.Equals("args", System.StringComparison.OrdinalIgnoreCase) && kvp.Value is IEnumerable<object?> argsEnum) {
+                int i = 0;
+                foreach (object? arg in argsEnum) {
+                    Shared.IO.Diagnostics.Trace($"[Single.cs::ResolveExecutionPayload()] Pre-resolution arg[{i}]: {arg}");
+                    i++;
+                }
+            }
+        }
+
         if (Core.Utils.Placeholders.Resolve(executionPayload, context) is IDictionary<string, object?> resolvedPayload) {
+            Shared.IO.Diagnostics.Trace("[Single.cs::ResolveExecutionPayload()] Successfully resolved execution payload");
+
+            // tmp debug log each resolved field in diagnostics trace
+            foreach (var kvp in resolvedPayload) {
+                Shared.IO.Diagnostics.Trace($"[Single.cs::ResolveExecutionPayload()] Resolved payload field: {kvp.Key} = {kvp.Value}");
+                // if value is args array, log each arg separately
+                if (kvp.Key.Equals("args", System.StringComparison.OrdinalIgnoreCase) && kvp.Value is IEnumerable<object?> argsEnum) {
+                    int i = 0;
+                    foreach (object? arg in argsEnum) {
+                        Shared.IO.Diagnostics.Trace($"[Single.cs::ResolveExecutionPayload()] Resolved arg[{i}]: {arg}");
+                        i++;
+                    }
+                }
+            }
+
             return resolvedPayload;
         }
+
+        Shared.IO.Diagnostics.Trace("[Single.cs::ResolveExecutionPayload()] Failed to resolve execution payload, using raw payload");
 
         return executionPayload;
     }

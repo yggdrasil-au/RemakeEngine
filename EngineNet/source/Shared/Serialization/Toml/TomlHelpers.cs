@@ -196,17 +196,19 @@ public static class TomlHelpers {
     /// </summary>
     public static Dictionary<string, object?> ReadPlaceholdersFile(string path) {
         var result = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
-        if (!System.IO.File.Exists(path)) return result;
+        if (!System.IO.File.Exists(path)) return result; // return empty if file doesn't exist
 
-        object parsed = ParseFileToPlainObject(path);
-        if (parsed is IDictionary<string, object?> root && root.TryGetValue("placeholders", out object? placeholdersObj)
-            && placeholdersObj is System.Collections.IEnumerable placeholdersList) {
-            foreach (object item in placeholdersList) {
-                if (item is IDictionary<string, object?> table) {
-                    foreach (var kvp in table) {
-                        result[kvp.Key] = kvp.Value;
-                    }
-                }
+        object parsed = ParseFileToPlainObject(path); // this should give us a Dictionary<string, object?> representing the root TOML table
+        // if the root is a table and has a "placeholders" key whose value is a list of tables, merge all those tables into one dictionary and return it. This allows us to support multiple [[placeholders]] blocks in the same file, which is useful for modular config files where each module can define its own placeholders without worrying about merging with other modules.
+        if (parsed is not IDictionary<string, object?> root || !root.TryGetValue("placeholders", out object? placeholdersObj) || placeholdersObj is not System.Collections.IEnumerable placeholdersList) {
+            return result;
+        }
+
+        // Merge all tables in the [[placeholders]] array into the result dictionary. Later tables overwrite earlier ones in case of key conflicts, allowing for modular overrides.
+        foreach (object item in placeholdersList) {
+            if (item is not IDictionary<string, object?> table) continue;
+            foreach (var kvp in table) {
+                result[kvp.Key] = kvp.Value;
             }
         }
         return result;

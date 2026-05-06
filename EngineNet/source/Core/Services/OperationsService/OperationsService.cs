@@ -86,7 +86,7 @@ public sealed class OperationsService {
         }
 
         foreach (Dictionary<string, object?> op in allOps) {
-            // Resolve placeholders for THIS operation for menu display
+            // Resolve placeholders for UI display only; execution should use raw ops for fresh config values.
             Dictionary<string, object?> resolvedOp = op;
             if (ctx != null) {
                 if (Core.Utils.Placeholders.Resolve(op, ctx) is Dictionary<string, object?> resolved) {
@@ -94,12 +94,12 @@ public sealed class OperationsService {
                 }
             }
 
-            bool isInit = TryGetBool(resolvedOp, out bool initValue, "init") && initValue;
+            bool isInit = TryGetBool(op, out bool initValue, "init") && initValue;
             bool hasDuplicateId = false;
             bool hasInvalidId = invalidIdOps.Contains(op);
             long? id = null;
 
-            if (TryGetLong(resolvedOp, out long idValue)) {
+            if (TryGetLong(op, out long idValue)) {
                 id = idValue;
                 hasDuplicateId = duplicateIds.Contains(idValue);
             }
@@ -109,7 +109,7 @@ public sealed class OperationsService {
             string? scriptType = GetString(resolvedOp, "script_type", "scriptType");
 
             PreparedOperation prepared = new PreparedOperation(
-                operation: resolvedOp,
+                operation: op,
                 displayName: displayName,
                 operationId: id,
                 hasDuplicateId: hasDuplicateId,

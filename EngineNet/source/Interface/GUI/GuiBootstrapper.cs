@@ -8,7 +8,7 @@ namespace EngineNet.Interface.GUI;
 /// </summary>
 public static class GuiBootstrapper {
 
-    internal static MiniEngineFace MiniEngine { get; set; } = null!;
+    internal static MiniEngineFace? MiniEngine { get; set; } = null!;
 
     /// <summary>
     /// Launches the Avalonia desktop application with the provided engine.

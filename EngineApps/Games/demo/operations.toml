@@ -2,7 +2,7 @@
 
 [[operation]]
 	run-all = true
-	id = 4
+	id = -1
 	Name = "Download Tools"
 	Instructions = "Uses the engine downloader to retrieve optional demo tooling."
 	script_type = "engine"

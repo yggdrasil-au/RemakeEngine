@@ -43,7 +43,7 @@ public sealed partial class ProcessRunner {
         EventHandler? onEvent = null,
         StdinProvider? stdinProvider = null,
         IDictionary<string, object?>? envOverrides = null,
-        System.Threading.CancellationToken cancellationToken = default
+        System.Threading.CancellationToken cancellationToken = default(CancellationToken)
     ) {
         if (commandParts.Count < 1) {
             onOutput?.Invoke($"Operation '{opTitle}' has no executable specified. Skipping.", "stderr");
@@ -92,17 +92,44 @@ public sealed partial class ProcessRunner {
         proc.StartInfo = psi;
         proc.EnableRaisingEvents = true;
 
-        // todo fix captured variable used in outer scope 'q'
         using var q = new System.Collections.Concurrent.BlockingCollection<(string stream, string line)>(boundedCapacity: 1000);
+        int queueLogOnce = 0;
+        bool isQueueOpen = true;
+
+        void LogQueueFailureOnce(System.Exception ex) {
+            if (System.Threading.Interlocked.Exchange(ref queueLogOnce, 1) == 0) {
+                Shared.IO.Diagnostics.Bug($"[ProcessRunner.private.cs::Execute()] Output queue add failed: {ex.Message}");
+            }
+        }
 
         System.Diagnostics.DataReceivedEventHandler outHandler = (_, e) => {
-            if (e.Data != null) {
+            if (e.Data == null || !System.Threading.Volatile.Read(ref isQueueOpen)) {
+                return;
+            }
+
+            try {
                 q.Add(("stdout", e.Data), cancellationToken);
+            } catch (System.ObjectDisposedException ex) {
+                LogQueueFailureOnce(ex);
+            } catch (System.InvalidOperationException ex) {
+                LogQueueFailureOnce(ex);
+            } catch (System.OperationCanceledException ex) {
+                LogQueueFailureOnce(ex);
             }
         };
         System.Diagnostics.DataReceivedEventHandler errHandler = (_, e) => {
-            if (e.Data != null) {
+            if (e.Data == null || !System.Threading.Volatile.Read(ref isQueueOpen)) {
+                return;
+            }
+
+            try {
                 q.Add(("stderr", e.Data), cancellationToken);
+            } catch (System.ObjectDisposedException ex) {
+                LogQueueFailureOnce(ex);
+            } catch (System.InvalidOperationException ex) {
+                LogQueueFailureOnce(ex);
+            } catch (System.OperationCanceledException ex) {
+                LogQueueFailureOnce(ex);
             }
         };
 
@@ -113,9 +140,7 @@ public sealed partial class ProcessRunner {
                 throw new System.InvalidOperationException("Failed to start process");
             }
 
-            if (job != null) {
-                job.AddProcess(proc);
-            }
+            job?.AddProcess(proc);
 
             proc.OutputDataReceived += outHandler;
             proc.ErrorDataReceived += errHandler;
@@ -221,16 +246,44 @@ public sealed partial class ProcessRunner {
             onEvent?.Invoke(new Dictionary<string, object?>
                 { ["event"] = EngineSdk.Events.Error, ["kind"] = "InvalidOperation", ["message"] = ex.Message });
             return false;
-        }
-        finally {
+        } finally {
+            System.Threading.Volatile.Write(ref isQueueOpen, false);
+            try {
+                q.CompleteAdding();
+            } catch (System.ObjectDisposedException ex) {
+                Shared.IO.Diagnostics.Bug($"[ProcessRunner::Execute()] Output queue disposed before completion: {ex.Message}");
+            } catch (System.InvalidOperationException ex) {
+                Shared.IO.Diagnostics.Bug($"[ProcessRunner::Execute()] Failed to complete output queue: {ex.Message}");
+            }
+
+            try {
+                proc.CancelOutputRead();
+            } catch (System.ObjectDisposedException ex) {
+                Shared.IO.Diagnostics.Bug($"[ProcessRunner::Execute()] Process disposed before CancelOutputRead: {ex.Message}");
+            } catch (System.InvalidOperationException ex) {
+                Shared.IO.Diagnostics.Bug($"[ProcessRunner::Execute()] Failed to cancel stdout read: {ex.Message}");
+            } catch (System.PlatformNotSupportedException ex) {
+                Shared.IO.Diagnostics.Bug($"[ProcessRunner::Execute()] CancelOutputRead not supported: {ex.Message}");
+            }
+
+            try {
+                proc.CancelErrorRead();
+            } catch (System.ObjectDisposedException ex) {
+                Shared.IO.Diagnostics.Bug($"[ProcessRunner::Execute()] Process disposed before CancelErrorRead: {ex.Message}");
+            } catch (System.InvalidOperationException ex) {
+                Shared.IO.Diagnostics.Bug($"[ProcessRunner::Execute()] Failed to cancel stderr read: {ex.Message}");
+            } catch (System.PlatformNotSupportedException ex) {
+                Shared.IO.Diagnostics.Bug($"[ProcessRunner::Execute()] CancelErrorRead not supported: {ex.Message}");
+            }
+
             try {
                 proc.OutputDataReceived -= outHandler;
                 proc.ErrorDataReceived -= errHandler;
             }
-            catch (System.ObjectDisposedException) {
+            catch (System.ObjectDisposedException ex) {
                 // Unsubscribing from events doesn't throw under normal circumstances in .NET,
                 // but ObjectDisposedException can occur if the underlying Component is deeply disposed.
-                Shared.IO.Diagnostics.Bug("[ProcessRunner::Execute()] Process disposed while unsubscribing from events.");
+                Shared.IO.Diagnostics.Bug($"[ProcessRunner::Execute()] Process disposed while unsubscribing from events: {ex.Message}");
             }
         }
     }

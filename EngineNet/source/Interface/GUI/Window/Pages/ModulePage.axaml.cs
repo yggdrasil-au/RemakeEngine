@@ -1,33 +1,19 @@
 
 namespace EngineNet.Interface.GUI.Pages;
 
+using Avalonia.Media;
 using Core.Data;
 using EngineNet.Shared.IO.UI;
 
-public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
+internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     /* :: :: Vars :: START :: */
     private readonly string _moduleName;
 
     private readonly List<Core.Data.PreparedOperation> _initOperations = new List<PreparedOperation>();
 
-    private class SessionState {
-        public bool HasNavigatedOnce { get; set; }
-        public bool DontAskAgain { get; set; }
-        //public bool AutoRunInit { get; set; }
-    }
-    private static readonly Dictionary<string, SessionState> _moduleStates = new Dictionary<string, SessionState>();
 
-    private SessionState CurrentState {
-        get {
-            if (_moduleStates.TryGetValue(_moduleName, out var state)) return state;
-            state = new SessionState();
-            _moduleStates[_moduleName] = state;
-            return state;
-        }
-    }
-
-    public string ModuleName { get; }
+    private string ModuleName { get; }
     public string Title { get; private set; } = string.Empty;
     public string? GameRoot { get; private set; }
     public string? ExePath { get; private set; }
@@ -46,12 +32,12 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     public bool CanStop => IsRunning;
     public bool CanDownload => !IsDownloaded() && !string.IsNullOrWhiteSpace(RegistryUrl);
 
-    public bool IsRunning { get; private set; }
+    private bool IsRunning { get; set; }
     private CancellationTokenSource? _cts;
 
     public Bitmap? Image { get; private set; }
 
-    public ObservableCollection<OpRow> Operations { get; } = new ObservableCollection<OpRow>();
+    private ObservableCollection<OpRow> Operations { get; } = new ObservableCollection<OpRow>();
 
     public System.Windows.Input.ICommand Button_Play_Click { get; }
     public System.Windows.Input.ICommand Button_RunAll_Click { get; }
@@ -81,7 +67,7 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         Load();
     }
 
-    public ModulePage(string moduleName) {
+    internal ModulePage(string moduleName) {
         ModuleName = this._moduleName = moduleName;
 
         Button_Play_Click = new Cmd(async _ => await PlayAsync());
@@ -110,46 +96,30 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             return;
         }
 
-        SessionState state = CurrentState;
-
-        if (state.DontAskAgain) {
-            //if (state.AutoRunInit) {
-            //    await ExecuteInitOperationsAsync();
-            //} else {
-            // dont re-run init ops,
-                IsExecutionEnabled = true; // explicitly opted out forever, allow run
-                Raise(nameof(CanPlay));
-                Raise(nameof(CanRunAll));
-            //}
-            return;
-        }
-
-        bool isFirstPrompt = !state.HasNavigatedOnce;
-        state.HasNavigatedOnce = true;
-
         IsExecutionEnabled = false;
         Raise(nameof(CanPlay));
         Raise(nameof(CanRunAll));
 
-        string msg = isFirstPrompt
-            ? $"The module '{_moduleName}' has {_initOperations.Count} initialization operations. Would you like to run them now? If you choose 'No', execution options will be disabled."
-            : $"The module '{_moduleName}' still has unrun initialization operations. Would you like to run them?";
+        // Auto-run init operations only if they have not succeeded yet according to operation_execution.log.
+        Dictionary<string, bool> latestOperationStatus = LoadLatestOperationStatus(GameRoot);
+        bool shouldRunInit = false;
+        foreach (Core.Data.PreparedOperation op in _initOperations) {
+            if (!op.OperationId.HasValue) {
+                shouldRunInit = true;
+                break;
+            }
 
-        (bool Result, bool DontAskAgain) response = await DialogService.ConfirmWithOptOutAsync(
-            "Initialization Operations", msg, defaultValue: true);
-
-        if (response.DontAskAgain) {
-            state.DontAskAgain = true;
-            //state.AutoRunInit = response.Result;
+            string idStr = op.OperationId.Value.ToString();
+            if (latestOperationStatus.TryGetValue(idStr, out bool wasSuccessful) && wasSuccessful) continue;
+            shouldRunInit = true;
+            break;
         }
 
-        if (response.Result) {
+        if (shouldRunInit) {
             await ExecuteInitOperationsAsync();
-            IsExecutionEnabled = true;
-        } else {
-            IsExecutionEnabled = !isFirstPrompt; // On first prompt 'no' disables, on re-prompts it enables all
         }
 
+        IsExecutionEnabled = true;
         Raise(nameof(CanPlay));
         Raise(nameof(CanRunAll));
     }
@@ -229,6 +199,8 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
                 _initOperations.AddRange(preparedOps.InitOperations);
 
+                Dictionary<string, bool> latestOperationStatus = LoadLatestOperationStatus(GameRoot);
+
                 foreach (Core.Data.PreparedOperation op in preparedOps.RegularOperations) {
                     string scriptType = string.IsNullOrWhiteSpace(op.ScriptType) ? "python" : op.ScriptType;
                     string scriptPath = op.ScriptPath ?? string.Empty;
@@ -238,7 +210,22 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                     } else if (op.HasInvalidId) {
                         displayName = $"[invalid-id] {displayName}";
                     }
-                    Operations.Add(item: new OpRow { Name = displayName, ScriptType = scriptType, ScriptPath = scriptPath, Op = op.Operation });
+
+                    bool? lastRunSuccess = null;
+                    if (op.OperationId.HasValue) {
+                        string idStr = op.OperationId.Value.ToString();
+                        if (latestOperationStatus.TryGetValue(idStr, out bool wasSuccessful)) {
+                            lastRunSuccess = wasSuccessful;
+                        }
+                    }
+
+                    Operations.Add(item: new OpRow {
+                        Name = displayName,
+                        ScriptType = scriptType,
+                        ScriptPath = scriptPath,
+                        Op = op.Operation,
+                        LastRunSuccess = lastRunSuccess
+                    });
                 }
             } else {
                 Shared.IO.Diagnostics.Log($"Load: Ops file not found for module {_moduleName} at path '{opsFile}'.");
@@ -276,6 +263,48 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             Shared.IO.Diagnostics.Bug($"ResolveCoverBitmap: Failed to load bitmap from {pick}. {ex}");
             return null;
         }
+    }
+
+    /// <summary>
+    /// Loads the latest success/failure status per operation id from operation_execution.log.
+    /// </summary>
+    /// <param name="gameRoot"></param>
+    /// <returns></returns>
+    private Dictionary<string, bool> LoadLatestOperationStatus(string? gameRoot) {
+        Dictionary<string, bool> latestOperationStatus = new Dictionary<string, bool>();
+
+        if (string.IsNullOrWhiteSpace(gameRoot)) {
+            return latestOperationStatus;
+        }
+
+        string logPath = System.IO.Path.Combine(gameRoot, "operation_execution.log");
+        if (!System.IO.File.Exists(logPath)) {
+            return latestOperationStatus;
+        }
+
+        try {
+            string[] logLines = System.IO.File.ReadAllLines(logPath);
+            Shared.IO.Diagnostics.Trace(
+                $"[ModulePage.axaml.cs::LoadLatestOperationStatus()] Loaded {logLines.Length} lines from operation_execution.log for game {ModuleName}");
+
+            foreach (string line in logLines) {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                // Expected log format: {Id} | {Timestamp} | {SUCCESS/FAILURE} | {Name} | {ScriptType} | {ScriptPath}
+                string[] parts = line.Split(" | ");
+                if (parts.Length < 3) continue;
+                string parsedId = parts[0].Trim();
+                if (parsedId == "No ID") continue;
+                bool isSuccess = parts[2].Trim() == "SUCCESS";
+                latestOperationStatus[parsedId] = isSuccess;
+            }
+        } catch (System.IO.IOException ex) {
+            Shared.IO.Diagnostics.Bug($"[ModulePage.axaml.cs::LoadLatestOperationStatus()] catch: {ex.Message}");
+        } catch (System.UnauthorizedAccessException ex) {
+            Shared.IO.Diagnostics.Bug($"[ModulePage.axaml.cs::LoadLatestOperationStatus()] catch: {ex.Message}");
+        }
+
+        return latestOperationStatus;
     }
 
     private async System.Threading.Tasks.Task ExecuteInitOperationsAsync() {
@@ -573,11 +602,38 @@ public sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     /* :: :: Methods :: END :: */
     // //
     /* :: :: Nested Types :: START :: */
+    /// <summary>
+    /// Represents a single operation row in the module view.
+    /// </summary>
     public sealed class OpRow {
-        public string Name { get; set; } = string.Empty;
+        internal string Name { get; init; } = string.Empty;
         public string ScriptType { get; set; } = string.Empty;
         public string ScriptPath { get; set; } = string.Empty;
-        public Dictionary<string, object?> Op { get; set; } = new Dictionary<string, object?>();
+        public Dictionary<string, object?> Op { get; init; } = new Dictionary<string, object?>();
+
+        /// <summary>
+        /// Latest run success for this operation, based on operation_execution.log.
+        /// </summary>
+        public bool? LastRunSuccess { get; init; }
+
+        /// <summary>
+        /// Whether a run status is available for display.
+        /// </summary>
+        public bool HasRunStatus => LastRunSuccess.HasValue;
+
+        /// <summary>
+        /// Display label for the latest run status.
+        /// </summary>
+        public string RunStatusText => LastRunSuccess.HasValue
+            ? (LastRunSuccess.Value ? "Completed" : "Failed")
+            : string.Empty;
+
+        /// <summary>
+        /// Foreground brush for the latest run status label.
+        /// </summary>
+        public IBrush? RunStatusForeground => LastRunSuccess.HasValue
+            ? (LastRunSuccess.Value ? Brushes.Green : Brushes.OrangeRed)
+            : null;
     }
 
     private sealed class GuiStdinRedirectReader:System.IO.TextReader {

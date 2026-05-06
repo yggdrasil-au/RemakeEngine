@@ -9,6 +9,11 @@ Demonstrates EVERY C# tool available from LuaScriptAction.cs including:
 - SQLite module: open, exec, query, transactions
 --]]
 
+
+progress.script.start(21, 'Comprehensive Lua API Demo')
+
+
+
 local function parse_args(list)
     local opts = { extras = {} }
     local i = 1
@@ -46,6 +51,7 @@ local module_root = opts.module or '.'
 local scratch_root = opts.scratch or (module_root .. '/TMP/lua-demo-comprehensive')
 local note = opts.note or 'Comprehensive Lua API demo'
 
+progress.script.step('Color printing demonstrations')
 
 -- Color printing demonstrations
 sdk.color_print('white', '=== RemakeEngine Lua API Comprehensive Demo ===')
@@ -53,9 +59,6 @@ sdk.color_print({ color = 'cyan', message = 'Scratch workspace: ' .. scratch_roo
 sdk.color_print({ colour = 'green', message = 'Australian spelling works too!', newline = false })
 sdk.color_print('white', ' (color vs colour)')
 
--- Stage-based script progress (for GUI status indicator)
--- New progress API usage
-progress.script.start(20, 'Comprehensive Lua API Demo')
 
 sdk.color_print('yellow', '--- Progress Tracking Examples ---')
 -- ❌ INCORRECT: Common progress mistakes
@@ -596,7 +599,7 @@ for _, tool_name in ipairs(tools) do
 end
 
 sdk.color_print('green', 'opts.prompt value: ' .. tostring(opts.prompt))
-    progress.script.step('Testing user prompt')
+progress.script.step('Testing user prompt')
 if opts.prompt == nil or not opts.prompt then
     -- Prompt demonstration
     -- prompt args (message, id, secret)

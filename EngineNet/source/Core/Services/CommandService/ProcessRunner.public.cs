@@ -11,7 +11,7 @@ public sealed partial class ProcessRunner {
     private static void TryTerminate(System.Diagnostics.Process proc) {
         try {
             if (!proc.HasExited) {
-                proc.Kill(entireProcessTree: true);
+                proc.Kill(true);
             }
         } catch (System.InvalidOperationException) {
             // Process has already exited between the check and the Kill call
@@ -106,7 +106,7 @@ public sealed partial class ProcessRunner {
 
             // Python/Node (if needed for legacy scripts)
             "python", "python.exe", "python3", "python3.exe",
-            "node", "node.exe", "npm", "npm.exe"
+            "node", "node.exe", "npm", "npm.exe",
         };
 
         // Check both with and without common extensions

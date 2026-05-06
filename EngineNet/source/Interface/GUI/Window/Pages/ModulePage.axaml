@@ -62,6 +62,7 @@
                                     <TextBlock Grid.Column="0" Grid.Row="1" Text="{Binding ScriptPath}" FontSize="12" Foreground="Gray" TextTrimming="CharacterEllipsis"/>
                                     <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding ScriptType}" FontSize="12" Foreground="Gray" Margin="8,0,8,0"/>
                                 <Button Grid.Column="2" Grid.Row="0" Content="Run" Command="{Binding $parent[UserControl].Button_RunOp_Click}" CommandParameter="{Binding}" IsEnabled="{Binding $parent[UserControl].IsExecutionEnabled}"/>
+                                <TextBlock Grid.Column="2" Grid.Row="1" Text="{Binding RunStatusText}" FontSize="11" Foreground="{Binding RunStatusForeground}" IsVisible="{Binding HasRunStatus}" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                 </Grid>
                             </Border>
                         </DataTemplate>
