@@ -1,5 +1,11 @@
 # AGENTS.md
 
+## Agent Instructions Hierarchy
+When working on tasks, agents should check for and follow specialized AGENTS.md files in project subfolders:
+- Check `EngineApps/Games/*/AGENTS.md` for game module-specific guidelines
+- Game and tool module instructions override general engine instructions when applicable
+- Always read the most specific AGENTS.md for the context you're working in
+
 ## Setup
 - Build: `dotnet build RemakeEngine.slnx`
 

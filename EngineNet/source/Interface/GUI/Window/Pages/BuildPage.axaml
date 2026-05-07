@@ -46,6 +46,26 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+                
+                    <!-- Additional concurrent task panels (if any) -->
+                    <ItemsControl ItemsSource="{Binding Service.TaskPanels}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Spacing="6" Margin="0,6,0,0">
+                                    <TextBlock Text="{Binding Label}" FontWeight="Bold"/>
+                                    <ProgressBar Minimum="0" Maximum="1" Height="12" Value="{Binding Percent}"/>
+                                    <TextBlock Text="{Binding ProgressLine}" FontFamily="Consolas,Courier New,monospace" Foreground="Cyan" TextWrapping="Wrap"/>
+                                    <ItemsControl ItemsSource="{Binding Jobs}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Display}" Foreground="LightGray"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
             </StackPanel>
         </Border>
 

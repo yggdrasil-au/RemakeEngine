@@ -1,4 +1,5 @@
 using System.Collections.Specialized;
+using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 
 using Avalonia.Threading;
@@ -44,6 +45,11 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     } = string.Empty;
 
     public ObservableCollection<ActiveJob> ActiveJobs { get; } = new ObservableCollection<ActiveJob>();
+
+    // Multiple concurrent task progress panels (keyed by id when provided by the engine)
+    public ObservableCollection<ProgressPanelState> TaskPanels { get; } = new ObservableCollection<ProgressPanelState>();
+
+    private readonly Dictionary<string, ProgressPanelState> _panelsById = new Dictionary<string, ProgressPanelState>(StringComparer.Ordinal);
 
     public string? CurrentOperation {
         get {
@@ -275,7 +281,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
 
         string? evtType = evtTypeObj?.ToString();
 
-        switch (evtType) {
+            switch (evtType) {
             case EngineSdk.Events.Print:
                 string msg = evt.TryGetValue("message", out object? m) ? m?.ToString() ?? string.Empty : string.Empty;
                 string color = evt.TryGetValue("color", out object? c) ? c?.ToString() ?? "Gray" : "Gray";
@@ -351,15 +357,18 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
                     break;
 
             case EngineSdk.Events.ProgressPanelStart:
-                global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleProgressPanelStart());
+                global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleProgressPanelStart(evt));
+                break;
                 break;
 
             case EngineSdk.Events.ProgressPanel:
                 global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleProgressPanelUpdate(evt));
                 break;
+                break;
 
             case EngineSdk.Events.ProgressPanelEnd:
-                global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleProgressPanelEnd());
+                global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleProgressPanelEnd(evt));
+                break;
                 break;
 
             case EngineSdk.Events.ScriptActiveStart:
@@ -399,7 +408,19 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
             }
     }
 
-    private void HandleProgressPanelStart() {
+    private void HandleProgressPanelStart(Dictionary<string, object?>? payload) {
+        // If the engine provides an id, create a dedicated panel rather than using the shared bottom-panel state.
+        string? id = payload?.TryGetValue("id", out object? idObj) == true ? idObj?.ToString() : null;
+        if (!string.IsNullOrEmpty(id)) {
+            if (!_panelsById.ContainsKey(id)) {
+                var panel = new ProgressPanelState { Id = id };
+                _panelsById[id] = panel;
+                TaskPanels.Add(panel);
+            }
+            return;
+        }
+
+        // legacy / fallback single shared panel behavior
         ResetProgressPanelTracking();
         ActiveJobs.Clear();
         ActiveJobsSummary = "Active: none";
@@ -412,9 +433,22 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     }
 
     private void HandleProgressPanelUpdate(Dictionary<string, object?> payload) {
-        IsProgressPanelActive = true;
-
+        // if payload contains an id, update that specific panel
+        string? id = payload.TryGetValue("id", out object? idObj) ? idObj?.ToString() : null;
         ProgressPanelModel model = BuildProgressPanelModel(payload);
+
+        if (!string.IsNullOrEmpty(id)) {
+            if (!_panelsById.TryGetValue(id, out ProgressPanelState? panel)) {
+                panel = new ProgressPanelState { Id = id };
+                _panelsById[id] = panel;
+                TaskPanels.Add(panel);
+            }
+            panel.UpdateFrom(model);
+            return;
+        }
+
+        // legacy single shared panel behavior
+        IsProgressPanelActive = true;
 
         ProgressLabel = model.Label;
         ProgressSummaryLine = model.ProgressLine;
@@ -427,7 +461,17 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
         UpdateProgressPanelLines(model.Lines);
     }
 
-    private void HandleProgressPanelEnd() {
+    private void HandleProgressPanelEnd(Dictionary<string, object?>? payload) {
+        string? id = payload?.TryGetValue("id", out object? idObj) == true ? idObj?.ToString() : null;
+        if (!string.IsNullOrEmpty(id)) {
+            if (_panelsById.TryGetValue(id, out ProgressPanelState? panel)) {
+                _panelsById.Remove(id);
+                TaskPanels.Remove(panel);
+            }
+            return;
+        }
+
+        // legacy single shared panel cleanup
         IsProgressPanelActive = false;
         CurrentSpinner = string.Empty;
         ActiveJobCount = 0;

@@ -1,6 +1,6 @@
 namespace EngineNet.Interface.GUI.Models;
 
-internal sealed record ProgressPanelModel {
+public sealed record ProgressPanelModel {
     public required string Label { get; init; }
     public required string Spinner { get; init; }
     public required double Percent { get; init; }
@@ -11,4 +11,4 @@ internal sealed record ProgressPanelModel {
     public required List<string> Lines { get; init; }
 }
 
-internal readonly record struct ProgressJobSnapshot(string Tool, string File, string Elapsed);
+public readonly record struct ProgressJobSnapshot(string Tool, string File, string Elapsed);
