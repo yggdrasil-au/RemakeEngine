@@ -146,7 +146,7 @@ internal static class Security {
             // Explicitly deny access to Engine Files to prevent tampering
             System.IO.Path.Combine(projectRoot, "EngineApps", "Registries").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
             System.IO.Path.Combine(projectRoot, "EngineApps", "api_definitions").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
-            System.IO.Path.Combine(projectRoot, "EngineApps", "Tools").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
+            //System.IO.Path.Combine(projectRoot, "EngineApps", "Tools").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
             // if the script is running from Source, also deny access to EngineNet source to prevent tampering
             System.IO.Path.Combine(projectRoot, "EngineNet").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
         };
