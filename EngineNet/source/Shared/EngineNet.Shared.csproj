@@ -17,7 +17,7 @@
 
     <ItemGroup>
         <!-- TOML -->
-        <PackageReference Include="Tomlyn" Version="2.3.0" />
+        <PackageReference Include="Tomlyn" Version="2.3.2" />
         <!-- YAML -->
         <PackageReference Include="YamlDotNet" Version="16.3.0" />
     </ItemGroup>

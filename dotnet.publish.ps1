@@ -1,6 +1,10 @@
 <#
 .SYNOPSIS
     Cross-platform Build & Publish script for RemakeEngine.
+.DESCRIPTION
+    This script automates the build and publish process for the RemakeEngine project.
+    It compiles the EngineNet project for multiple configurations and runtimes, bundles necessary assets, and outputs the results to a specified directory.
+    Executed by the github workflows to build and publish the engine on github, automatically it only builds for winx64 for each commit, when tagged builds for all platforms.
 #>
 param(
     [string]$Framework = "net10.0",
@@ -14,6 +18,34 @@ $Root = Split-Path -Parent $PSCommandPath
 $EngineNetProj = (Join-Path $Root (Join-Path "EngineNet" "EngineNet.csproj"))
 $OutputRoot    = Join-Path $Root "EngineBuild"
 $Icon          = Join-Path $Root (Join-Path "EngineNet" "icon.ico")
+
+$SigningCertificate = $null
+$CanSignBuilds = $IsWindows -and (Get-Command New-SelfSignedCertificate -ErrorAction SilentlyContinue) -and (Get-Command Set-AuthenticodeSignature -ErrorAction SilentlyContinue)
+if ($CanSignBuilds) {
+    $SigningCertificate = New-SelfSignedCertificate -Subject "CN=yggdrasilAu" -Type CodeSigningCert -CertStoreLocation "Cert:\CurrentUser\My"
+    Write-Host "Created temporary code-signing certificate for CN=yggdrasilAu" -ForegroundColor Cyan
+} elseif ($IsWindows) {
+    Write-Warning "Code signing cmdlets are not available; builds will continue without signing."
+}
+
+function Sign-PublishedExecutable {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ExecutablePath
+    )
+
+    if (-not $CanSignBuilds -or -not $SigningCertificate) {
+        return
+    }
+
+    if (-not (Test-Path $ExecutablePath)) {
+        Write-Warning "Skipping signing because the executable was not found: $ExecutablePath"
+        return
+    }
+
+    Set-AuthenticodeSignature -FilePath $ExecutablePath -Certificate $SigningCertificate -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com" | Out-Null
+    Write-Host "Signed $ExecutablePath" -ForegroundColor DarkCyan
+}
 
 # 1. Version Extraction
 $ProjectToml = (Join-Path $Root (Join-Path ".betterGit" "project.toml"))
@@ -79,21 +111,24 @@ foreach ($t in $targets) {
         if (Test-Path $regSource) { Copy-Item $regSource -Destination $engineAppsDest -Recurse -Force }
 
         # Copy Demo Game (Git Aware)
-        if (Test-Path (Join-Path $Root (Join-Path "EngineApps" (Join-Path "Games" "Demo")))) {
-            $demoDest = (Join-Path $engineAppsDest (Join-Path "Games" "Demo"))
+        $demoSource = Join-Path $Root "EngineApps/Games/demo"
+        if (Test-Path $demoSource) {
+            $demoDest = (Join-Path $engineAppsDest (Join-Path "Games" "demo"))
             $null = New-Item -ItemType Directory -Path $demoDest -Force
 
             # Use git ls-files (works on all OS)
-            $files = git -C $Root ls-files --cached --others --exclude-standard "EngineApps/Games/Demo/"
+            $files = git -C $Root ls-files --cached --others --exclude-standard "EngineApps/Games/demo/"
             foreach ($f in $files) {
                 $srcFile = (Join-Path $Root $f)
-                $relPath = $f.Substring("EngineApps/Games/Demo/".Length)
+                $relPath = $f.Substring("EngineApps/Games/demo/".Length)
                 $targetFile = (Join-Path $demoDest $relPath)
                 $null = New-Item -ItemType Directory -Path (Split-Path $targetFile) -Force
                 Copy-Item $srcFile -Destination $targetFile -Force
             }
         }
     }
+
+    Sign-PublishedExecutable -ExecutablePath (Join-Path $outDir "EngineNet.exe")
 }
 
 if ($env:GITHUB_ENV) {

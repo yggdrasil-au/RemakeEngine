@@ -24,6 +24,14 @@
     </PropertyGroup>
 
     <PropertyGroup>
+        <AssemblyName>EngineNet</AssemblyName>
+        <Company>YggdrasilAu</Company>
+        <Product>Remake-Engine</Product>
+        <Copyright>Copyright © 2026 YggdrasilAu</Copyright>
+        <Description>Remake Engine is a cross-platform automation tool for executing game remake modules</Description>
+    </PropertyGroup>
+
+    <PropertyGroup>
         <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     </PropertyGroup>
 

@@ -6,6 +6,8 @@ desktop.ini
 .gitmodules
 ..gitignore
 
+EngineBuild/
+
 RemakeEngineDocs/
 
 /logs
