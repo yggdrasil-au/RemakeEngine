@@ -23,6 +23,13 @@ jobs:
         shell: pwsh
         run: ./dotnet.publish.ps1 -Runtime "win-x64" -ConfigFilter "Debug"
 
+      - name: Sign Executable (Self-Signed)
+        shell: pwsh
+        run: |
+          $cert = New-SelfSignedCertificate -Subject "CN=yggdrasilAu" -Type CodeSigningCert -CertStoreLocation "Cert:\CurrentUser\My"
+          $exePath = "EngineBuild/win-x64-Debug/EngineNet.exe"
+          Set-AuthenticodeSignature -FilePath $exePath -Certificate $cert -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com"
+
       - name: Package Dev Build
         shell: pwsh
         run: |
