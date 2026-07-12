@@ -5,7 +5,12 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     x:Class="EngineNet.Interface.GUI.Pages.MainWindow"
-    Width="1000" Height="700" Title="EngineNet">
+
+    Width="1000" Height="700" Title="EngineNet"
+
+    xmlns:local="clr-namespace:EngineNet.Interface.GUI.Services"
+    x:DataType="local:OperationOutputService"
+>
     <Grid>
         <DockPanel>
             <!-- top nav -->
@@ -28,7 +33,7 @@
                 <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto">
                     <TextBlock Grid.Column="0" Grid.Row="0" Text="Building:" Foreground="LightGray" Margin="0,0,8,0"/>
                     <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding ProgressSummaryLine, TargetNullValue=Working...}" Foreground="White"/>
-                    <Button   Grid.Column="2" Grid.Row="0" x:Name="BottomExpandButton" Content="Expand" Click="OnBuilding"/>
+                    <Button    Grid.Column="2" Grid.Row="0" x:Name="BottomExpandButton" Content="Expand" Click="OnBuilding"/>
                     <ProgressBar Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="1" Height="8" Minimum="0" Maximum="1" Value="{Binding ProgressPercent}"/>
 
                     <ItemsControl Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="2" ItemsSource="{Binding TaskPanels}">

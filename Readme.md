@@ -15,18 +15,22 @@ Project docs live at <https://github.com/yggdrasil-au/RemakeEngineDocs> with a w
 
 ## Getting Started
 
-### Prerequisites
+### Prerequisite dependencies
 - [.NET SDK 10.0](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
 - git
 
 ### Platform Support
 - **Primary Supported:** Windows x64 (`win-x64`)
 - **Target Support:** All Windows variants and Linux distributions (primarily `linux-x64`)
-- **Best-Effort:** macOS (`osx-arm64`) where available
+- **Best-Effort:** macOS (`osx-arm64`) where feasible, but cannot be guaranteed for all modules.
 
 The engine is developed and tested primarily on Windows x64. Cross-platform support is an active goal across all Windows and Linux targets, with macOS support provided where practical.
 
 Module support is separate from engine support. Individual game modules can have narrower platform support based on their scripts, external tools, and format pipelines.
+
+the engine intents to have advanced support for external tools across all platforms, but some are simply limited in platform support (eg QuickBMS, vgmstream, FFmpeg, etc.) and may be inherently unsupportable on some platforms. The engine will in the future attempt to detect and report these limitations, but cannot guarantee that all modules will work on all platforms.
+additionally the Registrie of tools for now is focused on win x64, and the code to launch and managed these processes is only tested on win x64, so while the engine may be able to launch these tools on other platforms, it is not guaranteed to work, assuming the regitry even has the binary for the platform listed.
+
 
 ### Clone and Build
 ```pwsh
@@ -146,5 +150,14 @@ See LICENSE_MODULE_TEMPLATE.md for the recommended license text.
 apache-2.0 for the engine core and all code in this repository, but modules must use a custom non-commercial license if they target protected media.
 See [LICENCE](LICENCE)
 
+---
+---
+gui
 
+![](.github/assets/buildingpage.png)
+![](.github/assets/guiLibraryPage.png)
 
+---
+tui
+
+![](.github/assets/selectGameMenu.png)

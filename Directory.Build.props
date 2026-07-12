@@ -5,4 +5,9 @@
         <BaseIntermediateOutputPath>$(BuildDir)obj\</BaseIntermediateOutputPath>
         <DefaultItemExcludes>$(DefaultItemExcludes);.history\**</DefaultItemExcludes>
     </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Suppress CVE for SQLite pending upstream patch -->
+        <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-2m69-gcr7-jv3q" />
+    </ItemGroup>
 </Project>

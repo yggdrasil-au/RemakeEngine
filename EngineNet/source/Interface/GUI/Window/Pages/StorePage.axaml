@@ -1,7 +1,11 @@
 <UserControl
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    x:Class="EngineNet.Interface.GUI.Pages.StorePage">
+    x:Class="EngineNet.Interface.GUI.Pages.StorePage"
+
+    xmlns:local="clr-namespace:EngineNet.Interface.GUI.Pages"
+    x:DataType="local:StorePage"
+>
     <DockPanel>
         <!-- Header with search and status -->
         <StackPanel
@@ -10,7 +14,7 @@
             Spacing="8" Margin="0,0,0,12">
             <TextBox
                 Width="260"
-                Watermark="Search modules"
+                PlaceholderText="Search modules"
                 Text="{Binding Query}"/>
             <Button Content="Search" Command="{Binding Button_Search_Click}"/>
             <Button Content="Refresh" Command="{Binding Button_Refresh_Click}"/>
@@ -30,7 +34,7 @@
                 </ItemsControl.ItemsPanel>
 
                 <ItemsControl.ItemTemplate>
-                    <DataTemplate>
+                    <DataTemplate x:DataType="local:StorePage+StoreItem">
                         <Border
                             Width="300" Margin="8" Padding="12" CornerRadius="12"
                             BorderThickness="1" Classes="card">
@@ -93,7 +97,7 @@
                                         Content="Download"
                                         IsEnabled="{Binding CanDownload}"
                                         IsVisible="{Binding CanDownload}"
-                                        Command="{Binding $parent[UserControl].DataContext.Button_Download_Click}"
+                                        Command="{Binding $parent[local:StorePage].Button_Download_Click}"
                                         CommandParameter="{Binding}"/>
 
                                     <!-- Already installed message -->
@@ -106,7 +110,7 @@
 
                                     <Button
                                         Content="Details"
-                                        Command="{Binding $parent[UserControl].DataContext.Button_OpenModule_Click}"
+                                        Command="{Binding $parent[local:StorePage].Button_OpenModule_Click}"
                                         CommandParameter="{Binding}"/>
                                 </StackPanel>
                             </StackPanel>

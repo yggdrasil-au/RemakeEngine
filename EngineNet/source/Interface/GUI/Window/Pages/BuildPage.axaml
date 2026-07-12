@@ -1,7 +1,10 @@
 <UserControl
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    x:Class="EngineNet.Interface.GUI.Pages.BuildingPage">
+    x:Class="EngineNet.Interface.GUI.Pages.BuildingPage"
+    xmlns:local="clr-namespace:EngineNet.Interface.GUI.Pages"
+    x:DataType="local:BuildingPage"
+>
     <DockPanel Margin="0,0,0,12">
         <!-- Header with operation name and clear button -->
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">

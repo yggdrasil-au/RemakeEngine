@@ -167,7 +167,7 @@ public class GameLauncher {
         }
         try {
             return _commandService.LaunchDetached(exe, System.Array.Empty<string>(), work, new DetachedLaunchOptions {
-                UseShellExecute = true
+                UseShellExecute = true,
             });
         } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"[GameLauncher] err launching exe '{exe}' for game '{name}': {ex}");

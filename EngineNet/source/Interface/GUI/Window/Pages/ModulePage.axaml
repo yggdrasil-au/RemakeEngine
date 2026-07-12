@@ -1,7 +1,10 @@
 <UserControl
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    x:Class="EngineNet.Interface.GUI.Pages.ModulePage">
+    x:Class="EngineNet.Interface.GUI.Pages.ModulePage"
+    xmlns:local="clr-namespace:EngineNet.Interface.GUI.Pages"
+    x:DataType="local:ModulePage"
+>
     <DockPanel Margin="8">
         <!-- Header -->
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="12">
@@ -61,7 +64,7 @@
                                     <TextBlock Grid.Column="0" Grid.Row="0" Text="{Binding Name}" FontWeight="SemiBold"/>
                                     <TextBlock Grid.Column="0" Grid.Row="1" Text="{Binding ScriptPath}" FontSize="12" Foreground="Gray" TextTrimming="CharacterEllipsis"/>
                                     <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding ScriptType}" FontSize="12" Foreground="Gray" Margin="8,0,8,0"/>
-                                <Button Grid.Column="2" Grid.Row="0" Content="Run" Command="{Binding $parent[UserControl].Button_RunOp_Click}" CommandParameter="{Binding}" IsEnabled="{Binding $parent[UserControl].IsExecutionEnabled}"/>
+                                <Button Grid.Column="2" Grid.Row="0" Content="Run" Command="{Binding $parent[local:ModulePage].Button_RunOp_Click}" CommandParameter="{Binding}" IsEnabled="{Binding $parent[local:ModulePage].IsExecutionEnabled}"/>
                                 <TextBlock Grid.Column="2" Grid.Row="1" Text="{Binding RunStatusText}" FontSize="11" Foreground="{Binding RunStatusForeground}" IsVisible="{Binding HasRunStatus}" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                 </Grid>
                             </Border>

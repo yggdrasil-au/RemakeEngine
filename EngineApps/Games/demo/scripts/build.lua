@@ -214,9 +214,9 @@ local function Main()
 	local BuildReportPath = join(OutputRoot, 'build-report.toml')
 	local ModuleGameTomlPath = join(ModuleRoot, 'game.toml')
 
-	progress.start(7, 'demo/build.lua: generate Godot demo game')
+	progress.script.start(7, 'demo/build.lua: generate Godot demo game')
 
-	progress.step('Resolving Godot tool and preparing output folders')
+	progress.script.step('Resolving Godot tool and preparing output folders')
 	local GodotExe = ResolveGodotExecutable()
 	EnsureDirectory(OutputRoot)
 	EnsureDirectory(ProjectRoot)
@@ -225,12 +225,12 @@ local function Main()
 	EnsureDirectory(AssetsDir)
 	EnsureDirectory(DataDir)
 
-	progress.step('Generating Godot project files')
+	progress.script.step('Generating Godot project files')
 	WriteTextFile(ProjectGodotPath, BuildProjectGodot(Opts.ProjectName))
 	WriteTextFile(MainScenePath, BuildMainScene())
 	WriteTextFile(MainScriptPath, BuildMainScript(Opts.Note))
 
-	progress.step('Generating sample demo assets/placeholders')
+	progress.script.step('Generating sample demo assets/placeholders')
 	WriteTextFile(AssetReadmePath, 'This folder is intentionally simple for the demo build output.\n')
 	local MetadataJson = sdk.text.json.encode({
 		generated_by = 'demo/scripts/build.lua',
@@ -241,20 +241,20 @@ local function Main()
 	}, { indent = true })
 	WriteTextFile(DataJsonPath, MetadataJson)
 
-	progress.step('Writing module-root game.toml launch metadata')
+	progress.script.step('Writing module-root game.toml launch metadata')
 	WriteTextFile(ModuleGameTomlPath, BuildGameToml(Opts.ProjectName))
 
 	local ProbeSuccess = false
 	local ProbeResult = nil
 	if Opts.SkipGodotRun then
-		progress.step('Skipping Godot probe (--skip-godot-run)')
+		progress.script.step('Skipping Godot probe (--skip-godot-run)')
 		WarnMessage('Skipping Godot run validation by request.')
 	else
-		progress.step('Running Godot probe for generated project')
+		progress.script.step('Running Godot probe for generated project')
 		ProbeSuccess, ProbeResult = TryRunGodot(GodotExe, ProjectRoot)
 	end
 
-	progress.step('Writing build report artifact')
+	progress.script.step('Writing build report artifact')
 	sdk.toml_write_file(BuildReportPath, {
 		demo = {
 			name = 'godot-demo-build',
@@ -276,8 +276,8 @@ local function Main()
 		},
 	})
 
-	progress.step('build.lua complete')
-	progress.finish()
+	progress.script.step('build.lua complete')
+	progress.script.finish()
 
 	sdk.color_print('green', 'Demo Godot project generated at: ' .. ProjectRoot)
 	sdk.color_print('green', 'game.toml generated at: ' .. ModuleGameTomlPath)

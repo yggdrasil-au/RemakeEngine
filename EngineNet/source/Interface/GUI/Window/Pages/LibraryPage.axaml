@@ -1,7 +1,10 @@
 <UserControl
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    x:Class="EngineNet.Interface.GUI.Pages.LibraryPage">
+    x:Class="EngineNet.Interface.GUI.Pages.LibraryPage"
+    xmlns:local="clr-namespace:EngineNet.Interface.GUI.Pages"
+    x:DataType="local:LibraryPage"
+>
     <DockPanel>
         <!-- Left module list -->
         <Border DockPanel.Dock="Left" Width="240" BorderThickness="1" Padding="8" Classes="card" Margin="8,0,8,0">
@@ -45,7 +48,7 @@
 
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Button Command="{Binding $parent[UserControl].Button_Details_Click}"
+                                <Button Command="{Binding $parent[local:LibraryPage].Button_Details_Click}"
                                     CommandParameter="{Binding}"
                                     Classes="flat">
                                 <Border Width="300" Margin="8" Padding="8" CornerRadius="12"

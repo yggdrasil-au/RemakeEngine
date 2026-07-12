@@ -1,7 +1,11 @@
 <UserControl
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    x:Class="EngineNet.Interface.GUI.Pages.SettingsPage">
+    x:Class="EngineNet.Interface.GUI.Pages.SettingsPage"
+
+    xmlns:local="clr-namespace:EngineNet.Interface.GUI.Pages"
+    x:DataType="local:SettingsPage"
+>
 
     <StackPanel Spacing="10" Margin="8">
         <TextBlock Text="Settings" FontSize="20" FontWeight="Bold"/>

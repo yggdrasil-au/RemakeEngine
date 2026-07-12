@@ -1,5 +1,4 @@
 using System.Collections.Specialized;
-using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 
 using Avalonia.Threading;
@@ -186,11 +185,10 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
             processed++;
         }
         TrimIfNeeded();
-        if (_pendingLines.IsEmpty && processed == 0) {
-            lock (_flushLock) { 
-                _flushTimer?.Stop(); 
-                _flushTimerRequested = false;
-            }
+        if (!_pendingLines.IsEmpty || processed != 0) return;
+        lock (_flushLock) {
+            _flushTimer?.Stop();
+            _flushTimerRequested = false;
         }
     }
 
@@ -359,16 +357,13 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
             case EngineSdk.Events.ProgressPanelStart:
                 global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleProgressPanelStart(evt));
                 break;
-                break;
 
             case EngineSdk.Events.ProgressPanel:
                 global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleProgressPanelUpdate(evt));
                 break;
-                break;
 
             case EngineSdk.Events.ProgressPanelEnd:
                 global::Avalonia.Threading.Dispatcher.UIThread.Post(() => HandleProgressPanelEnd(evt));
-                break;
                 break;
 
             case EngineSdk.Events.ScriptActiveStart:
@@ -412,11 +407,10 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
         // If the engine provides an id, create a dedicated panel rather than using the shared bottom-panel state.
         string? id = payload?.TryGetValue("id", out object? idObj) == true ? idObj?.ToString() : null;
         if (!string.IsNullOrEmpty(id)) {
-            if (!_panelsById.ContainsKey(id)) {
-                var panel = new ProgressPanelState { Id = id };
-                _panelsById[id] = panel;
-                TaskPanels.Add(panel);
-            }
+            if (_panelsById.ContainsKey(id)) return;
+            var panel = new ProgressPanelState { Id = id };
+            _panelsById[id] = panel;
+            TaskPanels.Add(panel);
             return;
         }
 
