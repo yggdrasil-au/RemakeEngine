@@ -3,11 +3,11 @@
 Remake Engine is an extensible cross-platform orchestration engine for repeatable game workflows. It ships with a .NET 10 core (**EngineNet**) that can run through a command-line interface, a TUI, or an Avalonia-based GUI.
 
 ## Key Features
-- Configuration-driven operations defined in JSON or TOML (`operations.json` / `operations.toml`).
+- Configuration-driven operations defined in TOML (`operations.toml`).
 - Embedded Lua, JavaScript, and Python engines (heavily focused on Lua, with minimal JS/Python support) with shared SDK helpers plus built-in extract/convert actions.
 - Cross-platform GUI for "run all" and launch scenarios, alongside full TUI experiences for power users.
 - CLI execution of manifest-defined operations by exact name or numeric ID, plus a dedicated run-all flag.
-- Declarative placeholders that pull values from `project.json` to keep per-user paths out of manifests.
+- Declarative placeholders that pull values from `config.toml` to keep per-user paths out of manifests.
 - Tool orchestration for common pipelines (QuickBMS, FFmpeg, vgmstream, etc.).
 
 ## Documentation
@@ -28,8 +28,8 @@ The engine is developed and tested primarily on Windows x64. Cross-platform supp
 
 Module support is separate from engine support. Individual game modules can have narrower platform support based on their scripts, external tools, and format pipelines.
 
-the engine intents to have advanced support for external tools across all platforms, but some are simply limited in platform support (eg QuickBMS, vgmstream, FFmpeg, etc.) and may be inherently unsupportable on some platforms. The engine will in the future attempt to detect and report these limitations, but cannot guarantee that all modules will work on all platforms.
-additionally the Registrie of tools for now is focused on win x64, and the code to launch and managed these processes is only tested on win x64, so while the engine may be able to launch these tools on other platforms, it is not guaranteed to work, assuming the regitry even has the binary for the platform listed.
+The engine intends to have advanced support for external tools across all platforms, but some are simply limited in platform support (eg QuickBMS, vgmstream, FFmpeg, etc.) and may be inherently unsupportable on some platforms. The engine will in the future attempt to detect and report these limitations, but cannot guarantee that all modules will work on all platforms.
+Additionally, the registry of tools for now is focused on win x64, and the code to launch and manage these processes is only tested on win x64, so while the engine may be able to launch these tools on other platforms, it is not guaranteed to work, assuming the registry even has the binary for the platform listed.
 
 
 ### Clone and Build
@@ -66,7 +66,7 @@ dotnet run -c Release --project EngineNet --framework net10.0 -- --game_module "
 ```
 
 ### Quick Demo Run
-Run the demo module’s Lua feature script with arguments as used for development validation:
+Run the demo module's Lua feature script with arguments as used for development validation:
 ```pwsh
 dotnet run -c Release --project EngineNet --framework net10.0 -- \
   --game_module "./EngineApps/Games/demo" \
@@ -98,11 +98,11 @@ Run `dotnet build RemakeEngine.slnx` and `dotnet test RemakeEngine.slnx --nologo
 * `Tools/` contains shared binaries or helper scripts. Module manifests declare dependencies that the engine can download via `ToolsDownloader`.
 
 Schemas and documentation are included to help author and validate manifests in editors:
-* `schemas/operations.toml.md` — comprehensive guide for operations files, explaining prompts, placeholders, and operation dependencies
-* `schemas/operations.schema.json` — operations files (JSON)
-* `schemas/config.schema.json` — engine configuration
-* `schemas/game.schema.json` — game/module metadata
-* `schemas/tools.schema.json` — tools manifests
+* `schemas/operations.toml.md` - comprehensive guide for operations files, explaining prompts, placeholders, and operation dependencies
+* `schemas/operations.schema.json` - operations files (JSON)
+* `schemas/config.schema.json` - engine configuration
+* `schemas/game.schema.json` - game/module metadata
+* `schemas/tools.schema.json` - tools manifests
 
 Manifest placeholders follow `{{PlaceholderName}}` syntax and are resolved with data from the engine config, module metadata, and TOML placeholder tables.
 

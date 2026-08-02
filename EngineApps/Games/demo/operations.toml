@@ -29,7 +29,7 @@
 	Instructions = "Demonstrates the embedded Lua engine helpers."
 	script_type = "lua"
 	script = "{{Game_Root}}/scripts/lua_feature_demo.lua"
-	args = ["--Game_Root", "{{Game_Root}}", "--Project_Root", "{{Project_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo"]
+	args = ["--Game_Root", "{{Game_Root}}", "--Project_Root", "{{Project_Root}}", "--scratch", "{{Game_Root}}{{config-toml-TMP_DIR}}lua-demo"]
 [[operation.prompts]]
 	type = "text"
 	Name = "lua_note"
@@ -49,7 +49,7 @@
 	Instructions = "Runs the JavaScript engine demo covering progress, sqlite, and helpers."
 	script_type = "js"
 	script = "{{Game_Root}}/scripts/js_feature_demo.js"
-	args = ["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/js-demo"]
+	args = ["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}{{config-toml-TMP_DIR}}js-demo"]
 [[operation.prompts]]
 	type = "confirm"
 	Name = "js_extra_artifacts"
@@ -104,7 +104,7 @@
 	script_type = "bms"
 	script = "{{Game_Root}}/scripts/zip.bms"
 	input = "{{Game_Root}}/Files/bms/extract-demo"
-	output = "{{Game_Root}}/Files/bms/TMP/extract-demo"
+	output = "{{Game_Root}}/Files/bms{{config-toml-TMP_DIR}}extract-demo"
 	extension = ".zip"
 
 [[operation]]
@@ -127,7 +127,7 @@
 	tool = "ImageMagick"
 	args = [
 		"--source", "{{Game_Root}}/Files/engine/txd-extract-demo",
-		"--target", "{{Game_Root}}/Files/TMP/engine/txd-extract-demo",
+		"--target", "{{Game_Root}}/Files{{config-toml-TMP_DIR}}engine/txd-extract-demo",
 		"--input-ext", ".dds",
 		"--output-ext", ".png"
 	]
