@@ -148,5 +148,6 @@
         "utf8": "disable",
     },
     "Lua.workspace.checkThirdParty": "true",
+    "explorerExcludeManager.backup": {},
 }
 
