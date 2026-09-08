@@ -1,16 +1,16 @@
-
 namespace EngineNet.Terminal;
 
 using EngineNet.Shared.IO.UI;
-using EngineNet.Terminal;
 using Interface;
+using System.Collections;
+using System.Collections.Generic;
+using System.Text.Json;
 
 /// <summary>
 /// Utility methods for CLI/TUI handling, can also be used by GUI if needed
 /// </summary>
 public class Utils {
-
-    private static readonly System.Text.Json.JsonSerializerOptions s_jsonOpts = new() {
+    private static readonly JsonSerializerOptions s_jsonOpts = new() {
         WriteIndented = false,
         PropertyNamingPolicy = null,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never
@@ -21,10 +21,6 @@ public class Utils {
     private static int s_activePanels;
     private static readonly Dictionary<string, List<string>> s_panelStatus = new();
     private static bool s_rendererInitializedByEvent;
-    private static bool s_operationProgressActive;
-    private static int s_operationProgressCurrent;
-    private static int s_operationProgressTotal;
-    private static string s_operationProgressName = string.Empty;
 
     private static void ResetTaskProgressState() {
         s_activePanels = 0;
@@ -37,10 +33,7 @@ public class Utils {
     /// </summary>
     public static void BeginOperationProgress() {
         lock (s_consoleLock) {
-            s_operationProgressActive = true;
-            s_operationProgressCurrent = 0;
-            s_operationProgressTotal = 0;
-            s_operationProgressName = string.Empty;
+            TuiRenderer.UpdateScriptProgress(0, 1, "Starting...");
             UpdateTuiStatus();
         }
     }
@@ -50,10 +43,7 @@ public class Utils {
     /// </summary>
     public static void EndOperationProgress() {
         lock (s_consoleLock) {
-            s_operationProgressActive = false;
-            s_operationProgressCurrent = 0;
-            s_operationProgressTotal = 0;
-            s_operationProgressName = string.Empty;
+            TuiRenderer.ClearScriptProgress();
             UpdateTuiStatus();
         }
     }
@@ -61,17 +51,6 @@ public class Utils {
     /// <summary>
     /// Execute a single operation in the terminal interface, handling events and output appropriately.
     /// </summary>
-    /// <param name="Engine"></param>
-    /// <param name="game"></param>
-    /// <param name="games"></param>
-    /// <param name="op"></param>
-    /// <param name="promptAnswers"></param>
-    /// <param name="autoPromptResponses"></param>
-    /// <param name="cancellationToken"></param>
-    /// <param name="onOutput"></param>
-    /// <param name="onEvent"></param>
-    /// <param name="stdinProvider"></param>
-    /// <returns></returns>
     internal async System.Threading.Tasks.Task<bool> ExecuteOpAsync(
         MiniEngineFace Engine,
         string game,
@@ -79,7 +58,7 @@ public class Utils {
         Dictionary<string, object?> op,
         Core.Data.PromptAnswers promptAnswers,
         Dictionary<string, string>? autoPromptResponses = null,
-        System.Threading.CancellationToken cancellationToken = default(CancellationToken),
+        System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken),
         Core.ProcessRunner.OutputHandler? onOutput = null,
         Core.ProcessRunner.EventHandler? onEvent = null,
         Core.ProcessRunner.StdinProvider? stdinProvider = null
@@ -88,7 +67,8 @@ public class Utils {
             Core.ProcessRunner.OutputHandler outputHandler = onOutput ?? OnOutput;
             Core.ProcessRunner.EventHandler eventHandler = onEvent ?? OnEvent;
             Core.ProcessRunner.StdinProvider inputProvider = stdinProvider ?? StdinProvider;
-            string? script_type = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant();
+            string? script_type = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)
+                ?.ToLowerInvariant();
 
             // Use embedded handlers for engine/lua/js/bms to avoid external dependencies
             if (Core.Utils.ScriptConstants.IsSupported(script_type)) {
@@ -114,7 +94,8 @@ public class Utils {
                         promptAnswers,
                         cancellationToken: cancellationToken
                     );
-                } finally {
+                }
+                finally {
                     // Restore previous auto-prompt responses
                     Shared.IO.UI.EngineSdk.AutoPromptResponses.Clear();
                     foreach (KeyValuePair<string, string> kv in prevAutoResponses) {
@@ -126,16 +107,19 @@ public class Utils {
                 }
             }
 
-            Shared.IO.Diagnostics.Log($"[Utils.cs::ExecuteOp()] Routing operation of type '{script_type}' to external command execution");
-
+            Shared.IO.Diagnostics.Log(
+                $"[Utils.cs::ExecuteOp()] Routing operation of type '{script_type}' to external command execution");
 
             // Default: build and execute as external command (e.g., python)
-            List<string> parts = Engine.CommandService_BuildCommand(game, games, Engine.EngineConfig_Data, op, promptAnswers);
+            List<string> parts =
+                Engine.CommandService_BuildCommand(game, games, Engine.EngineConfig_Data, op, promptAnswers);
             if (parts.Count < 2) {
                 return false;
             }
 
-            string title = op.TryGetValue("Name", out object? n) ? n?.ToString() ?? System.IO.Path.GetFileName(parts[1]) : System.IO.Path.GetFileName(parts[1]);
+            string title = op.TryGetValue("Name", out object? n)
+                ? n?.ToString() ?? System.IO.Path.GetFileName(parts[1])
+                : System.IO.Path.GetFileName(parts[1]);
             return Engine.CommandService_ExecuteCommand(
                 parts,
                 title,
@@ -144,7 +128,8 @@ public class Utils {
                 stdinProvider: inputProvider,
                 envOverrides: new Dictionary<string, object?> { ["TERM"] = "dumb" }
             );
-        } catch (System.Exception ex) {
+        }
+        catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"[Utils.cs::ExecuteOp()] Error executing operation: {ex.Message}");
             return false;
         }
@@ -156,44 +141,26 @@ public class Utils {
         }
 
         switch (name.Trim().ToLowerInvariant()) {
-            case "default":
-                return System.ConsoleColor.Gray;
-            case "black":
-                return System.ConsoleColor.Black;
-            case "darkblue":
-                return System.ConsoleColor.DarkBlue;
-            case "blue":
-                return System.ConsoleColor.Blue;
-            case "darkgreen":
-                return System.ConsoleColor.DarkGreen;
-            case "green":
-                return System.ConsoleColor.Green;
-            case "darkcyan":
-                return System.ConsoleColor.DarkCyan;
-            case "cyan":
-                return System.ConsoleColor.Cyan;
-            case "darkred":
-                return System.ConsoleColor.DarkRed;
-            case "red":
-                return System.ConsoleColor.Red;
-            case "darkmagenta":
-                return System.ConsoleColor.DarkMagenta;
-            case "magenta":
-                return System.ConsoleColor.Magenta;
-            case "darkyellow":
-                return System.ConsoleColor.DarkYellow;
-            case "yellow":
-                return System.ConsoleColor.Yellow;
+            case "default": return System.ConsoleColor.Gray;
+            case "black": return System.ConsoleColor.Black;
+            case "darkblue": return System.ConsoleColor.DarkBlue;
+            case "blue": return System.ConsoleColor.Blue;
+            case "darkgreen": return System.ConsoleColor.DarkGreen;
+            case "green": return System.ConsoleColor.Green;
+            case "darkcyan": return System.ConsoleColor.DarkCyan;
+            case "cyan": return System.ConsoleColor.Cyan;
+            case "darkred": return System.ConsoleColor.DarkRed;
+            case "red": return System.ConsoleColor.Red;
+            case "darkmagenta": return System.ConsoleColor.DarkMagenta;
+            case "magenta": return System.ConsoleColor.Magenta;
+            case "darkyellow": return System.ConsoleColor.DarkYellow;
+            case "yellow": return System.ConsoleColor.Yellow;
             case "gray":
-            case "grey":
-                return System.ConsoleColor.Gray;
+            case "grey": return System.ConsoleColor.Gray;
             case "darkgray":
-            case "darkgrey":
-                return System.ConsoleColor.DarkGray;
-            case "white":
-                return System.ConsoleColor.White;
-            default:
-                return System.ConsoleColor.Gray;
+            case "darkgrey": return System.ConsoleColor.DarkGray;
+            case "white": return System.ConsoleColor.White;
+            default: return System.ConsoleColor.Gray;
         }
     }
 
@@ -212,53 +179,63 @@ public class Utils {
     // --- Handlers to bridge SDK events <-> CLI ---
 
     public static void OnEvent(Dictionary<string, object?> evt) {
-        // TuiRenderer handles locking internally
         LogEvent(evt);
         if (!evt.TryGetValue("event", out object? typObj)) return;
 
         string? typ = typObj?.ToString();
 
         switch (typ) {
-            case EngineSdk.Events.Print:
+            case EngineSdk.Events.Print: {
                 string msg = evt.TryGetValue("message", out object? m) ? m?.ToString() ?? "" : "";
                 string colorName = evt.TryGetValue("color", out object? c) ? c?.ToString() ?? "gray" : "gray";
                 TuiRenderer.Log(msg, MapColor(colorName));
                 break;
+            }
 
-            case EngineSdk.Events.Warning:
-                TuiRenderer.Log($"[WARN] {evt.GetValueOrDefault("message", "")}", ConsoleColor.Yellow);
+            case EngineSdk.Events.Warning: {
+                TuiRenderer.Log($"[WARN] {evt.GetValueOrDefault("message", "")}", System.ConsoleColor.Yellow);
                 break;
+            }
 
-            case EngineSdk.Events.Error:
-                TuiRenderer.Log($"[ERR] {evt.GetValueOrDefault("message", "")}", ConsoleColor.Red);
+            case EngineSdk.Events.Error: {
+                TuiRenderer.Log($"[ERR] {evt.GetValueOrDefault("message", "")}", System.ConsoleColor.Red);
                 break;
+            }
 
             case EngineSdk.Events.Prompt:
             case EngineSdk.Events.ColorPrompt: {
-                string pMsg = evt.TryGetValue("message", out object? pm) ? pm?.ToString() ?? "Input required" : "Input required";
-                TuiRenderer.Log($"? {pMsg}", ConsoleColor.Cyan);
+                string pMsg = evt.TryGetValue("message", out object? pm)
+                    ? pm?.ToString() ?? "Input required"
+                    : "Input required";
+                TuiRenderer.Log($"? {pMsg}", System.ConsoleColor.Cyan);
                 break;
             }
 
             case EngineSdk.Events.Confirm: {
                 string cMsg = evt.TryGetValue("message", out object? cm) ? cm?.ToString() ?? "Confirm?" : "Confirm?";
                 bool def = evt.TryGetValue("default", out object? d) && d is true;
-                TuiRenderer.Log($"? {cMsg} [{(def ? "y/N" : "Y/n")}]", ConsoleColor.Cyan);
+                TuiRenderer.Log($"? {cMsg} [{(def ? "y/N" : "Y/n")}]", System.ConsoleColor.Cyan);
                 break;
             }
 
             case EngineSdk.Events.ScriptActiveStart: {
-                TuiRenderer.Log($"▶ Starting script: {evt.GetValueOrDefault("name", "Unnamed")}", ConsoleColor.Green);
+                TuiRenderer.Log($"▶ Starting script: {evt.GetValueOrDefault("name", "Unnamed")}",
+                    System.ConsoleColor.Green);
                 break;
             }
 
             case EngineSdk.Events.ScriptProgress: {
-                // todo, add dedicated indicator in the TUI renderer to show overall script/operation progress
+                int current = GetEventInt(evt, "current");
+                int total = GetEventInt(evt, "total");
+                string label = evt.TryGetValue("label", out object? l) ? l?.ToString() ?? string.Empty : string.Empty;
+                TuiRenderer.UpdateScriptProgress(current, total, label);
                 break;
             }
 
             case EngineSdk.Events.ScriptActiveEnd: {
-                TuiRenderer.Log($"◀ Finished script: {evt.GetValueOrDefault("name", "Unnamed")}", ConsoleColor.Green);
+                TuiRenderer.ClearScriptProgress();
+                bool success = evt.TryGetValue("success", out object? s) && System.Convert.ToBoolean(s);
+                TuiRenderer.Log("◀ Finished script.", success ? System.ConsoleColor.Green : System.ConsoleColor.Red);
                 break;
             }
 
@@ -277,6 +254,7 @@ public class Utils {
 
                     UpdateTuiStatus();
                 }
+
                 break;
             }
 
@@ -289,18 +267,27 @@ public class Utils {
                         if (lines.Count > 0) {
                             try {
                                 int w;
-                                try { w = System.Console.WindowWidth; } catch { w = 80; }
+                                try {
+                                    w = System.Console.WindowWidth;
+                                }
+                                catch {
+                                    w = 80;
+                                }
+
                                 string text = lines[0];
                                 if (text.Length > w - 1) text = text.Substring(0, w - 1);
                                 System.Console.Write($"\r{text.PadRight(w - 1)}");
-                            } catch {
+                            }
+                            catch {
                                 // Silent catch to prevent crashing if console window access fails
                             }
                         }
-                    } else {
+                    }
+                    else {
                         UpdateTuiStatus();
                     }
                 }
+
                 break;
             }
 
@@ -311,8 +298,9 @@ public class Utils {
                         // Log the FIRST line (the progress bar) to the log area so it sticks in history
                         if (EngineNet.Shared.State.IsCli) {
                             System.Console.WriteLine(); // Newline to clear the fixed \r line
-                        } else {
-                            TuiRenderer.Log(lastLines[0], ConsoleColor.Cyan);
+                        }
+                        else {
+                            TuiRenderer.Log(lastLines[0], System.ConsoleColor.Cyan);
                         }
                     }
 
@@ -327,85 +315,60 @@ public class Utils {
                         ResetTaskProgressState();
                         if (shouldShutdownRenderer) {
                             TuiRenderer.Shutdown();
-                        } else if (!EngineNet.Shared.State.IsCli) {
+                        }
+                        else if (!EngineNet.Shared.State.IsCli) {
                             TuiRenderer.ClearStatus();
                         }
                     }
                 }
+
                 break;
             }
 
-            case EngineSdk.Events.RunAllStart:
-                UpdateOperationProgress(evt, current: 0);
-                TuiRenderer.Log($"Starting run-all sequence ({evt.GetValueOrDefault("total", 0)} operations).", ConsoleColor.Green);
+            case EngineSdk.Events.RunAllStart: {
+                TuiRenderer.UpdateScriptProgress(0, GetEventInt(evt, "total"), "Run-All Sequence");
+                TuiRenderer.Log($"Starting run-all sequence ({evt.GetValueOrDefault("total", 0)} operations).",
+                    System.ConsoleColor.Green);
                 break;
+            }
 
-            case EngineSdk.Events.RunAllOpStart:
-                UpdateOperationProgress(evt, current: GetEventInt(evt, "index"));
-                TuiRenderer.Log($"Starting operation via run-all: {evt.GetValueOrDefault("name", "Unnamed")}", ConsoleColor.Green);
+            case EngineSdk.Events.RunAllOpStart: {
+                TuiRenderer.UpdateScriptProgress(GetEventInt(evt, "index"), GetEventInt(evt, "total"),
+                    evt.GetValueOrDefault("name", "Unnamed")?.ToString() ?? string.Empty);
+                TuiRenderer.Log($"Starting operation via run-all: {evt.GetValueOrDefault("name", "Unnamed")}",
+                    System.ConsoleColor.Green);
                 break;
+            }
 
-            case EngineSdk.Events.RunAllOpEnd:
-                UpdateOperationProgress(evt, current: GetEventInt(evt, "index") + 1);
-                TuiRenderer.Log($"✔ Operation completed via run-all: {evt.GetValueOrDefault("name", "Unnamed")}", ConsoleColor.Green);
+            case EngineSdk.Events.RunAllOpEnd: {
+                TuiRenderer.UpdateScriptProgress(GetEventInt(evt, "index") + 1, GetEventInt(evt, "total"),
+                    evt.GetValueOrDefault("name", "Unnamed")?.ToString() ?? string.Empty);
+                TuiRenderer.Log($"✔ Operation completed via run-all: {evt.GetValueOrDefault("name", "Unnamed")}",
+                    System.ConsoleColor.Green);
                 break;
+            }
 
-            case EngineSdk.Events.RunAllComplete:
-                UpdateOperationProgress(evt, current: GetEventInt(evt, "total"));
-                TuiRenderer.Log("Run-all sequence completed.", ConsoleColor.Green);
+            case EngineSdk.Events.RunAllComplete: {
+                TuiRenderer.ClearScriptProgress();
+                TuiRenderer.Log("Run-all sequence completed.", System.ConsoleColor.Green);
                 break;
+            }
 
-            default:
+            default: {
                 // Log unknown events to debug
                 Shared.IO.Diagnostics.Log($"[Utils.cs::OnEvent()] Unhandled event type: {typ}");
                 break;
+            }
         }
     }
 
     private static void UpdateTuiStatus() {
         var allLines = new List<string>();
-        if (s_operationProgressActive) {
-            allLines.Add(BuildOperationProgressLine());
-        }
         foreach (var panelLines in s_panelStatus.Values) {
             allLines.AddRange(panelLines);
         }
+
         TuiRenderer.UpdateStatus(allLines);
-    }
-
-    private static void UpdateOperationProgress(IReadOnlyDictionary<string, object?> evt, int current) {
-        if (!s_operationProgressActive) {
-            return;
-        }
-
-        lock (s_consoleLock) {
-            int total = GetEventInt(evt, "total");
-            if (total > 0) {
-                s_operationProgressTotal = total;
-            }
-            s_operationProgressCurrent = System.Math.Clamp(current, 0, s_operationProgressTotal);
-            s_operationProgressName = evt.TryGetValue("name", out object? name) ? name?.ToString() ?? string.Empty : s_operationProgressName;
-            UpdateTuiStatus();
-        }
-    }
-
-    private static string BuildOperationProgressLine() {
-        int total = System.Math.Max(1, s_operationProgressTotal);
-        double percent = (double)s_operationProgressCurrent / total;
-        int width;
-        try {
-            width = System.Math.Clamp(System.Console.WindowWidth - 42, 10, 40);
-        } catch {
-            width = 24;
-        }
-
-        int filled = (int)System.Math.Round(percent * width);
-        string bar = new string('#', filled) + new string('-', width - filled);
-        string name = s_operationProgressName;
-        if (name.Length > 32) {
-            name = name[..29] + "...";
-        }
-        return $"Operations [{bar}] {s_operationProgressCurrent}/{s_operationProgressTotal} {name}".TrimEnd();
     }
 
     private static int GetEventInt(IReadOnlyDictionary<string, object?> evt, string key) {
@@ -415,7 +378,8 @@ public class Utils {
 
         try {
             return System.Convert.ToInt32(value);
-        } catch (System.Exception ex) {
+        }
+        catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"[Utils.cs::GetEventInt()] Failed to parse event field '{key}'.", ex);
             return 0;
         }
@@ -426,7 +390,8 @@ public class Utils {
             Dictionary<string, object?> safe = CloneForLogging(evt);
             string json = JsonSerializer.Serialize(safe, s_jsonOpts);
             Shared.IO.Diagnostics.Log($"[Utils.cs::OnEvent()] {json}");
-        } catch (System.Exception ex) {
+        }
+        catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"[Utils.cs::OnEvent()] <serialization failed: {ex.Message}>");
         }
     }
@@ -440,12 +405,15 @@ public class Utils {
         try {
             JsonSerializer.Serialize(clone, s_jsonOpts);
             return clone;
-        } catch (System.Exception ex) {
+        }
+        catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"[Utils.cs::CloneForLogging()] Clone serialization catch triggered: {ex}");
-            Dictionary<string, object?> safe = new Dictionary<string, object?>(clone.Count, System.StringComparer.Ordinal);
+            Dictionary<string, object?> safe =
+                new Dictionary<string, object?>(clone.Count, System.StringComparer.Ordinal);
             foreach (KeyValuePair<string, object?> kv in clone) {
                 safe[kv.Key] = SafeStringify(kv.Value);
             }
+
             return safe;
         }
     }
@@ -486,6 +454,7 @@ public class Utils {
             foreach (KeyValuePair<string, object?> kv in roDict) {
                 nested[kv.Key] = CloneValue(kv.Value);
             }
+
             return nested;
         }
 
@@ -495,6 +464,7 @@ public class Utils {
                 string key = entry.Key.ToString() ?? string.Empty;
                 nested[key] = CloneValue(entry.Value);
             }
+
             return nested;
         }
 
@@ -503,13 +473,15 @@ public class Utils {
             foreach (object? item in enumerable) {
                 list.Add(CloneValue(item));
             }
+
             return list;
         }
 
         try {
             JsonSerializer.Serialize(value, s_jsonOpts);
             return value;
-        } catch {
+        }
+        catch {
             return value.ToString();
         }
     }
@@ -524,6 +496,7 @@ public class Utils {
                 foreach (KeyValuePair<string, object?> kv in roDict) {
                     nested[kv.Key] = SafeStringify(kv.Value);
                 }
+
                 return nested;
             }
 
@@ -532,6 +505,7 @@ public class Utils {
                 foreach (object? item in enumerable) {
                     list.Add(SafeStringify(item));
                 }
+
                 return list;
             }
 
@@ -546,41 +520,58 @@ public class Utils {
         // Extract data from payload
         string label = (payload.TryGetValue("label", out object? l) ? l?.ToString() : "Processing") ?? "Processing";
         string spinner = (payload.TryGetValue("spinner", out object? s) ? s?.ToString() : " ") ?? " ";
-        int activeTotal = (payload.TryGetValue("active_total", out object? at) ? (at as System.IConvertible)?.ToInt32(null) : 0) ?? 0;
+        int activeTotal = (payload.TryGetValue("active_total", out object? at)
+            ? (at as System.IConvertible)?.ToInt32(null)
+            : 0) ?? 0;
 
         var stats = payload.TryGetValue("stats", out object? st) ? st as IReadOnlyDictionary<string, object?> : null;
         var activeJobs = payload.TryGetValue("active_jobs", out object? aj) ? aj as IEnumerable<object> : null;
 
         // 1. Build Progress Bar Line
         if (stats != null) {
-            int total = (stats.TryGetValue("total", out object? t) ? (t as System.IConvertible)?.ToInt32(null) : 0) ?? 0;
-            int processed = (stats.TryGetValue("processed", out object? p) ? (p as System.IConvertible)?.ToInt32(null) : 0) ?? 0;
+            int total = (stats.TryGetValue("total", out object? t) ? (t as System.IConvertible)?.ToInt32(null) : 0) ??
+                        0;
+            int processed = (stats.TryGetValue("processed", out object? p)
+                ? (p as System.IConvertible)?.ToInt32(null)
+                : 0) ?? 0;
             int ok = (stats.TryGetValue("ok", out object? o) ? (o as System.IConvertible)?.ToInt32(null) : 0) ?? 0;
-            int skip = (stats.TryGetValue("skip", out object? sk) ? (sk as System.IConvertible)?.ToInt32(null) : 0) ?? 0;
+            int skip = (stats.TryGetValue("skip", out object? sk) ? (sk as System.IConvertible)?.ToInt32(null) : 0) ??
+                       0;
             int err = (stats.TryGetValue("err", out object? e) ? (e as System.IConvertible)?.ToInt32(null) : 0) ?? 0;
-            double percent = (stats.TryGetValue("percent", out object? pct) ? (pct as System.IConvertible)?.ToDouble(null) : 0.0) ?? 0.0;
+            double percent = (stats.TryGetValue("percent", out object? pct)
+                ? (pct as System.IConvertible)?.ToDouble(null)
+                : 0.0) ?? 0.0;
             int width;
             try {
                 int buf = System.Math.Max(20, System.Console.BufferWidth);
                 // Keep the bar a reasonable fraction of buffer width
                 width = System.Math.Clamp(buf - 40, 10, 60);
-            } catch { width = 30; }
+            }
+            catch {
+                width = 30;
+            }
+
             int filled = (int)System.Math.Round(percent * width);
             var bar = new System.Text.StringBuilder(width + 48);
+
             // Truncate label to keep line short; Draw method still clamps
             string lbl = label;
             try {
                 int maxLabel = System.Math.Max(8, System.Math.Min(30, System.Console.BufferWidth - (width + 20)));
                 if (lbl.Length > maxLabel) lbl = lbl.Substring(0, maxLabel - 3) + "...";
-            } catch { /* ignore */ }
+            }
+            catch {
+                /* ignore */
+            }
+
             bar.Append(lbl);
             bar.Append(' ');
             bar.Append('[');
             for (int i = 0; i < width; i++) {
-                if (i < filled - 1) bar.Append('=');
-                else if (i == filled - 1) bar.Append('>');
-                else bar.Append(' ');
+                if (i < filled) bar.Append('█');
+                else bar.Append('░');
             }
+
             bar.Append(']');
             bar.Append(' ');
             bar.Append((int)System.Math.Round(percent * 100));
@@ -597,14 +588,16 @@ public class Utils {
             bar.Append(err);
             bar.Append(')');
             lines.Add(bar.ToString());
-        } else {
+        }
+        else {
             lines.Add(label); // Fallback
         }
 
         // 2. Build Active Jobs Lines
         if (activeTotal == 0) {
             lines.Add("Active: none");
-        } else {
+        }
+        else {
             lines.Add($"Active: {activeTotal}");
             if (activeJobs != null) {
                 foreach (object jobObj in activeJobs) {
@@ -616,17 +609,27 @@ public class Utils {
                     string elapsed = (job.TryGetValue("elapsed", out object? e) ? e?.ToString() : "...") ?? "...";
 
                     int maxFile;
-                    try { maxFile = System.Math.Max(18, System.Console.BufferWidth - 20); } catch { maxFile = 50; }
+                    try {
+                        maxFile = System.Math.Max(18, System.Console.BufferWidth - 20);
+                    }
+                    catch {
+                        maxFile = 50;
+                    }
+
                     if (file.Length > maxFile) {
                         file = file.Substring(0, maxFile - 3) + "...";
                     }
+
                     lines.Add($"  {spinner} {tool} · {file} · {elapsed}");
                 }
             }
-            if (activeTotal > 8) { // 8 is the hardcoded Take(max) in the SDK
+
+            if (activeTotal > 8) {
+                // 8 is the hardcoded Take(max) in the SDK
                 lines.Add($"  … and {activeTotal - System.Math.Min(activeTotal, 8)} more");
             }
         }
+
         return lines;
     }
 }
