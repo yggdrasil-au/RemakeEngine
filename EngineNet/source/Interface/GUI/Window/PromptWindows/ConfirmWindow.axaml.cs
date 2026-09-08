@@ -1,5 +1,5 @@
 
-namespace EngineNet.Interface.GUI.Pages.PromptWindows;
+namespace EngineNet.GUI.Pages.PromptWindows;
 
 internal partial class ConfirmWindow:Window {
     internal bool Result {

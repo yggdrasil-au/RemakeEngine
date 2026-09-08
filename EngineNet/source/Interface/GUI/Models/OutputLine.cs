@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace EngineNet.Interface.GUI.Models;
+namespace EngineNet.GUI.Models;
 
 /// <summary>
 /// Represents a single line of output in the operation log.

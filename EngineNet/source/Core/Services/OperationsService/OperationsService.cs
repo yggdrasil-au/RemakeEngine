@@ -26,6 +26,59 @@ public sealed class OperationsService {
     /* :: :: Methods :: START :: */
 
     /// <summary>
+    /// Loads the operations session for a module, including menu capabilities and latest execution states.
+    /// </summary>
+    /// <param name="gameName"></param>
+    /// <param name="games"></param>
+    /// <param name="engineConfig"></param>
+    /// <returns></returns>
+    public ModuleOperationSession LoadModuleSession(
+        string gameName,
+        GameModules games,
+        IDictionary<string, object?> engineConfig
+    ) {
+        if (!games.TryGetValue(gameName, out GameModuleInfo? module)) {
+            PreparedOperations missingModule = new PreparedOperations {
+                IsLoaded = false,
+                ErrorMessage = $"Game '{gameName}' was not found."
+            };
+            return new ModuleOperationSession(gameName, null, missingModule, Array.Empty<SessionOperation>(), Array.Empty<SessionOperation>());
+        }
+
+        if (string.IsNullOrWhiteSpace(module.OpsFile)) {
+            PreparedOperations missingOpsFile = new PreparedOperations {
+                IsLoaded = false,
+                ErrorMessage = "Selected game is missing operations file."
+            };
+            return new ModuleOperationSession(gameName, module, missingOpsFile, Array.Empty<SessionOperation>(), Array.Empty<SessionOperation>());
+        }
+
+        PreparedOperations prepared = LoadAndPrepare(module.OpsFile, gameName, games, engineConfig);
+        IReadOnlyDictionary<long, OperationExecutionStatus> statuses = LoadLatestExecutionStatuses(module.GameRoot);
+        List<SessionOperation> initOperations = BuildSessionOperations(prepared.InitOperations, statuses);
+        List<SessionOperation> regularOperations = BuildSessionOperations(prepared.RegularOperations, statuses);
+
+        return new ModuleOperationSession(gameName, module, prepared, initOperations, regularOperations);
+    }
+
+    private static List<SessionOperation> BuildSessionOperations(
+        IReadOnlyList<PreparedOperation> preparedOperations,
+        IReadOnlyDictionary<long, OperationExecutionStatus> statuses
+    ) {
+        List<SessionOperation> sessionOperations = new List<SessionOperation>(preparedOperations.Count);
+
+        foreach (PreparedOperation operation in preparedOperations) {
+            OperationExecutionStatus status = operation.OperationId.HasValue
+                && statuses.TryGetValue(operation.OperationId.Value, out OperationExecutionStatus recordedStatus)
+                ? recordedStatus
+                : OperationExecutionStatus.NotRun;
+            sessionOperations.Add(new SessionOperation(operation, status));
+        }
+
+        return sessionOperations;
+    }
+
+    /// <summary>
     /// Loads operations from an ops file and prepares structured metadata for UI consumption.
     /// </summary>
     /// <param name="opsFile"></param>
@@ -123,12 +176,15 @@ public sealed class OperationsService {
             } else {
                 result.RegularOperations.Add(prepared);
             }
+
+            bool isRunAll = (TryGetBool(op, out bool runAllDash, "run-all") && runAllDash)
+                || (TryGetBool(op, out bool runAllUnderscore, "run_all") && runAllUnderscore);
+            if (isRunAll) {
+                result.RunAllOperations.Add(prepared);
+            }
         }
 
-        result.HasRunAll = allOps.Any(op =>
-            (TryGetBool(op, out bool runAllDash, "run-all") && runAllDash) ||
-            (TryGetBool(op, out bool runAllUnderscore, "run_all") && runAllUnderscore)
-        );
+        result.HasRunAll = result.RunAllOperations.Count > 0;
 
         return result;
     }
@@ -369,6 +425,38 @@ public sealed class OperationsService {
             }
         }
         return false;
+    }
+
+    /// <summary>
+    /// Reads the latest execution result for every numerically identified operation in a module log.
+    /// </summary>
+    /// <param name="gameRoot"></param>
+    /// <returns></returns>
+    private static IReadOnlyDictionary<long, OperationExecutionStatus> LoadLatestExecutionStatuses(string gameRoot) {
+        Dictionary<long, OperationExecutionStatus> statuses = new Dictionary<long, OperationExecutionStatus>();
+        string logPath = System.IO.Path.Combine(gameRoot, "operation_execution.log");
+        if (!System.IO.File.Exists(logPath)) {
+            return statuses;
+        }
+
+        try {
+            foreach (string line in System.IO.File.ReadLines(logPath)) {
+                string[] parts = line.Split(" | ");
+                if (parts.Length < 3 || !long.TryParse(parts[0].Trim(), out long operationId)) {
+                    continue;
+                }
+
+                statuses[operationId] = parts[2].Trim() == "SUCCESS"
+                    ? OperationExecutionStatus.Succeeded
+                    : OperationExecutionStatus.Failed;
+            }
+        } catch (System.IO.IOException ex) {
+            Shared.IO.Diagnostics.Bug($"[OperationsService::LoadLatestExecutionStatuses()] Failed reading '{logPath}'.", ex);
+        } catch (System.UnauthorizedAccessException ex) {
+            Shared.IO.Diagnostics.Bug($"[OperationsService::LoadLatestExecutionStatuses()] Access denied for '{logPath}'.", ex);
+        }
+
+        return statuses;
     }
     /* :: :: Helpers :: END :: */
     // //

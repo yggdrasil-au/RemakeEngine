@@ -1,6 +1,6 @@
 using EngineNet.Shared.IO.UI;
 
-namespace EngineNet.Interface.GUI.Services;
+namespace EngineNet.GUI.Services;
 
 /// <summary>
 /// GUI Specific utility methods, to simplify interaction between each Page and the engines Methods.

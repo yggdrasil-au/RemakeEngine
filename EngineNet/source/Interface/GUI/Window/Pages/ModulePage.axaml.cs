@@ -1,5 +1,5 @@
 
-namespace EngineNet.Interface.GUI.Pages;
+namespace EngineNet.GUI.Pages;
 
 using Avalonia.Media;
 using Core.Data;
@@ -10,10 +10,10 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     /* :: :: Vars :: START :: */
     private readonly string _moduleName;
 
-    private readonly List<Core.Data.PreparedOperation> _initOperations = new List<PreparedOperation>();
+    private readonly List<SessionOperation> _initOperations = new List<SessionOperation>();
 
 
-    private string ModuleName { get; }
+    public string ModuleName { get; }
     public string Title { get; private set; } = string.Empty;
     public string? GameRoot { get; private set; }
     public string? ExePath { get; private set; }
@@ -27,17 +27,19 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     public bool IsExecutionEnabled { get; private set; } = true;
 
-    public bool CanPlay => IsBuilt && !string.IsNullOrWhiteSpace(ExePath) && IsExecutionEnabled;
+    public bool CanPlay => IsBuilt && !string.IsNullOrWhiteSpace(ExePath) && CanStartOperation;
     public bool CanRunAll => !string.IsNullOrWhiteSpace(ModuleName) && !IsRunning && IsExecutionEnabled;
+    public bool CanRunOperation => CanStartOperation;
     public bool CanStop => IsRunning;
     public bool CanDownload => !IsDownloaded() && !string.IsNullOrWhiteSpace(RegistryUrl);
 
     private bool IsRunning { get; set; }
+    private bool CanStartOperation => IsExecutionEnabled && !IsRunning;
     private CancellationTokenSource? _cts;
 
     public Bitmap? Image { get; private set; }
 
-    private ObservableCollection<OpRow> Operations { get; } = new ObservableCollection<OpRow>();
+    public ObservableCollection<OpRow> Operations { get; } = new ObservableCollection<OpRow>();
 
     public System.Windows.Input.ICommand Button_Play_Click { get; }
     public System.Windows.Input.ICommand Button_RunAll_Click { get; }
@@ -93,24 +95,19 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             IsExecutionEnabled = true;
             Raise(nameof(CanPlay));
             Raise(nameof(CanRunAll));
+            Raise(nameof(CanRunOperation));
             return;
         }
 
         IsExecutionEnabled = false;
         Raise(nameof(CanPlay));
         Raise(nameof(CanRunAll));
+        Raise(nameof(CanRunOperation));
 
-        // Auto-run init operations only if they have not succeeded yet according to operation_execution.log.
-        Dictionary<string, bool> latestOperationStatus = LoadLatestOperationStatus(GameRoot);
+        // Auto-run init operations only when the engine-owned session does not report a successful run.
         bool shouldRunInit = false;
-        foreach (Core.Data.PreparedOperation op in _initOperations) {
-            if (!op.OperationId.HasValue) {
-                shouldRunInit = true;
-                break;
-            }
-
-            string idStr = op.OperationId.Value.ToString();
-            if (latestOperationStatus.TryGetValue(idStr, out bool wasSuccessful) && wasSuccessful) continue;
+        foreach (SessionOperation operation in _initOperations) {
+            if (operation.Status == OperationExecutionStatus.Succeeded) continue;
             shouldRunInit = true;
             break;
         }
@@ -122,6 +119,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         IsExecutionEnabled = true;
         Raise(nameof(CanPlay));
         Raise(nameof(CanRunAll));
+        Raise(nameof(CanRunOperation));
     }
 
     private void Load() {
@@ -162,31 +160,20 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 }
             }
 
-            // Load operations if ops_file exists
-            string? opsFile = null;
             Core.Data.GameModules games = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
-            if (games.TryGetValue(_moduleName, out Core.Data.GameModuleInfo? gameInfo)) {
-                opsFile = gameInfo.OpsFile;
+            ModuleOperationSession session = GuiBootstrapper.MiniEngine.OperationsService_LoadModuleSession(_moduleName, games);
+            if (session.Module is not null) {
                 if (string.IsNullOrWhiteSpace(ExePath)) {
-                    ExePath = gameInfo.ExePath;
+                    ExePath = session.Module.ExePath;
                 }
 
                 if (string.IsNullOrWhiteSpace(GameRoot)) {
-                    GameRoot = gameInfo.GameRoot;
+                    GameRoot = session.Module.GameRoot;
                 }
-            } else {
-                Shared.IO.Diagnostics.Log($"Load: No game info found for module {_moduleName}.");
-            }
 
-            if (!string.IsNullOrWhiteSpace(opsFile) && System.IO.File.Exists(path: opsFile)) {
-                Core.Data.PreparedOperations preparedOps = GuiBootstrapper.MiniEngine.OperationsService_LoadAndPrepare(
-                    opsFile: opsFile,
-                    currentGame: _moduleName,
-                    games: games,
-                    engineConfig: GuiBootstrapper.MiniEngine.EngineConfig_Data
-                );
+                Core.Data.PreparedOperations preparedOps = session.PreparedOperations;
                 if (!preparedOps.IsLoaded) {
-                    Shared.IO.Diagnostics.Log($"Load: Failed to load operations list for module {_moduleName} from ops file '{opsFile}'. {preparedOps.ErrorMessage}");
+                    Shared.IO.Diagnostics.Log($"Load: Failed to load operations list for module {_moduleName}. {preparedOps.ErrorMessage}");
                     return;
                 }
 
@@ -197,11 +184,10 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                     }
                 }
 
-                _initOperations.AddRange(preparedOps.InitOperations);
+                _initOperations.AddRange(session.InitOperations);
 
-                Dictionary<string, bool> latestOperationStatus = LoadLatestOperationStatus(GameRoot);
-
-                foreach (Core.Data.PreparedOperation op in preparedOps.RegularOperations) {
+                foreach (SessionOperation sessionOperation in session.RegularOperations) {
+                    Core.Data.PreparedOperation op = sessionOperation.Operation;
                     string scriptType = string.IsNullOrWhiteSpace(op.ScriptType) ? "python" : op.ScriptType;
                     string scriptPath = op.ScriptPath ?? string.Empty;
                     string displayName = op.DisplayName;
@@ -211,13 +197,9 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                         displayName = $"[invalid-id] {displayName}";
                     }
 
-                    bool? lastRunSuccess = null;
-                    if (op.OperationId.HasValue) {
-                        string idStr = op.OperationId.Value.ToString();
-                        if (latestOperationStatus.TryGetValue(idStr, out bool wasSuccessful)) {
-                            lastRunSuccess = wasSuccessful;
-                        }
-                    }
+                    bool? lastRunSuccess = sessionOperation.Status == OperationExecutionStatus.NotRun
+                        ? null
+                        : sessionOperation.Status == OperationExecutionStatus.Succeeded;
 
                     Operations.Add(item: new OpRow {
                         Name = displayName,
@@ -228,7 +210,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                     });
                 }
             } else {
-                Shared.IO.Diagnostics.Log($"Load: Ops file not found for module {_moduleName} at path '{opsFile}'.");
+                Shared.IO.Diagnostics.Log($"Load: No game info found for module {_moduleName}.");
             }
 
             Raise(nameof(Title));
@@ -241,6 +223,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             Raise(nameof(IsUnbuilt));
             Raise(nameof(CanPlay));
             Raise(nameof(CanRunAll));
+            Raise(nameof(CanRunOperation));
             Raise(nameof(CanDownload));
             Raise(nameof(Image));
             Raise(nameof(RegistryUrl));
@@ -265,54 +248,14 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         }
     }
 
-    /// <summary>
-    /// Loads the latest success/failure status per operation id from operation_execution.log.
-    /// </summary>
-    /// <param name="gameRoot"></param>
-    /// <returns></returns>
-    private Dictionary<string, bool> LoadLatestOperationStatus(string? gameRoot) {
-        Dictionary<string, bool> latestOperationStatus = new Dictionary<string, bool>();
-
-        if (string.IsNullOrWhiteSpace(gameRoot)) {
-            return latestOperationStatus;
-        }
-
-        string logPath = System.IO.Path.Combine(gameRoot, "operation_execution.log");
-        if (!System.IO.File.Exists(logPath)) {
-            return latestOperationStatus;
-        }
-
-        try {
-            string[] logLines = System.IO.File.ReadAllLines(logPath);
-            Shared.IO.Diagnostics.Trace(
-                $"[ModulePage.axaml.cs::LoadLatestOperationStatus()] Loaded {logLines.Length} lines from operation_execution.log for game {ModuleName}");
-
-            foreach (string line in logLines) {
-                if (string.IsNullOrWhiteSpace(line)) continue;
-
-                // Expected log format: {Id} | {Timestamp} | {SUCCESS/FAILURE} | {Name} | {ScriptType} | {ScriptPath}
-                string[] parts = line.Split(" | ");
-                if (parts.Length < 3) continue;
-                string parsedId = parts[0].Trim();
-                if (parsedId == "No ID") continue;
-                bool isSuccess = parts[2].Trim() == "SUCCESS";
-                latestOperationStatus[parsedId] = isSuccess;
-            }
-        } catch (System.IO.IOException ex) {
-            Shared.IO.Diagnostics.Bug($"[ModulePage.axaml.cs::LoadLatestOperationStatus()] catch: {ex.Message}");
-        } catch (System.UnauthorizedAccessException ex) {
-            Shared.IO.Diagnostics.Bug($"[ModulePage.axaml.cs::LoadLatestOperationStatus()] catch: {ex.Message}");
-        }
-
-        return latestOperationStatus;
-    }
-
     private async System.Threading.Tasks.Task ExecuteInitOperationsAsync() {
-        if (_initOperations.Count == 0 || GuiBootstrapper.MiniEngine is null) return;
+        if (_initOperations.Count == 0 || GuiBootstrapper.MiniEngine is null || IsRunning) return;
 
         IsRunning = true;
         _cts = new CancellationTokenSource();
+        Raise(nameof(CanPlay));
         Raise(nameof(CanRunAll));
+        Raise(nameof(CanRunOperation));
         Raise(nameof(CanStop));
 
         try {
@@ -329,7 +272,8 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                     try {
                         System.Console.SetIn(new GuiStdinRedirectReader(provider: stdin));
                         bool okAllInit = true;
-                        foreach (var op in _initOperations) {
+                        foreach (SessionOperation sessionOperation in _initOperations) {
+                            PreparedOperation op = sessionOperation.Operation;
                             Core.Data.PromptAnswers answers = new Core.Data.PromptAnswers();
                             await CollectAnswersForOperationAsync(op: op.Operation, answers: answers, defaultsOnly: true);
 
@@ -362,13 +306,22 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             IsRunning = false;
             _cts?.Dispose();
             _cts = null;
+            Raise(nameof(CanPlay));
             Raise(nameof(CanRunAll));
+            Raise(nameof(CanRunOperation));
             Raise(nameof(CanStop));
         }
     }
 
     private async System.Threading.Tasks.Task PlayAsync() {
-        if (GuiBootstrapper.MiniEngine is null || string.IsNullOrWhiteSpace(ModuleName)) return;
+        if (GuiBootstrapper.MiniEngine is null || string.IsNullOrWhiteSpace(ModuleName) || IsRunning) return;
+
+        IsRunning = true;
+        _cts = new CancellationTokenSource();
+        Raise(nameof(CanPlay));
+        Raise(nameof(CanRunAll));
+        Raise(nameof(CanRunOperation));
+        Raise(nameof(CanStop));
         try {
             await EngineOperationRunner.RunAsync(
                 moduleName: ModuleName,
@@ -384,7 +337,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
                     try {
                         System.Console.SetIn(new GuiStdinRedirectReader(provider: stdin));
-                        return await GuiBootstrapper.MiniEngine.GameLauncher_LaunchGameAsync(name: ModuleName);
+                        return await GuiBootstrapper.MiniEngine.GameLauncher_LaunchGameAsync(name: ModuleName, cancellationToken: _cts.Token);
                     } finally {
                         Shared.IO.UI.EngineSdk.LocalEventSink = previousSink;
                         Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = previousMute;
@@ -395,15 +348,25 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"PlayAsync: {ex}");
             OperationOutputService.Instance.AddOutput(text: $"Launch failed: {ex.Message}", stream: "stderr");
+        } finally {
+            IsRunning = false;
+            _cts?.Dispose();
+            _cts = null;
+            Raise(nameof(CanPlay));
+            Raise(nameof(CanRunAll));
+            Raise(nameof(CanRunOperation));
+            Raise(nameof(CanStop));
         }
     }
 
     private async System.Threading.Tasks.Task RunAllAsync() {
-        if (GuiBootstrapper.MiniEngine is null || string.IsNullOrWhiteSpace(ModuleName)) return;
+        if (GuiBootstrapper.MiniEngine is null || string.IsNullOrWhiteSpace(ModuleName) || IsRunning) return;
 
         IsRunning = true;
         _cts = new CancellationTokenSource();
+        Raise(nameof(CanPlay));
         Raise(nameof(CanRunAll));
+        Raise(nameof(CanRunOperation));
         Raise(nameof(CanStop));
 
         try {
@@ -425,7 +388,9 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             IsRunning = false;
             _cts?.Dispose();
             _cts = null;
+            Raise(nameof(CanPlay));
             Raise(nameof(CanRunAll));
+            Raise(nameof(CanRunOperation));
             Raise(nameof(CanStop));
         }
     }
@@ -435,11 +400,13 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private async System.Threading.Tasks.Task RunOpAsync(OpRow? row) {
-        if (row is null || GuiBootstrapper.MiniEngine is null) return;
+        if (row is null || GuiBootstrapper.MiniEngine is null || IsRunning) return;
 
         IsRunning = true;
         _cts = new CancellationTokenSource();
+        Raise(nameof(CanPlay));
         Raise(nameof(CanRunAll));
+        Raise(nameof(CanRunOperation));
         Raise(nameof(CanStop));
 
         try {
@@ -487,7 +454,9 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             IsRunning = false;
             _cts?.Dispose();
             _cts = null;
+            Raise(nameof(CanPlay));
             Raise(nameof(CanRunAll));
+            Raise(nameof(CanRunOperation));
             Raise(nameof(CanStop));
         }
     }
@@ -606,7 +575,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     /// Represents a single operation row in the module view.
     /// </summary>
     public sealed class OpRow {
-        internal string Name { get; init; } = string.Empty;
+        public string Name { get; init; } = string.Empty;
         public string ScriptType { get; set; } = string.Empty;
         public string ScriptPath { get; set; } = string.Empty;
         public Dictionary<string, object?> Op { get; init; } = new Dictionary<string, object?>();

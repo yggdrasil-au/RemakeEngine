@@ -4,11 +4,11 @@
 <Window
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    x:Class="EngineNet.Interface.GUI.Pages.MainWindow"
+    x:Class="EngineNet.GUI.Pages.MainWindow"
 
     Width="1000" Height="700" Title="EngineNet"
 
-    xmlns:local="clr-namespace:EngineNet.Interface.GUI.Services"
+    xmlns:local="clr-namespace:EngineNet.GUI.Services"
     x:DataType="local:OperationOutputService"
 >
     <Grid>

@@ -1,7 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 
-namespace EngineNet.Interface.GUI.Models;
+namespace EngineNet.GUI.Models;
 
 public class ProgressPanelState : INotifyPropertyChanged {
     private string _id = string.Empty;

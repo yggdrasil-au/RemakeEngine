@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace EngineNet.Interface.GUI.Models;
+namespace EngineNet.GUI.Models;
 
 public class ActiveJob : INotifyPropertyChanged {
     private string _spinner = string.Empty;

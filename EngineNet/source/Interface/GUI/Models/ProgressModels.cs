@@ -1,4 +1,4 @@
-namespace EngineNet.Interface.GUI.Models;
+namespace EngineNet.GUI.Models;
 
 public sealed record ProgressPanelModel {
     public required string Label { get; init; }

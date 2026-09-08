@@ -49,30 +49,30 @@ function warn(message) end
 ---@param message string
 function error(message) end
 
--- id value is not technically required but it should always be used for Gui experince quality
+-- title value is not technically required but it should always be used for Gui experince quality
 --- Prompts the user for input.
 ---@param message string The question to ask the user.
----@param id string An ID for this prompt (default: "q1"), also GUI popup Title/Header
+---@param title string An ID for this prompt (default: "q1"), also GUI popup Title/Header
 ---@param secret? boolean If true, hides the input (for passwords).
 ---@return string response
-function prompt(message, id, secret) end
+function prompt(message, title, secret) end
 
 --- Prompts the user for input with a colored message.
 ---@param message string The question to ask.
 ---@param color string The color of the prompt text.
----@param id? string An ID for this prompt.
+---@param title string An ID for this prompt.
 ---@param secret? boolean If true, hides the input.
 ---@return string response
-function color_prompt(message, color, id, secret) end
+function color_prompt(message, color, title, secret) end
 
 --- Alias for color_prompt (AU/UK spelling).
 --- Prompts the user for input with a colored message.
 ---@param message string The question to ask.
 ---@param color string The color of the prompt text.
----@param id? string An ID for this prompt.
+---@param title string An ID for this prompt.
 ---@param secret? boolean If true, hides the input.
 ---@return string response
-function colour_prompt(message, color, id, secret) end
+function colour_prompt(message, color, title, secret) end
 
 --- Loads and executes a Lua file relative to the current script's directory.
 --- Like standard 'dofile', this evaluates the file every time it is called and does not cache results.

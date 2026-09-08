@@ -1,5 +1,5 @@
 
-namespace EngineNet.Interface.GUI;
+namespace EngineNet.GUI;
 
 public class App:Avalonia.Application {
 

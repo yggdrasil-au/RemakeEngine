@@ -1,7 +1,7 @@
 
 using EngineNet.Shared.IO.UI;
 
-namespace EngineNet.Interface.GUI.Pages;
+namespace EngineNet.GUI.Pages;
 
 public partial class StorePage:UserControl, INotifyPropertyChanged {
 

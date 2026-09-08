@@ -1,6 +1,6 @@
 
 
-namespace EngineNet.Interface.Terminal;
+namespace EngineNet.Term;
 
 
 /// <summary>
@@ -68,14 +68,14 @@ public static class TuiRenderer {
 
     public static void Shutdown() {
         if (!_isActive) return;
-        _isActive = false;
-        _cts = null;
-
-        Console.Clear();
-        Console.SetCursorPosition(0, 0);
-
-        // Completely remove the standard Console.WriteLine loop that dumped history!
         lock (_lock) {
+            _isActive = false;
+            _cts = null;
+            ClearTerminal();
+            foreach (LogEntry entry in _logBuffer) {
+                Console.ForegroundColor = entry.Color;
+                Console.WriteLine(entry.Message);
+            }
             ResetContextInternal(clearLogs: true);
         }
         Console.ResetColor();
@@ -151,6 +151,15 @@ public static class TuiRenderer {
         _inputBuffer = "";
         _promptLabel = "";
         _isInputActive = false;
+    }
+
+    private static void ClearTerminal() {
+        try {
+            Console.Clear();
+            Console.SetCursorPosition(0, 0);
+        } catch (System.IO.IOException) {
+            // Console output can be redirected or temporarily unavailable during a resize.
+        }
     }
 
     private static void StartBackgroundInputListener() {
@@ -275,12 +284,8 @@ public static class TuiRenderer {
     /// Renders the scrollable log area (Top section).
     /// </summary>
     private static void RenderLogs() {
-        if (Console.WindowHeight != _height || Console.WindowWidth != _width) {
-            _height = Console.WindowHeight;
-            _width = Console.WindowWidth;
-            Console.Clear(); // Full redraw on resize
-            RenderFull();
-            return;
+        if (RefreshDimensions()) {
+            ClearTerminal();
         }
 
         int logAreaHeight = _height - _statusHeight - 1; // -1 for separator
@@ -305,25 +310,26 @@ public static class TuiRenderer {
 
         // Draw
         try {
+            int outputWidth = GetRenderableWidth();
             Console.CursorVisible = false;
             for (int i = 0; i < logAreaHeight; i++) {
                 Console.SetCursorPosition(0, i);
                 if (i < linesToDraw.Count) {
                     var entry = linesToDraw[i];
                     Console.ForegroundColor = entry.Color;
-                    string safeMsg = entry.Message.Length > _width ? entry.Message.Substring(0, _width) : entry.Message;
-                    Console.Write(safeMsg.PadRight(_width));
+                    string safeMsg = ClipToWidth(entry.Message, outputWidth);
+                    Console.Write(safeMsg.PadRight(outputWidth));
                 } else {
-                    Console.Write(new string(' ', _width));
+                    Console.Write(new string(' ', outputWidth));
                 }
             }
 
             // Draw a subtle indicator if scrolled up
             if (_scrollOffset <= 0 || logAreaHeight <= 0) return;
 
-            Console.SetCursorPosition(_width - 15, 0);
+            Console.SetCursorPosition(System.Math.Max(0, outputWidth - 15), 0);
             Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.Write("[↑ SCROLLED]".PadRight(15));
+            Console.Write(ClipToWidth("[↑ SCROLLED]", outputWidth));
 
         } catch { /* Resize race condition ignore */ }
     }
@@ -332,16 +338,21 @@ public static class TuiRenderer {
     /// Renders the fixed status area (Bottom section).
     /// </summary>
     private static void RenderStatus() {
+        if (RefreshDimensions()) {
+            ClearTerminal();
+        }
+
         int logAreaHeight = _height - _statusHeight - 1;
         int statusStartY = logAreaHeight;
 
         try {
+            int outputWidth = GetRenderableWidth();
             Console.CursorVisible = false;
 
             // Draw Separator
             Console.SetCursorPosition(0, statusStartY);
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write(new string('═', _width));
+            Console.Write(new string('═', outputWidth));
 
             bool hasNotice = !string.IsNullOrWhiteSpace(_statusNoticeMessage);
             int statusLineSlots = _statusHeight - (hasNotice ? 1 : 0);
@@ -352,8 +363,8 @@ public static class TuiRenderer {
                 if (hasNotice && i == _statusHeight - 1) {
                     Console.ForegroundColor = _statusNoticeColor;
                     string notice = _statusNoticeMessage ?? string.Empty;
-                    if (notice.Length > _width) notice = notice.Substring(0, _width);
-                    Console.Write(notice.PadRight(_width));
+                    notice = ClipToWidth(notice, outputWidth);
+                    Console.Write(notice.PadRight(outputWidth));
                     continue;
                 }
 
@@ -364,10 +375,10 @@ public static class TuiRenderer {
                     if (line.Contains("Error")) Console.ForegroundColor = ConsoleColor.Red;
                     else if (line.Contains("Success")) Console.ForegroundColor = ConsoleColor.Green;
 
-                    if (line.Length > _width) line = line.Substring(0, _width);
-                    Console.Write(line.PadRight(_width));
+                    line = ClipToWidth(line, outputWidth);
+                    Console.Write(line.PadRight(outputWidth));
                 } else {
-                    Console.Write(new string(' ', _width));
+                    Console.Write(new string(' ', outputWidth));
                 }
             }
 
@@ -378,17 +389,19 @@ public static class TuiRenderer {
 
         } catch { /* Resize race condition ignore */ }
         finally {
-             if (_isInputActive) Console.CursorVisible = true;
+            if (_isInputActive) Console.CursorVisible = true;
         }
     }
 
     private static void RenderInputLine() {
         int inputY = _height - 1;
         try {
+            int outputWidth = GetRenderableWidth();
             Console.SetCursorPosition(0, inputY);
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.Write($"{_promptLabel} {_inputBuffer}".PadRight(_width));
-            int cursorX = Math.Min(_width - 1, _promptLabel.Length + 1 + _inputBuffer.Length);
+            string input = ClipToWidth($"{_promptLabel} {_inputBuffer}", outputWidth);
+            Console.Write(input.PadRight(outputWidth));
+            int cursorX = Math.Min(outputWidth - 1, _promptLabel.Length + 1 + _inputBuffer.Length);
             Console.SetCursorPosition(cursorX, inputY);
             Console.CursorVisible = true;
         } catch { /* ignore resize race */ }
@@ -397,6 +410,27 @@ public static class TuiRenderer {
     public static void RenderFull() {
         RenderLogs();
         RenderStatus();
+    }
+
+    private static bool RefreshDimensions() {
+        try {
+            int width = System.Math.Max(1, Console.WindowWidth);
+            int height = System.Math.Max(4, Console.WindowHeight);
+            bool changed = width != _width || height != _height;
+            _width = width;
+            _height = height;
+            return changed;
+        } catch (System.IO.IOException) {
+            return false;
+        }
+    }
+
+    private static string ClipToWidth(string text, int width) {
+        return text.Length > width ? text[..width] : text;
+    }
+
+    private static int GetRenderableWidth() {
+        return System.Math.Max(1, _width - 1);
     }
 
     // -- Input Handling Helpers --
@@ -471,6 +505,7 @@ public static class TuiRenderer {
         Log($"{label} {input}", ConsoleColor.Cyan);
         return input.ToString();
     }
+
     /// <summary>
     /// Wait for the user to press a key before continuing.
     /// Responds to navigation keys for scrolling without returning.

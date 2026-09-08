@@ -160,6 +160,7 @@ internal static partial class SetupEnvironment {
             }
         };
 
+        // simply print to output log for now
         _LuaWorld.Sdk.IO["write"] = (string content) => Shared.IO.UI.EngineSdk.Print(content);
 
         _LuaWorld.Sdk.IO["flush"] = DynValue.Nil; // removed for now, maybe add later as an event that can be optionally handled by active UI System

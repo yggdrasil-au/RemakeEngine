@@ -1,8 +1,8 @@
 <UserControl
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    x:Class="EngineNet.Interface.GUI.Pages.BuildingPage"
-    xmlns:local="clr-namespace:EngineNet.Interface.GUI.Pages"
+    x:Class="EngineNet.GUI.Pages.BuildingPage"
+    xmlns:local="clr-namespace:EngineNet.GUI.Pages"
     x:DataType="local:BuildingPage"
 >
     <DockPanel Margin="0,0,0,12">

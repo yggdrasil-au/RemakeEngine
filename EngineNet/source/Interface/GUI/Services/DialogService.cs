@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 
-namespace EngineNet.Interface.GUI.Services;
+namespace EngineNet.GUI.Services;
 
 public static class DialogService {
     private static Window? TryGetMainWindow() {

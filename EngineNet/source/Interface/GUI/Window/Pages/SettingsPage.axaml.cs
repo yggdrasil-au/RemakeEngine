@@ -1,5 +1,5 @@
 
-namespace EngineNet.Interface.GUI.Pages;
+namespace EngineNet.GUI.Pages;
 
 public partial class SettingsPage:UserControl, INotifyPropertyChanged {
     //

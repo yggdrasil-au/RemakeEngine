@@ -1,5 +1,7 @@
 
-namespace EngineNet.Interface.GUI;
+namespace EngineNet.GUI;
+
+using Interface;
 
 /// <summary>
 /// Entry point and bootstrapper for the Avalonia desktop UI.
@@ -22,7 +24,7 @@ public static class GuiBootstrapper {
     /// <returns>
     /// 0 on normal shutdown; 1 if an exception is caught during startup/run.
     /// </returns>
-    internal static int Run(MiniEngineFace miniEngine, System.Threading.CancellationToken cancellationToken) {
+    public static int Run(MiniEngineFace miniEngine, System.Threading.CancellationToken cancellationToken) {
         try {
             MiniEngine = miniEngine;
 

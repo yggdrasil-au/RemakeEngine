@@ -1,15 +1,15 @@
+
 using System;
-using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 using Avalonia;
-
 using EngineNet.Core.Abstractions;
 using EngineNet.Core.Data;
 
 namespace EngineNet;
 
-using System.Threading;
 
 public static class Program {
 
@@ -22,7 +22,7 @@ public static class Program {
 
     /* :: :: Vars :: START :: */
     public static AppBuilder BuildAvaloniaApp()  {
-        return Interface.GUI.GuiBootstrapper.BuildAvaloniaApp();
+        return GUI.GuiBootstrapper.BuildAvaloniaApp();
     }
 
     /* :: :: Vars :: END :: */
@@ -94,40 +94,41 @@ public static class Program {
 
             Engine ??= await InitialiseEngine(scriptActionDispatcher);
 
-            EngineNet.Interface.Main UI = new Interface.Main(Engine);
+            EngineNet.Interface.MiniEngineFace miniEngine = new Interface.MiniEngine(Engine);
+            InitUI UI = new InitUI();
 
             // Logic:
             // - No remaining args -> GUI
             // - One arg "--gui" -> GUI
             if (isGui) {
                 Shared.IO.Diagnostics.Trace("Launching GUI Interface...");
-                //return Interface.GUI.GuiBootstrapper.Run(Engine); // ;; gui flow step1 ;;
-                return await UI.init(args, "gui", shutdownCancellationController.Token);
+                //return GUI.GuiBootstrapper.Run(Engine); // ;; gui flow step1 ;;
+                return await UI.init(args, "gui", miniEngine, shutdownCancellationController.Token);
             }
 
             // Logic:
             // - One arg "--tui" -> TUI
             if (isTui) {
                 Shared.IO.Diagnostics.Trace("Launching TUI Interface...");
-                //Interface.Terminal.TUI TUI = new Interface.Terminal.TUI(Engine);
-                //return await TUI.RunInteractiveMenuAsync(shutdownCancellationController.Token);
-                return await UI.init(args, "tui", shutdownCancellationController.Token);
+                //Term.TUI TUI = new Term.TUI(Engine);
+                //return await TUI.RunAsync(shutdownCancellationController.Token);
+                return await UI.init(args, "tui", miniEngine, shutdownCancellationController.Token);
             }
 
             if (isSpectre) {
                 Shared.IO.Diagnostics.Trace("Launching Spectre TUI Interface...");
-                //Interface.Terminal.Spectre Spectre = new Interface.Terminal.Spectre(Engine);
-                //return await Spectre.RunInteractiveMenuAsync(shutdownCancellationController.Token);
-                return await UI.init(args, "newTui", shutdownCancellationController.Token);
+                //Term.Spectre Spectre = new Term.Spectre(Engine);
+                //return await Spectre.RunAsync(shutdownCancellationController.Token);
+                return await UI.init(args, "newTui", miniEngine, shutdownCancellationController.Token);
             }
 
             // Logic:
             // - Anything else -> CLI (Pass original args so CLI can parse specific commands like 'build', 'run', etc.)
             if (isCli) {
                 Shared.IO.Diagnostics.Trace("Launching CLI Interface...");
-                //Interface.Terminal.CLI CLI = new Interface.Terminal.CLI(Engine);
+                //Term.CLI CLI = new Term.CLI(Engine);
                 //return await CLI.RunAsync(args, shutdownCancellationController.Token);
-                return await UI.init(args, "cli", shutdownCancellationController.Token);
+                return await UI.init(args, "cli", miniEngine, shutdownCancellationController.Token);
             }
             Shared.IO.UI.EngineSdk.Error("No valid interface mode selected.");
             Shared.IO.Diagnostics.Bug("No valid interface mode selected.");
@@ -147,6 +148,8 @@ public static class Program {
             }
         }
     }
+
+
 
     /* :: :: Main :: END :: */
     // //
@@ -285,4 +288,34 @@ public static class Program {
 
     /* :: :: Methods :: END :: */
     // //
+}
+
+public class InitUI {
+    // called by program.cs to choose ui, and manage engine, instead of passing engine to ui, this class will manage and expose methods via a child class it passes into the ui
+    public async Task<int> init(string[] args, string ui, Interface.MiniEngineFace miniEngine, System.Threading.CancellationToken cancellationToken) {
+        switch (ui) {
+            case "gui":
+                // GUI uses the limited mini engine surface; the full engine is only stashed for previewer/bootstrapping.
+                Shared.IO.Diagnostics.Trace("Launching GUI Interface...");
+                return GUI.GuiBootstrapper.Run(miniEngine, cancellationToken);
+            case "tui":
+                Shared.IO.Diagnostics.Trace("Launching TUI Interface...");
+                Term.TUI TUI = new Term.TUI(miniEngine);
+                return await TUI.RunAsync(cancellationToken);
+            case "newTui":
+                Shared.IO.Diagnostics.Trace("Launching Spectre TUI Interface...");
+                Term.Spectre Spectre = new Term.Spectre(miniEngine);
+                return await Spectre.RunAsync(cancellationToken);
+            case "cli":
+                Shared.IO.Diagnostics.Trace("Launching CLI Interface...");
+                Term.CLI CLI = new Term.CLI(miniEngine);
+                return await CLI.RunAsync(args, cancellationToken);
+            default:
+                await System.Console.Error.WriteLineAsync(value: $"No valid interface mode selected. Expected 'gui', 'tui', or 'cli', but got '{ui}'.");
+                Shared.IO.Diagnostics.Bug("No valid interface mode selected.");
+                break;
+        }
+
+        return 0;
+    }
 }

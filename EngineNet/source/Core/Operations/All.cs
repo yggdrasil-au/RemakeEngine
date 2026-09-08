@@ -45,14 +45,15 @@ public sealed class All {
             throw new KeyNotFoundException($"Game '{gameName}' not found.");
         }
 
-        if (!System.IO.File.Exists(gameInfo.OpsFile)) {
-            throw new System.IO.FileNotFoundException($"Operations file for '{gameName}' is missing.", gameInfo.OpsFile);
+        Core.Data.ModuleOperationSession session = OperationContext.OperationsService.LoadModuleSession(gameName, games, Context.EngineConfig.Data);
+        if (!session.PreparedOperations.IsLoaded) {
+            throw new System.InvalidOperationException(session.PreparedOperations.ErrorMessage ?? $"Failed to load operations file for '{gameName}'.");
         }
 
-        List<Dictionary<string, object?>>? allOps = OperationContext.OperationsLoader.LoadOperations(gameInfo.OpsFile);
-        if (allOps is null) {
-            throw new System.Exception($"Failed to load operations file for '{gameName}'.");
-        }
+        List<Dictionary<string, object?>> allOps = session.PreparedOperations.InitOperations
+            .Concat(session.PreparedOperations.RegularOperations)
+            .Select(operation => operation.Operation)
+            .ToList();
 
         // --- NEW DEPENDENCY GRAPH LOGIC ---
         // Build the graph and print it to the trace log for debugging.
@@ -66,16 +67,12 @@ public sealed class All {
         // ----------------------------------
 
         List<Dictionary<string, object?>> selected = new List<Dictionary<string, object?>>();
-        foreach (Dictionary<string, object?> op in allOps) {
-            if (IsFlagSet(op, "init")) {
-                AddUnique(selected, op);
-            }
+        foreach (Core.Data.PreparedOperation operation in session.PreparedOperations.InitOperations) {
+            AddUnique(selected, operation.Operation);
         }
 
-        foreach (Dictionary<string, object?> op in allOps) {
-            if (IsFlagSet(op, "run-all") || IsFlagSet(op, "run_all")) {
-                AddUnique(selected, op);
-            }
+        foreach (Core.Data.PreparedOperation operation in session.PreparedOperations.RunAllOperations) {
+            AddUnique(selected, operation.Operation);
         }
 
         if (selected.Count == 0) {
@@ -229,33 +226,6 @@ public sealed class All {
         }
 
         sink(payload);
-    }
-
-    /// <summary>
-    /// Checks if a flag is set in the operation dictionary.
-    /// </summary>
-    /// <param name="op"></param>
-    /// <param name="key"></param>
-    /// <returns></returns>
-    private static bool IsFlagSet(Dictionary<string, object?> op, string key) {
-        if (!op.TryGetValue(key, out object? value) || value is null) {
-            return false;
-        }
-
-        if (value is bool b) {
-            return b;
-        }
-
-        if (value is string s) {
-            return bool.TryParse(s, out bool parsed) && parsed;
-        }
-
-        try {
-            return System.Convert.ToInt32(value) != 0;
-        } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[All.cs::IsFlagSet()] Failed to convert flag '{key}' value '{value}' to boolean.", ex);
-            return false;
-        }
     }
 
     /// <summary>

@@ -3,10 +3,10 @@ using System.Runtime.CompilerServices;
 
 using Avalonia.Threading;
 
-using EngineNet.Interface.GUI.Models;
+using EngineNet.GUI.Models;
 using EngineNet.Shared.IO.UI;
 
-namespace EngineNet.Interface.GUI.Services;
+namespace EngineNet.GUI.Services;
 
 /// <summary>
 /// Shared service for capturing and displaying operation output across all GUI pages.

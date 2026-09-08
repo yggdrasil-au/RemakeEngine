@@ -67,11 +67,6 @@ if (condition) {
 
 ## Multiline Parameters and Arguments
 
-When parameter lists or arguments span multiple lines:
-
-* Place the opening parenthesis `(` on the **same line** as the method name.
-* Place the closing parenthesis `)` on its **own line aligned with the method name**.
-
 ```csharp
 internal static ScriptEngines.Helpers.IAction? TryCreate(
     string scriptType,
@@ -95,9 +90,7 @@ internal static ScriptEngines.Helpers.IAction? TryCreate(
             return new ScriptEngines.PythonScriptAction(scriptPath: scriptPath, args: args);
 
         default: {
-            Core.Diagnostics.Log(
-                $"[EmbeddedActionDispatcher.cs::TryCreate()] Unsupported embedded script type '{scriptType}'"
-            );
+            Core.Diagnostics.Log($"[<Core NameSpace EG: Interface> <filename>::<functionName>()] Unsupported embedded script type '{scriptType}'");
             return null;
         }
     }

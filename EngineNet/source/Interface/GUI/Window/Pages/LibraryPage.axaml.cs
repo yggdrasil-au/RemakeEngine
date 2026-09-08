@@ -1,5 +1,5 @@
 
-namespace EngineNet.Interface.GUI.Pages;
+namespace EngineNet.GUI.Pages;
 
 /// <summary>
 /// library page in the Graphical Interface.

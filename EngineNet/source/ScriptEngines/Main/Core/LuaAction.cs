@@ -256,6 +256,19 @@ internal static class LuaAction {
         _LuaWorld.LuaScript.Globals["warn"] = (System.Action<string>)Shared.IO.UI.EngineSdk.Warn;
         _LuaWorld.LuaScript.Globals["error"] = (System.Action<string>)Shared.IO.UI.EngineSdk.Error;
 
+        // overwrite built in Print method, and direct to sdk print
+        _LuaWorld.LuaScript.Globals["print"] = DynValue.NewCallback((ctx, args) => {
+            var parts = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < args.Count; i++) {
+                // ToPrintString() safely converts Lua types (nil, tables, etc.) to strings
+                parts.Add(args[i].ToPrintString());
+            }
+
+            // Standard Lua print separates multiple arguments with a tab
+            Shared.IO.UI.EngineSdk.PrintLine(string.Join("\t", parts));
+            return DynValue.Nil;
+        });
+
         // emits the prompt query to the engine/ui and returns the user input
         _LuaWorld.LuaScript.Globals["prompt"] = (System.Func<DynValue, DynValue, DynValue, string>)((message, id, secret) => {
             string msg = message.Type == DataType.String ? message.String : message.ToPrintString();

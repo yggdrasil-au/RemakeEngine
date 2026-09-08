@@ -4,7 +4,10 @@
 	<Project Path="EngineNet/EngineNet.csproj" />
 	<Project Path="EngineNet/source/Core/EngineNet.Core.csproj" />
 	<Project Path="EngineNet/source/GameFormats/EngineNet.GameFormats.csproj" />
-	<Project Path="EngineNet/source/Interface/EngineNet.Interface.csproj" />
 	<Project Path="EngineNet/source/ScriptEngines/EngineNet.ScriptEngines.csproj" />
 	<Project Path="EngineNet/source/Shared/EngineNet.Shared.csproj" />
+
+	<Project Path="EngineNet/source/Interface/EngineNet.Interface.csproj" />
+	<Project Path="EngineNet/source/Interface/Term/EngineNet.Term.csproj" />
+	<Project Path="EngineNet/source/Interface/GUI/EngineNet.GUI.csproj" />
 </Solution>

@@ -1,2 +1,4 @@
+[demo]
+demo = "complete"
 [[placeholders]]
 config-toml-TMP_DIR = "/TMP/"
