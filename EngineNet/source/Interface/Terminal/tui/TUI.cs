@@ -1,6 +1,6 @@
 
 
-namespace EngineNet.Term;
+namespace EngineNet.Terminal;
 using EngineNet.Shared.IO;
 using Interface;
 using Core.Data;

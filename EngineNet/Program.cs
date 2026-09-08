@@ -17,7 +17,6 @@ public static class Program {
     private static string rootPath {get; set;} = string.Empty;
     private static bool isGui {get; set;}
     private static bool isTui {get; set;}
-    private static bool isSpectre { get; set; }
     private static bool isCli {get; set;}
 
     /* :: :: Vars :: START :: */
@@ -64,8 +63,7 @@ public static class Program {
 
             isTui = parsedArgs.Remaining.Any(arg => arg.Equals("--tui", System.StringComparison.OrdinalIgnoreCase));
             isGui = !isTui && (parsedArgs.Remaining.Count == 0 || parsedArgs.Remaining.Any(arg => arg.Equals("--gui", System.StringComparison.OrdinalIgnoreCase)));
-            isCli = !isGui && !isTui && !isSpectre;
-            isSpectre = parsedArgs.Remaining.Any(arg => arg.Equals("--spectre", System.StringComparison.OrdinalIgnoreCase));
+            isCli = !isGui && !isTui;
 
             // :: Initialize the Logger
             Shared.IO.Diagnostics.Initialize(rootPath, isGui, isTui);
@@ -85,8 +83,7 @@ public static class Program {
                 rootPath: rootPath,
                 isGui: isGui,
                 isTui: isTui,
-                isCli: isCli,
-                isSpectre: isSpectre
+                isCli: isCli
                 // cannot be exposed in Shared.State as it would create a circular dependency with Core
                 // fornow avalonia previewer wont work with real engine
                 //engineFactory: () => InitialiseEngine(scriptActionDispatcher)
@@ -113,13 +110,6 @@ public static class Program {
                 //Term.TUI TUI = new Term.TUI(Engine);
                 //return await TUI.RunAsync(shutdownCancellationController.Token);
                 return await UI.init(args, "tui", miniEngine, shutdownCancellationController.Token);
-            }
-
-            if (isSpectre) {
-                Shared.IO.Diagnostics.Trace("Launching Spectre TUI Interface...");
-                //Term.Spectre Spectre = new Term.Spectre(Engine);
-                //return await Spectre.RunAsync(shutdownCancellationController.Token);
-                return await UI.init(args, "newTui", miniEngine, shutdownCancellationController.Token);
             }
 
             // Logic:
@@ -291,7 +281,7 @@ public static class Program {
 }
 
 public class InitUI {
-    // called by program.cs to choose ui, and manage engine, instead of passing engine to ui, this class will manage and expose methods via a child class it passes into the ui
+    // choose ui, and manage engine, instead of passing engine to ui, this class will manage and expose methods via a child class it passes into the ui
     public async Task<int> init(string[] args, string ui, Interface.MiniEngineFace miniEngine, System.Threading.CancellationToken cancellationToken) {
         switch (ui) {
             case "gui":
@@ -300,15 +290,11 @@ public class InitUI {
                 return GUI.GuiBootstrapper.Run(miniEngine, cancellationToken);
             case "tui":
                 Shared.IO.Diagnostics.Trace("Launching TUI Interface...");
-                Term.TUI TUI = new Term.TUI(miniEngine);
+                Terminal.TUI TUI = new Terminal.TUI(miniEngine);
                 return await TUI.RunAsync(cancellationToken);
-            case "newTui":
-                Shared.IO.Diagnostics.Trace("Launching Spectre TUI Interface...");
-                Term.Spectre Spectre = new Term.Spectre(miniEngine);
-                return await Spectre.RunAsync(cancellationToken);
             case "cli":
                 Shared.IO.Diagnostics.Trace("Launching CLI Interface...");
-                Term.CLI CLI = new Term.CLI(miniEngine);
+                Terminal.CLI CLI = new Terminal.CLI(miniEngine);
                 return await CLI.RunAsync(args, cancellationToken);
             default:
                 await System.Console.Error.WriteLineAsync(value: $"No valid interface mode selected. Expected 'gui', 'tui', or 'cli', but got '{ui}'.");

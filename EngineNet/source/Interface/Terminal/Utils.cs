@@ -1,5 +1,5 @@
 
-namespace EngineNet.Term;
+namespace EngineNet.Terminal;
 
 using EngineNet.Shared.IO.UI;
 using Interface;

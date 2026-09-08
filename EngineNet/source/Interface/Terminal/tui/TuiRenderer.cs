@@ -1,6 +1,6 @@
 
 
-namespace EngineNet.Term;
+namespace EngineNet.Terminal;
 
 
 /// <summary>

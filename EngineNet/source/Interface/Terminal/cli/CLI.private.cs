@@ -1,4 +1,4 @@
-namespace EngineNet.Term;
+namespace EngineNet.Terminal;
 
 public partial class CLI {
 
