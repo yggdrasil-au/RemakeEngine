@@ -17,6 +17,7 @@ public static class Program {
     private static string rootPath {get; set;} = string.Empty;
     private static bool isGui {get; set;}
     private static bool isTui {get; set;}
+    private static bool isSpectre { get; set; }
     private static bool isCli {get; set;}
 
     /* :: :: Vars :: START :: */
@@ -63,7 +64,8 @@ public static class Program {
 
             isTui = parsedArgs.Remaining.Any(arg => arg.Equals("--tui", System.StringComparison.OrdinalIgnoreCase));
             isGui = !isTui && (parsedArgs.Remaining.Count == 0 || parsedArgs.Remaining.Any(arg => arg.Equals("--gui", System.StringComparison.OrdinalIgnoreCase)));
-            isCli = !isGui && !isTui;
+            isCli = !isGui && !isTui && !isSpectre;
+            isSpectre = parsedArgs.Remaining.Any(arg => arg.Equals("--spectre", System.StringComparison.OrdinalIgnoreCase));
 
             // :: Initialize the Logger
             Shared.IO.Diagnostics.Initialize(rootPath, isGui, isTui);
@@ -83,7 +85,8 @@ public static class Program {
                 rootPath: rootPath,
                 isGui: isGui,
                 isTui: isTui,
-                isCli: isCli
+                isCli: isCli,
+                isSpectre: isSpectre
                 // cannot be exposed in Shared.State as it would create a circular dependency with Core
                 // fornow avalonia previewer wont work with real engine
                 //engineFactory: () => InitialiseEngine(scriptActionDispatcher)
@@ -109,6 +112,13 @@ public static class Program {
                 //Interface.Terminal.TUI TUI = new Interface.Terminal.TUI(Engine);
                 //return await TUI.RunInteractiveMenuAsync(shutdownCancellationController.Token);
                 return await UI.init(args, "tui", shutdownCancellationController.Token);
+            }
+
+            if (isSpectre) {
+                Shared.IO.Diagnostics.Trace("Launching Spectre TUI Interface...");
+                //Interface.Terminal.Spectre Spectre = new Interface.Terminal.Spectre(Engine);
+                //return await Spectre.RunInteractiveMenuAsync(shutdownCancellationController.Token);
+                return await UI.init(args, "newTui", shutdownCancellationController.Token);
             }
 
             // Logic:

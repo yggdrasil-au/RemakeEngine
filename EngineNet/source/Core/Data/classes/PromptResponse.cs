@@ -14,7 +14,15 @@ public sealed class PromptResponse {
         this.Value = value;
     }
 
-    public static PromptResponse Cancelled() => new PromptResponse(isCancelled: true, useDefault: false, value: null);
-    public static PromptResponse UseDefaultValue() => new PromptResponse(isCancelled: false, useDefault: true, value: null);
-    public static PromptResponse FromValue(object? value) => new PromptResponse(isCancelled: false, useDefault: false, value: value);
+    public static PromptResponse Cancelled() {
+        return new PromptResponse(isCancelled: true, useDefault: false, value: null);
+    }
+
+    public static PromptResponse UseDefaultValue() {
+        return new PromptResponse(isCancelled: false, useDefault: true, value: null);
+    }
+
+    public static PromptResponse FromValue(object? value) {
+        return new PromptResponse(isCancelled: false, useDefault: false, value: value);
+    }
 }

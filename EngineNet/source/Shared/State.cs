@@ -21,14 +21,19 @@ public static class State {
         get; private set;
     }
 
+    public static bool IsSpectre {
+        get; private set;
+    }
+
     /// <summary>
     /// Configures runtime state from the host entry point.
     /// </summary>
-    public static void ConfigureRuntime(string rootPath, bool isGui, bool isTui, bool isCli) {
+    public static void ConfigureRuntime(string rootPath, bool isGui, bool isTui, bool isCli, bool isSpectre) {
         RootPath = rootPath;
         IsGui = isGui;
         IsTui = isTui;
         IsCli = isCli;
+        IsSpectre = isSpectre;
     }
 
 }

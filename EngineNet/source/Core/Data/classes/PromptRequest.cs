@@ -3,15 +3,7 @@ namespace EngineNet.Core.Data;
 /// <summary>
 /// Encapsulates a prompt request for the UI.
 /// </summary>
-public sealed class PromptRequest {
-    public string Name { get; }
-    public string Type { get; }
-    public string Title { get; }
-    public object? DefaultValue { get; }
-    public IReadOnlyList<PromptChoice> Choices { get; }
-    public bool IsSecret { get; }
-
-    public PromptRequest(
+public sealed class PromptRequest(
         string name,
         string type,
         string title,
@@ -19,11 +11,10 @@ public sealed class PromptRequest {
         IReadOnlyList<PromptChoice> choices,
         bool isSecret
     ) {
-        this.Name = name;
-        this.Type = type;
-        this.Title = title;
-        this.DefaultValue = defaultValue;
-        this.Choices = choices;
-        this.IsSecret = isSecret;
-    }
+    public string Name { get; } = name;
+    public string Type { get; } = type;
+    public string Title { get; } = title;
+    public object? DefaultValue { get; } = defaultValue;
+    public IReadOnlyList<PromptChoice> Choices { get; } = choices;
+    public bool IsSecret { get; } = isSecret;
 }

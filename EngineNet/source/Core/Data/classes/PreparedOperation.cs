@@ -3,16 +3,7 @@ namespace EngineNet.Core.Data;
 /// <summary>
 /// Represents a prepared operation with resolved metadata.
 /// </summary>
-public sealed class PreparedOperation {
-    public Dictionary<string, object?> Operation { get; }
-    public string DisplayName { get; }
-    public long? OperationId { get; }
-    public bool HasDuplicateId { get; }
-    public bool HasInvalidId { get; }
-    public string? ScriptPath { get; }
-    public string? ScriptType { get; }
-
-    public PreparedOperation(
+public sealed class PreparedOperation(
         Dictionary<string, object?> operation,
         string displayName,
         long? operationId,
@@ -21,12 +12,11 @@ public sealed class PreparedOperation {
         string? scriptPath,
         string? scriptType
     ) {
-        this.Operation = operation;
-        this.DisplayName = displayName;
-        this.OperationId = operationId;
-        this.HasDuplicateId = hasDuplicateId;
-        this.HasInvalidId = hasInvalidId;
-        this.ScriptPath = scriptPath;
-        this.ScriptType = scriptType;
-    }
+    public Dictionary<string, object?> Operation { get; } = operation;
+    public string DisplayName { get; } = displayName;
+    public long? OperationId { get; } = operationId;
+    public bool HasDuplicateId { get; } = hasDuplicateId;
+    public bool HasInvalidId { get; } = hasInvalidId;
+    public string? ScriptPath { get; } = scriptPath;
+    public string? ScriptType { get; } = scriptType;
 }

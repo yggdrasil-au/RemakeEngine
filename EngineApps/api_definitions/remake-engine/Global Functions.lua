@@ -49,9 +49,10 @@ function warn(message) end
 ---@param message string
 function error(message) end
 
+-- id value is not technically required but it should always be used for Gui experince quality
 --- Prompts the user for input.
 ---@param message string The question to ask the user.
----@param id? string An ID for this prompt (default: "q1").
+---@param id string An ID for this prompt (default: "q1"), also GUI popup Title/Header
 ---@param secret? boolean If true, hides the input (for passwords).
 ---@return string response
 function prompt(message, id, secret) end

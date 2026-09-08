@@ -24,6 +24,10 @@ public sealed class Main {
                 Shared.IO.Diagnostics.Trace("Launching TUI Interface...");
                 Interface.Terminal.TUI TUI = new Interface.Terminal.TUI(miniEngine);
                 return await TUI.RunInteractiveMenuAsync(cancellationToken);
+            case "newTui":
+                Shared.IO.Diagnostics.Trace("Launching Spectre TUI Interface...");
+                Interface.Terminal.Spectre Spectre = new Interface.Terminal.Spectre(miniEngine);
+                return await Spectre.RunInteractiveMenuAsync(cancellationToken);
             case "cli":
                 Shared.IO.Diagnostics.Trace("Launching CLI Interface...");
                 Interface.Terminal.CLI CLI = new Interface.Terminal.CLI(miniEngine);
