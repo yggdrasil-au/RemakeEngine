@@ -1,45 +1,33 @@
-
+using System.Text;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace EngineNet.Terminal;
 using EngineNet.Shared.IO;
 using Interface;
 using Core.Data;
+using EngineNet.Terminal;
 
 public partial class TUI {
 
-    /* :: :: Constructor, Var :: START :: */
     private readonly MiniEngineFace Engine;
 
     public TUI(MiniEngineFace engine) {
         Engine = engine;
     }
 
-    /* :: :: Constructor, Var :: END :: */
-    // //
-    /* :: :: Methods :: START :: */
-
-    /// <summary>
-    /// Run the interactive terminal user interface menu
-    /// - allows selecting a game and operations to run
-    /// - runs initialization operations automatically once per game selection
-    /// - appends completion time summaries after operations
-    /// </summary>
-    /// <returns></returns>
-    public async System.Threading.Tasks.Task<int> RunAsync(System.Threading.CancellationToken cancellationToken = default(CancellationToken), string? msg = null) {
+    public async Task<int> RunAsync(CancellationToken cancellationToken = default(CancellationToken), string? msg = null) {
         try {
-            // get all modules that exist on disk
-            Core.Data.GameModules modules = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.Installed);
-            // get public modules
-            Core.Data.GameModules internalModules = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.Internal);
+            GameModules modules = Engine.GameRegistry_GetModules(ModuleFilter.Installed);
+            GameModules internalModules = Engine.GameRegistry_GetModules(ModuleFilter.Internal);
 
-            // Create a combined dictionary for lookup and execution
-            Core.Data.GameModules allAvailableModules = new(modules);
+            GameModules allAvailableModules = new(modules);
             foreach (var kv in internalModules) {
-                // Internal modules overwrite installed if there's a name collision
                 allAvailableModules[kv.Key] = kv.Value;
             }
 
-            // Allow managing modules from the game selection menu
             string gameName;
             while (true) {
                 SafeClear();
@@ -50,7 +38,6 @@ public partial class TUI {
 
                 List<string> gameMenu = new List<string>();
                 List<string> gameKeyMap = new List<string>();
-                //List<Core.Data.GameModuleInfo> internalModulesList = new List<Core.Data.GameModuleInfo>();
 
                 // Build menu with states
                 // foreach module, display '<Name> [<isRegistered>, <isInstalled (always true here)>, <isBuilt>]'
@@ -90,11 +77,10 @@ public partial class TUI {
                 break; // exit game selection loop
             }
 
-            // 2) Load operations list and render menu
+            ModuleOperationSession operationSession = Engine.OperationsService_LoadModuleSession(gameName, allAvailableModules);
+            GameModuleInfo? info = operationSession.Module;
+            PreparedOperations preparedOps = operationSession.PreparedOperations;
 
-            Core.Data.ModuleOperationSession operationSession = Engine.OperationsService_LoadModuleSession(gameName, allAvailableModules);
-            Core.Data.GameModuleInfo? info = operationSession.Module;
-            Core.Data.PreparedOperations preparedOps = operationSession.PreparedOperations;
             if (info is null) {
                 Shared.IO.Diagnostics.Log("[TUI::RunAsync()] Selected game not found.");
                 return await RunAsync(msg: preparedOps.ErrorMessage ?? "Selected game not found. Please choose again.");
@@ -144,7 +130,6 @@ public partial class TUI {
                 SafeClear();
                 System.Console.WriteLine(value: $"--- Operations for: {gameName}");
                 List<string> menu = new List<string>();
-
                 int opStartIndex = 0;
 
                 // show a 'Play' option if isBuilt is true for the module, indicating the game is ready to run
@@ -178,14 +163,13 @@ public partial class TUI {
                     string name = op.DisplayName;
                     if (op.HasDuplicateId) {
                         name = $"[dup-id] {name}";
-                    }
-                    else if (op.HasInvalidId) {
+                    } else if (op.HasInvalidId) {
                         name = $"[invalid-id] {name}";
                     }
 
-                    if (sessionOperation.Status == Core.Data.OperationExecutionStatus.Succeeded) {
+                    if (sessionOperation.Status == OperationExecutionStatus.Succeeded) {
                         name += " [completed]";
-                    } else if (sessionOperation.Status == Core.Data.OperationExecutionStatus.Failed) {
+                    } else if (sessionOperation.Status == OperationExecutionStatus.Failed) {
                         name += " [failed]";
                     }
 
@@ -224,7 +208,7 @@ public partial class TUI {
                         Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
 
                         try {
-                            bool launched = await Engine.GameLauncher_LaunchGameAsync(name: gameName, cancellationToken: cancellationToken);
+                            bool launched = await Engine.GameLauncher_LaunchGameAsync(gameName, cancellationToken);
                             System.Console.WriteLine(launched
                                 ? "\nGame finished or launched successfully. Press any key to continue..."
                                 : "\nFailed to launch game. Press any key to continue...");
@@ -237,22 +221,24 @@ public partial class TUI {
                         continue;
                     }
                     case "Run All": {
-                        using var runAllCts = new System.Threading.CancellationTokenSource();
+                        using var runAllCts = new CancellationTokenSource();
+
+                        // Register global intercept for Lua script prompts while TUI runs
+                        var oldPromptHandler = Shared.IO.UI.EngineSdk.ExternalPromptHandler;
+                        Shared.IO.UI.EngineSdk.ExternalPromptHandler = (msg, sec) => TuiRenderer.ReadLineCustom($"{msg} >", sec);
+
                         try {
-                            // 1. Initialize Advanced UI
                             TuiRenderer.Initialize(runAllCts);
                             TuiRenderer.SetCancellationMode(TuiRenderer.CancellationMode.PromptsOnly);
                             TuiRenderer.ResetContext(clearLogs: false);
                             TuiRenderer.Log($"Running operations for {gameName}...", ConsoleColor.Cyan);
 
                             System.Diagnostics.Stopwatch runAllStopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-                            // 2. Pass our custom StdinProvider that works with the Renderer
                             Core.ProcessRunner.StdinProvider rendererInput = () => TuiRenderer.ReadLineCustom("Input >", false);
 
                             Core.Operations.RunAllResult result = await Engine.RunAllAsync(
                                 gameName,
-                                onOutput: Utils.OnOutput, // Make sure OnOutput calls OnEvent -> TuiRenderer
+                                onOutput: Utils.OnOutput,
                                 onEvent: Utils.OnEvent,
                                 stdinProvider: rendererInput,
                                 cancellationToken: runAllCts.Token
@@ -263,9 +249,7 @@ public partial class TUI {
                                 result.Success ? ConsoleColor.Green : ConsoleColor.Red);
 
                             TuiRenderer.Log($"({result.SucceededOperations}/{result.TotalOperations} operations succeeded). Time: {FormatElapsed(runAllStopwatch.Elapsed)}.", ConsoleColor.White);
-                            TuiRenderer.Log("Press any key to continue...", ConsoleColor.White);
                             TuiRenderer.WaitForKey();
-
                             continue;
                         } catch (System.Exception ex) {
                             TuiRenderer.Log($"Error: {ex.Message}", ConsoleColor.Red);
@@ -273,38 +257,37 @@ public partial class TUI {
                             TuiRenderer.WaitForKey();
                             continue;
                         } finally {
-                            // 3. Return to standard menu mode
+                            Shared.IO.UI.EngineSdk.ExternalPromptHandler = oldPromptHandler;
                             TuiRenderer.SetCancellationMode(TuiRenderer.CancellationMode.PromptsOnly);
                             TuiRenderer.Shutdown();
                         }
-
                     }
                 }
 
-                // Otherwise, run a single operation (by index within regular ops)
                 int opIndex = idx - opStartIndex;
-                if (opIndex < 0 || opIndex >= preparedOps.RegularOperations.Count){
-                    continue; // invalid selection (eg. separator or out of bounds), just refresh menu
+                if (opIndex < 0 || opIndex >= preparedOps.RegularOperations.Count) {
+                    continue;
                 }
-                // Run the selected operation
+
                 {
                     Dictionary<string, object?> op = preparedOps.RegularOperations[opIndex].Operation;
-                    var answers = new Core.Data.PromptAnswers();
+                    var answers = new PromptAnswers();
+                    using var opCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-                    // Create a linked token source so Escape only cancels this specific operation run
-                    using var opCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    var oldPromptHandler = Shared.IO.UI.EngineSdk.ExternalPromptHandler;
+                    Shared.IO.UI.EngineSdk.ExternalPromptHandler = (msg, sec) => TuiRenderer.ReadLineCustom($"{msg} >", sec);
 
-                    // Initialize Renderer for interactive prompts and execution WITH the token source
                     TuiRenderer.Initialize(opCts);
                     TuiRenderer.SetCancellationMode(TuiRenderer.CancellationMode.PromptsOnly);
+
                     try {
-                        // Pass opCts.Token instead of the parent token
                         Task<bool> promptTask = CollectAnswersForOperation(op, answers, defaultsOnly: false, cancellationToken: opCts.Token);
                         if (await promptTask) {
                             TuiRenderer.Log($"Running: {selection}\n", ConsoleColor.Cyan);
                             System.Diagnostics.Stopwatch opStopwatch = System.Diagnostics.Stopwatch.StartNew();
                             TuiRenderer.ResetContext(clearLogs: false);
                             TuiRenderer.SetCancellationMode(TuiRenderer.CancellationMode.Disabled);
+
                             bool ok = await new Utils().ExecuteOpAsync(Engine, gameName, allAvailableModules, op, answers, cancellationToken: opCts.Token);
                             opStopwatch.Stop();
 
@@ -313,13 +296,13 @@ public partial class TUI {
                                     : $"Operation failed. Time: {FormatElapsed(opStopwatch.Elapsed)}.",
                                 ok ? ConsoleColor.Green : ConsoleColor.Red);
 
-                            TuiRenderer.Log("Press any key to continue...", ConsoleColor.White);
                             TuiRenderer.WaitForKey();
                         }
                     } catch (System.Exception ex) {
                         TuiRenderer.Log($"Error: {ex.Message}", ConsoleColor.Red);
                         TuiRenderer.WaitForKey();
                     } finally {
+                        Shared.IO.UI.EngineSdk.ExternalPromptHandler = oldPromptHandler;
                         TuiRenderer.SetCancellationMode(TuiRenderer.CancellationMode.PromptsOnly);
                         TuiRenderer.Shutdown();
                     }
@@ -373,9 +356,8 @@ public partial class TUI {
             }
         } catch (System.Exception e) {
             Shared.IO.Diagnostics.Bug($"[TUI.private.cs::SafeReadKey()] Error reading key: {e.Message}");
-            // ignore
         }
-        return new System.ConsoleKeyInfo('\0', 0, false, false, false);
+        return new ConsoleKeyInfo('\0', 0, false, false, false);
     }
 
     /// <summary>
@@ -389,7 +371,6 @@ public partial class TUI {
             }
         } catch (System.Exception e) {
             Shared.IO.Diagnostics.Bug($"[TUI.private.cs::SafeSetCursorVisible()] Error setting cursor visibility: {e.Message}");
-            // ignore
         }
     }
 
@@ -431,23 +412,20 @@ public partial class TUI {
     /// <returns></returns>
     private static int SelectFromMenu(IList<string> items, bool highlightSeparators = false, HashSet<int>? disabledIndices = null) {
         try {
-            // no items
             if (items.Count == 0) {
                 return -1;
             }
 
-            // if interactive menu is not possible, fall back to numbered input selection
             if (!CanUseInteractiveMenu(items.Count)) {
                 return SelectFromNumberedMenu(items, highlightSeparators, disabledIndices);
             }
 
             int index = 0;
-            // Ensure initial index is valid and not a separator or disabled
             while (index < items.Count && (items[index] == "---------------" || (disabledIndices?.Contains(index) ?? false))) {
                 index++;
             }
+
             if (index >= items.Count) {
-                // Try to find any selectable index if the first one was invalid
                 index = -1;
                 for (int i = 0; i < items.Count; i++) {
                     if (items[i] == "---------------" || (disabledIndices?.Contains(i) ?? false)) continue;
@@ -499,26 +477,26 @@ public partial class TUI {
                     return -1;
                 }
 
-                System.ConsoleKeyInfo keyInfo = SafeReadKey(true);
+                ConsoleKeyInfo keyInfo = SafeReadKey(true);
                 switch (keyInfo.Key) {
-                    case System.ConsoleKey.DownArrow:
+                    case ConsoleKey.DownArrow:
                         int next = index;
                         do {
                             next = (next + 1) % items.Count;
                         } while (next != index && (items[next] == "---------------" || (disabledIndices?.Contains(next) ?? false)));
                         index = next;
                         break;
-                    case System.ConsoleKey.UpArrow:
+                    case ConsoleKey.UpArrow:
                         int prev = index;
                         do {
                             prev = (prev - 1 + items.Count) % items.Count;
                         } while (prev != index && (items[prev] == "---------------" || (disabledIndices?.Contains(prev) ?? false)));
                         index = prev;
                         break;
-                    case System.ConsoleKey.Escape:
+                    case ConsoleKey.Escape:
                         SafeSetCursorVisible(true);
                         return -1;
-                    case System.ConsoleKey.Enter:
+                    case ConsoleKey.Enter:
                         SafeSetCursorVisible(true);
                         return index;
                 }
@@ -529,13 +507,6 @@ public partial class TUI {
         }
     }
 
-    /// <summary>
-    /// menu selection using numbered input
-    /// </summary>
-    /// <param name="items"></param>
-    /// <param name="highlightSeparators"></param>
-    /// <param name="disabledIndices">Indices that are greyed out and cannot be selected.</param>
-    /// <returns></returns>
     private static int SelectFromNumberedMenu(IList<string> items, bool highlightSeparators, HashSet<int>? disabledIndices = null) {
         try {
             List<int> selectable = new List<int>();
@@ -605,20 +576,8 @@ public partial class TUI {
         }
     }
 
-
-    /// <summary>
-    /// Collects answers for an operation by processing its prompts and interacting with the user via the console.
-    /// this is where [[operation.prompts]] sections are parsed and executed, allowing for dynamic user input before execution of its operation.
-    /// </summary>
-    /// <param name="op"></param>
-    /// <param name="answers"></param>
-    /// <param name="defaultsOnly"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    private async Task<bool> CollectAnswersForOperation(Dictionary<string, object?> op, Core.Data.PromptAnswers answers, bool defaultsOnly, CancellationToken cancellationToken = default(CancellationToken)) {
+    private async Task<bool> CollectAnswersForOperation(Dictionary<string, object?> op, PromptAnswers answers, bool defaultsOnly, CancellationToken cancellationToken = default(CancellationToken)) {
         try {
-            // This handler will be called for each prompt defined in the operation's "prompts" section. It will present the prompt to the user and collect their input.
-            // this function is used in OperationsService.CollectAnswersAsync, which iterates through all prompts and calls this handler for each, accumulating answers in the provided PromptAnswers object.
             static Task<PromptResponse> promptHandler(PromptRequest request, CancellationToken cancellationToken) {
                 switch (request.Type) {
                     case "select": {
@@ -632,16 +591,11 @@ public partial class TUI {
                         if (choicesList.Count == 0) {
                             TuiRenderer.Log($"No choices available for {request.Title}.", ConsoleColor.Yellow);
                             if (request.DefaultValue is not null) {
-                                return Task.FromResult(Core.Data.PromptResponse.UseDefaultValue());
+                                return Task.FromResult(PromptResponse.UseDefaultValue());
                             }
-
-                            return Task.FromResult(Core.Data.PromptResponse.FromValue(null));
+                            return Task.FromResult(PromptResponse.FromValue(null));
                         }
 
-                        // For Select types, we'll use TuiRenderer.Log to list options and ReadLineCustom for input
-                        // as standard menus might break the layout.
-                        // Alternatively, we can still use SelectFromMenu if we are careful.
-                        // Let's stick to the prompt style for now to be safe.
                         TuiRenderer.Log($"{request.Title}:", ConsoleColor.Cyan);
                         for (int i = 0; i < choicesList.Count; i++) {
                             TuiRenderer.Log($"{i + 1}. {choicesList[i]}{(disabled.Contains(i) ? " (Disabled)" : "")}");
@@ -649,96 +603,90 @@ public partial class TUI {
 
                         string? input = TuiRenderer.ReadLineCustom("Selection # >", false);
 
-                        if (input == null) return Task.FromResult(Core.Data.PromptResponse.Cancelled());
+                        if (input == null) return Task.FromResult(PromptResponse.Cancelled());
 
                         if (string.IsNullOrWhiteSpace(input) || !int.TryParse(input, out int choiceIdx) ||
                             choiceIdx < 1 || choiceIdx > choicesList.Count) {
-                            return Task.FromResult(Core.Data.PromptResponse.Cancelled());
+                            return Task.FromResult(PromptResponse.Cancelled());
                         }
 
                         int actualIdx = choiceIdx - 1;
-                        if (!disabled.Contains(actualIdx))
-                            return Task.FromResult(Core.Data.PromptResponse.FromValue(choicesList[actualIdx]));
+                        if (!disabled.Contains(actualIdx)) {
+                            return Task.FromResult(PromptResponse.FromValue(choicesList[actualIdx]));
+                        }
+
                         TuiRenderer.Log("Selected item is disabled.", ConsoleColor.Red);
-                        return Task.FromResult(Core.Data.PromptResponse.Cancelled());
+                        return Task.FromResult(PromptResponse.Cancelled());
                     }
                     case "confirm": {
                         bool defVal = request.DefaultValue is true;
                         string defHint = defVal ? "Y" : "N";
                         string? c = TuiRenderer.ReadLineCustom($"{request.Title} [y/N] (default {defHint}) >", false);
 
-                        // Add null check here
-                        if (c == null) return Task.FromResult(Core.Data.PromptResponse.Cancelled());
+                        if (c == null) return Task.FromResult(PromptResponse.Cancelled());
 
                         if (string.IsNullOrWhiteSpace(c)) {
-                            return Task.FromResult(Core.Data.PromptResponse.UseDefaultValue());
+                            return Task.FromResult(PromptResponse.UseDefaultValue());
                         }
 
-                        bool val = c.Trim().StartsWith("y", System.StringComparison.OrdinalIgnoreCase);
-                        return Task.FromResult(Core.Data.PromptResponse.FromValue(val));
+                        bool val = c.Trim().StartsWith("y", StringComparison.OrdinalIgnoreCase);
+                        return Task.FromResult(PromptResponse.FromValue(val));
                     }
                     case "checkbox": {
                         if (request.Choices.Count > 0) {
-                            TuiRenderer.Log($"{request.Title} - choose one or more (comma-separated).",
-                                ConsoleColor.Cyan);
+                            TuiRenderer.Log($"{request.Title} - choose one or more (comma-separated).", ConsoleColor.Cyan);
                             for (int i = 0; i < request.Choices.Count; i++) {
                                 TuiRenderer.Log($"{i + 1}. {request.Choices[i].Label}");
                             }
-                        }
-                        else {
+                        } else {
                             TuiRenderer.Log($"{request.Title} (comma-separated values): ", ConsoleColor.Cyan);
                         }
 
                         string? line = TuiRenderer.ReadLineCustom("Values >", false);
 
-                        // Add null check here
-                        if (line == null) return Task.FromResult(Core.Data.PromptResponse.Cancelled());
+                        if (line == null) return Task.FromResult(PromptResponse.Cancelled());
 
                         if (string.IsNullOrWhiteSpace(line)) {
                             if (request.DefaultValue is IList<object?>) {
-                                return Task.FromResult(Core.Data.PromptResponse.UseDefaultValue());
+                                return Task.FromResult(PromptResponse.UseDefaultValue());
                             }
-
-                            return Task.FromResult(Core.Data.PromptResponse.FromValue(new List<object?>()));
+                            return Task.FromResult(PromptResponse.FromValue(new List<object?>()));
                         }
 
-                        List<object?> selected = line.Split(',',
-                                System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries)
+                        List<object?> selected = line.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                             .Cast<object?>().ToList();
-                        return Task.FromResult(Core.Data.PromptResponse.FromValue(selected));
+                        return Task.FromResult(PromptResponse.FromValue(selected));
                     }
-                    case "text":
+                    case "text": {
                         string? v = TuiRenderer.ReadLineCustom($"{request.Title} >", false);
 
-                        // Add null check here
-                        if (v == null) return Task.FromResult(Core.Data.PromptResponse.Cancelled());
+                        if (v == null) return Task.FromResult(PromptResponse.Cancelled());
 
                         if (!string.IsNullOrWhiteSpace(v)) {
-                            return Task.FromResult(Core.Data.PromptResponse.FromValue(v));
+                            return Task.FromResult(PromptResponse.FromValue(v));
                         }
 
                         if (request.DefaultValue is not null) {
-                            return Task.FromResult(Core.Data.PromptResponse.UseDefaultValue());
+                            return Task.FromResult(PromptResponse.UseDefaultValue());
                         }
 
-                        return Task.FromResult(Core.Data.PromptResponse.FromValue(string.Empty));
+                        return Task.FromResult(PromptResponse.FromValue(string.Empty));
+                    }
                     default: {
                         TuiRenderer.Log($"Unsupported prompt type: {request.Type}", ConsoleColor.Red);
-                        // for now assume text
                         string? vv = TuiRenderer.ReadLineCustom($"{request.Title} >", false);
 
-                        // Add null check here
-                        if (vv == null) return Task.FromResult(Core.Data.PromptResponse.Cancelled());
+                        if (vv == null) return Task.FromResult(PromptResponse.Cancelled());
 
                         if (!string.IsNullOrWhiteSpace(vv)) {
-                            return Task.FromResult(Core.Data.PromptResponse.FromValue(vv));
+                            return Task.FromResult(PromptResponse.FromValue(vv));
                         }
 
                         if (request.DefaultValue is not null) {
-                            return Task.FromResult(Core.Data.PromptResponse.UseDefaultValue());
+                            return Task.FromResult(PromptResponse.UseDefaultValue());
                         }
 
-                        return Task.FromResult(Core.Data.PromptResponse.FromValue(string.Empty));
+                        return Task.FromResult(PromptResponse.FromValue(string.Empty));
                     }
                 }
             }
@@ -755,20 +703,20 @@ public partial class TUI {
     /// </summary>
     private static string? ReadLineWithCancel(out bool cancelled) {
         cancelled = false;
-        System.Text.StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
         while (true) {
             var key = SafeReadKey(intercept: true);
             switch (key.Key) {
-                case System.ConsoleKey.Enter:
+                case ConsoleKey.Enter:
                     System.Console.WriteLine();
                     return sb.ToString();
-                case System.ConsoleKey.Escape:
+                case ConsoleKey.Escape:
                     cancelled = true;
                     System.Console.WriteLine();
                     return null;
-                case System.ConsoleKey.Backspace when sb.Length <= 0:
+                case ConsoleKey.Backspace when sb.Length <= 0:
                     continue;
-                case System.ConsoleKey.Backspace:
+                case ConsoleKey.Backspace:
                     sb.Remove(sb.Length - 1, 1);
                     System.Console.Write("\b \b");
                     break;
@@ -777,12 +725,9 @@ public partial class TUI {
                         sb.Append(key.KeyChar);
                         System.Console.Write(key.KeyChar);
                     }
-
                     break;
                 }
             }
         }
     }
-
-
 }

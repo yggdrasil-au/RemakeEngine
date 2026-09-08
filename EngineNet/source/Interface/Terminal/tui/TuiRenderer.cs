@@ -1,16 +1,16 @@
-
-
 namespace EngineNet.Terminal;
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
 
 /// <summary>
-/// A split-screen renderer that manages a scrollable log area and a fixed status area.
-/// Prevents cursor race conditions and visual artifacts.
+/// A split-screen renderer that manages a scrollable log area and a dynamic status area.
+/// Prevents cursor race conditions and visually embeds prompts into the progress box.
 /// </summary>
 public static class TuiRenderer {
-    /// <summary>
-    /// Controls when ESC can request cancellation.
-    /// </summary>
     public enum CancellationMode {
         Disabled,
         PromptsOnly,
@@ -23,12 +23,20 @@ public static class TuiRenderer {
 
     public static bool IsActive => _isActive;
 
-    // Config
-    private static int _statusHeight = 8; // Reserved lines at bottom for progress
+    // Config & Visuals
+    private static int _statusHeight = 0;
     private static int _width;
     private static int _height;
     private static int _scrollOffset;
-    private static readonly int _maxBufferSize = 10000; // Hold up to 10k lines per operation
+    private static readonly int _maxBufferSize = 10000;
+
+    // Box Drawing Characters
+    private const char BoxTopLeft = '╭';
+    private const char BoxTopRight = '╮';
+    private const char BoxBottomLeft = '╰';
+    private const char BoxBottomRight = '╯';
+    private const char BoxHorizontal = '─';
+    private const char BoxVertical = '│';
 
     // State
     private static readonly LinkedList<LogEntry> _logBuffer = new();
@@ -38,14 +46,14 @@ public static class TuiRenderer {
     private static string _inputBuffer = "";
     private static string _promptLabel = "";
     private static bool _isInputActive;
-    private static System.Threading.CancellationTokenSource? _cts;
+    private static CancellationTokenSource? _cts;
 
     private struct LogEntry {
         public string Message;
         public ConsoleColor Color;
     }
 
-    public static void Initialize(System.Threading.CancellationTokenSource? cts = null) {
+    public static void Initialize(CancellationTokenSource? cts = null) {
         if (_isActive) return;
         _cts = cts;
         try {
@@ -63,7 +71,6 @@ public static class TuiRenderer {
 
         Console.Clear();
         RenderFull();
-        StartBackgroundInputListener(); // Start listening for scroll keys
     }
 
     public static void Shutdown() {
@@ -81,47 +88,35 @@ public static class TuiRenderer {
         Console.ResetColor();
     }
 
-    /// <summary>
-    /// Clears log/status/input state for a new context.
-    /// </summary>
-    /// <param name="clearLogs">Whether to clear the scrolling log buffer.</param>
     public static void ResetContext(bool clearLogs = true) {
         lock (_lock) {
             ResetContextInternal(clearLogs);
         }
-
         if (_isActive) {
             RenderFull();
         }
     }
 
-    /// <summary>
-    /// Clears the status panel and any notice message.
-    /// </summary>
     public static void ClearStatus() {
         lock (_lock) {
+            int oldHeight = _statusHeight;
             _statusLines.Clear();
             _statusNoticeMessage = null;
             RefreshStatusHeight();
-        }
 
-        if (_isActive) {
-            RenderStatus();
+            if (_isActive) {
+                if (oldHeight != _statusHeight) RenderFull();
+                else RenderStatus();
+            }
         }
     }
 
-    /// <summary>
-    /// Sets how ESC behaves for cancellation requests.
-    /// </summary>
     public static void SetCancellationMode(CancellationMode mode) {
         lock (_lock) {
             _cancellationMode = mode;
         }
     }
 
-    /// <summary>
-    /// Shows a one-line status notice without clobbering active progress panels.
-    /// </summary>
     public static void ShowStatusNotice(string message, ConsoleColor color = ConsoleColor.Yellow) {
         if (!_isActive) {
             Console.ForegroundColor = color;
@@ -131,22 +126,23 @@ public static class TuiRenderer {
         }
 
         lock (_lock) {
+            int oldHeight = _statusHeight;
             _statusNoticeMessage = message;
             _statusNoticeColor = color;
             RefreshStatusHeight();
-        }
 
-        RenderStatus();
+            if (oldHeight != _statusHeight) RenderFull();
+            else RenderStatus();
+        }
     }
 
     private static void ResetContextInternal(bool clearLogs) {
         if (clearLogs) {
             _logBuffer.Clear();
         }
-
         _statusLines.Clear();
         _statusNoticeMessage = null;
-        _statusHeight = 8;
+        _statusHeight = 0;
         _scrollOffset = 0;
         _inputBuffer = "";
         _promptLabel = "";
@@ -158,25 +154,8 @@ public static class TuiRenderer {
             Console.Clear();
             Console.SetCursorPosition(0, 0);
         } catch (System.IO.IOException) {
-            // Console output can be redirected or temporarily unavailable during a resize.
+            // Ignored if redirected
         }
-    }
-
-    private static void StartBackgroundInputListener() {
-        System.Threading.Tasks.Task.Run(() => {
-            while (_isActive) {
-                // Only capture keys here if ReadLineCustom isn't active to prevent stealing typing input
-                if (!_isInputActive) {
-                    try {
-                        if (Console.KeyAvailable) {
-                            var key = Console.ReadKey(true);
-                            HandleScrollInput(key);
-                        }
-                    } catch { /* Handle potential console access issues */ }
-                }
-                System.Threading.Thread.Sleep(20); // Prevent CPU thrashing
-            }
-        });
     }
 
     private static void HandleScrollInput(ConsoleKeyInfo key) {
@@ -185,18 +164,18 @@ public static class TuiRenderer {
                 ShowStatusNotice("Operations cannot be canceled.");
                 return;
             }
-
             if (_cancellationMode == CancellationMode.PromptsOnly && !_isInputActive) {
                 ShowStatusNotice("Operations cannot be canceled.");
                 return;
             }
-
             PromptCancellation();
             return;
         }
 
         lock (_lock) {
-            int logAreaHeight = _height - _statusHeight - 1;
+            int logAreaHeight = _height - _statusHeight;
+            if (_statusHeight == 0) logAreaHeight = _height - 1;
+
             int maxScroll = Math.Max(0, _logBuffer.Count - logAreaHeight);
 
             switch (key.Key) {
@@ -219,22 +198,15 @@ public static class TuiRenderer {
                     _scrollOffset = maxScroll;
                     break;
             }
-
-            // Clamp scroll offset
             _scrollOffset = Math.Clamp(_scrollOffset, 0, maxScroll);
         }
-        RenderLogs();
+        RenderFull();
     }
 
-    /// <summary>
-    /// Adds a line to the scrolling log area.
-    /// </summary>
     public static void Log(string message, ConsoleColor color = ConsoleColor.Gray) {
-        // Write to our dedicated DEBUG log file
         Shared.IO.Diagnostics.TuiLog(message);
 
         if (!_isActive) {
-            // Fallback if renderer isn't active
             Console.ForegroundColor = color;
             Console.WriteLine(message);
             Console.ResetColor();
@@ -242,20 +214,16 @@ public static class TuiRenderer {
         }
 
         lock (_lock) {
-            // Split newlines to handle multi-line messages correctly
             foreach (string line in message.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)) {
                 _logBuffer.AddLast(new LogEntry { Message = line, Color = color });
-
-                // If the user is actively scrolled up, push the offset up so the view stays pinned
                 if (_scrollOffset > 0) {
                     _scrollOffset++;
                 }
             }
 
-            // Keep buffer reasonable size (e.g., 10k lines)
             while (_logBuffer.Count > _maxBufferSize) {
                 _logBuffer.RemoveFirst();
-                if (_scrollOffset > 0) _scrollOffset--; // Adjust offset if we trim the top
+                if (_scrollOffset > 0) _scrollOffset--;
             }
 
             if (_isActive) {
@@ -264,54 +232,46 @@ public static class TuiRenderer {
         }
     }
 
-    /// <summary>
-    /// Updates the status/progress area at the bottom.
-    /// </summary>
     public static void UpdateStatus(List<string> lines) {
         if (!_isActive) return;
 
         lock (_lock) {
+            int oldHeight = _statusHeight;
             _statusLines.Clear();
             _statusLines.AddRange(lines);
-
             RefreshStatusHeight();
 
-            RenderStatus();
+            if (oldHeight != _statusHeight) RenderFull();
+            else RenderStatus();
         }
     }
 
-    /// <summary>
-    /// Renders the scrollable log area (Top section).
-    /// </summary>
     private static void RenderLogs() {
         if (RefreshDimensions()) {
             ClearTerminal();
         }
 
-        int logAreaHeight = _height - _statusHeight - 1; // -1 for separator
+        int logAreaHeight = _height - _statusHeight;
+        if (_statusHeight == 0) logAreaHeight = _height - 1; // Prevent natural terminal scroll if drawing to bottom corner
         if (logAreaHeight <= 0) return;
 
-        // Calculate how many logs fit
-        // We iterate backwards from the end of the buffer, skipping by _scrollOffset
         var node = _logBuffer.Last;
         var linesToDraw = new List<LogEntry>();
 
-        // Skip the number of lines determined by _scrollOffset
         for (int i = 0; i < _scrollOffset && node != null; i++) {
             node = node.Previous;
         }
 
-        // Collect the lines to display
         while (node != null && linesToDraw.Count < logAreaHeight) {
             linesToDraw.Add(node.Value);
             node = node.Previous;
         }
         linesToDraw.Reverse();
 
-        // Draw
         try {
             int outputWidth = GetRenderableWidth();
             Console.CursorVisible = false;
+
             for (int i = 0; i < logAreaHeight; i++) {
                 Console.SetCursorPosition(0, i);
                 if (i < linesToDraw.Count) {
@@ -324,84 +284,120 @@ public static class TuiRenderer {
                 }
             }
 
-            // Draw a subtle indicator if scrolled up
-            if (_scrollOffset <= 0 || logAreaHeight <= 0) return;
+            if (_scrollOffset > 0 && logAreaHeight > 0) {
+                Console.SetCursorPosition(Math.Max(0, outputWidth - 15), 0);
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.Write(ClipToWidth("[↑ SCROLLED]", outputWidth));
+            }
 
-            Console.SetCursorPosition(System.Math.Max(0, outputWidth - 15), 0);
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.Write(ClipToWidth("[↑ SCROLLED]", outputWidth));
+            // Wipe out any lingering box artifacts from the very bottom row if the box disappeared
+            if (_statusHeight == 0) {
+                Console.SetCursorPosition(0, _height - 1);
+                Console.Write(new string(' ', outputWidth));
+            }
 
         } catch { /* Resize race condition ignore */ }
+
+        if (_isInputActive && _statusHeight > 0) {
+            RenderInputLine();
+        }
     }
 
-    /// <summary>
-    /// Renders the fixed status area (Bottom section).
-    /// </summary>
     private static void RenderStatus() {
         if (RefreshDimensions()) {
             ClearTerminal();
         }
 
-        int logAreaHeight = _height - _statusHeight - 1;
-        int statusStartY = logAreaHeight;
+        if (_statusHeight == 0) {
+            return;
+        }
+
+        int statusStartY = _height - _statusHeight;
 
         try {
             int outputWidth = GetRenderableWidth();
             Console.CursorVisible = false;
 
-            // Draw Separator
+            // Draw Top Border
             Console.SetCursorPosition(0, statusStartY);
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write(new string('═', outputWidth));
+            Console.Write(BoxTopLeft + new string(BoxHorizontal, Math.Max(0, outputWidth - 2)) + BoxTopRight);
 
+            int currentY = statusStartY + 1;
             bool hasNotice = !string.IsNullOrWhiteSpace(_statusNoticeMessage);
-            int statusLineSlots = _statusHeight - (hasNotice ? 1 : 0);
+
+            int maxContentY = statusStartY + _statusHeight - 1;
+            if (_isInputActive) maxContentY--; // Reserve the row above the bottom border exclusively for the embedded input
 
             // Draw Status Lines
-            for (int i = 0; i < _statusHeight; i++) {
-                Console.SetCursorPosition(0, statusStartY + 1 + i);
-                if (hasNotice && i == _statusHeight - 1) {
-                    Console.ForegroundColor = _statusNoticeColor;
-                    string notice = _statusNoticeMessage ?? string.Empty;
-                    notice = ClipToWidth(notice, outputWidth);
-                    Console.Write(notice.PadRight(outputWidth));
-                    continue;
-                }
+            for (int i = 0; i < _statusLines.Count; i++) {
+                if (currentY >= maxContentY) break;
 
-                if (i < statusLineSlots && i < _statusLines.Count) {
-                    string line = _statusLines[i];
-                    Console.ForegroundColor = ConsoleColor.White;
-                    // Handle coloring commands if you want to parse them, for now simple:
-                    if (line.Contains("Error")) Console.ForegroundColor = ConsoleColor.Red;
-                    else if (line.Contains("Success")) Console.ForegroundColor = ConsoleColor.Green;
+                Console.SetCursorPosition(0, currentY);
+                string line = _statusLines[i];
+                Console.ForegroundColor = ConsoleColor.White;
+                if (line.Contains("Error")) Console.ForegroundColor = ConsoleColor.Red;
+                else if (line.Contains("Success")) Console.ForegroundColor = ConsoleColor.Green;
 
-                    line = ClipToWidth(line, outputWidth);
-                    Console.Write(line.PadRight(outputWidth));
-                } else {
-                    Console.Write(new string(' ', outputWidth));
-                }
+                string clippedLine = ClipToWidth(line, outputWidth - 4);
+                Console.Write($"{BoxVertical} {clippedLine.PadRight(outputWidth - 4)} {BoxVertical}");
+                currentY++;
             }
 
-            // Draw Input Line overlay if active
-            if (_isInputActive) {
-                RenderInputLine();
+            // Draw Notice
+            if (hasNotice && currentY < maxContentY) {
+                Console.SetCursorPosition(0, currentY);
+                Console.ForegroundColor = _statusNoticeColor;
+                string notice = _statusNoticeMessage ?? string.Empty;
+                string clippedNotice = ClipToWidth(notice, outputWidth - 4);
+                Console.Write($"{BoxVertical} {clippedNotice.PadRight(outputWidth - 4)} {BoxVertical}");
+                currentY++;
             }
+
+            // Fill any remaining empty content lines with blank vertical borders
+            while (currentY < maxContentY) {
+                Console.SetCursorPosition(0, currentY);
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.Write($"{BoxVertical} {new string(' ', Math.Max(0, outputWidth - 4))} {BoxVertical}");
+                currentY++;
+            }
+
+            // Draw empty borders for the input row, input text will populate it next
+            if (_isInputActive && currentY < statusStartY + _statusHeight - 1) {
+                Console.SetCursorPosition(0, _height - 2);
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.Write($"{BoxVertical} {new string(' ', Math.Max(0, outputWidth - 4))} {BoxVertical}");
+            }
+
+            // Draw Bottom Border
+            Console.SetCursorPosition(0, _height - 1);
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write(BoxBottomLeft + new string(BoxHorizontal, Math.Max(0, outputWidth - 2)) + BoxBottomRight);
 
         } catch { /* Resize race condition ignore */ }
         finally {
-            if (_isInputActive) Console.CursorVisible = true;
+            if (_isInputActive) {
+                RenderInputLine();
+            }
         }
     }
 
     private static void RenderInputLine() {
-        int inputY = _height - 1;
+        if (!_isInputActive || _statusHeight == 0) return;
+
+        int inputY = _height - 2;
+
         try {
             int outputWidth = GetRenderableWidth();
-            Console.SetCursorPosition(0, inputY);
+            Console.CursorVisible = false;
+            Console.SetCursorPosition(2, inputY);
             Console.ForegroundColor = ConsoleColor.Cyan;
-            string input = ClipToWidth($"{_promptLabel} {_inputBuffer}", outputWidth);
-            Console.Write(input.PadRight(outputWidth));
-            int cursorX = Math.Min(outputWidth - 1, _promptLabel.Length + 1 + _inputBuffer.Length);
+
+            string input = $"{_promptLabel} {_inputBuffer}";
+            string formatted = ClipToWidth(input, outputWidth - 4).PadRight(outputWidth - 4);
+            Console.Write(formatted);
+
+            int cursorX = Math.Clamp(2 + _promptLabel.Length + 1 + _inputBuffer.Length, 2, outputWidth - 3);
             Console.SetCursorPosition(cursorX, inputY);
             Console.CursorVisible = true;
         } catch { /* ignore resize race */ }
@@ -414,8 +410,8 @@ public static class TuiRenderer {
 
     private static bool RefreshDimensions() {
         try {
-            int width = System.Math.Max(1, Console.WindowWidth);
-            int height = System.Math.Max(4, Console.WindowHeight);
+            int width = Math.Max(1, Console.WindowWidth);
+            int height = Math.Max(4, Console.WindowHeight);
             bool changed = width != _width || height != _height;
             _width = width;
             _height = height;
@@ -426,91 +422,83 @@ public static class TuiRenderer {
     }
 
     private static string ClipToWidth(string text, int width) {
+        if (width <= 0) return string.Empty;
         return text.Length > width ? text[..width] : text;
     }
 
     private static int GetRenderableWidth() {
-        return System.Math.Max(1, _width - 1);
+        return Math.Max(1, _width - 1);
     }
-
-    // -- Input Handling Helpers --
 
     public static string? ReadLineCustom(string label, bool isSecret) {
         lock (_lock) {
             _isInputActive = true;
             _promptLabel = label;
             _inputBuffer = "";
+            RefreshStatusHeight();
         }
 
-        RenderStatus(); // Forces input line draw
+        RenderFull();
 
         StringBuilder input = new StringBuilder();
-        while (true) {
-            var key = Console.ReadKey(true);
+        while (_isActive) {
+            if (Console.KeyAvailable) {
+                var key = Console.ReadKey(true);
 
-            // Add ConsoleKey.Escape to the list of keys we intercept
-            if (key.Key == ConsoleKey.UpArrow || key.Key == ConsoleKey.DownArrow ||
-                key.Key == ConsoleKey.PageUp || key.Key == ConsoleKey.PageDown ||
-                key.Key == ConsoleKey.Home || key.Key == ConsoleKey.End ||
-                key.Key == ConsoleKey.Escape) {
-                HandleScrollInput(key);
+                if (IsNavigationKey(key.Key) || key.Key == ConsoleKey.Escape) {
+                    HandleScrollInput(key);
 
-                // If HandleScrollInput triggered a cancellation, break the loop and return null
-                if (_cts != null && _cts.IsCancellationRequested) {
-                    lock (_lock) {
-                        _isInputActive = false;
-                        _inputBuffer = "";
-                        _promptLabel = "";
-                        _scrollOffset = 0;
+                    if (_cts != null && _cts.IsCancellationRequested) {
+                        lock (_lock) {
+                            _isInputActive = false;
+                            _inputBuffer = "";
+                            _promptLabel = "";
+                            _scrollOffset = 0;
+                            RefreshStatusHeight();
+                        }
+                        RenderFull();
+                        return null;
                     }
 
-                    return null;
+                    lock (_lock) {
+                        _isInputActive = true;
+                        RenderInputLine();
+                    }
+                    continue;
                 }
 
-                // If they said 'N' to cancel, PromptCancellation set _isInputActive to false.
-                // We need to ensure it is true again to redraw their in-progress typing.
+                if (key.Key == ConsoleKey.Enter) {
+                    break;
+                } else if (key.Key == ConsoleKey.Backspace) {
+                    if (input.Length > 0) input.Remove(input.Length - 1, 1);
+                } else if (!char.IsControl(key.KeyChar)) {
+                    input.Append(key.KeyChar);
+                }
+
                 lock (_lock) {
                     _isInputActive = true;
+                    _inputBuffer = isSecret ? new string('*', input.Length) : input.ToString();
                     RenderInputLine();
                 }
-
-                continue;
-            }
-
-            if (key.Key == ConsoleKey.Enter) {
-                break;
-            }
-            else if (key.Key == ConsoleKey.Backspace) {
-                if (input.Length > 0) input.Remove(input.Length - 1, 1);
-            }
-            else if (!char.IsControl(key.KeyChar)) {
-                input.Append(key.KeyChar);
-            }
-
-            lock (_lock) {
-                _isInputActive = true; // Ensure active
-                _inputBuffer = isSecret ? new string('*', input.Length) : input.ToString();
-                RenderInputLine();
+            } else {
+                Thread.Sleep(10);
             }
         }
 
         lock (_lock) {
             _isInputActive = false;
+            string result = input.ToString();
             _inputBuffer = "";
             _promptLabel = "";
-            _scrollOffset = 0; // Snap back to bottom on submit
-        }
+            _scrollOffset = 0;
 
-        // Echo input to log
-        Log($"{label} {input}", ConsoleColor.Cyan);
-        return input.ToString();
+            Log($"{label} {(isSecret ? new string('*', result.Length) : result)}", ConsoleColor.Cyan);
+            RefreshStatusHeight();
+            RenderFull();
+            return result;
+        }
     }
 
-    /// <summary>
-    /// Wait for the user to press a key before continuing.
-    /// Responds to navigation keys for scrolling without returning.
-    /// Returns true when a non-navigation key is pressed.
-    /// </summary>
     public static void WaitForKey() {
         if (!_isActive) {
             Console.ReadKey(true);
@@ -519,7 +507,12 @@ public static class TuiRenderer {
 
         lock (_lock) {
             _isInputActive = true;
+            _promptLabel = "Press any key to continue...";
+            _inputBuffer = "";
+            RefreshStatusHeight();
         }
+
+        RenderFull();
 
         try {
             while (_isActive) {
@@ -527,17 +520,25 @@ public static class TuiRenderer {
                     var key = Console.ReadKey(true);
                     if (IsNavigationKey(key.Key)) {
                         HandleScrollInput(key);
+                        lock (_lock) {
+                            _isInputActive = true;
+                            RenderInputLine();
+                        }
                     } else {
-                        // Any non-navigation key exits
                         break;
                     }
+                } else {
+                    Thread.Sleep(10);
                 }
-                System.Threading.Thread.Sleep(10);
             }
         } finally {
             lock (_lock) {
                 _isInputActive = false;
+                _promptLabel = "";
+                _scrollOffset = 0;
+                RefreshStatusHeight();
             }
+            RenderFull();
         }
     }
 
@@ -581,7 +582,13 @@ public static class TuiRenderer {
 
     private static void RefreshStatusHeight() {
         int noticeCount = string.IsNullOrWhiteSpace(_statusNoticeMessage) ? 0 : 1;
-        int requestedHeight = _statusLines.Count + noticeCount + 2; // +2 for border/padding
-        _statusHeight = Math.Clamp(requestedHeight, 4, _height / 3);
+        int inputCount = _isInputActive ? 1 : 0;
+
+        if (_statusLines.Count == 0 && noticeCount == 0 && inputCount == 0) {
+            _statusHeight = 0; // Collapses and hides the box entirely when nothing is required
+        } else {
+            int requestedHeight = _statusLines.Count + noticeCount + inputCount + 2;
+            _statusHeight = Math.Clamp(requestedHeight, 3, Math.Max(3, _height / 2));
+        }
     }
 }

@@ -12,6 +12,11 @@ public static class EngineSdk {
     public static System.Action<Dictionary<string, object?>>? LocalEventSink { get; set; }
     public static bool MuteStdoutWhenLocalSink { get; set; } = true;
 
+    /// <summary>
+    /// Optional external prompt handler. When set, Prompt and Confirm will invoke this delegate instead of blocking on stdin.
+    /// </summary>
+    public static System.Func<string, bool, string?>? ExternalPromptHandler { get; set; }
+
     // Auto-responses for prompts by ID. When a prompt with matching ID is requested, the corresponding response is returned automatically without user interaction.
     public static Dictionary<string, string> AutoPromptResponses { get; set; } = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
 
@@ -171,6 +176,11 @@ public static class EngineSdk {
             return autoResponse;
         }
 
+        // Intercept standard blocking read and route to custom UI loop if attached
+        if (ExternalPromptHandler != null) {
+            return ExternalPromptHandler(message, secret) ?? string.Empty;
+        }
+
         Emit(Events.Prompt, new Dictionary<string, object?> { ["id"] = id, ["message"] = message, ["secret"] = secret });
         try {
             string? line = System.Console.In.ReadLine();
@@ -205,6 +215,12 @@ public static class EngineSdk {
             });
             return autoResponse.Trim().StartsWith("y", System.StringComparison.OrdinalIgnoreCase) ||
                     autoResponse.Trim().Equals("true", System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Intercept standard blocking read and route to custom UI loop if attached
+        if (ExternalPromptHandler != null) {
+            return ExternalPromptHandler(message + " [y/n]", false)?.Trim().StartsWith("y", System.StringComparison.OrdinalIgnoreCase) == true ||
+                   ExternalPromptHandler(message + " [y/n]", false)?.Trim().Equals("true", System.StringComparison.OrdinalIgnoreCase) == true;
         }
 
         Emit(Events.Confirm, new Dictionary<string, object?> { ["id"] = id, ["message"] = message, ["default"] = defaultValue });

@@ -2,6 +2,7 @@
 namespace EngineNet.Terminal;
 
 using EngineNet.Shared.IO.UI;
+using EngineNet.Terminal;
 using Interface;
 
 /// <summary>
