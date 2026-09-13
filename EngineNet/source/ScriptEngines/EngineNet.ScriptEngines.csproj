@@ -9,11 +9,49 @@
         <Platforms>AnyCPU;x64</Platforms>
     </PropertyGroup>
 
+    <!-- Define toggles with a default value of true -->
+    <PropertyGroup>
+        <EnableLua Condition="'$(EnableLua)' == ''">true</EnableLua>
+        <EnableJs Condition="'$(EnableJs)' == ''">true</EnableJs>
+        <EnablePython Condition="'$(EnablePython)' == ''">true</EnablePython>
+
+        <!-- Pass these toggles to the C# compiler as constants -->
+        <DefineConstants Condition="'$(EnableLua)' == 'true'">$(DefineConstants);ENABLE_LUA</DefineConstants>
+        <DefineConstants Condition="'$(EnableJs)' == 'true'">$(DefineConstants);ENABLE_JS</DefineConstants>
+        <DefineConstants Condition="'$(EnablePython)' == 'true'">$(DefineConstants);ENABLE_PYTHON</DefineConstants>
+    </PropertyGroup>
+
+    <!-- Conditionally include NuGet packages -->
     <ItemGroup>
-        <!-- Script runtimes -->
-        <PackageReference Include="MoonSharp" Version="2.0.0" />
-        <PackageReference Include="IronPython" Version="3.4.2" />
-        <PackageReference Include="Jint" Version="4.11.0" />
+        <PackageReference Include="MoonSharp" Version="2.0.0" Condition="'$(EnableLua)' == 'true'" />
+        <PackageReference Include="IronPython" Version="3.4.2" Condition="'$(EnablePython)' == 'true'" />
+        <PackageReference Include="Jint" Version="4.11.0" Condition="'$(EnableJs)' == 'true'" />
+    </ItemGroup>
+
+    <!-- Conditionally remove Lua files if disabled -->
+    <ItemGroup Condition="'$(EnableLua)' != 'true'">
+        <Compile Remove="Main\Lua.cs" />
+        <Compile Remove="Main\Core\LuaAction.cs" />
+        <Compile Remove="Main\Core\GlobalModules\**\*Lua*.cs" />
+        <Compile Remove="Main\Core\GlobalModules\**\*lua*.cs" />
+        <Compile Remove="Main\SetupEnvironment\Lua*.cs" />
+        <Compile Remove="Main\World\LuaWorld.cs" />
+    </ItemGroup>
+
+    <!-- Conditionally remove JavaScript files if disabled -->
+    <ItemGroup Condition="'$(EnableJs)' != 'true'">
+        <Compile Remove="Main\Js.cs" />
+        <Compile Remove="Main\Core\JsAction.cs" />
+        <Compile Remove="Main\SetupEnvironment\JsEnvironment.cs" />
+        <Compile Remove="Main\World\JSWorld.cs" />
+    </ItemGroup>
+
+    <!-- Conditionally remove Python files if disabled -->
+    <ItemGroup Condition="'$(EnablePython)' != 'true'">
+        <Compile Remove="Main\Python.cs" />
+        <Compile Remove="Main\Core\PyAction.cs" />
+        <Compile Remove="Main\SetupEnvironment\PyEnvironment.cs" />
+        <Compile Remove="Main\World\PyWorld.cs" />
     </ItemGroup>
 
     <ItemGroup>

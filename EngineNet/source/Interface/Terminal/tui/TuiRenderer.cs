@@ -505,8 +505,15 @@ public static class TuiRenderer {
 
         RenderFull();
 
-        bool prevControlC = Console.TreatControlCAsInput;
-        Console.TreatControlCAsInput = true;
+        bool prevControlC = false;
+        bool changedControlC = false;
+        try {
+            prevControlC = Console.TreatControlCAsInput;
+            Console.TreatControlCAsInput = true;
+            changedControlC = true;
+        } catch (System.IO.IOException) {
+            Shared.IO.Diagnostics.Bug("Failed to change ControlC behavior due to an IO exception.");
+        }
 
         try {
             StringBuilder input = new StringBuilder();
@@ -586,7 +593,13 @@ public static class TuiRenderer {
                 return result;
             }
         } finally {
-            Console.TreatControlCAsInput = prevControlC;
+            if (changedControlC) {
+                try {
+                    Console.TreatControlCAsInput = prevControlC;
+                } catch {
+                    Shared.IO.Diagnostics.Bug("Failed to restore ControlC behavior.");
+                }
+            }
         }
     }
 

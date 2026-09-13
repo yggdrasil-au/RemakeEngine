@@ -7,11 +7,45 @@
     Executed by the github workflows to build and publish the engine on github, automatically it only builds for winx64 for each commit, when tagged builds for all platforms.
 #>
 param(
+    [Alias("h", "?")]
+    [switch]$Help,
     [string]$Framework = "net10.0",
     [string]$Runtime   = "win-x64",
     [string]$ConfigFilter = "",
-    [bool]$SkipAssets = $false
+    [bool]$SkipAssets = $false,
+    [bool]$EnableLua = $true,
+    [bool]$EnableJs = $true,
+    [bool]$EnablePython = $true
 )
+
+# Display Help and Exit
+if ($Help) {
+    Write-Host "======================================================" -ForegroundColor Cyan
+    Write-Host " RemakeEngine Build & Publish Script" -ForegroundColor Cyan
+    Write-Host "======================================================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "DESCRIPTION:" -ForegroundColor Yellow
+    Write-Host "  Automates the build and publish process for RemakeEngine."
+    Write-Host "  Compiles EngineNet, bundles required assets (Registries/Games), and optionally signs executables."
+    Write-Host ""
+    Write-Host "PARAMETERS:" -ForegroundColor Yellow
+    Write-Host "  -Help, -h, -?           : Displays this help message and exits."
+    Write-Host "  -Framework <string>     : Target framework (Default: 'net10.0')."
+    Write-Host "  -Runtime <string>       : Target runtime identifier (Default: 'win-x64')."
+    Write-Host "  -ConfigFilter <string>  : Filter build configuration (e.g., 'Release' or 'Debug'). Builds both if omitted."
+    Write-Host "  -SkipAssets <bool>      : If `$true, skips bundling Registries and Demo Game assets (Default: `$false)."
+    Write-Host "  -EnableLua <bool>       : Includes the Lua script engine in the build (Default: `$true)."
+    Write-Host "  -EnableJs <bool>        : Includes the JavaScript engine in the build (Default: `$true)."
+    Write-Host "  -EnablePython <bool>    : Includes the Python engine in the build (Default: `$true)."
+    Write-Host ""
+    Write-Host "EXAMPLES:" -ForegroundColor Yellow
+    Write-Host "  .\dotnet.publish.ps1 -Help"
+    Write-Host "  .\dotnet.publish.ps1"
+    Write-Host "  .\dotnet.publish.ps1 -EnablePython `$false -EnableJs `$false"
+    Write-Host "  .\dotnet.publish.ps1 -Runtime 'linux-x64' -ConfigFilter 'Release' -SkipAssets `$true"
+    Write-Host "======================================================" -ForegroundColor Cyan
+    exit 0
+}
 
 # Platform-agnostic pathing
 $Root = Split-Path -Parent $PSCommandPath
@@ -81,6 +115,10 @@ Write-Host "--- Build Version: $version | RID: $Runtime ---" -ForegroundColor Cy
 Write-Host "Cleaning old build outputs..." -ForegroundColor Yellow
 if (Test-Path $OutputRoot) { Remove-Item $OutputRoot -Recurse -Force }
 
+# Convert boolean parameters to lowercase strings for MSBuild
+$luaArg = $EnableLua.ToString().ToLowerInvariant()
+$jsArg = $EnableJs.ToString().ToLowerInvariant()
+$pyArg = $EnablePython.ToString().ToLowerInvariant()
 
 foreach ($t in $targets) {
     $config   = $t.Configuration
@@ -97,6 +135,9 @@ foreach ($t in $targets) {
         -p:Version=$version `
         -p:FileVersion=$version `
         -p:AssemblyVersion=$version `
+        -p:EnableLua=$luaArg `
+        -p:EnableJs=$jsArg `
+        -p:EnablePython=$pyArg `
         -v:m
 
     if ($LASTEXITCODE -ne 0) { throw "Build failed for $config" }
@@ -134,4 +175,3 @@ foreach ($t in $targets) {
 if ($env:GITHUB_ENV) {
     "ENGINE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 }
-

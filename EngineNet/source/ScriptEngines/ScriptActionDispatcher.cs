@@ -30,13 +30,28 @@ public sealed class ScriptActionDispatcher : IScriptActionDispatcher {
             }
 
             switch (t) {
-                case "lua":
+                #if ENABLE_LUA
+                case "lua": {
                     return new ScriptEngines.Lua.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: projectRoot);
-                case "js": case "javascript":
+                }
+                #endif
+
+                #if ENABLE_JS
+                case "js": case "javascript": {
                     return new ScriptEngines.Js.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: projectRoot);
-                case "python": case "py":
+                }
+                #endif
+
+                #if ENABLE_PYTHON
+                case "python": case "py": {
                     return new ScriptEngines.Python.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: projectRoot);
+                }
+                #endif
+
                 default: {
+                #if !ENABLE_LUA && !ENABLE_JS && !ENABLE_PYTHON
+                    Shared.IO.Diagnostics.Log($"No embedded script engines are enabled, cannot create action for '{scriptType}'");
+                #endif
                     Shared.IO.Diagnostics.Log($"Unsupported embedded script type '{scriptType}'");
                     return null;
                 }

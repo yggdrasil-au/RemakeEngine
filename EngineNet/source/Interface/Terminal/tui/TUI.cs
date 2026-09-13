@@ -357,12 +357,22 @@ public sealed class TUI {
     /// <param name="intercept">Whether to intercept the key</param>
     /// <param name="cancellationToken"></param>
     /// <returns>The key information read from the console, or an empty ConsoleKeyInfo if input is redirected or an error occurs.</returns>
-    private static System.ConsoleKeyInfo SafeReadKey(bool intercept = false, CancellationToken cancellationToken = default(CancellationToken)) {
+    private static System.ConsoleKeyInfo SafeReadKey(bool intercept = false,
+        CancellationToken cancellationToken = default(CancellationToken)) {
         try {
             if (!System.Console.IsInputRedirected) {
-                // Disable OS-level kill signal so Ctrl+C acts as standard input
-                bool previousControlCSetting = System.Console.TreatControlCAsInput;
-                System.Console.TreatControlCAsInput = true;
+                bool previousControlCSetting = false;
+                bool changedControlC = false;
+
+                // Safely attempt to modify Control+C behavior
+                try {
+                    previousControlCSetting = System.Console.TreatControlCAsInput;
+                    System.Console.TreatControlCAsInput = true;
+                    changedControlC = true;
+                }
+                catch (System.IO.IOException) {
+                    // Ignore: WinExe attached consoles often reject this property
+                }
 
                 try {
                     while (!System.Console.KeyAvailable) {
@@ -372,7 +382,6 @@ public sealed class TUI {
 
                     System.ConsoleKeyInfo keyInfo = System.Console.ReadKey(intercept: intercept);
 
-                    // Manually intercept the Ctrl+C keystroke and trigger graceful cancellation
                     if (keyInfo.Key == ConsoleKey.C && keyInfo.Modifiers.HasFlag(ConsoleModifiers.Control)) {
                         throw new OperationCanceledException("Cancellation requested via manual Ctrl+C intercept.");
                     }
@@ -380,15 +389,23 @@ public sealed class TUI {
                     return keyInfo;
                 }
                 finally {
-                    // Restore the original state so the rest of the application dictates behavior
-                    System.Console.TreatControlCAsInput = previousControlCSetting;
+                    if (changedControlC) {
+                        try {
+                            System.Console.TreatControlCAsInput = previousControlCSetting;
+                        }
+                        catch { }
+                    }
                 }
             }
-        } catch (OperationCanceledException) {
+        }
+        catch (OperationCanceledException) {
             Shared.IO.Diagnostics.Trace("exiting");
             throw;
-        } catch (System.Exception e) {
+        }
+        catch (System.Exception e) {
             Shared.IO.Diagnostics.Bug($"Error reading key: {e.Message}");
+            Shared.IO.Diagnostics.Trace("error: " + e);
+            throw;
         }
 
         return new ConsoleKeyInfo(keyChar: '\0', key: 0, shift: false, alt: false, control: false);

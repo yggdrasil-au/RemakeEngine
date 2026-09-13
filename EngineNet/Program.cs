@@ -35,6 +35,31 @@ public static class Program {
     /* :: :: Main :: START :: */
     [STAThread]
     public static async System.Threading.Tasks.Task<int> Main(string[] args) {
+        // 1. Parse arguments BEFORE touching System.Console
+        ParsedArgs parsedArgs = ParseArguments(args: args);
+
+        isTui = parsedArgs.Remaining.Any(predicate: arg =>
+            arg.Equals("--tui", comparisonType: System.StringComparison.OrdinalIgnoreCase));
+        isGui = !isTui && (parsedArgs.Remaining.Count == 0 || parsedArgs.Remaining.Any(predicate: arg =>
+            arg.Equals("--gui", comparisonType: System.StringComparison.OrdinalIgnoreCase)));
+        isCli = !isGui && !isTui;
+
+        bool hasConsole = false;
+
+        // 2. Attach or allocate Windows console natively if running TUI or CLI
+        if (System.OperatingSystem.IsWindows() && (isTui || isCli)) {
+            hasConsole = ConsoleHelper.AttachConsole(ConsoleHelper.ATTACH_PARENT_PROCESS);
+            if (!hasConsole) {
+                ConsoleHelper.AllocConsole();
+                hasConsole = true;
+            }
+
+            // 3. Force .NET to re-bind standard streams to the new OS handles
+            System.Console.SetOut(new System.IO.StreamWriter(System.Console.OpenStandardOutput()) { AutoFlush = true });
+            System.Console.SetIn(new System.IO.StreamReader(System.Console.OpenStandardInput()));
+            System.Console.SetError(new System.IO.StreamWriter(System.Console.OpenStandardError()) { AutoFlush = true });
+        }
+
         ShutdownCancellationController shutdownCancellationController = new ShutdownCancellationController();
         List<string> PreinitialDiagnosticsLog = new List<string>();
 
@@ -46,7 +71,8 @@ public static class Program {
             lock (logLock) {
                 if (diagnosticsInitialized) {
                     Shared.IO.Diagnostics.Log(msg);
-                } else {
+                }
+                else {
                     PreinitialDiagnosticsLog.Add(msg);
                 }
             }
@@ -62,7 +88,8 @@ public static class Program {
             e.Cancel = true;
             try {
                 shutdownCancellationController.Cancel();
-            } catch (System.Exception ex) {
+            }
+            catch (System.Exception ex) {
                 LogCancelMessage($"Cancellation error: {ex}");
             }
 
@@ -70,34 +97,23 @@ public static class Program {
         };
 
         try {
+            // 4. Now safe to access System.Console - it will cache the active native handles
             System.Console.CancelKeyPress += cancelHandler;
 
-            bool hasConsole = false;
-            if (System.OperatingSystem.IsWindows()) {
-                hasConsole = ConsoleHelper.AttachConsole(dwProcessId: ConsoleHelper.ATTACH_PARENT_PROCESS);
-            }
-
-            // 1. Parse Args to separate the Root path from the Mode flags
-            ParsedArgs parsedArgs = ParseArguments(args: args);
-
-            // 2. Resolve Root Path
+            // 5. Resolve Root Path
             if (parsedArgs.ExplicitRoot != null) {
                 rootPath = parsedArgs.ExplicitRoot;
-            } else {
+            }
+            else {
                 string foundRoot = TryFindProjectRoot(startDir: System.IO.Directory.GetCurrentDirectory());
                 if (!string.IsNullOrEmpty(foundRoot)) {
                     rootPath = foundRoot;
-                } else {
+                }
+                else {
                     foundRoot = TryFindProjectRoot(startDir: System.AppContext.BaseDirectory);
                     rootPath = !string.IsNullOrEmpty(foundRoot) ? foundRoot : System.IO.Directory.GetCurrentDirectory();
                 }
             }
-
-            isTui = parsedArgs.Remaining.Any(predicate: arg =>
-                arg.Equals("--tui", comparisonType: System.StringComparison.OrdinalIgnoreCase));
-            isGui = !isTui && (parsedArgs.Remaining.Count == 0 || parsedArgs.Remaining.Any(predicate: arg =>
-                arg.Equals("--gui", comparisonType: System.StringComparison.OrdinalIgnoreCase)));
-            isCli = !isGui && !isTui;
 
             // :: Initialize the Logger
             Shared.IO.Diagnostics.Initialize(rootPath: rootPath, isGui: isGui, isTui: isTui);
@@ -113,13 +129,7 @@ public static class Program {
             }
 
             IScriptActionDispatcher scriptActionDispatcher = new EngineNet.ScriptEngines.ScriptActionDispatcher();
-            Shared.IO.Diagnostics.Trace(
-                $"Starting EngineNet in {(isGui ? "GUI" : isTui ? "TUI" : "CLI")} mode. Root Path: {rootPath}");
-
-            if ((isTui || isCli) && !hasConsole && System.OperatingSystem.IsWindows()) {
-                ConsoleHelper.AllocConsole();
-                Shared.IO.Diagnostics.Trace("Allocated new console window for TUI/CLI mode.");
-            }
+            Shared.IO.Diagnostics.Trace($"Starting EngineNet in {(isGui ? "GUI" : isTui ? "TUI" : "CLI")} mode. Root Path: {rootPath}");
 
             Shared.State.ConfigureRuntime(
                 rootPath: rootPath,
@@ -134,21 +144,21 @@ public static class Program {
 
             if (isGui) {
                 Shared.IO.Diagnostics.Trace("Launching GUI Interface...");
-                var code = await UI.init(args: args, ui: "gui", miniEngine: miniEngine, cancellationToken: shutdownCancellationController.Token);
+                int code = await UI.init(args: args, ui: "gui", miniEngine: miniEngine, cancellationToken: shutdownCancellationController.Token);
                 Shared.IO.Diagnostics.Trace($"GUI Interface exited with code: {code}");
                 return code;
             }
 
             if (isTui) {
                 Shared.IO.Diagnostics.Trace("Launching TUI Interface...");
-                var code = await UI.init(args: args, ui: "tui", miniEngine: miniEngine, cancellationToken: shutdownCancellationController.Token);
+                int code = await UI.init(args: args, ui: "tui", miniEngine: miniEngine, cancellationToken: shutdownCancellationController.Token);
                 Shared.IO.Diagnostics.Trace($"TUI Interface exited with code: {code}");
                 return code;
             }
 
             if (isCli) {
                 Shared.IO.Diagnostics.Trace("Launching CLI Interface...");
-                var code = await UI.init(args: args, ui: "cli", miniEngine: miniEngine, cancellationToken: shutdownCancellationController.Token);
+                int code = await UI.init(args: args, ui: "cli", miniEngine: miniEngine, cancellationToken: shutdownCancellationController.Token);
                 Shared.IO.Diagnostics.Trace($"CLI Interface exited with code: {code}");
                 return code;
             }
