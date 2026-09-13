@@ -369,8 +369,8 @@ public sealed class TUI {
                     previousControlCSetting = System.Console.TreatControlCAsInput;
                     System.Console.TreatControlCAsInput = true;
                     changedControlC = true;
-                }
-                catch (System.IO.IOException) {
+                } catch (System.IO.IOException) {
+                    Shared.IO.Diagnostics.Bug("Error modifying Control+C behavior.");
                     // Ignore: WinExe attached consoles often reject this property
                 }
 
@@ -387,22 +387,20 @@ public sealed class TUI {
                     }
 
                     return keyInfo;
-                }
-                finally {
+                } finally {
                     if (changedControlC) {
                         try {
                             System.Console.TreatControlCAsInput = previousControlCSetting;
+                        } catch {
+                            Shared.IO.Diagnostics.Bug("Error restoring Control+C behavior.");
                         }
-                        catch { }
                     }
                 }
             }
-        }
-        catch (OperationCanceledException) {
+        } catch (OperationCanceledException) {
             Shared.IO.Diagnostics.Trace("exiting");
             throw;
-        }
-        catch (System.Exception e) {
+        } catch (System.Exception e) {
             Shared.IO.Diagnostics.Bug($"Error reading key: {e.Message}");
             Shared.IO.Diagnostics.Trace("error: " + e);
             throw;

@@ -3,7 +3,7 @@
         <!-- Default TFMs for CI and most dev machines (no Apple workloads required) -->
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
-        <OutputType>WinExe</OutputType>
+        <OutputType>Exe</OutputType> <!-- moved from WinExe to Exe to fix the countless TUI issues, will need to manually fix the terminal popup in GUI mode -->
         <LangVersion>latest</LangVersion>
         <ImplicitUsings>disable</ImplicitUsings>
         <EnableDefaultItems>false</EnableDefaultItems>

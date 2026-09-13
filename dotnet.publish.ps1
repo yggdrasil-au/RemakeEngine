@@ -1,16 +1,27 @@
 <#
 .SYNOPSIS
-    Cross-platform Build & Publish script for RemakeEngine.
+Cross-platform Build & Publish script for RemakeEngine.
+
 .DESCRIPTION
-    This script automates the build and publish process for the RemakeEngine project.
-    It compiles the EngineNet project for multiple configurations and runtimes, bundles necessary assets, and outputs the results to a specified directory.
-    Executed by the github workflows to build and publish the engine on github, automatically it only builds for winx64 for each commit, when tagged builds for all platforms.
+Automates the build and publish process for the RemakeEngine project.
+
+The script publishes EngineNet for exactly the runtime specified by -Runtime,
+bundles necessary assets, and optionally signs Windows executables.
+
+By default, both Release and Debug configurations are built.
+
+Examples:
+    .\dotnet.publish.ps1
+    .\dotnet.publish.ps1 -Runtime 'win-x64'
+    .\dotnet.publish.ps1 -Runtime 'linux-x64' -ConfigFilter 'Release'
+    .\dotnet.publish.ps1 -Runtime 'win-x64' -SkipAssets $false -EnablePython $false -EnableJs $false
 #>
+
 param(
     [Alias("h", "?")]
     [switch]$Help,
     [string]$Framework = "net10.0",
-    [string]$Runtime   = "win-x64",
+    [string]$Runtime = "win-x64",
     [string]$ConfigFilter = "",
     [bool]$SkipAssets = $false,
     [bool]$EnableLua = $true,
@@ -26,13 +37,15 @@ if ($Help) {
     Write-Host ""
     Write-Host "DESCRIPTION:" -ForegroundColor Yellow
     Write-Host "  Automates the build and publish process for RemakeEngine."
-    Write-Host "  Compiles EngineNet, bundles required assets (Registries/Games), and optionally signs executables."
+    Write-Host "  Publishes EngineNet for exactly the specified runtime."
+    Write-Host "  Bundles required assets (Registries/Games), and optionally signs executables."
     Write-Host ""
     Write-Host "PARAMETERS:" -ForegroundColor Yellow
     Write-Host "  -Help, -h, -?           : Displays this help message and exits."
     Write-Host "  -Framework <string>     : Target framework (Default: 'net10.0')."
     Write-Host "  -Runtime <string>       : Target runtime identifier (Default: 'win-x64')."
-    Write-Host "  -ConfigFilter <string>  : Filter build configuration (e.g., 'Release' or 'Debug'). Builds both if omitted."
+    Write-Host "  -ConfigFilter <string>  : Build only the specified configuration ('Release' or 'Debug')."
+    Write-Host "                            If omitted, both Release and Debug are built."
     Write-Host "  -SkipAssets <bool>      : If `$true, skips bundling Registries and Demo Game assets (Default: `$false)."
     Write-Host "  -EnableLua <bool>       : Includes the Lua script engine in the build (Default: `$true)."
     Write-Host "  -EnableJs <bool>        : Includes the JavaScript engine in the build (Default: `$true)."
@@ -41,24 +54,28 @@ if ($Help) {
     Write-Host "EXAMPLES:" -ForegroundColor Yellow
     Write-Host "  .\dotnet.publish.ps1 -Help"
     Write-Host "  .\dotnet.publish.ps1"
-    Write-Host "  .\dotnet.publish.ps1 -EnablePython `$false -EnableJs `$false"
-    Write-Host "  .\dotnet.publish.ps1 -Runtime 'linux-x64' -ConfigFilter 'Release' -SkipAssets `$true"
+    Write-Host "  .\dotnet.publish.ps1 -Runtime 'win-x64'"
+    Write-Host "  .\dotnet.publish.ps1 -Runtime 'linux-x64' -ConfigFilter 'Release'"
+    Write-Host "  .\dotnet.publish.ps1 -Runtime 'win-x64' -SkipAssets `$false -EnablePython `$false -EnableJs `$false"
     Write-Host "======================================================" -ForegroundColor Cyan
     exit 0
 }
 
 # Platform-agnostic pathing
 $Root = Split-Path -Parent $PSCommandPath
-$EngineNetProj = (Join-Path $Root (Join-Path "EngineNet" "EngineNet.csproj"))
-$OutputRoot    = Join-Path $Root "EngineBuild"
-$Icon          = Join-Path $Root (Join-Path "EngineNet" "icon.ico")
+$EngineNetProj = Join-Path $Root (Join-Path "EngineNet" "EngineNet.csproj")
+$OutputRoot = Join-Path $Root "EngineBuild"
+$Icon = Join-Path $Root (Join-Path "EngineNet" "icon.ico")
 
 $SigningCertificate = $null
+
 $CanSignBuilds = $IsWindows -and (Get-Command New-SelfSignedCertificate -ErrorAction SilentlyContinue) -and (Get-Command Set-AuthenticodeSignature -ErrorAction SilentlyContinue)
+
 if ($CanSignBuilds) {
     $SigningCertificate = New-SelfSignedCertificate -Subject "CN=yggdrasilAu" -Type CodeSigningCert -CertStoreLocation "Cert:\CurrentUser\My"
     Write-Host "Created temporary code-signing certificate for CN=yggdrasilAu" -ForegroundColor Cyan
-} elseif ($IsWindows) {
+}
+elseif ($IsWindows) {
     Write-Warning "Code signing cmdlets are not available; builds will continue without signing."
 }
 
@@ -82,38 +99,43 @@ function Sign-PublishedExecutable {
 }
 
 # 1. Version Extraction
-$ProjectToml = (Join-Path $Root (Join-Path ".betterGit" "project.toml"))
+$ProjectToml = Join-Path $Root (Join-Path ".betterGit" "project.toml")
+
 if (Test-Path $ProjectToml) {
     $tomlContent = Get-Content $ProjectToml -Raw
     $major = ([regex]::Match($tomlContent, "(?m)^major\s*=\s*(\d+)")).Groups[1].Value
     $minor = ([regex]::Match($tomlContent, "(?m)^minor\s*=\s*(\d+)")).Groups[1].Value
     $patch = ([regex]::Match($tomlContent, "(?m)^patch\s*=\s*(\d+)")).Groups[1].Value
     $version = "$major.$minor.$patch"
-} else {
+}
+else {
     $version = "1.0.0"
 }
 
-# 2. Define Targets - Now dynamic based on input Runtime
+# 2. Define configurations
 $targets = @(
-    @{ Configuration = "Release"; Output = "win-x64-Release" }
-    @{ Configuration = "Release"; Output = "win-x86-Release" }
-    @{ Configuration = "Release"; Output = "win-arm64-Release" }
-    @{ Configuration = "Release"; Output = "win-arm-Release" }
-
-    @{ Configuration = "Debug";   Output = "win-x64-Debug"   }
-    @{ Configuration = "Debug";   Output = "win-x86-Debug"   }
-    @{ Configuration = "Debug";   Output = "win-arm64-Debug" }
-    @{ Configuration = "Debug";   Output = "win-arm-Debug"   }
+    @{
+        Configuration = "Release"
+        Output = "$Runtime-Release"
+    }
+    @{
+        Configuration = "Debug"
+        Output = "$Runtime-Debug"
+    }
 )
+
 if (-not [string]::IsNullOrWhiteSpace($ConfigFilter)) {
     $targets = $targets | Where-Object { $_.Configuration -eq $ConfigFilter }
 }
 
 Write-Host "--- Build Version: $version | RID: $Runtime ---" -ForegroundColor Cyan
 
-# clear old output
+# Clear old output
 Write-Host "Cleaning old build outputs..." -ForegroundColor Yellow
-if (Test-Path $OutputRoot) { Remove-Item $OutputRoot -Recurse -Force }
+
+if (Test-Path $OutputRoot) {
+    Remove-Item $OutputRoot -Recurse -Force
+}
 
 # Convert boolean parameters to lowercase strings for MSBuild
 $luaArg = $EnableLua.ToString().ToLowerInvariant()
@@ -121,10 +143,10 @@ $jsArg = $EnableJs.ToString().ToLowerInvariant()
 $pyArg = $EnablePython.ToString().ToLowerInvariant()
 
 foreach ($t in $targets) {
-    $config   = $t.Configuration
-    $outDir   = (Join-Path $OutputRoot $t.Output)
+    $config = $t.Configuration
+    $outDir = Join-Path $OutputRoot $t.Output
 
-    Write-Host "==> Publishing $config to $outDir" -ForegroundColor Green
+    Write-Host "==> Publishing $config for $Runtime to $outDir" -ForegroundColor Green
 
     dotnet publish $EngineNetProj `
         -c $config `
@@ -140,38 +162,44 @@ foreach ($t in $targets) {
         -p:EnablePython=$pyArg `
         -v:m
 
-    if ($LASTEXITCODE -ne 0) { throw "Build failed for $config" }
+    if ($LASTEXITCODE -ne 0) {
+        throw "Build failed for $config / $Runtime"
+    }
 
     # 3. Asset Bundling
     if (-not $SkipAssets) {
-        $engineAppsDest = (Join-Path $outDir "EngineApps")
+        $engineAppsDest = Join-Path $outDir "EngineApps"
         $null = New-Item -ItemType Directory -Path $engineAppsDest -Force
 
         # Copy Registries
-        $regSource = (Join-Path $Root (Join-Path "EngineApps" "Registries"))
-        if (Test-Path $regSource) { Copy-Item $regSource -Destination $engineAppsDest -Recurse -Force }
+        $regSource = Join-Path $Root (Join-Path "EngineApps" "Registries")
+        if (Test-Path $regSource) {
+            Copy-Item $regSource -Destination $engineAppsDest -Recurse -Force
+        }
 
         # Copy Demo Game (Git Aware)
         $demoSource = Join-Path $Root "EngineApps/Games/demo"
         if (Test-Path $demoSource) {
-            $demoDest = (Join-Path $engineAppsDest (Join-Path "Games" "demo"))
+            $demoDest = Join-Path $engineAppsDest (Join-Path "Games" "demo")
             $null = New-Item -ItemType Directory -Path $demoDest -Force
 
-            # Use git ls-files (works on all OS)
             $files = git -C $Root ls-files --cached --others --exclude-standard "EngineApps/Games/demo/"
             foreach ($f in $files) {
-                $srcFile = (Join-Path $Root $f)
+                $srcFile = Join-Path $Root $f
                 $relPath = $f.Substring("EngineApps/Games/demo/".Length)
-                $targetFile = (Join-Path $demoDest $relPath)
-                $null = New-Item -ItemType Directory -Path (Split-Path $targetFile) -Force
+                $targetFile = Join-Path $demoDest $relPath
+                $targetDirectory = Split-Path $targetFile
+                $null = New-Item -ItemType Directory -Path $targetDirectory -Force
                 Copy-Item $srcFile -Destination $targetFile -Force
             }
         }
     }
 
+    # 4. Sign Windows executable if possible
     Sign-PublishedExecutable -ExecutablePath (Join-Path $outDir "EngineNet.exe")
 }
 
+# 5. Export version to GitHub Actions
 if ($env:GITHUB_ENV) {
     "ENGINE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 }

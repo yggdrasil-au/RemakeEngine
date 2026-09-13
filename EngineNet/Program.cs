@@ -44,20 +44,8 @@ public static class Program {
             arg.Equals("--gui", comparisonType: System.StringComparison.OrdinalIgnoreCase)));
         isCli = !isGui && !isTui;
 
-        bool hasConsole = false;
-
-        // 2. Attach or allocate Windows console natively if running TUI or CLI
-        if (System.OperatingSystem.IsWindows() && (isTui || isCli)) {
-            hasConsole = ConsoleHelper.AttachConsole(ConsoleHelper.ATTACH_PARENT_PROCESS);
-            if (!hasConsole) {
-                ConsoleHelper.AllocConsole();
-                hasConsole = true;
-            }
-
-            // 3. Force .NET to re-bind standard streams to the new OS handles
-            System.Console.SetOut(new System.IO.StreamWriter(System.Console.OpenStandardOutput()) { AutoFlush = true });
-            System.Console.SetIn(new System.IO.StreamReader(System.Console.OpenStandardInput()));
-            System.Console.SetError(new System.IO.StreamWriter(System.Console.OpenStandardError()) { AutoFlush = true });
+        if (System.OperatingSystem.IsWindows() && isGui) {
+            ConsoleHelper.FreeConsole(); // hides the console window on Windows when running in GUI mode, it will appear for a second, this cannot be avoided
         }
 
         ShutdownCancellationController shutdownCancellationController = new ShutdownCancellationController();
@@ -71,8 +59,7 @@ public static class Program {
             lock (logLock) {
                 if (diagnosticsInitialized) {
                     Shared.IO.Diagnostics.Log(msg);
-                }
-                else {
+                } else {
                     PreinitialDiagnosticsLog.Add(msg);
                 }
             }
@@ -182,9 +169,6 @@ public static class Program {
             Shared.IO.Diagnostics.Trace("Shutting down Engine...");
             Shared.IO.Diagnostics.Close();
             System.Console.ResetColor();
-            if (System.OperatingSystem.IsWindows()) {
-                ConsoleHelper.FreeConsole();
-            }
         }
     }
 
@@ -302,27 +286,12 @@ public static class Program {
     }
 
     /// <summary>
-    /// Helper methods for managing the console window on Windows OS.
-    /// This allows the application to attach to the parent console (if launched from CMD/PowerShell) or allocate a new console if needed (e.g. when double-clicked).
-    /// It also provides a method to free the console on exit.
-    /// This is important for ensuring that TUI/CLI modes have a visible console to interact with, while GUI mode can run without a console window.
+    /// Provides helper methods for managing the console window on Windows OS.
     /// </summary>
     public static class ConsoleHelper {
-        [System.Runtime.InteropServices.DllImport(dllName: "kernel32.dll", SetLastError = true)]
-        [return: System.Runtime.InteropServices.MarshalAs(unmanagedType: System.Runtime.InteropServices.UnmanagedType.Bool)]
-        public static extern bool AllocConsole();
-
-        [System.Runtime.InteropServices.DllImport(dllName: "kernel32.dll", SetLastError = true)]
-        [return: System.Runtime.InteropServices.MarshalAs(unmanagedType: System.Runtime.InteropServices.UnmanagedType.Bool)]
-        public static extern bool AttachConsole(int dwProcessId);
-
-        [System.Runtime.InteropServices.DllImport(dllName: "kernel32.dll", SetLastError = true)]
-        [return: System.Runtime.InteropServices.MarshalAs(unmanagedType: System.Runtime.InteropServices.UnmanagedType.Bool)]
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")]
         public static extern bool FreeConsole();
-
-        public const int ATTACH_PARENT_PROCESS = -1;
     }
-
     /* :: :: Methods :: END :: */
     // //
 }
