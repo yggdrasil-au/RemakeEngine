@@ -54,7 +54,7 @@ public sealed class Single {
         string[] args = parts.Skip(count: 2).ToArray();
 
         if (scriptType is null) {
-            Shared.IO.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Missing script_type for operation with script '{scriptPath}'");
+            Shared.IO.Diagnostics.Log($"[{nameof(Single)}::{nameof(RunAsync)}] Missing script_type for operation with script '{scriptPath}'");
             return false;
         }
 
@@ -66,13 +66,13 @@ public sealed class Single {
                     try {
                         string? action = executableOperation.TryGetValue(key: "script", out object? s) ? s?.ToString() : null;
                         string? title = executableOperation.TryGetValue(key: "Name", out object? n) ? n?.ToString() ?? action : action;
-                        Shared.IO.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Executing engine operation {title} ({action})");
+                        Shared.IO.Diagnostics.Log($"[{nameof(Single)}::{nameof(RunAsync)}] Executing engine operation {title} ({action})");
                         IO.writeLine($"\n>>> Engine operation: {title}");
                         // delegate engine type handling to ExecuteEngineOperationAsync
                         //var op_dispatcher = new helpers.OpDispatcher();
                         result = await helpers.OpDispatcher.DispatchAsync(executableOperation: executableOperation, promptAnswers: promptAnswers, currentGame: currentGame, games: games, context: Context, cancellationToken: cancellationToken);
                     } catch (System.Exception ex) {
-                        Shared.IO.Diagnostics.Bug($"[Single.cs::RunAsync()] Engine operation catch triggered: {ex}");
+                        Shared.IO.Diagnostics.Bug($"[{nameof(Single)}::{nameof(RunAsync)}]] Engine operation catch triggered: {ex}");
                         IO.writeLine($"engine ERROR: {ex.Message}");
                         result = false;
                     }
@@ -101,14 +101,14 @@ public sealed class Single {
 
                         if (action is null) {
                             result = false;
-                            Shared.IO.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Unsupported external script type '{scriptType}'");
+                            Shared.IO.Diagnostics.Log($"[{nameof(Single)}::{nameof(RunAsync)}] Unsupported external script type '{scriptType}'");
                             break;
                         }
 
                         await action.ExecuteAsync(tools: Context.ToolResolver, commandService: Context.CommandService, cancellationToken: cancellationToken);
                         result = true;
                     } catch (System.Exception ex) {
-                        Shared.IO.Diagnostics.Bug($"[Single.cs::RunAsync()] External action catch triggered: {ex}");
+                        Shared.IO.Diagnostics.Bug($"[{nameof(Single)}::{nameof(RunAsync)}]] External action catch triggered: {ex}");
                         IO.writeLine($"bms engine ERROR: {ex.Message}");
                         result = false;
                     }
@@ -130,14 +130,19 @@ public sealed class Single {
                         // null act means unsupported script type
                         if (act is null) {
                             result = false;
-                            Shared.IO.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Unsupported embedded script type '{scriptType}'");
+                            Shared.IO.Diagnostics.Log($"[{nameof(Single)}::{nameof(RunAsync)}] Unsupported embedded script type '{scriptType}'");
                             break;
                         }
                         // execute the action
                         await act.ExecuteAsync(tools: Context.ToolResolver, commandService: Context.CommandService, cancellationToken: cancellationToken);
                         result = true;
+                    } catch (OperationCanceledException) {
+                        Shared.IO.Diagnostics.Trace($"[{nameof(Single)}::{nameof(RunAsync)}] Embedded action cancelled for '{scriptType}'");
+                        IO.writeLine($"{scriptType} engine CANCELLED");
+                        //result = false;
+                        throw; // rethrow to propagate cancellation
                     } catch (System.Exception ex) {
-                        Shared.IO.Diagnostics.Bug($"[Single.cs::RunAsync()] Embedded action catch triggered for '{scriptType}': {ex}");
+                        Shared.IO.Diagnostics.Bug($"[{nameof(Single)}::{nameof(RunAsync)}] Embedded action catch triggered for '{scriptType}': {ex}");
                         IO.writeLine($"{scriptType} engine ERROR: {ex.Message}");
                         result = false;
                     }
@@ -146,12 +151,12 @@ public sealed class Single {
                 default: {
                     // not supported
                     IO.Warn($"operation ERROR: Unsupported script type '{scriptType}'");
-                    Shared.IO.Diagnostics.Log($"[RunSingleAsync.cs::RunSingleOperationAsync()] Unsupported script type '{scriptType}'");
+                    Shared.IO.Diagnostics.Log($"[{nameof(Single)}::{nameof(RunAsync)}] Unsupported script type '{scriptType}'");
                     break;
                 }
             }
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[RunSingleAsync.cs::RunSingleOperationAsync()] err running single op: {ex.Message}");
+            Shared.IO.Diagnostics.Bug($"[{nameof(Single)}::{nameof(RunAsync)}] err running single op: {ex.Message}");
             IO.writeLine($"operation ERROR: {ex.Message}");
             result = false;
         }
@@ -175,7 +180,7 @@ public sealed class Single {
                 await System.IO.File.AppendAllLinesAsync(path: logPath, contents: new[] { logEntry }, cancellationToken: cancellationToken);
             }
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[RunSingleAsync.cs::RunSingleOperationAsync()] Failed to write execution log: {ex.Message}");
+            Shared.IO.Diagnostics.Bug($"[{nameof(Single)}::{nameof(RunAsync)}] Failed to write execution log: {ex.Message}");
         }
 
         return result;
@@ -198,28 +203,28 @@ public sealed class Single {
 
         // tmp debug log each in diagnostics trace before resolution
         foreach (KeyValuePair<string, object?> kvp in executionPayload) {
-            Shared.IO.Diagnostics.Trace($"[Single.cs::ResolveExecutionPayload()] Pre-resolution payload field: {kvp.Key} = {kvp.Value}");
+            Shared.IO.Diagnostics.Trace($"[{nameof(Single)}::ResolveExecutionPayload()] Pre-resolution payload field: {kvp.Key} = {kvp.Value}");
             // if value is args array, log each arg separately
             if (kvp.Key.Equals("args", comparisonType: System.StringComparison.OrdinalIgnoreCase) && kvp.Value is IEnumerable<object?> argsEnum) {
                 int i = 0;
                 foreach (object? arg in argsEnum) {
-                    Shared.IO.Diagnostics.Trace($"[Single.cs::ResolveExecutionPayload()] Pre-resolution arg[{i}]: {arg}");
+                    Shared.IO.Diagnostics.Trace($"[{nameof(Single)}::ResolveExecutionPayload()] Pre-resolution arg[{i}]: {arg}");
                     i++;
                 }
             }
         }
 
         if (Core.Utils.Placeholders.Resolve(executionPayload, context: context) is IDictionary<string, object?> resolvedPayload) {
-            Shared.IO.Diagnostics.Trace("[Single.cs::ResolveExecutionPayload()] Successfully resolved execution payload");
+            Shared.IO.Diagnostics.Trace($"[{nameof(Single)}::ResolveExecutionPayload()] Successfully resolved execution payload");
 
             // tmp debug log each resolved field in diagnostics trace
             foreach (KeyValuePair<string, object?> kvp in resolvedPayload) {
-                Shared.IO.Diagnostics.Trace($"[Single.cs::ResolveExecutionPayload()] Resolved payload field: {kvp.Key} = {kvp.Value}");
+                Shared.IO.Diagnostics.Trace($"[{nameof(Single)}::ResolveExecutionPayload()] Resolved payload field: {kvp.Key} = {kvp.Value}");
                 // if value is args array, log each arg separately
                 if (kvp.Key.Equals("args", comparisonType: System.StringComparison.OrdinalIgnoreCase) && kvp.Value is IEnumerable<object?> argsEnum) {
                     int i = 0;
                     foreach (object? arg in argsEnum) {
-                        Shared.IO.Diagnostics.Trace($"[Single.cs::ResolveExecutionPayload()] Resolved arg[{i}]: {arg}");
+                        Shared.IO.Diagnostics.Trace($"[{nameof(Single)}::ResolveExecutionPayload()] Resolved arg[{i}]: {arg}");
                         i++;
                     }
                 }
@@ -228,7 +233,7 @@ public sealed class Single {
             return resolvedPayload;
         }
 
-        Shared.IO.Diagnostics.Trace("[Single.cs::ResolveExecutionPayload()] Failed to resolve execution payload, using raw payload");
+        Shared.IO.Diagnostics.Trace($"[{nameof(Single)}::ResolveExecutionPayload()] Failed to resolve execution payload, using raw payload");
 
         return executionPayload;
     }

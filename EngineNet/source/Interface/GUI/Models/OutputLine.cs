@@ -1,5 +1,3 @@
-using System.ComponentModel;
-
 namespace EngineNet.GUI.Models;
 
 /// <summary>

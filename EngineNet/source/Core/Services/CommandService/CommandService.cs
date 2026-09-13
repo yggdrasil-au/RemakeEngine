@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Text;
 
 using EngineNet.Core.Utils;
@@ -36,10 +35,16 @@ public sealed class CommandService {
         process.StartInfo = psi;
 
         if (captureStdout) {
-            process.OutputDataReceived += (_, e) => { if (e.Data != null) { lock (stdoutBuilder) { stdoutBuilder.AppendLine(e.Data); } } };
+            process.OutputDataReceived += (_, e) => {
+                if (e.Data == null) return;
+                lock (stdoutBuilder) { stdoutBuilder.AppendLine(e.Data); }
+            };
         }
         if (captureStderr) {
-            process.ErrorDataReceived += (_, e) => { if (e.Data != null) { lock (stderrBuilder) { stderrBuilder.AppendLine(e.Data); } } };
+            process.ErrorDataReceived += (_, e) => {
+                if (e.Data == null) return;
+                lock (stderrBuilder) { stderrBuilder.AppendLine(e.Data); }
+            };
         }
 
         try {
@@ -152,7 +157,7 @@ public sealed class CommandService {
         return true;
     }
 
-    public bool LaunchDetached(string executable, IEnumerable<string> args, string? cwd, DetachedLaunchOptions options) {
+    internal bool LaunchDetached(string executable, IEnumerable<string> args, string? cwd, DetachedLaunchOptions options) {
         try {
             ProcessStartInfo psi = new ProcessStartInfo {
                 FileName = executable,
@@ -340,7 +345,7 @@ public sealed class CommandService {
 
     // --- Internal State Classes ---
 
-    private class ManagedProcess {
+    private sealed class ManagedProcess {
         internal Process Process { get; set; } = null!;
         internal StringBuilder Stdout { get; } = new StringBuilder();
         internal StringBuilder Stderr { get; } = new StringBuilder();
@@ -353,23 +358,23 @@ public sealed class CommandService {
 }
 
 public sealed class ProcessResult {
-    public int ExitCode { get; set; }
-    public bool Success { get; set; }
-    public string Stdout { get; set; } = string.Empty;
-    public string Stderr { get; set; } = string.Empty;
+    public int ExitCode { get; init; }
+    public bool Success { get; init; }
+    public string Stdout { get; init; } = string.Empty;
+    public string Stderr { get; init; } = string.Empty;
 }
 
 public sealed class ProcessPollResult {
-    public bool Running { get; set; }
-    public int? ExitCode { get; set; }
-    public string StdoutFull { get; set; } = string.Empty;
-    public string StderrFull { get; set; } = string.Empty;
-    public string StdoutDelta { get; set; } = string.Empty;
-    public string StderrDelta { get; set; } = string.Empty;
+    public bool Running { get; init; }
+    public int? ExitCode { get; init; }
+    public string StdoutFull { get; internal set; } = string.Empty;
+    public string StderrFull { get; internal set; } = string.Empty;
+    public string StdoutDelta { get; internal set; } = string.Empty;
+    public string StderrDelta { get; internal set; } = string.Empty;
 }
 
-public sealed class DetachedLaunchOptions {
-    public bool UseShellExecute { get; set; } = true;
+internal sealed class DetachedLaunchOptions {
+    internal bool UseShellExecute { get; init; } = true;
     public bool? CreateNoWindow { get; set; }
     public ProcessWindowStyle? WindowStyle { get; set; }
 }

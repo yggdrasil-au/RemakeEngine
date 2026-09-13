@@ -8,7 +8,7 @@ internal static class ToolRegistryResolver {
         return LoadTypedRegistry(rawRegistry: InternalToolRegistry.Assemble());
     }
 
-    internal static Dictionary<string, Dictionary<string, RegistryToolVersion>> LoadTypedRegistry(Dictionary<string, object?> rawRegistry) {
+    private static Dictionary<string, Dictionary<string, RegistryToolVersion>> LoadTypedRegistry(Dictionary<string, object?> rawRegistry) {
         Dictionary<string, Dictionary<string, RegistryToolVersion>> registry = new Dictionary<string, Dictionary<string, RegistryToolVersion>>(comparer: System.StringComparer.OrdinalIgnoreCase);
 
         foreach (KeyValuePair<string, object?> toolEntry in rawRegistry) {

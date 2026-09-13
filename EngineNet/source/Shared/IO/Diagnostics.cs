@@ -2,6 +2,7 @@
 
 namespace EngineNet.Shared.IO;
 
+using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
 
 // Diagnostic logging utility
@@ -209,15 +210,16 @@ public static class Diagnostics {
     /// <summary>
     /// Log a trace message to trace.log, only in Debug builds, use anywhere for excessively verbose tracing
     /// </summary>
-    /// <param name="message"></param>
-    public static void Trace(string message) {
+    public static void Trace(string message, [CallerFilePath] string filePath = "",
+        [CallerMemberName] string memberName = "") {
         if (!IsTraceEnabled || _traceWriter == null) {
             return;
         }
 
         lock (_lock) {
-            string timestamp = DateTime.Now.ToString(format: "HH:mm:ss");
-            string formattedMsg = $"[{timestamp}] [TRACE] {message}";
+            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+            string className = System.IO.Path.GetFileNameWithoutExtension(filePath);
+            string formattedMsg = $"[{timestamp}] [TRACE] [{filePath}::{className}::{memberName}] {message}";
             // Write to trace.log in Debug builds
             _traceWriter.WriteLine(formattedMsg);
         }
@@ -226,13 +228,13 @@ public static class Diagnostics {
     /// <summary>
     /// Logs an informational message to debug.log and trace.log
     /// </summary>
-    /// <param name="message"></param>
-    public static void Info(string message) {
+    public static void Info(string message, [CallerFilePath] string filePath = "", [CallerMemberName] string memberName = "") {
         if (_debugWriter == null) return;
 
         lock (_lock) {
-            string timestamp = DateTime.Now.ToString(format: "HH:mm:ss");
-            string formattedMsg = $"[{timestamp}] [INFO] {message}";
+            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+            string className = System.IO.Path.GetFileNameWithoutExtension(filePath);
+            string formattedMsg = $"[{timestamp}] [INFO] [{filePath}::{className}::{memberName}] {message}";
 
             // 1. Write to specific debug.log
             _debugWriter.WriteLine(formattedMsg);
@@ -245,13 +247,13 @@ public static class Diagnostics {
     /// <summary>
     /// Logs a general log message to debug.log and trace.log
     /// </summary>
-    /// <param name="message"></param>
-    public static void Log(string message) {
+    public static void Log(string message, [CallerFilePath] string filePath = "", [CallerMemberName] string memberName = "") {
         if (_debugWriter == null) return;
 
         lock (_lock) {
-            string timestamp = DateTime.Now.ToString(format: "HH:mm:ss");
-            string formattedMsg = $"[{timestamp}] [Log] {message}";
+            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+            string className = System.IO.Path.GetFileNameWithoutExtension(filePath);
+            string formattedMsg = $"[{timestamp}] [Log] [{filePath}::{className}::{memberName}] {message}";
 
             // 1. Write to specific debug.log
             _debugWriter.WriteLine(formattedMsg);
@@ -263,18 +265,16 @@ public static class Diagnostics {
 
     /// <summary>
     /// Logs a bug message and optional exception to exception.log and trace.log
-    /// Use within catch blocks, it doesn't need to be an actual bug just an exception
     /// </summary>
-    /// <param name="message"></param>
-    /// <param name="ex"></param>
-    public static void Bug(string message, Exception? ex = null) {
+    public static void Bug(string message, Exception? ex = null, [CallerFilePath] string filePath = "", [CallerMemberName] string memberName = "") {
         if (_bugWriter == null) return;
 
         lock (_lock) {
-            string timestamp = DateTime.Now.ToString(format: "HH:mm:ss");
+            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+            string className = System.IO.Path.GetFileNameWithoutExtension(filePath);
 
             // Format the header
-            string header = $"[{timestamp}] [BUG] {message}";
+            string header = $"[{timestamp}] [BUG] [{filePath}::{className}::{memberName}] {message}";
             string? stack = ex != null ? $"[{timestamp}] [STACK] {ex}" : null;
 
             // 1. Write to specific exception.log
@@ -282,13 +282,14 @@ public static class Diagnostics {
             if (stack != null) _bugWriter.WriteLine(stack);
 
             // 2. Write to master trace.log in Debug builds
-            WriteTrace(header, stack: stack);
+            WriteTrace(header, stack);
         }
     }
 
     /// <summary>
     /// Like the Bug method but specifically for logging exceptions from C# invoked by Lua scripts.
     /// e.g. when a Lua script calls a C# function that throws an exception, this method can be used to log that exception from C# into lua.log and trace.log.
+    /// not to be used inside a OperationCanceledException catch block, use Trace or Log instead.
     /// </summary>
     /// <param name="ex"></param>
     public static void LuaInternalCatch(string ex) {

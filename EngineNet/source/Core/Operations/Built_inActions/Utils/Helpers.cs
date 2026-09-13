@@ -48,16 +48,9 @@ internal class Helpers {
         return GetFirstValueAsString(rawValue);
     }
 
-    internal static string? GetFirstValueAsString(object? value) {
-        if (value is System.Collections.IList list) {
-            if (list.Count == 0) {
-                return null;
-            }
-
-            return list[index: 0]?.ToString();
-        }
-
-        return value?.ToString();
+    private static string? GetFirstValueAsString(object? value) {
+        if (value is not System.Collections.IList list) return value?.ToString();
+        return list.Count == 0 ? null : list[index: 0]?.ToString();
     }
 
     internal static string? GetFieldOrFirstArgRawValue(IDictionary<string, object?> op, string fieldName) {

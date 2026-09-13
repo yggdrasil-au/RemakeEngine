@@ -10,7 +10,7 @@ public class JsonToolResolver {
     private string? _loadedFile;
     private System.DateTime _lastWriteTime;
 
-    public JsonToolResolver() {
+    protected internal JsonToolResolver() {
         _lockfilePath = ToolLockfile.GetPath(rootPath: EngineNet.Shared.State.RootPath);
         Load();
     }

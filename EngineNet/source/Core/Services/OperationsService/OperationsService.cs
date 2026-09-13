@@ -1,6 +1,5 @@
 
 using EngineNet.Core.Data;
-using EngineNet.Core.Utils;
 
 namespace EngineNet.Core.Services;
 
@@ -194,7 +193,7 @@ public sealed class OperationsService {
     /// </summary>
     /// <param name="op"></param>
     /// <returns></returns>
-    internal static string ResolveOperationDisplayName(IDictionary<string, object?> op) {
+    private static string ResolveOperationDisplayName(IDictionary<string, object?> op) {
         string? name = GetString(data: op, keys: ["Name", "name"]);
         if (!string.IsNullOrWhiteSpace(name)) {
             return name;

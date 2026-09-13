@@ -8,7 +8,7 @@ namespace EngineNet.Core.Services;
 /// </summary>
 public sealed class GameRegistry {
     private readonly Core.Utils.ModuleScanner _scanner;
-    internal readonly Core.Utils.Registries _registries;
+    private readonly Core.Utils.Registries _registries;
     private readonly string _rootPath = EngineNet.Shared.State.RootPath;
 
     /// <summary>

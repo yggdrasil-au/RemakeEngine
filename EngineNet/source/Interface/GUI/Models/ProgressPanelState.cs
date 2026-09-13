@@ -1,6 +1,3 @@
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-
 namespace EngineNet.GUI.Models;
 
 public sealed class ProgressPanelState : INotifyPropertyChanged {

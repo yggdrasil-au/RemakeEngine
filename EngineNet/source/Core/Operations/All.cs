@@ -43,7 +43,7 @@ public sealed class All {
         }
 
         Core.Data.GameModules games = Context.GameRegistry.GetModules(filter: Core.Data.ModuleFilter.All);
-        if (!games.TryGetValue(key: gameName, out EngineNet.Core.Data.GameModuleInfo? gameInfo)) {
+        if (!games.TryGetValue(key: gameName, out EngineNet.Core.Data.GameModuleInfo? _)) {
             throw new KeyNotFoundException($"Game '{gameName}' not found.");
         }
 

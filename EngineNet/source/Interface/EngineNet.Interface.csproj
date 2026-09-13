@@ -7,6 +7,7 @@
         <LangVersion>latest</LangVersion>
         <ImplicitUsings>disable</ImplicitUsings>
         <DebugType>embedded</DebugType>
+        <Platforms>AnyCPU;x64</Platforms>
     </PropertyGroup>
 
     <ItemGroup>

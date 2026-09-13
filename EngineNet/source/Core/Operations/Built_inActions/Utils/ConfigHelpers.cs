@@ -14,7 +14,7 @@ internal static class ConfigHelpers {
         }
     }
 
-    internal static object EnsureGroupEntry(IDictionary<string, object?> doc, string group, int index) {
+    private static object EnsureGroupEntry(IDictionary<string, object?> doc, string group, int index) {
         if (!doc.TryGetValue(key: group, out object? g) || g == null) {
             Dictionary<string, object?> newDict = new Dictionary<string, object?>();
             // If index > 1, we must start as a list
@@ -161,7 +161,7 @@ internal static class ConfigHelpers {
         return opts;
     }
 
-    internal static SetToken? ParseSetToken(string token) {
+    private static SetToken? ParseSetToken(string token) {
         // key=value[:type]
         if (string.IsNullOrEmpty(token)) return null;
         int eq = token.IndexOf('=');

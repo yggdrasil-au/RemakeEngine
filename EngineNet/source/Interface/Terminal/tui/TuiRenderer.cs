@@ -1,5 +1,6 @@
 namespace EngineNet.Terminal;
 
+
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -64,8 +65,8 @@ public static class TuiRenderer {
         try {
             _width = Console.WindowWidth;
             _height = Console.WindowHeight;
-        }
-        catch {
+        } catch {
+            Shared.IO.Diagnostics.Bug("Failed to get terminal dimensions due to an exception.");
             _width = 80;
             _height = 24;
         }
@@ -117,10 +118,9 @@ public static class TuiRenderer {
             int oldHeight = _statusHeight;
             RefreshStatusHeight();
 
-            if (_isActive) {
-                if (oldHeight != _statusHeight) RenderFull();
-                else RenderStatus();
-            }
+            if (!_isActive) return;
+            if (oldHeight != _statusHeight) RenderFull();
+            else RenderStatus();
         }
     }
 
@@ -131,10 +131,9 @@ public static class TuiRenderer {
             int oldHeight = _statusHeight;
             RefreshStatusHeight();
 
-            if (_isActive) {
-                if (oldHeight != _statusHeight) RenderFull();
-                else RenderStatus();
-            }
+            if (!_isActive) return;
+            if (oldHeight != _statusHeight) RenderFull();
+            else RenderStatus();
         }
     }
 
@@ -145,10 +144,9 @@ public static class TuiRenderer {
             _statusNoticeMessage = null;
             RefreshStatusHeight();
 
-            if (_isActive) {
-                if (oldHeight != _statusHeight) RenderFull();
-                else RenderStatus();
-            }
+            if (!_isActive) return;
+            if (oldHeight != _statusHeight) RenderFull();
+            else RenderStatus();
         }
     }
 
@@ -196,20 +194,14 @@ public static class TuiRenderer {
         try {
             Console.Clear();
             Console.SetCursorPosition(left: 0, top: 0);
-        }
-        catch (System.IO.IOException) {
-            // Ignored if redirected
+        } catch (System.IO.IOException) {
+            Shared.IO.Diagnostics.Bug("Failed to clear terminal due to IO exception.");
         }
     }
 
     private static void HandleScrollInput(ConsoleKeyInfo key) {
         if (key.Key == ConsoleKey.Escape) {
-            if (_cancellationMode == CancellationMode.Disabled || _cts == null || _cts.IsCancellationRequested) {
-                ShowStatusNotice("Operations cannot be canceled.");
-                return;
-            }
-
-            if (_cancellationMode == CancellationMode.PromptsOnly && !_isInputActive) {
+            if (_cancellationMode == CancellationMode.Disabled || _cts == null || _cts.IsCancellationRequested || _cancellationMode == CancellationMode.PromptsOnly && !_isInputActive) {
                 ShowStatusNotice("Operations cannot be canceled.");
                 return;
             }
@@ -332,9 +324,8 @@ public static class TuiRenderer {
                 Console.SetCursorPosition(left: 0, top: _height - 1);
                 Console.Write(new string(c: ' ', count: outputWidth));
             }
-        }
-        catch {
-            /* Resize race condition ignore */
+        } catch {
+            Shared.IO.Diagnostics.Trace("Failed to render logs due to an exception.");
         }
 
         if (_isInputActive && _statusHeight > 0) {
@@ -437,11 +428,9 @@ public static class TuiRenderer {
             Console.SetCursorPosition(left: 0, top: _height - 1);
             Console.ForegroundColor = ConsoleColor.DarkGray;
             Console.Write(BoxBottomLeft + new string(c: BoxHorizontal, count: Math.Max(val1: 0, val2: outputWidth - 2)) + BoxBottomRight);
-        }
-        catch {
-            /* Resize race condition ignore */
-        }
-        finally {
+        } catch {
+            Shared.IO.Diagnostics.Bug("Failed to render status due to an exception.");
+        } finally {
             if (_isInputActive) {
                 RenderInputLine();
             }
@@ -466,9 +455,8 @@ public static class TuiRenderer {
             int cursorX = Math.Clamp(2 + _promptLabel.Length + 1 + _inputBuffer.Length, min: 2, max: outputWidth - 3);
             Console.SetCursorPosition(left: cursorX, top: inputY);
             Console.CursorVisible = true;
-        }
-        catch {
-            /* ignore resize race */
+        } catch {
+            Shared.IO.Diagnostics.Trace("Failed to render input line due to an exception.");
         }
     }
 
@@ -485,8 +473,8 @@ public static class TuiRenderer {
             _width = width;
             _height = height;
             return changed;
-        }
-        catch (System.IO.IOException) {
+        } catch (System.IO.IOException) {
+            Shared.IO.Diagnostics.Bug("Failed to refresh terminal dimensions due to an IO exception.");
             return false;
         }
     }
@@ -517,14 +505,58 @@ public static class TuiRenderer {
 
         RenderFull();
 
-        StringBuilder input = new StringBuilder();
-        while (_isActive) {
-            if (Console.KeyAvailable) {
-                ConsoleKeyInfo key = Console.ReadKey(intercept: true);
+        bool prevControlC = Console.TreatControlCAsInput;
+        Console.TreatControlCAsInput = true;
 
-                if (IsNavigationKey(key: key.Key) || key.Key == ConsoleKey.Escape) {
-                    HandleScrollInput(key: key);
+        try {
+            StringBuilder input = new StringBuilder();
+            while (_isActive) {
+                if (Console.KeyAvailable) {
+                    ConsoleKeyInfo key = Console.ReadKey(intercept: true);
 
+                    // Detect manual Ctrl+C
+                    if (key.Key == ConsoleKey.C && key.Modifiers.HasFlag(ConsoleModifiers.Control)) {
+                        _cts?.Cancel();
+                        throw new OperationCanceledException("Cancellation requested via Ctrl+C in TuiRenderer.");
+                    }
+
+                    if (IsNavigationKey(key: key.Key) || key.Key == ConsoleKey.Escape) {
+                        HandleScrollInput(key: key);
+
+                        if (_cts != null && _cts.IsCancellationRequested) {
+                            lock (_lock) {
+                                _isInputActive = false;
+                                _inputBuffer = "";
+                                _promptLabel = "";
+                                _scrollOffset = 0;
+                                RefreshStatusHeight();
+                            }
+
+                            RenderFull();
+                            return null;
+                        }
+                        lock (_lock) {
+                            _isInputActive = true;
+                            RenderInputLine();
+                        }
+
+                        continue;
+                    }
+
+                    if (key.Key == ConsoleKey.Enter) {
+                        break;
+                    } else if (key.Key == ConsoleKey.Backspace) {
+                        if (input.Length > 0) input.Remove(startIndex: input.Length - 1, length: 1);
+                    } else if (!char.IsControl(c: key.KeyChar)) {
+                        input.Append(key.KeyChar);
+                    }
+
+                    lock (_lock) {
+                        _isInputActive = true;
+                        _inputBuffer = isSecret ? new string(c: '*', count: input.Length) : input.ToString();
+                        RenderInputLine();
+                    }
+                } else {
                     if (_cts != null && _cts.IsCancellationRequested) {
                         lock (_lock) {
                             _isInputActive = false;
@@ -537,50 +569,40 @@ public static class TuiRenderer {
                         RenderFull();
                         return null;
                     }
-
-                    lock (_lock) {
-                        _isInputActive = true;
-                        RenderInputLine();
-                    }
-
-                    continue;
+                    Thread.Sleep(millisecondsTimeout: 10);
                 }
-
-                if (key.Key == ConsoleKey.Enter) {
-                    break;
-                } else if (key.Key == ConsoleKey.Backspace) {
-                    if (input.Length > 0) input.Remove(startIndex: input.Length - 1, length: 1);
-                } else if (!char.IsControl(c: key.KeyChar)) {
-                    input.Append(key.KeyChar);
-                }
-
-                lock (_lock) {
-                    _isInputActive = true;
-                    _inputBuffer = isSecret ? new string(c: '*', count: input.Length) : input.ToString();
-                    RenderInputLine();
-                }
-            } else {
-                Thread.Sleep(millisecondsTimeout: 10);
             }
-        }
 
-        lock (_lock) {
-            _isInputActive = false;
-            string result = input.ToString();
-            _inputBuffer = "";
-            _promptLabel = "";
-            _scrollOffset = 0;
+            lock (_lock) {
+                _isInputActive = false;
+                string result = input.ToString();
+                _inputBuffer = "";
+                _promptLabel = "";
+                _scrollOffset = 0;
 
-            Log($"{label} {(isSecret ? new string(c: '*', count: result.Length) : result)}", color: ConsoleColor.Cyan);
-            RefreshStatusHeight();
-            RenderFull();
-            return result;
+                Log($"{label} {(isSecret ? new string(c: '*', count: result.Length) : result)}", color: ConsoleColor.Cyan);
+                RefreshStatusHeight();
+                RenderFull();
+                return result;
+            }
+        } finally {
+            Console.TreatControlCAsInput = prevControlC;
         }
     }
 
+
     internal static void WaitForKey() {
         if (!_isActive) {
-            Console.ReadKey(intercept: true);
+            bool prev = Console.TreatControlCAsInput;
+            Console.TreatControlCAsInput = true;
+            try {
+                ConsoleKeyInfo ki = Console.ReadKey(intercept: true);
+                if (ki.Key == ConsoleKey.C && ki.Modifiers.HasFlag(ConsoleModifiers.Control)) {
+                    throw new OperationCanceledException();
+                }
+            } finally {
+                Console.TreatControlCAsInput = prev;
+            }
             return;
         }
 
@@ -593,10 +615,18 @@ public static class TuiRenderer {
 
         RenderFull();
 
+        bool prevCtrl = Console.TreatControlCAsInput;
+        Console.TreatControlCAsInput = true;
+
         try {
             while (_isActive) {
                 if (Console.KeyAvailable) {
                     ConsoleKeyInfo key = Console.ReadKey(intercept: true);
+                    if (key.Key == ConsoleKey.C && key.Modifiers.HasFlag(ConsoleModifiers.Control)) {
+                        _cts?.Cancel();
+                        throw new OperationCanceledException();
+                    }
+
                     if (IsNavigationKey(key: key.Key)) {
                         HandleScrollInput(key: key);
                         lock (_lock) {
@@ -607,11 +637,14 @@ public static class TuiRenderer {
                         break;
                     }
                 } else {
+                    if (_cts != null && _cts.IsCancellationRequested) {
+                        break;
+                    }
                     Thread.Sleep(millisecondsTimeout: 10);
                 }
             }
-        }
-        finally {
+        } finally {
+            Console.TreatControlCAsInput = prevCtrl;
             lock (_lock) {
                 _isInputActive = false;
                 _promptLabel = "";
@@ -649,8 +682,7 @@ public static class TuiRenderer {
         if (ki.Key == ConsoleKey.Y) {
             _cts.Cancel();
             Log("Cancelling operation...", color: ConsoleColor.Yellow);
-        }
-        else {
+        } else {
             Log("Resuming...", color: ConsoleColor.Cyan);
         }
 
@@ -675,8 +707,7 @@ public static class TuiRenderer {
 
         if (_statusLines.Count == 0 && noticeCount == 0 && inputCount == 0 && scriptProgCount == 0) {
             _statusHeight = 0; // Collapses and hides the box entirely when nothing is required
-        }
-        else {
+        } else {
             int requestedHeight = _statusLines.Count + noticeCount + inputCount + scriptProgCount + 2;
             _statusHeight = Math.Clamp(requestedHeight, min: 3, max: Math.Max(val1: 3, val2: _height / 2));
         }

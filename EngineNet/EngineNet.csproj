@@ -20,6 +20,7 @@
         <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
         <!-- Embedd PDBs in exe, these are used for debugging in published app -->
         <DebugType>embedded</DebugType>
+        <Platforms>AnyCPU;x64</Platforms>
 
     </PropertyGroup>
 
@@ -41,6 +42,7 @@
 
     <ItemGroup>
         <ProjectReference Include="source\Core\EngineNet.Core.csproj" />
+        <ProjectReference Include="source\GameFormats\EngineNet.GameFormats.csproj" />
 
         <ProjectReference Include="source\ScriptEngines\EngineNet.ScriptEngines.csproj" />
         <ProjectReference Include="source\Shared\EngineNet.Shared.csproj" />

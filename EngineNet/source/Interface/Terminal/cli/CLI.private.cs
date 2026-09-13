@@ -99,33 +99,36 @@ public sealed partial class CLI {
 
         if (!string.IsNullOrWhiteSpace(identifier)) {
             foreach (KeyValuePair<string, Core.Data.GameModuleInfo> kv in games) {
-                if (string.Equals(a: kv.Key, b: identifier, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
-                    resolvedName = kv.Key;
-                    ApplyGameOverrides(games: games, gameName: resolvedName, preferredRoot: preferredRoot, opsFile: options.OpsFile);
-                    return true;
+                if (!string.Equals(a: kv.Key, b: identifier, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
+                    continue;
                 }
+                resolvedName = kv.Key;
+                ApplyGameOverrides(games: games, gameName: resolvedName, preferredRoot: preferredRoot, opsFile: options.OpsFile);
+                return true;
             }
 
             if (TryResolveGameByRegisteredId(games: games, identifier: identifier, resolvedName: out string? resolvedById)) {
                 resolvedName = resolvedById;
-                if (resolvedName is not null) {
-                    ApplyGameOverrides(games: games, gameName: resolvedName, preferredRoot: preferredRoot, opsFile: options.OpsFile);
-                    return true;
+                if (resolvedName is null) {
+                    return false;
                 }
-                return false;
+                ApplyGameOverrides(games: games, gameName: resolvedName, preferredRoot: preferredRoot, opsFile: options.OpsFile);
+                return true;
             }
 
-            string? identifierPath = ResolveFullPathSafe(path: identifier);
+            string identifierPath = ResolveFullPathSafe(path: identifier);
             if (!string.IsNullOrWhiteSpace(identifierPath)) {
                 foreach (KeyValuePair<string, Core.Data.GameModuleInfo> kv in games) {
-                    if (kv.Value.GameRoot is not null) {
-                        string? existingRoot = ResolveFullPathSafe(path: kv.Value.GameRoot);
-                        if (!string.IsNullOrWhiteSpace(existingRoot) && PathsEqual(a: existingRoot, b: identifierPath)) {
-                            resolvedName = kv.Key;
-                            ApplyGameOverrides(games: games, gameName: resolvedName, preferredRoot: preferredRoot, opsFile: options.OpsFile);
-                            return true;
-                        }
+                    if (kv.Value.GameRoot is null) {
+                        continue;
                     }
+                    string existingRoot = ResolveFullPathSafe(path: kv.Value.GameRoot);
+                    if (string.IsNullOrWhiteSpace(existingRoot) || !PathsEqual(a: existingRoot, b: identifierPath)) {
+                        continue;
+                    }
+                    resolvedName = kv.Key;
+                    ApplyGameOverrides(games: games, gameName: resolvedName, preferredRoot: preferredRoot, opsFile: options.OpsFile);
+                    return true;
                 }
 
                 if (System.IO.Directory.Exists(path: identifierPath)) {
@@ -441,7 +444,7 @@ public sealed partial class CLI {
     }
 
     private static string NormalizePath(string path) {
-        string full = ResolveFullPathSafe(path: path) ?? path;
+        string full = ResolveFullPathSafe(path: path);
         return full.TrimEnd(trimChars: [System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar]);
     }
 

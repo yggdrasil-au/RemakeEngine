@@ -171,7 +171,7 @@ public sealed partial class StorePage:UserControl, INotifyPropertyChanged {
             bool success = await EngineOperationRunner.RunAsync(
                 moduleName: item.Name,
                 operationName: $"Download {item.Name}",
-                executor: async (onOutput, onEvent, stdin) => {
+                executor: async (onOutput, onEvent, _) => {
                     onEvent(evt: new Dictionary<string, object?> {
                         [key: "event"] = EngineSdk.Events.Start,
                         [key: "name"] = item.Name,

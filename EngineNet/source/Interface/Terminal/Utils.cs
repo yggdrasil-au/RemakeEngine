@@ -128,8 +128,7 @@ public sealed class Utils {
                 stdinProvider: inputProvider,
                 envOverrides: new Dictionary<string, object?> { [key: "TERM"] = "dumb" }
             );
-        }
-        catch (System.Exception ex) {
+        } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"[Utils.cs::ExecuteOp()] Error executing operation: {ex.Message}");
             return false;
         }
@@ -271,6 +270,7 @@ public sealed class Utils {
                                     w = System.Console.WindowWidth;
                                 }
                                 catch {
+                                    Shared.IO.Diagnostics.Bug("Failed to get console window width due to an exception.");
                                     w = 80;
                                 }
 
@@ -279,6 +279,7 @@ public sealed class Utils {
                                 System.Console.Write($"\r{text.PadRight(totalWidth: w - 1)}");
                             }
                             catch {
+                                Shared.IO.Diagnostics.Bug("Failed to write progress panel line to console due to an exception.");
                                 // Silent catch to prevent crashing if console window access fails
                             }
                         }
@@ -477,8 +478,8 @@ public sealed class Utils {
         try {
             JsonSerializer.Serialize(value, options: s_jsonOpts);
             return value;
-        }
-        catch {
+        } catch {
+            Shared.IO.Diagnostics.Bug("Failed to serialize value to JSON due to an exception.");
             return value.ToString();
         }
     }
@@ -539,8 +540,7 @@ public sealed class Utils {
                 int buf = System.Math.Max(val1: 20, val2: System.Console.BufferWidth);
                 // Keep the bar a reasonable fraction of buffer width
                 width = System.Math.Clamp(buf - 40, min: 10, max: 60);
-            }
-            catch {
+            } catch {
                 width = 30;
             }
 
@@ -552,8 +552,8 @@ public sealed class Utils {
             try {
                 int maxLabel = System.Math.Max(val1: 8, val2: System.Math.Min(val1: 30, val2: System.Console.BufferWidth - (width + 20)));
                 if (lbl.Length > maxLabel) lbl = lbl.Substring(startIndex: 0, length: maxLabel - 3) + "...";
-            }
-            catch {
+            } catch {
+                Shared.IO.Diagnostics.Bug("Failed to calculate max label width due to an exception.");
                 /* ignore */
             }
 
@@ -602,8 +602,7 @@ public sealed class Utils {
                     int maxFile;
                     try {
                         maxFile = System.Math.Max(val1: 18, val2: System.Console.BufferWidth - 20);
-                    }
-                    catch {
+                    } catch {
                         maxFile = 50;
                     }
 

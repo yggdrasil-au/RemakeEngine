@@ -1,7 +1,6 @@
 
 using System;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Avalonia;
@@ -23,6 +22,9 @@ public static class Program {
     private static bool isTui {get; set;}
     private static bool isCli {get; set;}
 
+    // Add a static counter inside the Program class
+    private static int _ctrlCCount = 0;
+
     /* :: :: Vars :: START :: */
     public static AppBuilder BuildAvaloniaApp()  {
         return GUI.GuiBootstrapper.BuildAvaloniaApp();
@@ -34,16 +36,42 @@ public static class Program {
     [STAThread]
     public static async System.Threading.Tasks.Task<int> Main(string[] args) {
         ShutdownCancellationController shutdownCancellationController = new ShutdownCancellationController();
+        List<string> PreinitialDiagnosticsLog = new List<string>();
+
+        bool diagnosticsInitialized = false;
+        object logLock = new object();
+
+        // Local function to safely route log messages based on initialization state
+        void LogCancelMessage(string msg) {
+            lock (logLock) {
+                if (diagnosticsInitialized) {
+                    Shared.IO.Diagnostics.Log(msg);
+                } else {
+                    PreinitialDiagnosticsLog.Add(msg);
+                }
+            }
+        }
 
         System.ConsoleCancelEventHandler cancelHandler = (_, e) => {
+            _ctrlCCount++;
+            if (_ctrlCCount >= 3) {
+                LogCancelMessage("Multiple Ctrl+C detected. Forcing shutdown.");
+                System.Environment.Exit(exitCode: 1);
+            }
+
             e.Cancel = true;
-            shutdownCancellationController.Cancel();
-            Shared.IO.Diagnostics.Log("Global Cancellation Requested (Ctrl+C)");
+            try {
+                shutdownCancellationController.Cancel();
+            } catch (System.Exception ex) {
+                LogCancelMessage($"Cancellation error: {ex}");
+            }
+
+            LogCancelMessage("Global Cancellation Requested (Ctrl+C)");
         };
-        System.Console.CancelKeyPress += cancelHandler;
 
         try {
-            // Try to attach to the parent console (CMD/PowerShell) so stdout works.
+            System.Console.CancelKeyPress += cancelHandler;
+
             bool hasConsole = false;
             if (System.OperatingSystem.IsWindows()) {
                 hasConsole = ConsoleHelper.AttachConsole(dwProcessId: ConsoleHelper.ATTACH_PARENT_PROCESS);
@@ -65,19 +93,29 @@ public static class Program {
                 }
             }
 
-            isTui = parsedArgs.Remaining.Any(predicate: arg => arg.Equals("--tui", comparisonType: System.StringComparison.OrdinalIgnoreCase));
-            isGui = !isTui && (parsedArgs.Remaining.Count == 0 || parsedArgs.Remaining.Any(predicate: arg => arg.Equals("--gui", comparisonType: System.StringComparison.OrdinalIgnoreCase)));
+            isTui = parsedArgs.Remaining.Any(predicate: arg =>
+                arg.Equals("--tui", comparisonType: System.StringComparison.OrdinalIgnoreCase));
+            isGui = !isTui && (parsedArgs.Remaining.Count == 0 || parsedArgs.Remaining.Any(predicate: arg =>
+                arg.Equals("--gui", comparisonType: System.StringComparison.OrdinalIgnoreCase)));
             isCli = !isGui && !isTui;
 
             // :: Initialize the Logger
             Shared.IO.Diagnostics.Initialize(rootPath: rootPath, isGui: isGui, isTui: isTui);
 
+            // Lock the drain process and flip the flag so future Ctrl+C events route to the live logger
+            lock (logLock) {
+                diagnosticsInitialized = true;
+                foreach (string logEntry in PreinitialDiagnosticsLog) {
+                    Shared.IO.Diagnostics.Log(logEntry);
+                }
+
+                PreinitialDiagnosticsLog.Clear();
+            }
+
             IScriptActionDispatcher scriptActionDispatcher = new EngineNet.ScriptEngines.ScriptActionDispatcher();
+            Shared.IO.Diagnostics.Trace(
+                $"Starting EngineNet in {(isGui ? "GUI" : isTui ? "TUI" : "CLI")} mode. Root Path: {rootPath}");
 
-            Shared.IO.Diagnostics.Trace($"Starting EngineNet in {(isGui ? "GUI" : isTui ? "TUI" : "CLI")} mode. Root Path: {rootPath}");
-
-            // If user requested TUI/CLI but we failed to attach (e.g. shortcut double-click),
-            // we must manually allocate a new console window or they will see nothing.
             if ((isTui || isCli) && !hasConsole && System.OperatingSystem.IsWindows()) {
                 ConsoleHelper.AllocConsole();
                 Shared.IO.Diagnostics.Trace("Allocated new console window for TUI/CLI mode.");
@@ -88,45 +126,41 @@ public static class Program {
                 isGui: isGui,
                 isTui: isTui,
                 isCli: isCli
-                // cannot be exposed in Shared.State as it would create a circular dependency with Core
-                // fornow avalonia previewer wont work with real engine
-                //engineFactory: () => InitialiseEngine(scriptActionDispatcher)
             );
 
             Engine ??= await InitialiseEngine(scriptActionDispatcher: scriptActionDispatcher);
-
             EngineNet.Interface.MiniEngineFace miniEngine = new Interface.MiniEngine(Engine: Engine);
             InitUI UI = new InitUI();
 
-            // Logic:
-            // - No remaining args -> GUI
-            // - One arg "--gui" -> GUI
             if (isGui) {
                 Shared.IO.Diagnostics.Trace("Launching GUI Interface...");
-                //return GUI.GuiBootstrapper.Run(Engine); // ;; gui flow step1 ;;
-                return await UI.init(args: args, ui: "gui", miniEngine: miniEngine, cancellationToken: shutdownCancellationController.Token);
+                var code = await UI.init(args: args, ui: "gui", miniEngine: miniEngine, cancellationToken: shutdownCancellationController.Token);
+                Shared.IO.Diagnostics.Trace($"GUI Interface exited with code: {code}");
+                return code;
             }
 
-            // Logic:
-            // - One arg "--tui" -> TUI
             if (isTui) {
                 Shared.IO.Diagnostics.Trace("Launching TUI Interface...");
-                //Term.TUI TUI = new Term.TUI(Engine);
-                //return await TUI.RunAsync(shutdownCancellationController.Token);
-                return await UI.init(args: args, ui: "tui", miniEngine: miniEngine, cancellationToken: shutdownCancellationController.Token);
+                var code = await UI.init(args: args, ui: "tui", miniEngine: miniEngine, cancellationToken: shutdownCancellationController.Token);
+                Shared.IO.Diagnostics.Trace($"TUI Interface exited with code: {code}");
+                return code;
             }
 
-            // Logic:
-            // - Anything else -> CLI (Pass original args so CLI can parse specific commands like 'build', 'run', etc.)
             if (isCli) {
                 Shared.IO.Diagnostics.Trace("Launching CLI Interface...");
-                //Term.CLI CLI = new Term.CLI(Engine);
-                //return await CLI.RunAsync(args, shutdownCancellationController.Token);
-                return await UI.init(args: args, ui: "cli", miniEngine: miniEngine, cancellationToken: shutdownCancellationController.Token);
+                var code = await UI.init(args: args, ui: "cli", miniEngine: miniEngine, cancellationToken: shutdownCancellationController.Token);
+                Shared.IO.Diagnostics.Trace($"CLI Interface exited with code: {code}");
+                return code;
             }
+
             Shared.IO.UI.EngineSdk.Error("No valid interface mode selected.");
             Shared.IO.Diagnostics.Bug("No valid interface mode selected.");
             return 1;
+        } catch (OperationCanceledException) {
+            // all subsequent catches for this event should Throw, allowing them to be handled here
+            Shared.IO.Diagnostics.Trace("Operation canceled by user (Ctrl+C).");
+            await System.Console.Error.WriteLineAsync("Operation canceled by user (Ctrl+C).");
+            return 0;
         } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug("Critical Engine Failure in Main", ex: ex);
             Shared.IO.Diagnostics.Log($"Engine Error: {ex}");
@@ -135,8 +169,9 @@ public static class Program {
         } finally {
             System.Console.CancelKeyPress -= cancelHandler;
             shutdownCancellationController.Release();
+            Shared.IO.Diagnostics.Trace("Shutting down Engine...");
             Shared.IO.Diagnostics.Close();
-            // :: Detach console on exit
+            System.Console.ResetColor();
             if (System.OperatingSystem.IsWindows()) {
                 ConsoleHelper.FreeConsole();
             }
@@ -144,15 +179,14 @@ public static class Program {
     }
 
 
-
     /* :: :: Main :: END :: */
     // //
     /* :: :: Methods :: START :: */
 
     // Simple container for parsed results
-    private class ParsedArgs {
+    private sealed class ParsedArgs {
         public string? ExplicitRoot { get; set; }
-        public List<string> Remaining { get; } = new List<string>();
+        public List<string> Remaining { get; } = new();
     }
 
     // Walks arguments, extracts --root value, and keeps the rest preserving order
@@ -205,7 +239,7 @@ public static class Program {
     /// Owns the shutdown cancellation source without exposing the disposable source directly to event handlers.
     /// </summary>
     private sealed class ShutdownCancellationController {
-        private readonly System.Threading.CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+        private readonly System.Threading.CancellationTokenSource cancellationTokenSource = new();
 
         public System.Threading.CancellationToken Token => cancellationTokenSource.Token;
 
@@ -217,7 +251,6 @@ public static class Program {
             cancellationTokenSource.Dispose();
         }
     }
-
 
     /// <summary>
     /// Initialises the engine
@@ -287,25 +320,34 @@ public static class Program {
 internal sealed class InitUI {
     // choose ui, and manage engine, instead of passing engine to ui, this class will manage and expose methods via a child class it passes into the ui
     public async Task<int> init(string[] args, string ui, Interface.MiniEngineFace miniEngine, System.Threading.CancellationToken cancellationToken) {
-        switch (ui) {
-            case "gui":
-                // GUI uses the limited mini engine surface; the full engine is only stashed for previewer/bootstrapping.
-                Shared.IO.Diagnostics.Trace("Launching GUI Interface...");
-                return GUI.GuiBootstrapper.Run(miniEngine: miniEngine, cancellationToken: cancellationToken);
-            case "tui":
-                Shared.IO.Diagnostics.Trace("Launching TUI Interface...");
-                Terminal.TUI TUI = new Terminal.TUI(engine: miniEngine);
-                return await TUI.RunAsync(cancellationToken: cancellationToken);
-            case "cli":
-                Shared.IO.Diagnostics.Trace("Launching CLI Interface...");
-                Terminal.CLI CLI = new Terminal.CLI(engine: miniEngine);
-                return await CLI.RunAsync(args: args, cancellationToken: cancellationToken);
-            default:
-                await System.Console.Error.WriteLineAsync($"No valid interface mode selected. Expected 'gui', 'tui', or 'cli', but got '{ui}'.");
-                Shared.IO.Diagnostics.Bug("No valid interface mode selected.");
-                break;
-        }
+        try {
+            switch (ui) {
+                case "gui":
+                    // GUI uses the limited mini engine surface; the full engine is only stashed for previewer/bootstrapping.
+                    Shared.IO.Diagnostics.Trace("Launching GUI Interface...");
+                    return GUI.GuiBootstrapper.Run(miniEngine: miniEngine, cancellationToken: cancellationToken);
+                case "tui":
+                    Shared.IO.Diagnostics.Trace("Launching TUI Interface...");
+                    Terminal.TUI TUI = new Terminal.TUI(engine: miniEngine);
+                    return await TUI.RunAsync(cancellationToken: cancellationToken);
+                case "cli":
+                    Shared.IO.Diagnostics.Trace("Launching CLI Interface...");
+                    Terminal.CLI CLI = new Terminal.CLI(engine: miniEngine);
+                    return await CLI.RunAsync(args: args, cancellationToken: cancellationToken);
+                default:
+                    await System.Console.Error.WriteLineAsync($"No valid interface mode selected. Expected 'gui', 'tui', or 'cli', but got '{ui}'.");
+                    Shared.IO.Diagnostics.Bug("No valid interface mode selected.");
+                    break;
+            }
 
-        return 0;
+            return 0;
+        } catch (OperationCanceledException) {
+            Shared.IO.Diagnostics.Trace("[Program.cs:InitUI:init()] exiting ui");
+            throw;
+        } catch (System.Exception ex) {
+            Shared.IO.Diagnostics.Bug($"Error initializing UI '{ui}': {ex.Message}", ex: ex);
+            await System.Console.Error.WriteLineAsync($"Error initializing UI '{ui}': {ex.Message}");
+            return 1;
+        }
     }
 }

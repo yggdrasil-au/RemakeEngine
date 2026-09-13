@@ -9,7 +9,7 @@ using Data;
 /// </summary>
 internal sealed class OpDependencyGraph {
     internal bool IsValid { get; private set; }
-    internal List<string> Errors { get; private set; } = new();
+    private List<string> Errors { get; set; } = new();
 
     private readonly Dictionary<string, Core.Data.OperationNode> _nodes = new(comparer: StringComparer.OrdinalIgnoreCase);
 

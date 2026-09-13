@@ -24,51 +24,60 @@ public sealed class TUI {
 
             string gameName;
             while (true) {
-                SafeClear();
-                if (msg is not null) {
-                    System.Console.WriteLine(msg);
+                try {
+                    SafeClear();
+                    if (msg is not null) {
+                        System.Console.WriteLine(msg);
+                    }
+                    System.Console.WriteLine("Select a game:");
+
+                    List<string> gameMenu = new List<string>();
+                    List<string> gameKeyMap = new List<string>();
+
+                    // Build menu with states
+                    // foreach module, display '<Name> [<isRegistered>, <isInstalled (always true here)>, <isBuilt>]'
+                    foreach ((string Display, string Name) item in modules.Values.Select(selector: m => (Display: $"{m.Name}  [{m.DescribeState()}]", m.Name))) {
+                        gameMenu.Add(item: item.Display);
+                        gameKeyMap.Add(item: item.Name);
+                    }
+                    gameMenu.Add(item: "---------------"); // separator before public modules
+                    gameKeyMap.Add(item: "---"); // placeholder for separator
+
+                    // Add public modules after game modules
+                    foreach (Core.Data.GameModuleInfo m in internalModules.Values) {
+                        gameMenu.Add(item: m.Name);
+                        gameKeyMap.Add(item: m.Name);
+                    }
+
+                    gameMenu.Add(item: "Exit");
+                    gameKeyMap.Add(item: "Exit"); // align with Exit index
+                    // Prompt for selection
+                    int gidx = SelectFromMenu(items: gameMenu, highlightSeparators: true, cancellationToken: cancellationToken);
+                    if (gidx < 0 || gameMenu[index: gidx] == "Exit") {
+                        return 0;
+                    }
+
+                    // Get selected game name
+                    string gsel = gameMenu[index: gidx];
+
+                    // Map selection index to actual module key
+                    if (gidx >= 0 && gidx < gameKeyMap.Count) {
+                        gameName = gameKeyMap[index: gidx];
+                        Shared.IO.Diagnostics.Trace($"[TUI::RunAsync()] Selected game: {gameName}");
+                    } else {
+                        // Fallback: treat selection as raw name
+                        gameName = gsel;
+                        Shared.IO.Diagnostics.Trace($"[TUI::RunAsync()] Warning: could not map selected index {gidx} to module key; using raw selection '{gsel}'");
+                    }
+                    break; // exit game selection loop
+                } catch (OperationCanceledException) {
+                    Shared.IO.Diagnostics.Log("[TUI::RunAsync()] Exiting gracefully due to cancellation during game selection.");
+                    throw;
+                } catch (Exception ex) {
+                    Shared.IO.Diagnostics.Bug($"[TUI::RunAsync()] Error during game selection: {ex.Message}");
+                    System.Console.WriteLine($"Error during game selection: {ex.Message}\nPress any key to try again...");
+                    SafeReadKey(intercept: true, cancellationToken: cancellationToken);
                 }
-                System.Console.WriteLine("Select a game:");
-
-                List<string> gameMenu = new List<string>();
-                List<string> gameKeyMap = new List<string>();
-
-                // Build menu with states
-                // foreach module, display '<Name> [<isRegistered>, <isInstalled (always true here)>, <isBuilt>]'
-                foreach ((string Display, string Name) item in modules.Values.Select(selector: m => (Display: $"{m.Name}  [{m.DescribeState()}]", m.Name))) {
-                    gameMenu.Add(item: item.Display);
-                    gameKeyMap.Add(item: item.Name);
-                }
-                gameMenu.Add(item: "---------------"); // separator before public modules
-                gameKeyMap.Add(item: "---"); // placeholder for separator
-
-                // Add public modules after game modules
-                foreach (Core.Data.GameModuleInfo m in internalModules.Values) {
-                    gameMenu.Add(item: m.Name);
-                    gameKeyMap.Add(item: m.Name);
-                }
-
-                gameMenu.Add(item: "Exit");
-                gameKeyMap.Add(item: "Exit"); // align with Exit index
-                // Prompt for selection
-                int gidx = SelectFromMenu(items: gameMenu, highlightSeparators: true);
-                if (gidx < 0 || gameMenu[index: gidx] == "Exit") {
-                    return 0;
-                }
-
-                // Get selected game name
-                string gsel = gameMenu[index: gidx];
-
-                // Map selection index to actual module key
-                if (gidx >= 0 && gidx < gameKeyMap.Count) {
-                    gameName = gameKeyMap[index: gidx];
-                    Shared.IO.Diagnostics.Trace($"[TUI::RunAsync()] Selected game: {gameName}");
-                } else {
-                    // Fallback: treat selection as raw name
-                    gameName = gsel;
-                    Shared.IO.Diagnostics.Trace($"[TUI::RunAsync()] Warning: could not map selected index {gidx} to module key; using raw selection '{gsel}'");
-                }
-                break; // exit game selection loop
             }
 
             ModuleOperationSession operationSession = Engine.OperationsService_LoadModuleSession(gameName: gameName, games: allAvailableModules);
@@ -83,7 +92,7 @@ public sealed class TUI {
                 string message = preparedOps.ErrorMessage ?? "Failed to load operations list.";
                 Shared.IO.Diagnostics.Log($"[TUI::RunAsync()] {message}");
                 System.Console.WriteLine($"{message} Press any key to exit...");
-                SafeReadKey(intercept: true);
+                SafeReadKey(intercept: true, cancellationToken: cancellationToken);
                 Shared.IO.Diagnostics.Log("[TUI::RunAsync()] Exiting due to failed ops load.");
                 return 1;
             }
@@ -116,7 +125,7 @@ public sealed class TUI {
                 System.Console.WriteLine(okAllInit
                     ? $"Initialization completed successfully. Time: {FormatElapsed(elapsed: initStopwatch.Elapsed)}. Press any key to continue..."
                     : $"One or more init operations failed. Time: {FormatElapsed(elapsed: initStopwatch.Elapsed)}. Press any key to continue...");
-                SafeReadKey(intercept: true);
+                SafeReadKey(intercept: true, cancellationToken: cancellationToken);
             }
 
             // operations menu
@@ -177,7 +186,7 @@ public sealed class TUI {
                 menu.Add(item: "Exit");
 
                 System.Console.WriteLine("? Select an operation: (Use arrow keys)");
-                int idx = SelectFromMenu(items: menu, highlightSeparators: true);
+                int idx = SelectFromMenu(items: menu, highlightSeparators: true, cancellationToken: cancellationToken);
                 if (idx < 0) {
                     // if idx < 0 (eg. Pressed Escape), return to the game selection menu
                     return await RunAsync();
@@ -211,11 +220,12 @@ public sealed class TUI {
                             Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = prevMute;
                         }
 
-                        SafeReadKey(intercept: true);
+                        SafeReadKey(intercept: true, cancellationToken: cancellationToken);
                         continue;
                     }
                     case "Run All": {
-                        using CancellationTokenSource runAllCts = new CancellationTokenSource();
+                        using CancellationTokenSource runAllCts = CancellationTokenSource.CreateLinkedTokenSource(token: cancellationToken);
+                        //using CancellationTokenSource runAllCts = new CancellationTokenSource();
 
                         // Register global intercept for Lua script prompts while TUI runs
                         Func<string, bool, string?>? oldPromptHandler = Shared.IO.UI.EngineSdk.ExternalPromptHandler;
@@ -302,10 +312,13 @@ public sealed class TUI {
                     }
                 }
             }
+        } catch (OperationCanceledException) {
+            Shared.IO.Diagnostics.Log("[TUI::RunAsync()] Exiting gracefully due to cancellation.");
+            throw;
         } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"[TUI::RunAsync()] Error: {ex}");
             System.Console.WriteLine($"Error: {ex.Message}\nPress any key to exit...");
-            SafeReadKey(intercept: true);
+            SafeReadKey(intercept: true, cancellationToken: cancellationToken);
             return -1;
         }
     }
@@ -333,7 +346,7 @@ public sealed class TUI {
                 System.Console.Clear();
             }
         } catch (System.Exception e) {
-            Shared.IO.Diagnostics.Bug($"[TUI.private.cs::SafeClear()] Error clearing console: {e.Message}");
+            Shared.IO.Diagnostics.Bug($"[TUI::SafeClear()] Error clearing console: {e.Message}");
         }
     }
 
@@ -342,15 +355,42 @@ public sealed class TUI {
     /// Returns an empty ConsoleKeyInfo if redirection is detected or on error.
     /// </summary>
     /// <param name="intercept">Whether to intercept the key</param>
-    /// <returns></returns>
-    private static System.ConsoleKeyInfo SafeReadKey(bool intercept = false) {
+    /// <param name="cancellationToken"></param>
+    /// <returns>The key information read from the console, or an empty ConsoleKeyInfo if input is redirected or an error occurs.</returns>
+    private static System.ConsoleKeyInfo SafeReadKey(bool intercept = false, CancellationToken cancellationToken = default(CancellationToken)) {
         try {
             if (!System.Console.IsInputRedirected) {
-                return System.Console.ReadKey(intercept: intercept);
+                // Disable OS-level kill signal so Ctrl+C acts as standard input
+                bool previousControlCSetting = System.Console.TreatControlCAsInput;
+                System.Console.TreatControlCAsInput = true;
+
+                try {
+                    while (!System.Console.KeyAvailable) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        System.Threading.Thread.Sleep(millisecondsTimeout: 10);
+                    }
+
+                    System.ConsoleKeyInfo keyInfo = System.Console.ReadKey(intercept: intercept);
+
+                    // Manually intercept the Ctrl+C keystroke and trigger graceful cancellation
+                    if (keyInfo.Key == ConsoleKey.C && keyInfo.Modifiers.HasFlag(ConsoleModifiers.Control)) {
+                        throw new OperationCanceledException("Cancellation requested via manual Ctrl+C intercept.");
+                    }
+
+                    return keyInfo;
+                }
+                finally {
+                    // Restore the original state so the rest of the application dictates behavior
+                    System.Console.TreatControlCAsInput = previousControlCSetting;
+                }
             }
+        } catch (OperationCanceledException) {
+            Shared.IO.Diagnostics.Trace("exiting");
+            throw;
         } catch (System.Exception e) {
-            Shared.IO.Diagnostics.Bug($"[TUI.private.cs::SafeReadKey()] Error reading key: {e.Message}");
+            Shared.IO.Diagnostics.Bug($"[TUI::SafeReadKey()] Error reading key: {e.Message}");
         }
+
         return new ConsoleKeyInfo(keyChar: '\0', key: 0, shift: false, alt: false, control: false);
     }
 
@@ -364,35 +404,18 @@ public sealed class TUI {
                 System.Console.CursorVisible = visible;
             }
         } catch (System.Exception e) {
-            Shared.IO.Diagnostics.Bug($"[TUI.private.cs::SafeSetCursorVisible()] Error setting cursor visibility: {e.Message}");
+            Shared.IO.Diagnostics.Bug($"[TUI::SafeSetCursorVisible()] Error setting cursor visibility: {e.Message}");
         }
     }
 
-    private static bool CanUseInteractiveMenu(int itemCount) {
+    private static bool CanUseInteractiveMenu() {
         try {
             if (System.Console.IsOutputRedirected || System.Console.IsInputRedirected) {
                 return false;
             }
-
-            int bufferHeight = System.Console.BufferHeight;
-            int windowHeight = System.Console.WindowHeight;
-            int cursorTop = System.Console.CursorTop;
-
-            if (itemCount >= bufferHeight) {
-                return false;
-            }
-
-            if (cursorTop + itemCount >= bufferHeight) {
-                return false;
-            }
-
-            if (itemCount + 1 >= windowHeight) {
-                return false;
-            }
-
-            return true;
+            return System.Console.WindowHeight > 5;
         } catch {
-            Shared.IO.Diagnostics.Bug("[TUI.private.cs::CanUseInteractiveMenu()] Error checking console capabilities.");
+            Shared.IO.Diagnostics.Bug("[TUI::CanUseInteractiveMenu()] Error checking console capabilities.");
             return false;
         }
     }
@@ -404,14 +427,14 @@ public sealed class TUI {
     /// <param name="highlightSeparators"></param>
     /// <param name="disabledIndices">Indices that are greyed out and cannot be selected.</param>
     /// <returns></returns>
-    private static int SelectFromMenu(IList<string> items, bool highlightSeparators = false, HashSet<int>? disabledIndices = null) {
+    private static int SelectFromMenu(IList<string> items, bool highlightSeparators = false, HashSet<int>? disabledIndices = null, System.Threading.CancellationToken cancellationToken = default) {
         try {
             if (items.Count == 0) {
                 return -1;
             }
 
-            if (!CanUseInteractiveMenu(itemCount: items.Count)) {
-                return SelectFromNumberedMenu(items: items, highlightSeparators: highlightSeparators, disabledIndices: disabledIndices);
+            if (!CanUseInteractiveMenu()) {
+                return SelectFromNumberedMenu(items: items, highlightSeparators: highlightSeparators, disabledIndices: disabledIndices, cancellationToken: cancellationToken);
             }
 
             int index = 0;
@@ -422,86 +445,133 @@ public sealed class TUI {
             if (index >= items.Count) {
                 index = -1;
                 for (int i = 0; i < items.Count; i++) {
-                    if (items[index: i] == "---------------" || (disabledIndices?.Contains(item: i) ?? false)) continue;
+                    if (items[index: i] == "---------------" || (disabledIndices?.Contains(item: i) ?? false)) {
+                        continue;
+                    }
                     index = i;
                     break;
                 }
             }
 
             int renderTop = System.Console.CursorTop;
+            int scrollOffset = 0;
 
             while (true) {
                 SafeSetCursorVisible(visible: false);
+                int maxLines;
+                int windowWidth;
 
                 try {
+                    maxLines = System.Math.Max(val1: 3, val2: System.Console.WindowHeight - renderTop - 3);
+                    windowWidth = System.Math.Max(val1: 20, val2: System.Console.WindowWidth);
                     System.Console.SetCursorPosition(left: 0, top: renderTop);
                 } catch (System.ArgumentOutOfRangeException) {
                     SafeSetCursorVisible(visible: true);
                     return SelectFromNumberedMenu(items: items, highlightSeparators: highlightSeparators, disabledIndices: disabledIndices);
                 }
 
-                for (int i = 0; i < items.Count; i++) {
+                if (index != -1) {
+                    if (index < scrollOffset) {
+                        scrollOffset = index;
+                    } else if (index >= scrollOffset + maxLines) {
+                        scrollOffset = index - maxLines + 1;
+                    }
+                }
+
+                if (scrollOffset > 0) {
+                    System.Console.ForegroundColor = System.ConsoleColor.Cyan;
+                    System.Console.WriteLine("  ▲ (more items above)".PadRight(totalWidth: windowWidth - 1));
+                    System.Console.ResetColor();
+                } else {
+                    System.Console.WriteLine("".PadRight(totalWidth: windowWidth - 1));
+                }
+
+                int visibleEnd = System.Math.Min(val1: items.Count, val2: scrollOffset + maxLines);
+                for (int i = scrollOffset; i < visibleEnd; i++) {
                     string line = items[index: i];
                     bool isSep = line == "---------------";
                     bool isDisabled = disabledIndices?.Contains(item: i) ?? false;
 
                     if (i == index) {
                         System.Console.ForegroundColor = System.ConsoleColor.Cyan;
-                        System.Console.WriteLine($"> {line}");
+                        System.Console.WriteLine($"> {line}".PadRight(totalWidth: windowWidth - 1));
                         System.Console.ResetColor();
                     } else if (isDisabled) {
                         System.Console.ForegroundColor = System.ConsoleColor.DarkGray;
-                        System.Console.WriteLine($"  {line} (Already downloaded)");
+                        System.Console.WriteLine($"  {line} (Already downloaded)".PadRight(totalWidth: windowWidth - 1));
                         System.Console.ResetColor();
                     } else {
                         if (isSep && highlightSeparators) {
                             System.Console.ForegroundColor = System.ConsoleColor.DarkGray;
-                            System.Console.WriteLine($"  {line}");
+                            System.Console.WriteLine($"  {line}".PadRight(totalWidth: windowWidth - 1));
                             System.Console.ResetColor();
                         } else {
-                            System.Console.WriteLine($"  {line}");
+                            System.Console.WriteLine($"  {line}".PadRight(totalWidth: windowWidth - 1));
                         }
                     }
                 }
 
+                if (visibleEnd < items.Count) {
+                    System.Console.ForegroundColor = System.ConsoleColor.Cyan;
+                    System.Console.WriteLine("  ▼ (more items below)".PadRight(totalWidth: windowWidth - 1));
+                    System.Console.ResetColor();
+                } else {
+                    System.Console.WriteLine("".PadRight(totalWidth: windowWidth - 1));
+                }
+
                 if (index == -1) {
-                    System.Console.WriteLine("\nNo selectable options. Press any key to return...");
-                    SafeReadKey(intercept: true);
+                    System.Console.WriteLine("\nNo selectable options. Press any key to return...".PadRight(totalWidth: windowWidth - 1));
+                    SafeReadKey(intercept: true, cancellationToken: cancellationToken);
                     SafeSetCursorVisible(visible: true);
                     return -1;
                 }
 
-                ConsoleKeyInfo keyInfo = SafeReadKey(intercept: true);
+                ConsoleKeyInfo keyInfo = SafeReadKey(intercept: true, cancellationToken: cancellationToken);
                 switch (keyInfo.Key) {
-                    case ConsoleKey.DownArrow:
+                    case ConsoleKey.DownArrow: {
                         int next = index;
                         do {
                             next = (next + 1) % items.Count;
                         } while (next != index && (items[index: next] == "---------------" || (disabledIndices?.Contains(item: next) ?? false)));
                         index = next;
+
+                        if (index < scrollOffset) {
+                            scrollOffset = index;
+                        }
                         break;
-                    case ConsoleKey.UpArrow:
+                    }
+                    case ConsoleKey.UpArrow: {
                         int prev = index;
                         do {
                             prev = (prev - 1 + items.Count) % items.Count;
                         } while (prev != index && (items[index: prev] == "---------------" || (disabledIndices?.Contains(item: prev) ?? false)));
                         index = prev;
+
+                        if (index >= scrollOffset + maxLines) {
+                            scrollOffset = index - maxLines + 1;
+                        }
                         break;
-                    case ConsoleKey.Escape:
+                    }
+                    case ConsoleKey.Escape: {
                         SafeSetCursorVisible(visible: true);
                         return -1;
-                    case ConsoleKey.Enter:
+                    }
+                    case ConsoleKey.Enter: {
                         SafeSetCursorVisible(visible: true);
                         return index;
+                    }
                 }
             }
+        } catch (OperationCanceledException) {
+            Shared.IO.Diagnostics.Log("[TUI::SelectFromMenu()] Exiting gracefully due to cancellation.");
+            throw;
         } catch (System.Exception) {
-            Shared.IO.Diagnostics.Bug("[TUI.private.cs::SelectFromMenu()] Error in SelectFromMenu");
+            Shared.IO.Diagnostics.Bug("[TUI::SelectFromMenu()] Error in SelectFromMenu");
             return -1;
         }
     }
 
-    private static int SelectFromNumberedMenu(IList<string> items, bool highlightSeparators, HashSet<int>? disabledIndices = null) {
+    private static int SelectFromNumberedMenu(IList<string> items, bool highlightSeparators, HashSet<int>? disabledIndices = null, System.Threading.CancellationToken cancellationToken = default) {
         try {
             List<int> selectable = new List<int>();
 
@@ -538,13 +608,13 @@ public sealed class TUI {
 
             if (selectable.Count == 0) {
                 System.Console.WriteLine("\nNo selectable options. Press any key to return...");
-                SafeReadKey(intercept: true);
+                SafeReadKey(intercept: true, cancellationToken: cancellationToken);
                 return -1;
             }
 
             while (true) {
                 System.Console.Write("Selection (blank or Escape to cancel): ");
-                string? input = ReadLineWithCancel(cancelled: out bool cancelled);
+                string? input = ReadLineWithCancel(cancelled: out bool cancelled, cancellationToken: cancellationToken);
                 if (cancelled || string.IsNullOrWhiteSpace(input)) {
                     return -1;
                 }
@@ -564,8 +634,10 @@ public sealed class TUI {
 
                 System.Console.WriteLine("Invalid selection. Please enter a valid number.");
             }
+        } catch (OperationCanceledException) {
+            throw;
         } catch (System.Exception) {
-            Shared.IO.Diagnostics.Bug("[TUI.private.cs::SelectFromMenuFallback()] Error in SelectFromMenuFallback");
+            Shared.IO.Diagnostics.Bug("[TUI::SelectFromMenuFallback()] Error in SelectFromMenuFallback");
             return -1;
         }
     }
@@ -686,8 +758,11 @@ public sealed class TUI {
             }
 
             return await Engine.OperationsService_CollectAnswersAsync(op: op, answers: answers, promptHandler: promptHandler, defaultsOnly: defaultsOnly, cancellationToken: cancellationToken);
+        } catch (OperationCanceledException) {
+            Shared.IO.Diagnostics.Trace("Operation cancelled by user.");
+            throw;
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[TUI.private.cs::PromptUser()] Error during interactive prompts: {ex.Message}");
+            Shared.IO.Diagnostics.Bug($"[TUI::PromptUser()] Error during interactive prompts: {ex.Message}");
             return false;
         }
     }
@@ -695,33 +770,39 @@ public sealed class TUI {
     /// <summary>
     /// Reads a line from console, returning null if Escape is pressed.
     /// </summary>
-    private static string? ReadLineWithCancel(out bool cancelled) {
-        cancelled = false;
-        StringBuilder sb = new StringBuilder();
-        while (true) {
-            ConsoleKeyInfo key = SafeReadKey(intercept: true);
-            switch (key.Key) {
-                case ConsoleKey.Enter:
-                    System.Console.WriteLine();
-                    return sb.ToString();
-                case ConsoleKey.Escape:
-                    cancelled = true;
-                    System.Console.WriteLine();
-                    return null;
-                case ConsoleKey.Backspace when sb.Length <= 0:
-                    continue;
-                case ConsoleKey.Backspace:
-                    sb.Remove(startIndex: sb.Length - 1, length: 1);
-                    System.Console.Write("\b \b");
-                    break;
-                default: {
-                    if (!char.IsControl(c: key.KeyChar)) {
-                        sb.Append(key.KeyChar);
-                        System.Console.Write(key.KeyChar);
+    private static string? ReadLineWithCancel(out bool cancelled, System.Threading.CancellationToken cancellationToken = default) {
+        try {
+            cancelled = false;
+            StringBuilder sb = new StringBuilder();
+            while (true) {
+                ConsoleKeyInfo key = SafeReadKey(intercept: true, cancellationToken: cancellationToken);
+                switch (key.Key) {
+                    case ConsoleKey.Enter:
+                        System.Console.WriteLine();
+                        return sb.ToString();
+                    case ConsoleKey.Escape:
+                        cancelled = true;
+                        System.Console.WriteLine();
+                        return null;
+                    case ConsoleKey.Backspace when sb.Length <= 0:
+                        continue;
+                    case ConsoleKey.Backspace:
+                        sb.Remove(startIndex: sb.Length - 1, length: 1);
+                        System.Console.Write("\b \b");
+                        break;
+                    default: {
+                        if (!char.IsControl(c: key.KeyChar)) {
+                            sb.Append(key.KeyChar);
+                            System.Console.Write(key.KeyChar);
+                        }
+                        break;
                     }
-                    break;
                 }
             }
+        } catch {
+            Shared.IO.Diagnostics.Bug("Failed to read line from console due to an exception.");
+            cancelled = true;
+            return null;
         }
     }
 }
