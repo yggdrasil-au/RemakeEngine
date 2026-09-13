@@ -46,13 +46,13 @@ public sealed partial class ProcessRunner {
         System.Threading.CancellationToken cancellationToken = default(CancellationToken)
     ) {
         if (commandParts.Count < 1) {
-            onOutput?.Invoke($"Operation '{opTitle}' has no executable specified. Skipping.", "stderr");
+            onOutput?.Invoke(line: $"Operation '{opTitle}' has no executable specified. Skipping.", streamName: "stderr");
             return false;
         }
 
         // Security: Validate executable is approved for RemakeEngine use
-        string executable = commandParts[0];
-        if (!IsApprovedExecutable(executable, onOutput)) {
+        string executable = commandParts[index: 0];
+        if (!IsApprovedExecutable(executable: executable, onOutput: onOutput)) {
             return false;
         }
 
@@ -60,7 +60,7 @@ public sealed partial class ProcessRunner {
         try {
             Shared.IO.Diagnostics.Log(string.Empty);
             Shared.IO.Diagnostics.Log("Executing command:");
-            Shared.IO.Diagnostics.Log("  " + FormatCommand(commandParts));
+            Shared.IO.Diagnostics.Log("  " + FormatCommand(parts: commandParts));
             Shared.IO.Diagnostics.Log($"  cwd: {System.IO.Directory.GetCurrentDirectory()}");
             if (envOverrides is { Count: > 0 }) {
                 Shared.IO.Diagnostics.Log("  env overrides:");
@@ -75,7 +75,7 @@ public sealed partial class ProcessRunner {
         }
 
         System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
-            FileName = commandParts[0],
+            FileName = commandParts[index: 0],
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             RedirectStandardInput = true,
@@ -85,7 +85,7 @@ public sealed partial class ProcessRunner {
             StandardErrorEncoding = System.Text.Encoding.UTF8,
         };
         for (int i = 1; i < commandParts.Count; i++) {
-            psi.ArgumentList.Add(commandParts[i]);
+            psi.ArgumentList.Add(item: commandParts[index: i]);
         }
 
         using System.Diagnostics.Process proc = new System.Diagnostics.Process();
@@ -97,39 +97,39 @@ public sealed partial class ProcessRunner {
         bool isQueueOpen = true;
 
         void LogQueueFailureOnce(System.Exception ex) {
-            if (System.Threading.Interlocked.Exchange(ref queueLogOnce, 1) == 0) {
+            if (System.Threading.Interlocked.Exchange(location1: ref queueLogOnce, 1) == 0) {
                 Shared.IO.Diagnostics.Bug($"[ProcessRunner.private.cs::Execute()] Output queue add failed: {ex.Message}");
             }
         }
 
         System.Diagnostics.DataReceivedEventHandler outHandler = (_, e) => {
-            if (e.Data == null || !System.Threading.Volatile.Read(ref isQueueOpen)) {
+            if (e.Data == null || !System.Threading.Volatile.Read(location: ref isQueueOpen)) {
                 return;
             }
 
             try {
-                q.Add(("stdout", e.Data), cancellationToken);
+                q.Add(item: ("stdout", e.Data), cancellationToken: cancellationToken);
             } catch (System.ObjectDisposedException ex) {
-                LogQueueFailureOnce(ex);
+                LogQueueFailureOnce(ex: ex);
             } catch (System.InvalidOperationException ex) {
-                LogQueueFailureOnce(ex);
+                LogQueueFailureOnce(ex: ex);
             } catch (System.OperationCanceledException ex) {
-                LogQueueFailureOnce(ex);
+                LogQueueFailureOnce(ex: ex);
             }
         };
         System.Diagnostics.DataReceivedEventHandler errHandler = (_, e) => {
-            if (e.Data == null || !System.Threading.Volatile.Read(ref isQueueOpen)) {
+            if (e.Data == null || !System.Threading.Volatile.Read(location: ref isQueueOpen)) {
                 return;
             }
 
             try {
-                q.Add(("stderr", e.Data), cancellationToken);
+                q.Add(item: ("stderr", e.Data), cancellationToken: cancellationToken);
             } catch (System.ObjectDisposedException ex) {
-                LogQueueFailureOnce(ex);
+                LogQueueFailureOnce(ex: ex);
             } catch (System.InvalidOperationException ex) {
-                LogQueueFailureOnce(ex);
+                LogQueueFailureOnce(ex: ex);
             } catch (System.OperationCanceledException ex) {
-                LogQueueFailureOnce(ex);
+                LogQueueFailureOnce(ex: ex);
             }
         };
 
@@ -140,7 +140,7 @@ public sealed partial class ProcessRunner {
                 throw new System.InvalidOperationException("Failed to start process");
             }
 
-            job?.AddProcess(proc);
+            job?.AddProcess(process: proc);
 
             proc.OutputDataReceived += outHandler;
             proc.ErrorDataReceived += errHandler;
@@ -153,36 +153,33 @@ public sealed partial class ProcessRunner {
                 try {
                     proc.StandardInput.WriteLine(text ?? string.Empty);
                     proc.StandardInput.Flush();
-                }
-                catch (System.IO.IOException ex) {
+                } catch (System.IO.IOException ex) {
                     Shared.IO.Diagnostics.Bug("[ProcessRunner.cs::Execute()] IO error writing to child stdin: " + ex);
-                }
-                catch (System.ObjectDisposedException ex) {
+                } catch (System.ObjectDisposedException ex) {
                     Shared.IO.Diagnostics.Bug("[ProcessRunner.cs::Execute()] Child stdin disposed while writing: " + ex);
-                }
-                catch (System.InvalidOperationException ex) {
+                } catch (System.InvalidOperationException ex) {
                     Shared.IO.Diagnostics.Bug("[ProcessRunner.cs::Execute()] Child stdin unavailable while writing: " + ex);
                 }
             }
 
             string? HandleLine(string line, string streamName) {
-                onOutput?.Invoke(line, streamName);
+                onOutput?.Invoke(line: line, streamName: streamName);
                 return null; // Note: In your original code this always returned null. Ensure this matches your intent.
             }
 
             while (!proc.HasExited) {
                 if (cancellationToken.IsCancellationRequested) {
-                    TryTerminate(proc);
-                    onEvent?.Invoke(new Dictionary<string, object?>
-                        { ["event"] = EngineSdk.Events.End, ["success"] = false, ["exit_code"] = 130 });
+                    TryTerminate(proc: proc);
+                    onEvent?.Invoke(evt: new Dictionary<string, object?>
+                        { [key: "event"] = EngineSdk.Events.End, [key: "success"] = false, [key: "exit_code"] = 130 });
                     return false;
                 }
 
-                if (!q.TryTake(out (string stream, string line) item, 100)) {
+                if (!q.TryTake(item: out (string stream, string line) item, millisecondsTimeout: 100)) {
                     continue;
                 }
 
-                string? promptMsg = HandleLine(item.line, item.stream);
+                string? promptMsg = HandleLine(line: item.line, streamName: item.stream);
                 if (promptMsg != null) {
                     awaitingPrompt = true;
                 }
@@ -197,13 +194,13 @@ public sealed partial class ProcessRunner {
                     Shared.IO.Diagnostics.Bug("[ProcessRunner] Invalid operation in stdinProvider while awaiting prompt: " + ex.Message);
                 }
 
-                SendToChild(ans);
+                SendToChild(text: ans);
                 awaitingPrompt = false;
             }
 
             // Drain any remaining
-            while (q.TryTake(out (string stream, string line) item)) {
-                string? promptMsg = HandleLine(item.line, item.stream);
+            while (q.TryTake(item: out (string stream, string line) item)) {
+                string? promptMsg = HandleLine(line: item.line, streamName: item.stream);
                 if (promptMsg == null) continue;
 
                 string? ans = string.Empty;
@@ -215,39 +212,39 @@ public sealed partial class ProcessRunner {
                     Shared.IO.Diagnostics.Bug("[ProcessRunner] Invalid operation in stdinProvider while draining output: " + ex.Message);
                 }
 
-                SendToChild(ans);
+                SendToChild(text: ans);
             }
 
             int rc = proc.ExitCode;
             bool success = rc == 0;
             onEvent?.Invoke(
-                new Dictionary<string, object?> { ["event"] = EngineSdk.Events.End, ["success"] = success, ["exit_code"] = rc });
+                evt: new Dictionary<string, object?> { [key: "event"] = EngineSdk.Events.End, [key: "success"] = success, [key: "exit_code"] = rc });
             return success;
         } catch (System.OperationCanceledException ex) {
             Shared.IO.Diagnostics.Bug("[ProcessRunner::Execute()] Operation cancelled: " + ex.Message);
-            TryTerminate(proc);
-            onEvent?.Invoke(new Dictionary<string, object?>
-                { ["event"] = EngineSdk.Events.End, ["success"] = false, ["exit_code"] = 130 });
+            TryTerminate(proc: proc);
+            onEvent?.Invoke(evt: new Dictionary<string, object?>
+                { [key: "event"] = EngineSdk.Events.End, [key: "success"] = false, [key: "exit_code"] = 130 });
             return false;
         } catch (System.IO.FileNotFoundException ex) {
             Shared.IO.Diagnostics.Bug("[ProcessRunner::Execute()] Command or script not found: " + ex.Message);
-            onEvent?.Invoke(new Dictionary<string, object?>
-                { ["event"] = EngineSdk.Events.Error, ["kind"] = "FileNotFoundError", ["message"] = "Command or script not found." });
+            onEvent?.Invoke(evt: new Dictionary<string, object?>
+                { [key: "event"] = EngineSdk.Events.Error, [key: "kind"] = "FileNotFoundError", [key: "message"] = "Command or script not found." });
             return false;
         } catch (System.ComponentModel.Win32Exception ex) {
             // Catches OS-level process failures (e.g., Access Denied, bad executable format)
             Shared.IO.Diagnostics.Bug("[ProcessRunner::Execute()] OS error starting or running process: " + ex.Message);
-            onEvent?.Invoke(new Dictionary<string, object?>
-                { ["event"] = EngineSdk.Events.Error, ["kind"] = "Win32Exception", ["message"] = ex.Message });
+            onEvent?.Invoke(evt: new Dictionary<string, object?>
+                { [key: "event"] = EngineSdk.Events.Error, [key: "kind"] = "Win32Exception", [key: "message"] = ex.Message });
             return false;
         } catch (System.InvalidOperationException ex) {
             // Catches bad process state operations (e.g., trying to read ExitCode before it exits, though HasExited check mitigates this)
             Shared.IO.Diagnostics.Bug("[ProcessRunner::Execute()] Invalid process state: " + ex.Message);
-            onEvent?.Invoke(new Dictionary<string, object?>
-                { ["event"] = EngineSdk.Events.Error, ["kind"] = "InvalidOperation", ["message"] = ex.Message });
+            onEvent?.Invoke(evt: new Dictionary<string, object?>
+                { [key: "event"] = EngineSdk.Events.Error, [key: "kind"] = "InvalidOperation", [key: "message"] = ex.Message });
             return false;
         } finally {
-            System.Threading.Volatile.Write(ref isQueueOpen, false);
+            System.Threading.Volatile.Write(location: ref isQueueOpen, false);
             try {
                 q.CompleteAdding();
             } catch (System.ObjectDisposedException ex) {

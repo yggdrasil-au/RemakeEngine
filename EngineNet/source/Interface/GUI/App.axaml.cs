@@ -4,7 +4,7 @@ namespace EngineNet.GUI;
 public class App:Avalonia.Application {
 
     public override void Initialize() {
-        Avalonia.Markup.Xaml.AvaloniaXamlLoader.Load(this);
+        Avalonia.Markup.Xaml.AvaloniaXamlLoader.Load(obj: this);
     }
 
     public override void OnFrameworkInitializationCompleted() {

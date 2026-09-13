@@ -18,7 +18,7 @@ public static class EngineSdk {
     public static System.Func<string, bool, string?>? ExternalPromptHandler { get; set; }
 
     // Auto-responses for prompts by ID. When a prompt with matching ID is requested, the corresponding response is returned automatically without user interaction.
-    public static Dictionary<string, string> AutoPromptResponses { get; set; } = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+    public static Dictionary<string, string> AutoPromptResponses { get; set; } = new Dictionary<string, string>(comparer: System.StringComparer.OrdinalIgnoreCase);
 
     private static readonly System.Text.Json.JsonSerializerOptions JsonOpts = new() {
         WriteIndented = false,
@@ -63,12 +63,12 @@ public static class EngineSdk {
 
     /// </summary>
     private static void Emit(string @event, IDictionary<string, object?>? data = null) {
-        Dictionary<string, object?> payload = new Dictionary<string, object?>(System.StringComparer.Ordinal) {
-            ["event"] = @event
+        Dictionary<string, object?> payload = new Dictionary<string, object?>(comparer: System.StringComparer.Ordinal) {
+            [key: "event"] = @event
         };
         if (data != null) {
             foreach (KeyValuePair<string, object?> kv in data) {
-                payload[kv.Key] = kv.Value;
+                payload[key: kv.Key] = kv.Value;
             }
         }
 
@@ -76,7 +76,7 @@ public static class EngineSdk {
         if (LocalEventSink != null) {
             try {
                 // Pass a shallow copy to avoid accidental modifications by receivers
-                LocalEventSink(new Dictionary<string, object?>(payload, System.StringComparer.Ordinal));
+                LocalEventSink(obj: new Dictionary<string, object?>(dictionary: payload, comparer: System.StringComparer.Ordinal));
             } catch (System.Exception ex) {
                 Shared.IO.Diagnostics.Bug($"[EngineSdk::Emit()] Local event sink failed: {ex}");
                 /* ignore sink errors */
@@ -88,21 +88,21 @@ public static class EngineSdk {
 
         string json;
         try {
-            json = System.Text.Json.JsonSerializer.Serialize(payload, JsonOpts);
+            json = System.Text.Json.JsonSerializer.Serialize(payload, options: JsonOpts);
         } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"[EngineSdk::Emit()] Failed to serialize event payload for '{@event}': {ex}");
             // As a last resort, stringify values to avoid serialization failures
-            Dictionary<string, object?> safe = new Dictionary<string, object?>(System.StringComparer.Ordinal);
+            Dictionary<string, object?> safe = new Dictionary<string, object?>(comparer: System.StringComparer.Ordinal);
             foreach (KeyValuePair<string, object?> kv in payload) {
-                safe[kv.Key] = kv.Value?.ToString();
+                safe[key: kv.Key] = kv.Value?.ToString();
             }
 
-            json = System.Text.Json.JsonSerializer.Serialize(safe, JsonOpts);
+            json = System.Text.Json.JsonSerializer.Serialize(safe, options: JsonOpts);
         }
 
         try {
             //System.Console.Out.Write(Prefix);
-            System.Console.Out.WriteLine(json.Replace('\n', ' '));
+            System.Console.Out.WriteLine(json.Replace(oldChar: '\n', newChar: ' '));
             System.Console.Out.Flush();
         } catch (System.IO.IOException ex) {
             Shared.IO.Diagnostics.Bug($"[EngineSdk::Emit()] IO error writing event '{@event}' to stdout: {ex}");
@@ -117,34 +117,34 @@ public static class EngineSdk {
     /// Report a non-fatal warning to the engine UI/log.
     /// </summary>
     public static void Warn(string message) {
-        Emit(Events.Warning, new Dictionary<string, object?> { ["message"] = message });
+        Emit(@event: Events.Warning, data: new Dictionary<string, object?> { [key: "message"] = message });
     }
 
     /// <summary>
     /// Report an error to the engine UI/log (does not exit the process).
     /// </summary>
     public static void Error(string message) {
-        Emit(Events.Error, new Dictionary<string, object?> { ["message"] = message });
+        Emit(@event: Events.Error, data: new Dictionary<string, object?> { [key: "message"] = message });
     }
 
     public static string color_prompt(string message, string color, string id = "q1", bool secret = false) {
         // Check for auto-response first
-        if (AutoPromptResponses.TryGetValue(id, out string? autoResponse)) {
-            Emit(Events.Print, new Dictionary<string, object?> {
-                ["message"] = $"? {message}",
-                ["color"] = color
+        if (AutoPromptResponses.TryGetValue(key: id, out string? autoResponse)) {
+            Emit(@event: Events.Print, data: new Dictionary<string, object?> {
+                [key: "message"] = $"? {message}",
+                [key: "color"] = color
             });
-            Emit(Events.Print, new Dictionary<string, object?> {
-                ["message"] = $"> {autoResponse} (auto-response)",
-                ["color"] = "yellow"
+            Emit(@event: Events.Print, data: new Dictionary<string, object?> {
+                [key: "message"] = $"> {autoResponse} (auto-response)",
+                [key: "color"] = "yellow"
             });
             return autoResponse;
         }
 
-        Emit(Events.ColorPrompt, new Dictionary<string, object?> { ["id"] = id, ["message"] = message, ["color"] = color, ["secret"] = secret });
+        Emit(@event: Events.ColorPrompt, data: new Dictionary<string, object?> { [key: "id"] = id, [key: "message"] = message, [key: "color"] = color, [key: "secret"] = secret });
         try {
             string? line = System.Console.In.ReadLine();
-            return (line ?? string.Empty).TrimEnd('\n');
+            return (line ?? string.Empty).TrimEnd(trimChar: '\n');
         } catch (System.IO.IOException ex) {
             Shared.IO.Diagnostics.Bug($"[EngineSdk::color_prompt()] IO error while reading console input: {ex}");
             return string.Empty;
@@ -164,27 +164,27 @@ public static class EngineSdk {
     /// </summary>
     public static string Prompt(string message, string id = "q1", bool secret = false) {
         // Check for auto-response first
-        if (AutoPromptResponses.TryGetValue(id, out string? autoResponse)) {
-            Emit(Events.Print, new Dictionary<string, object?> {
-                ["message"] = $"? {message}",
-                ["color"] = "cyan"
+        if (AutoPromptResponses.TryGetValue(key: id, out string? autoResponse)) {
+            Emit(@event: Events.Print, data: new Dictionary<string, object?> {
+                [key: "message"] = $"? {message}",
+                [key: "color"] = "cyan"
             });
-            Emit(Events.Print, new Dictionary<string, object?> {
-                ["message"] = $"> {autoResponse} (auto-response)",
-                ["color"] = "yellow"
+            Emit(@event: Events.Print, data: new Dictionary<string, object?> {
+                [key: "message"] = $"> {autoResponse} (auto-response)",
+                [key: "color"] = "yellow"
             });
             return autoResponse;
         }
 
         // Intercept standard blocking read and route to custom UI loop if attached
         if (ExternalPromptHandler != null) {
-            return ExternalPromptHandler(message, secret) ?? string.Empty;
+            return ExternalPromptHandler(arg1: message, arg2: secret) ?? string.Empty;
         }
 
-        Emit(Events.Prompt, new Dictionary<string, object?> { ["id"] = id, ["message"] = message, ["secret"] = secret });
+        Emit(@event: Events.Prompt, data: new Dictionary<string, object?> { [key: "id"] = id, [key: "message"] = message, [key: "secret"] = secret });
         try {
             string? line = System.Console.In.ReadLine();
-            return (line ?? string.Empty).TrimEnd('\n');
+            return (line ?? string.Empty).TrimEnd(trimChar: '\n');
         } catch (System.IO.IOException ex) {
             Shared.IO.Diagnostics.Bug($"[EngineSdk::Prompt()] IO error while reading console input: {ex}");
             return string.Empty;
@@ -204,32 +204,32 @@ public static class EngineSdk {
     /// </summary>
     public static bool Confirm(string message, string id = "q1", bool defaultValue = false) {
         // Check for auto-response first
-        if (AutoPromptResponses.TryGetValue(id, out string? autoResponse)) {
-            Emit(Events.Print, new Dictionary<string, object?> {
-                ["message"] = $"? {message} [y/n]",
-                ["color"] = "cyan"
+        if (AutoPromptResponses.TryGetValue(key: id, out string? autoResponse)) {
+            Emit(@event: Events.Print, data: new Dictionary<string, object?> {
+                [key: "message"] = $"? {message} [y/n]",
+                [key: "color"] = "cyan"
             });
-            Emit(Events.Print, new Dictionary<string, object?> {
-                ["message"] = $"> {autoResponse} (auto-response)",
-                ["color"] = "yellow"
+            Emit(@event: Events.Print, data: new Dictionary<string, object?> {
+                [key: "message"] = $"> {autoResponse} (auto-response)",
+                [key: "color"] = "yellow"
             });
-            return autoResponse.Trim().StartsWith("y", System.StringComparison.OrdinalIgnoreCase) ||
-                    autoResponse.Trim().Equals("true", System.StringComparison.OrdinalIgnoreCase);
+            return autoResponse.Trim().StartsWith("y", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
+                    autoResponse.Trim().Equals("true", comparisonType: System.StringComparison.OrdinalIgnoreCase);
         }
 
         // Intercept standard blocking read and route to custom UI loop if attached
         if (ExternalPromptHandler != null) {
-            return ExternalPromptHandler(message + " [y/n]", false)?.Trim().StartsWith("y", System.StringComparison.OrdinalIgnoreCase) == true ||
-                   ExternalPromptHandler(message + " [y/n]", false)?.Trim().Equals("true", System.StringComparison.OrdinalIgnoreCase) == true;
+            return ExternalPromptHandler(arg1: message + " [y/n]", arg2: false)?.Trim().StartsWith("y", comparisonType: System.StringComparison.OrdinalIgnoreCase) == true ||
+                   ExternalPromptHandler(arg1: message + " [y/n]", arg2: false)?.Trim().Equals("true", comparisonType: System.StringComparison.OrdinalIgnoreCase) == true;
         }
 
-        Emit(Events.Confirm, new Dictionary<string, object?> { ["id"] = id, ["message"] = message, ["default"] = defaultValue });
+        Emit(@event: Events.Confirm, data: new Dictionary<string, object?> { [key: "id"] = id, [key: "message"] = message, [key: "default"] = defaultValue });
         try {
             string? line = System.Console.In.ReadLine();
             if (string.IsNullOrWhiteSpace(line)) return defaultValue;
-            return line.Trim().StartsWith("y", System.StringComparison.OrdinalIgnoreCase) ||
-                    line.Trim().Equals("true", System.StringComparison.OrdinalIgnoreCase) ||
-                    line.Trim().Equals("yes", System.StringComparison.OrdinalIgnoreCase);
+            return line.Trim().StartsWith("y", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
+                    line.Trim().Equals("true", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
+                    line.Trim().Equals("yes", comparisonType: System.StringComparison.OrdinalIgnoreCase);
         } catch (System.IO.IOException ex) {
             Shared.IO.Diagnostics.Bug($"[EngineSdk::Confirm()] IO error while reading console input: {ex}");
             return defaultValue;
@@ -249,11 +249,11 @@ public static class EngineSdk {
     /// </summary>
     public static void Print(string message, string? color = null, bool newline = false) {
         Dictionary<string, object?> data = new Dictionary<string, object?> {
-            ["message"] = message,
-            ["color"] = string.IsNullOrWhiteSpace(color) ? null : color,
-            ["newline"] = newline
+            [key: "message"] = message,
+            [key: "color"] = string.IsNullOrWhiteSpace(color) ? null : color,
+            [key: "newline"] = newline
         };
-        Emit(Events.Print, data);
+        Emit(@event: Events.Print, data: data);
     }
 
     /// <summary>
@@ -267,7 +267,7 @@ public static class EngineSdk {
     /// Emit a colored print event using a ConsoleColor with a trailing newline.
     /// </summary>
     public static void PrintLine(string message, System.ConsoleColor color) {
-        Print(message, color.ToString(), true);
+        Print(message, color: color.ToString(), newline: true);
     }
 
     /* :: :: Methods :: END :: */
@@ -286,12 +286,12 @@ public static class EngineSdk {
         private string _label;
 
         public int Total => _total;
-        public int Current => System.Threading.Volatile.Read(ref _processed);
+        public int Current => System.Threading.Volatile.Read(location: ref _processed);
         public string Id { get; }
         public string Label => _label;
 
         public ScriptProgress(int total, string id = "s1", string? label = null) {
-            _total = System.Math.Max(1, total);
+            _total = System.Math.Max(val1: 1, val2: total);
             Id = id;
             _label = label ?? string.Empty;
             _processed = 0;
@@ -300,22 +300,22 @@ public static class EngineSdk {
 
         public void Update(int inc = 1, string? newLabel = null) {
             if (newLabel != null) _label = newLabel;
-            int add = System.Math.Max(1, inc);
-            int newVal = System.Threading.Interlocked.Add(ref _processed, add);
+            int add = System.Math.Max(val1: 1, val2: inc);
+            int newVal = System.Threading.Interlocked.Add(location1: ref _processed, add);
             if (newVal > _total) {
-                System.Threading.Interlocked.Exchange(ref _processed, _total);
+                System.Threading.Interlocked.Exchange(location1: ref _processed, _total);
             }
             EmitProgress();
         }
 
         public void SetTotal(int total) {
-            _total = System.Math.Max(1, total);
+            _total = System.Math.Max(val1: 1, val2: total);
             EmitProgress();
         }
 
         public void Complete() {
             try {
-                System.Threading.Interlocked.Exchange(ref _processed, _total);
+                System.Threading.Interlocked.Exchange(location1: ref _processed, _total);
                 EmitProgress();
             } catch (System.Exception ex) {
                 Shared.IO.Diagnostics.Bug($"[EngineSdk::ScriptProgress::Complete()] Failed to emit final script progress: {ex}");
@@ -324,12 +324,12 @@ public static class EngineSdk {
 
         private void EmitProgress() {
             Dictionary<string, object?> data = new Dictionary<string, object?> {
-                ["id"] = Id,
-                ["current"] = System.Threading.Volatile.Read(ref _processed),
-                ["total"] = _total,
-                ["label"] = _label
+                [key: "id"] = Id,
+                [key: "current"] = System.Threading.Volatile.Read(location: ref _processed),
+                [key: "total"] = _total,
+                [key: "label"] = _label
             };
-            Emit(Events.ScriptProgress, data);
+            Emit(@event: Events.ScriptProgress, data: data);
         }
     }
 
@@ -340,7 +340,7 @@ public static class EngineSdk {
     public static void ScriptActiveStart(string scriptPath) {
         string name = string.Empty;
         try {
-            name = System.IO.Path.GetFileName(scriptPath);
+            name = System.IO.Path.GetFileName(path: scriptPath);
         } catch (System.ArgumentException ex) {
             Shared.IO.Diagnostics.Bug($"[EngineSdk::ScriptActiveStart()] Invalid script path '{scriptPath}': {ex}");
         } catch (System.IO.PathTooLongException ex) {
@@ -348,9 +348,9 @@ public static class EngineSdk {
         } catch (System.NotSupportedException ex) {
             Shared.IO.Diagnostics.Bug($"[EngineSdk::ScriptActiveStart()] Unsupported script path '{scriptPath}': {ex}");
         }
-        Emit(Events.ScriptActiveStart, new Dictionary<string, object?> {
-            ["name"] = string.IsNullOrEmpty(name) ? scriptPath : name,
-            ["path"] = scriptPath
+        Emit(@event: Events.ScriptActiveStart, data: new Dictionary<string, object?> {
+            [key: "name"] = string.IsNullOrEmpty(name) ? scriptPath : name,
+            [key: "path"] = scriptPath
         });
     }
 
@@ -359,9 +359,9 @@ public static class EngineSdk {
     /// should only be called in the main entry point of a script action (e.g., Lua.Main.ExecuteAsync) to indicate that a script has finished.
     /// </summary>
     public static void ScriptActiveEnd(bool success = true, int exitCode = 0) {
-        Emit(Events.ScriptActiveEnd, new Dictionary<string, object?> {
-            ["success"] = success,
-            ["exit_code"] = exitCode
+        Emit(@event: Events.ScriptActiveEnd, data: new Dictionary<string, object?> {
+            [key: "success"] = success,
+            [key: "exit_code"] = exitCode
         });
     }
     /* :: :: Script Progress :: END :: */
@@ -388,52 +388,52 @@ public static class EngineSdk {
         /// <summary>
         /// Gets the current processed count.
         /// </summary>
-        public long Current => System.Threading.Volatile.Read(ref _processed);
+        public long Current => System.Threading.Volatile.Read(location: ref _processed);
 
         /// <summary>
         /// Gets or sets the total item count for the panel.
         /// </summary>
         public long Total {
-            get => System.Threading.Interlocked.Read(ref _total);
-            set => System.Threading.Interlocked.Exchange(ref _total, System.Math.Max(1, value));
+            get => System.Threading.Interlocked.Read(location: ref _total);
+            set => System.Threading.Interlocked.Exchange(location1: ref _total, System.Math.Max(val1: 1, val2: value));
         }
 
         /// <summary>
         /// Gets or sets the panel label.
         /// </summary>
         public string? Label {
-            get => System.Threading.Volatile.Read(ref _label);
-            set => System.Threading.Volatile.Write(ref _label, value ?? string.Empty);
+            get => System.Threading.Volatile.Read(location: ref _label);
+            set => System.Threading.Volatile.Write(location: ref _label, value ?? string.Empty);
         }
         public string Id { get; }
 
         public PanelProgress(long total, string id = "p1", string? label = null) {
-            _total = System.Math.Max(1, total);
+            _total = System.Math.Max(val1: 1, val2: total);
             Id = id;
             _label = label ?? string.Empty;
             _processed = 0;
             _cts = new System.Threading.CancellationTokenSource();
             _panelTask = SdkConsoleProgress.StartPanel(
-                total: () => System.Threading.Interlocked.Read(ref _total),
+                total: () => System.Threading.Interlocked.Read(location: ref _total),
                 snapshot: () => {
-                    long p = System.Threading.Volatile.Read(ref _processed);
+                    long p = System.Threading.Volatile.Read(location: ref _processed);
                     // Use 'ok' equal to processed (clamped to int) for a simple linear flow.
                     int ok = p > int.MaxValue ? int.MaxValue : (int)p;
                     return (processed: p, ok, skip: 0, err: 0);
                 },
                 activeSnapshot: () => new List<SdkConsoleProgress.ActiveProcess>(),
-                label: () => System.Threading.Volatile.Read(ref _label),
+                label: () => System.Threading.Volatile.Read(location: ref _label),
                 token: _cts.Token,
                 id: Id
             );
         }
 
         public void Update(long inc = 1) {
-            long add = System.Math.Max(1, inc);
-            long newVal = System.Threading.Interlocked.Add(ref _processed, add);
-            long total = System.Threading.Interlocked.Read(ref _total);
+            long add = System.Math.Max(val1: 1, val2: inc);
+            long newVal = System.Threading.Interlocked.Add(location1: ref _processed, add);
+            long total = System.Threading.Interlocked.Read(location: ref _total);
             if (newVal > total) {
-                System.Threading.Interlocked.Exchange(ref _processed, total);
+                System.Threading.Interlocked.Exchange(location1: ref _processed, total);
             }
         }
 
@@ -441,14 +441,14 @@ public static class EngineSdk {
         /// Sets the total item count for the panel.
         /// </summary>
         public void SetTotal(long total) {
-            System.Threading.Interlocked.Exchange(ref _total, System.Math.Max(1, total));
+            System.Threading.Interlocked.Exchange(location1: ref _total, System.Math.Max(val1: 1, val2: total));
         }
 
         /// <summary>
         /// Sets the label text for the panel.
         /// </summary>
         public void SetLabel(string? label) {
-            System.Threading.Volatile.Write(ref _label, label ?? string.Empty);
+            System.Threading.Volatile.Write(location: ref _label, label ?? string.Empty);
         }
 
         public void Complete() {
@@ -501,9 +501,9 @@ public static class EngineSdk {
             System.Threading.CancellationToken token,
             string id = "p1"
         ) {
-            return System.Threading.Tasks.Task.Run(() => {
+            return System.Threading.Tasks.Task.Run(action: () => {
                 // Signal the TUI to prepare for the panel
-                EmitPanelStart(id);
+                EmitPanelStart(id: id);
 
                 int spinnerIndex = 0;
                 char[] spinner = new[] { '|', '/', '-', '\\' };
@@ -514,14 +514,14 @@ public static class EngineSdk {
                     string labelValue = label();
 
                     // Build the data payload
-                    Dictionary<string, object?> data = BuildPanelData(totalValue, s, actives, spinner[spinnerIndex % spinner.Length], labelValue);
-                    data["id"] = id;
+                    Dictionary<string, object?> data = BuildPanelData(total: totalValue, s: s, actives: actives, spinner: spinner[spinnerIndex % spinner.Length], label: labelValue);
+                    data[key: "id"] = id;
 
                     // Emit the event
-                    Emit(Events.ProgressPanel, data);
+                    Emit(@event: Events.ProgressPanel, data: data);
 
                     spinnerIndex = (spinnerIndex + 1) & 0x7fffffff;
-                    System.Threading.Thread.Sleep(200);
+                    System.Threading.Thread.Sleep(millisecondsTimeout: 200);
                 }
 
                 // Final event emit
@@ -529,75 +529,75 @@ public static class EngineSdk {
                 List<ActiveProcess> finalAct = activeSnapshot();
                 long finalTotal = total();
                 string finalLabel = label();
-                Dictionary<string, object?> finalData = BuildPanelData(finalTotal, finalS, finalAct, ' ', finalLabel);
-                finalData["id"] = id;
-                Emit(Events.ProgressPanel, finalData);
+                Dictionary<string, object?> finalData = BuildPanelData(total: finalTotal, s: finalS, actives: finalAct, spinner: ' ', label: finalLabel);
+                finalData[key: "id"] = id;
+                Emit(@event: Events.ProgressPanel, data: finalData);
 
                 // Signal the TUI that the panel is done
-                EmitPanelEnd(id);
-            }, token);
+                EmitPanelEnd(id: id);
+            }, cancellationToken: token);
         }
 
         private static void EmitPanelStart(string id) {
             int procs = 8;
-            try { procs = System.Math.Max(1, System.Math.Min(16, System.Environment.ProcessorCount)); } catch (System.Exception ex) {
+            try { procs = System.Math.Max(val1: 1, val2: System.Math.Min(val1: 16, val2: System.Environment.ProcessorCount)); } catch (System.Exception ex) {
                 Shared.IO.Diagnostics.Bug($"[EngineSdk::SdkConsoleProgress::EmitPanelStart()] Failed to read processor count: {ex}");
                 /* ignore */
             }
             // 1 (progress) + 1 (header/none) + procs (active job lines) + 1 (overflow)
             int reserve = 1 + 1 + procs + 1;
-            Emit(Events.ProgressPanelStart, new Dictionary<string, object?> { ["reserve"] = reserve, ["id"] = id });
+            Emit(@event: Events.ProgressPanelStart, data: new Dictionary<string, object?> { [key: "reserve"] = reserve, [key: "id"] = id });
         }
 
         private static void EmitPanelEnd(string id) {
-            Emit(Events.ProgressPanelEnd, new Dictionary<string, object?> { ["id"] = id });
+            Emit(@event: Events.ProgressPanelEnd, data: new Dictionary<string, object?> { [key: "id"] = id });
         }
 
         private static Dictionary<string, object?> BuildPanelData(long total, (long processed, int ok, int skip, int err) s, List<ActiveProcess> actives, char spinner, string label) {
             if (total < 0) total = 0;
 
-            double percent = System.Math.Clamp(total == 0 ? 1.0 : (double)s.processed / System.Math.Max(1, total), 0.0, 1.0);
+            double percent = System.Math.Clamp(total == 0 ? 1.0 : (double)s.processed / System.Math.Max(val1: 1, val2: total), min: 0.0, max: 1.0);
 
             var stats = new Dictionary<string, object?> {
-                ["total"] = total,
-                ["processed"] = s.processed,
-                ["ok"] = s.ok,
-                ["skip"] = s.skip,
-                ["err"] = s.err,
-                ["percent"] = percent
+                [key: "total"] = total,
+                [key: "processed"] = s.processed,
+                [key: "ok"] = s.ok,
+                [key: "skip"] = s.skip,
+                [key: "err"] = s.err,
+                [key: "percent"] = percent
             };
 
             var jobList = new List<Dictionary<string, object?>>();
             if (actives.Count > 0) {
                 int max = 8;
                 try {
-                    max = System.Math.Max(1, System.Math.Min(16, System.Environment.ProcessorCount));
+                    max = System.Math.Max(val1: 1, val2: System.Math.Min(val1: 16, val2: System.Environment.ProcessorCount));
                 } catch (System.Exception ex) {
                     Shared.IO.Diagnostics.Bug($"[EngineSdk::SdkConsoleProgress::BuildPanelData()] Failed to read processor count: {ex}");
                     /* ignore */
                 }
                 System.DateTime now = System.DateTime.UtcNow;
 
-                foreach (ActiveProcess job in actives.OrderBy(j => j.StartedUtc).Take(max)) {
+                foreach (ActiveProcess job in actives.OrderBy(keySelector: j => j.StartedUtc).Take(count: max)) {
                     System.TimeSpan elapsed = now - job.StartedUtc;
                     string elStr = elapsed.TotalHours >= 1
                         ? $"{(int)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}"
                         : $"{elapsed.Minutes:00}:{elapsed.Seconds:00}";
 
-                    jobList.Add(new Dictionary<string, object?> {
-                        ["tool"] = job.Tool,
-                        ["file"] = job.File,
-                        ["elapsed"] = elStr
+                    jobList.Add(item: new Dictionary<string, object?> {
+                        [key: "tool"] = job.Tool,
+                        [key: "file"] = job.File,
+                        [key: "elapsed"] = elStr
                     });
                 }
             }
 
             return new Dictionary<string, object?> {
-                ["label"] = label,
-                ["spinner"] = spinner.ToString(),
-                ["stats"] = stats,
-                ["active_jobs"] = jobList,
-                ["active_total"] = actives.Count
+                [key: "label"] = label,
+                [key: "spinner"] = spinner.ToString(),
+                [key: "stats"] = stats,
+                [key: "active_jobs"] = jobList,
+                [key: "active_total"] = actives.Count
             };
         }
     }

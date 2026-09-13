@@ -29,14 +29,14 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
 
     // ReSharper disable once UnusedMember.Local
 #pragma warning disable IDE0051
-    private void Raise(string name) => _propertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    private void Raise(string name) => _propertyChanged?.Invoke(sender: this, e: new PropertyChangedEventArgs(propertyName: name));
 #pragma warning restore IDE0051
 
     private sealed class Cmd:System.Windows.Input.ICommand {
         private readonly Func<object?, Task> _run;
         public Cmd(System.Func<object?, Task> run) => _run = run;
         public bool CanExecute(object? parameter) => true;
-        public async void Execute(object? parameter) => await _run(parameter);
+        public async void Execute(object? parameter) => await _run(arg: parameter);
         public event EventHandler? CanExecuteChanged {
             add { }
             remove { }

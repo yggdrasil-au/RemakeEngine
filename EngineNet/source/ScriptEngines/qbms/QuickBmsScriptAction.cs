@@ -24,45 +24,45 @@ public sealed class Main : IScriptAction {
 
     public async System.Threading.Tasks.Task ExecuteAsync(Core.ExternalTools.JsonToolResolver tools, Core.Services.CommandService commandService, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         // Validate script and directories
-        if (string.IsNullOrWhiteSpace(_scriptPath) || !System.IO.File.Exists(_scriptPath)) {
-            throw new System.IO.FileNotFoundException("BMS script not found", _scriptPath);
+        if (string.IsNullOrWhiteSpace(_scriptPath) || !System.IO.File.Exists(path: _scriptPath)) {
+            throw new System.IO.FileNotFoundException("BMS script not found", fileName: _scriptPath);
         }
-        if (string.IsNullOrWhiteSpace(_inputDir) || !System.IO.Directory.Exists(_inputDir)) {
+        if (string.IsNullOrWhiteSpace(_inputDir) || !System.IO.Directory.Exists(path: _inputDir)) {
             throw new System.IO.DirectoryNotFoundException($"Input directory not found: {_inputDir}");
         }
         if (string.IsNullOrWhiteSpace(_outputDir)) {
             throw new System.ArgumentException("Output directory is required.");
         }
-        System.IO.Directory.CreateDirectory(_outputDir);
+        System.IO.Directory.CreateDirectory(path: _outputDir);
 
         // Determine required QuickBMS version from module Tools.toml
-        string toolsToml = System.IO.Path.Combine(_moduleRoot, "Tools.toml");
+        string toolsToml = System.IO.Path.Combine(path1: _moduleRoot, path2: "Tools.toml");
         string? requiredVersion = null;
         try {
-            if (System.IO.File.Exists(toolsToml)) {
-                List<Dictionary<string, object?>> toolDefs = TomlHelpers.ReadTools(toolsToml);
-                Dictionary<string, object?>? qbms = toolDefs.FirstOrDefault(t => t.TryGetValue("name", out object? n) && string.Equals(n?.ToString(), "QuickBMS", System.StringComparison.OrdinalIgnoreCase));
-                if (qbms is not null && qbms.TryGetValue("version", out object? v)) {
+            if (System.IO.File.Exists(path: toolsToml)) {
+                List<Dictionary<string, object?>> toolDefs = TomlHelpers.ReadTools(path: toolsToml);
+                Dictionary<string, object?>? qbms = toolDefs.FirstOrDefault(predicate: t => t.TryGetValue(key: "name", out object? n) && string.Equals(a: n?.ToString(), b: "QuickBMS", comparisonType: System.StringComparison.OrdinalIgnoreCase));
+                if (qbms is not null && qbms.TryGetValue(key: "version", out object? v)) {
                     requiredVersion = v?.ToString();
                 }
             }
         } catch (System.IO.IOException ex) {
-            throw new System.IO.IOException($"Failed to read Tools.toml at '{toolsToml}' to determine required QuickBMS version.", ex);
+            throw new System.IO.IOException($"Failed to read Tools.toml at '{toolsToml}' to determine required QuickBMS version.", innerException: ex);
         }
 
         // Resolve QuickBMS exe and version via provider (tool lockfile or resolver)
         //Core.ExternalTools.ToolMetadataProvider provider = new Core.ExternalTools.ToolMetadataProvider(projectRoot: EngineNet.Shared.State.RootPath, resolver: tools);
-        (string? installedExe, string? installedVersion) = Core.ExternalTools.ToolMetadataProvider.ResolveExeAndVersion(toolId: "QuickBMS", EngineNet.Shared.State.RootPath, tools);
+        (string? installedExe, string? installedVersion) = Core.ExternalTools.ToolMetadataProvider.ResolveExeAndVersion(toolId: "QuickBMS", _rootPath: EngineNet.Shared.State.RootPath, _toolResolver: tools);
 
         // Enforce required version (if declared)
-        if ((!string.IsNullOrWhiteSpace(requiredVersion) && string.IsNullOrWhiteSpace(installedVersion)) || !string.Equals(installedVersion, requiredVersion, System.StringComparison.OrdinalIgnoreCase)) {
+        if ((!string.IsNullOrWhiteSpace(requiredVersion) && string.IsNullOrWhiteSpace(installedVersion)) || !string.Equals(a: installedVersion, b: requiredVersion, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
             throw new System.InvalidOperationException($"Missing QuickBMS {requiredVersion} - please run the 'Download Tools' operation. {Core.ExternalTools.ToolLockfile.ToolLockfileName} shows '{installedVersion ?? "<not installed>"}'.");
         }
 
         // Resolve exe path (prefer tool lockfile; fallback to tool resolver)
         string resolvedExe = installedExe ?? tools.ResolveToolPath(toolId: "QuickBMS");
-        if (string.IsNullOrWhiteSpace(resolvedExe) || !System.IO.File.Exists(resolvedExe)) {
-            throw new System.IO.FileNotFoundException("QuickBMS is not installed or could not be resolved. Run the 'Download Tools' operation.", resolvedExe);
+        if (string.IsNullOrWhiteSpace(resolvedExe) || !System.IO.File.Exists(path: resolvedExe)) {
+            throw new System.IO.FileNotFoundException("QuickBMS is not installed or could not be resolved. Run the 'Download Tools' operation.", fileName: resolvedExe);
         }
 
         // Build args for built-in extractor and run
@@ -73,12 +73,12 @@ public sealed class Main : IScriptAction {
             "--output", _outputDir,
         };
         if (!string.IsNullOrWhiteSpace(_extension)) {
-            extractorArgs.Add("--extension");
-            extractorArgs.Add(_extension!);
+            extractorArgs.Add(item: "--extension");
+            extractorArgs.Add(item: _extension!);
         }
 
         // Run asynchronously to avoid blocking the UI thread
-        bool ok = await System.Threading.Tasks.Task.Run(() => QuickBmsExtractor.Run(extractorArgs, cancellationToken), cancellationToken);
+        bool ok = await System.Threading.Tasks.Task.Run(function: () => QuickBmsExtractor.Run(args: extractorArgs, cancellationToken: cancellationToken), cancellationToken: cancellationToken);
         if (!ok) {
             throw new System.InvalidOperationException("QuickBMS extraction failed.");
         }

@@ -27,110 +27,110 @@ internal static class JsAction {
         //_JSWorld.JsScript.SetValue("sqlite", Global.Sqlite.CreateSqliteModule(_JSWorld));
 
         // expose a console object for logging, mapped to Shared.IO.UI.EngineSdk.PrintLine
-        _JSWorld.console["log"] = (Action<string>)((message) => Shared.IO.UI.EngineSdk.PrintLine(message));
-        _JSWorld.console["warn"] = (Action<string>)((message) => Shared.IO.UI.EngineSdk.Warn(message));
-        _JSWorld.console["error"] = (Action<string>)((message) => Shared.IO.UI.EngineSdk.Error(message));
-        _JSWorld.JsScript.SetValue("console", _JSWorld.console);
+        _JSWorld.console[key: "log"] = (Action<string>)((message) => Shared.IO.UI.EngineSdk.PrintLine(message));
+        _JSWorld.console[key: "warn"] = (Action<string>)((message) => Shared.IO.UI.EngineSdk.Warn(message));
+        _JSWorld.console[key: "error"] = (Action<string>)((message) => Shared.IO.UI.EngineSdk.Error(message));
+        _JSWorld.JsScript.SetValue(name: "console", obj: _JSWorld.console);
 
         // Expose a function to resolve tool path
-        _JSWorld.JsScript.SetValue("tool", (Func<string, string?, string>)((id, ver) => _tools.ResolveToolPath(id, ver)));
-        _JSWorld.JsScript.SetValue("ResolveToolPath", (Func<string, string?, string>)((id, ver) => _tools.ResolveToolPath(id, ver)));
+        _JSWorld.JsScript.SetValue(name: "tool", obj: (Func<string, string?, string>)((id, ver) => _tools.ResolveToolPath(toolId: id, version: ver)));
+        _JSWorld.JsScript.SetValue(name: "ResolveToolPath", obj: (Func<string, string?, string>)((id, ver) => _tools.ResolveToolPath(toolId: id, version: ver)));
 
         // Expose script arguments as argv array and argc count
         // Jint maps string[] directly to a JS Array
-        _JSWorld.JsScript.SetValue("argv", _args);
-        _JSWorld.JsScript.SetValue("argc", _args.Length);
+        _JSWorld.JsScript.SetValue(name: "argv", obj: _args);
+        _JSWorld.JsScript.SetValue(name: "argc", _args.Length);
 
         // get gameroot and projectroot paths
-        _JSWorld.JsScript.SetValue("Game_Root", _gameRoot);
-        _JSWorld.JsScript.SetValue("Project_Root", _projectRoot);
+        _JSWorld.JsScript.SetValue(name: "Game_Root", _gameRoot);
+        _JSWorld.JsScript.SetValue(name: "Project_Root", _projectRoot);
 
         // script_dir constant - directory containing the executing script
-        string scriptDir = Path.GetDirectoryName(_scriptPath)?.Replace("\\", "/") ?? "";
-        _JSWorld.JsScript.SetValue("script_dir", scriptDir);
+        string scriptDir = Path.GetDirectoryName(path: _scriptPath)?.Replace(oldValue: "\\", newValue: "/") ?? "";
+        _JSWorld.JsScript.SetValue(name: "script_dir", scriptDir);
 
 
         // :: start :: methods for emitting Shared.IO.UI.EngineSdk. events from JS scripts ::
 
         // basic outputs for warning and error events
-        _JSWorld.JsScript.SetValue("warn", (Action<string>)Shared.IO.UI.EngineSdk.Warn);
-        _JSWorld.JsScript.SetValue("error", (Action<string>)Shared.IO.UI.EngineSdk.Error);
+        _JSWorld.JsScript.SetValue(name: "warn", obj: (Action<string>)Shared.IO.UI.EngineSdk.Warn);
+        _JSWorld.JsScript.SetValue(name: "error", obj: (Action<string>)Shared.IO.UI.EngineSdk.Error);
 
         // emits the prompt query to the engine/ui and returns the user input
-        _JSWorld.JsScript.SetValue("prompt", (Func<JsValue, JsValue, JsValue, string>)((message, id, secret) => {
+        _JSWorld.JsScript.SetValue(name: "prompt", obj: (Func<JsValue, JsValue, JsValue, string>)((message, id, secret) => {
             string msg = message.IsString() ? message.AsString() : message.ToString();
             string pid = (id.IsNull() || id.IsUndefined()) ? "q1" : (id.IsString() ? id.AsString() : id.ToString());
             bool sec = secret.IsBoolean() && secret.AsBoolean();
-            return Shared.IO.UI.EngineSdk.Prompt(msg, pid, sec);
+            return Shared.IO.UI.EngineSdk.Prompt(msg, id: pid, secret: sec);
         }));
 
-        _JSWorld.JsScript.SetValue("color_prompt", (Func<JsValue, JsValue, JsValue, JsValue, string>)((message, color, id, secret) => {
+        _JSWorld.JsScript.SetValue(name: "color_prompt", obj: (Func<JsValue, JsValue, JsValue, JsValue, string>)((message, color, id, secret) => {
             string msg = message.IsString() ? message.AsString() : message.ToString();
             string col = color.IsString() ? color.AsString() : color.ToString();
             string pid = (id.IsNull() || id.IsUndefined()) ? "q1" : (id.IsString() ? id.AsString() : id.ToString());
             bool sec = secret.IsBoolean() && secret.AsBoolean();
-            return Shared.IO.UI.EngineSdk.color_prompt(msg, col, pid, sec);
+            return Shared.IO.UI.EngineSdk.color_prompt(msg, color: col, id: pid, secret: sec);
         }));
 
         // Alias for AU/UK spelling
-        _JSWorld.JsScript.SetValue("colour_prompt", _JSWorld.JsScript.GetValue("color_prompt"));
+        _JSWorld.JsScript.SetValue(name: "colour_prompt", _JSWorld.JsScript.GetValue(propertyName: "color_prompt"));
 
         // :: Progress System ::
         Shared.IO.UI.EngineSdk.ScriptProgress? activeScriptProgress = null;
 
         // progress.new(total, id, label) -> Shared.IO.UI.EngineSdk.PanelProgress userdata
-        _JSWorld.Progress["new"] = (Func<int, string?, string?, Shared.IO.UI.EngineSdk.PanelProgress>)((total, id, label) => {
+        _JSWorld.Progress[key: "new"] = (Func<int, string?, string?, Shared.IO.UI.EngineSdk.PanelProgress>)((total, id, label) => {
             string pid = string.IsNullOrEmpty(id) ? "p1" : id;
-            return new Shared.IO.UI.EngineSdk.PanelProgress(total, pid, label);
+            return new Shared.IO.UI.EngineSdk.PanelProgress(total: total, id: pid, label: label);
         });
 
         // progress.start(total, label) -> Shared.IO.UI.EngineSdk.ScriptProgress userdata
-        _JSWorld.Progress["start"] = (Func<int, string?, Shared.IO.UI.EngineSdk.ScriptProgress>)((total, label) => {
-            activeScriptProgress = new Shared.IO.UI.EngineSdk.ScriptProgress(total, "s1", label);
+        _JSWorld.Progress[key: "start"] = (Func<int, string?, Shared.IO.UI.EngineSdk.ScriptProgress>)((total, label) => {
+            activeScriptProgress = new Shared.IO.UI.EngineSdk.ScriptProgress(total: total, id: "s1", label: label);
             return activeScriptProgress;
         });
 
         // progress.step(label?)
-        _JSWorld.Progress["step"] = (Action<string?>)((label) => {
+        _JSWorld.Progress[key: "step"] = (Action<string?>)((label) => {
             if (activeScriptProgress != null) {
-                activeScriptProgress.Update(1, label);
+                activeScriptProgress.Update(inc: 1, newLabel: label);
                 if (!string.IsNullOrEmpty(label)) {
-                    Shared.IO.UI.EngineSdk.PrintLine($"[Step {activeScriptProgress.Current}/{activeScriptProgress.Total}] {label}", ConsoleColor.Magenta);
+                    Shared.IO.UI.EngineSdk.PrintLine($"[Step {activeScriptProgress.Current}/{activeScriptProgress.Total}] {label}", color: ConsoleColor.Magenta);
                 }
             }
         });
 
         // progress.add_steps(count)
-        _JSWorld.Progress["add_steps"] = (Action<int>)((count) => {
+        _JSWorld.Progress[key: "add_steps"] = (Action<int>)((count) => {
             if (activeScriptProgress != null) {
-                activeScriptProgress.SetTotal(activeScriptProgress.Total + count);
+                activeScriptProgress.SetTotal(total: activeScriptProgress.Total + count);
             }
         });
 
         // progress.finish()
-        _JSWorld.Progress["finish"] = (Action)(() => {
+        _JSWorld.Progress[key: "finish"] = (Action)(() => {
             if (activeScriptProgress != null) {
                 activeScriptProgress.Complete();
             }
         });
 
-        _JSWorld.JsScript.SetValue("progress", _JSWorld.Progress);
+        _JSWorld.JsScript.SetValue(name: "progress", obj: _JSWorld.Progress);
 
         // :: end ::
         //
         // :: start :: Debugging features ::
 
 #if DEBUG
-        _JSWorld.JsScript.SetValue("DEBUG", true);
+        _JSWorld.JsScript.SetValue(name: "DEBUG", true);
 #else
         _JSWorld.JsScript.SetValue("DEBUG", false);
 #endif
 
         // :: JS Diagnostics logging ::
-        _JSWorld.DiagnosticsMethods["Log"] = (Action<string>)Shared.IO.Diagnostics.JsLogger.JsLog;
-        _JSWorld.DiagnosticsMethods["Trace"] = (Action<string>)Shared.IO.Diagnostics.JsLogger.JsTrace;
+        _JSWorld.DiagnosticsMethods[key: "Log"] = (Action<string>)Shared.IO.Diagnostics.JsLogger.JsLog;
+        _JSWorld.DiagnosticsMethods[key: "Trace"] = (Action<string>)Shared.IO.Diagnostics.JsLogger.JsTrace;
 
-        _JSWorld.JsScript.SetValue("Diagnostics", _JSWorld.DiagnosticsMethods);
+        _JSWorld.JsScript.SetValue(name: "Diagnostics", obj: _JSWorld.DiagnosticsMethods);
 
         // :: end ::
     }

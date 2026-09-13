@@ -10,15 +10,15 @@ internal static class P3dHighLevel {
         foreach (Chunk chunk in tree) {
             switch (chunk.Typ) {
                 case ChunkType.Mesh:
-                    types.Add(new HighLevelType.MeshType(MeshView.FromChunk(chunk, tree)));
+                    types.Add(item: new HighLevelType.MeshType(Mesh: MeshView.FromChunk(chunk: chunk, tree: tree)));
                     break;
                 case ChunkType.Skin:
-                    types.Add(new HighLevelType.SkinType(SkinView.FromChunk(chunk, tree)));
+                    types.Add(item: new HighLevelType.SkinType(Skin: SkinView.FromChunk(chunk: chunk, tree: tree)));
                     break;
             }
         }
 
-        types.Add(new HighLevelType.AllTexturesType(AllTexturesView.FromTree(tree)));
+        types.Add(item: new HighLevelType.AllTexturesType(Textures: AllTexturesView.FromTree(tree: tree)));
         return types;
     }
 }
@@ -47,7 +47,7 @@ internal sealed record ShaderView(
 
         ShaderView shader = new(
             Name: chunk.Data.Name,
-            Params: new List<ShaderParamPayload>(checked((int)shaderPayload.NumParams)),
+            Params: new List<ShaderParamPayload>(capacity: checked((int)shaderPayload.NumParams)),
             Texture: null,
             Lit: null,
             TwoSided: null,
@@ -55,9 +55,9 @@ internal sealed record ShaderView(
             Emissive: null
         );
 
-        foreach (Chunk child in chunk.GetChildren(tree)) {
+        foreach (Chunk child in chunk.GetChildren(chunks: tree)) {
             if (child.Data.Payload is ShaderParamPayload param) {
-                shader.Params.Add(param);
+                shader.Params.Add(item: param);
 
                 if (param.Param == "TEX" && param.ValueKind == ShaderParamValueKind.Texture) {
                     shader = shader with { Texture = param.TextureValue };
@@ -109,7 +109,7 @@ internal sealed record PrimGroupView(
             Weights: null
         );
 
-        foreach (Chunk child in chunk.GetChildren(tree)) {
+        foreach (Chunk child in chunk.GetChildren(chunks: tree)) {
             switch (child.Typ, child.Data.Payload) {
                 case (ChunkType.PositionList, PositionListPayload pos):
                     group = group with { Vertices = pos.Positions };
@@ -155,24 +155,24 @@ internal sealed record AllTexturesView(List<(string Name, ImageFormat Format, by
             }
 
             try {
-                Chunk imageChunk = textureChunk.GetChild(tree, 0);
+                Chunk imageChunk = textureChunk.GetChild(chunks: tree, index: 0);
                 if (imageChunk.Data.Payload is not ImagePayload imagePayload) {
                     continue;
                 }
 
-                Chunk imageRawChunk = imageChunk.GetChild(tree, 0);
+                Chunk imageRawChunk = imageChunk.GetChild(chunks: tree, index: 0);
                 if (imageRawChunk.Data.Payload is not ImageRawPayload imageRaw) {
                     continue;
                 }
 
-                textures.Add((textureChunk.Data.Name, imagePayload.ImageFormat, imageRaw.Data));
+                textures.Add(item: (textureChunk.Data.Name, imagePayload.ImageFormat, imageRaw.Data));
             } catch (Exception ex) {
-                Shared.IO.Diagnostics.Bug($"[P3dHighLevel::AllTexturesView::FromTree()] Skipping malformed texture branch for '{textureChunk.Data.Name}'.", ex);
+                Shared.IO.Diagnostics.Bug($"[P3dHighLevel::AllTexturesView::FromTree()] Skipping malformed texture branch for '{textureChunk.Data.Name}'.", ex: ex);
                 // Ignore malformed texture branches for high-level projection.
             }
         }
 
-        return new AllTexturesView(textures);
+        return new AllTexturesView(Textures: textures);
     }
 }
 
@@ -189,30 +189,30 @@ internal sealed record MeshView(
 
         MeshView mesh = new(
             Name: chunk.Data.Name,
-            PrimGroups: new List<PrimGroupView>(checked((int)meshPayload.NumPrimGroups)),
+            PrimGroups: new List<PrimGroupView>(capacity: checked((int)meshPayload.NumPrimGroups)),
             Shaders: new List<ShaderView>(),
             Textures: new List<(string Name, ImageFormat Format, byte[] Data)>()
         );
 
-        foreach (Chunk primGroupChunk in chunk.GetChildrenOfType(tree, ChunkType.OldPrimGroup)) {
-            PrimGroupView primGroup = PrimGroupView.FromChunk(primGroupChunk, tree);
-            mesh.PrimGroups.Add(primGroup);
+        foreach (Chunk primGroupChunk in chunk.GetChildrenOfType(chunks: tree, typ: ChunkType.OldPrimGroup)) {
+            PrimGroupView primGroup = PrimGroupView.FromChunk(chunk: primGroupChunk, tree: tree);
+            mesh.PrimGroups.Add(item: primGroup);
 
-            Chunk? shaderChunk = tree.FirstOrDefault(c => c.Typ == ChunkType.Shader && c.Data.Name == primGroup.Shader);
+            Chunk? shaderChunk = tree.FirstOrDefault(predicate: c => c.Typ == ChunkType.Shader && c.Data.Name == primGroup.Shader);
             if (shaderChunk != null) {
-                mesh.Shaders.Add(ShaderView.FromChunk(shaderChunk, tree));
+                mesh.Shaders.Add(item: ShaderView.FromChunk(chunk: shaderChunk, tree: tree));
             }
         }
 
         HashSet<string> activeTextureNames = mesh.Shaders
-            .Select(s => s.Texture)
-            .Where(t => !string.IsNullOrEmpty(t))
+            .Select(selector: s => s.Texture)
+            .Where(predicate: t => !string.IsNullOrEmpty(t))
             .Cast<string>()
-            .ToHashSet(StringComparer.Ordinal);
+            .ToHashSet(comparer: StringComparer.Ordinal);
 
-        foreach ((string Name, ImageFormat Format, byte[] Data) texture in AllTexturesView.FromTree(tree).Textures) {
-            if (activeTextureNames.Contains(texture.Name)) {
-                mesh.Textures.Add(texture);
+        foreach ((string Name, ImageFormat Format, byte[] Data) texture in AllTexturesView.FromTree(tree: tree).Textures) {
+            if (activeTextureNames.Contains(item: texture.Name)) {
+                mesh.Textures.Add(item: texture);
             }
         }
 
@@ -259,32 +259,32 @@ internal sealed record SkeletonView(string Name, List<SkeletonJointView> Joints)
         }
 
         List<SkeletonJointView> joints = new();
-        foreach (Chunk child in chunk.GetChildrenOfType(tree, ChunkType.P3DSkeletonJoint)) {
-            joints.Add(SkeletonJointView.FromChunk(child));
+        foreach (Chunk child in chunk.GetChildrenOfType(chunks: tree, typ: ChunkType.P3DSkeletonJoint)) {
+            joints.Add(item: SkeletonJointView.FromChunk(chunk: child));
         }
 
         if (joints.Count > 0) {
-            SkeletonJointView root = joints[0] with {
-                WorldMatrix = joints[0].RestPose,
-                InverseWorldMatrix = Matrix4x4.Invert(joints[0].RestPose, out Matrix4x4 invRoot) ? invRoot : null,
+            SkeletonJointView root = joints[index: 0] with {
+                WorldMatrix = joints[index: 0].RestPose,
+                InverseWorldMatrix = Matrix4x4.Invert(matrix: joints[index: 0].RestPose, result: out Matrix4x4 invRoot) ? invRoot : null,
             };
-            joints[0] = root;
+            joints[index: 0] = root;
 
             for (int i = 1; i < joints.Count; i++) {
-                SkeletonJointView current = joints[i];
-                SkeletonJointView parent = joints[current.Parent];
+                SkeletonJointView current = joints[index: i];
+                SkeletonJointView parent = joints[index: current.Parent];
 
                 if (!parent.WorldMatrix.HasValue) {
                     throw new P3dParseException("Bone parent did not have world matrix set.");
                 }
 
                 Matrix4x4 world = current.RestPose * parent.WorldMatrix.Value;
-                Matrix4x4? inverse = Matrix4x4.Invert(world, out Matrix4x4 invWorld) ? invWorld : null;
-                joints[i] = current with { WorldMatrix = world, InverseWorldMatrix = inverse };
+                Matrix4x4? inverse = Matrix4x4.Invert(matrix: world, result: out Matrix4x4 invWorld) ? invWorld : null;
+                joints[index: i] = current with { WorldMatrix = world, InverseWorldMatrix = inverse };
             }
         }
 
-        return new SkeletonView(chunk.Data.Name, joints);
+        return new SkeletonView(Name: chunk.Data.Name, Joints: joints);
     }
 }
 
@@ -303,35 +303,35 @@ internal sealed record SkinView(
         SkinView skin = new(
             Name: chunk.Data.Name,
             Skeleton: null,
-            PrimGroups: new List<PrimGroupView>(checked((int)payload.NumPrimGroups)),
+            PrimGroups: new List<PrimGroupView>(capacity: checked((int)payload.NumPrimGroups)),
             Shaders: new List<ShaderView>(),
             Textures: new List<(string Name, ImageFormat Format, byte[] Data)>()
         );
 
-        Chunk? skeletonChunk = tree.FirstOrDefault(c => c.Typ == ChunkType.P3DSkeleton && c.Data.Name == payload.SkeletonName);
+        Chunk? skeletonChunk = tree.FirstOrDefault(predicate: c => c.Typ == ChunkType.P3DSkeleton && c.Data.Name == payload.SkeletonName);
         if (skeletonChunk != null) {
-            skin = skin with { Skeleton = SkeletonView.FromChunk(skeletonChunk, tree) };
+            skin = skin with { Skeleton = SkeletonView.FromChunk(chunk: skeletonChunk, tree: tree) };
         }
 
-        foreach (Chunk primGroupChunk in chunk.GetChildrenOfType(tree, ChunkType.OldPrimGroup)) {
-            PrimGroupView primGroup = PrimGroupView.FromChunk(primGroupChunk, tree);
-            skin.PrimGroups.Add(primGroup);
+        foreach (Chunk primGroupChunk in chunk.GetChildrenOfType(chunks: tree, typ: ChunkType.OldPrimGroup)) {
+            PrimGroupView primGroup = PrimGroupView.FromChunk(chunk: primGroupChunk, tree: tree);
+            skin.PrimGroups.Add(item: primGroup);
 
-            Chunk? shaderChunk = tree.FirstOrDefault(c => c.Typ == ChunkType.Shader && c.Data.Name == primGroup.Shader);
+            Chunk? shaderChunk = tree.FirstOrDefault(predicate: c => c.Typ == ChunkType.Shader && c.Data.Name == primGroup.Shader);
             if (shaderChunk != null) {
-                skin.Shaders.Add(ShaderView.FromChunk(shaderChunk, tree));
+                skin.Shaders.Add(item: ShaderView.FromChunk(chunk: shaderChunk, tree: tree));
             }
         }
 
         HashSet<string> activeTextureNames = skin.Shaders
-            .Select(s => s.Texture)
-            .Where(t => !string.IsNullOrEmpty(t))
+            .Select(selector: s => s.Texture)
+            .Where(predicate: t => !string.IsNullOrEmpty(t))
             .Cast<string>()
-            .ToHashSet(StringComparer.Ordinal);
+            .ToHashSet(comparer: StringComparer.Ordinal);
 
-        foreach ((string Name, ImageFormat Format, byte[] Data) texture in AllTexturesView.FromTree(tree).Textures) {
-            if (activeTextureNames.Contains(texture.Name)) {
-                skin.Textures.Add(texture);
+        foreach ((string Name, ImageFormat Format, byte[] Data) texture in AllTexturesView.FromTree(tree: tree).Textures) {
+            if (activeTextureNames.Contains(item: texture.Name)) {
+                skin.Textures.Add(item: texture);
             }
         }
 

@@ -37,12 +37,12 @@ public sealed class OperationsService {
         GameModules games,
         IDictionary<string, object?> engineConfig
     ) {
-        if (!games.TryGetValue(gameName, out GameModuleInfo? module)) {
+        if (!games.TryGetValue(key: gameName, out GameModuleInfo? module)) {
             PreparedOperations missingModule = new PreparedOperations {
                 IsLoaded = false,
                 ErrorMessage = $"Game '{gameName}' was not found."
             };
-            return new ModuleOperationSession(gameName, null, missingModule, Array.Empty<SessionOperation>(), Array.Empty<SessionOperation>());
+            return new ModuleOperationSession(gameName: gameName, module: null, preparedOperations: missingModule, initOperations: Array.Empty<SessionOperation>(), regularOperations: Array.Empty<SessionOperation>());
         }
 
         if (string.IsNullOrWhiteSpace(module.OpsFile)) {
@@ -50,29 +50,29 @@ public sealed class OperationsService {
                 IsLoaded = false,
                 ErrorMessage = "Selected game is missing operations file."
             };
-            return new ModuleOperationSession(gameName, module, missingOpsFile, Array.Empty<SessionOperation>(), Array.Empty<SessionOperation>());
+            return new ModuleOperationSession(gameName: gameName, module: module, preparedOperations: missingOpsFile, initOperations: Array.Empty<SessionOperation>(), regularOperations: Array.Empty<SessionOperation>());
         }
 
-        PreparedOperations prepared = LoadAndPrepare(module.OpsFile, gameName, games, engineConfig);
-        IReadOnlyDictionary<long, OperationExecutionStatus> statuses = LoadLatestExecutionStatuses(module.GameRoot);
-        List<SessionOperation> initOperations = BuildSessionOperations(prepared.InitOperations, statuses);
-        List<SessionOperation> regularOperations = BuildSessionOperations(prepared.RegularOperations, statuses);
+        PreparedOperations prepared = LoadAndPrepare(opsFile: module.OpsFile, currentGame: gameName, games: games, engineConfig: engineConfig);
+        IReadOnlyDictionary<long, OperationExecutionStatus> statuses = LoadLatestExecutionStatuses(gameRoot: module.GameRoot);
+        List<SessionOperation> initOperations = BuildSessionOperations(preparedOperations: prepared.InitOperations, statuses: statuses);
+        List<SessionOperation> regularOperations = BuildSessionOperations(preparedOperations: prepared.RegularOperations, statuses: statuses);
 
-        return new ModuleOperationSession(gameName, module, prepared, initOperations, regularOperations);
+        return new ModuleOperationSession(gameName: gameName, module: module, preparedOperations: prepared, initOperations: initOperations, regularOperations: regularOperations);
     }
 
     private static List<SessionOperation> BuildSessionOperations(
         IReadOnlyList<PreparedOperation> preparedOperations,
         IReadOnlyDictionary<long, OperationExecutionStatus> statuses
     ) {
-        List<SessionOperation> sessionOperations = new List<SessionOperation>(preparedOperations.Count);
+        List<SessionOperation> sessionOperations = new List<SessionOperation>(capacity: preparedOperations.Count);
 
         foreach (PreparedOperation operation in preparedOperations) {
             OperationExecutionStatus status = operation.OperationId.HasValue
-                && statuses.TryGetValue(operation.OperationId.Value, out OperationExecutionStatus recordedStatus)
+                && statuses.TryGetValue(key: operation.OperationId.Value, out OperationExecutionStatus recordedStatus)
                 ? recordedStatus
                 : OperationExecutionStatus.NotRun;
-            sessionOperations.Add(new SessionOperation(operation, status));
+            sessionOperations.Add(item: new SessionOperation(operation: operation, status: status));
         }
 
         return sessionOperations;
@@ -93,13 +93,13 @@ public sealed class OperationsService {
         IDictionary<string, object?>? engineConfig = null
     ) {
         PreparedOperations result = new PreparedOperations();
-        if (string.IsNullOrWhiteSpace(opsFile) || !System.IO.File.Exists(opsFile)) {
+        if (string.IsNullOrWhiteSpace(opsFile) || !System.IO.File.Exists(path: opsFile)) {
             result.IsLoaded = false;
             result.ErrorMessage = "Operations file is missing.";
             return result;
         }
 
-        List<Dictionary<string, object?>>? allOps = _loader.LoadOperations(opsFile);
+        List<Dictionary<string, object?>>? allOps = _loader.LoadOperations(opsFile: opsFile);
         if (allOps is null) {
             result.IsLoaded = false;
             result.ErrorMessage = "Failed to load operations file.";
@@ -112,9 +112,9 @@ public sealed class OperationsService {
         Dictionary<string, object?>? ctx = null;
         if (!string.IsNullOrEmpty(currentGame) && games != null && engineConfig != null) {
             try {
-                ctx = Core.Utils.ExecutionContextBuilder.Build(currentGame, games, engineConfig);
+                ctx = Core.Utils.ExecutionContextBuilder.Build(currentGame: currentGame, games: games, engineConfig: engineConfig);
             } catch (System.Exception ex) {
-                Shared.IO.Diagnostics.Bug($"[OperationsService::LoadAndPrepare()] Failed building context for game '{currentGame}'.", ex);
+                Shared.IO.Diagnostics.Bug($"[OperationsService::LoadAndPrepare()] Failed building context for game '{currentGame}'.", ex: ex);
                 /* ignore context build failure for menu rendering */
             }
         }
@@ -123,43 +123,43 @@ public sealed class OperationsService {
         HashSet<Dictionary<string, object?>> invalidIdOps = new HashSet<Dictionary<string, object?>>();
 
         foreach (Dictionary<string, object?> op in allOps) {
-            if (TryGetLong(op, out long idValue)) {
-                idCounts[idValue] = idCounts.TryGetValue(idValue, out int count) ? count + 1 : 1;
-            } else if (op.ContainsKey("id")) {
-                invalidIdOps.Add(op);
+            if (TryGetLong(data: op, out long idValue)) {
+                idCounts[key: idValue] = idCounts.TryGetValue(key: idValue, out int count) ? count + 1 : 1;
+            } else if (op.ContainsKey(key: "id")) {
+                invalidIdOps.Add(item: op);
             }
         }
 
-        HashSet<long> duplicateIds = idCounts.Where(kv => kv.Value > 1).Select(kv => kv.Key).ToHashSet();
+        HashSet<long> duplicateIds = idCounts.Where(predicate: kv => kv.Value > 1).Select(selector: kv => kv.Key).ToHashSet();
         if (duplicateIds.Count > 0) {
-            result.Warnings.Add($"Duplicate operation IDs found: {string.Join(", ", duplicateIds.OrderBy(x => x))}");
+            result.Warnings.Add(item: $"Duplicate operation IDs found: {string.Join(separator: ", ", values: duplicateIds.OrderBy(keySelector: x => x))}");
         }
         if (invalidIdOps.Count > 0) {
-            result.Warnings.Add("One or more operations contain invalid IDs.");
+            result.Warnings.Add(item: "One or more operations contain invalid IDs.");
         }
 
         foreach (Dictionary<string, object?> op in allOps) {
             // Resolve placeholders for UI display only; execution should use raw ops for fresh config values.
             Dictionary<string, object?> resolvedOp = op;
             if (ctx != null) {
-                if (Core.Utils.Placeholders.Resolve(op, ctx) is Dictionary<string, object?> resolved) {
+                if (Core.Utils.Placeholders.Resolve(op, context: ctx) is Dictionary<string, object?> resolved) {
                     resolvedOp = resolved;
                 }
             }
 
-            bool isInit = TryGetBool(op, out bool initValue, "init") && initValue;
+            bool isInit = TryGetBool(data: op, out bool initValue, keys: "init") && initValue;
             bool hasDuplicateId = false;
-            bool hasInvalidId = invalidIdOps.Contains(op);
+            bool hasInvalidId = invalidIdOps.Contains(item: op);
             long? id = null;
 
-            if (TryGetLong(op, out long idValue)) {
+            if (TryGetLong(data: op, out long idValue)) {
                 id = idValue;
-                hasDuplicateId = duplicateIds.Contains(idValue);
+                hasDuplicateId = duplicateIds.Contains(item: idValue);
             }
 
-            string displayName = ResolveOperationDisplayName(resolvedOp);
-            string? scriptPath = GetString(resolvedOp, "script");
-            string? scriptType = GetString(resolvedOp, "script_type", "scriptType");
+            string displayName = ResolveOperationDisplayName(op: resolvedOp);
+            string? scriptPath = GetString(data: resolvedOp, keys: "script");
+            string? scriptType = GetString(data: resolvedOp, keys: ["script_type", "scriptType"]);
 
             PreparedOperation prepared = new PreparedOperation(
                 operation: op,
@@ -172,15 +172,15 @@ public sealed class OperationsService {
             );
 
             if (isInit) {
-                result.InitOperations.Add(prepared);
+                result.InitOperations.Add(item: prepared);
             } else {
-                result.RegularOperations.Add(prepared);
+                result.RegularOperations.Add(item: prepared);
             }
 
-            bool isRunAll = (TryGetBool(op, out bool runAllDash, "run-all") && runAllDash)
-                || (TryGetBool(op, out bool runAllUnderscore, "run_all") && runAllUnderscore);
+            bool isRunAll = (TryGetBool(data: op, out bool runAllDash, keys: "run-all") && runAllDash)
+                || (TryGetBool(data: op, out bool runAllUnderscore, keys: "run_all") && runAllUnderscore);
             if (isRunAll) {
-                result.RunAllOperations.Add(prepared);
+                result.RunAllOperations.Add(item: prepared);
             }
         }
 
@@ -195,17 +195,17 @@ public sealed class OperationsService {
     /// <param name="op"></param>
     /// <returns></returns>
     internal static string ResolveOperationDisplayName(IDictionary<string, object?> op) {
-        string? name = GetString(op, "Name", "name");
+        string? name = GetString(data: op, keys: ["Name", "name"]);
         if (!string.IsNullOrWhiteSpace(name)) {
             return name;
         }
 
-        string? title = GetString(op, "Title", "title");
+        string? title = GetString(data: op, keys: ["Title", "title"]);
         if (!string.IsNullOrWhiteSpace(title)) {
             return title;
         }
 
-        string? script = GetString(op, "script");
+        string? script = GetString(data: op, keys: "script");
         if (!string.IsNullOrWhiteSpace(script)) {
             return script;
         }
@@ -229,7 +229,7 @@ public sealed class OperationsService {
         bool defaultsOnly = false,
         CancellationToken cancellationToken = default(CancellationToken)
     ) {
-        if (!op.TryGetValue("prompts", out object? promptsObj) || promptsObj is not IList<object?> prompts) {
+        if (!op.TryGetValue(key: "prompts", out object? promptsObj) || promptsObj is not IList<object?> prompts) {
             return true;
         }
 
@@ -238,29 +238,29 @@ public sealed class OperationsService {
                 continue;
             }
 
-            if (!TryGetPromptName(prompt, out string name)) {
+            if (!TryGetPromptName(prompt: prompt, name: out string name)) {
                 continue;
             }
 
-            string type = NormalizePromptType(GetString(prompt, "type", "Type"));
-            object? defaultValue = GetPromptDefault(prompt);
+            string type = NormalizePromptType(type: GetString(data: prompt, keys: ["type", "Type"]));
+            object? defaultValue = GetPromptDefault(prompt: prompt);
 
-            if (TryGetString(prompt, out string? conditionName, "condition") && !string.IsNullOrWhiteSpace(conditionName)) {
-                EnsureConditionDefault(prompts, answers, conditionName);
-                if (!answers.TryGetValue(conditionName, out object? condVal) || condVal is not bool cb || !cb) {
-                    answers[name] = EmptyValueForType(type);
+            if (TryGetString(data: prompt, out string? conditionName, keys: "condition") && !string.IsNullOrWhiteSpace(conditionName)) {
+                EnsureConditionDefault(prompts: prompts, answers: answers, conditionName: conditionName);
+                if (!answers.TryGetValue(key: conditionName, out object? condVal) || condVal is not bool cb || !cb) {
+                    answers[key: name] = EmptyValueForType(type: type);
                     continue;
                 }
             }
 
             if (defaultsOnly) {
-                answers[name] = defaultValue ?? EmptyValueForType(type);
+                answers[key: name] = defaultValue ?? EmptyValueForType(type: type);
                 continue;
             }
 
-            string title = ResolvePromptTitle(prompt, name);
-            bool isSecret = TryGetBool(prompt, out bool secretValue, "secret", "Secret") && secretValue;
-            IReadOnlyList<PromptChoice> choices = ResolvePromptChoices(prompt);
+            string title = ResolvePromptTitle(prompt: prompt, fallbackName: name);
+            bool isSecret = TryGetBool(data: prompt, out bool secretValue, keys: ["secret", "Secret"]) && secretValue;
+            IReadOnlyList<PromptChoice> choices = ResolvePromptChoices(prompt: prompt);
 
             PromptRequest request = new PromptRequest(
                 name: name,
@@ -271,15 +271,15 @@ public sealed class OperationsService {
                 isSecret: isSecret
             );
 
-            PromptResponse response = await promptHandler(request, cancellationToken).ConfigureAwait(false);
+            PromptResponse response = await promptHandler(request: request, cancellationToken: cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
             if (response.IsCancelled) {
                 return false;
             }
 
             if (response.UseDefault) {
-                answers[name] = defaultValue ?? EmptyValueForType(type);
+                answers[key: name] = defaultValue ?? EmptyValueForType(type: type);
             } else {
-                answers[name] = response.Value;
+                answers[key: name] = response.Value;
             }
         }
 
@@ -301,32 +301,32 @@ public sealed class OperationsService {
     }
 
     private static string ResolvePromptTitle(IDictionary<string, object?> prompt, string fallbackName) {
-        string? title = GetString(prompt, "message", "Message", "prompt", "Prompt");
+        string? title = GetString(data: prompt, keys: ["message", "Message", "prompt", "Prompt"]);
         return string.IsNullOrWhiteSpace(title) ? fallbackName : title;
     }
 
     private IReadOnlyList<PromptChoice> ResolvePromptChoices(IDictionary<string, object?> prompt) {
         List<PromptChoice> choices = new List<PromptChoice>();
 
-        if (TryGetString(prompt, out string? provider, "choices_provider") && provider == "registry_modules") {
-            Core.Data.GameModules registered = _gameRegistry.GetModules(ModuleFilter.Registered);
-            Core.Data.GameModules installed = _gameRegistry.GetModules(ModuleFilter.Installed);
-            choices.AddRange(registered.Keys.Select(key => new PromptChoice(label: key, isDisabled: installed.ContainsKey(key))));
+        if (TryGetString(data: prompt, out string? provider, keys: "choices_provider") && provider == "registry_modules") {
+            Core.Data.GameModules registered = _gameRegistry.GetModules(filter: ModuleFilter.Registered);
+            Core.Data.GameModules installed = _gameRegistry.GetModules(filter: ModuleFilter.Installed);
+            choices.AddRange(collection: registered.Keys.Select(selector: key => new PromptChoice(label: key, isDisabled: installed.ContainsKey(key: key))));
             return choices;
         }
 
-        if (TryGetList(prompt, out IList<object?>? rawChoices, "choices", "Choices") && rawChoices is not null) {
-            choices.AddRange(rawChoices
-                .Select(choice => choice?.ToString() ?? string.Empty)
-                .Where(label => !string.IsNullOrWhiteSpace(label))
-                .Select(label => new PromptChoice(label: label, isDisabled: false)));
+        if (TryGetList(data: prompt, values: out IList<object?>? rawChoices, keys: ["choices", "Choices"]) && rawChoices is not null) {
+            choices.AddRange(collection: rawChoices
+                .Select(selector: choice => choice?.ToString() ?? string.Empty)
+                .Where(predicate: label => !string.IsNullOrWhiteSpace(label))
+                .Select(selector: label => new PromptChoice(label: label, isDisabled: false)));
         }
 
         return choices;
     }
 
     private static void EnsureConditionDefault(IList<object?> prompts, PromptAnswers answers, string conditionName) {
-        if (answers.ContainsKey(conditionName)) {
+        if (answers.ContainsKey(key: conditionName)) {
             return;
         }
 
@@ -335,15 +335,15 @@ public sealed class OperationsService {
                 continue;
             }
 
-            if (TryGetPromptName(prompt, out string name) && name == conditionName && prompt.TryGetValue("default", out object? def)) {
-                answers[conditionName] = def;
+            if (TryGetPromptName(prompt: prompt, name: out string name) && name == conditionName && prompt.TryGetValue(key: "default", out object? def)) {
+                answers[key: conditionName] = def;
                 return;
             }
         }
     }
 
     private static bool TryGetPromptName(IDictionary<string, object?> prompt, out string name) {
-        name = GetString(prompt, "Name", "name") ?? string.Empty;
+        name = GetString(data: prompt, keys: ["Name", "name"]) ?? string.Empty;
         if (!string.IsNullOrWhiteSpace(name)) {
             return true;
         }
@@ -353,11 +353,11 @@ public sealed class OperationsService {
     }
 
     private static object? GetPromptDefault(IDictionary<string, object?> prompt) {
-        if (prompt.TryGetValue("default", out object? def)) {
+        if (prompt.TryGetValue(key: "default", out object? def)) {
             return def;
         }
 
-        if (prompt.TryGetValue("Default", out object? defAlt)) {
+        if (prompt.TryGetValue(key: "Default", out object? defAlt)) {
             return defAlt;
         }
 
@@ -376,7 +376,7 @@ public sealed class OperationsService {
     private static bool TryGetBool(IDictionary<string, object?> data, out bool value, params string[] keys) {
         value = false;
         foreach (string key in keys) {
-            if (data.TryGetValue(key, out object? raw) && raw is bool b) {
+            if (data.TryGetValue(key: key, out object? raw) && raw is bool b) {
                 value = b;
                 return true;
             }
@@ -386,7 +386,7 @@ public sealed class OperationsService {
 
     private static bool TryGetLong(IDictionary<string, object?> data, out long value) {
         value = 0;
-        if (!data.TryGetValue("id", out object? raw) || raw is null) {
+        if (!data.TryGetValue(key: "id", out object? raw) || raw is null) {
             return false;
         }
 
@@ -394,14 +394,14 @@ public sealed class OperationsService {
             value = System.Convert.ToInt64(raw);
             return true;
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[OperationsService::TryGetLong()] Failed to parse operation id value '{raw}'.", ex);
+            Shared.IO.Diagnostics.Bug($"[OperationsService::TryGetLong()] Failed to parse operation id value '{raw}'.", ex: ex);
             return false;
         }
     }
 
     private static string? GetString(IDictionary<string, object?> data, params string[] keys) {
         foreach (string key in keys) {
-            if (data.TryGetValue(key, out object? raw) && raw is not null) {
+            if (data.TryGetValue(key: key, out object? raw) && raw is not null) {
                 string text = raw.ToString() ?? string.Empty;
                 if (!string.IsNullOrWhiteSpace(text)) {
                     return text;
@@ -412,14 +412,14 @@ public sealed class OperationsService {
     }
 
     private static bool TryGetString(IDictionary<string, object?> data, out string? value, params string[] keys) {
-        value = GetString(data, keys);
+        value = GetString(data: data, keys: keys);
         return value is not null;
     }
 
     private static bool TryGetList(IDictionary<string, object?> data, out IList<object?>? values, params string[] keys) {
         values = null;
         foreach (string key in keys) {
-            if (data.TryGetValue(key, out object? raw) && raw is IList<object?> list) {
+            if (data.TryGetValue(key: key, out object? raw) && raw is IList<object?> list) {
                 values = list;
                 return true;
             }
@@ -434,26 +434,26 @@ public sealed class OperationsService {
     /// <returns></returns>
     private static IReadOnlyDictionary<long, OperationExecutionStatus> LoadLatestExecutionStatuses(string gameRoot) {
         Dictionary<long, OperationExecutionStatus> statuses = new Dictionary<long, OperationExecutionStatus>();
-        string logPath = System.IO.Path.Combine(gameRoot, "operation_execution.log");
-        if (!System.IO.File.Exists(logPath)) {
+        string logPath = System.IO.Path.Combine(path1: gameRoot, path2: "operation_execution.log");
+        if (!System.IO.File.Exists(path: logPath)) {
             return statuses;
         }
 
         try {
-            foreach (string line in System.IO.File.ReadLines(logPath)) {
-                string[] parts = line.Split(" | ");
-                if (parts.Length < 3 || !long.TryParse(parts[0].Trim(), out long operationId)) {
+            foreach (string line in System.IO.File.ReadLines(path: logPath)) {
+                string[] parts = line.Split(separator: " | ");
+                if (parts.Length < 3 || !long.TryParse(s: parts[0].Trim(), result: out long operationId)) {
                     continue;
                 }
 
-                statuses[operationId] = parts[2].Trim() == "SUCCESS"
+                statuses[key: operationId] = parts[2].Trim() == "SUCCESS"
                     ? OperationExecutionStatus.Succeeded
                     : OperationExecutionStatus.Failed;
             }
         } catch (System.IO.IOException ex) {
-            Shared.IO.Diagnostics.Bug($"[OperationsService::LoadLatestExecutionStatuses()] Failed reading '{logPath}'.", ex);
+            Shared.IO.Diagnostics.Bug($"[OperationsService::LoadLatestExecutionStatuses()] Failed reading '{logPath}'.", ex: ex);
         } catch (System.UnauthorizedAccessException ex) {
-            Shared.IO.Diagnostics.Bug($"[OperationsService::LoadLatestExecutionStatuses()] Access denied for '{logPath}'.", ex);
+            Shared.IO.Diagnostics.Bug($"[OperationsService::LoadLatestExecutionStatuses()] Access denied for '{logPath}'.", ex: ex);
         }
 
         return statuses;

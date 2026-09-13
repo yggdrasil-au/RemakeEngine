@@ -19,32 +19,32 @@ public class ProgressPanelState : INotifyPropertyChanged {
 
     public string Label {
         get => _label;
-        set => SetField(ref _label, value, nameof(Label));
+        set => SetField(field: ref _label, value, propertyName: nameof(Label));
     }
 
     public string Spinner {
         get => _spinner;
-        set => SetField(ref _spinner, value, nameof(Spinner));
+        set => SetField(field: ref _spinner, value, propertyName: nameof(Spinner));
     }
 
     public double Percent {
         get => _percent;
-        set => SetField(ref _percent, value, nameof(Percent));
+        set => SetField(field: ref _percent, value, propertyName: nameof(Percent));
     }
 
     public string ProgressLine {
         get => _progressLine;
-        set => SetField(ref _progressLine, value, nameof(ProgressLine));
+        set => SetField(field: ref _progressLine, value, propertyName: nameof(ProgressLine));
     }
 
     public string ActiveSummary {
         get => _activeSummary;
-        set => SetField(ref _activeSummary, value, nameof(ActiveSummary));
+        set => SetField(field: ref _activeSummary, value, propertyName: nameof(ActiveSummary));
     }
 
     public int ActiveTotal {
         get => _activeTotal;
-        set => SetField(ref _activeTotal, value, nameof(ActiveTotal));
+        set => SetField(field: ref _activeTotal, value, propertyName: nameof(ActiveTotal));
     }
 
     public ObservableCollection<ActiveJob> Jobs { get; } = new ObservableCollection<ActiveJob>();
@@ -61,26 +61,26 @@ public class ProgressPanelState : INotifyPropertyChanged {
         // sync lines
         for (int i = 0; i < model.Lines.Count; i++) {
             if (i < Lines.Count) {
-                Lines[i] = model.Lines[i];
+                Lines[index: i] = model.Lines[index: i];
             } else {
-                Lines.Add(model.Lines[i]);
+                Lines.Add(item: model.Lines[index: i]);
             }
         }
         for (int i = Lines.Count - 1; i >= model.Lines.Count; i--) {
-            Lines.RemoveAt(i);
+            Lines.RemoveAt(index: i);
         }
 
         // sync jobs
         for (int i = 0; i < model.Jobs.Count; i++) {
-            var snapshot = model.Jobs[i];
+            var snapshot = model.Jobs[index: i];
             if (i < Jobs.Count) {
-                var job = Jobs[i];
+                var job = Jobs[index: i];
                 job.Spinner = model.Spinner;
                 job.Tool = snapshot.Tool;
                 job.File = snapshot.File;
                 job.Elapsed = snapshot.Elapsed;
             } else {
-                Jobs.Add(new ActiveJob {
+                Jobs.Add(item: new ActiveJob {
                     Spinner = model.Spinner,
                     Tool = snapshot.Tool,
                     File = snapshot.File,
@@ -89,16 +89,16 @@ public class ProgressPanelState : INotifyPropertyChanged {
             }
         }
         for (int i = Jobs.Count - 1; i >= model.Jobs.Count; i--) {
-            Jobs.RemoveAt(i);
+            Jobs.RemoveAt(index: i);
         }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
     private void SetField<T>(ref T field, T value, string propertyName) {
-        if (!EqualityComparer<T>.Default.Equals(field, value)) {
+        if (!EqualityComparer<T>.Default.Equals(x: field, y: value)) {
             field = value;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            PropertyChanged?.Invoke(sender: this, e: new PropertyChangedEventArgs(propertyName: propertyName));
         }
     }
 }

@@ -25,7 +25,7 @@ public sealed class ScriptActionDispatcher : IScriptActionDispatcher {
         ) {
             string t = scriptType.ToLowerInvariant();
             string gameRoot = string.Empty;
-            if (games != null && !string.IsNullOrEmpty(currentGame) && games.TryGetValue(currentGame, out GameModuleInfo? info)) {
+            if (games != null && !string.IsNullOrEmpty(currentGame) && games.TryGetValue(key: currentGame, out GameModuleInfo? info)) {
                 gameRoot = info.GameRoot;
             }
 
@@ -80,7 +80,7 @@ public sealed class ScriptActionDispatcher : IScriptActionDispatcher {
         Core.Data.GameModules? games,
         string projectRoot
     ) {
-        return EmbeddedActionDispatcher.TryCreate(scriptType, scriptPath, args, currentGame, games, projectRoot);
+        return EmbeddedActionDispatcher.TryCreate(scriptType: scriptType, scriptPath: scriptPath, args: args, currentGame: currentGame, games: games, projectRoot: projectRoot);
     }
 
     public IScriptAction? TryCreateExternal(
@@ -92,7 +92,7 @@ public sealed class ScriptActionDispatcher : IScriptActionDispatcher {
         string? extension,
         string projectRoot
     ) {
-        return ExternalActionDispatcher.TryCreate(scriptType, scriptPath, gameRoot, inputDir, outputDir, extension, projectRoot);
+        return ExternalActionDispatcher.TryCreate(scriptType: scriptType, scriptPath: scriptPath, gameRoot: gameRoot, inputDir: inputDir, outputDir: outputDir, extension: extension, projectRoot: projectRoot);
     }
 }
 

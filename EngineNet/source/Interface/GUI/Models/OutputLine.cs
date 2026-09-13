@@ -16,7 +16,7 @@ public class OutputLine : INotifyPropertyChanged {
         set {
             if (_text != value) {
                 _text = value;
-                OnPropertyChanged(nameof(Text));
+                OnPropertyChanged(propertyName: nameof(Text));
             }
         }
     }
@@ -28,17 +28,17 @@ public class OutputLine : INotifyPropertyChanged {
         set {
             if (_color != value) {
                 _color = value;
-                OnPropertyChanged(nameof(Color));
-                OnPropertyChanged(nameof(Color));
+                OnPropertyChanged(propertyName: nameof(Color));
+                OnPropertyChanged(propertyName: nameof(Color));
             }
         }
     }
 
-    public string FormattedTime => Timestamp.ToString("HH:mm:ss");
+    public string FormattedTime => Timestamp.ToString(format: "HH:mm:ss");
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
     protected virtual void OnPropertyChanged(string propertyName) {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        PropertyChanged?.Invoke(sender: this, e: new PropertyChangedEventArgs(propertyName: propertyName));
     }
 }

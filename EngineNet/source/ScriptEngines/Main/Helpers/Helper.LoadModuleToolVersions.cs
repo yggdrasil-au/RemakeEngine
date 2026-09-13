@@ -6,14 +6,14 @@ namespace EngineNet.ScriptEngines;
 internal static class Helper {
 
     internal static Dictionary<string, string> LoadModuleToolVersions(string _gameRoot) {
-        var versions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        string toolsTomlPath = System.IO.Path.Combine(_gameRoot, "Tools.toml");
-        if (System.IO.File.Exists(toolsTomlPath)) {
-            var toolsList = TomlHelpers.ReadTools(toolsTomlPath);
+        var versions = new Dictionary<string, string>(comparer: StringComparer.OrdinalIgnoreCase);
+        string toolsTomlPath = System.IO.Path.Combine(path1: _gameRoot, path2: "Tools.toml");
+        if (System.IO.File.Exists(path: toolsTomlPath)) {
+            var toolsList = TomlHelpers.ReadTools(path: toolsTomlPath);
             foreach (var tool in toolsList) {
-                if (tool.TryGetValue("name", out object? name) && name is not null &&
-                    tool.TryGetValue("version", out object? version) && version is not null) {
-                    versions[name.ToString()!] = version.ToString()!;
+                if (tool.TryGetValue(key: "name", out object? name) && name is not null &&
+                    tool.TryGetValue(key: "version", out object? version) && version is not null) {
+                    versions[key: name.ToString()!] = version.ToString()!;
                 }
             }
         }

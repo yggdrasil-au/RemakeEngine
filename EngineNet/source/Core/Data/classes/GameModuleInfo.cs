@@ -20,13 +20,13 @@ public sealed class GameModuleInfo {
     public string DescribeState() {
         if (this.IsInternal) return "internal";
         System.Collections.Generic.List<string> states = new System.Collections.Generic.List<string>();
-        if (this.IsRegistered) states.Add("registered");
-        if (this.IsInstalled) states.Add("installed");
-        if (this.IsBuilt) states.Add("built");
-        if (this.IsUnverified) states.Add("unverified");
-        if (!this.IsInstalled && this.IsRegistered) states.Add("uninstalled");
-        if (this.IsInstalled && !this.IsBuilt) states.Add("unbuilt");
-        return string.Join(", ", states);
+        if (this.IsRegistered) states.Add(item: "registered");
+        if (this.IsInstalled) states.Add(item: "installed");
+        if (this.IsBuilt) states.Add(item: "built");
+        if (this.IsUnverified) states.Add(item: "unverified");
+        if (!this.IsInstalled && this.IsRegistered) states.Add(item: "uninstalled");
+        if (this.IsInstalled && !this.IsBuilt) states.Add(item: "unbuilt");
+        return string.Join(separator: ", ", values: states);
     }
 }
 
@@ -37,9 +37,9 @@ public sealed class GameModuleInfo {
 public sealed class GameModules : Dictionary<string, GameModuleInfo> {
     // Default constructor now automatically handles the Case-Insensitivity
     // used in moduleScanner
-    public GameModules() : base(StringComparer.OrdinalIgnoreCase) { }
+    public GameModules() : base(comparer: StringComparer.OrdinalIgnoreCase) { }
 
     // Allow passing an existing collection, used in TUI
-    public GameModules(IDictionary<string, GameModuleInfo> dictionary) : base(dictionary, StringComparer.OrdinalIgnoreCase) { }
+    public GameModules(IDictionary<string, GameModuleInfo> dictionary) : base(dictionary: dictionary, comparer: StringComparer.OrdinalIgnoreCase) { }
 }
 

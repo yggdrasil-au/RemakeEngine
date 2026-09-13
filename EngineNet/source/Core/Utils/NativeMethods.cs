@@ -7,23 +7,23 @@ namespace EngineNet.Core.Utils;
 /// Native Windows utilities for robust process management.
 /// </summary>
 internal static class NativeMethods {
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+    [DllImport(dllName: "kernel32.dll", CharSet = CharSet.Unicode)]
     internal static extern IntPtr CreateJobObject(IntPtr lpJobAttributes, string? lpName);
 
-    [DllImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
+    [DllImport(dllName: "kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(unmanagedType: UnmanagedType.Bool)]
     internal static extern bool SetInformationJobObject(IntPtr hJob, JobObjectInfoType infoType, IntPtr lpJobObjectInfo, uint cbJobObjectInfoLength);
 
-    [DllImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
+    [DllImport(dllName: "kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(unmanagedType: UnmanagedType.Bool)]
     internal static extern bool AssignProcessToJobObject(IntPtr hJob, IntPtr hProcess);
 
-    [DllImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
+    [DllImport(dllName: "kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(unmanagedType: UnmanagedType.Bool)]
     internal static extern bool CloseHandle(IntPtr hObject);
 
-    [DllImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
+    [DllImport(dllName: "kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(unmanagedType: UnmanagedType.Bool)]
     internal static extern bool TerminateJobObject(IntPtr hJob, uint uExitCode);
 
     internal enum JobObjectInfoType {
@@ -36,7 +36,7 @@ internal static class NativeMethods {
         GroupInformation = 11
     }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(layoutKind: LayoutKind.Sequential)]
     internal struct JOBOBJECT_BASIC_LIMIT_INFORMATION {
         internal long PerProcessUserTimeLimit;
         internal long PerJobUserTimeLimit;
@@ -49,7 +49,7 @@ internal static class NativeMethods {
         internal uint SchedulingClass;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(layoutKind: LayoutKind.Sequential)]
     internal struct IO_COUNTERS {
         internal ulong ReadOperationCount;
         internal ulong WriteOperationCount;
@@ -59,7 +59,7 @@ internal static class NativeMethods {
         internal ulong OtherTransferCount;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(layoutKind: LayoutKind.Sequential)]
     internal struct JOBOBJECT_EXTENDED_LIMIT_INFORMATION {
         internal JOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimitInformation;
         internal IO_COUNTERS IoCounters;
@@ -82,7 +82,7 @@ internal sealed class JobObject : IDisposable {
     internal JobObject(string? name = null) {
         if (!OperatingSystem.IsWindows()) return;
 
-        _handle = NativeMethods.CreateJobObject(IntPtr.Zero, name);
+        _handle = NativeMethods.CreateJobObject(lpJobAttributes: IntPtr.Zero, lpName: name);
         if (_handle == IntPtr.Zero) return;
 
         var info = new NativeMethods.JOBOBJECT_EXTENDED_LIMIT_INFORMATION {
@@ -91,32 +91,32 @@ internal sealed class JobObject : IDisposable {
             }
         };
 
-        int length = Marshal.SizeOf(typeof(NativeMethods.JOBOBJECT_EXTENDED_LIMIT_INFORMATION));
-        IntPtr ptr = Marshal.AllocHGlobal(length);
+        int length = Marshal.SizeOf(t: typeof(NativeMethods.JOBOBJECT_EXTENDED_LIMIT_INFORMATION));
+        IntPtr ptr = Marshal.AllocHGlobal(cb: length);
         try {
-            Marshal.StructureToPtr(info, ptr, false);
-            if (!NativeMethods.SetInformationJobObject(_handle, NativeMethods.JobObjectInfoType.ExtendedLimitInformation, ptr, (uint)length)) {
+            Marshal.StructureToPtr(structure: info, ptr: ptr, fDeleteOld: false);
+            if (!NativeMethods.SetInformationJobObject(hJob: _handle, infoType: NativeMethods.JobObjectInfoType.ExtendedLimitInformation, lpJobObjectInfo: ptr, cbJobObjectInfoLength: (uint)length)) {
                 Shared.IO.Diagnostics.Log($"[JobObject] Failed to set JobObject information: {Marshal.GetLastWin32Error()}");
             }
         } finally {
-            Marshal.FreeHGlobal(ptr);
+            Marshal.FreeHGlobal(hglobal: ptr);
         }
     }
 
     internal bool AddProcess(Process process) {
         if (!OperatingSystem.IsWindows() || _handle == IntPtr.Zero || process.HasExited) return false;
-        return NativeMethods.AssignProcessToJobObject(_handle, process.Handle);
+        return NativeMethods.AssignProcessToJobObject(hJob: _handle, hProcess: process.Handle);
     }
 
     internal void Terminate(uint exitCode = 1) {
         if (!OperatingSystem.IsWindows() || _handle == IntPtr.Zero) return;
-        NativeMethods.TerminateJobObject(_handle, exitCode);
+        NativeMethods.TerminateJobObject(hJob: _handle, uExitCode: exitCode);
     }
 
     public void Dispose() {
         if (_disposed) return;
         if (_handle != IntPtr.Zero) {
-            NativeMethods.CloseHandle(_handle);
+            NativeMethods.CloseHandle(hObject: _handle);
             _handle = IntPtr.Zero;
         }
         _disposed = true;

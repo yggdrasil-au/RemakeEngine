@@ -15,7 +15,7 @@ internal sealed class Main : IScriptAction {
 
     internal Main(string scriptPath, IEnumerable<string>? args, string gameRoot, string projectRoot) {
         _scriptPath = scriptPath;
-        _args = args is null ? System.Array.Empty<string>() : args as string[] ?? new List<string>(args).ToArray();
+        _args = args is null ? System.Array.Empty<string>() : args as string[] ?? new List<string>(collection: args).ToArray();
         _gameRoot = gameRoot;
         _projectRoot = projectRoot;
     }
@@ -24,19 +24,19 @@ internal sealed class Main : IScriptAction {
     public async Task ExecuteAsync(Core.ExternalTools.JsonToolResolver tools, Core.Services.CommandService commandService, CancellationToken cancellationToken = default(CancellationToken)) {
         bool ok = false;
         try {
-            if (!System.IO.File.Exists(_scriptPath)) {
-                throw new System.IO.FileNotFoundException("JavaScript file not found", _scriptPath);
+            if (!System.IO.File.Exists(path: _scriptPath)) {
+                throw new System.IO.FileNotFoundException("JavaScript file not found", fileName: _scriptPath);
             }
 
             // ::
             // ::
 
             // read script code
-            string code = await System.IO.File.ReadAllTextAsync(_scriptPath, cancellationToken);
+            string code = await System.IO.File.ReadAllTextAsync(path: _scriptPath, cancellationToken: cancellationToken);
             // create new JS script environment
-            Jint.Engine JsEngine = new Jint.Engine(options => options.CancellationToken(cancellationToken));
+            Jint.Engine JsEngine = new Jint.Engine(options: options => options.CancellationToken(cancellationToken: cancellationToken));
             // object to hold all exposed tables
-            JsWorld JsWorld = new JsWorld(JsEngine);
+            JsWorld JsWorld = new JsWorld(_jsEngine: JsEngine);
 
 
 
@@ -44,37 +44,37 @@ internal sealed class Main : IScriptAction {
             // ::
 
             // Setup safer environment
-            SetupSafeEnvironment.JsEnvironment(JsWorld);
+            SetupSafeEnvironment.JsEnvironment(_JSWorld: JsWorld);
 
             // Load versions from current game module context
-            var moduleVersions = Helper.LoadModuleToolVersions(_gameRoot);
-            var contextualTools = new ContextualToolResolver(tools, moduleVersions);
+            var moduleVersions = Helper.LoadModuleToolVersions(_gameRoot: _gameRoot);
+            var contextualTools = new ContextualToolResolver(baseResolver: tools, contextVersions: moduleVersions);
 
             // Expose core functions, SDK and modules
-            JsAction.SetupCoreFunctions(JsWorld, contextualTools, _args, _gameRoot, _projectRoot, _scriptPath);
+            JsAction.SetupCoreFunctions(_JSWorld: JsWorld, _tools: contextualTools, _args: _args, _gameRoot: _gameRoot, _projectRoot: _projectRoot, _scriptPath: _scriptPath);
 
             // Register UserData types
             //UserData.RegisterType<Shared.IO.UI.EngineSdk.PanelProgress>();
             //UserData.RegisterType<Shared.IO.UI.EngineSdk.ScriptProgress>();
             //UserData.RegisterType<Global.SqliteHandle>();
 
-            Shared.IO.UI.EngineSdk.PrintLine(message: $"Running js script '{_scriptPath}' with {_args.Length} args...", color: System.ConsoleColor.Cyan);
-            Shared.IO.UI.EngineSdk.PrintLine(message: $"input args: {string.Join(", ", _args)}", color: System.ConsoleColor.Gray);
+            Shared.IO.UI.EngineSdk.PrintLine($"Running js script '{_scriptPath}' with {_args.Length} args...", color: System.ConsoleColor.Cyan);
+            Shared.IO.UI.EngineSdk.PrintLine($"input args: {string.Join(separator: ", ", _args)}", color: System.ConsoleColor.Gray);
 
             // Signal GUI that a script is active so the bottom panel can reflect activity even without progress events
             Shared.IO.UI.EngineSdk.ScriptActiveStart(scriptPath: _scriptPath);
 
 #if DEBUG
             Shared.IO.UI.EngineSdk.PrintLine($"Running js script '{_scriptPath}' with {_args.Length} args...");
-            Shared.IO.UI.EngineSdk.PrintLine($"input args: {string.Join(", ", _args)}");
+            Shared.IO.UI.EngineSdk.PrintLine($"input args: {string.Join(separator: ", ", _args)}");
 #endif
 
             // ::
             // ::
 
-            await System.Threading.Tasks.Task.Run(() => {
-                JsWorld.JsScript.Execute(code);
-            }, cancellationToken).ConfigureAwait(false);
+            await System.Threading.Tasks.Task.Run(action: () => {
+                JsWorld.JsScript.Execute(code: code);
+            }, cancellationToken: cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
             ok = true;
         } finally {
             // Always signal end; GUI will jump to 100% and close the indicator.

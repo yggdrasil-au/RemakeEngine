@@ -13,8 +13,8 @@ public class ActiveJob : INotifyPropertyChanged {
         set {
             if (_spinner != value) {
                 _spinner = value;
-                OnPropertyChanged(nameof(Spinner));
-                OnPropertyChanged(nameof(Display));
+                OnPropertyChanged(propertyName: nameof(Spinner));
+                OnPropertyChanged(propertyName: nameof(Display));
             }
         }
     }
@@ -24,8 +24,8 @@ public class ActiveJob : INotifyPropertyChanged {
         set {
             if (_tool != value) {
                 _tool = value;
-                OnPropertyChanged(nameof(Tool));
-                OnPropertyChanged(nameof(Display));
+                OnPropertyChanged(propertyName: nameof(Tool));
+                OnPropertyChanged(propertyName: nameof(Display));
             }
         }
     }
@@ -35,8 +35,8 @@ public class ActiveJob : INotifyPropertyChanged {
         set {
             if (_file != value) {
                 _file = value;
-                OnPropertyChanged(nameof(File));
-                OnPropertyChanged(nameof(Display));
+                OnPropertyChanged(propertyName: nameof(File));
+                OnPropertyChanged(propertyName: nameof(Display));
             }
         }
     }
@@ -46,8 +46,8 @@ public class ActiveJob : INotifyPropertyChanged {
         set {
             if (_elapsed != value) {
                 _elapsed = value;
-                OnPropertyChanged(nameof(Elapsed));
-                OnPropertyChanged(nameof(Display));
+                OnPropertyChanged(propertyName: nameof(Elapsed));
+                OnPropertyChanged(propertyName: nameof(Display));
             }
         }
     }
@@ -57,6 +57,6 @@ public class ActiveJob : INotifyPropertyChanged {
     public event PropertyChangedEventHandler? PropertyChanged;
 
     protected virtual void OnPropertyChanged(string propertyName) {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        PropertyChanged?.Invoke(sender: this, e: new PropertyChangedEventArgs(propertyName: propertyName));
     }
 }

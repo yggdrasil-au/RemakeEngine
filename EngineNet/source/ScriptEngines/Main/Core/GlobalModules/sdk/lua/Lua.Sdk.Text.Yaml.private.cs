@@ -9,36 +9,36 @@ internal static partial class Sdk {
     private static void YamlModules(LuaWorld _LuaWorld) {
         // sdk.text.yaml.encode(value, opts)
         // opts is accepted for API parity with sdk.text.json.encode, but formatting is currently default.
-        _LuaWorld.Sdk.Text.Yaml["encode"] = (System.Func<DynValue, DynValue, string>)((val, opts) => {
-            object? obj = Lua.Globals.Utils.FromDynValue(val);
-            return Shared.Serialization.Yaml.YamlHelpers.WriteDocument(obj);
+        _LuaWorld.Sdk.Text.Yaml[key: "encode"] = (System.Func<DynValue, DynValue, string>)((val, opts) => {
+            object? obj = Lua.Globals.Utils.FromDynValue(v: val);
+            return Shared.Serialization.Yaml.YamlHelpers.WriteDocument(data: obj);
         });
 
         // sdk.text.yaml.decode(yaml)
-        _LuaWorld.Sdk.Text.Yaml["decode"] = (System.Func<string, DynValue>)((yaml) => {
+        _LuaWorld.Sdk.Text.Yaml[key: "decode"] = (System.Func<string, DynValue>)((yaml) => {
             try {
-                object plain = Shared.Serialization.Yaml.YamlHelpers.ParseDocumentToPlainObject(yaml);
-                return Lua.Globals.Utils.ToDynValue(_LuaWorld.LuaScript, plain);
+                object plain = Shared.Serialization.Yaml.YamlHelpers.ParseDocumentToPlainObject(text: yaml);
+                return Lua.Globals.Utils.ToDynValue(lua: _LuaWorld.LuaScript, plain);
             } catch (Exception ex) {
-                Shared.IO.Diagnostics.LuaInternalCatch("sdk.text.yaml.decode failed: " + ex);
+                Shared.IO.Diagnostics.LuaInternalCatch(ex: "sdk.text.yaml.decode failed: " + ex);
                 return DynValue.Nil;
             }
         });
 
         // sdk.text.yaml.read_file(path)
-        _LuaWorld.Sdk.Text.Yaml["read_file"] = (string path) => {
-            object? obj = ScriptEngines.Global.SdkModule.Helpers.AddYamlHelpers.Yaml_Read_File(path);
-            return obj == null ? DynValue.Nil : Lua.Globals.Utils.ToDynValue(_LuaWorld.LuaScript, obj);
+        _LuaWorld.Sdk.Text.Yaml[key: "read_file"] = (string path) => {
+            object? obj = ScriptEngines.Global.SdkModule.Helpers.AddYamlHelpers.Yaml_Read_File(path: path);
+            return obj == null ? DynValue.Nil : Lua.Globals.Utils.ToDynValue(lua: _LuaWorld.LuaScript, obj);
         };
 
         // sdk.text.yaml.write_file(path, value)
-        _LuaWorld.Sdk.Text.Yaml["write_file"] = (string path, DynValue value) => {
-            object? obj = Lua.Globals.Utils.FromDynValue(value);
-            ScriptEngines.Global.SdkModule.Helpers.AddYamlHelpers.Yaml_Write_File(path, obj);
+        _LuaWorld.Sdk.Text.Yaml[key: "write_file"] = (string path, DynValue value) => {
+            object? obj = Lua.Globals.Utils.FromDynValue(v: value);
+            ScriptEngines.Global.SdkModule.Helpers.AddYamlHelpers.Yaml_Write_File(path: path, obj: obj);
         };
 
         // Root aliases to match sdk.toml_* convenience helpers.
-        _LuaWorld.Sdk.Table["yaml_read_file"] = _LuaWorld.Sdk.Text.Yaml["read_file"];
-        _LuaWorld.Sdk.Table["yaml_write_file"] = _LuaWorld.Sdk.Text.Yaml["write_file"];
+        _LuaWorld.Sdk.Table[key: "yaml_read_file"] = _LuaWorld.Sdk.Text.Yaml[key: "read_file"];
+        _LuaWorld.Sdk.Table[key: "yaml_write_file"] = _LuaWorld.Sdk.Text.Yaml[key: "write_file"];
     }
 }

@@ -9,10 +9,10 @@ internal class OpDependencyGraph {
     internal bool IsValid { get; private set; }
     internal List<string> Errors { get; private set; } = new();
 
-    private readonly Dictionary<string, Core.Data.OperationNode> _nodes = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Core.Data.OperationNode> _nodes = new(comparer: StringComparer.OrdinalIgnoreCase);
 
     internal OpDependencyGraph(List<Dictionary<string, object?>> operations) {
-        BuildGraph(operations);
+        BuildGraph(operations: operations);
     }
 
     /// <summary>
@@ -37,7 +37,7 @@ internal class OpDependencyGraph {
             string line = $"  [{node.Id}]";
 
             if (node.Dependencies.Count > 0) {
-                line += $" --> depends on --> [{string.Join(", ", node.Dependencies)}]";
+                line += $" --> depends on --> [{string.Join(separator: ", ", values: node.Dependencies)}]";
             } else {
                 line += " (No dependencies)";
             }
@@ -53,31 +53,31 @@ internal class OpDependencyGraph {
         _nodes.Clear();
 
         // Pass 1: Filter relevant operations (Run-All entry points and their transitive dependencies)
-        var relevantOps = FilterRelevantOperations(operations);
+        var relevantOps = FilterRelevantOperations(allOps: operations);
 
         // Pass 2: Create nodes and validate IDs for relevant operations
         foreach (var op in relevantOps) {
-            string id = GetString(op, "id");
-            string name = GetString(op, "Name");
+            string id = GetString(dict: op, key: "id");
+            string name = GetString(dict: op, key: "Name");
             if (string.IsNullOrWhiteSpace(name)) name = id; // Fallback to ID for display
 
             if (string.IsNullOrWhiteSpace(id)) {
                 IsValid = false;
-                Errors.Add($"An operation named '{name}' is missing an 'id'.");
+                Errors.Add(item: $"An operation named '{name}' is missing an 'id'.");
                 continue;
             }
 
-            if (_nodes.ContainsKey(id)) {
+            if (_nodes.ContainsKey(key: id)) {
                 IsValid = false;
-                Errors.Add($"Duplicate operation ID found: '{id}'. Only relevant operations (marked for run-all or as dependencies) are checked.");
+                Errors.Add(item: $"Duplicate operation ID found: '{id}'. Only relevant operations (marked for run-all or as dependencies) are checked.");
                 continue;
             }
 
-            _nodes[id] = new Core.Data.OperationNode {
+            _nodes[key: id] = new Core.Data.OperationNode {
                 Id = id,
                 Name = name,
                 Operation = op,
-                Dependencies = GetStringList(op, "depends_on").Concat(GetStringList(op, "depends-on")).ToList()
+                Dependencies = GetStringList(dict: op, key: "depends_on").Concat(second: GetStringList(dict: op, key: "depends-on")).ToList()
             };
         }
 
@@ -86,11 +86,11 @@ internal class OpDependencyGraph {
         // Pass 3: Link dependencies and validate references
         foreach (var node in _nodes.Values) {
             foreach (var depId in node.Dependencies) {
-                if (!_nodes.TryGetValue(depId, out var depNode)) {
+                if (!_nodes.TryGetValue(key: depId, out var depNode)) {
                     IsValid = false;
-                    Errors.Add($"Operation '{node.Id}' depends on unknown or irrelevant ID: '{depId}'.");
+                    Errors.Add(item: $"Operation '{node.Id}' depends on unknown or irrelevant ID: '{depId}'.");
                 } else {
-                    node.DependentNodes.Add(depNode);
+                    node.DependentNodes.Add(item: depNode);
                 }
             }
         }
@@ -109,27 +109,27 @@ internal class OpDependencyGraph {
 
         // Start with entry points (init or run-all flag set)
         foreach (var op in allOps) {
-            if (IsFlagSet(op, "init") || IsFlagSet(op, "run-all") || IsFlagSet(op, "run_all")) {
-                if (relevant.Add(op)) {
-                    queue.Enqueue(op);
+            if (IsFlagSet(op: op, key: "init") || IsFlagSet(op: op, key: "run-all") || IsFlagSet(op: op, key: "run_all")) {
+                if (relevant.Add(item: op)) {
+                    queue.Enqueue(item: op);
                 }
             }
         }
 
         // Trace recursive dependencies
         var idToOpMap = allOps
-            .Where(o => !string.IsNullOrEmpty(GetString(o, "id")))
-            .GroupBy(o => GetString(o, "id"))
-            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+            .Where(predicate: o => !string.IsNullOrEmpty(GetString(dict: o, key: "id")))
+            .GroupBy(keySelector: o => GetString(dict: o, key: "id"))
+            .ToDictionary(keySelector: g => g.Key, elementSelector: g => g.First(), comparer: StringComparer.OrdinalIgnoreCase);
 
         while (queue.Count > 0) {
             var current = queue.Dequeue();
-            var deps = GetStringList(current, "depends_on").Concat(GetStringList(current, "depends-on"));
+            var deps = GetStringList(dict: current, key: "depends_on").Concat(second: GetStringList(dict: current, key: "depends-on"));
 
             foreach (var depId in deps) {
-                if (!idToOpMap.TryGetValue(depId, out var depOp)) continue;
-                if (relevant.Add(depOp)) {
-                    queue.Enqueue(depOp);
+                if (!idToOpMap.TryGetValue(key: depId, out var depOp)) continue;
+                if (relevant.Add(item: depOp)) {
+                    queue.Enqueue(item: depOp);
                 }
             }
         }
@@ -138,18 +138,18 @@ internal class OpDependencyGraph {
     }
 
     private static bool IsFlagSet(Dictionary<string, object?> op, string key) {
-        if (!op.TryGetValue(key, out object? value) || value is null) return false;
+        if (!op.TryGetValue(key: key, out object? value) || value is null) return false;
         if (value is bool b) return b;
-        if (value is string s) return bool.TryParse(s, out bool parsed) && parsed;
-        try { return Convert.ToInt32(value) != 0; } catch (System.Exception ex) { Shared.IO.Diagnostics.Bug($"[OpDependencyGraph::IsFlagSet()] Failed to convert flag '{key}' value '{value}' to boolean.", ex); return false; }
+        if (value is string s) return bool.TryParse(s, result: out bool parsed) && parsed;
+        try { return Convert.ToInt32(value) != 0; } catch (System.Exception ex) { Shared.IO.Diagnostics.Bug($"[OpDependencyGraph::IsFlagSet()] Failed to convert flag '{key}' value '{value}' to boolean.", ex: ex); return false; }
     }
 
     private bool HasCycles() {
-        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var recursionStack = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var visited = new HashSet<string>(comparer: StringComparer.OrdinalIgnoreCase);
+        var recursionStack = new HashSet<string>(comparer: StringComparer.OrdinalIgnoreCase);
 
         foreach (var node in _nodes.Values) {
-            if (DetectCycle(node, visited, recursionStack)) {
+            if (DetectCycle(node: node, visited: visited, recursionStack: recursionStack)) {
                 return true;
             }
         }
@@ -157,21 +157,21 @@ internal class OpDependencyGraph {
     }
 
     private bool DetectCycle(Core.Data.OperationNode node, HashSet<string> visited, HashSet<string> recursionStack) {
-        if (recursionStack.Contains(node.Id)) {
-            Errors.Add($"Circular dependency detected involving operation '{node.Id}'.");
+        if (recursionStack.Contains(item: node.Id)) {
+            Errors.Add(item: $"Circular dependency detected involving operation '{node.Id}'.");
             return true;
         }
 
-        if (visited.Contains(node.Id)) return false;
+        if (visited.Contains(item: node.Id)) return false;
 
-        visited.Add(node.Id);
-        recursionStack.Add(node.Id);
+        visited.Add(item: node.Id);
+        recursionStack.Add(item: node.Id);
 
         foreach (var dep in node.DependentNodes) {
-            if (DetectCycle(dep, visited, recursionStack)) return true;
+            if (DetectCycle(node: dep, visited: visited, recursionStack: recursionStack)) return true;
         }
 
-        recursionStack.Remove(node.Id);
+        recursionStack.Remove(item: node.Id);
         return false;
     }
 
@@ -179,14 +179,14 @@ internal class OpDependencyGraph {
     // --- Dictionary Extraction Helpers ---
 
     private static string GetString(Dictionary<string, object?> dict, string key) {
-        return dict.TryGetValue(key, out object? value) && value is not null ? value.ToString() ?? string.Empty : string.Empty;
+        return dict.TryGetValue(key: key, out object? value) && value is not null ? value.ToString() ?? string.Empty : string.Empty;
     }
 
     private static List<string> GetStringList(Dictionary<string, object?> dict, string key) {
         var list = new List<string>();
-        if (dict.TryGetValue(key, out object? value) && value is System.Collections.IEnumerable enumerable && value is not string) {
+        if (dict.TryGetValue(key: key, out object? value) && value is System.Collections.IEnumerable enumerable && value is not string) {
             foreach (var item in enumerable) {
-                if (item is not null) list.Add(item.ToString()!);
+                if (item is not null) list.Add(item: item.ToString()!);
             }
         }
         return list;

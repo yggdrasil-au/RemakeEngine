@@ -14,7 +14,7 @@ internal sealed class Main : IScriptAction {
 
     internal Main(string scriptPath, System.Collections.Generic.IEnumerable<string>? args, string gameRoot, string projectRoot) {
         _scriptPath = scriptPath;
-        _args = args is null ? System.Array.Empty<string>() : args as string[] ?? new System.Collections.Generic.List<string>(args).ToArray();
+        _args = args is null ? System.Array.Empty<string>() : args as string[] ?? new System.Collections.Generic.List<string>(collection: args).ToArray();
         _gameRoot = gameRoot;
         _projectRoot = projectRoot;
     }
@@ -23,8 +23,8 @@ internal sealed class Main : IScriptAction {
     public async Task ExecuteAsync(Core.ExternalTools.JsonToolResolver tools, Core.Services.CommandService commandService, CancellationToken cancellationToken = default(CancellationToken)) {
         bool ok = false;
         try {
-            if (!System.IO.File.Exists(_scriptPath)) {
-                throw new System.IO.FileNotFoundException("Python script file not found", _scriptPath);
+            if (!System.IO.File.Exists(path: _scriptPath)) {
+                throw new System.IO.FileNotFoundException("Python script file not found", fileName: _scriptPath);
             }
 
             // ::
@@ -35,7 +35,7 @@ internal sealed class Main : IScriptAction {
             // create a scope for variables, functions, and imported modules; this is separate from the engine to allow multiple executions with different scopes if desired
             var scope = PythonEngine.CreateScope();
             // object to hold all exposed tables
-            PyWorld PyWorld = new PyWorld(PythonEngine, scope);
+            PyWorld PyWorld = new PyWorld(engine: PythonEngine, scope: scope);
 
 
 
@@ -43,37 +43,37 @@ internal sealed class Main : IScriptAction {
             // ::
 
             // Setup safer environment
-            SetupSafeEnvironment.PyEnvironment(PyWorld);
+            SetupSafeEnvironment.PyEnvironment(_PyWorld: PyWorld);
 
             // Load versions from current game module context
-            var moduleVersions = Helper.LoadModuleToolVersions(_gameRoot);
-            var contextualTools = new ContextualToolResolver(tools, moduleVersions);
+            var moduleVersions = Helper.LoadModuleToolVersions(_gameRoot: _gameRoot);
+            var contextualTools = new ContextualToolResolver(baseResolver: tools, contextVersions: moduleVersions);
 
             // Expose core functions, SDK and modules
-            PyAction.SetupCoreFunctions(PyWorld, contextualTools, _args, _gameRoot, _projectRoot, _scriptPath);
+            PyAction.SetupCoreFunctions(world: PyWorld, tools: contextualTools, args: _args, gameRoot: _gameRoot, projectRoot: _projectRoot, scriptPath: _scriptPath);
 
             // Register UserData types
             //UserData.RegisterType<Shared.IO.UI.EngineSdk.PanelProgress>();
             //UserData.RegisterType<Shared.IO.UI.EngineSdk.ScriptProgress>();
             //UserData.RegisterType<Global.SqliteHandle>();
 
-            Shared.IO.UI.EngineSdk.PrintLine(message: $"Running python script '{_scriptPath}' with {_args.Length} args...", color: System.ConsoleColor.Cyan);
-            Shared.IO.UI.EngineSdk.PrintLine(message: $"input args: {string.Join(", ", _args)}", color: System.ConsoleColor.Gray);
+            Shared.IO.UI.EngineSdk.PrintLine($"Running python script '{_scriptPath}' with {_args.Length} args...", color: System.ConsoleColor.Cyan);
+            Shared.IO.UI.EngineSdk.PrintLine($"input args: {string.Join(separator: ", ", _args)}", color: System.ConsoleColor.Gray);
 
             // Signal GUI that a script is active so the bottom panel can reflect activity even without progress events
             Shared.IO.UI.EngineSdk.ScriptActiveStart(scriptPath: _scriptPath);
 
 #if DEBUG
             Shared.IO.UI.EngineSdk.PrintLine($"Running python script '{_scriptPath}' with {_args.Length} args...");
-            Shared.IO.UI.EngineSdk.PrintLine($"input args: {string.Join(", ", _args)}");
+            Shared.IO.UI.EngineSdk.PrintLine($"input args: {string.Join(separator: ", ", _args)}");
 #endif
 
             // ::
             // ::
 
-            await System.Threading.Tasks.Task.Run(() => {
-                PythonEngine.ExecuteFile(_scriptPath, scope);
-            }, cancellationToken).ConfigureAwait(false);
+            await System.Threading.Tasks.Task.Run(action: () => {
+                PythonEngine.ExecuteFile(path: _scriptPath, scope: scope);
+            }, cancellationToken: cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
             ok = true;
         } finally {
             // Always signal end; GUI will jump to 100% and close the indicator.

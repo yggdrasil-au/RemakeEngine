@@ -24,13 +24,13 @@ internal sealed partial class MainWindow:Window {
     }
 
     internal void ShowModule(string moduleName) {
-        ContentHost.Content = new Pages.ModulePage(moduleName);
+        ContentHost.Content = new Pages.ModulePage(moduleName: moduleName);
     }
 
     internal void ShowLibraryFor(string moduleName) {
         Pages.LibraryPage page = new Pages.LibraryPage();
         ContentHost.Content = page;
-        page.ShowDetailsPublic(moduleName);
+        page.ShowDetailsPublic(moduleName: moduleName);
     }
 
     private void ShowBuilding() {

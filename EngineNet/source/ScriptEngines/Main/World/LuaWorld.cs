@@ -84,14 +84,14 @@ internal class LuaWorld {
         /// Creates a new SDK container and links tables in MoonSharp.
         /// </summary>
         internal SdkContainer(Script script) {
-            Table = new Table(script);
-            IO = new Table(script);
-            Hash = new Table(script);
-            Text = new TextContainer(script);
+            Table = new Table(owner: script);
+            IO = new Table(owner: script);
+            Hash = new Table(owner: script);
+            Text = new TextContainer(script: script);
 
-            Table["IO"] = IO;
-            Table["Hash"] = Hash;
-            Table["text"] = Text.Table;
+            Table[key: "IO"] = IO;
+            Table[key: "Hash"] = Hash;
+            Table[key: "text"] = Text.Table;
         }
     }
 
@@ -123,14 +123,14 @@ internal class LuaWorld {
         /// Creates a new text container and links tables in MoonSharp.
         /// </summary>
         internal TextContainer(Script script) {
-            Table = new Table(script);
-            Json = new Table(script);
-            Toml = new Table(script);
-            Yaml = new Table(script);
+            Table = new Table(owner: script);
+            Json = new Table(owner: script);
+            Toml = new Table(owner: script);
+            Yaml = new Table(owner: script);
 
-            Table["json"] = Json;
-            Table["toml"] = Toml;
-            Table["yaml"] = Yaml;
+            Table[key: "json"] = Json;
+            Table[key: "toml"] = Toml;
+            Table[key: "yaml"] = Yaml;
         }
     }
 
@@ -147,20 +147,20 @@ internal class LuaWorld {
         LuaScriptPath = _scriptPath;
 
         // create sdk hierarchy
-        Sdk = new SdkContainer(LuaScript);
+        Sdk = new SdkContainer(script: LuaScript);
 
         // global tables, alongside sdk table, to be set as Script.Globals[""] in LuaScriptAction.private.cs::SetupCoreFunctions()
         // here only for centralized management of all tables
 
-        Progress = new Table(LuaScript);
+        Progress = new Table(owner: LuaScript);
 
-        Os = new Table(LuaScript);
+        Os = new Table(owner: LuaScript);
 
         // debug tables
-        DiagnosticsMethods = new Table(LuaScript);
+        DiagnosticsMethods = new Table(owner: LuaScript);
 
         // sqlite module tables
-        SqliteModule = new Table(LuaScript);
+        SqliteModule = new Table(owner: LuaScript);
 
     }
 
@@ -177,7 +177,7 @@ internal class LuaWorld {
         }
 
         lock (_openDisposablesLock) {
-            _openDisposables.Add(disposable);
+            _openDisposables.Add(item: disposable);
         }
     }
 
@@ -190,7 +190,7 @@ internal class LuaWorld {
         }
 
         lock (_openDisposablesLock) {
-            _openDisposables.Remove(disposable);
+            _openDisposables.Remove(item: disposable);
         }
     }
 
@@ -208,7 +208,7 @@ internal class LuaWorld {
             try {
                 disposable.Dispose();
             } catch (Exception ex) {
-                Shared.IO.Diagnostics.LuaInternalCatch("DisposeOpenDisposables failed with exception: " + ex);
+                Shared.IO.Diagnostics.LuaInternalCatch(ex: "DisposeOpenDisposables failed with exception: " + ex);
             }
         }
     }

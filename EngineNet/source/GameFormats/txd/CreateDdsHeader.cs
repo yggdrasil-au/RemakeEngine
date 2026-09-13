@@ -4,8 +4,8 @@ public static class CreateDdsHeader {
 
     internal static byte[] Dxt(int width, int height, int mipMapCountFromFile, string fourcc) {
         byte[] buffer = new byte[128];
-        using System.IO.MemoryStream ms = new(buffer);
-        using System.IO.BinaryWriter writer = new(ms, System.Text.Encoding.ASCII, leaveOpen: true);
+        using System.IO.MemoryStream ms = new(buffer: buffer);
+        using System.IO.BinaryWriter writer = new(output: ms, encoding: System.Text.Encoding.ASCII, leaveOpen: true);
 
         const int DDSD_CAPS = 0x1;
         const int DDSD_HEIGHT = 0x2;
@@ -20,9 +20,9 @@ public static class CreateDdsHeader {
         }
 
         int dwMipMapCount = mipMapCountFromFile > 0 ? mipMapCountFromFile : 1;
-        int linearSize = utils.Util.CalculateDxtLevelSize(width, height, fourcc);
+        int linearSize = utils.Util.CalculateDxtLevelSize(width: width, height: height, fourcc: fourcc);
 
-        writer.Write(System.Text.Encoding.ASCII.GetBytes("DDS "));
+        writer.Write(buffer: System.Text.Encoding.ASCII.GetBytes(s: "DDS "));
         writer.Write(124);
         writer.Write(flags);
         writer.Write(height);
@@ -40,9 +40,9 @@ public static class CreateDdsHeader {
         writer.Write(pfSize);
         writer.Write(DDPF_FOURCC);
         byte[] fourccBytes = new byte[4];
-        byte[] srcFourcc = System.Text.Encoding.ASCII.GetBytes(fourcc);
-        System.Array.Copy(srcFourcc, fourccBytes, System.Math.Min(srcFourcc.Length, 4));
-        writer.Write(fourccBytes);
+        byte[] srcFourcc = System.Text.Encoding.ASCII.GetBytes(s: fourcc);
+        System.Array.Copy(sourceArray: srcFourcc, destinationArray: fourccBytes, length: System.Math.Min(val1: srcFourcc.Length, val2: 4));
+        writer.Write(buffer: fourccBytes);
         writer.Write(0);
         writer.Write(0);
         writer.Write(0);
@@ -68,8 +68,8 @@ public static class CreateDdsHeader {
 
     internal static byte[] Rgba(int width, int height, int mipMapCount) {
         byte[] buffer = new byte[128];
-        using System.IO.MemoryStream ms = new(buffer);
-        using System.IO.BinaryWriter writer = new(ms, System.Text.Encoding.ASCII, leaveOpen: true);
+        using System.IO.MemoryStream ms = new(buffer: buffer);
+        using System.IO.BinaryWriter writer = new(output: ms, encoding: System.Text.Encoding.ASCII, leaveOpen: true);
 
         const int DDSD_CAPS = 0x1;
         const int DDSD_HEIGHT = 0x2;
@@ -77,7 +77,7 @@ public static class CreateDdsHeader {
         const int DDSD_PIXELFORMAT = 0x1000;
         const int DDSD_PITCH = 0x8;
 
-        writer.Write(System.Text.Encoding.ASCII.GetBytes("DDS "));
+        writer.Write(buffer: System.Text.Encoding.ASCII.GetBytes(s: "DDS "));
         writer.Write(124);
         writer.Write(DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT | DDSD_PITCH);
         writer.Write(height);

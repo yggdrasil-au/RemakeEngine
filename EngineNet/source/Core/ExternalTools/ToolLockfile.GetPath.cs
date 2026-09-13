@@ -8,6 +8,6 @@ public static class ToolLockfile {
     public const string ToolLockfileName = "Tools.installed.json";
 
     internal static string GetPath(string rootPath) {
-        return System.IO.Path.Combine(rootPath, ToolLockfileName);
+        return System.IO.Path.Combine(path1: rootPath, path2: ToolLockfileName);
     }
 }

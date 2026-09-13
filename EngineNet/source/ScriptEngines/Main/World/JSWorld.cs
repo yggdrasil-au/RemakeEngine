@@ -34,7 +34,7 @@ internal class JsWorld {
         // Note: In LuaWorld, you linked tables together (sdk["IO"] = io).
         // In JS, we usually keep globals distinct (fs, os, console),
         // but if you want to mirror the hierarchy, you can do so here:
-        Sdk["io"] = io;
-        Sdk["os"] = os;
+        Sdk[key: "io"] = io;
+        Sdk[key: "os"] = os;
     }
 }

@@ -33,7 +33,7 @@ public class Utils {
     /// </summary>
     public static void BeginOperationProgress() {
         lock (s_consoleLock) {
-            TuiRenderer.UpdateScriptProgress(0, 1, "Starting...");
+            TuiRenderer.UpdateScriptProgress(current: 0, total: 1, label: "Starting...");
             UpdateTuiStatus();
         }
     }
@@ -67,31 +67,31 @@ public class Utils {
             Core.ProcessRunner.OutputHandler outputHandler = onOutput ?? OnOutput;
             Core.ProcessRunner.EventHandler eventHandler = onEvent ?? OnEvent;
             Core.ProcessRunner.StdinProvider inputProvider = stdinProvider ?? StdinProvider;
-            string? script_type = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)
+            string? script_type = (op.TryGetValue(key: "script_type", out object? st) ? st?.ToString() : null)
                 ?.ToLowerInvariant();
 
             // Use embedded handlers for engine/lua/js/bms to avoid external dependencies
-            if (Core.Utils.ScriptConstants.IsSupported(script_type)) {
+            if (Core.Utils.ScriptConstants.IsSupported(script_type: script_type)) {
                 // Route in-process SDK events to our terminal renderer
                 System.Action<Dictionary<string, object?>>? prevSink = Shared.IO.UI.EngineSdk.LocalEventSink;
                 bool prevMute = Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink;
-                var prevAutoResponses = new Dictionary<string, string>(Shared.IO.UI.EngineSdk.AutoPromptResponses);
+                var prevAutoResponses = new Dictionary<string, string>(dictionary: Shared.IO.UI.EngineSdk.AutoPromptResponses);
                 try {
                     // Set auto-prompt responses if provided
                     if (autoPromptResponses is { Count: > 0 }) {
                         Shared.IO.UI.EngineSdk.AutoPromptResponses.Clear();
                         foreach (KeyValuePair<string, string> kv in autoPromptResponses) {
-                            Shared.IO.UI.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
+                            Shared.IO.UI.EngineSdk.AutoPromptResponses[key: kv.Key] = kv.Value;
                         }
                     }
 
-                    Shared.IO.UI.EngineSdk.LocalEventSink = evt => eventHandler(evt);
+                    Shared.IO.UI.EngineSdk.LocalEventSink = evt => eventHandler(evt: evt);
                     Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
                     return await Engine.RunSingleOperationAsync(
-                        game,
-                        games,
-                        op,
-                        promptAnswers,
+                        currentGame: game,
+                        games: games,
+                        op: op,
+                        promptAnswers: promptAnswers,
                         cancellationToken: cancellationToken
                     );
                 }
@@ -99,7 +99,7 @@ public class Utils {
                     // Restore previous auto-prompt responses
                     Shared.IO.UI.EngineSdk.AutoPromptResponses.Clear();
                     foreach (KeyValuePair<string, string> kv in prevAutoResponses) {
-                        Shared.IO.UI.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
+                        Shared.IO.UI.EngineSdk.AutoPromptResponses[key: kv.Key] = kv.Value;
                     }
 
                     Shared.IO.UI.EngineSdk.LocalEventSink = prevSink;
@@ -112,21 +112,21 @@ public class Utils {
 
             // Default: build and execute as external command (e.g., python)
             List<string> parts =
-                Engine.CommandService_BuildCommand(game, games, Engine.EngineConfig_Data, op, promptAnswers);
+                Engine.CommandService_BuildCommand(currentGame: game, games: games, engineData: Engine.EngineConfig_Data, op: op, promptAnswers: promptAnswers);
             if (parts.Count < 2) {
                 return false;
             }
 
-            string title = op.TryGetValue("Name", out object? n)
-                ? n?.ToString() ?? System.IO.Path.GetFileName(parts[1])
-                : System.IO.Path.GetFileName(parts[1]);
+            string title = op.TryGetValue(key: "Name", out object? n)
+                ? n?.ToString() ?? System.IO.Path.GetFileName(path: parts[index: 1])
+                : System.IO.Path.GetFileName(path: parts[index: 1]);
             return Engine.CommandService_ExecuteCommand(
-                parts,
-                title,
+                commandParts: parts,
+                title: title,
                 onOutput: outputHandler,
                 onEvent: eventHandler,
                 stdinProvider: inputProvider,
-                envOverrides: new Dictionary<string, object?> { ["TERM"] = "dumb" }
+                envOverrides: new Dictionary<string, object?> { [key: "TERM"] = "dumb" }
             );
         }
         catch (System.Exception ex) {
@@ -165,77 +165,77 @@ public class Utils {
     }
 
     private static string? StdinProvider() {
-        return TuiRenderer.ReadLineCustom("Input >", false);
+        return TuiRenderer.ReadLineCustom(label: "Input >", isSecret: false);
     }
 
     internal static void OnOutput(string line, string stream) {
-        OnEvent(new Dictionary<string, object?> {
-            ["event"] = EngineSdk.Events.Print,
-            ["message"] = line,
-            ["color"] = stream == "stderr" ? "red" : "gray"
+        OnEvent(evt: new Dictionary<string, object?> {
+            [key: "event"] = EngineSdk.Events.Print,
+            [key: "message"] = line,
+            [key: "color"] = stream == "stderr" ? "red" : "gray"
         });
     }
 
     // --- Handlers to bridge SDK events <-> CLI ---
 
     internal static void OnEvent(Dictionary<string, object?> evt) {
-        LogEvent(evt);
-        if (!evt.TryGetValue("event", out object? typObj)) return;
+        LogEvent(evt: evt);
+        if (!evt.TryGetValue(key: "event", out object? typObj)) return;
 
         string? typ = typObj?.ToString();
 
         switch (typ) {
             case EngineSdk.Events.Print: {
-                string msg = evt.TryGetValue("message", out object? m) ? m?.ToString() ?? "" : "";
-                string colorName = evt.TryGetValue("color", out object? c) ? c?.ToString() ?? "gray" : "gray";
-                TuiRenderer.Log(msg, MapColor(colorName));
+                string msg = evt.TryGetValue(key: "message", out object? m) ? m?.ToString() ?? "" : "";
+                string colorName = evt.TryGetValue(key: "color", out object? c) ? c?.ToString() ?? "gray" : "gray";
+                TuiRenderer.Log(msg, color: MapColor(name: colorName));
                 break;
             }
 
             case EngineSdk.Events.Warning: {
-                TuiRenderer.Log($"[WARN] {evt.GetValueOrDefault("message", "")}", System.ConsoleColor.Yellow);
+                TuiRenderer.Log($"[WARN] {evt.GetValueOrDefault(key: "message", defaultValue: "")}", color: System.ConsoleColor.Yellow);
                 break;
             }
 
             case EngineSdk.Events.Error: {
-                TuiRenderer.Log($"[ERR] {evt.GetValueOrDefault("message", "")}", System.ConsoleColor.Red);
+                TuiRenderer.Log($"[ERR] {evt.GetValueOrDefault(key: "message", defaultValue: "")}", color: System.ConsoleColor.Red);
                 break;
             }
 
             case EngineSdk.Events.Prompt:
             case EngineSdk.Events.ColorPrompt: {
-                string pMsg = evt.TryGetValue("message", out object? pm)
+                string pMsg = evt.TryGetValue(key: "message", out object? pm)
                     ? pm?.ToString() ?? "Input required"
                     : "Input required";
-                TuiRenderer.Log($"? {pMsg}", System.ConsoleColor.Cyan);
+                TuiRenderer.Log($"? {pMsg}", color: System.ConsoleColor.Cyan);
                 break;
             }
 
             case EngineSdk.Events.Confirm: {
-                string cMsg = evt.TryGetValue("message", out object? cm) ? cm?.ToString() ?? "Confirm?" : "Confirm?";
-                bool def = evt.TryGetValue("default", out object? d) && d is true;
-                TuiRenderer.Log($"? {cMsg} [{(def ? "y/N" : "Y/n")}]", System.ConsoleColor.Cyan);
+                string cMsg = evt.TryGetValue(key: "message", out object? cm) ? cm?.ToString() ?? "Confirm?" : "Confirm?";
+                bool def = evt.TryGetValue(key: "default", out object? d) && d is true;
+                TuiRenderer.Log($"? {cMsg} [{(def ? "y/N" : "Y/n")}]", color: System.ConsoleColor.Cyan);
                 break;
             }
 
             case EngineSdk.Events.ScriptActiveStart: {
-                TuiRenderer.Log($"▶ Starting script: {evt.GetValueOrDefault("name", "Unnamed")}",
-                    System.ConsoleColor.Green);
+                TuiRenderer.Log($"▶ Starting script: {evt.GetValueOrDefault(key: "name", defaultValue: "Unnamed")}",
+                    color: System.ConsoleColor.Green);
                 break;
             }
 
             case EngineSdk.Events.ScriptProgress: {
-                int current = GetEventInt(evt, "current");
-                int total = GetEventInt(evt, "total");
-                string label = evt.TryGetValue("label", out object? l) ? l?.ToString() ?? string.Empty : string.Empty;
-                TuiRenderer.UpdateScriptProgress(current, total, label);
+                int current = GetEventInt(evt: evt, key: "current");
+                int total = GetEventInt(evt: evt, key: "total");
+                string label = evt.TryGetValue(key: "label", out object? l) ? l?.ToString() ?? string.Empty : string.Empty;
+                TuiRenderer.UpdateScriptProgress(current: current, total: total, label: label);
                 break;
             }
 
             case EngineSdk.Events.ScriptActiveEnd: {
                 TuiRenderer.ClearScriptProgress();
-                bool success = evt.TryGetValue("success", out object? s) && System.Convert.ToBoolean(s);
-                TuiRenderer.Log("◀ Finished script.", success ? System.ConsoleColor.Green : System.ConsoleColor.Red);
+                bool success = evt.TryGetValue(key: "success", out object? s) && System.Convert.ToBoolean(s);
+                TuiRenderer.Log("◀ Finished script.", color: success ? System.ConsoleColor.Green : System.ConsoleColor.Red);
                 break;
             }
 
@@ -259,10 +259,10 @@ public class Utils {
             }
 
             case EngineSdk.Events.ProgressPanel: {
-                string id = evt.TryGetValue("id", out object? idObj) ? idObj?.ToString() ?? "p1" : "p1";
-                List<string> lines = BuildTuiProgressLines(evt);
+                string id = evt.TryGetValue(key: "id", out object? idObj) ? idObj?.ToString() ?? "p1" : "p1";
+                List<string> lines = BuildTuiProgressLines(payload: evt);
                 lock (s_consoleLock) {
-                    s_panelStatus[id] = lines;
+                    s_panelStatus[key: id] = lines;
                     if (EngineNet.Shared.State.IsCli) {
                         if (lines.Count > 0) {
                             try {
@@ -274,16 +274,15 @@ public class Utils {
                                     w = 80;
                                 }
 
-                                string text = lines[0];
-                                if (text.Length > w - 1) text = text.Substring(0, w - 1);
-                                System.Console.Write($"\r{text.PadRight(w - 1)}");
+                                string text = lines[index: 0];
+                                if (text.Length > w - 1) text = text.Substring(startIndex: 0, length: w - 1);
+                                System.Console.Write($"\r{text.PadRight(totalWidth: w - 1)}");
                             }
                             catch {
                                 // Silent catch to prevent crashing if console window access fails
                             }
                         }
-                    }
-                    else {
+                    } else {
                         UpdateTuiStatus();
                     }
                 }
@@ -292,20 +291,19 @@ public class Utils {
             }
 
             case EngineSdk.Events.ProgressPanelEnd: {
-                string id = evt.TryGetValue("id", out object? idObj) ? idObj?.ToString() ?? "p1" : "p1";
+                string id = evt.TryGetValue(key: "id", out object? idObj) ? idObj?.ToString() ?? "p1" : "p1";
                 lock (s_consoleLock) {
-                    if (s_panelStatus.TryGetValue(id, out var lastLines) && lastLines.Count > 0) {
+                    if (s_panelStatus.TryGetValue(key: id, out var lastLines) && lastLines.Count > 0) {
                         // Log the FIRST line (the progress bar) to the log area so it sticks in history
                         if (EngineNet.Shared.State.IsCli) {
                             System.Console.WriteLine(); // Newline to clear the fixed \r line
-                        }
-                        else {
-                            TuiRenderer.Log(lastLines[0], System.ConsoleColor.Cyan);
+                        } else {
+                            TuiRenderer.Log(lastLines[index: 0], color: System.ConsoleColor.Cyan);
                         }
                     }
 
                     s_activePanels--;
-                    s_panelStatus.Remove(id);
+                    s_panelStatus.Remove(key: id);
                     if (!EngineNet.Shared.State.IsCli) {
                         UpdateTuiStatus();
                     }
@@ -315,8 +313,7 @@ public class Utils {
                         ResetTaskProgressState();
                         if (shouldShutdownRenderer) {
                             TuiRenderer.Shutdown();
-                        }
-                        else if (!EngineNet.Shared.State.IsCli) {
+                        } else if (!EngineNet.Shared.State.IsCli) {
                             TuiRenderer.ClearStatus();
                         }
                     }
@@ -326,31 +323,31 @@ public class Utils {
             }
 
             case EngineSdk.Events.RunAllStart: {
-                TuiRenderer.UpdateScriptProgress(0, GetEventInt(evt, "total"), "Run-All Sequence");
-                TuiRenderer.Log($"Starting run-all sequence ({evt.GetValueOrDefault("total", 0)} operations).",
-                    System.ConsoleColor.Green);
+                TuiRenderer.UpdateScriptProgress(current: 0, total: GetEventInt(evt: evt, key: "total"), label: "Run-All Sequence");
+                TuiRenderer.Log($"Starting run-all sequence ({evt.GetValueOrDefault(key: "total", defaultValue: 0)} operations).",
+                    color: System.ConsoleColor.Green);
                 break;
             }
 
             case EngineSdk.Events.RunAllOpStart: {
-                TuiRenderer.UpdateScriptProgress(GetEventInt(evt, "index"), GetEventInt(evt, "total"),
-                    evt.GetValueOrDefault("name", "Unnamed")?.ToString() ?? string.Empty);
-                TuiRenderer.Log($"Starting operation via run-all: {evt.GetValueOrDefault("name", "Unnamed")}",
-                    System.ConsoleColor.Green);
+                TuiRenderer.UpdateScriptProgress(current: GetEventInt(evt: evt, key: "index"), total: GetEventInt(evt: evt, key: "total"),
+                    label: evt.GetValueOrDefault(key: "name", defaultValue: "Unnamed")?.ToString() ?? string.Empty);
+                TuiRenderer.Log($"Starting operation via run-all: {evt.GetValueOrDefault(key: "name", defaultValue: "Unnamed")}",
+                    color: System.ConsoleColor.Green);
                 break;
             }
 
             case EngineSdk.Events.RunAllOpEnd: {
-                TuiRenderer.UpdateScriptProgress(GetEventInt(evt, "index") + 1, GetEventInt(evt, "total"),
-                    evt.GetValueOrDefault("name", "Unnamed")?.ToString() ?? string.Empty);
-                TuiRenderer.Log($"✔ Operation completed via run-all: {evt.GetValueOrDefault("name", "Unnamed")}",
-                    System.ConsoleColor.Green);
+                TuiRenderer.UpdateScriptProgress(current: GetEventInt(evt: evt, key: "index") + 1, total: GetEventInt(evt: evt, key: "total"),
+                    label: evt.GetValueOrDefault(key: "name", defaultValue: "Unnamed")?.ToString() ?? string.Empty);
+                TuiRenderer.Log($"✔ Operation completed via run-all: {evt.GetValueOrDefault(key: "name", defaultValue: "Unnamed")}",
+                    color: System.ConsoleColor.Green);
                 break;
             }
 
             case EngineSdk.Events.RunAllComplete: {
                 TuiRenderer.ClearScriptProgress();
-                TuiRenderer.Log("Run-all sequence completed.", System.ConsoleColor.Green);
+                TuiRenderer.Log("Run-all sequence completed.", color: System.ConsoleColor.Green);
                 break;
             }
 
@@ -365,14 +362,14 @@ public class Utils {
     private static void UpdateTuiStatus() {
         var allLines = new List<string>();
         foreach (var panelLines in s_panelStatus.Values) {
-            allLines.AddRange(panelLines);
+            allLines.AddRange(collection: panelLines);
         }
 
-        TuiRenderer.UpdateStatus(allLines);
+        TuiRenderer.UpdateStatus(lines: allLines);
     }
 
     private static int GetEventInt(IReadOnlyDictionary<string, object?> evt, string key) {
-        if (!evt.TryGetValue(key, out object? value) || value is null) {
+        if (!evt.TryGetValue(key: key, out object? value) || value is null) {
             return 0;
         }
 
@@ -380,15 +377,15 @@ public class Utils {
             return System.Convert.ToInt32(value);
         }
         catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[Utils.cs::GetEventInt()] Failed to parse event field '{key}'.", ex);
+            Shared.IO.Diagnostics.Bug($"[Utils.cs::GetEventInt()] Failed to parse event field '{key}'.", ex: ex);
             return 0;
         }
     }
 
     private static void LogEvent(IReadOnlyDictionary<string, object?> evt) {
         try {
-            Dictionary<string, object?> safe = CloneForLogging(evt);
-            string json = JsonSerializer.Serialize(safe, s_jsonOpts);
+            Dictionary<string, object?> safe = CloneForLogging(evt: evt);
+            string json = JsonSerializer.Serialize(safe, options: s_jsonOpts);
             Shared.IO.Diagnostics.Log($"[Utils.cs::OnEvent()] {json}");
         }
         catch (System.Exception ex) {
@@ -397,21 +394,21 @@ public class Utils {
     }
 
     private static Dictionary<string, object?> CloneForLogging(IReadOnlyDictionary<string, object?> evt) {
-        Dictionary<string, object?> clone = new Dictionary<string, object?>(evt.Count, System.StringComparer.Ordinal);
+        Dictionary<string, object?> clone = new Dictionary<string, object?>(capacity: evt.Count, comparer: System.StringComparer.Ordinal);
         foreach (KeyValuePair<string, object?> kv in evt) {
-            clone[kv.Key] = CloneValue(kv.Value);
+            clone[key: kv.Key] = CloneValue(kv.Value);
         }
 
         try {
-            JsonSerializer.Serialize(clone, s_jsonOpts);
+            JsonSerializer.Serialize(clone, options: s_jsonOpts);
             return clone;
         }
         catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"[Utils.cs::CloneForLogging()] Clone serialization catch triggered: {ex}");
             Dictionary<string, object?> safe =
-                new Dictionary<string, object?>(clone.Count, System.StringComparer.Ordinal);
+                new Dictionary<string, object?>(capacity: clone.Count, comparer: System.StringComparer.Ordinal);
             foreach (KeyValuePair<string, object?> kv in clone) {
-                safe[kv.Key] = SafeStringify(kv.Value);
+                safe[key: kv.Key] = SafeStringify(kv.Value);
             }
 
             return safe;
@@ -450,19 +447,19 @@ public class Utils {
         }
 
         if (value is IReadOnlyDictionary<string, object?> roDict) {
-            Dictionary<string, object?> nested = new Dictionary<string, object?>(System.StringComparer.Ordinal);
+            Dictionary<string, object?> nested = new Dictionary<string, object?>(comparer: System.StringComparer.Ordinal);
             foreach (KeyValuePair<string, object?> kv in roDict) {
-                nested[kv.Key] = CloneValue(kv.Value);
+                nested[key: kv.Key] = CloneValue(kv.Value);
             }
 
             return nested;
         }
 
         if (value is IDictionary dict) {
-            Dictionary<string, object?> nested = new Dictionary<string, object?>(System.StringComparer.Ordinal);
+            Dictionary<string, object?> nested = new Dictionary<string, object?>(comparer: System.StringComparer.Ordinal);
             foreach (DictionaryEntry entry in dict) {
                 string key = entry.Key.ToString() ?? string.Empty;
-                nested[key] = CloneValue(entry.Value);
+                nested[key: key] = CloneValue(entry.Value);
             }
 
             return nested;
@@ -471,14 +468,14 @@ public class Utils {
         if (value is IEnumerable enumerable and not string) {
             List<object?> list = new List<object?>();
             foreach (object? item in enumerable) {
-                list.Add(CloneValue(item));
+                list.Add(item: CloneValue(item));
             }
 
             return list;
         }
 
         try {
-            JsonSerializer.Serialize(value, s_jsonOpts);
+            JsonSerializer.Serialize(value, options: s_jsonOpts);
             return value;
         }
         catch {
@@ -492,9 +489,9 @@ public class Utils {
                 return null;
 
             case IReadOnlyDictionary<string, object?> roDict: {
-                Dictionary<string, object?> nested = new Dictionary<string, object?>(System.StringComparer.Ordinal);
+                Dictionary<string, object?> nested = new Dictionary<string, object?>(comparer: System.StringComparer.Ordinal);
                 foreach (KeyValuePair<string, object?> kv in roDict) {
-                    nested[kv.Key] = SafeStringify(kv.Value);
+                    nested[key: kv.Key] = SafeStringify(kv.Value);
                 }
 
                 return nested;
@@ -503,7 +500,7 @@ public class Utils {
             case IEnumerable enumerable when value is not string: {
                 List<object?> list = new List<object?>();
                 foreach (object? item in enumerable) {
-                    list.Add(SafeStringify(item));
+                    list.Add(item: SafeStringify(item));
                 }
 
                 return list;
@@ -515,46 +512,46 @@ public class Utils {
     }
 
     private static List<string> BuildTuiProgressLines(IReadOnlyDictionary<string, object?> payload) {
-        var lines = new List<string>(10);
+        var lines = new List<string>(capacity: 10);
 
         // Extract data from payload
-        string label = (payload.TryGetValue("label", out object? l) ? l?.ToString() : "Processing") ?? "Processing";
-        string spinner = (payload.TryGetValue("spinner", out object? s) ? s?.ToString() : " ") ?? " ";
-        int activeTotal = (payload.TryGetValue("active_total", out object? at)
-            ? (at as System.IConvertible)?.ToInt32(null)
+        string label = (payload.TryGetValue(key: "label", out object? l) ? l?.ToString() : "Processing") ?? "Processing";
+        string spinner = (payload.TryGetValue(key: "spinner", out object? s) ? s?.ToString() : " ") ?? " ";
+        int activeTotal = (payload.TryGetValue(key: "active_total", out object? at)
+            ? (at as System.IConvertible)?.ToInt32(provider: null)
             : 0) ?? 0;
 
-        var stats = payload.TryGetValue("stats", out object? st) ? st as IReadOnlyDictionary<string, object?> : null;
-        var activeJobs = payload.TryGetValue("active_jobs", out object? aj) ? aj as IEnumerable<object> : null;
+        var stats = payload.TryGetValue(key: "stats", out object? st) ? st as IReadOnlyDictionary<string, object?> : null;
+        var activeJobs = payload.TryGetValue(key: "active_jobs", out object? aj) ? aj as IEnumerable<object> : null;
 
         // 1. Build Progress Bar Line
         if (stats != null) {
-            int total = (stats.TryGetValue("total", out object? t) ? (t as System.IConvertible)?.ToInt32(null) : 0) ?? 0;
-            int processed = (stats.TryGetValue("processed", out object? p) ? (p as System.IConvertible)?.ToInt32(null) : 0) ?? 0;
-            int ok = (stats.TryGetValue("ok", out object? o) ? (o as System.IConvertible)?.ToInt32(null) : 0) ?? 0;
-            int skip = (stats.TryGetValue("skip", out object? sk) ? (sk as System.IConvertible)?.ToInt32(null) : 0) ?? 0;
-            int err = (stats.TryGetValue("err", out object? e) ? (e as System.IConvertible)?.ToInt32(null) : 0) ?? 0;
-            double percent = (stats.TryGetValue("percent", out object? pct)
-                ? (pct as System.IConvertible)?.ToDouble(null)
+            int total = (stats.TryGetValue(key: "total", out object? t) ? (t as System.IConvertible)?.ToInt32(provider: null) : 0) ?? 0;
+            int processed = (stats.TryGetValue(key: "processed", out object? p) ? (p as System.IConvertible)?.ToInt32(provider: null) : 0) ?? 0;
+            int ok = (stats.TryGetValue(key: "ok", out object? o) ? (o as System.IConvertible)?.ToInt32(provider: null) : 0) ?? 0;
+            int skip = (stats.TryGetValue(key: "skip", out object? sk) ? (sk as System.IConvertible)?.ToInt32(provider: null) : 0) ?? 0;
+            int err = (stats.TryGetValue(key: "err", out object? e) ? (e as System.IConvertible)?.ToInt32(provider: null) : 0) ?? 0;
+            double percent = (stats.TryGetValue(key: "percent", out object? pct)
+                ? (pct as System.IConvertible)?.ToDouble(provider: null)
                 : 0.0) ?? 0.0;
             int width;
             try {
-                int buf = System.Math.Max(20, System.Console.BufferWidth);
+                int buf = System.Math.Max(val1: 20, val2: System.Console.BufferWidth);
                 // Keep the bar a reasonable fraction of buffer width
-                width = System.Math.Clamp(buf - 40, 10, 60);
+                width = System.Math.Clamp(buf - 40, min: 10, max: 60);
             }
             catch {
                 width = 30;
             }
 
-            int filled = (int)System.Math.Round(percent * width);
-            var bar = new System.Text.StringBuilder(width + 48);
+            int filled = (int)System.Math.Round(a: percent * width);
+            var bar = new System.Text.StringBuilder(capacity: width + 48);
 
             // Truncate label to keep line short; Draw method still clamps
             string lbl = label;
             try {
-                int maxLabel = System.Math.Max(8, System.Math.Min(30, System.Console.BufferWidth - (width + 20)));
-                if (lbl.Length > maxLabel) lbl = lbl.Substring(0, maxLabel - 3) + "...";
+                int maxLabel = System.Math.Max(val1: 8, val2: System.Math.Min(val1: 30, val2: System.Console.BufferWidth - (width + 20)));
+                if (lbl.Length > maxLabel) lbl = lbl.Substring(startIndex: 0, length: maxLabel - 3) + "...";
             }
             catch {
                 /* ignore */
@@ -570,7 +567,7 @@ public class Utils {
 
             bar.Append(']');
             bar.Append(' ');
-            bar.Append((int)System.Math.Round(percent * 100));
+            bar.Append((int)System.Math.Round(a: percent * 100));
             bar.Append('%');
             bar.Append(' ');
             bar.Append(processed);
@@ -583,44 +580,44 @@ public class Utils {
             bar.Append(", err=");
             bar.Append(err);
             bar.Append(')');
-            lines.Add(bar.ToString());
+            lines.Add(item: bar.ToString());
         } else {
-            lines.Add(label); // Fallback
+            lines.Add(item: label); // Fallback
         }
 
         // 2. Build Active Jobs Lines
         if (activeTotal == 0) {
-            lines.Add("Active: none");
+            lines.Add(item: "Active: none");
         } else {
-            lines.Add($"Active: {activeTotal}");
+            lines.Add(item: $"Active: {activeTotal}");
             if (activeJobs != null) {
                 foreach (object jobObj in activeJobs) {
                     if (jobObj is not IReadOnlyDictionary<string, object?> job) {
                         continue;
                     }
-                    string tool = (job.TryGetValue("tool", out object? t) ? t?.ToString() : "...") ?? "...";
-                    string file = (job.TryGetValue("file", out object? f) ? f?.ToString() : "...") ?? "...";
-                    string elapsed = (job.TryGetValue("elapsed", out object? e) ? e?.ToString() : "...") ?? "...";
+                    string tool = (job.TryGetValue(key: "tool", out object? t) ? t?.ToString() : "...") ?? "...";
+                    string file = (job.TryGetValue(key: "file", out object? f) ? f?.ToString() : "...") ?? "...";
+                    string elapsed = (job.TryGetValue(key: "elapsed", out object? e) ? e?.ToString() : "...") ?? "...";
 
                     int maxFile;
                     try {
-                        maxFile = System.Math.Max(18, System.Console.BufferWidth - 20);
+                        maxFile = System.Math.Max(val1: 18, val2: System.Console.BufferWidth - 20);
                     }
                     catch {
                         maxFile = 50;
                     }
 
                     if (file.Length > maxFile) {
-                        file = file.Substring(0, maxFile - 3) + "...";
+                        file = file.Substring(startIndex: 0, length: maxFile - 3) + "...";
                     }
 
-                    lines.Add($"  {spinner} {tool} · {file} · {elapsed}");
+                    lines.Add(item: $"  {spinner} {tool} · {file} · {elapsed}");
                 }
             }
 
             if (activeTotal > 8) {
                 // 8 is the hardcoded Take(max) in the SDK
-                lines.Add($"  … and {activeTotal - System.Math.Min(activeTotal, 8)} more");
+                lines.Add(item: $"  … and {activeTotal - System.Math.Min(val1: activeTotal, val2: 8)} more");
             }
         }
 

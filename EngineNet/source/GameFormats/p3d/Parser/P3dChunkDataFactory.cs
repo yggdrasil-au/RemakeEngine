@@ -6,71 +6,71 @@ internal static class ChunkDataFactory {
     internal static ChunkData FromChunkType(ChunkType typ, ByteReader bytes) {
         switch (typ) {
             case ChunkType.DataFile:
-                return ChunkData.None(typ);
+                return ChunkData.None(sourceType: typ);
 
             case ChunkType.Shader:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseShader(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: ParseVersion(bytes: bytes), payload: ParseShader(bytes: bytes));
             case ChunkType.ShaderTextureParam:
             case ChunkType.ShaderIntParam:
             case ChunkType.ShaderFloatParam:
             case ChunkType.ShaderColourParam:
-                return ChunkData.Create(typ, null, null, ParseShaderParam(bytes, typ));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseShaderParam(bytes: bytes, typ: typ));
             case ChunkType.Texture:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseTexture(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: ParseVersion(bytes: bytes), payload: ParseTexture(bytes: bytes));
             case ChunkType.Image:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseImage(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: ParseVersion(bytes: bytes), payload: ParseImage(bytes: bytes));
             case ChunkType.ImageData:
-                return ChunkData.Create(typ, null, null, ParseImageRaw(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseImageRaw(bytes: bytes));
             case ChunkType.VertexShader:
-                return ChunkData.Create(typ, null, null, ParseVertexShader(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseVertexShader(bytes: bytes));
 
             case ChunkType.OldParticleSystem: {
                 // Rust parity: Version precedes Name for old particle system chunks.
-                uint version = ParseVersion(bytes);
-                string name = ParseName(bytes);
-                return ChunkData.Create(typ, name, version, ParseOldParticleSystem(bytes));
+                uint version = ParseVersion(bytes: bytes);
+                string name = ParseName(bytes: bytes);
+                return ChunkData.Create(sourceType: typ, name: name, version: version, payload: ParseOldParticleSystem(bytes: bytes));
             }
             case ChunkType.OldParticleSystemFactory: {
                 // Rust parity: Version precedes Name for old particle system chunks.
-                uint version = ParseVersion(bytes);
-                string name = ParseName(bytes);
-                return ChunkData.Create(typ, name, version, ParseOldParticleSystemFactory(bytes));
+                uint version = ParseVersion(bytes: bytes);
+                string name = ParseName(bytes: bytes);
+                return ChunkData.Create(sourceType: typ, name: name, version: version, payload: ParseOldParticleSystemFactory(bytes: bytes));
             }
             case ChunkType.OldParticleInstancingInfo:
-                return ChunkData.Create(typ, null, ParseVersion(bytes), ParseOldParticleSystemInstancingInfo(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: ParseVersion(bytes: bytes), payload: ParseOldParticleSystemInstancingInfo(bytes: bytes));
             case ChunkType.OldParticleAnimation:
             case ChunkType.OldEmitterAnimation:
             case ChunkType.OldGeneratorAnimation:
-                return ChunkData.Create(typ, null, ParseVersion(bytes), null);
+                return ChunkData.Create(sourceType: typ, name: null, version: ParseVersion(bytes: bytes), payload: null);
             case ChunkType.OldBaseEmitter: {
                 // Rust parity: Version precedes Name for old particle system chunks.
-                uint version = ParseVersion(bytes);
-                string name = ParseName(bytes);
-                return ChunkData.Create(typ, name, version, ParseOldBaseEmitter(bytes));
+                uint version = ParseVersion(bytes: bytes);
+                string name = ParseName(bytes: bytes);
+                return ChunkData.Create(sourceType: typ, name: name, version: version, payload: ParseOldBaseEmitter(bytes: bytes));
             }
             case ChunkType.OldSpriteEmitter: {
                 // Rust parity: Version precedes Name for old particle system chunks.
-                uint version = ParseVersion(bytes);
-                string name = ParseName(bytes);
-                return ChunkData.Create(typ, name, version, ParseOldSpriteEmitter(bytes));
+                uint version = ParseVersion(bytes: bytes);
+                string name = ParseName(bytes: bytes);
+                return ChunkData.Create(sourceType: typ, name: name, version: version, payload: ParseOldSpriteEmitter(bytes: bytes));
             }
             case ChunkType.InstanceableParticleSystem:
-                return ChunkData.Create(typ, null, null, ParseInstanceableParticleSystem(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseInstanceableParticleSystem(bytes: bytes));
 
             case ChunkType.Animation: {
-                uint version = ParseVersion(bytes);
-                string name = ParseName(bytes);
-                return ChunkData.Create(typ, name, version, ParseAnimation(bytes));
+                uint version = ParseVersion(bytes: bytes);
+                string name = ParseName(bytes: bytes);
+                return ChunkData.Create(sourceType: typ, name: name, version: version, payload: ParseAnimation(bytes: bytes));
             }
             case ChunkType.AnimationSize:
-                return ChunkData.Create(typ, null, ParseVersion(bytes), ParseAnimationSize(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: ParseVersion(bytes: bytes), payload: ParseAnimationSize(bytes: bytes));
             case ChunkType.AnimationGroup: {
-                uint version = ParseVersion(bytes);
-                string name = ParseName(bytes);
-                return ChunkData.Create(typ, name, version, ParseAnimationGroup(bytes));
+                uint version = ParseVersion(bytes: bytes);
+                string name = ParseName(bytes: bytes);
+                return ChunkData.Create(sourceType: typ, name: name, version: version, payload: ParseAnimationGroup(bytes: bytes));
             }
             case ChunkType.AnimationGroupList:
-                return ChunkData.Create(typ, null, ParseVersion(bytes), ParseAnimationGroupList(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: ParseVersion(bytes: bytes), payload: ParseAnimationGroupList(bytes: bytes));
             case ChunkType.Float1Channel:
             case ChunkType.Float2Channel:
             case ChunkType.IntChannel:
@@ -82,238 +82,238 @@ internal static class ChunkDataFactory {
             case ChunkType.ColourChannel:
             case ChunkType.BoolChannel:
             case ChunkType.EntityChannel:
-                return ChunkData.Create(typ, null, ParseVersion(bytes), ParseChannel(bytes, typ));
+                return ChunkData.Create(sourceType: typ, name: null, version: ParseVersion(bytes: bytes), payload: ParseChannel(bytes: bytes, typ: typ));
             case ChunkType.ChannelInterpolationMode:
-                return ChunkData.Create(typ, null, ParseVersion(bytes), ParseChannelInterpolation(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: ParseVersion(bytes: bytes), payload: ParseChannelInterpolation(bytes: bytes));
             case ChunkType.OldFrameController: {
-                uint version = ParseVersion(bytes);
-                string name = ParseName(bytes);
-                return ChunkData.Create(typ, name, version, ParseOldFrameController(bytes));
+                uint version = ParseVersion(bytes: bytes);
+                string name = ParseName(bytes: bytes);
+                return ChunkData.Create(sourceType: typ, name: name, version: version, payload: ParseOldFrameController(bytes: bytes));
             }
             case ChunkType.P3DMultiController:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseMultiController(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: ParseVersion(bytes: bytes), payload: ParseMultiController(bytes: bytes));
             case ChunkType.P3DMultiControllerTracks:
-                return ChunkData.Create(typ, null, null, ParseMultiControllerTracks(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseMultiControllerTracks(bytes: bytes));
 
             case ChunkType.OldBillboardQuad: {
-                uint version = ParseVersion(bytes);
-                string name = ParseName(bytes);
-                return ChunkData.Create(typ, name, version, ParseOldBillboardQuad(bytes));
+                uint version = ParseVersion(bytes: bytes);
+                string name = ParseName(bytes: bytes);
+                return ChunkData.Create(sourceType: typ, name: name, version: version, payload: ParseOldBillboardQuad(bytes: bytes));
             }
             case ChunkType.OldBillboardQuadGroup: {
-                uint version = ParseVersion(bytes);
-                string name = ParseName(bytes);
-                return ChunkData.Create(typ, name, version, ParseOldBillboardQuadGroup(bytes));
+                uint version = ParseVersion(bytes: bytes);
+                string name = ParseName(bytes: bytes);
+                return ChunkData.Create(sourceType: typ, name: name, version: version, payload: ParseOldBillboardQuadGroup(bytes: bytes));
             }
             case ChunkType.OldBillboardDisplayInfo:
-                return ChunkData.Create(typ, null, ParseVersion(bytes), ParseOldBillboardDisplayInfo(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: ParseVersion(bytes: bytes), payload: ParseOldBillboardDisplayInfo(bytes: bytes));
             case ChunkType.OldBillboardPerspectiveInfo:
-                return ChunkData.Create(typ, null, ParseVersion(bytes), ParseOldBillboardPerspectiveInfo(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: ParseVersion(bytes: bytes), payload: ParseOldBillboardPerspectiveInfo(bytes: bytes));
 
             case ChunkType.BreakableObject:
-                return ChunkData.Create(typ, null, null, ParseBreakableObject(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseBreakableObject(bytes: bytes));
 
             case ChunkType.P3DSkeleton:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseSkeleton(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: ParseVersion(bytes: bytes), payload: ParseSkeleton(bytes: bytes));
             case ChunkType.P3DSkeletonJoint:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseSkeletonJoint(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseSkeletonJoint(bytes: bytes));
             case ChunkType.P3DSkeletonJointMirrorMap:
-                return ChunkData.Create(typ, null, null, ParseSkeletonJointMirrorMap(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseSkeletonJointMirrorMap(bytes: bytes));
             case ChunkType.P3DSkeletonJointBonePreserve:
-                return ChunkData.Create(typ, null, null, ParseSkeletonJointBonePreserve(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseSkeletonJointBonePreserve(bytes: bytes));
             case ChunkType.MatrixList:
-                return ChunkData.Create(typ, null, null, ParseMatrixList(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseMatrixList(bytes: bytes));
             case ChunkType.MatrixPalette:
-                return ChunkData.Create(typ, null, null, ParseMatrixPalette(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseMatrixPalette(bytes: bytes));
             case ChunkType.WeightList:
-                return ChunkData.Create(typ, null, null, ParseWeightList(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseWeightList(bytes: bytes));
 
             case ChunkType.Mesh:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseMesh(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: ParseVersion(bytes: bytes), payload: ParseMesh(bytes: bytes));
             case ChunkType.Skin:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseSkin(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: ParseVersion(bytes: bytes), payload: ParseSkin(bytes: bytes));
             case ChunkType.OldPrimGroup:
-                return ChunkData.Create(typ, null, ParseVersion(bytes), ParseOldPrimGroup(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: ParseVersion(bytes: bytes), payload: ParseOldPrimGroup(bytes: bytes));
             case ChunkType.PositionList:
-                return ChunkData.Create(typ, null, null, ParsePositionList(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParsePositionList(bytes: bytes));
             case ChunkType.NormalList:
-                return ChunkData.Create(typ, null, null, ParseNormalList(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseNormalList(bytes: bytes));
             case ChunkType.TangentList:
-                return ChunkData.Create(typ, null, null, ParseTangentList(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseTangentList(bytes: bytes));
             case ChunkType.BinormalList:
-                return ChunkData.Create(typ, null, null, ParseBinormalList(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseBinormalList(bytes: bytes));
             case ChunkType.PackedNormalList:
-                return ChunkData.Create(typ, null, null, ParsePackedNormalList(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParsePackedNormalList(bytes: bytes));
             case ChunkType.UVList:
-                return ChunkData.Create(typ, null, null, ParseUvList(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseUvList(bytes: bytes));
             case ChunkType.ColourList:
-                return ChunkData.Create(typ, null, null, ParseColourList(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseColourList(bytes: bytes));
             case ChunkType.IndexList:
-                return ChunkData.Create(typ, null, null, ParseIndexList(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseIndexList(bytes: bytes));
             case ChunkType.RenderStatus:
-                return ChunkData.Create(typ, null, null, ParseRenderStatus(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseRenderStatus(bytes: bytes));
 
             case ChunkType.P3DCompositeDrawable:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseCompositeDrawable(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseCompositeDrawable(bytes: bytes));
             case ChunkType.P3DCompositeDrawableEffect:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseCompositeDrawableEffect(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseCompositeDrawableEffect(bytes: bytes));
             case ChunkType.P3DCompositeDrawableEffectList:
-                return ChunkData.Create(typ, null, null, ParseCompositeDrawableEffectList(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseCompositeDrawableEffectList(bytes: bytes));
             case ChunkType.P3DCompositeDrawableProp:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseCompositeDrawableProp(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseCompositeDrawableProp(bytes: bytes));
             case ChunkType.P3DCompositeDrawablePropList:
-                return ChunkData.Create(typ, null, null, ParseCompositeDrawablePropList(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseCompositeDrawablePropList(bytes: bytes));
             case ChunkType.P3DCompositeDrawableSkin:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseCompositeDrawableSkin(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseCompositeDrawableSkin(bytes: bytes));
             case ChunkType.P3DCompositeDrawableSkinList:
-                return ChunkData.Create(typ, null, null, ParseCompositeDrawableSkinList(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseCompositeDrawableSkinList(bytes: bytes));
             case ChunkType.P3DCompositeDrawableSortOrder:
-                return ChunkData.Create(typ, null, null, ParseCompositeDrawableSortOrder(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseCompositeDrawableSortOrder(bytes: bytes));
 
             case ChunkType.AnimatedObjectFactory: {
-                uint version = ParseVersion(bytes);
-                string name = ParseName(bytes);
-                return ChunkData.Create(typ, name, version, ParseAnimatedObjectFactory(bytes));
+                uint version = ParseVersion(bytes: bytes);
+                string name = ParseName(bytes: bytes);
+                return ChunkData.Create(sourceType: typ, name: name, version: version, payload: ParseAnimatedObjectFactory(bytes: bytes));
             }
             case ChunkType.AnimatedObject: {
-                uint version = ParseVersion(bytes);
-                string name = ParseName(bytes);
-                return ChunkData.Create(typ, name, version, ParseAnimatedObject(bytes));
+                uint version = ParseVersion(bytes: bytes);
+                string name = ParseName(bytes: bytes);
+                return ChunkData.Create(sourceType: typ, name: name, version: version, payload: ParseAnimatedObject(bytes: bytes));
             }
             case ChunkType.AnimatedObjectAnimation: {
-                uint version = ParseVersion(bytes);
-                string name = ParseName(bytes);
-                return ChunkData.Create(typ, name, version, ParseAnimatedObjectAnimation(bytes));
+                uint version = ParseVersion(bytes: bytes);
+                string name = ParseName(bytes: bytes);
+                return ChunkData.Create(sourceType: typ, name: name, version: version, payload: ParseAnimatedObjectAnimation(bytes: bytes));
             }
             case ChunkType.EntityDSG:
             case ChunkType.InstanceableAnimatedDynamicPhysicsDSG:
             case ChunkType.DynamicPhysicsDSG:
             case ChunkType.InstanceableStaticPhysicsDSG:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseObjectDsg(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: ParseVersion(bytes: bytes), payload: ParseObjectDsg(bytes: bytes));
             case ChunkType.AnimatedObjectDSGWrapper:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseAnimatedObjectDsgWrapper(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseAnimatedObjectDsgWrapper(bytes: bytes));
 
             case ChunkType.BBox:
-                return ChunkData.Create(typ, null, null, ParseBoundingBox(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseBoundingBox(bytes: bytes));
             case ChunkType.BSphere:
-                return ChunkData.Create(typ, null, null, ParseBoundingSphere(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseBoundingSphere(bytes: bytes));
             case ChunkType.PhysicsObject:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParsePhysicsObject(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: ParseVersion(bytes: bytes), payload: ParsePhysicsObject(bytes: bytes));
             case ChunkType.PhysicsJoint:
-                return ChunkData.Create(typ, null, null, ParsePhysicsJoint(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParsePhysicsJoint(bytes: bytes));
             case ChunkType.PhysicsVector:
-                return ChunkData.Create(typ, null, null, ParsePhysicsVector(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParsePhysicsVector(bytes: bytes));
             case ChunkType.PhysicsInertiaMatrix:
-                return ChunkData.Create(typ, null, null, ParsePhysicsInertiaMatrix(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParsePhysicsInertiaMatrix(bytes: bytes));
 
             case ChunkType.CollisionObject:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseCollisionObject(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: ParseVersion(bytes: bytes), payload: ParseCollisionObject(bytes: bytes));
             case ChunkType.CollisionVolume:
-                return ChunkData.Create(typ, null, null, ParseCollisionVolume(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseCollisionVolume(bytes: bytes));
             case ChunkType.CollisionVolumeOwner:
-                return ChunkData.Create(typ, null, null, ParseCollisionVolumeOwner(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseCollisionVolumeOwner(bytes: bytes));
             case ChunkType.CollisionVolumeOwnerName:
-                return ChunkData.Create(typ, ParseName(bytes), null, null);
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: null);
             case ChunkType.CollisionBoundingBox:
-                return ChunkData.Create(typ, null, null, ParseCollisionBoundingBox(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseCollisionBoundingBox(bytes: bytes));
             case ChunkType.CollisionOblongBox:
-                return ChunkData.Create(typ, null, null, ParseCollisionOblongBox(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseCollisionOblongBox(bytes: bytes));
             case ChunkType.CollisionCylinder:
-                return ChunkData.Create(typ, null, null, ParseCollisionCylinder(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseCollisionCylinder(bytes: bytes));
             case ChunkType.CollisionSphere:
-                return ChunkData.Create(typ, null, null, ParseCollisionSphere(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseCollisionSphere(bytes: bytes));
             case ChunkType.CollisionVector:
-                return ChunkData.Create(typ, null, null, ParseCollisionVector(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseCollisionVector(bytes: bytes));
             case ChunkType.CollisionObjectAttribute:
-                return ChunkData.Create(typ, null, null, ParseCollisionObjectAttribute(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseCollisionObjectAttribute(bytes: bytes));
             case ChunkType.IntersectDSG:
-                return ChunkData.Create(typ, null, null, ParseIntersectDsg(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseIntersectDsg(bytes: bytes));
             case ChunkType.TerrainTypeList:
-                return ChunkData.Create(typ, null, ParseVersion(bytes), ParseTerrainTypeList(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: ParseVersion(bytes: bytes), payload: ParseTerrainTypeList(bytes: bytes));
             case ChunkType.StaticPhysicsDSG:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), null);
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: ParseVersion(bytes: bytes), payload: null);
 
             case ChunkType.StatePropDataV1: {
-                uint version = ParseVersion(bytes);
-                string name = ParseName(bytes);
-                return ChunkData.Create(typ, name, version, ParseStatePropDataV1(bytes));
+                uint version = ParseVersion(bytes: bytes);
+                string name = ParseName(bytes: bytes);
+                return ChunkData.Create(sourceType: typ, name: name, version: version, payload: ParseStatePropDataV1(bytes: bytes));
             }
             case ChunkType.StatePropStateDataV1:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseStatePropStateDataV1(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseStatePropStateDataV1(bytes: bytes));
             case ChunkType.StatePropVisibilitiesData:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseStatePropVisibilitiesData(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseStatePropVisibilitiesData(bytes: bytes));
             case ChunkType.StatePropFrameControllerData:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseStatePropFrameControllerData(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseStatePropFrameControllerData(bytes: bytes));
             case ChunkType.StatePropEventData:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseStatePropEventData(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseStatePropEventData(bytes: bytes));
             case ChunkType.StatePropCallbackData:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseStatePropCallbackData(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseStatePropCallbackData(bytes: bytes));
             case ChunkType.PropInstanceList:
-                return ChunkData.Create(typ, ParseName(bytes), null, null);
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: null);
             case ChunkType.ObjectAttributes:
-                return ChunkData.Create(typ, null, null, ParseObjectAttributes(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseObjectAttributes(bytes: bytes));
 
             case ChunkType.Scenegraph:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), null);
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: ParseVersion(bytes: bytes), payload: null);
             case ChunkType.OldScenegraphRoot:
-                return ChunkData.None(typ);
+                return ChunkData.None(sourceType: typ);
             case ChunkType.OldScenegraphBranch:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseScenegraphBranch(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseScenegraphBranch(bytes: bytes));
             case ChunkType.OldScenegraphTransform:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseScenegraphTransform(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseScenegraphTransform(bytes: bytes));
             case ChunkType.OldScenegraphVisibility:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseScenegraphVisibility(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseScenegraphVisibility(bytes: bytes));
             case ChunkType.OldScenegraphAttachment:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseScenegraphAttachment(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseScenegraphAttachment(bytes: bytes));
             case ChunkType.OldScenegraphAttachmentPoint:
-                return ChunkData.Create(typ, null, null, ParseScenegraphAttachmentPoint(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseScenegraphAttachmentPoint(bytes: bytes));
             case ChunkType.OldScenegraphDrawable:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseScenegraphDrawable(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseScenegraphDrawable(bytes: bytes));
             case ChunkType.OldScenegraphCamera:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseScenegraphCamera(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseScenegraphCamera(bytes: bytes));
             case ChunkType.OldScenegraphLightGroup:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseScenegraphLightGroup(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseScenegraphLightGroup(bytes: bytes));
             case ChunkType.OldScenegraphSortOrder:
-                return ChunkData.Create(typ, null, null, ParseScenegraphSortOrder(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseScenegraphSortOrder(bytes: bytes));
 
             case ChunkType.GameAttr:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseGameAttr(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: ParseVersion(bytes: bytes), payload: ParseGameAttr(bytes: bytes));
             case ChunkType.GameAttrIntParam:
             case ChunkType.GameAttrFloatParam:
             case ChunkType.GameAttrColourParam:
             case ChunkType.GameAttrVectorParam:
             case ChunkType.GameAttrMatrixParam:
-                return ChunkData.Create(typ, null, null, ParseGameAttrParam(bytes, typ));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseGameAttrParam(bytes: bytes, typ: typ));
 
             case ChunkType.Locator:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseLocator(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: ParseVersion(bytes: bytes), payload: ParseLocator(bytes: bytes));
             case ChunkType.FollowCameraData:
-                return ChunkData.Create(typ, null, null, ParseFollowCameraData(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseFollowCameraData(bytes: bytes));
             case ChunkType.WBLocator:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseWbLocator(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseWbLocator(bytes: bytes));
             case ChunkType.WBTriggerVolume:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseWbTriggerVolume(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseWbTriggerVolume(bytes: bytes));
             case ChunkType.WBMatrix:
-                return ChunkData.Create(typ, null, null, ParseWbMatrix(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseWbMatrix(bytes: bytes));
             case ChunkType.WBSpline:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseWbSpline(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseWbSpline(bytes: bytes));
             case ChunkType.WBRail:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseWbRail(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseWbRail(bytes: bytes));
 
             case ChunkType.P3DExportInfo:
-                return ChunkData.Create(typ, ParseName(bytes), null, null);
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: null);
             case ChunkType.P3DExportInfoNamedString:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseExportInfoNamedString(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseExportInfoNamedString(bytes: bytes));
             case ChunkType.P3DExportInfoNamedInt:
-                return ChunkData.Create(typ, ParseName(bytes), null, ParseExportInfoNamedInt(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: null, payload: ParseExportInfoNamedInt(bytes: bytes));
             case ChunkType.P3DHistory:
-                return ChunkData.Create(typ, null, null, ParseHistory(bytes));
+                return ChunkData.Create(sourceType: typ, name: null, version: null, payload: ParseHistory(bytes: bytes));
 
             case ChunkType.P3DCamera:
-                return ChunkData.Create(typ, ParseName(bytes), ParseVersion(bytes), ParseCamera(bytes));
+                return ChunkData.Create(sourceType: typ, name: ParseName(bytes: bytes), version: ParseVersion(bytes: bytes), payload: ParseCamera(bytes: bytes));
 
             default:
-                return ChunkData.Unknown(typ);
+                return ChunkData.Unknown(sourceType: typ);
         }
     }
 
@@ -349,13 +349,13 @@ internal static class ChunkDataFactory {
             Bpp: bytes.SafeGetUInt32Le(),
             Palettized: bytes.SafeGetUInt32Le(),
             HasAlpha: bytes.SafeGetUInt32Le(),
-            ImageFormat: P3dEnum.EnumFromRaw<ImageFormat>(bytes.SafeGetUInt32Le())
+            ImageFormat: P3dEnum.EnumFromRaw<ImageFormat>(raw: bytes.SafeGetUInt32Le())
         );
     }
 
     private static ImageRawPayload ParseImageRaw(ByteReader bytes) {
         uint size = bytes.SafeGetUInt32Le();
-        return new ImageRawPayload(bytes.SafeGetBytes(ToCapacity(size)));
+        return new ImageRawPayload(Data: bytes.SafeGetBytes(count: ToCapacity(length: size)));
     }
 
     private static ShaderPayload ParseShader(ByteReader bytes) {
@@ -369,23 +369,23 @@ internal static class ChunkDataFactory {
     }
 
     private static VertexShaderPayload ParseVertexShader(ByteReader bytes) {
-        return new VertexShaderPayload(bytes.SafeReadPure3dString());
+        return new VertexShaderPayload(VertexShaderName: bytes.SafeReadPure3dString());
     }
 
     private static ShaderParamPayload ParseShaderParam(ByteReader bytes, ChunkType typ) {
         string param = bytes.SafeReadPure3dFourCc();
 
         return typ switch {
-            ChunkType.ShaderTextureParam => new ShaderParamPayload(param, ShaderParamValueKind.Texture, bytes.SafeReadPure3dString(), 0, 0f, default),
-            ChunkType.ShaderIntParam => new ShaderParamPayload(param, ShaderParamValueKind.Int, null, bytes.SafeGetUInt32Le(), 0f, default),
-            ChunkType.ShaderFloatParam => new ShaderParamPayload(param, ShaderParamValueKind.Float, null, 0, bytes.SafeGetSingleLe(), default),
-            ChunkType.ShaderColourParam => new ShaderParamPayload(param, ShaderParamValueKind.Colour, null, 0, 0f, bytes.SafeReadColourArgb()),
-            _ => new ShaderParamPayload(param, ShaderParamValueKind.None, null, 0, 0f, default)
+            ChunkType.ShaderTextureParam => new ShaderParamPayload(Param: param, ValueKind: ShaderParamValueKind.Texture, TextureValue: bytes.SafeReadPure3dString(), IntValue: 0, FloatValue: 0f, ColourValue: default),
+            ChunkType.ShaderIntParam => new ShaderParamPayload(Param: param, ValueKind: ShaderParamValueKind.Int, TextureValue: null, IntValue: bytes.SafeGetUInt32Le(), FloatValue: 0f, ColourValue: default),
+            ChunkType.ShaderFloatParam => new ShaderParamPayload(Param: param, ValueKind: ShaderParamValueKind.Float, TextureValue: null, IntValue: 0, FloatValue: bytes.SafeGetSingleLe(), ColourValue: default),
+            ChunkType.ShaderColourParam => new ShaderParamPayload(Param: param, ValueKind: ShaderParamValueKind.Colour, TextureValue: null, IntValue: 0, FloatValue: 0f, ColourValue: bytes.SafeReadColourArgb()),
+            _ => new ShaderParamPayload(Param: param, ValueKind: ShaderParamValueKind.None, TextureValue: null, IntValue: 0, FloatValue: 0f, ColourValue: default)
         };
     }
 
     private static OldParticleSystemPayload ParseOldParticleSystem(ByteReader bytes) {
-        return new OldParticleSystemPayload(bytes.SafeReadPure3dString());
+        return new OldParticleSystemPayload(Unknown: bytes.SafeReadPure3dString());
     }
 
     private static OldParticleSystemFactoryPayload ParseOldParticleSystemFactory(ByteReader bytes) {
@@ -400,7 +400,7 @@ internal static class ChunkDataFactory {
     }
 
     private static OldParticleSystemInstancingInfoPayload ParseOldParticleSystemInstancingInfo(ByteReader bytes) {
-        return new OldParticleSystemInstancingInfoPayload(bytes.SafeGetUInt32Le());
+        return new OldParticleSystemInstancingInfoPayload(MaxInstances: bytes.SafeGetUInt32Le());
     }
 
     private static OldBaseEmitterPayload ParseOldBaseEmitter(ByteReader bytes) {
@@ -429,7 +429,7 @@ internal static class ChunkDataFactory {
     }
 
     private static InstanceableParticleSystemPayload ParseInstanceableParticleSystem(ByteReader bytes) {
-        return new InstanceableParticleSystemPayload(bytes.SafeGetUInt32Le(), bytes.SafeGetUInt32Le());
+        return new InstanceableParticleSystemPayload(ParticleType: bytes.SafeGetUInt32Le(), MaxInstances: bytes.SafeGetUInt32Le());
     }
 
     private static AnimationPayload ParseAnimation(ByteReader bytes) {
@@ -451,11 +451,11 @@ internal static class ChunkDataFactory {
     }
 
     private static AnimationGroupPayload ParseAnimationGroup(ByteReader bytes) {
-        return new AnimationGroupPayload(bytes.SafeGetUInt32Le(), bytes.SafeGetUInt32Le());
+        return new AnimationGroupPayload(GroupId: bytes.SafeGetUInt32Le(), NumChannels: bytes.SafeGetUInt32Le());
     }
 
     private static AnimationGroupListPayload ParseAnimationGroupList(ByteReader bytes) {
-        return new AnimationGroupListPayload(bytes.SafeGetUInt32Le());
+        return new AnimationGroupListPayload(NumGroups: bytes.SafeGetUInt32Le());
     }
 
     private static ChannelPayload ParseChannel(ByteReader bytes, ChunkType typ) {
@@ -465,17 +465,17 @@ internal static class ChunkDataFactory {
             Vector3 constants = bytes.SafeReadVector3();
             uint frameCount = bytes.SafeGetUInt32Le();
 
-            List<ushort> frames = new(ToCapacity(frameCount));
+            List<ushort> frames = new(capacity: ToCapacity(length: frameCount));
             for (int i = 0; i < frames.Capacity; i++) {
-                frames.Add(bytes.SafeGetUInt16Le());
+                frames.Add(item: bytes.SafeGetUInt16Le());
             }
 
-            List<float> values = new(ToCapacity(frameCount));
+            List<float> values = new(capacity: ToCapacity(length: frameCount));
             for (int i = 0; i < values.Capacity; i++) {
-                values.Add(bytes.SafeGetSingleLe());
+                values.Add(item: bytes.SafeGetSingleLe());
             }
 
-            return new ChannelPayload(param, frames, ChannelValueKind.Vector1Of, values, mapping, constants, null);
+            return new ChannelPayload(Param: param, Frames: frames, ValueKind: ChannelValueKind.Vector1Of, Values: values, Mapping: mapping, Constants: constants, StartState: null);
         }
 
         if (typ == ChunkType.Vector2DOFChannel) {
@@ -484,17 +484,17 @@ internal static class ChunkDataFactory {
             Vector3 constants = bytes.SafeReadVector3();
             uint frameCount = bytes.SafeGetUInt32Le();
 
-            List<ushort> frames = new(ToCapacity(frameCount));
+            List<ushort> frames = new(capacity: ToCapacity(length: frameCount));
             for (int i = 0; i < frames.Capacity; i++) {
-                frames.Add(bytes.SafeGetUInt16Le());
+                frames.Add(item: bytes.SafeGetUInt16Le());
             }
 
-            List<Vector2> values = new(ToCapacity(frameCount));
+            List<Vector2> values = new(capacity: ToCapacity(length: frameCount));
             for (int i = 0; i < values.Capacity; i++) {
-                values.Add(bytes.SafeReadVector2());
+                values.Add(item: bytes.SafeReadVector2());
             }
 
-            return new ChannelPayload(param, frames, ChannelValueKind.Vector2Of, values, mapping, constants, null);
+            return new ChannelPayload(Param: param, Frames: frames, ValueKind: ChannelValueKind.Vector2Of, Values: values, Mapping: mapping, Constants: constants, StartState: null);
         }
 
         if (typ == ChunkType.BoolChannel) {
@@ -502,37 +502,37 @@ internal static class ChunkDataFactory {
             ushort startState = bytes.SafeGetUInt16Le();
             uint frameCount = bytes.SafeGetUInt32Le();
 
-            List<ushort> values = new(ToCapacity(frameCount));
+            List<ushort> values = new(capacity: ToCapacity(length: frameCount));
             for (int i = 0; i < values.Capacity; i++) {
-                values.Add(bytes.SafeGetUInt16Le());
+                values.Add(item: bytes.SafeGetUInt16Le());
             }
 
-            return new ChannelPayload(param, new List<ushort>(), ChannelValueKind.Bool, values, null, null, startState);
+            return new ChannelPayload(Param: param, Frames: new List<ushort>(), ValueKind: ChannelValueKind.Bool, Values: values, Mapping: null, Constants: null, StartState: startState);
         }
 
         string stdParam = bytes.SafeReadPure3dFourCc();
         uint stdFrameCount = bytes.SafeGetUInt32Le();
 
-        List<ushort> stdFrames = new(ToCapacity(stdFrameCount));
+        List<ushort> stdFrames = new(capacity: ToCapacity(length: stdFrameCount));
         for (int i = 0; i < stdFrames.Capacity; i++) {
-            stdFrames.Add(bytes.SafeGetUInt16Le());
+            stdFrames.Add(item: bytes.SafeGetUInt16Le());
         }
 
         return typ switch {
-            ChunkType.Float1Channel => new ChannelPayload(stdParam, stdFrames, ChannelValueKind.Float1, ReadFloatList(bytes, stdFrameCount), null, null, null),
-            ChunkType.Float2Channel => new ChannelPayload(stdParam, stdFrames, ChannelValueKind.Float2, ReadVector2List(bytes, stdFrameCount), null, null, null),
-            ChunkType.IntChannel => new ChannelPayload(stdParam, stdFrames, ChannelValueKind.Int, ReadUIntList(bytes, stdFrameCount), null, null, null),
-            ChunkType.Vector3DOFChannel => new ChannelPayload(stdParam, stdFrames, ChannelValueKind.Vector3Of, ReadVector3List(bytes, stdFrameCount), null, null, null),
-            ChunkType.QuaternionChannel => new ChannelPayload(stdParam, stdFrames, ChannelValueKind.Quaternion, ReadQuaternionList(bytes, stdFrameCount, compressed: false), null, null, null),
-            ChunkType.CompressedQuaternionChannel => new ChannelPayload(stdParam, stdFrames, ChannelValueKind.Quaternion, ReadQuaternionList(bytes, stdFrameCount, compressed: true), null, null, null),
-            ChunkType.ColourChannel => new ChannelPayload(stdParam, stdFrames, ChannelValueKind.Colour, ReadColourList(bytes, stdFrameCount), null, null, null),
-            ChunkType.EntityChannel => new ChannelPayload(stdParam, stdFrames, ChannelValueKind.Entity, ReadStringList(bytes, stdFrameCount), null, null, null),
+            ChunkType.Float1Channel => new ChannelPayload(Param: stdParam, Frames: stdFrames, ValueKind: ChannelValueKind.Float1, Values: ReadFloatList(bytes: bytes, count: stdFrameCount), Mapping: null, Constants: null, StartState: null),
+            ChunkType.Float2Channel => new ChannelPayload(Param: stdParam, Frames: stdFrames, ValueKind: ChannelValueKind.Float2, Values: ReadVector2List(bytes: bytes, count: stdFrameCount), Mapping: null, Constants: null, StartState: null),
+            ChunkType.IntChannel => new ChannelPayload(Param: stdParam, Frames: stdFrames, ValueKind: ChannelValueKind.Int, Values: ReadUIntList(bytes: bytes, count: stdFrameCount), Mapping: null, Constants: null, StartState: null),
+            ChunkType.Vector3DOFChannel => new ChannelPayload(Param: stdParam, Frames: stdFrames, ValueKind: ChannelValueKind.Vector3Of, Values: ReadVector3List(bytes: bytes, count: stdFrameCount), Mapping: null, Constants: null, StartState: null),
+            ChunkType.QuaternionChannel => new ChannelPayload(Param: stdParam, Frames: stdFrames, ValueKind: ChannelValueKind.Quaternion, Values: ReadQuaternionList(bytes: bytes, count: stdFrameCount, compressed: false), Mapping: null, Constants: null, StartState: null),
+            ChunkType.CompressedQuaternionChannel => new ChannelPayload(Param: stdParam, Frames: stdFrames, ValueKind: ChannelValueKind.Quaternion, Values: ReadQuaternionList(bytes: bytes, count: stdFrameCount, compressed: true), Mapping: null, Constants: null, StartState: null),
+            ChunkType.ColourChannel => new ChannelPayload(Param: stdParam, Frames: stdFrames, ValueKind: ChannelValueKind.Colour, Values: ReadColourList(bytes: bytes, count: stdFrameCount), Mapping: null, Constants: null, StartState: null),
+            ChunkType.EntityChannel => new ChannelPayload(Param: stdParam, Frames: stdFrames, ValueKind: ChannelValueKind.Entity, Values: ReadStringList(bytes: bytes, count: stdFrameCount), Mapping: null, Constants: null, StartState: null),
             _ => throw new P3dParseException($"ChannelData parser was passed an incorrect type {typ}"),
         };
     }
 
     private static ChannelInterpolationPayload ParseChannelInterpolation(ByteReader bytes) {
-        return new ChannelInterpolationPayload(bytes.SafeGetUInt32Le());
+        return new ChannelInterpolationPayload(Interpolate: bytes.SafeGetUInt32Le());
     }
 
     private static OldFrameControllerPayload ParseOldFrameController(ByteReader bytes) {
@@ -545,14 +545,14 @@ internal static class ChunkDataFactory {
     }
 
     private static MultiControllerPayload ParseMultiController(ByteReader bytes) {
-        return new MultiControllerPayload(bytes.SafeGetSingleLe(), bytes.SafeGetSingleLe(), bytes.SafeGetUInt32Le());
+        return new MultiControllerPayload(Length: bytes.SafeGetSingleLe(), FrameRate: bytes.SafeGetSingleLe(), NumTracks: bytes.SafeGetUInt32Le());
     }
 
     private static MultiControllerTracksPayload ParseMultiControllerTracks(ByteReader bytes) {
         uint count = bytes.SafeGetUInt32Le();
-        List<MultiControllerTrackPayload> tracks = new(ToCapacity(count));
+        List<MultiControllerTrackPayload> tracks = new(capacity: ToCapacity(length: count));
         for (int i = 0; i < tracks.Capacity; i++) {
-            tracks.Add(new MultiControllerTrackPayload(
+            tracks.Add(item: new MultiControllerTrackPayload(
                 Name: bytes.SafeReadPure3dString(),
                 StartTime: bytes.SafeGetSingleLe(),
                 EndTime: bytes.SafeGetSingleLe(),
@@ -560,7 +560,7 @@ internal static class ChunkDataFactory {
             ));
         }
 
-        return new MultiControllerTracksPayload(tracks);
+        return new MultiControllerTracksPayload(Tracks: tracks);
     }
 
     private static OldBillboardQuadPayload ParseOldBillboardQuad(ByteReader bytes) {
@@ -600,15 +600,15 @@ internal static class ChunkDataFactory {
     }
 
     private static OldBillboardPerspectiveInfoPayload ParseOldBillboardPerspectiveInfo(ByteReader bytes) {
-        return new OldBillboardPerspectiveInfoPayload(bytes.SafeGetUInt32Le());
+        return new OldBillboardPerspectiveInfoPayload(Perspective: bytes.SafeGetUInt32Le());
     }
 
     private static BreakableObjectPayload ParseBreakableObject(ByteReader bytes) {
-        return new BreakableObjectPayload(bytes.SafeGetUInt32Le(), bytes.SafeGetUInt32Le());
+        return new BreakableObjectPayload(Type: bytes.SafeGetUInt32Le(), Count: bytes.SafeGetUInt32Le());
     }
 
     private static SkeletonPayload ParseSkeleton(ByteReader bytes) {
-        return new SkeletonPayload(bytes.SafeGetUInt32Le());
+        return new SkeletonPayload(NumJoints: bytes.SafeGetUInt32Le());
     }
 
     private static SkeletonJointPayload ParseSkeletonJoint(ByteReader bytes) {
@@ -633,51 +633,51 @@ internal static class ChunkDataFactory {
     }
 
     private static SkeletonJointBonePreservePayload ParseSkeletonJointBonePreserve(ByteReader bytes) {
-        return new SkeletonJointBonePreservePayload(bytes.SafeGetUInt32Le());
+        return new SkeletonJointBonePreservePayload(PreserveBoneLengths: bytes.SafeGetUInt32Le());
     }
 
     private static SkinPayload ParseSkin(ByteReader bytes) {
-        return new SkinPayload(bytes.SafeReadPure3dString(), bytes.SafeGetUInt32Le());
+        return new SkinPayload(SkeletonName: bytes.SafeReadPure3dString(), NumPrimGroups: bytes.SafeGetUInt32Le());
     }
 
     private static MatrixListPayload ParseMatrixList(ByteReader bytes) {
         uint count = bytes.SafeGetUInt32Le();
-        List<P3dColour> matrices = new(ToCapacity(count));
+        List<P3dColour> matrices = new(capacity: ToCapacity(length: count));
         for (int i = 0; i < matrices.Capacity; i++) {
-            matrices.Add(bytes.SafeReadColourArgb());
+            matrices.Add(item: bytes.SafeReadColourArgb());
         }
 
-        return new MatrixListPayload(matrices);
+        return new MatrixListPayload(Matrices: matrices);
     }
 
     private static MatrixPalettePayload ParseMatrixPalette(ByteReader bytes) {
         uint count = bytes.SafeGetUInt32Le();
-        List<uint> matrices = new(ToCapacity(count));
+        List<uint> matrices = new(capacity: ToCapacity(length: count));
         for (int i = 0; i < matrices.Capacity; i++) {
-            matrices.Add(bytes.SafeGetUInt32Le());
+            matrices.Add(item: bytes.SafeGetUInt32Le());
         }
 
-        return new MatrixPalettePayload(matrices);
+        return new MatrixPalettePayload(Matrices: matrices);
     }
 
     private static WeightListPayload ParseWeightList(ByteReader bytes) {
         uint count = bytes.SafeGetUInt32Le();
-        List<Vector3> weights = new(ToCapacity(count));
+        List<Vector3> weights = new(capacity: ToCapacity(length: count));
         for (int i = 0; i < weights.Capacity; i++) {
-            weights.Add(bytes.SafeReadVector3());
+            weights.Add(item: bytes.SafeReadVector3());
         }
 
-        return new WeightListPayload(weights);
+        return new WeightListPayload(Weights: weights);
     }
 
     private static MeshPayload ParseMesh(ByteReader bytes) {
-        return new MeshPayload(bytes.SafeGetUInt32Le());
+        return new MeshPayload(NumPrimGroups: bytes.SafeGetUInt32Le());
     }
 
     private static OldPrimGroupPayload ParseOldPrimGroup(ByteReader bytes) {
         return new OldPrimGroupPayload(
             ShaderName: bytes.SafeReadPure3dString(),
-            PrimitiveType: P3dEnum.EnumFromRaw<PrimitiveType>(bytes.SafeGetUInt32Le()),
+            PrimitiveType: P3dEnum.EnumFromRaw<PrimitiveType>(raw: bytes.SafeGetUInt32Le()),
             VertexTypes: new VertexTypeBitfield(bytes.SafeGetUInt32Le()),
             NumVertices: bytes.SafeGetUInt32Le(),
             NumIndices: bytes.SafeGetUInt32Le(),
@@ -687,113 +687,113 @@ internal static class ChunkDataFactory {
 
     private static PositionListPayload ParsePositionList(ByteReader bytes) {
         uint count = bytes.SafeGetUInt32Le();
-        return new PositionListPayload(ReadVector3List(bytes, count));
+        return new PositionListPayload(Positions: ReadVector3List(bytes: bytes, count: count));
     }
 
     private static NormalListPayload ParseNormalList(ByteReader bytes) {
         uint count = bytes.SafeGetUInt32Le();
-        return new NormalListPayload(ReadVector3List(bytes, count));
+        return new NormalListPayload(Normals: ReadVector3List(bytes: bytes, count: count));
     }
 
     private static TangentListPayload ParseTangentList(ByteReader bytes) {
         uint count = bytes.SafeGetUInt32Le();
-        return new TangentListPayload(ReadVector3List(bytes, count));
+        return new TangentListPayload(Tangents: ReadVector3List(bytes: bytes, count: count));
     }
 
     private static BinormalListPayload ParseBinormalList(ByteReader bytes) {
         uint count = bytes.SafeGetUInt32Le();
-        return new BinormalListPayload(ReadVector3List(bytes, count));
+        return new BinormalListPayload(Binormals: ReadVector3List(bytes: bytes, count: count));
     }
 
     private static PackedNormalListPayload ParsePackedNormalList(ByteReader bytes) {
         uint count = bytes.SafeGetUInt32Le();
-        byte[] normals = bytes.SafeGetBytes(ToCapacity(count));
-        return new PackedNormalListPayload(new List<byte>(normals));
+        byte[] normals = bytes.SafeGetBytes(count: ToCapacity(length: count));
+        return new PackedNormalListPayload(Normals: new List<byte>(collection: normals));
     }
 
     private static UvListPayload ParseUvList(ByteReader bytes) {
         uint count = bytes.SafeGetUInt32Le();
         uint channel = bytes.SafeGetUInt32Le();
-        List<Vector2> uvs = new(ToCapacity(count));
+        List<Vector2> uvs = new(capacity: ToCapacity(length: count));
         for (int i = 0; i < uvs.Capacity; i++) {
-            uvs.Add(bytes.SafeReadVector2());
+            uvs.Add(item: bytes.SafeReadVector2());
         }
 
-        return new UvListPayload(channel, uvs);
+        return new UvListPayload(Channel: channel, Uvs: uvs);
     }
 
     private static ColourListPayload ParseColourList(ByteReader bytes) {
         uint count = bytes.SafeGetUInt32Le();
-        return new ColourListPayload(ReadColourList(bytes, count));
+        return new ColourListPayload(Colours: ReadColourList(bytes: bytes, count: count));
     }
 
     private static IndexListPayload ParseIndexList(ByteReader bytes) {
         uint count = bytes.SafeGetUInt32Le();
-        return new IndexListPayload(ReadUIntList(bytes, count));
+        return new IndexListPayload(Indices: ReadUIntList(bytes: bytes, count: count));
     }
 
     private static RenderStatusPayload ParseRenderStatus(ByteReader bytes) {
-        return new RenderStatusPayload(bytes.SafeGetUInt32Le());
+        return new RenderStatusPayload(CastShadow: bytes.SafeGetUInt32Le());
     }
 
     private static CompositeDrawablePayload ParseCompositeDrawable(ByteReader bytes) {
-        return new CompositeDrawablePayload(bytes.SafeReadPure3dString());
+        return new CompositeDrawablePayload(SkeletonName: bytes.SafeReadPure3dString());
     }
 
     private static CompositeDrawableEffectPayload ParseCompositeDrawableEffect(ByteReader bytes) {
-        return new CompositeDrawableEffectPayload(bytes.SafeGetUInt32Le(), bytes.SafeGetUInt32Le());
+        return new CompositeDrawableEffectPayload(IsTranslucent: bytes.SafeGetUInt32Le(), SkeletonJointId: bytes.SafeGetUInt32Le());
     }
 
     private static CompositeDrawableEffectListPayload ParseCompositeDrawableEffectList(ByteReader bytes) {
-        return new CompositeDrawableEffectListPayload(bytes.SafeGetUInt32Le());
+        return new CompositeDrawableEffectListPayload(NumElements: bytes.SafeGetUInt32Le());
     }
 
     private static CompositeDrawablePropPayload ParseCompositeDrawableProp(ByteReader bytes) {
-        return new CompositeDrawablePropPayload(bytes.SafeGetUInt32Le(), bytes.SafeGetUInt32Le());
+        return new CompositeDrawablePropPayload(IsTranslucent: bytes.SafeGetUInt32Le(), SkeletonJointId: bytes.SafeGetUInt32Le());
     }
 
     private static CompositeDrawablePropListPayload ParseCompositeDrawablePropList(ByteReader bytes) {
-        return new CompositeDrawablePropListPayload(bytes.SafeGetUInt32Le());
+        return new CompositeDrawablePropListPayload(NumElements: bytes.SafeGetUInt32Le());
     }
 
     private static CompositeDrawableSkinPayload ParseCompositeDrawableSkin(ByteReader bytes) {
-        return new CompositeDrawableSkinPayload(bytes.SafeGetUInt32Le());
+        return new CompositeDrawableSkinPayload(IsTranslucent: bytes.SafeGetUInt32Le());
     }
 
     private static CompositeDrawableSkinListPayload ParseCompositeDrawableSkinList(ByteReader bytes) {
-        return new CompositeDrawableSkinListPayload(bytes.SafeGetUInt32Le());
+        return new CompositeDrawableSkinListPayload(NumElements: bytes.SafeGetUInt32Le());
     }
 
     private static CompositeDrawableSortOrderPayload ParseCompositeDrawableSortOrder(ByteReader bytes) {
-        return new CompositeDrawableSortOrderPayload(bytes.SafeGetSingleLe());
+        return new CompositeDrawableSortOrderPayload(SortOrder: bytes.SafeGetSingleLe());
     }
 
     private static AnimatedObjectFactoryPayload ParseAnimatedObjectFactory(ByteReader bytes) {
-        return new AnimatedObjectFactoryPayload(bytes.SafeReadPure3dString(), bytes.SafeGetUInt32Le());
+        return new AnimatedObjectFactoryPayload(FactoryName: bytes.SafeReadPure3dString(), NumAnimations: bytes.SafeGetUInt32Le());
     }
 
     private static AnimatedObjectPayload ParseAnimatedObject(ByteReader bytes) {
-        return new AnimatedObjectPayload(bytes.SafeReadPure3dString(), bytes.SafeGetUInt32Le());
+        return new AnimatedObjectPayload(FactoryName: bytes.SafeReadPure3dString(), StartingAnimation: bytes.SafeGetUInt32Le());
     }
 
     private static AnimatedObjectAnimationPayload ParseAnimatedObjectAnimation(ByteReader bytes) {
-        return new AnimatedObjectAnimationPayload(bytes.SafeGetSingleLe(), bytes.SafeGetUInt32Le());
+        return new AnimatedObjectAnimationPayload(FrameRate: bytes.SafeGetSingleLe(), NumOldFrameControllers: bytes.SafeGetUInt32Le());
     }
 
     private static ObjectDsgPayload ParseObjectDsg(ByteReader bytes) {
-        return new ObjectDsgPayload(bytes.SafeGetUInt32Le());
+        return new ObjectDsgPayload(RenderOrder: bytes.SafeGetUInt32Le());
     }
 
     private static AnimatedObjectDsgWrapperPayload ParseAnimatedObjectDsgWrapper(ByteReader bytes) {
-        return new AnimatedObjectDsgWrapperPayload(bytes.SafeGetByte(), bytes.SafeGetByte());
+        return new AnimatedObjectDsgWrapperPayload(Version: bytes.SafeGetByte(), HasAlpha: bytes.SafeGetByte());
     }
 
     private static BoundingBoxPayload ParseBoundingBox(ByteReader bytes) {
-        return new BoundingBoxPayload(bytes.SafeReadVector3(), bytes.SafeReadVector3());
+        return new BoundingBoxPayload(Low: bytes.SafeReadVector3(), High: bytes.SafeReadVector3());
     }
 
     private static BoundingSpherePayload ParseBoundingSphere(ByteReader bytes) {
-        return new BoundingSpherePayload(bytes.SafeReadVector3(), bytes.SafeGetSingleLe());
+        return new BoundingSpherePayload(Centre: bytes.SafeReadVector3(), Radius: bytes.SafeGetSingleLe());
     }
 
     private static PhysicsObjectPayload ParsePhysicsObject(ByteReader bytes) {
@@ -817,7 +817,7 @@ internal static class ChunkDataFactory {
     }
 
     private static PhysicsVectorPayload ParsePhysicsVector(ByteReader bytes) {
-        return new PhysicsVectorPayload(bytes.SafeReadVector3());
+        return new PhysicsVectorPayload(Vector: bytes.SafeReadVector3());
     }
 
     private static PhysicsInertiaMatrixPayload ParsePhysicsInertiaMatrix(ByteReader bytes) {
@@ -846,27 +846,27 @@ internal static class ChunkDataFactory {
     }
 
     private static CollisionVolumeOwnerPayload ParseCollisionVolumeOwner(ByteReader bytes) {
-        return new CollisionVolumeOwnerPayload(bytes.SafeGetUInt32Le());
+        return new CollisionVolumeOwnerPayload(NumNames: bytes.SafeGetUInt32Le());
     }
 
     private static CollisionBoundingBoxPayload ParseCollisionBoundingBox(ByteReader bytes) {
-        return new CollisionBoundingBoxPayload(bytes.SafeGetUInt32Le());
+        return new CollisionBoundingBoxPayload(Nothing: bytes.SafeGetUInt32Le());
     }
 
     private static CollisionOblongBoxPayload ParseCollisionOblongBox(ByteReader bytes) {
-        return new CollisionOblongBoxPayload(bytes.SafeGetSingleLe(), bytes.SafeGetSingleLe(), bytes.SafeGetSingleLe());
+        return new CollisionOblongBoxPayload(HalfExtentX: bytes.SafeGetSingleLe(), HalfExtentY: bytes.SafeGetSingleLe(), HalfExtentZ: bytes.SafeGetSingleLe());
     }
 
     private static CollisionCylinderPayload ParseCollisionCylinder(ByteReader bytes) {
-        return new CollisionCylinderPayload(bytes.SafeGetSingleLe(), bytes.SafeGetSingleLe(), bytes.SafeGetUInt16Le());
+        return new CollisionCylinderPayload(CylinderRadius: bytes.SafeGetSingleLe(), Length: bytes.SafeGetSingleLe(), FlatEnd: bytes.SafeGetUInt16Le());
     }
 
     private static CollisionSpherePayload ParseCollisionSphere(ByteReader bytes) {
-        return new CollisionSpherePayload(bytes.SafeGetSingleLe());
+        return new CollisionSpherePayload(Radius: bytes.SafeGetSingleLe());
     }
 
     private static CollisionVectorPayload ParseCollisionVector(ByteReader bytes) {
-        return new CollisionVectorPayload(bytes.SafeReadVector3());
+        return new CollisionVectorPayload(Vector: bytes.SafeReadVector3());
     }
 
     private static CollisionObjectAttributePayload ParseCollisionObjectAttribute(ByteReader bytes) {
@@ -885,24 +885,24 @@ internal static class ChunkDataFactory {
 
     private static IntersectDsgPayload ParseIntersectDsg(ByteReader bytes) {
         uint indicesCount = bytes.SafeGetUInt32Le();
-        List<uint> indices = ReadUIntList(bytes, indicesCount);
+        List<uint> indices = ReadUIntList(bytes: bytes, count: indicesCount);
 
         uint positionsCount = bytes.SafeGetUInt32Le();
-        List<Vector3> positions = ReadVector3List(bytes, positionsCount);
+        List<Vector3> positions = ReadVector3List(bytes: bytes, count: positionsCount);
 
         uint normalsCount = bytes.SafeGetUInt32Le();
-        List<Vector3> normals = ReadVector3List(bytes, normalsCount);
+        List<Vector3> normals = ReadVector3List(bytes: bytes, count: normalsCount);
 
-        return new IntersectDsgPayload(indices, positions, normals);
+        return new IntersectDsgPayload(Indices: indices, Positions: positions, Normals: normals);
     }
 
     private static TerrainTypeListPayload ParseTerrainTypeList(ByteReader bytes) {
         uint count = bytes.SafeGetUInt32Le();
-        return new TerrainTypeListPayload(new List<byte>(bytes.SafeGetBytes(ToCapacity(count))));
+        return new TerrainTypeListPayload(Types: new List<byte>(collection: bytes.SafeGetBytes(count: ToCapacity(length: count))));
     }
 
     private static StatePropDataV1Payload ParseStatePropDataV1(ByteReader bytes) {
-        return new StatePropDataV1Payload(bytes.SafeReadPure3dString(), bytes.SafeGetUInt32Le());
+        return new StatePropDataV1Payload(ObjectFactoryName: bytes.SafeReadPure3dString(), NumStates: bytes.SafeGetUInt32Le());
     }
 
     private static StatePropStateDataV1Payload ParseStatePropStateDataV1(ByteReader bytes) {
@@ -918,7 +918,7 @@ internal static class ChunkDataFactory {
     }
 
     private static StatePropVisibilitiesDataPayload ParseStatePropVisibilitiesData(ByteReader bytes) {
-        return new StatePropVisibilitiesDataPayload(bytes.SafeGetUInt32Le());
+        return new StatePropVisibilitiesDataPayload(Visible: bytes.SafeGetUInt32Le());
     }
 
     private static StatePropFrameControllerDataPayload ParseStatePropFrameControllerData(ByteReader bytes) {
@@ -933,11 +933,11 @@ internal static class ChunkDataFactory {
     }
 
     private static StatePropEventDataPayload ParseStatePropEventData(ByteReader bytes) {
-        return new StatePropEventDataPayload(bytes.SafeGetUInt32Le(), bytes.SafeGetInt32Le());
+        return new StatePropEventDataPayload(State: bytes.SafeGetUInt32Le(), EventEnum: bytes.SafeGetInt32Le());
     }
 
     private static StatePropCallbackDataPayload ParseStatePropCallbackData(ByteReader bytes) {
-        return new StatePropCallbackDataPayload(bytes.SafeGetInt32Le(), bytes.SafeGetSingleLe());
+        return new StatePropCallbackDataPayload(EventEnum: bytes.SafeGetInt32Le(), OnFrame: bytes.SafeGetSingleLe());
     }
 
     private static ObjectAttributesPayload ParseObjectAttributes(ByteReader bytes) {
@@ -949,60 +949,60 @@ internal static class ChunkDataFactory {
     }
 
     private static ScenegraphBranchPayload ParseScenegraphBranch(ByteReader bytes) {
-        return new ScenegraphBranchPayload(bytes.SafeGetUInt32Le());
+        return new ScenegraphBranchPayload(NumChildren: bytes.SafeGetUInt32Le());
     }
 
     private static ScenegraphTransformPayload ParseScenegraphTransform(ByteReader bytes) {
-        return new ScenegraphTransformPayload(bytes.SafeGetUInt32Le(), bytes.SafeReadMatrix4x4());
+        return new ScenegraphTransformPayload(NumChildren: bytes.SafeGetUInt32Le(), Transform: bytes.SafeReadMatrix4x4());
     }
 
     private static ScenegraphVisibilityPayload ParseScenegraphVisibility(ByteReader bytes) {
-        return new ScenegraphVisibilityPayload(bytes.SafeGetUInt32Le(), bytes.SafeGetUInt32Le());
+        return new ScenegraphVisibilityPayload(NumChildren: bytes.SafeGetUInt32Le(), IsVisible: bytes.SafeGetUInt32Le());
     }
 
     private static ScenegraphAttachmentPayload ParseScenegraphAttachment(ByteReader bytes) {
-        return new ScenegraphAttachmentPayload(bytes.SafeReadPure3dString(), bytes.SafeGetUInt32Le());
+        return new ScenegraphAttachmentPayload(DrawablePoseName: bytes.SafeReadPure3dString(), NumPoints: bytes.SafeGetUInt32Le());
     }
 
     private static ScenegraphAttachmentPointPayload ParseScenegraphAttachmentPoint(ByteReader bytes) {
-        return new ScenegraphAttachmentPointPayload(bytes.SafeGetUInt32Le());
+        return new ScenegraphAttachmentPointPayload(Joint: bytes.SafeGetUInt32Le());
     }
 
     private static ScenegraphDrawablePayload ParseScenegraphDrawable(ByteReader bytes) {
-        return new ScenegraphDrawablePayload(bytes.SafeReadPure3dString(), bytes.SafeGetUInt32Le());
+        return new ScenegraphDrawablePayload(DrawableName: bytes.SafeReadPure3dString(), IsTranslucent: bytes.SafeGetUInt32Le());
     }
 
     private static ScenegraphCameraPayload ParseScenegraphCamera(ByteReader bytes) {
-        return new ScenegraphCameraPayload(bytes.SafeReadPure3dString());
+        return new ScenegraphCameraPayload(CameraName: bytes.SafeReadPure3dString());
     }
 
     private static ScenegraphLightGroupPayload ParseScenegraphLightGroup(ByteReader bytes) {
-        return new ScenegraphLightGroupPayload(bytes.SafeReadPure3dString());
+        return new ScenegraphLightGroupPayload(LightGroupName: bytes.SafeReadPure3dString());
     }
 
     private static ScenegraphSortOrderPayload ParseScenegraphSortOrder(ByteReader bytes) {
-        return new ScenegraphSortOrderPayload(bytes.SafeGetSingleLe());
+        return new ScenegraphSortOrderPayload(SortOrder: bytes.SafeGetSingleLe());
     }
 
     private static GameAttrPayload ParseGameAttr(ByteReader bytes) {
-        return new GameAttrPayload(bytes.SafeGetUInt32Le());
+        return new GameAttrPayload(NumParams: bytes.SafeGetUInt32Le());
     }
 
     private static GameAttrParamPayload ParseGameAttrParam(ByteReader bytes, ChunkType typ) {
         string param = bytes.SafeReadPure3dString();
 
         return typ switch {
-            ChunkType.GameAttrIntParam => new GameAttrParamPayload(param, GameAttrParamValueKind.Int, bytes.SafeGetUInt32Le(), 0f, default, default, default),
-            ChunkType.GameAttrFloatParam => new GameAttrParamPayload(param, GameAttrParamValueKind.Float, 0, bytes.SafeGetSingleLe(), default, default, default),
-            ChunkType.GameAttrColourParam => new GameAttrParamPayload(param, GameAttrParamValueKind.Colour, 0, 0f, bytes.SafeReadColourArgb(), default, default),
-            ChunkType.GameAttrVectorParam => new GameAttrParamPayload(param, GameAttrParamValueKind.Vector, 0, 0f, default, bytes.SafeReadVector3(), default),
-            ChunkType.GameAttrMatrixParam => new GameAttrParamPayload(param, GameAttrParamValueKind.Matrix, 0, 0f, default, default, bytes.SafeReadMatrix4x4()),
-            _ => new GameAttrParamPayload(param, GameAttrParamValueKind.None, 0, 0f, default, default, default),
+            ChunkType.GameAttrIntParam => new GameAttrParamPayload(Param: param, ValueKind: GameAttrParamValueKind.Int, IntValue: bytes.SafeGetUInt32Le(), FloatValue: 0f, ColourValue: default, VectorValue: default, MatrixValue: default),
+            ChunkType.GameAttrFloatParam => new GameAttrParamPayload(Param: param, ValueKind: GameAttrParamValueKind.Float, IntValue: 0, FloatValue: bytes.SafeGetSingleLe(), ColourValue: default, VectorValue: default, MatrixValue: default),
+            ChunkType.GameAttrColourParam => new GameAttrParamPayload(Param: param, ValueKind: GameAttrParamValueKind.Colour, IntValue: 0, FloatValue: 0f, ColourValue: bytes.SafeReadColourArgb(), VectorValue: default, MatrixValue: default),
+            ChunkType.GameAttrVectorParam => new GameAttrParamPayload(Param: param, ValueKind: GameAttrParamValueKind.Vector, IntValue: 0, FloatValue: 0f, ColourValue: default, VectorValue: bytes.SafeReadVector3(), MatrixValue: default),
+            ChunkType.GameAttrMatrixParam => new GameAttrParamPayload(Param: param, ValueKind: GameAttrParamValueKind.Matrix, IntValue: 0, FloatValue: 0f, ColourValue: default, VectorValue: default, MatrixValue: bytes.SafeReadMatrix4x4()),
+            _ => new GameAttrParamPayload(Param: param, ValueKind: GameAttrParamValueKind.None, IntValue: 0, FloatValue: 0f, ColourValue: default, VectorValue: default, MatrixValue: default),
         };
     }
 
     private static LocatorPayload ParseLocator(ByteReader bytes) {
-        return new LocatorPayload(bytes.SafeReadVector3());
+        return new LocatorPayload(Position: bytes.SafeReadVector3());
     }
 
     private static FollowCameraDataPayload ParseFollowCameraData(ByteReader bytes) {
@@ -1016,12 +1016,12 @@ internal static class ChunkDataFactory {
     }
 
     private static WbLocatorPayload ParseWbLocator(ByteReader bytes) {
-        WbLocatorType type = P3dEnum.EnumFromRaw<WbLocatorType>(bytes.SafeGetUInt32Le());
+        WbLocatorType type = P3dEnum.EnumFromRaw<WbLocatorType>(raw: bytes.SafeGetUInt32Le());
         uint numDataElements = bytes.SafeGetUInt32Le();
 
-        List<uint> data = new(ToCapacity(numDataElements));
+        List<uint> data = new(capacity: ToCapacity(length: numDataElements));
         for (int i = 0; i < data.Capacity; i++) {
-            data.Add(bytes.SafeGetUInt32Le());
+            data.Add(item: bytes.SafeGetUInt32Le());
         }
 
         return new WbLocatorPayload(
@@ -1042,13 +1042,13 @@ internal static class ChunkDataFactory {
     }
 
     private static WbMatrixPayload ParseWbMatrix(ByteReader bytes) {
-        return new WbMatrixPayload(bytes.SafeReadMatrix4x4());
+        return new WbMatrixPayload(Matrix: bytes.SafeReadMatrix4x4());
     }
 
     private static WbSplinePayload ParseWbSpline(ByteReader bytes) {
         uint numCvs = bytes.SafeGetUInt32Le();
-        List<Vector3> cvs = ReadVector3List(bytes, numCvs);
-        return new WbSplinePayload(numCvs, cvs);
+        List<Vector3> cvs = ReadVector3List(bytes: bytes, count: numCvs);
+        return new WbSplinePayload(NumCvs: numCvs, Cvs: cvs);
     }
 
     private static WbRailPayload ParseWbRail(ByteReader bytes) {
@@ -1068,21 +1068,21 @@ internal static class ChunkDataFactory {
     }
 
     private static ExportInfoNamedStringPayload ParseExportInfoNamedString(ByteReader bytes) {
-        return new ExportInfoNamedStringPayload(bytes.SafeReadPure3dString());
+        return new ExportInfoNamedStringPayload(Value: bytes.SafeReadPure3dString());
     }
 
     private static ExportInfoNamedIntPayload ParseExportInfoNamedInt(ByteReader bytes) {
-        return new ExportInfoNamedIntPayload(bytes.SafeGetUInt32Le());
+        return new ExportInfoNamedIntPayload(Value: bytes.SafeGetUInt32Le());
     }
 
     private static HistoryPayload ParseHistory(ByteReader bytes) {
         ushort lineCount = bytes.SafeGetUInt16Le();
-        List<string> history = new(lineCount);
+        List<string> history = new(capacity: lineCount);
         for (int i = 0; i < lineCount; i++) {
-            history.Add(bytes.SafeReadPure3dString());
+            history.Add(item: bytes.SafeReadPure3dString());
         }
 
-        return new HistoryPayload(history);
+        return new HistoryPayload(History: history);
     }
 
     private static CameraPayload ParseCamera(ByteReader bytes) {
@@ -1098,63 +1098,63 @@ internal static class ChunkDataFactory {
     }
 
     private static List<float> ReadFloatList(ByteReader bytes, uint count) {
-        List<float> values = new(ToCapacity(count));
+        List<float> values = new(capacity: ToCapacity(length: count));
         for (int i = 0; i < values.Capacity; i++) {
-            values.Add(bytes.SafeGetSingleLe());
+            values.Add(item: bytes.SafeGetSingleLe());
         }
 
         return values;
     }
 
     private static List<uint> ReadUIntList(ByteReader bytes, uint count) {
-        List<uint> values = new(ToCapacity(count));
+        List<uint> values = new(capacity: ToCapacity(length: count));
         for (int i = 0; i < values.Capacity; i++) {
-            values.Add(bytes.SafeGetUInt32Le());
+            values.Add(item: bytes.SafeGetUInt32Le());
         }
 
         return values;
     }
 
     private static List<string> ReadStringList(ByteReader bytes, uint count) {
-        List<string> values = new(ToCapacity(count));
+        List<string> values = new(capacity: ToCapacity(length: count));
         for (int i = 0; i < values.Capacity; i++) {
-            values.Add(bytes.SafeReadPure3dString());
+            values.Add(item: bytes.SafeReadPure3dString());
         }
 
         return values;
     }
 
     private static List<Vector2> ReadVector2List(ByteReader bytes, uint count) {
-        List<Vector2> values = new(ToCapacity(count));
+        List<Vector2> values = new(capacity: ToCapacity(length: count));
         for (int i = 0; i < values.Capacity; i++) {
-            values.Add(bytes.SafeReadVector2());
+            values.Add(item: bytes.SafeReadVector2());
         }
 
         return values;
     }
 
     private static List<Vector3> ReadVector3List(ByteReader bytes, uint count) {
-        List<Vector3> values = new(ToCapacity(count));
+        List<Vector3> values = new(capacity: ToCapacity(length: count));
         for (int i = 0; i < values.Capacity; i++) {
-            values.Add(bytes.SafeReadVector3());
+            values.Add(item: bytes.SafeReadVector3());
         }
 
         return values;
     }
 
     private static List<Quaternion> ReadQuaternionList(ByteReader bytes, uint count, bool compressed) {
-        List<Quaternion> values = new(ToCapacity(count));
+        List<Quaternion> values = new(capacity: ToCapacity(length: count));
         for (int i = 0; i < values.Capacity; i++) {
-            values.Add(compressed ? bytes.SafeReadCompressedQuaternion() : bytes.SafeReadQuaternion());
+            values.Add(item: compressed ? bytes.SafeReadCompressedQuaternion() : bytes.SafeReadQuaternion());
         }
 
         return values;
     }
 
     private static List<P3dColour> ReadColourList(ByteReader bytes, uint count) {
-        List<P3dColour> values = new(ToCapacity(count));
+        List<P3dColour> values = new(capacity: ToCapacity(length: count));
         for (int i = 0; i < values.Capacity; i++) {
-            values.Add(bytes.SafeReadColourArgb());
+            values.Add(item: bytes.SafeReadColourArgb());
         }
 
         return values;

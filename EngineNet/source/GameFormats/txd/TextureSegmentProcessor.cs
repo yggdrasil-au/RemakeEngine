@@ -19,24 +19,24 @@ internal sealed class TextureSegmentProcessor {
         int i = 0;
         NameInfo? currentName = null;
 
-        utils.Log.Cyan($"  Scanning data segment (len {segmentData.Length}) for textures using signature {System.BitConverter.ToString(NameSignature).Replace("-", string.Empty).ToLowerInvariant()}...");
+        utils.Log.Cyan($"  Scanning data segment (len {segmentData.Length}) for textures using signature {System.BitConverter.ToString(NameSignature).Replace(oldValue: "-", newValue: string.Empty).ToLowerInvariant()}...");
 
         while (i < segmentData.Length) {
             if (currentName?.ProcessedMeta == true) {
                 currentName = null;
             }
 
-            if (i + NameSignatureLength <= segmentData.Length && utils.Util.StartsWith(segmentData, i, NameSignature)) {
+            if (i + NameSignatureLength <= segmentData.Length && utils.Util.StartsWith(data: segmentData, offset: i, pattern: NameSignature)) {
                 int nameSigOffset = i;
                 int nameStringStart = nameSigOffset + 12;
                 int nameEndScan = nameStringStart;
                 utils.Log.Green($"    name_sig_offset_in_segment = 0x{nameSigOffset:X} (file offset 0x{segmentOriginalStartOffset + nameSigOffset:X})");
                 utils.Log.Green($"    name_string_start_offset_in_segment = 0x{nameStringStart:X} (file offset 0x{segmentOriginalStartOffset + nameStringStart:X})");
                 utils.Log.Green($"    name_end_scan_in_segment = 0x{nameEndScan:X} (file offset 0x{segmentOriginalStartOffset + nameEndScan:X})");
-                utils.Log.Green($"    Found name signature {System.BitConverter.ToString(NameSignature).Replace("-", string.Empty).ToLowerInvariant()} at seg_offset 0x{nameSigOffset:X} (file offset 0x{segmentOriginalStartOffset + nameSigOffset:X})");
+                utils.Log.Green($"    Found name signature {System.BitConverter.ToString(NameSignature).Replace(oldValue: "-", newValue: string.Empty).ToLowerInvariant()} at seg_offset 0x{nameSigOffset:X} (file offset 0x{segmentOriginalStartOffset + nameSigOffset:X})");
 
                 if (nameStringStart + 2 > segmentData.Length) {
-                    utils.Log.Yellow($"    WARNING: Found name signature {System.BitConverter.ToString(NameSignature).Replace("-", string.Empty).ToLowerInvariant()} at seg_offset 0x{nameSigOffset:X}, but not enough data for name string (expected at 0x{nameStringStart:X}).");
+                    utils.Log.Yellow($"    WARNING: Found name signature {System.BitConverter.ToString(NameSignature).Replace(oldValue: "-", newValue: string.Empty).ToLowerInvariant()} at seg_offset 0x{nameSigOffset:X}, but not enough data for name string (expected at 0x{nameStringStart:X}).");
                     i = nameSigOffset + 1;
                     continue;
                 }
@@ -46,26 +46,26 @@ internal sealed class TextureSegmentProcessor {
                 }
 
                 if (nameEndScan < segmentData.Length - 1 && segmentData[nameEndScan] == 0x00 && segmentData[nameEndScan + 1] == 0x00) {
-                    System.Span<byte> nameBytes = segmentData.AsSpan(nameStringStart, nameEndScan - nameStringStart);
+                    System.Span<byte> nameBytes = segmentData.AsSpan(start: nameStringStart, length: nameEndScan - nameStringStart);
                     string? nameValue;
                     try {
-                        nameValue = Extractor.Utf8NoBom.GetString(nameBytes).Trim();
+                        nameValue = Extractor.Utf8NoBom.GetString(bytes: nameBytes).Trim();
                     } catch (System.Exception ex) {
-                        Shared.IO.Diagnostics.Bug($"[TextureSegmentProcessor::ProcessSegment()] Failed to decode name bytes at offset 0x{segmentOriginalStartOffset + nameSigOffset:X}.", ex);
-                        nameValue = System.BitConverter.ToString(nameBytes.ToArray()).Replace("-", string.Empty);
+                        Shared.IO.Diagnostics.Bug($"[TextureSegmentProcessor::ProcessSegment()] Failed to decode name bytes at offset 0x{segmentOriginalStartOffset + nameSigOffset:X}.", ex: ex);
+                        nameValue = System.BitConverter.ToString(nameBytes.ToArray()).Replace(oldValue: "-", newValue: string.Empty);
                     }
 
                     if (string.IsNullOrWhiteSpace(nameValue)) {
                         nameValue = $"unnamed_texture_at_0x{segmentOriginalStartOffset + nameSigOffset:08X}";
-                        utils.Log.Red($"    WARNING: Name string parsing failed for signature {System.BitConverter.ToString(NameSignature).Replace("-", string.Empty).ToLowerInvariant()} at seg_offset 0x{nameSigOffset:X}. Using fallback name '{nameValue}' (sig at file 0x{segmentOriginalStartOffset + nameSigOffset:X}).");
+                        utils.Log.Red($"    WARNING: Name string parsing failed for signature {System.BitConverter.ToString(NameSignature).Replace(oldValue: "-", newValue: string.Empty).ToLowerInvariant()} at seg_offset 0x{nameSigOffset:X}. Using fallback name '{nameValue}' (sig at file 0x{segmentOriginalStartOffset + nameSigOffset:X}).");
                     }
 
                     if (currentName is not null && !currentName.ProcessedMeta) {
                         utils.Log.Yellow($"    WARNING: Previous name '{currentName.Name}' (sig at file 0x{currentName.OriginalFileOffset:X}) was pending metadata but new name '{nameValue}' was found.");
                     }
 
-                    currentName = new NameInfo(nameValue, nameSigOffset, segmentOriginalStartOffset + nameSigOffset);
-                    utils.Log.Cyan($"    Parsed name: '{currentName.Name}' (signature {System.BitConverter.ToString(NameSignature).Replace("-", string.Empty).ToLowerInvariant()} at seg_offset 0x{nameSigOffset:X}, file 0x{currentName.OriginalFileOffset:X})");
+                    currentName = new NameInfo(name: nameValue, nameSigOffsetInSegment: nameSigOffset, originalFileOffset: segmentOriginalStartOffset + nameSigOffset);
+                    utils.Log.Cyan($"    Parsed name: '{currentName.Name}' (signature {System.BitConverter.ToString(NameSignature).Replace(oldValue: "-", newValue: string.Empty).ToLowerInvariant()} at seg_offset 0x{nameSigOffset:X}, file 0x{currentName.OriginalFileOffset:X})");
                     i = nameEndScan + 2;
 
                     int firstNonZeroAfterName = -1;
@@ -87,7 +87,7 @@ internal sealed class TextureSegmentProcessor {
                     for (int scan = firstNonZeroAfterName; scan < segmentData.Length - 1; scan++) {
                         if (segmentData[scan] == 0x01) {
                             byte potential = segmentData[scan + 1];
-                            if (KnownFormatCodes.Contains(potential)) {
+                            if (KnownFormatCodes.Contains(item: potential)) {
                                 offsetOf01Marker = scan;
                                 scannedFmtCode = potential;
                                 break;
@@ -108,25 +108,25 @@ internal sealed class TextureSegmentProcessor {
                         throw new Sys.TxdExportException($"      FATAL ERROR: Not enough data for 16-byte metadata block for '{currentName.Name}' (File Offset: 0x{currentName.OriginalFileOffset:X}). Needed 16 bytes from calculated seg_offset 0x{metaOffset:X}, segment length {segmentData.Length}.");
                     }
 
-                    System.Span<byte> metadata = segmentData.AsSpan(metaOffset, 16);
-                    byte fmtCodeFromBlock = metadata[3];
+                    System.Span<byte> metadata = segmentData.AsSpan(start: metaOffset, length: 16);
+                    byte fmtCodeFromBlock = metadata[index: 3];
                     if (fmtCodeFromBlock != scannedFmtCode) {
                         throw new Sys.TxdExportException($"      FATAL ERROR: Format code mismatch for '{currentName.Name}'. Scanned 01 {scannedFmtCode:02X} (fmt_code at seg_offset 0x{offsetOf01Marker + 1:X}), but metadata_bytes[3] (at seg_offset 0x{metaOffset + 3:X}) is {fmtCodeFromBlock:02X}. Alignment error.");
                     }
 
                     byte fmtCode = fmtCodeFromBlock;
                     utils.Log.Cyan($"      Processing metadata for '{currentName.Name}' (Format Code 0x{fmtCode:02X} from metadata at seg_offset 0x{metaOffset:X})");
-                    ushort width = System.Buffers.Binary.BinaryPrimitives.ReadUInt16BigEndian(metadata.Slice(4, 2));
-                    ushort height = System.Buffers.Binary.BinaryPrimitives.ReadUInt16BigEndian(metadata.Slice(6, 2));
-                    byte mipMapCountFromFile = metadata[9];
-                    System.UInt32 totalPixelDataSize = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(metadata.Slice(12, 4));
+                    ushort width = System.Buffers.Binary.BinaryPrimitives.ReadUInt16BigEndian(source: metadata.Slice(start: 4, length: 2));
+                    ushort height = System.Buffers.Binary.BinaryPrimitives.ReadUInt16BigEndian(source: metadata.Slice(start: 6, length: 2));
+                    byte mipMapCountFromFile = metadata[index: 9];
+                    System.UInt32 totalPixelDataSize = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(source: metadata.Slice(start: 12, length: 4));
                     utils.Log.Cyan($"        Meta Details - W: {width}, H: {height}, MipsFromFile: {mipMapCountFromFile}, DataSize: {totalPixelDataSize}");
 
                     if (width == 0 || height == 0) {
                         if (width == 0 && height == 0) {
                             utils.Log.Yellow($"          Skipping '{currentName.Name}' (File Offset: 0x{currentName.OriginalFileOffset:X}) due to zero dimensions (placeholder).");
                             currentName.MarkProcessed();
-                            i = System.Math.Min(metaOffset + 16, segmentData.Length);
+                            i = System.Math.Min(val1: metaOffset + 16, val2: segmentData.Length);
                             continue;
                         }
                         throw new Sys.TxdExportException($"          FATAL ERROR: Invalid metadata (W:{width}, H:{height}, one is zero) for '{currentName.Name}' (File Offset: 0x{currentName.OriginalFileOffset:X}).");
@@ -142,8 +142,8 @@ internal sealed class TextureSegmentProcessor {
                         throw new Sys.TxdExportException($"          FATAL ERROR: Not enough pixel data for '{currentName.Name}' (File Offset: 0x{currentName.OriginalFileOffset:X}). Expected {actualMipDataSize} from seg_offset 0x{pixelDataStart:X}, available: {segmentData.Length - pixelDataStart}.");
                     }
 
-                    System.Span<byte> swizzledBaseMipData = segmentData.AsSpan(pixelDataStart, actualMipDataSize);
-                    ConversionResult conversion = TextureFormatConverter.Convert(fmtCode, width, height, mipMapCountFromFile, swizzledBaseMipData, actualMipDataSize, /*segmentOriginalStartOffset,*/ currentName);
+                    System.Span<byte> swizzledBaseMipData = segmentData.AsSpan(start: pixelDataStart, length: actualMipDataSize);
+                    ConversionResult conversion = TextureFormatConverter.Convert(fmtCode: fmtCode, width: width, height: height, mipMapCountFromFile: mipMapCountFromFile, swizzledBaseMipData: swizzledBaseMipData, actualMipDataSize: actualMipDataSize, /*segmentOriginalStartOffset,*/ nameInfo: currentName);
 
                     if (conversion.Header == null || conversion.Pixels == null) {
                         string reason = conversion is { NeedsUnswizzle: true, Pixels: null }
@@ -152,29 +152,29 @@ internal sealed class TextureSegmentProcessor {
                         throw new Sys.TxdExportException($"          FATAL ERROR: Failed to generate exportable DDS data for known format 0x{fmtCode:02X} for texture '{currentName.Name}' (File 0x{currentName.OriginalFileOffset:X}). Reason: {reason}.");
                     }
 
-                    string cleanName = utils.Util.SanitizeFilename(currentName.Name) ?? $"texture_at_0x{currentName.OriginalFileOffset:08X}";
+                    string cleanName = utils.Util.SanitizeFilename(name: currentName.Name) ?? $"texture_at_0x{currentName.OriginalFileOffset:08X}";
                     string ext = outputExtension.StartsWith(".") ? outputExtension : "." + outputExtension;
-                    string outFile = System.IO.Path.Combine(outputDir, cleanName + ext);
+                    string outFile = System.IO.Path.Combine(path1: outputDir, path2: cleanName + ext);
                     try {
-                        if (ext.Equals(".png", StringComparison.OrdinalIgnoreCase)) {
+                        if (ext.Equals(".png", comparisonType: StringComparison.OrdinalIgnoreCase)) {
                             // 1. Combine Header and Pixels into a single in-memory DDS buffer
                             byte[] ddsData = new byte[conversion.Header.Length + conversion.Pixels.Length];
-                            System.Buffer.BlockCopy(conversion.Header, 0, ddsData, 0, conversion.Header.Length);
-                            System.Buffer.BlockCopy(conversion.Pixels, 0, ddsData, conversion.Header.Length, conversion.Pixels.Length);
+                            System.Buffer.BlockCopy(src: conversion.Header, srcOffset: 0, dst: ddsData, dstOffset: 0, count: conversion.Header.Length);
+                            System.Buffer.BlockCopy(src: conversion.Pixels, srcOffset: 0, dst: ddsData, dstOffset: conversion.Header.Length, count: conversion.Pixels.Length);
 
                             // 2. Decode the DDS buffer
-                            using System.IO.MemoryStream ddsStream = new(ddsData);
+                            using System.IO.MemoryStream ddsStream = new(buffer: ddsData);
                             BcDecoder decoder = new BcDecoder();
                             // DecodeToImageRgba32 is provided by the BCnEncoder.Net.ImageSharp extension
-                            using Image<SixLabors.ImageSharp.PixelFormats.Rgba32> image = decoder.DecodeToImageRgba32(ddsStream);
+                            using Image<SixLabors.ImageSharp.PixelFormats.Rgba32> image = decoder.DecodeToImageRgba32(inputStream: ddsStream);
 
                             // 3. Save as PNG
-                            image.SaveAsPng(outFile);
+                            image.SaveAsPng(path: outFile);
                         } else {
                             // Standard DDS Export
-                            using System.IO.FileStream fs = System.IO.File.Create(outFile);
-                            fs.Write(conversion.Header, 0, conversion.Header.Length);
-                            fs.Write(conversion.Pixels, 0, conversion.Pixels.Length);
+                            using System.IO.FileStream fs = System.IO.File.Create(path: outFile);
+                            fs.Write(buffer: conversion.Header, offset: 0, count: conversion.Header.Length);
+                            fs.Write(buffer: conversion.Pixels, offset: 0, count: conversion.Pixels.Length);
                         }
                     } catch (System.IO.IOException ex) {
                         throw new Sys.TxdExportException($"          FATAL ERROR: IOError writing {ext.ToUpper()} file {outFile} for '{currentName.Name}': {ex.Message}");
@@ -186,11 +186,11 @@ internal sealed class TextureSegmentProcessor {
                     utils.Log.Cyan($"          Successfully exported: {outFile} (Format: {conversion.Format}, {width}x{height})");
                     texturesFound += 1;
                     currentName.MarkProcessed();
-                    i = System.Math.Min(pixelDataStart + actualMipDataSize, segmentData.Length);
+                    i = System.Math.Min(val1: pixelDataStart + actualMipDataSize, val2: segmentData.Length);
                     continue;
                 }
 
-                utils.Log.Yellow($"    WARNING: Name signature {System.BitConverter.ToString(NameSignature).Replace("-", string.Empty).ToLowerInvariant()} at seg_offset 0x{nameSigOffset:X} (file 0x{segmentOriginalStartOffset + nameSigOffset:X}) failed full name parsing (no double null found).");
+                utils.Log.Yellow($"    WARNING: Name signature {System.BitConverter.ToString(NameSignature).Replace(oldValue: "-", newValue: string.Empty).ToLowerInvariant()} at seg_offset 0x{nameSigOffset:X} (file 0x{segmentOriginalStartOffset + nameSigOffset:X}) failed full name parsing (no double null found).");
                 if (currentName is not null && !currentName.ProcessedMeta) {
                     utils.Log.Yellow($"      WARNING: Discarding pending name '{currentName.Name}' (sig at file 0x{currentName.OriginalFileOffset:X}) due to malformed subsequent name signature.");
                 }

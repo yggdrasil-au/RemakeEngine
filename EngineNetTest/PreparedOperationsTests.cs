@@ -12,27 +12,27 @@ public sealed class PreparedOperationsTests {
     /// </summary>
     [TestMethod]
     public void LoadAndPrepare_CategorizesInitRegularAndRunAllOperations() {
-        string operationsFile = Path.Combine(Path.GetTempPath(), $"remake-engine-{Guid.NewGuid():N}.json");
-        File.WriteAllText(operationsFile, """
-            [
-              { "id": 1, "name": "Initialize", "script": "init.lua", "script_type": "lua", "init": true },
-              { "id": 2, "name": "Build", "script": "build.lua", "script_type": "lua", "run_all": true },
-              { "id": 3, "name": "Optional", "script": "optional.lua", "script_type": "lua" }
-            ]
-            """);
+        string operationsFile = Path.Combine(path1: Path.GetTempPath(), path2: $"remake-engine-{Guid.NewGuid():N}.json");
+        File.WriteAllText(path: operationsFile, contents: """
+                                                          [
+                                                            { "id": 1, "name": "Initialize", "script": "init.lua", "script_type": "lua", "init": true },
+                                                            { "id": 2, "name": "Build", "script": "build.lua", "script_type": "lua", "run_all": true },
+                                                            { "id": 3, "name": "Optional", "script": "optional.lua", "script_type": "lua" }
+                                                          ]
+                                                          """);
 
         try {
-            OperationsService service = new OperationsService(new OperationsLoader(), null!);
-            PreparedOperations prepared = service.LoadAndPrepare(operationsFile);
+            OperationsService service = new OperationsService(loader: new OperationsLoader(), gameRegistry: null!);
+            PreparedOperations prepared = service.LoadAndPrepare(opsFile: operationsFile);
 
-            Assert.IsTrue(prepared.IsLoaded);
-            Assert.HasCount(1, prepared.InitOperations);
-            Assert.HasCount(2, prepared.RegularOperations);
-            Assert.HasCount(1, prepared.RunAllOperations);
-            Assert.IsTrue(prepared.HasRunAll);
-            Assert.AreEqual("Build", prepared.RunAllOperations[0].DisplayName);
+            Assert.IsTrue(condition: prepared.IsLoaded);
+            Assert.HasCount(expected: 1, collection: prepared.InitOperations);
+            Assert.HasCount(expected: 2, collection: prepared.RegularOperations);
+            Assert.HasCount(expected: 1, collection: prepared.RunAllOperations);
+            Assert.IsTrue(condition: prepared.HasRunAll);
+            Assert.AreEqual(expected: "Build", actual: prepared.RunAllOperations[index: 0].DisplayName);
         } finally {
-            File.Delete(operationsFile);
+            File.Delete(path: operationsFile);
         }
     }
 }

@@ -3,11 +3,11 @@ namespace EngineNet.Core.Operations.Built_inActions.Utils;
 
 internal static class ConfigHelpers {
     internal static void ApplyUpdate(IDictionary<string, object?> doc, string group, int index, string key, string value, string? typeHint) {
-        object convertedValue = ConvertValue(value, typeHint);
-        object targetContext = EnsureGroupEntry(doc, group, index);
+        object convertedValue = ConvertValue(raw: value, hint: typeHint);
+        object targetContext = EnsureGroupEntry(doc: doc, group: group, index: index);
 
         if (targetContext is IDictionary<string, object?> dict) {
-            dict[key] = convertedValue;
+            dict[key: key] = convertedValue;
             Shared.IO.Diagnostics.Trace($"Updated {group}[{index}].{key} = {convertedValue}");
         } else {
             Shared.IO.Diagnostics.Trace($"Target context for {group}[{index}] is not a dictionary.");
@@ -15,16 +15,16 @@ internal static class ConfigHelpers {
     }
 
     internal static object EnsureGroupEntry(IDictionary<string, object?> doc, string group, int index) {
-        if (!doc.TryGetValue(group, out object? g) || g == null) {
+        if (!doc.TryGetValue(key: group, out object? g) || g == null) {
             var newDict = new Dictionary<string, object?>();
             // If index > 1, we must start as a list
             if (index > 1) {
                 var newlist = new List<object?>();
-                while (newlist.Count < index) newlist.Add(new Dictionary<string, object?>());
-                doc[group] = newlist;
-                return newlist[index - 1]!;
+                while (newlist.Count < index) newlist.Add(item: new Dictionary<string, object?>());
+                doc[key: group] = newlist;
+                return newlist[index: index - 1]!;
             } else {
-                doc[group] = newDict;
+                doc[key: group] = newDict;
                 return newDict;
             }
         }
@@ -33,12 +33,12 @@ internal static class ConfigHelpers {
         if (g is IList<object?> list) {
             // Extend if needed
             while (list.Count < index) {
-                list.Add(new Dictionary<string, object?>());
+                list.Add(item: new Dictionary<string, object?>());
             }
-            object? item = list[index - 1];
+            object? item = list[index: index - 1];
             if (item == null) {
                 item = new Dictionary<string, object?>();
-                list[index - 1] = item;
+                list[index: index - 1] = item;
             }
             return item;
         } else if (g is IDictionary<string, object?> dict) {
@@ -47,22 +47,22 @@ internal static class ConfigHelpers {
             // Need to convert single dict to list to handle index > 1
             var newList = new List<object?> { dict };
             while (newList.Count < index) {
-                newList.Add(new Dictionary<string, object?>());
+                newList.Add(item: new Dictionary<string, object?>());
             }
-            doc[group] = newList;
-            return newList[index - 1]!;
+            doc[key: group] = newList;
+            return newList[index: index - 1]!;
         }
 
         // If it's something else (primitive), overwrite it?
         var replacement = new Dictionary<string, object?>();
         if (index > 1) {
             var l = new List<object?>();
-            while (l.Count < index) l.Add(new Dictionary<string, object?>());
-            l[index-1] = replacement;
-            doc[group] = l;
+            while (l.Count < index) l.Add(item: new Dictionary<string, object?>());
+            l[index: index-1] = replacement;
+            doc[key: group] = l;
             return replacement;
         } else {
-            doc[group] = replacement;
+            doc[key: group] = replacement;
             return replacement;
         }
     }
@@ -81,12 +81,12 @@ internal static class ConfigHelpers {
                 throw new System.Exception($"Value '{raw}' cannot be parsed as boolean");
             case "integer":
             case "int":
-                if (long.TryParse(raw, out long l)) return l;
+                if (long.TryParse(s: raw, result: out long l)) return l;
                 throw new System.Exception($"Value '{raw}' cannot be parsed as integer");
             case "float":
             case "number":
             case "double":
-                if (double.TryParse(raw, out double d)) return d;
+                if (double.TryParse(s: raw, result: out double d)) return d;
                 throw new System.Exception($"Value '{raw}' cannot be parsed as float");
             //case "auto":
             default:
@@ -96,8 +96,8 @@ internal static class ConfigHelpers {
                 if (sl == "false") return false;
                 // Lua tonumber returns float or int.
                 // We prefer int if possible, else double.
-                if (long.TryParse(s, out long n)) return n;
-                if (double.TryParse(s, out double f)) return f;
+                if (long.TryParse(s: s, result: out long n)) return n;
+                if (double.TryParse(s: s, result: out double f)) return f;
                 return s;
         }
     }
@@ -105,19 +105,54 @@ internal static class ConfigHelpers {
     internal static ConfigOptions ParseArgs(List<string> args) {
         var opts = new ConfigOptions();
         for (int i = 0; i < args.Count; i++) {
-            string a = args[i];
-            if (a == "-h" || a == "--help") { /* ignore */ }
-            else if (a == "-l" || a == "--list") { opts.List = true; }
-            else if (a == "-g" || a == "--group") { if (++i < args.Count) opts.Group = args[i]; }
-            else if (a == "-k" || a == "--key") { if (++i < args.Count) opts.Key = args[i]; }
-            else if (a == "-v" || a == "--value") { if (++i < args.Count) opts.Value = args[i]; }
-            else if (a == "-t" || a == "--type") { if (++i < args.Count) opts.TypeHint = args[i]; }
-            else if (a == "-i" || a == "--index") { if (++i < args.Count && int.TryParse(args[i], out int idx)) opts.Index = idx; }
-            else if (a == "-c" || a == "--config") { if (++i < args.Count) opts.ConfigPath = args[i]; }
-            else if (a == "-s" || a == "--set") {
-                if (++i < args.Count) {
-                    var token = ParseSetToken(args[i]);
-                    if (token != null) opts.Sets.Add(token);
+            string a = args[index: i];
+            switch (a) {
+                case "-h":
+                case "--help":
+                    /* ignore */
+                    break;
+                case "-l":
+                case "--list":
+                    opts.List = true;
+                    break;
+                case "-g":
+                case "--group": {
+                    if (++i < args.Count) opts.Group = args[index: i];
+                    break;
+                }
+                case "-k":
+                case "--key": {
+                    if (++i < args.Count) opts.Key = args[index: i];
+                    break;
+                }
+                case "-v":
+                case "--value": {
+                    if (++i < args.Count) opts.Value = args[index: i];
+                    break;
+                }
+                case "-t":
+                case "--type": {
+                    if (++i < args.Count) opts.TypeHint = args[index: i];
+                    break;
+                }
+                case "-i":
+                case "--index": {
+                    if (++i < args.Count && int.TryParse(s: args[index: i], result: out int idx)) opts.Index = idx;
+                    break;
+                }
+                case "-c":
+                case "--config": {
+                    if (++i < args.Count) opts.ConfigPath = args[index: i];
+                    break;
+                }
+                case "-s":
+                case "--set": {
+                    if (++i < args.Count) {
+                        var token = ParseSetToken(token: args[index: i]);
+                        if (token != null) opts.Sets.Add(item: token);
+                    }
+
+                    break;
                 }
             }
         }
@@ -130,8 +165,8 @@ internal static class ConfigHelpers {
         int eq = token.IndexOf('=');
         if (eq < 0) return null;
 
-        string key = token.Substring(0, eq);
-        string rest = token.Substring(eq + 1);
+        string key = token.Substring(startIndex: 0, length: eq);
+        string rest = token.Substring(startIndex: eq + 1);
         string? typeHint = null;
 
         // Check for trailing :type
@@ -140,10 +175,10 @@ internal static class ConfigHelpers {
 
         int lastColon = rest.LastIndexOf(':');
         if (lastColon > 0) {
-            string possibleType = rest.Substring(lastColon + 1);
+            string possibleType = rest.Substring(startIndex: lastColon + 1);
             if (allowedTypes.Contains(possibleType.ToLowerInvariant())) {
                 typeHint = possibleType;
-                rest = rest.Substring(0, lastColon);
+                rest = rest.Substring(startIndex: 0, length: lastColon);
             }
         }
 

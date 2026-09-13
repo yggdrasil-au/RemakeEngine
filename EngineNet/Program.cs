@@ -42,31 +42,31 @@ public static class Program {
             // Try to attach to the parent console (CMD/PowerShell) so stdout works.
             bool hasConsole = false;
             if (System.OperatingSystem.IsWindows()) {
-                hasConsole = ConsoleHelper.AttachConsole(ConsoleHelper.ATTACH_PARENT_PROCESS);
+                hasConsole = ConsoleHelper.AttachConsole(dwProcessId: ConsoleHelper.ATTACH_PARENT_PROCESS);
             }
 
             // 1. Parse Args to separate the Root path from the Mode flags
-            ParsedArgs parsedArgs = ParseArguments(args);
+            ParsedArgs parsedArgs = ParseArguments(args: args);
 
             // 2. Resolve Root Path
             if (parsedArgs.ExplicitRoot != null) {
                 rootPath = parsedArgs.ExplicitRoot;
             } else {
-                string foundRoot = TryFindProjectRoot(System.IO.Directory.GetCurrentDirectory());
+                string foundRoot = TryFindProjectRoot(startDir: System.IO.Directory.GetCurrentDirectory());
                 if (!string.IsNullOrEmpty(foundRoot)) {
                     rootPath = foundRoot;
                 } else {
-                    foundRoot = TryFindProjectRoot(System.AppContext.BaseDirectory);
+                    foundRoot = TryFindProjectRoot(startDir: System.AppContext.BaseDirectory);
                     rootPath = !string.IsNullOrEmpty(foundRoot) ? foundRoot : System.IO.Directory.GetCurrentDirectory();
                 }
             }
 
-            isTui = parsedArgs.Remaining.Any(arg => arg.Equals("--tui", System.StringComparison.OrdinalIgnoreCase));
-            isGui = !isTui && (parsedArgs.Remaining.Count == 0 || parsedArgs.Remaining.Any(arg => arg.Equals("--gui", System.StringComparison.OrdinalIgnoreCase)));
+            isTui = parsedArgs.Remaining.Any(predicate: arg => arg.Equals("--tui", comparisonType: System.StringComparison.OrdinalIgnoreCase));
+            isGui = !isTui && (parsedArgs.Remaining.Count == 0 || parsedArgs.Remaining.Any(predicate: arg => arg.Equals("--gui", comparisonType: System.StringComparison.OrdinalIgnoreCase)));
             isCli = !isGui && !isTui;
 
             // :: Initialize the Logger
-            Shared.IO.Diagnostics.Initialize(rootPath, isGui, isTui);
+            Shared.IO.Diagnostics.Initialize(rootPath: rootPath, isGui: isGui, isTui: isTui);
 
             IScriptActionDispatcher scriptActionDispatcher = new EngineNet.ScriptEngines.ScriptActionDispatcher();
 
@@ -89,9 +89,9 @@ public static class Program {
                 //engineFactory: () => InitialiseEngine(scriptActionDispatcher)
             );
 
-            Engine ??= await InitialiseEngine(scriptActionDispatcher);
+            Engine ??= await InitialiseEngine(scriptActionDispatcher: scriptActionDispatcher);
 
-            EngineNet.Interface.MiniEngineFace miniEngine = new Interface.MiniEngine(Engine);
+            EngineNet.Interface.MiniEngineFace miniEngine = new Interface.MiniEngine(Engine: Engine);
             InitUI UI = new InitUI();
 
             // Logic:
@@ -100,7 +100,7 @@ public static class Program {
             if (isGui) {
                 Shared.IO.Diagnostics.Trace("Launching GUI Interface...");
                 //return GUI.GuiBootstrapper.Run(Engine); // ;; gui flow step1 ;;
-                return await UI.init(args, "gui", miniEngine, shutdownCancellationController.Token);
+                return await UI.init(args: args, ui: "gui", miniEngine: miniEngine, cancellationToken: shutdownCancellationController.Token);
             }
 
             // Logic:
@@ -109,7 +109,7 @@ public static class Program {
                 Shared.IO.Diagnostics.Trace("Launching TUI Interface...");
                 //Term.TUI TUI = new Term.TUI(Engine);
                 //return await TUI.RunAsync(shutdownCancellationController.Token);
-                return await UI.init(args, "tui", miniEngine, shutdownCancellationController.Token);
+                return await UI.init(args: args, ui: "tui", miniEngine: miniEngine, cancellationToken: shutdownCancellationController.Token);
             }
 
             // Logic:
@@ -118,13 +118,13 @@ public static class Program {
                 Shared.IO.Diagnostics.Trace("Launching CLI Interface...");
                 //Term.CLI CLI = new Term.CLI(Engine);
                 //return await CLI.RunAsync(args, shutdownCancellationController.Token);
-                return await UI.init(args, "cli", miniEngine, shutdownCancellationController.Token);
+                return await UI.init(args: args, ui: "cli", miniEngine: miniEngine, cancellationToken: shutdownCancellationController.Token);
             }
             Shared.IO.UI.EngineSdk.Error("No valid interface mode selected.");
             Shared.IO.Diagnostics.Bug("No valid interface mode selected.");
             return 1;
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug("Critical Engine Failure in Main", ex);
+            Shared.IO.Diagnostics.Bug("Critical Engine Failure in Main", ex: ex);
             Shared.IO.Diagnostics.Log($"Engine Error: {ex}");
             await System.Console.Error.WriteLineAsync($"Critical Engine Failure: {ex.Message}");
             return 1;
@@ -155,10 +155,10 @@ public static class Program {
     private static ParsedArgs ParseArguments(string[] args) {
         var result = new ParsedArgs();
         for (int i = 0; i < args.Length; i++) {
-            bool isRootFlag = args[i].Equals("--root", System.StringComparison.OrdinalIgnoreCase);
+            bool isRootFlag = args[i].Equals("--root", comparisonType: System.StringComparison.OrdinalIgnoreCase);
             bool hasRootValue = isRootFlag
                 && i + 1 < args.Length
-                && !args[i + 1].StartsWith("--", System.StringComparison.Ordinal);
+                && !args[i + 1].StartsWith("--", comparisonType: System.StringComparison.Ordinal);
 
             if (hasRootValue) {
                 // Found --root and a non-flag value exists next to it.
@@ -167,7 +167,7 @@ public static class Program {
             } else {
                 // Skip loose --root tokens and keep all other arguments in order.
                 if (!isRootFlag) {
-                    result.Remaining.Add(args[i]);
+                    result.Remaining.Add(item: args[i]);
                 }
             }
         }
@@ -176,15 +176,15 @@ public static class Program {
 
     private static string TryFindProjectRoot(string? startDir) {
         try {
-            string dir = string.IsNullOrWhiteSpace(startDir) ? string.Empty : System.IO.Path.GetFullPath(startDir);
+            string dir = string.IsNullOrWhiteSpace(startDir) ? string.Empty : System.IO.Path.GetFullPath(path: startDir);
             while (!string.IsNullOrEmpty(dir)) {
-                string reg = System.IO.Path.Combine(dir, "EngineApps");
-                string games = System.IO.Path.Combine(reg, "Games");
-                if (System.IO.Directory.Exists(games)) {
+                string reg = System.IO.Path.Combine(path1: dir, path2: "EngineApps");
+                string games = System.IO.Path.Combine(path1: reg, path2: "Games");
+                if (System.IO.Directory.Exists(path: games)) {
                     return dir;
                 }
 
-                System.IO.DirectoryInfo? parent = System.IO.Directory.GetParent(dir);
+                System.IO.DirectoryInfo? parent = System.IO.Directory.GetParent(path: dir);
                 if (parent is null) {
                     break;
                 }
@@ -227,29 +227,29 @@ public static class Program {
         var engineConfig = new EngineConfig();
 
         var _registries = await Core.Utils.Registries.CreateAsync();
-        var _scanner = new Core.Utils.ModuleScanner(_registries);
+        var _scanner = new Core.Utils.ModuleScanner(registries: _registries);
 
-        var gameRegistry = new Core.Services.GameRegistry(_registries, _scanner);
+        var gameRegistry = new Core.Services.GameRegistry(registries: _registries, scanner: _scanner);
 
         var _commandService = new Core.Services.CommandService();
-        var _gameLauncher = new Core.Services.GameLauncher(gameRegistry, tools, engineConfig, _commandService, scriptActionDispatcher);
+        var _gameLauncher = new Core.Services.GameLauncher(gameRegistry: gameRegistry, toolResolver: tools, config: engineConfig, commandService: _commandService, scriptActionDispatcher: scriptActionDispatcher);
         var _opsLoader = new Core.Services.OperationsLoader();
-        var _operationsService = new Core.Services.OperationsService(_opsLoader, gameRegistry);
+        var _operationsService = new Core.Services.OperationsService(loader: _opsLoader, gameRegistry: gameRegistry);
 
-        var Single = new Core.Operations.Single(scriptActionDispatcher);
+        var Single = new Core.Operations.Single(scriptActionDispatcher: scriptActionDispatcher);
 
         EngineNet.Core.Engine.Engine _engine = new EngineNet.Core.Engine.Engine(
-            gameRegistry,
-            _gameLauncher,
-            _opsLoader,
-            _commandService,
-            _operationsService,
+            gameRegistry: gameRegistry,
+            gameLauncher: _gameLauncher,
+            OperationsLoader: _opsLoader,
+            commandService: _commandService,
+            OperationsService: _operationsService,
 
-            tools,
+            toolResolver: tools,
 
-            engineConfig,
+            engineConfig: engineConfig,
 
-            Single
+            Runner: Single
         );
         return _engine;
     }
@@ -261,16 +261,16 @@ public static class Program {
     /// This is important for ensuring that TUI/CLI modes have a visible console to interact with, while GUI mode can run without a console window.
     /// </summary>
     public static class ConsoleHelper {
-        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
-        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        [System.Runtime.InteropServices.DllImport(dllName: "kernel32.dll", SetLastError = true)]
+        [return: System.Runtime.InteropServices.MarshalAs(unmanagedType: System.Runtime.InteropServices.UnmanagedType.Bool)]
         public static extern bool AllocConsole();
 
-        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
-        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        [System.Runtime.InteropServices.DllImport(dllName: "kernel32.dll", SetLastError = true)]
+        [return: System.Runtime.InteropServices.MarshalAs(unmanagedType: System.Runtime.InteropServices.UnmanagedType.Bool)]
         public static extern bool AttachConsole(int dwProcessId);
 
-        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
-        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        [System.Runtime.InteropServices.DllImport(dllName: "kernel32.dll", SetLastError = true)]
+        [return: System.Runtime.InteropServices.MarshalAs(unmanagedType: System.Runtime.InteropServices.UnmanagedType.Bool)]
         public static extern bool FreeConsole();
 
         public const int ATTACH_PARENT_PROCESS = -1;
@@ -287,15 +287,15 @@ internal class InitUI {
             case "gui":
                 // GUI uses the limited mini engine surface; the full engine is only stashed for previewer/bootstrapping.
                 Shared.IO.Diagnostics.Trace("Launching GUI Interface...");
-                return GUI.GuiBootstrapper.Run(miniEngine, cancellationToken);
+                return GUI.GuiBootstrapper.Run(miniEngine: miniEngine, cancellationToken: cancellationToken);
             case "tui":
                 Shared.IO.Diagnostics.Trace("Launching TUI Interface...");
-                Terminal.TUI TUI = new Terminal.TUI(miniEngine);
-                return await TUI.RunAsync(cancellationToken);
+                Terminal.TUI TUI = new Terminal.TUI(engine: miniEngine);
+                return await TUI.RunAsync(cancellationToken: cancellationToken);
             case "cli":
                 Shared.IO.Diagnostics.Trace("Launching CLI Interface...");
-                Terminal.CLI CLI = new Terminal.CLI(miniEngine);
-                return await CLI.RunAsync(args, cancellationToken);
+                Terminal.CLI CLI = new Terminal.CLI(engine: miniEngine);
+                return await CLI.RunAsync(args: args, cancellationToken: cancellationToken);
             default:
                 await System.Console.Error.WriteLineAsync($"No valid interface mode selected. Expected 'gui', 'tui', or 'cli', but got '{ui}'.");
                 Shared.IO.Diagnostics.Bug("No valid interface mode selected.");

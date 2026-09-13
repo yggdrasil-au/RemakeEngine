@@ -18,8 +18,8 @@ internal partial class TextPromptWindow:Window {
         InitializeComponent();
         Title = title;
 
-        _textInput = this.FindControl<TextBox>("Input");
-        var messageBlock = this.FindControl<TextBlock>("PromptMessage");
+        _textInput = this.FindControl<TextBox>(name: "Input");
+        var messageBlock = this.FindControl<TextBlock>(name: "PromptMessage");
 
         if (messageBlock is not null)
             messageBlock.Text = message;
@@ -39,15 +39,15 @@ internal partial class TextPromptWindow:Window {
 
     private void OnOk(object? sender, RoutedEventArgs e) {
         Result = _textInput?.Text;
-        Close(Result);
+        Close(dialogResult: Result);
     }
 
     private void OnCancel(object? sender, RoutedEventArgs e) {
         Result = null;
-        Close(Result);
+        Close(dialogResult: Result);
     }
 
     internal System.Threading.Tasks.Task<string?> ShowAsync(Window owner) {
-        return ShowDialog<string?>(owner);
+        return ShowDialog<string?>(owner: owner);
     }
 }

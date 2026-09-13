@@ -12,27 +12,27 @@ internal static partial class SetupEnvironment {
     /// <summary>
     /// Disallowed environment variables to prevent information disclosure from Lua.
     /// </summary>
-    private static readonly HashSet<string> DisallowedEnv = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+    private static readonly HashSet<string> DisallowedEnv = new HashSet<string>(comparer: StringComparer.OrdinalIgnoreCase) {
         "TMP", "TEMP", "Path", "OneDrive", "ComSpec", "DriverData", "PSModulePath", "USERNAME", "windir"
     };
 
     internal static void LuaEnvironment(LuaWorld _LuaWorld) {
 
-        _LuaWorld.LuaScript.Globals["loadfile"] = DynValue.Nil;     // Remove ability to load arbitrary files
-        _LuaWorld.LuaScript.Globals["dofile"] = DynValue.Nil;       // Remove ability to execute arbitrary files
+        _LuaWorld.LuaScript.Globals[key: "loadfile"] = DynValue.Nil;     // Remove ability to load arbitrary files
+        _LuaWorld.LuaScript.Globals[key: "dofile"] = DynValue.Nil;       // Remove ability to execute arbitrary files
 
         // Remove entire io table
-        if (_LuaWorld.LuaScript.Globals.Get("io").Type == DataType.Table) {
-            _LuaWorld.LuaScript.Globals["io"] = DynValue.Nil;
+        if (_LuaWorld.LuaScript.Globals.Get(key: "io").Type == DataType.Table) {
+            _LuaWorld.LuaScript.Globals[key: "io"] = DynValue.Nil;
         }
         // Remove entire os table
-        if (_LuaWorld.LuaScript.Globals.Get("os").Type == DataType.Table) {
-            _LuaWorld.LuaScript.Globals["os"] = DynValue.Nil;
+        if (_LuaWorld.LuaScript.Globals.Get(key: "os").Type == DataType.Table) {
+            _LuaWorld.LuaScript.Globals[key: "os"] = DynValue.Nil;
         }
 
-        CreateOsTable(_LuaWorld);
+        CreateOsTable(_LuaWorld: _LuaWorld);
 
-        CreateIoTable(_LuaWorld);
+        CreateIoTable(_LuaWorld: _LuaWorld);
     }
 
 

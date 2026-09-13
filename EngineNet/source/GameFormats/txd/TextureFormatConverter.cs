@@ -32,7 +32,7 @@ internal static class TextureFormatConverter {
             throw new Sys.TxdExportException($"          FATAL ERROR: Unknown or unsupported format code 0x{fmtCode:X2} for texture '{nameInfo.Name}' (File 0x{nameInfo.OriginalFileOffset:X}).");
         }
 
-        int expectedBaseSize = GetExpectedBaseMipSize(width, height, exportFormat);
+        int expectedBaseSize = GetExpectedBaseMipSize(width: width, height: height, format: exportFormat);
         int safeMipMapCount = mipMapCountFromFile;
 
         if (actualMipDataSize <= expectedBaseSize && mipMapCountFromFile > 1) {
@@ -41,15 +41,15 @@ internal static class TextureFormatConverter {
         }
 
         if (fmtCode == 0x52) {
-            ddsHeader = CreateDdsHeader.Dxt(width, height, safeMipMapCount, "DXT1");
+            ddsHeader = CreateDdsHeader.Dxt(width: width, height: height, mipMapCountFromFile: safeMipMapCount, fourcc: "DXT1");
             outputPixels = swizzledBaseMipData.ToArray();
             utils.Log.Debug($"        DXT1 format detected. Size: {actualMipDataSize} bytes.");
         } else if (fmtCode == 0x53) {
-            ddsHeader = CreateDdsHeader.Dxt(width, height, safeMipMapCount, "DXT3");
+            ddsHeader = CreateDdsHeader.Dxt(width: width, height: height, mipMapCountFromFile: safeMipMapCount, fourcc: "DXT3");
             outputPixels = swizzledBaseMipData.ToArray();
             utils.Log.Debug($"        DXT3 format detected. Size: {actualMipDataSize} bytes.");
         } else if (fmtCode == 0x54) {
-            ddsHeader = CreateDdsHeader.Dxt(width, height, safeMipMapCount, "DXT5");
+            ddsHeader = CreateDdsHeader.Dxt(width: width, height: height, mipMapCountFromFile: safeMipMapCount, fourcc: "DXT5");
             outputPixels = swizzledBaseMipData.ToArray();
             utils.Log.Debug($"        DXT5 format detected. Size: {actualMipDataSize} bytes.");
         } else if (fmtCode == 0x86) {
@@ -62,7 +62,7 @@ internal static class TextureFormatConverter {
                 throw new Sys.TxdExportException($"          FATAL ERROR: Data size mismatch for BGRA '{nameInfo.Name}' (File 0x{nameInfo.OriginalFileOffset:X}): expected {expectedSize}, got {actualMipDataSize}.");
             }
 
-            byte[]? linear = utils.Util.UnswizzleData(swizzledBaseMipData, width, height, bytesPerPixelForUns);
+            byte[]? linear = utils.Util.UnswizzleData(swizzledData: swizzledBaseMipData, width: width, height: height, bytesPerPixel: bytesPerPixelForUns);
             if (linear != null) {
                 outputPixels = new byte[linear.Length];
                 for (int pix = 0; pix < linear.Length; pix += 4) {
@@ -71,7 +71,7 @@ internal static class TextureFormatConverter {
                     outputPixels[pix + 2] = linear[pix + 0];
                     outputPixels[pix + 3] = linear[pix + 3];
                 }
-                ddsHeader = CreateDdsHeader.Rgba(width, height, safeMipMapCount);
+                ddsHeader = CreateDdsHeader.Rgba(width: width, height: height, mipMapCount: safeMipMapCount);
             }
         } else if (fmtCode == 0x02) {
             exportFormat = "RGBA8888 (from Swizzled A8 or P8A8)";
@@ -80,7 +80,7 @@ internal static class TextureFormatConverter {
             if (actualMipDataSize >= width * height && actualMipDataSize < width * height * 2) {
                 utils.Log.Debug($"        A8 format detected. Size: {actualMipDataSize} bytes.");
                 bytesPerPixelForUns = 1;
-                byte[]? linear = utils.Util.UnswizzleData(swizzledBaseMipData, width, height, bytesPerPixelForUns);
+                byte[]? linear = utils.Util.UnswizzleData(swizzledData: swizzledBaseMipData, width: width, height: height, bytesPerPixel: bytesPerPixelForUns);
                 if (linear != null) {
                     outputPixels = new byte[width * height * 4];
                     for (int pix = 0; pix < width * height; pix++) {
@@ -91,11 +91,11 @@ internal static class TextureFormatConverter {
                         outputPixels[idx + 2] = 0;
                         outputPixels[idx + 3] = alpha;
                     }
-                    ddsHeader = CreateDdsHeader.Rgba(width, height, safeMipMapCount);
+                    ddsHeader = CreateDdsHeader.Rgba(width: width, height: height, mipMapCount: safeMipMapCount);
                 }
             } else if (actualMipDataSize >= width * height * 2) {
                 bytesPerPixelForUns = 2;
-                byte[]? linear = utils.Util.UnswizzleData(swizzledBaseMipData, width, height, bytesPerPixelForUns);
+                byte[]? linear = utils.Util.UnswizzleData(swizzledData: swizzledBaseMipData, width: width, height: height, bytesPerPixel: bytesPerPixelForUns);
                 if (linear != null) {
                     outputPixels = new byte[width * height * 4];
                     utils.Log.Debug($"        P8A8/L8A8 format detected. Size: {actualMipDataSize} bytes.");
@@ -109,7 +109,7 @@ internal static class TextureFormatConverter {
                         outputPixels[outIdx + 2] = p8;
                         outputPixels[outIdx + 3] = a8;
                     }
-                    ddsHeader = CreateDdsHeader.Rgba(width, height, safeMipMapCount);
+                    ddsHeader = CreateDdsHeader.Rgba(width: width, height: height, mipMapCount: safeMipMapCount);
                 }
             } else {
                 throw new Sys.TxdExportException($"          FATAL ERROR: Data size mismatch for Format 0x02 '{nameInfo.Name}' (File 0x{nameInfo.OriginalFileOffset:X}): expected at least {width * height}, got {actualMipDataSize}.");
@@ -118,14 +118,14 @@ internal static class TextureFormatConverter {
             throw new Sys.TxdExportException($"          FATAL ERROR: Unknown or unsupported format code 0x{fmtCode:X2} for texture '{nameInfo.Name}' (File 0x{nameInfo.OriginalFileOffset:X}).");
         }
 
-        return new ConversionResult(ddsHeader, outputPixels, exportFormat, needsUnswizzle, bytesPerPixelForUns);
+        return new ConversionResult(header: ddsHeader, pixels: outputPixels, format: exportFormat, needsUnswizzle: needsUnswizzle, bytesPerPixel: bytesPerPixelForUns);
     }
 
     private static int GetExpectedBaseMipSize(int width, int height, string format) {
         if (!format.StartsWith("DXT")) return width * height * 4;
         int blockSize = (format == "DXT1") ? 8 : 16;
-        int blocksX = Math.Max(1, (width + 3) / 4);
-        int blocksY = Math.Max(1, (height + 3) / 4);
+        int blocksX = Math.Max(val1: 1, val2: (width + 3) / 4);
+        int blocksY = Math.Max(val1: 1, val2: (height + 3) / 4);
         return blocksX * blocksY * blockSize;
         // Default for RGBA8888 (fmtCode 0x86, 0x02)
     }

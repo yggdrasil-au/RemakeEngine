@@ -2,7 +2,7 @@ namespace EngineNet.GameFormats.p3d;
 
 internal static class P3dEnum {
     internal static ChunkType ChunkTypeFromRaw(uint raw) {
-        if (!Enum.IsDefined(typeof(ChunkType), raw)) {
+        if (!Enum.IsDefined(enumType: typeof(ChunkType), raw)) {
             throw new P3dParseException($"Unrecognized chunk type: 0x{raw:X8}");
         }
 
@@ -10,11 +10,11 @@ internal static class P3dEnum {
     }
 
     internal static TEnum EnumFromRaw<TEnum>(uint raw) where TEnum : struct, Enum {
-        if (!Enum.IsDefined(typeof(TEnum), raw)) {
+        if (!Enum.IsDefined(enumType: typeof(TEnum), raw)) {
             throw new P3dParseException($"Unrecognized enum value 0x{raw:X8} for {typeof(TEnum).Name}");
         }
 
-        return (TEnum)Enum.ToObject(typeof(TEnum), raw);
+        return (TEnum)Enum.ToObject(enumType: typeof(TEnum), raw);
     }
 }
 
@@ -67,17 +67,17 @@ internal sealed class Chunk {
     internal static List<Chunk> ParseRoot(ByteReader bytes) {
         List<Chunk> chunks = new();
 
-        ChunkType typ = P3dEnum.ChunkTypeFromRaw(bytes.PeekUInt32Le());
+        ChunkType typ = P3dEnum.ChunkTypeFromRaw(raw: bytes.PeekUInt32Le());
         if (typ != ChunkType.DataFile) {
             throw new P3dParseException($"{typ} P3D files aren't currently supported.");
         }
 
-        Parse(bytes, chunks, parent: null, relativeIndex: 0);
+        Parse(bytes: bytes, chunks: chunks, parent: null, relativeIndex: 0);
         return chunks;
     }
 
     internal static int Parse(ByteReader bytes, List<Chunk> chunks, int? parent, int relativeIndex) {
-        ChunkType typ = P3dEnum.ChunkTypeFromRaw(bytes.SafeGetUInt32Le());
+        ChunkType typ = P3dEnum.ChunkTypeFromRaw(raw: bytes.SafeGetUInt32Le());
         uint dataSize = bytes.SafeGetUInt32Le();
         uint totalSize = bytes.SafeGetUInt32Le();
 
@@ -86,23 +86,23 @@ internal sealed class Chunk {
         }
 
         int expectedParseSize = checked((int)(dataSize - 12));
-        ByteReader dataSlice = bytes.SafeSlice(0, expectedParseSize);
+        ByteReader dataSlice = bytes.SafeSlice(startOffset: 0, length: expectedParseSize);
 
         ChunkData data;
         try {
-            data = ChunkDataFactory.FromChunkType(typ, dataSlice);
+            data = ChunkDataFactory.FromChunkType(typ: typ, bytes: dataSlice);
         } catch (Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[P3dChunkTree::Parse()] Failed parsing chunk data for '{typ}'.", ex);
-            string lineage = parent.HasValue ? chunks[parent.Value].GetLineage(chunks) : "Unknown";
+            Shared.IO.Diagnostics.Bug($"[P3dChunkTree::Parse()] Failed parsing chunk data for '{typ}'.", ex: ex);
+            string lineage = parent.HasValue ? chunks[index: parent.Value].GetLineage(chunks: chunks) : "Unknown";
             string detail = ex.InnerException?.Message ?? ex.Message;
-            throw new P3dParseException($"Error: Could not parse data for {typ}. Lineage Info: {lineage}. Details: {detail}", ex);
+            throw new P3dParseException($"Error: Could not parse data for {typ}. Lineage Info: {lineage}. Details: {detail}", innerException: ex);
         }
 
         int index = chunks.Count;
-        chunks.Add(new Chunk(
+        chunks.Add(item: new Chunk(
             typ: typ,
             data: data,
-            span: new ChunkSpan(index, relativeIndex),
+            span: new ChunkSpan(AbsoluteIndex: index, RelativeIndex: relativeIndex),
             parent: parent
         ));
 
@@ -111,17 +111,17 @@ internal sealed class Chunk {
         if (!dataSlice.IsEmpty) {
             int actuallyConsumed = expectedParseSize - dataSlice.Remaining;
             int potentialChildrenSize = checked((int)totalSize) - actuallyConsumed - 12;
-            ByteReader potentialChildrenSlice = bytes.SafeSlice(actuallyConsumed, potentialChildrenSize);
+            ByteReader potentialChildrenSlice = bytes.SafeSlice(startOffset: actuallyConsumed, length: potentialChildrenSize);
 
             int childCount = 0;
             int parsedSoFar = 0;
             while (parsedSoFar < potentialChildrenSize) {
                 int beforeParse = potentialChildrenSlice.Remaining;
                 try {
-                    int child = Parse(potentialChildrenSlice, chunks, index, childCount);
-                    children.Add(child);
+                    int child = Parse(bytes: potentialChildrenSlice, chunks: chunks, parent: index, relativeIndex: childCount);
+                    children.Add(item: child);
                 } catch (Exception ex) {
-                    Shared.IO.Diagnostics.Bug("[P3dChunkTree::Parse()] Failed parsing potential child chunk; stopping child scan.", ex);
+                    Shared.IO.Diagnostics.Bug("[P3dChunkTree::Parse()] Failed parsing potential child chunk; stopping child scan.", ex: ex);
                     break;
                 }
 
@@ -131,7 +131,7 @@ internal sealed class Chunk {
             }
         }
 
-        bytes.SafeAdvance(expectedParseSize);
+        bytes.SafeAdvance(count: expectedParseSize);
 
         if (children.Count == 0 && totalSize > dataSize) {
             int totalChildrenSize = checked((int)(totalSize - dataSize));
@@ -139,15 +139,15 @@ internal sealed class Chunk {
             int childCount = 0;
             while (parsedSoFar < totalChildrenSize) {
                 int beforeParse = bytes.Remaining;
-                int child = Parse(bytes, chunks, index, childCount);
-                children.Add(child);
+                int child = Parse(bytes: bytes, chunks: chunks, parent: index, relativeIndex: childCount);
+                children.Add(item: child);
                 int afterParse = bytes.Remaining;
                 parsedSoFar += beforeParse - afterParse;
                 childCount++;
             }
         }
 
-        chunks[index].Children = children;
+        chunks[index: index].Children = children;
         return index;
     }
 
@@ -156,7 +156,7 @@ internal sealed class Chunk {
         Chunk current = this;
 
         while (current.Parent.HasValue) {
-            Chunk parent = chunks[current.Parent.Value];
+            Chunk parent = chunks[index: current.Parent.Value];
             lineage.Append(" -> ");
             lineage.Append(parent.GetName());
             current = parent;
@@ -178,12 +178,12 @@ internal sealed class Chunk {
             throw new P3dParseException("Invalid child index");
         }
 
-        int childIndex = Children[index];
+        int childIndex = Children[index: index];
         if (childIndex < 0 || childIndex >= chunks.Count) {
             throw new InvalidOperationException("Invariant violated: child index is out of range.");
         }
 
-        return chunks[childIndex];
+        return chunks[index: childIndex];
     }
 
     internal IEnumerable<Chunk> GetChildren(IReadOnlyList<Chunk> chunks) {
@@ -192,12 +192,12 @@ internal sealed class Chunk {
                 throw new InvalidOperationException("Invariant violated: child index is out of range.");
             }
 
-            yield return chunks[childIndex];
+            yield return chunks[index: childIndex];
         }
     }
 
     internal IEnumerable<Chunk> GetChildrenOfType(IReadOnlyList<Chunk> chunks, ChunkType typ) {
-        foreach (Chunk child in GetChildren(chunks)) {
+        foreach (Chunk child in GetChildren(chunks: chunks)) {
             if (child.Typ == typ) {
                 yield return child;
             }
@@ -211,6 +211,6 @@ internal static class VecChunkExtension {
             throw new P3dParseException("Vec does not contain root chunk");
         }
 
-        return chunks[0];
+        return chunks[index: 0];
     }
 }

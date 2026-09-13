@@ -20,7 +20,7 @@ public class GameRegistry {
     }
 
     public Core.Data.GameModules GetModules(Core.Data.ModuleFilter filter) {
-        return _scanner.Modules(filter);
+        return _scanner.Modules(filter: filter);
     }
 
     /// <summary>
@@ -29,7 +29,7 @@ public class GameRegistry {
     /// <param name="name">The name of the game.</param>
     /// <returns>The full path to the game's executable if found; otherwise, null.</returns>
     internal string? GetGameExecutable(string name) {
-        return _registries.DiscoverBuiltGames().TryGetValue(name, out GameInfo? gi) ? gi.ExePath : null;
+        return _registries.DiscoverBuiltGames().TryGetValue(key: name, out GameInfo? gi) ? gi.ExePath : null;
     }
 
     /// <summary>
@@ -40,10 +40,10 @@ public class GameRegistry {
     /// <returns>The root directory path of the game if found; otherwise, null.</returns>
     public string? GetGamePath(string name) {
         // Prefer installed location first, then fall back to downloaded location
-        if (_registries.DiscoverBuiltGames().TryGetValue(name, out GameInfo? gi))
+        if (_registries.DiscoverBuiltGames().TryGetValue(key: name, out GameInfo? gi))
             return gi.GameRoot;
-        string dir = System.IO.Path.Combine(_rootPath, "EngineApps", "Games", name);
-        return System.IO.Directory.Exists(dir) ? dir : null;
+        string dir = System.IO.Path.Combine(path1: _rootPath, path2: "EngineApps", path3: "Games", path4: name);
+        return System.IO.Directory.Exists(path: dir) ? dir : null;
     }
 
     public IReadOnlyDictionary<string, object?> GetRegisteredModules() {

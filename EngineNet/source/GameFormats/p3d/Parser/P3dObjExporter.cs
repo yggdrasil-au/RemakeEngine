@@ -8,28 +8,28 @@ namespace EngineNet.GameFormats.p3d;
 /// Exports parsed Pure3D data to Wavefront OBJ/MTL, following p3d2obj behavior.
 /// </summary>
 internal static class P3dObjExporter {
-    private static readonly Encoding Utf8NoBom = new UTF8Encoding(false, false);
+    private static readonly Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false);
 
     private readonly record struct ObjGroupOffsets(PrimGroupView Group, int VertexOffset, int UvOffset, int NormalOffset);
 
     internal static void ExportAllToObj(string sourceFilename, IReadOnlyList<Chunk> tree, string destinationFolder) {
-        System.IO.Directory.CreateDirectory(destinationFolder);
+        System.IO.Directory.CreateDirectory(path: destinationFolder);
 
-        List<HighLevelType> highLevelTypes = P3dHighLevel.ParseHighLevelTypes(tree);
+        List<HighLevelType> highLevelTypes = P3dHighLevel.ParseHighLevelTypes(tree: tree);
         foreach (HighLevelType highLevelType in highLevelTypes) {
             switch (highLevelType) {
                 case HighLevelType.MeshType meshType:
-                    ExportMeshOrSkin(destinationFolder, meshType.Mesh.Name, meshType.Mesh.PrimGroups, meshType.Mesh.Shaders, meshType.Mesh.Textures);
+                    ExportMeshOrSkin(destinationFolder: destinationFolder, modelName: meshType.Mesh.Name, primGroups: meshType.Mesh.PrimGroups, shaders: meshType.Mesh.Shaders, textures: meshType.Mesh.Textures);
                     break;
                 case HighLevelType.SkinType skinType:
                     Shared.IO.Diagnostics.Log($"[p3d] Warning: OBJ does not support skeletons/weights. Exporting skin '{skinType.Skin.Name}' as static mesh.");
-                    Shared.IO.UI.EngineSdk.PrintLine($"[p3d] Warning: OBJ does not support skeletons/weights. Exporting skin '{skinType.Skin.Name}' as static mesh.", ConsoleColor.Yellow);
-                    ExportMeshOrSkin(destinationFolder, skinType.Skin.Name, skinType.Skin.PrimGroups, skinType.Skin.Shaders, skinType.Skin.Textures);
+                    Shared.IO.UI.EngineSdk.PrintLine($"[p3d] Warning: OBJ does not support skeletons/weights. Exporting skin '{skinType.Skin.Name}' as static mesh.", color: ConsoleColor.Yellow);
+                    ExportMeshOrSkin(destinationFolder: destinationFolder, modelName: skinType.Skin.Name, primGroups: skinType.Skin.PrimGroups, shaders: skinType.Skin.Shaders, textures: skinType.Skin.Textures);
                     break;
             }
         }
 
-        Shared.IO.Diagnostics.Log($"[p3d] OBJ export completed for {System.IO.Path.GetFileName(sourceFilename)}");
+        Shared.IO.Diagnostics.Log($"[p3d] OBJ export completed for {System.IO.Path.GetFileName(path: sourceFilename)}");
     }
 
     private static void ExportMeshOrSkin(
@@ -39,47 +39,47 @@ internal static class P3dObjExporter {
         IReadOnlyList<ShaderView> shaders,
         IReadOnlyList<(string Name, ImageFormat Format, byte[] Data)> textures
     ) {
-        string objPath = System.IO.Path.Combine(destinationFolder, $"{modelName}.obj");
-        string mtlPath = System.IO.Path.Combine(destinationFolder, $"{modelName}.mtl");
+        string objPath = System.IO.Path.Combine(path1: destinationFolder, path2: $"{modelName}.obj");
+        string mtlPath = System.IO.Path.Combine(path1: destinationFolder, path2: $"{modelName}.mtl");
 
-        List<ObjGroupOffsets> groups = BuildGroupOffsets(primGroups);
+        List<ObjGroupOffsets> groups = BuildGroupOffsets(primGroups: primGroups);
 
-        using (StreamWriter obj = new(objPath, false, Utf8NoBom)) {
+        using (StreamWriter obj = new(path: objPath, append: false, encoding: Utf8NoBom)) {
             obj.WriteLine("s 1");
-            obj.WriteLine($"mtllib {System.IO.Path.GetFileName(mtlPath)}");
+            obj.WriteLine($"mtllib {System.IO.Path.GetFileName(path: mtlPath)}");
 
             foreach (ObjGroupOffsets group in groups) {
-                WriteVertices(obj, group.Group.Vertices);
+                WriteVertices(writer: obj, vertices: group.Group.Vertices);
             }
 
             foreach (ObjGroupOffsets group in groups) {
-                WriteNormals(obj, group.Group.Normals);
+                WriteNormals(writer: obj, normals: group.Group.Normals);
             }
 
             foreach (ObjGroupOffsets group in groups) {
-                WriteUvs(obj, group.Group.UvMap);
+                WriteUvs(writer: obj, uvs: group.Group.UvMap);
             }
 
             obj.WriteLine($"g {modelName}");
 
             foreach (ObjGroupOffsets group in groups) {
-                WriteFaces(obj, group);
+                WriteFaces(writer: obj, groupOffsets: group);
             }
         }
 
-        WriteMaterials(mtlPath, shaders, textures);
-        WriteTextureFiles(destinationFolder, textures);
+        WriteMaterials(mtlPath: mtlPath, shaders: shaders, textures: textures);
+        WriteTextureFiles(destinationFolder: destinationFolder, textures: textures);
     }
 
     private static List<ObjGroupOffsets> BuildGroupOffsets(IReadOnlyList<PrimGroupView> primGroups) {
-        List<ObjGroupOffsets> groups = new(primGroups.Count);
+        List<ObjGroupOffsets> groups = new(capacity: primGroups.Count);
 
         int vertexOffset = 0;
         int uvOffset = 0;
         int normalOffset = 0;
 
         foreach (PrimGroupView primGroup in primGroups) {
-            groups.Add(new ObjGroupOffsets(primGroup, vertexOffset, uvOffset, normalOffset));
+            groups.Add(item: new ObjGroupOffsets(Group: primGroup, VertexOffset: vertexOffset, UvOffset: uvOffset, NormalOffset: normalOffset));
 
             if (primGroup.Vertices is { Count: > 0 } vertices) {
                 vertexOffset += vertices.Count;
@@ -103,7 +103,7 @@ internal static class P3dObjExporter {
         }
 
         for (int i = 0; i < vertices.Count; i++) {
-            Vector3 value = vertices[i];
+            Vector3 value = vertices[index: i];
             writer.WriteLine($"v {FormatFloat(value.X)} {FormatFloat(value.Y)} {FormatFloat(value.Z)}");
         }
     }
@@ -114,7 +114,7 @@ internal static class P3dObjExporter {
         }
 
         for (int i = 0; i < normals.Count; i++) {
-            Vector3 value = normals[i];
+            Vector3 value = normals[index: i];
             writer.WriteLine($"vn {FormatFloat(value.X)} {FormatFloat(value.Y)} {FormatFloat(value.Z)}");
         }
     }
@@ -125,7 +125,7 @@ internal static class P3dObjExporter {
         }
 
         for (int i = 0; i < uvs.Count; i++) {
-            Vector2 value = uvs[i];
+            Vector2 value = uvs[index: i];
             writer.WriteLine($"vt {FormatFloat(value.X)} {FormatFloat(value.Y)}");
         }
     }
@@ -145,18 +145,18 @@ internal static class P3dObjExporter {
         switch (group.PrimitiveType) {
             case PrimitiveType.TriangleList:
                 for (int i = 0; i + 2 < indices.Count; i += 3) {
-                    int one = checked((int)indices[i]) + 1;
-                    int two = checked((int)indices[i + 1]) + 1;
-                    int three = checked((int)indices[i + 2]) + 1;
+                    int one = checked((int)indices[index: i]) + 1;
+                    int two = checked((int)indices[index: i + 1]) + 1;
+                    int three = checked((int)indices[index: i + 2]) + 1;
 
-                    WriteFace(writer, hasUv, hasNormal, groupOffsets, three, two, one);
+                    WriteFace(writer: writer, hasUv: hasUv, hasNormal: hasNormal, offsets: groupOffsets, one: three, two: two, three: one);
                 }
                 break;
             case PrimitiveType.TriangleStrip:
                 for (int i = 0; i + 2 < indices.Count; i++) {
-                    int sourceOne = checked((int)indices[i]) + 1;
-                    int sourceTwo = checked((int)indices[i + 1]) + 1;
-                    int sourceThree = checked((int)indices[i + 2]) + 1;
+                    int sourceOne = checked((int)indices[index: i]) + 1;
+                    int sourceTwo = checked((int)indices[index: i + 1]) + 1;
+                    int sourceThree = checked((int)indices[index: i + 2]) + 1;
 
                     int one;
                     int two;
@@ -171,7 +171,7 @@ internal static class P3dObjExporter {
                         three = sourceThree;
                     }
 
-                    WriteFace(writer, hasUv, hasNormal, groupOffsets, three, two, one);
+                    WriteFace(writer: writer, hasUv: hasUv, hasNormal: hasNormal, offsets: groupOffsets, one: three, two: two, three: one);
                 }
                 break;
             case PrimitiveType.LineList:
@@ -192,9 +192,9 @@ internal static class P3dObjExporter {
         int two,
         int three
     ) {
-        string a = BuildFaceVertex(one, offsets.VertexOffset, offsets.UvOffset, offsets.NormalOffset, hasUv, hasNormal);
-        string b = BuildFaceVertex(two, offsets.VertexOffset, offsets.UvOffset, offsets.NormalOffset, hasUv, hasNormal);
-        string c = BuildFaceVertex(three, offsets.VertexOffset, offsets.UvOffset, offsets.NormalOffset, hasUv, hasNormal);
+        string a = BuildFaceVertex(one, vertexOffset: offsets.VertexOffset, uvOffset: offsets.UvOffset, normalOffset: offsets.NormalOffset, hasUv: hasUv, hasNormal: hasNormal);
+        string b = BuildFaceVertex(two, vertexOffset: offsets.VertexOffset, uvOffset: offsets.UvOffset, normalOffset: offsets.NormalOffset, hasUv: hasUv, hasNormal: hasNormal);
+        string c = BuildFaceVertex(three, vertexOffset: offsets.VertexOffset, uvOffset: offsets.UvOffset, normalOffset: offsets.NormalOffset, hasUv: hasUv, hasNormal: hasNormal);
 
         writer.WriteLine($"f {a} {b} {c}");
     }
@@ -224,7 +224,7 @@ internal static class P3dObjExporter {
             return $"{vertex}//{normal}";
         }
 
-        return vertex.ToString(CultureInfo.InvariantCulture);
+        return vertex.ToString(provider: CultureInfo.InvariantCulture);
     }
 
     private static void WriteMaterials(
@@ -232,28 +232,28 @@ internal static class P3dObjExporter {
         IReadOnlyList<ShaderView> shaders,
         IReadOnlyList<(string Name, ImageFormat Format, byte[] Data)> textures
     ) {
-        using StreamWriter mtl = new(mtlPath, false, Utf8NoBom);
+        using StreamWriter mtl = new(path: mtlPath, append: false, encoding: Utf8NoBom);
 
         for (int i = 0; i < shaders.Count; i++) {
-            ShaderView shader = shaders[i];
+            ShaderView shader = shaders[index: i];
             mtl.WriteLine($"newmtl {shader.Name}");
 
-            if (TryGetShaderColour(shader, "AMBI", out P3dColour ambi)) {
-                WriteMtlColour(mtl, "Ka", ambi);
+            if (TryGetShaderColour(shader: shader, key: "AMBI", colour: out P3dColour ambi)) {
+                WriteMtlColour(writer: mtl, label: "Ka", colour: ambi);
             }
 
-            if (TryGetShaderColour(shader, "DIFF", out P3dColour diff)) {
-                WriteMtlColour(mtl, "Kd", diff);
+            if (TryGetShaderColour(shader: shader, key: "DIFF", colour: out P3dColour diff)) {
+                WriteMtlColour(writer: mtl, label: "Kd", colour: diff);
             } else {
                 mtl.WriteLine("Kd 1 1 1");
             }
 
-            if (TryGetShaderColour(shader, "SPEC", out P3dColour spec)) {
-                WriteMtlColour(mtl, "Ks", spec);
+            if (TryGetShaderColour(shader: shader, key: "SPEC", colour: out P3dColour spec)) {
+                WriteMtlColour(writer: mtl, label: "Ks", colour: spec);
             }
 
-            if (TryGetShaderTexture(shader, out string textureName)) {
-                string extension = ResolveTextureExtension(textureName, textures);
+            if (TryGetShaderTexture(shader: shader, textureName: out string textureName)) {
+                string extension = ResolveTextureExtension(textureName: textureName, textures: textures);
                 mtl.WriteLine($"map_Kd {textureName}.{extension}");
             }
         }
@@ -261,16 +261,16 @@ internal static class P3dObjExporter {
 
     private static void WriteTextureFiles(string destinationFolder, IReadOnlyList<(string Name, ImageFormat Format, byte[] Data)> textures) {
         for (int i = 0; i < textures.Count; i++) {
-            (string Name, ImageFormat Format, byte[] Data) texture = textures[i];
-            string extension = ImageFormatToExtension(texture.Format);
-            string filePath = System.IO.Path.Combine(destinationFolder, $"{texture.Name}.{extension}");
-            System.IO.File.WriteAllBytes(filePath, texture.Data);
+            (string Name, ImageFormat Format, byte[] Data) texture = textures[index: i];
+            string extension = ImageFormatToExtension(format: texture.Format);
+            string filePath = System.IO.Path.Combine(path1: destinationFolder, path2: $"{texture.Name}.{extension}");
+            System.IO.File.WriteAllBytes(path: filePath, bytes: texture.Data);
         }
     }
 
     private static bool TryGetShaderColour(ShaderView shader, string key, out P3dColour colour) {
         for (int i = 0; i < shader.Params.Count; i++) {
-            ShaderParamPayload param = shader.Params[i];
+            ShaderParamPayload param = shader.Params[index: i];
             if (param.Param == key && param.ValueKind == ShaderParamValueKind.Colour) {
                 colour = param.ColourValue;
                 return true;
@@ -283,7 +283,7 @@ internal static class P3dObjExporter {
 
     private static bool TryGetShaderTexture(ShaderView shader, out string textureName) {
         for (int i = 0; i < shader.Params.Count; i++) {
-            ShaderParamPayload param = shader.Params[i];
+            ShaderParamPayload param = shader.Params[index: i];
             if (param.Param == "TEX" && param.ValueKind == ShaderParamValueKind.Texture && !string.IsNullOrWhiteSpace(param.TextureValue)) {
                 textureName = param.TextureValue;
                 return true;
@@ -296,8 +296,8 @@ internal static class P3dObjExporter {
 
     private static string ResolveTextureExtension(string textureName, IReadOnlyList<(string Name, ImageFormat Format, byte[] Data)> textures) {
         for (int i = 0; i < textures.Count; i++) {
-            if (textures[i].Name == textureName) {
-                return ImageFormatToExtension(textures[i].Format);
+            if (textures[index: i].Name == textureName) {
+                return ImageFormatToExtension(format: textures[index: i].Format);
             }
         }
 
@@ -330,6 +330,6 @@ internal static class P3dObjExporter {
     }
 
     private static string FormatFloat(float value) {
-        return value.ToString("R", CultureInfo.InvariantCulture);
+        return value.ToString(format: "R", provider: CultureInfo.InvariantCulture);
     }
 }

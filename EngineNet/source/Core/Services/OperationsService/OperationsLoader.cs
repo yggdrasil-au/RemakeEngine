@@ -16,9 +16,9 @@ public class OperationsLoader {
     internal List<Dictionary<string, object?>>? LoadOperations(string opsFile) {
         try {
             // Determine file type by extension
-            string ext = System.IO.Path.GetExtension(opsFile);
-            if (ext.Equals(".toml", System.StringComparison.OrdinalIgnoreCase)) {
-                object root = Shared.Serialization.Toml.TomlHelpers.ParseFileToPlainObject(opsFile);
+            string ext = System.IO.Path.GetExtension(path: opsFile);
+            if (ext.Equals(".toml", comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
+                object root = Shared.Serialization.Toml.TomlHelpers.ParseFileToPlainObject(path: opsFile);
                 List<Dictionary<string, object?>> list = new List<Dictionary<string, object?>>();
 
                 // root is a TomlTable (dictionary-like)
@@ -27,18 +27,18 @@ public class OperationsLoader {
                     // We also support arbitrary keys that contain lists of operations per schema.
                     foreach (object keyObj in table.Keys) {
                         string key = keyObj.ToString() ?? "";
-                        object? val = table[key];
+                        object? val = table[key: key];
 
                         if (val is IEnumerable arr && val is not string) {
                             foreach (object? item in arr) {
                                 if (item is IDictionary tt) {
                                     // Convert IDictionary to Dictionary<string, object?> for consistency
-                                    var opDict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+                                    var opDict = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
                                     foreach (DictionaryEntry de in tt) {
-                                        opDict[de.Key.ToString() ?? ""] = de.Value;
+                                        opDict[key: de.Key.ToString() ?? ""] = de.Value;
                                     }
-                                    opDict["_source_file"] = opsFile;
-                                    list.Add(opDict);
+                                    opDict[key: "_source_file"] = opsFile;
+                                    list.Add(item: opDict);
                                 }
                             }
                         }
@@ -49,15 +49,15 @@ public class OperationsLoader {
             }
 
             // JSON
-            using System.IO.FileStream fs = System.IO.File.OpenRead(opsFile);
-            using System.Text.Json.JsonDocument jdoc = System.Text.Json.JsonDocument.Parse(fs);
+            using System.IO.FileStream fs = System.IO.File.OpenRead(path: opsFile);
+            using System.Text.Json.JsonDocument jdoc = System.Text.Json.JsonDocument.Parse(utf8Json: fs);
             if (jdoc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array) {
                 List<Dictionary<string, object?>> list = new List<Dictionary<string, object?>>();
                 foreach (System.Text.Json.JsonElement item in jdoc.RootElement.EnumerateArray()) {
                     if (item.ValueKind == System.Text.Json.JsonValueKind.Object) {
-                        var map = Operations.ToMap(item);
-                        map["_source_file"] = opsFile;
-                        list.Add(map);
+                        var map = Operations.ToMap(obj: item);
+                        map[key: "_source_file"] = opsFile;
+                        list.Add(item: map);
                     }
                 }
                 Shared.IO.Diagnostics.Trace($"[OperationsLoader] loaded {list.Count} operations from ops file '{opsFile}'.");
@@ -72,9 +72,9 @@ public class OperationsLoader {
                     if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Array) {
                         foreach (System.Text.Json.JsonElement item in prop.Value.EnumerateArray()) {
                             if (item.ValueKind == System.Text.Json.JsonValueKind.Object) {
-                                var map = Operations.ToMap(item);
-                                map["_source_file"] = opsFile;
-                                flat.Add(map);
+                                var map = Operations.ToMap(obj: item);
+                                map[key: "_source_file"] = opsFile;
+                                flat.Add(item: map);
                             }
                         }
                     }
@@ -94,7 +94,7 @@ public class OperationsLoader {
 }
 
 internal sealed class Operations {
-    internal static Dictionary<string, object?> ToMap(Tomlyn.Model.TomlTable table) => Shared.Serialization.DocModelConverter.FromTomlTable(table);
+    internal static Dictionary<string, object?> ToMap(Tomlyn.Model.TomlTable table) => Shared.Serialization.DocModelConverter.FromTomlTable(table: table);
 
-    internal static Dictionary<string, object?> ToMap(System.Text.Json.JsonElement obj) => Shared.Serialization.DocModelConverter.FromJsonObject(obj);
+    internal static Dictionary<string, object?> ToMap(System.Text.Json.JsonElement obj) => Shared.Serialization.DocModelConverter.FromJsonObject(obj: obj);
 }

@@ -15,6 +15,8 @@ resharper_redundant_base_qualifier_highlighting = none
 # To allow redundant type name qualifiers
 resharper_redundant_name_qualifier_highlighting = none
 
+csharp_style_arguments_named_expression = none
+
 dotnet_diagnostic.IDE0051.severity = warning
 
 

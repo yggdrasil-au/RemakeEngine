@@ -12,7 +12,7 @@ public partial class BuildingPage:UserControl {
     }
 
     public BuildingPage() {
-        Button_ClearOutput_Click = new Cmd(async _ => await Service.ClearAsync());
+        Button_ClearOutput_Click = new Cmd(run: async _ => await Service.ClearAsync());
 
         InitializeComponent();
         DataContext = this;
@@ -60,7 +60,7 @@ public partial class BuildingPage:UserControl {
 
     private void TryAutoScroll() {
         if (!_autoScrollEnabled) return;
-        Dispatcher.UIThread.Post(ScrollToEndSafe, DispatcherPriority.Background);
+        Dispatcher.UIThread.Post(action: ScrollToEndSafe, priority: DispatcherPriority.Background);
     }
 
     private void UpdateAutoScrollFlag() {
@@ -95,44 +95,44 @@ public partial class BuildingPage:UserControl {
     private void SeedDesignData() {
         OperationOutputService svc = Service;
         if (svc.Lines.Count == 0) {
-            svc.StartOperation("Build Assets", "Sample Game");
-            svc.AddOutput("Preparing workspace...");
-            svc.AddOutput("Downloading dependencies...");
+            svc.StartOperation(operationName: "Build Assets", gameName: "Sample Game");
+            svc.AddOutput(text: "Preparing workspace...");
+            svc.AddOutput(text: "Downloading dependencies...");
         }
 
         Dictionary<string, object?> progressStart = new Dictionary<string, object?> {
-            ["event"] = EngineSdk.Events.ProgressPanelStart,
-            ["reserve"] = 6
+            [key: "event"] = EngineSdk.Events.ProgressPanelStart,
+            [key: "reserve"] = 6
         };
-        svc.HandleEvent(progressStart);
+        svc.HandleEvent(evt: progressStart);
 
         Dictionary<string, object?> progressPayload = new Dictionary<string, object?> {
-            ["event"] = EngineSdk.Events.ProgressPanel,
-            ["label"] = "Packaging",
-            ["spinner"] = "/",
-            ["active_total"] = 2,
-            ["stats"] = new Dictionary<string, object?> {
-                ["total"] = 10,
-                ["processed"] = 4,
-                ["ok"] = 3,
-                ["skip"] = 0,
-                ["err"] = 1,
-                ["percent"] = 0.4
+            [key: "event"] = EngineSdk.Events.ProgressPanel,
+            [key: "label"] = "Packaging",
+            [key: "spinner"] = "/",
+            [key: "active_total"] = 2,
+            [key: "stats"] = new Dictionary<string, object?> {
+                [key: "total"] = 10,
+                [key: "processed"] = 4,
+                [key: "ok"] = 3,
+                [key: "skip"] = 0,
+                [key: "err"] = 1,
+                [key: "percent"] = 0.4
             },
-            ["active_jobs"] = new List<Dictionary<string, object?>> {
+            [key: "active_jobs"] = new List<Dictionary<string, object?>> {
                 new Dictionary<string, object?> {
-                    ["tool"] = "ffmpeg",
-                    ["file"] = "intro_cutscene.mp4",
-                    ["elapsed"] = "00:12"
+                    [key: "tool"] = "ffmpeg",
+                    [key: "file"] = "intro_cutscene.mp4",
+                    [key: "elapsed"] = "00:12"
                 },
                 new Dictionary<string, object?> {
-                    ["tool"] = "texturec",
-                    ["file"] = "characters/player/body_diffuse.png",
-                    ["elapsed"] = "00:03"
+                    [key: "tool"] = "texturec",
+                    [key: "file"] = "characters/player/body_diffuse.png",
+                    [key: "elapsed"] = "00:03"
                 }
             }
         };
-        svc.HandleEvent(progressPayload);
+        svc.HandleEvent(evt: progressPayload);
     }
 
     /// <summary>
@@ -150,7 +150,7 @@ public partial class BuildingPage:UserControl {
         // Unused, but required by interface
         public bool CanExecute(object? parameter) => true;
         // Unused, but required by interface
-        public async void Execute(object? parameter) => await _run(parameter);
+        public async void Execute(object? parameter) => await _run(arg: parameter);
         // Unused, but required by interface
         public event System.EventHandler? CanExecuteChanged {
             add { }

@@ -11,7 +11,7 @@ internal sealed class P3dParseException : Exception {
     internal P3dParseException(string message) : base(message) {
     }
 
-    internal P3dParseException(string message, Exception innerException) : base(message, innerException) {
+    internal P3dParseException(string message, Exception innerException) : base(message, innerException: innerException) {
     }
 }
 
@@ -156,41 +156,41 @@ internal sealed class ByteReader {
     }
 
     internal uint PeekUInt32Le() {
-        EnsureRemaining(sizeof(uint));
-        return BinaryPrimitives.ReadUInt32LittleEndian(_memory.Span.Slice(_position, sizeof(uint)));
+        EnsureRemaining(size: sizeof(uint));
+        return BinaryPrimitives.ReadUInt32LittleEndian(source: _memory.Span.Slice(start: _position, length: sizeof(uint)));
     }
 
     internal byte SafeGetByte() {
-        EnsureRemaining(sizeof(byte));
-        byte value = _memory.Span[_position];
+        EnsureRemaining(size: sizeof(byte));
+        byte value = _memory.Span[index: _position];
         _position += sizeof(byte);
         return value;
     }
 
     internal ushort SafeGetUInt16Le() {
-        EnsureRemaining(sizeof(ushort));
-        ushort value = BinaryPrimitives.ReadUInt16LittleEndian(_memory.Span.Slice(_position, sizeof(ushort)));
+        EnsureRemaining(size: sizeof(ushort));
+        ushort value = BinaryPrimitives.ReadUInt16LittleEndian(source: _memory.Span.Slice(start: _position, length: sizeof(ushort)));
         _position += sizeof(ushort);
         return value;
     }
 
     internal uint SafeGetUInt32Le() {
-        EnsureRemaining(sizeof(uint));
-        uint value = BinaryPrimitives.ReadUInt32LittleEndian(_memory.Span.Slice(_position, sizeof(uint)));
+        EnsureRemaining(size: sizeof(uint));
+        uint value = BinaryPrimitives.ReadUInt32LittleEndian(source: _memory.Span.Slice(start: _position, length: sizeof(uint)));
         _position += sizeof(uint);
         return value;
     }
 
     internal int SafeGetInt32Le() {
-        EnsureRemaining(sizeof(int));
-        int value = BinaryPrimitives.ReadInt32LittleEndian(_memory.Span.Slice(_position, sizeof(int)));
+        EnsureRemaining(size: sizeof(int));
+        int value = BinaryPrimitives.ReadInt32LittleEndian(source: _memory.Span.Slice(start: _position, length: sizeof(int)));
         _position += sizeof(int);
         return value;
     }
 
     internal float SafeGetSingleLe() {
-        EnsureRemaining(sizeof(float));
-        float value = BinaryPrimitives.ReadSingleLittleEndian(_memory.Span.Slice(_position, sizeof(float)));
+        EnsureRemaining(size: sizeof(float));
+        float value = BinaryPrimitives.ReadSingleLittleEndian(source: _memory.Span.Slice(start: _position, length: sizeof(float)));
         _position += sizeof(float);
         return value;
     }
@@ -200,8 +200,8 @@ internal sealed class ByteReader {
             throw new P3dParseException("Byte count cannot be negative.");
         }
 
-        EnsureRemaining(count);
-        byte[] bytes = _memory.Span.Slice(_position, count).ToArray();
+        EnsureRemaining(size: count);
+        byte[] bytes = _memory.Span.Slice(start: _position, length: count).ToArray();
         _position += count;
         return bytes;
     }
@@ -211,7 +211,7 @@ internal sealed class ByteReader {
             throw new P3dParseException("Advance count cannot be negative.");
         }
 
-        EnsureRemaining(count, isAdvance: true);
+        EnsureRemaining(size: count, isAdvance: true);
         _position += count;
     }
 
@@ -224,7 +224,7 @@ internal sealed class ByteReader {
             throw new P3dParseException("Slice out of bounds.");
         }
 
-        return new ByteReader(_memory.Slice(_position + startOffset, length));
+        return new ByteReader(memory: _memory.Slice(start: _position + startOffset, length: length));
     }
 
     internal string SafeReadPure3dString() {
@@ -238,12 +238,12 @@ internal sealed class ByteReader {
         for (int i = 0; i < count; i++) {
             byte b = SafeGetByte();
             if (b != 0 && b <= 0x7F) {
-                scratch[written] = b;
+                scratch[index: written] = b;
                 written++;
             }
         }
 
-        return Encoding.ASCII.GetString(scratch[..written]);
+        return Encoding.ASCII.GetString(bytes: scratch[..written]);
     }
 
     internal string SafeReadPure3dFourCc() {
@@ -252,32 +252,32 @@ internal sealed class ByteReader {
         for (int i = 0; i < 4; i++) {
             byte b = SafeGetByte();
             if (b != 0 && b <= 0x7F) {
-                scratch[written] = b;
+                scratch[index: written] = b;
                 written++;
             }
         }
 
-        return Encoding.ASCII.GetString(scratch[..written]);
+        return Encoding.ASCII.GetString(bytes: scratch[..written]);
     }
 
     internal Vector2 SafeReadVector2() {
-        return new Vector2(SafeGetSingleLe(), SafeGetSingleLe());
+        return new Vector2(x: SafeGetSingleLe(), y: SafeGetSingleLe());
     }
 
     internal Vector3 SafeReadVector3() {
-        return new Vector3(SafeGetSingleLe(), SafeGetSingleLe(), SafeGetSingleLe());
+        return new Vector3(x: SafeGetSingleLe(), y: SafeGetSingleLe(), z: SafeGetSingleLe());
     }
 
     internal Quaternion SafeReadQuaternion() {
-        return new Quaternion(SafeGetSingleLe(), SafeGetSingleLe(), SafeGetSingleLe(), SafeGetSingleLe());
+        return new Quaternion(x: SafeGetSingleLe(), y: SafeGetSingleLe(), z: SafeGetSingleLe(), w: SafeGetSingleLe());
     }
 
     internal Quaternion SafeReadCompressedQuaternion() {
         return new Quaternion(
-            SafeGetUInt16Le() * QuaternionInverseCompressionFactor,
-            SafeGetUInt16Le() * QuaternionInverseCompressionFactor,
-            SafeGetUInt16Le() * QuaternionInverseCompressionFactor,
-            SafeGetUInt16Le() * QuaternionInverseCompressionFactor
+            x: SafeGetUInt16Le() * QuaternionInverseCompressionFactor,
+            y: SafeGetUInt16Le() * QuaternionInverseCompressionFactor,
+            z: SafeGetUInt16Le() * QuaternionInverseCompressionFactor,
+            w: SafeGetUInt16Le() * QuaternionInverseCompressionFactor
         );
     }
 
@@ -286,7 +286,7 @@ internal sealed class ByteReader {
         byte g = SafeGetByte();
         byte r = SafeGetByte();
         byte a = SafeGetByte();
-        return new P3dColour(a, r, g, b);
+        return new P3dColour(A: a, R: r, G: g, B: b);
     }
 
     internal Matrix4x4 SafeReadMatrix4x4() {
@@ -308,10 +308,10 @@ internal sealed class ByteReader {
         float m44 = SafeGetSingleLe();
 
         return new Matrix4x4(
-            m11, m12, m13, m14,
-            m21, m22, m23, m24,
-            m31, m32, m33, m34,
-            m41, m42, m43, m44
+            m11: m11, m12: m12, m13: m13, m14: m14,
+            m21: m21, m22: m22, m23: m23, m24: m24,
+            m31: m31, m32: m32, m33: m33, m34: m34,
+            m41: m41, m42: m42, m43: m43, m44: m44
         );
     }
 

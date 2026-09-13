@@ -11,7 +11,7 @@ public sealed partial class ProcessRunner {
     private static void TryTerminate(System.Diagnostics.Process proc) {
         try {
             if (!proc.HasExited) {
-                proc.Kill(true);
+                proc.Kill(entireProcessTree: true);
             }
         } catch (System.InvalidOperationException) {
             // Process has already exited between the check and the Kill call
@@ -31,7 +31,7 @@ public sealed partial class ProcessRunner {
                 sb.Append(' ');
             }
 
-            sb.Append(QuoteArg(parts[i]));
+            sb.Append(QuoteArg(arg: parts[index: i]));
         }
         return sb.ToString();
     }
@@ -41,12 +41,12 @@ public sealed partial class ProcessRunner {
             return "\"\"";
         }
 
-        bool needsQuotes = arg.IndexOfAny(new[] { ' ', '\t', '"' }) >= 0;
+        bool needsQuotes = arg.IndexOfAny(anyOf: new[] { ' ', '\t', '"' }) >= 0;
         if (!needsQuotes) {
             return arg;
         }
         // Escape embedded quotes by backslash
-        string escaped = arg.Replace("\"", "\\\"");
+        string escaped = arg.Replace(oldValue: "\"", newValue: "\\\"");
         return "\"" + escaped + "\"";
     }
 
@@ -60,11 +60,11 @@ public sealed partial class ProcessRunner {
         }
 
         // Normalize executable name (remove path and extension for comparison)
-        string exeName = System.IO.Path.GetFileNameWithoutExtension(executable).ToLowerInvariant();
-        string fullName = System.IO.Path.GetFileName(executable).ToLowerInvariant();
+        string exeName = System.IO.Path.GetFileNameWithoutExtension(path: executable).ToLowerInvariant();
+        string fullName = System.IO.Path.GetFileName(path: executable).ToLowerInvariant();
 
         // Check for blocked system utilities and provide SDK alternatives
-        Dictionary<string, string> blockedUtilities = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase) {
+        Dictionary<string, string> blockedUtilities = new Dictionary<string, string>(comparer: System.StringComparer.OrdinalIgnoreCase) {
             { "copy", "sdk.copy_file(src, dst, overwrite)" },
             { "xcopy", "sdk.copy_dir(src, dst, overwrite)" },
             { "robocopy", "sdk.copy_dir(src, dst, overwrite)" },
@@ -82,14 +82,14 @@ public sealed partial class ProcessRunner {
             { "7za", "sdk.extract_archive(archive, dest) or sdk.create_archive(src, dest, 'zip')" }
         };
 
-        if (blockedUtilities.TryGetValue(exeName, out string? suggestion) ||
-            blockedUtilities.TryGetValue(fullName, out suggestion)) {
-            onOutput?.Invoke($"SECURITY: System utility '{executable}' is blocked for security. Use SDK alternative: {suggestion}", "stderr");
+        if (blockedUtilities.TryGetValue(key: exeName, out string? suggestion) ||
+            blockedUtilities.TryGetValue(key: fullName, out suggestion)) {
+            onOutput?.Invoke(line: $"SECURITY: System utility '{executable}' is blocked for security. Use SDK alternative: {suggestion}", streamName: "stderr");
             return false;
         }
 
         // Approved RemakeEngine tools (case-insensitive)
-        HashSet<string> approvedTools = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase) {
+        HashSet<string> approvedTools = new HashSet<string>(comparer: System.StringComparer.OrdinalIgnoreCase) {
             // Core RemakeEngine tools from "EngineApps", "Registries", "Tools", TODO: "Main.json", resolve dynamically
             "blender", "blender.exe", "blender-launcher.exe",
             "quickbms", "quickbms.exe",
@@ -110,22 +110,22 @@ public sealed partial class ProcessRunner {
         };
 
         // Check both with and without common extensions
-        if (approvedTools.Contains(exeName) || approvedTools.Contains(fullName)) {
+        if (approvedTools.Contains(item: exeName) || approvedTools.Contains(item: fullName)) {
             return true;
         }
 
         // Allow executables that are in the Tools directory structure
-        if (executable.Contains("Tools", System.StringComparison.OrdinalIgnoreCase) &&
-            (executable.Contains("Blender", System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("QuickBMS", System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("Godot", System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("vgmstream", System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("ffmpeg", System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("ImageMagick", System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("Lucas_Radcore_Cement_Library_Builder", System.StringComparison.OrdinalIgnoreCase))) {
+        if (executable.Contains("Tools", comparisonType: System.StringComparison.OrdinalIgnoreCase) &&
+            (executable.Contains("Blender", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("QuickBMS", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("Godot", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("vgmstream", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("ffmpeg", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("ImageMagick", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("Lucas_Radcore_Cement_Library_Builder", comparisonType: System.StringComparison.OrdinalIgnoreCase))) {
             Shared.IO.Diagnostics.Log($"[ProcessRunner.cs::IsApprovedExecutable()] Allowing specific executable in Tools directory: {executable}");
             return true;
-        } else if (executable.Contains("Tools", System.StringComparison.OrdinalIgnoreCase)) {
+        } else if (executable.Contains("Tools", comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
             Shared.IO.Diagnostics.Log($"[ProcessRunner.cs::IsApprovedExecutable()] Allowing executable in Tools directory: {executable}");
             return true;
         } else {
@@ -133,7 +133,7 @@ public sealed partial class ProcessRunner {
         }
 
         // For unrecognized executables, provide guidance
-        onOutput?.Invoke($"SECURITY: Executable '{executable}' is not approved for RemakeEngine. Use registered tools from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" or SDK methods for file operations.", "stderr");
+        onOutput?.Invoke(line: $"SECURITY: Executable '{executable}' is not approved for RemakeEngine. Use registered tools from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" or SDK methods for file operations.", streamName: "stderr");
         Shared.IO.Diagnostics.Log($"[ProcessRunner.cs::IsApprovedExecutable()] Blocked unrecognized executable: {executable}");
         return false;
     }

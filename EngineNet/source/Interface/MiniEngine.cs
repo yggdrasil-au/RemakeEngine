@@ -11,7 +11,7 @@ public sealed class MiniEngine(Core.Engine.IEngineFace Engine) : MiniEngineFace 
     // Expose only the methods that the UI can use, in a safe and simple shape.
 
     public Core.Data.GameModules GameRegistry_GetModules(Core.Data.ModuleFilter filter) {
-        return Engine.Context.GameRegistry.GetModules(filter);
+        return Engine.Context.GameRegistry.GetModules(filter: filter);
     }
 
     /// <summary>
@@ -32,7 +32,7 @@ public sealed class MiniEngine(Core.Engine.IEngineFace Engine) : MiniEngineFace 
     /// Resolves the absolute path for a game module.
     /// </summary>
     public string? GameRegistry_GetGamePath(string name) {
-        return Engine.Context.GameRegistry.GetGamePath(name);
+        return Engine.Context.GameRegistry.GetGamePath(name: name);
     }
 
     public Core.Data.PreparedOperations OperationsService_LoadAndPrepare(
@@ -41,7 +41,7 @@ public sealed class MiniEngine(Core.Engine.IEngineFace Engine) : MiniEngineFace 
         Core.Data.GameModules? games = null,
         IDictionary<string, object?>? engineConfig = null
     ) {
-        return Engine.OperationContext.OperationsService.LoadAndPrepare(opsFile, currentGame, games, engineConfig);
+        return Engine.OperationContext.OperationsService.LoadAndPrepare(opsFile: opsFile, currentGame: currentGame, games: games, engineConfig: engineConfig);
     }
 
     /// <summary>
@@ -51,7 +51,7 @@ public sealed class MiniEngine(Core.Engine.IEngineFace Engine) : MiniEngineFace 
         string gameName,
         Core.Data.GameModules games
     ) {
-        return Engine.OperationContext.OperationsService.LoadModuleSession(gameName, games, Engine.Context.EngineConfig.Data);
+        return Engine.OperationContext.OperationsService.LoadModuleSession(gameName: gameName, games: games, engineConfig: Engine.Context.EngineConfig.Data);
     }
 
     public IDictionary<string, object?> EngineConfig_Data => Engine.Context.EngineConfig.Data;
@@ -60,7 +60,7 @@ public sealed class MiniEngine(Core.Engine.IEngineFace Engine) : MiniEngineFace 
     /// Clones a module repository from the registry URL.
     /// </summary>
     public bool GitService_CloneModule(string url) {
-        return Engine.CloneModule(url);
+        return Engine.CloneModule(url: url);
     }
 
     public async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
@@ -70,14 +70,14 @@ public sealed class MiniEngine(Core.Engine.IEngineFace Engine) : MiniEngineFace 
         Core.Data.PromptAnswers promptAnswers,
         System.Threading.CancellationToken cancellationToken = default(CancellationToken)
     ) {
-        return await Engine.RunSingleOperationAsync(currentGame, games, op, promptAnswers, cancellationToken: cancellationToken);
+        return await Engine.RunSingleOperationAsync(currentGame: currentGame, games: games, op: op, promptAnswers: promptAnswers, cancellationToken: cancellationToken);
     }
     public List<string> CommandService_BuildCommand(string currentGame, Core.Data.GameModules games, IDictionary<string, object?> engineData, IDictionary<string, object?> op, Core.Data.PromptAnswers promptAnswers) {
-        return Engine.Context.CommandService.BuildCommand(currentGame, games, engineData, op, promptAnswers);
+        return Engine.Context.CommandService.BuildCommand(currentGame: currentGame, games: games, engineData: engineData, op: op, promptAnswers: promptAnswers);
     }
 
     public bool CommandService_ExecuteCommand(IList<string> commandParts, string title, Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, IDictionary<string, object?>? envOverrides = null, CancellationToken cancellationToken = default(CancellationToken)) {
-        return Engine.Context.CommandService.ExecuteCommand(commandParts, title, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, envOverrides: envOverrides, cancellationToken: cancellationToken);
+        return Engine.Context.CommandService.ExecuteCommand(commandParts: commandParts, title: title, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, envOverrides: envOverrides, cancellationToken: cancellationToken);
     }
 
     public async Task<bool> OperationsService_CollectAnswersAsync(
@@ -87,11 +87,11 @@ public sealed class MiniEngine(Core.Engine.IEngineFace Engine) : MiniEngineFace 
         bool defaultsOnly = false,
         CancellationToken cancellationToken = default(CancellationToken)
     ) {
-        return await Engine.OperationContext.OperationsService.CollectAnswersAsync(op, answers, promptHandler, defaultsOnly, cancellationToken);
+        return await Engine.OperationContext.OperationsService.CollectAnswersAsync(op: op, answers: answers, promptHandler: promptHandler, defaultsOnly: defaultsOnly, cancellationToken: cancellationToken);
     }
 
     public async Task<bool> GameLauncher_LaunchGameAsync(string name, CancellationToken cancellationToken = default(CancellationToken)) {
-        return await Engine.GameLauncher.LaunchGameAsync(name, cancellationToken: cancellationToken);
+        return await Engine.GameLauncher.LaunchGameAsync(name: name, cancellationToken: cancellationToken);
     }
 
     public async System.Threading.Tasks.Task<Core.Operations.RunAllResult> RunAllAsync(
@@ -101,11 +101,11 @@ public sealed class MiniEngine(Core.Engine.IEngineFace Engine) : MiniEngineFace 
         Core.ProcessRunner.StdinProvider? stdinProvider = null,
         System.Threading.CancellationToken cancellationToken = default(CancellationToken)
     ) {
-        return await EngineNet.Core.Operations.All.RunAsync(gameName, Engine.Context, Engine.OperationContext, onOutput, onEvent, stdinProvider, cancellationToken);
+        return await EngineNet.Core.Operations.All.RunAsync(gameName: gameName, Context: Engine.Context, OperationContext: Engine.OperationContext, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, cancellationToken: cancellationToken);
     }
 
     public void CommandService_OpenFolder(string path) {
-        Engine.Context.CommandService.OpenFolder(path);
+        Engine.Context.CommandService.OpenFolder(path: path);
     }
 
 }

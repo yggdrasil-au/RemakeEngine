@@ -14,23 +14,23 @@ public static class DialogService {
     public static async System.Threading.Tasks.Task<string?> TextAsync(string title, string message, string? defaultValue = null, bool secret = false) {
         Window? window = TryGetMainWindow();
         if (window is null) return null;
-        Pages.PromptWindows.TextPromptWindow? dlg = new Pages.PromptWindows.TextPromptWindow(title, message, defaultValue, secret);
-        return await dlg.ShowAsync(window);
+        Pages.PromptWindows.TextPromptWindow? dlg = new Pages.PromptWindows.TextPromptWindow(title: title, message, defaultValue: defaultValue, secret: secret);
+        return await dlg.ShowAsync(owner: window);
     }
 
     public static async System.Threading.Tasks.Task<bool> ConfirmAsync(string title, string message, bool defaultValue = false) {
         Window? window = TryGetMainWindow();
         if (window is null) return defaultValue;
-        Pages.PromptWindows.ConfirmWindow? dlg = new Pages.PromptWindows.ConfirmWindow(title, message);
-        bool result = await dlg.ShowAsync(window);
+        Pages.PromptWindows.ConfirmWindow? dlg = new Pages.PromptWindows.ConfirmWindow(title: title, question: message);
+        bool result = await dlg.ShowAsync(owner: window);
         return result;
     }
 
     public static async System.Threading.Tasks.Task<(bool Result, bool DontAskAgain)> ConfirmWithOptOutAsync(string title, string message, bool defaultValue = false) {
         Window? window = TryGetMainWindow();
         if (window is null) return (defaultValue, false);
-        Pages.PromptWindows.ConfirmWindow dlg = new Pages.PromptWindows.ConfirmWindow(title, message);
+        Pages.PromptWindows.ConfirmWindow dlg = new Pages.PromptWindows.ConfirmWindow(title: title, question: message);
         dlg.EnableOptOut();
-        return await dlg.ShowWithOptOutAsync(window);
+        return await dlg.ShowWithOptOutAsync(owner: window);
     }
 }

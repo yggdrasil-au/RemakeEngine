@@ -24,7 +24,7 @@ internal static class OpDispatcher {
         Engine.EngineContext context,
         System.Threading.CancellationToken cancellationToken = default
     ) {
-        if (!executableOperation.TryGetValue("script", out object? s) || s is null) {
+        if (!executableOperation.TryGetValue(key: "script", out object? s) || s is null) {
             Shared.IO.Diagnostics.Log("[Engine.private.cs :: Operations()] Missing 'script' value in engine operation");
             return false;
         }
@@ -35,18 +35,18 @@ internal static class OpDispatcher {
         Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] engine operation script: {s}");
 
         // ensure internal ops are from allowed dirs
-        string? type = executableOperation.TryGetValue("script_type", out object? st) ? st?.ToString()?.ToLowerInvariant() : null;
+        string? type = executableOperation.TryGetValue(key: "script_type", out object? st) ? st?.ToString()?.ToLowerInvariant() : null;
         if (type == "internal") {
-            string? sourceFile = executableOperation.TryGetValue("_source_file", out object? sf) ? sf?.ToString() : null;
+            string? sourceFile = executableOperation.TryGetValue(key: "_source_file", out object? sf) ? sf?.ToString() : null;
             if (string.IsNullOrWhiteSpace(sourceFile)) {
                 IO.Error("Internal operation blocked: Missing source file context.");
                 return false;
             }
-            string allowedDir = System.IO.Path.Combine(EngineNet.Shared.State.RootPath, "EngineApps", "Registries", "ops");
-            string fullSource = System.IO.Path.GetFullPath(sourceFile);
-            string fullAllowed = System.IO.Path.GetFullPath(allowedDir);
+            string allowedDir = System.IO.Path.Combine(path1: EngineNet.Shared.State.RootPath, path2: "EngineApps", path3: "Registries", path4: "ops");
+            string fullSource = System.IO.Path.GetFullPath(path: sourceFile);
+            string fullAllowed = System.IO.Path.GetFullPath(path: allowedDir);
 
-            if (!fullSource.StartsWith(fullAllowed, System.StringComparison.OrdinalIgnoreCase)) {
+            if (!fullSource.StartsWith(fullAllowed, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                 IO.Error($"Internal operation blocked: Source '{sourceFile}' is not in allowed directory '{allowedDir}'.");
                 return false;
             }
@@ -54,12 +54,12 @@ internal static class OpDispatcher {
 
         // create built-in object for passing to built-in actions
         var operationArgs = new OperationArgs(
-            executableOperation,
-            promptAnswers,
-            currentGame,
-            games,
-            context,
-            cancellationToken
+            op: executableOperation,
+            promptAnswers: promptAnswers,
+            currentGame: currentGame,
+            games: games,
+            context: context,
+            cancellationToken: cancellationToken
         );
 
         // Determine action
@@ -69,32 +69,32 @@ internal static class OpDispatcher {
         switch (action) {
             // internal modules
             case "download_module_git": {
-                return new Built_inActions.InternalOperations().DownloadModuleGit(promptAnswers, context);
+                return new Built_inActions.InternalOperations().DownloadModuleGit(promptAnswers: promptAnswers, context: context);
             }
             case "download_module_registry": {
-                return new Built_inActions.InternalOperations().DownloadModuleRegistry(promptAnswers, context);
+                return new Built_inActions.InternalOperations().DownloadModuleRegistry(promptAnswers: promptAnswers, context: context);
             }
 
             // Built-in actions
             case "config": {
-                return Built_inActions.BuiltInOperations.config(executableOperation, currentGame, games);
+                return Built_inActions.BuiltInOperations.config(op: executableOperation, currentGame: currentGame, games: games);
             }
 
 
             case "download-tools": {
-                return await Built_inActions.BuiltInOperations.DownloadTools(operationArgs);
+                return await Built_inActions.BuiltInOperations.DownloadTools(operationArgs: operationArgs);
             }
             case "format-extract": {
-                return Built_inActions.BuiltInOperations.format_extract(operationArgs);
+                return Built_inActions.BuiltInOperations.format_extract(operationArgs: operationArgs);
             }
             case "format-convert": {
-                return Built_inActions.BuiltInOperations.format_convert(operationArgs);
+                return Built_inActions.BuiltInOperations.format_convert(operationArgs: operationArgs);
             }
             case "validate-files": {
-                return Built_inActions.BuiltInOperations.validate_files(operationArgs);
+                return Built_inActions.BuiltInOperations.validate_files(operationArgs: operationArgs);
             }
             case "rename-folders": {
-                return Built_inActions.BuiltInOperations.rename_folders(operationArgs);
+                return Built_inActions.BuiltInOperations.rename_folders(operationArgs: operationArgs);
             }
             default: {
                 Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] Unknown engine action: {action}");

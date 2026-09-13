@@ -35,14 +35,14 @@ internal sealed class ModuleScanner {
     internal Core.Data.GameModules Modules(ModuleFilter filter) {
         Shared.IO.Diagnostics.Trace($"[Core :: ModuleScanner.cs::Modules()] Scanning modules with filter {filter}");
         Core.Data.GameModules all = ScanAllModules();
-        IEnumerable<Data.GameModuleInfo> filtered = FilterModules(all.Values, filter);
+        IEnumerable<Data.GameModuleInfo> filtered = FilterModules(source: all.Values, filter: filter);
 
         // Re-key into a new dictionary in case filter removed some.
         // No need to pass StringComparer anymore; it's handled by the GameModules constructor!
         Core.Data.GameModules dict = new GameModules();
 
         foreach (Data.GameModuleInfo info in filtered) {
-            dict[info.Name] = info;
+            dict[key: info.Name] = info;
             Shared.IO.Diagnostics.Trace($"[Core :: ModuleScanner.cs::Modules()] Including module: {info.Name} (State: {info.DescribeState()})");
         }
         return dict;
@@ -80,13 +80,13 @@ internal sealed class ModuleScanner {
     /// </summary>
     internal T Modules<T>(ModuleFilter filter, Func<IEnumerable<Data.GameModuleInfo>, T> selector) {
         if (selector == null){
-            throw new ArgumentNullException(nameof(selector));
+            throw new ArgumentNullException(paramName: nameof(selector));
         }
 
         Core.Data.GameModules all = ScanAllModules();
-        IEnumerable<Data.GameModuleInfo> filtered = FilterModules(all.Values, filter);
+        IEnumerable<Data.GameModuleInfo> filtered = FilterModules(source: all.Values, filter: filter);
 
-        return selector(filtered);
+        return selector(arg: filtered);
     }
 
     // -------------------------------------------------
@@ -112,24 +112,24 @@ internal sealed class ModuleScanner {
             string url = string.Empty;
 
             if (value is Dictionary<string, object?> moduleData) {
-                if (moduleData.TryGetValue("id", out object? idObj) && idObj != null) {
+                if (moduleData.TryGetValue(key: "id", out object? idObj) && idObj != null) {
                     id = idObj.ToString() ?? string.Empty;
                 }
-                if (moduleData.TryGetValue("path", out object? pathObj) && pathObj != null) {
+                if (moduleData.TryGetValue(key: "path", out object? pathObj) && pathObj != null) {
                     path = pathObj.ToString() ?? string.Empty;
                 }
-                if (moduleData.TryGetValue("url", out object? urlObj) && urlObj != null) {
+                if (moduleData.TryGetValue(key: "url", out object? urlObj) && urlObj != null) {
                     url = urlObj.ToString() ?? string.Empty;
                 }
             }
 
-            string GameRoot = !string.IsNullOrWhiteSpace(path) ? System.IO.Path.Combine(EngineNet.Shared.State.RootPath, path) : string.Empty;
+            string GameRoot = !string.IsNullOrWhiteSpace(path) ? System.IO.Path.Combine(path1: EngineNet.Shared.State.RootPath, path2: path) : string.Empty;
 
             // opts file could be .toml or .json;
-            string opsFile = System.IO.Path.Combine(GameRoot, "operations.toml");
-            if (!System.IO.File.Exists(opsFile)) {
-                opsFile = System.IO.Path.Combine(GameRoot, "operations.json");
-            } else if (!System.IO.File.Exists(opsFile)) {
+            string opsFile = System.IO.Path.Combine(path1: GameRoot, path2: "operations.toml");
+            if (!System.IO.File.Exists(path: opsFile)) {
+                opsFile = System.IO.Path.Combine(path1: GameRoot, path2: "operations.json");
+            } else if (!System.IO.File.Exists(path: opsFile)) {
                 opsFile = string.Empty;
             }
 
@@ -143,7 +143,7 @@ internal sealed class ModuleScanner {
                 Title = string.Empty, // needs to be resolved from game.toml if exists (built only)
                 Url = url
             };
-            result[name] = info;
+            result[key: name] = info;
         }
 
 
@@ -154,7 +154,7 @@ internal sealed class ModuleScanner {
             GameInfo gameInfo = kv.Value;
             Data.GameModuleInfo info;
             // if not already present (i.e. registered), create a new entry
-            if (!result.TryGetValue(name, out info!)) {
+            if (!result.TryGetValue(key: name, out info!)) {
                 Shared.IO.Diagnostics.Trace($"[ModuleScanner.cs::ScanAllModules()] Found unregistered but installed module: {name}");
                 info = new Data.GameModuleInfo {
                     Id = string.Empty, // unknown
@@ -168,7 +168,7 @@ internal sealed class ModuleScanner {
                     IsUnverified = true,        // default for unregistered
                     Url = string.Empty          // unknown
                 };
-                result[name] = info;
+                result[key: name] = info;
             }
 
             info.IsInstalled = true;
@@ -184,7 +184,7 @@ internal sealed class ModuleScanner {
 
             // A "Built" module must also be "Installed", so it must be in the dictionary.
             // We just need to update it.
-            if (result.TryGetValue(name, out Data.GameModuleInfo? info)) {
+            if (result.TryGetValue(key: name, out Data.GameModuleInfo? info)) {
                 info.IsBuilt = true;
                 info.ExePath = gameInfo.ExePath ?? string.Empty;
                 info.Title = gameInfo.Title ?? string.Empty;
@@ -203,7 +203,7 @@ internal sealed class ModuleScanner {
 
         // 5. Scan Internal operations in EngineApps/Registries/ops/
         // internal ops are not game modules and should be handled separately?
-        ScanInternalOperations(result);
+        ScanInternalOperations(result: result);
 
         return result;
     }
@@ -214,14 +214,14 @@ internal sealed class ModuleScanner {
     /// <param name="result"></param>
     private void ScanInternalOperations(Core.Data.GameModules result) {
         try {
-            string opsDir = System.IO.Path.Combine(EngineNet.Shared.State.RootPath, "EngineApps", "Registries", "ops");
-            if (!System.IO.Directory.Exists(opsDir)) return;
+            string opsDir = System.IO.Path.Combine(path1: EngineNet.Shared.State.RootPath, path2: "EngineApps", path3: "Registries", path4: "ops");
+            if (!System.IO.Directory.Exists(path: opsDir)) return;
 
-            string[] files = System.IO.Directory.GetFiles(opsDir, "*.toml");
+            string[] files = System.IO.Directory.GetFiles(path: opsDir, searchPattern: "*.toml");
             foreach (string file in files) {
-                string name = System.IO.Path.GetFileNameWithoutExtension(file);
+                string name = System.IO.Path.GetFileNameWithoutExtension(path: file);
 
-                if (!result.ContainsKey(name)) {
+                if (!result.ContainsKey(key: name)) {
                     Data.GameModuleInfo info = new Data.GameModuleInfo {
                         Id = name,
                         Name = name,
@@ -234,7 +234,7 @@ internal sealed class ModuleScanner {
                         Title = name,
                         Url = string.Empty
                     };
-                    result[name] = info;
+                    result[key: name] = info;
                     Shared.IO.Diagnostics.Trace($"[ModuleScanner.cs::ScanInternalOperations()] Found internal module: {name}");
                 }
             }
@@ -250,25 +250,25 @@ internal sealed class ModuleScanner {
         switch (filter) {
             case ModuleFilter.All: {
                 // exclude Internal modules from "All"
-                return Only(source, m => !m.IsInternal);
+                return Only(src: source, pred: m => !m.IsInternal);
             }
             case ModuleFilter.Installed: {
-                return Only(source, m => m.IsInstalled && !m.IsInternal);
+                return Only(src: source, pred: m => m.IsInstalled && !m.IsInternal);
             }
             case ModuleFilter.Unverified: {
-                return Only(source, m => m.IsUnverified && !m.IsInternal);
+                return Only(src: source, pred: m => m.IsUnverified && !m.IsInternal);
             }
             case ModuleFilter.Registered: {
-                return Only(source, m => m.IsRegistered && !m.IsInternal);
+                return Only(src: source, pred: m => m.IsRegistered && !m.IsInternal);
             }
             case ModuleFilter.Uninstalled: {
-                return Only(source, m => m.IsRegistered && !m.IsInstalled && !m.IsInternal);
+                return Only(src: source, pred: m => m.IsRegistered && !m.IsInstalled && !m.IsInternal);
             }
             case ModuleFilter.Built: {
-                return Only(source, m => m.IsBuilt && !m.IsInternal);
+                return Only(src: source, pred: m => m.IsBuilt && !m.IsInternal);
             }
             case ModuleFilter.Internal: {
-                return Only(source, m => m.IsInternal);
+                return Only(src: source, pred: m => m.IsInternal);
             }
             default: {
                 // unknown filter, return nothing
@@ -284,7 +284,7 @@ internal sealed class ModuleScanner {
     private static IEnumerable<Data.GameModuleInfo> Only(IEnumerable<Data.GameModuleInfo> src, Func<Data.GameModuleInfo, bool> pred) {
         // foreach game module info in source, yield return if predicate matches
         foreach (Data.GameModuleInfo m in src) {
-            if (pred(m)) {
+            if (pred(arg: m)) {
                 yield return m;
             }
         }

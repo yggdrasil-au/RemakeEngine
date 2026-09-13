@@ -30,14 +30,14 @@ public static class GuiBootstrapper {
 
             Shared.IO.UI.EngineSdk.LocalEventSink = OperationOutputService.Instance.HandleEvent;
 
-            BuildAvaloniaApp().StartWithClassicDesktopLifetime(System.Array.Empty<string>());
+            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args: System.Array.Empty<string>());
 
             return 0;
         } catch (System.Exception ex) {
             // If anything goes wrong during startup or run, print a concise error
             // and return a non-zero exit code to signal failure to the host.
-            Shared.IO.Diagnostics.Bug("GUI error", ex);
-            System.Console.Error.WriteLine(value: $"GUI error: {ex.Message}");
+            Shared.IO.Diagnostics.Bug("GUI error", ex: ex);
+            System.Console.Error.WriteLine($"GUI error: {ex.Message}");
             return 1;
         }
     }

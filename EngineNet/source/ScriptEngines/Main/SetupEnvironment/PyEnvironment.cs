@@ -14,7 +14,7 @@ internal static class SetupSafeEnvironment {
         // disable unsafe dotnet access by not exposing the clr module,
         // and overwrite some built-in functions that interact with the file system (python equivalents of os table and io table in Lua) to prevent access to the file system outside of a designated workspace directory.
         // and add a alias to them for os and io to make it easier to port logic between Lua, Python, and JS scripts.
-        _PyWorld.PyScript.SetVariable("clr", null); // disable clr module to prevent access to .NET assemblies
+        _PyWorld.PyScript.SetVariable(name: "clr", null); // disable clr module to prevent access to .NET assemblies
 
 
         // Create safe os table with limited functionality

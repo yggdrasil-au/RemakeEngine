@@ -15,7 +15,7 @@ public sealed class SdkEventScope:System.IDisposable {
         IDictionary<string, string>? autoPromptResponses) {
         _prevSink = Shared.IO.UI.EngineSdk.LocalEventSink;
         _prevMute = Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink;
-        _prevAuto = new Dictionary<string, string>(Shared.IO.UI.EngineSdk.AutoPromptResponses, System.StringComparer.OrdinalIgnoreCase);
+        _prevAuto = new Dictionary<string, string>(dictionary: Shared.IO.UI.EngineSdk.AutoPromptResponses, comparer: System.StringComparer.OrdinalIgnoreCase);
 
         Shared.IO.UI.EngineSdk.LocalEventSink = sink;
         Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = muteStdout;
@@ -24,7 +24,7 @@ public sealed class SdkEventScope:System.IDisposable {
 
         Shared.IO.UI.EngineSdk.AutoPromptResponses.Clear();
         foreach (KeyValuePair<string, string> kv in autoPromptResponses) {
-            Shared.IO.UI.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
+            Shared.IO.UI.EngineSdk.AutoPromptResponses[key: kv.Key] = kv.Value;
         }
     }
 
@@ -33,7 +33,7 @@ public sealed class SdkEventScope:System.IDisposable {
         Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = _prevMute;
         Shared.IO.UI.EngineSdk.AutoPromptResponses.Clear();
         foreach (KeyValuePair<string, string> kv in _prevAuto) {
-            Shared.IO.UI.EngineSdk.AutoPromptResponses[kv.Key] = kv.Value;
+            Shared.IO.UI.EngineSdk.AutoPromptResponses[key: kv.Key] = kv.Value;
         }
     }
 }

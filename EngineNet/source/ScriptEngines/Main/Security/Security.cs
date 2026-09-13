@@ -5,7 +5,7 @@ namespace EngineNet.ScriptEngines;
 /// Provides path validation and executable approval for RemakeEngine security.
 /// </summary>
 internal static class Security {
-    private static readonly HashSet<string> UserApprovedRoots = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> UserApprovedRoots = new HashSet<string>(comparer: System.StringComparer.OrdinalIgnoreCase);
 
     private static bool IsPathWithinBoundary(string normalizedPath, string normalizedPattern) {
         if (string.IsNullOrWhiteSpace(normalizedPath) || string.IsNullOrWhiteSpace(normalizedPattern)) {
@@ -15,15 +15,15 @@ internal static class Security {
         char sep = System.IO.Path.DirectorySeparatorChar;
         char altSep = System.IO.Path.AltDirectorySeparatorChar;
 
-        string pathValue = normalizedPath.TrimEnd(sep, altSep);
-        string patternValue = normalizedPattern.TrimEnd(sep, altSep);
+        string pathValue = normalizedPath.TrimEnd(trimChars: [sep, altSep]);
+        string patternValue = normalizedPattern.TrimEnd(trimChars: [sep, altSep]);
 
-        if (pathValue.Equals(patternValue, StringComparison.OrdinalIgnoreCase)) {
+        if (pathValue.Equals(patternValue, comparisonType: StringComparison.OrdinalIgnoreCase)) {
             return true;
         }
 
         string patternWithSeparator = patternValue + sep;
-        return pathValue.StartsWith(patternWithSeparator, StringComparison.OrdinalIgnoreCase);
+        return pathValue.StartsWith(patternWithSeparator, comparisonType: StringComparison.OrdinalIgnoreCase);
     }
 
     private static string NormalizeBoundaryPattern(string pathPattern) {
@@ -31,10 +31,10 @@ internal static class Security {
             return string.Empty;
         }
 
-        return CleanPathPrefix(pathPattern)
-            .Replace('/', System.IO.Path.DirectorySeparatorChar)
+        return CleanPathPrefix(path: pathPattern)
+            .Replace(oldChar: '/', newChar: System.IO.Path.DirectorySeparatorChar)
             .ToLowerInvariant()
-            .TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
+            .TrimEnd(trimChars: [System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar]);
     }
 
     private static string GetCanonicalFullPath(string path) {
@@ -43,46 +43,46 @@ internal static class Security {
         }
 
         try {
-            string fullPath = System.IO.Path.GetFullPath(path);
-            return CleanPathPrefix(fullPath);
+            string fullPath = System.IO.Path.GetFullPath(path: path);
+            return CleanPathPrefix(path: fullPath);
         } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug("[Security.cs::GetCanonicalFullPath()] catch triggered for path: " + path + " with exception: " + ex);
-            return CleanPathPrefix(path).Replace('/', System.IO.Path.DirectorySeparatorChar);
+            return CleanPathPrefix(path: path).Replace(oldChar: '/', newChar: System.IO.Path.DirectorySeparatorChar);
         }
     }
 
     private static string ResolveCanonicalPathForIo(string path) {
-        string canonicalPath = GetCanonicalFullPath(path);
+        string canonicalPath = GetCanonicalFullPath(path: path);
         if (string.IsNullOrWhiteSpace(canonicalPath)) {
             return canonicalPath;
         }
 
         try {
-            if (System.IO.File.Exists(canonicalPath)) {
-                System.IO.FileInfo fileInfo = new System.IO.FileInfo(canonicalPath);
-                System.IO.FileSystemInfo? fileTarget = fileInfo.ResolveLinkTarget(true);
+            if (System.IO.File.Exists(path: canonicalPath)) {
+                System.IO.FileInfo fileInfo = new System.IO.FileInfo(fileName: canonicalPath);
+                System.IO.FileSystemInfo? fileTarget = fileInfo.ResolveLinkTarget(returnFinalTarget: true);
                 if (fileTarget != null) {
-                    return GetCanonicalFullPath(fileTarget.FullName);
+                    return GetCanonicalFullPath(path: fileTarget.FullName);
                 }
             }
 
             string? check = canonicalPath;
-            string? root = System.IO.Path.GetPathRoot(check);
+            string? root = System.IO.Path.GetPathRoot(path: check);
 
-            while (!string.IsNullOrEmpty(check) && !string.Equals(check, root, System.StringComparison.OrdinalIgnoreCase)) {
-                if (System.IO.Directory.Exists(check)) {
-                    System.IO.DirectoryInfo info = new System.IO.DirectoryInfo(check);
-                    System.IO.FileSystemInfo? target = info.ResolveLinkTarget(true);
+            while (!string.IsNullOrEmpty(check) && !string.Equals(a: check, b: root, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
+                if (System.IO.Directory.Exists(path: check)) {
+                    System.IO.DirectoryInfo info = new System.IO.DirectoryInfo(path: check);
+                    System.IO.FileSystemInfo? target = info.ResolveLinkTarget(returnFinalTarget: true);
                     if (target != null) {
-                        string targetPath = GetCanonicalFullPath(target.FullName);
+                        string targetPath = GetCanonicalFullPath(path: target.FullName);
                         string suffix = canonicalPath.Length > check.Length
-                            ? canonicalPath.Substring(check.Length)
+                            ? canonicalPath.Substring(startIndex: check.Length)
                             : string.Empty;
-                        return GetCanonicalFullPath(targetPath + suffix);
+                        return GetCanonicalFullPath(path: targetPath + suffix);
                     }
                 }
 
-                check = System.IO.Path.GetDirectoryName(check);
+                check = System.IO.Path.GetDirectoryName(path: check);
             }
         } catch {
             // Keep the non-resolved canonical path if link resolution fails.
@@ -94,106 +94,106 @@ internal static class Security {
     private static string CleanPathPrefix(string path) {
         if (string.IsNullOrWhiteSpace(path)) return path;
         // Strip Win32 long path prefix if present (\\?\ and \\?\UNC\)
-        if (!path.StartsWith(@"\\?\", StringComparison.Ordinal)) return path;
-        if (path.StartsWith(@"\\?\UNC\", StringComparison.OrdinalIgnoreCase)) {
-            return @"\\" + path.Substring(8);
+        if (!path.StartsWith(@"\\?\", comparisonType: StringComparison.Ordinal)) return path;
+        if (path.StartsWith(@"\\?\UNC\", comparisonType: StringComparison.OrdinalIgnoreCase)) {
+            return @"\\" + path.Substring(startIndex: 8);
         }
-        return path.Substring(4);
+        return path.Substring(startIndex: 4);
     }
 
     private static string NormalizeLowerFullPath(string path) {
         if (string.IsNullOrWhiteSpace(path)) return string.Empty;
         try {
-            string fullPath = System.IO.Path.GetFullPath(path);
-            return CleanPathPrefix(fullPath).ToLowerInvariant();
+            string fullPath = System.IO.Path.GetFullPath(path: path);
+            return CleanPathPrefix(path: fullPath).ToLowerInvariant();
         } catch {
-            return CleanPathPrefix(path).Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant();
+            return CleanPathPrefix(path: path).Replace(oldChar: '/', newChar: System.IO.Path.DirectorySeparatorChar).ToLowerInvariant();
         }
     }
 
     private static string DetermineApprovalRoot(string path) {
         try {
-            string full = System.IO.Path.GetFullPath(path);
+            string full = System.IO.Path.GetFullPath(path: path);
             string? rootResult = full;
-            if (System.IO.Directory.Exists(full)) {
-                rootResult = new System.IO.DirectoryInfo(full).FullName;
+            if (System.IO.Directory.Exists(path: full)) {
+                rootResult = new System.IO.DirectoryInfo(path: full).FullName;
             } else {
-                string? dir = System.IO.Path.GetDirectoryName(full);
+                string? dir = System.IO.Path.GetDirectoryName(path: full);
                 if (!string.IsNullOrWhiteSpace(dir)) {
-                    rootResult = new System.IO.DirectoryInfo(dir).FullName;
+                    rootResult = new System.IO.DirectoryInfo(path: dir).FullName;
                 }
             }
-            return CleanPathPrefix(rootResult ?? full);
+            return CleanPathPrefix(path: rootResult ?? full);
         } catch {
             Shared.IO.Diagnostics.Bug("DetermineApprovalRoot: Failed to determine root for path: " + path);
-            return CleanPathPrefix(path);
+            return CleanPathPrefix(path: path);
         }
     }
 
     private static bool IsForbiddenPath(string normalizedPath) {
         if (string.IsNullOrWhiteSpace(normalizedPath)) return false;
 
-        string currentDir = NormalizeLowerFullPath(System.IO.Directory.GetCurrentDirectory());
+        string currentDir = NormalizeLowerFullPath(path: System.IO.Directory.GetCurrentDirectory());
         string projectRoot = string.IsNullOrWhiteSpace(EngineNet.Shared.State.RootPath)
             ? currentDir
-            : NormalizeLowerFullPath(EngineNet.Shared.State.RootPath);
+            : NormalizeLowerFullPath(path: EngineNet.Shared.State.RootPath);
 
         List<string> forbiddenPatterns = new List<string> {
             "/etc", "/bin", "/sbin",
-            System.IO.Path.Combine("/usr", "bin"),
-            System.IO.Path.Combine("/usr", "sbin"),
+            System.IO.Path.Combine(path1: "/usr", path2: "bin"),
+            System.IO.Path.Combine(path1: "/usr", path2: "sbin"),
             "/sys", "/proc", "/dev",
             // Explicitly deny access to Engine Files to prevent tampering
-            System.IO.Path.Combine(projectRoot, "EngineApps", "Registries").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
-            System.IO.Path.Combine(projectRoot, "EngineApps", "api_definitions").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
+            System.IO.Path.Combine(path1: projectRoot, path2: "EngineApps", path3: "Registries").Replace(oldChar: '/', newChar: System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
+            System.IO.Path.Combine(path1: projectRoot, path2: "EngineApps", path3: "api_definitions").Replace(oldChar: '/', newChar: System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
             //System.IO.Path.Combine(projectRoot, "EngineApps", "Tools").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
             // if the script is running from Source, also deny access to EngineNet source to prevent tampering
-            System.IO.Path.Combine(projectRoot, "EngineNet").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
+            System.IO.Path.Combine(path1: projectRoot, path2: "EngineNet").Replace(oldChar: '/', newChar: System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
         };
 
-        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)) {
-            forbiddenPatterns.Add(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Windows).ToLowerInvariant());
-            forbiddenPatterns.Add(System.Environment.GetFolderPath(System.Environment.SpecialFolder.System).ToLowerInvariant());
-            forbiddenPatterns.Add(System.Environment.GetFolderPath(System.Environment.SpecialFolder.SystemX86).ToLowerInvariant());
-            forbiddenPatterns.Add(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ProgramFiles).ToLowerInvariant());
-            forbiddenPatterns.Add(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ProgramFilesX86).ToLowerInvariant());
-            forbiddenPatterns.Add(System.Environment.GetFolderPath(System.Environment.SpecialFolder.CommonApplicationData).ToLowerInvariant());
+        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(osPlatform: System.Runtime.InteropServices.OSPlatform.Windows)) {
+            forbiddenPatterns.Add(item: System.Environment.GetFolderPath(folder: System.Environment.SpecialFolder.Windows).ToLowerInvariant());
+            forbiddenPatterns.Add(item: System.Environment.GetFolderPath(folder: System.Environment.SpecialFolder.System).ToLowerInvariant());
+            forbiddenPatterns.Add(item: System.Environment.GetFolderPath(folder: System.Environment.SpecialFolder.SystemX86).ToLowerInvariant());
+            forbiddenPatterns.Add(item: System.Environment.GetFolderPath(folder: System.Environment.SpecialFolder.ProgramFiles).ToLowerInvariant());
+            forbiddenPatterns.Add(item: System.Environment.GetFolderPath(folder: System.Environment.SpecialFolder.ProgramFilesX86).ToLowerInvariant());
+            forbiddenPatterns.Add(item: System.Environment.GetFolderPath(folder: System.Environment.SpecialFolder.CommonApplicationData).ToLowerInvariant());
         }
 
-        return (from forbiddenPattern in forbiddenPatterns where !string.IsNullOrWhiteSpace(forbiddenPattern) select NormalizeBoundaryPattern(forbiddenPattern)).Any(normalizedForbidden => IsPathWithinBoundary(normalizedPath, normalizedForbidden));
+        return (from forbiddenPattern in forbiddenPatterns where !string.IsNullOrWhiteSpace(forbiddenPattern) select NormalizeBoundaryPattern(pathPattern: forbiddenPattern)).Any(predicate: normalizedForbidden => IsPathWithinBoundary(normalizedPath: normalizedPath, normalizedPattern: normalizedForbidden));
     }
 
     internal static bool TryGetAllowedCanonicalPathWithPrompt(string path, out string canonicalPath) {
-        if (TryGetAllowedCanonicalPath(path, out canonicalPath)) {
+        if (TryGetAllowedCanonicalPath(path: path, canonicalPath: out canonicalPath)) {
             return true;
         }
 
-        if (IsForbiddenPath(NormalizeLowerFullPath(path))) {
+        if (IsForbiddenPath(normalizedPath: NormalizeLowerFullPath(path: path))) {
             canonicalPath = string.Empty;
             Shared.IO.UI.EngineSdk.Error($"Access denied: File path '{path}' is a protected system or engine path");
             return false;
         }
 
         // Ask the user for permission to grant temporary access to this external path
-        string root = DetermineApprovalRoot(path);
+        string root = DetermineApprovalRoot(path: path);
         string msg = $"Permission requested: Allow this script to access external path '\"{root}\"'?";
 
-        bool allowed = Shared.IO.UI.EngineSdk.Confirm(msg, "ext_path_access", false);
+        bool allowed = Shared.IO.UI.EngineSdk.Confirm(msg, id: "ext_path_access", defaultValue: false);
 
         if (allowed) {
             try {
-                string normalized = NormalizeLowerFullPath(root).TrimEnd(System.IO.Path.DirectorySeparatorChar);
-                UserApprovedRoots.Add(normalized);
+                string normalized = NormalizeLowerFullPath(path: root).TrimEnd(trimChar: System.IO.Path.DirectorySeparatorChar);
+                UserApprovedRoots.Add(item: normalized);
             } catch {
                 Shared.IO.Diagnostics.Bug("[Security.cs::EnsurePathAllowedWithPrompt()] Failed to normalize and approve path: " + root);
                 /* ignore */
             }
 
-            if (TryGetAllowedCanonicalPath(path, out canonicalPath)) {
+            if (TryGetAllowedCanonicalPath(path: path, canonicalPath: out canonicalPath)) {
                 return true;
             }
 
-            canonicalPath = ResolveCanonicalPathForIo(path);
+            canonicalPath = ResolveCanonicalPathForIo(path: path);
             return !string.IsNullOrWhiteSpace(canonicalPath);
         }
 
@@ -212,15 +212,15 @@ internal static class Security {
         }
 
         // Normalize executable name (remove path and extension for comparison)
-        string exeName = System.IO.Path.GetFileNameWithoutExtension(executable).ToLowerInvariant();
-        string fullName = System.IO.Path.GetFileName(executable).ToLowerInvariant();
+        string exeName = System.IO.Path.GetFileNameWithoutExtension(path: executable).ToLowerInvariant();
+        string fullName = System.IO.Path.GetFileName(path: executable).ToLowerInvariant();
 
         // Allow resolved tool paths (tools that came from tool() function)
         try {
-            string resolvedPath = tools.ResolveToolPath(exeName);
+            string resolvedPath = tools.ResolveToolPath(toolId: exeName);
             if (!string.IsNullOrEmpty(resolvedPath) &&
-                (executable.Equals(resolvedPath, System.StringComparison.OrdinalIgnoreCase) ||
-                 executable.EndsWith(resolvedPath, System.StringComparison.OrdinalIgnoreCase))) {
+                (executable.Equals(resolvedPath, comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
+                 executable.EndsWith(resolvedPath, comparisonType: System.StringComparison.OrdinalIgnoreCase))) {
                 return true;
             }
         } catch (Exception ex) {
@@ -229,7 +229,7 @@ internal static class Security {
         }
 
         // Approved RemakeEngine tools (case-insensitive)
-        HashSet<string> approvedTools = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase) {
+        HashSet<string> approvedTools = new HashSet<string>(comparer: System.StringComparer.OrdinalIgnoreCase) {
             // Core RemakeEngine tools from "EngineApps", "Registries", "Tools", "Main.json", TODO: resolve dynamically
             "blender", "blender.exe", "blender-launcher.exe",
             "quickbms", "quickbms.exe",
@@ -247,21 +247,21 @@ internal static class Security {
         };
 
         // Check both with and without common extensions
-        if (approvedTools.Contains(exeName) || approvedTools.Contains(fullName)) {
+        if (approvedTools.Contains(item: exeName) || approvedTools.Contains(item: fullName)) {
             return true;
         }
 
         // Allow executables that are in the Tools directory structure
-        if (executable.Contains("Tools", System.StringComparison.OrdinalIgnoreCase) &&
-            (executable.Contains("Blender", System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("QuickBMS", System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("Godot", System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("vgmstream", System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("ffmpeg", System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("ImageMagick", System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("Lucas_Radcore_Cement_Library_Builder", System.StringComparison.OrdinalIgnoreCase))) {
+        if (executable.Contains("Tools", comparisonType: System.StringComparison.OrdinalIgnoreCase) &&
+            (executable.Contains("Blender", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("QuickBMS", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("Godot", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("vgmstream", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("ffmpeg", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("ImageMagick", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
+             executable.Contains("Lucas_Radcore_Cement_Library_Builder", comparisonType: System.StringComparison.OrdinalIgnoreCase))) {
             return true;
-        } else if (executable.Contains("Tools", System.StringComparison.OrdinalIgnoreCase)) {
+        } else if (executable.Contains("Tools", comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
             Shared.IO.Diagnostics.Log($"[Security.cs::IsApprovedExecutable()] Allowing executable in Tools directory: {executable}");
             return true;
         }
@@ -282,31 +282,31 @@ internal static class Security {
         }
 
         try {
-            string normalizedPath = NormalizeLowerFullPath(path);
+            string normalizedPath = NormalizeLowerFullPath(path: path);
             
             // Deny explicitly forbidden paths immediately
-            if (IsForbiddenPath(normalizedPath)) {
+            if (IsForbiddenPath(normalizedPath: normalizedPath)) {
                 Shared.IO.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Path '{normalizedPath}' is forbidden");
                 return false;
             }
 
-            string fullPath = GetCanonicalFullPath(path);
+            string fullPath = GetCanonicalFullPath(path: path);
             //Shared.IO.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Checking path '{fullPath}'");
             //Shared.IO.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Normalized path '{normalizedPath}'");
 
             // First, allow any user-approved roots for this session
             foreach (string approved in UserApprovedRoots) {
-                if (IsPathWithinBoundary(normalizedPath, approved)) {
-                    canonicalPath = ResolveCanonicalPathForIo(fullPath);
+                if (IsPathWithinBoundary(normalizedPath: normalizedPath, normalizedPattern: approved)) {
+                    canonicalPath = ResolveCanonicalPathForIo(path: fullPath);
                     return true;
                 }
             }
 
             // Get current working directory and common workspace patterns
-            string currentDir = NormalizeLowerFullPath(System.IO.Directory.GetCurrentDirectory());
+            string currentDir = NormalizeLowerFullPath(path: System.IO.Directory.GetCurrentDirectory());
             string projectRoot = string.IsNullOrWhiteSpace(EngineNet.Shared.State.RootPath)
                 ? currentDir
-                : NormalizeLowerFullPath(EngineNet.Shared.State.RootPath);
+                : NormalizeLowerFullPath(path: EngineNet.Shared.State.RootPath);
 
             //Shared.IO.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Current directory '{currentDir}'");
             //Shared.IO.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Project root '{projectRoot}'");
@@ -320,19 +320,19 @@ internal static class Security {
 
                 // must allow access to EngineApps/Games/** for game asset processing
                 // but not EngineApps/Registries or EngineApps/Tools to prevent tampering with engine files
-                System.IO.Path.Combine(projectRoot, "EngineApps", "Games"),
+                System.IO.Path.Combine(path1: projectRoot, path2: "EngineApps", path3: "Games"),
 
                 // allow random items
-                System.IO.Path.Combine(projectRoot, "gamefiles"),
-                System.IO.Path.Combine(projectRoot, "tools"),
-                System.IO.Path.Combine(projectRoot, "tmp"),
+                System.IO.Path.Combine(path1: projectRoot, path2: "gamefiles"),
+                System.IO.Path.Combine(path1: projectRoot, path2: "tools"),
+                System.IO.Path.Combine(path1: projectRoot, path2: "tmp"),
             };
 
             // Allow if path starts with any allowed pattern
             foreach (string allowedPattern in allowedPatterns) {
-                if (IsPathWithinBoundary(normalizedPath, allowedPattern)) {
+                if (IsPathWithinBoundary(normalizedPath: normalizedPath, normalizedPattern: allowedPattern)) {
                     //Shared.IO.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Path '{normalizedPath}' starts with allowed pattern '{allowedPattern}'");
-                    canonicalPath = ResolveCanonicalPathForIo(fullPath);
+                    canonicalPath = ResolveCanonicalPathForIo(path: fullPath);
                     return true;
                 } else {
                     Shared.IO.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Path '{normalizedPath}' does not start with allowed pattern '{allowedPattern}'");
@@ -342,32 +342,32 @@ internal static class Security {
             // Check if the path itself or any of its parents are symlinks that resolve to an allowed path
             try {
                 string? check = fullPath;
-                string? root = System.IO.Path.GetPathRoot(check);
+                string? root = System.IO.Path.GetPathRoot(path: check);
                 Shared.IO.Diagnostics.Trace($"[Security.cs::IsAllowedPath()] Checking symlinks for path '{check}'");
 
-                while (!string.IsNullOrEmpty(check) && !string.Equals(check, root, System.StringComparison.OrdinalIgnoreCase)) {
-                    if (System.IO.Directory.Exists(check)) {
-                        var info = new System.IO.DirectoryInfo(check);
-                        var target = info.ResolveLinkTarget(true); // true = return final target
+                while (!string.IsNullOrEmpty(check) && !string.Equals(a: check, b: root, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
+                    if (System.IO.Directory.Exists(path: check)) {
+                        var info = new System.IO.DirectoryInfo(path: check);
+                        var target = info.ResolveLinkTarget(returnFinalTarget: true); // true = return final target
                         if (target != null) {
                             string targetPath = target.FullName;
                             string suffix = "";
                             if (fullPath.Length > check.Length) {
-                                suffix = fullPath.Substring(check.Length);
+                                suffix = fullPath.Substring(startIndex: check.Length);
                             }
 
                             string resolvedFullPath = targetPath + suffix;
-                            string normalizedResolved = NormalizeLowerFullPath(resolvedFullPath);
+                            string normalizedResolved = NormalizeLowerFullPath(path: resolvedFullPath);
 
                             foreach (string allowedPattern in allowedPatterns) {
-                                if (IsPathWithinBoundary(normalizedResolved, allowedPattern)) {
-                                    canonicalPath = GetCanonicalFullPath(resolvedFullPath);
+                                if (IsPathWithinBoundary(normalizedPath: normalizedResolved, normalizedPattern: allowedPattern)) {
+                                    canonicalPath = GetCanonicalFullPath(path: resolvedFullPath);
                                     return true;
                                 }
                             }
                         }
                     }
-                    check = System.IO.Path.GetDirectoryName(check);
+                    check = System.IO.Path.GetDirectoryName(path: check);
                 }
             } catch (Exception ex) {
                 /* ignore */
@@ -375,7 +375,7 @@ internal static class Security {
             }
 
             // Additional check: allow relative paths within current directory
-            if (!System.IO.Path.IsPathRooted(path)) {
+            if (!System.IO.Path.IsPathRooted(path: path)) {
                 return true; // Relative paths are generally safe within workspace
             }
 
@@ -387,6 +387,6 @@ internal static class Security {
     }
 
     internal static bool IsAllowedPath(string path) {
-        return TryGetAllowedCanonicalPath(path, out _);
+        return TryGetAllowedCanonicalPath(path: path, canonicalPath: out _);
     }
 }

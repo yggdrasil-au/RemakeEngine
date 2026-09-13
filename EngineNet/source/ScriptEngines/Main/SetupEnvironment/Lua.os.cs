@@ -14,49 +14,49 @@ internal static partial class SetupEnvironment {
         // date and time functions
 
         // os.date -
-        _LuaWorld.Os["date"] = (System.Func<string?, DynValue>)((format) => {
-            if (string.IsNullOrEmpty(format)) return DynValue.NewNumber(System.DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+        _LuaWorld.Os[key: "date"] = (System.Func<string?, DynValue>)((format) => {
+            if (string.IsNullOrEmpty(format)) return DynValue.NewNumber(num: System.DateTimeOffset.UtcNow.ToUnixTimeSeconds());
 
             if (format.StartsWith("*t") || format.StartsWith("!*t")) {
                 System.DateTime dt = format.StartsWith('!') ? System.DateTime.UtcNow : System.DateTime.Now;
-                var DateTable = new Table(_LuaWorld.LuaScript);
-                DateTable["year"] = dt.Year;
-                DateTable["month"] = dt.Month;
-                DateTable["day"] = dt.Day;
-                DateTable["hour"] = dt.Hour;
-                DateTable["min"] = dt.Minute;
-                DateTable["sec"] = dt.Second;
-                DateTable["wday"] = (int)dt.DayOfWeek + 1;
-                DateTable["yday"] = dt.DayOfYear;
-                DateTable["isdst"] = dt.IsDaylightSavingTime();
-                return DynValue.NewTable(DateTable);
+                var DateTable = new Table(owner: _LuaWorld.LuaScript);
+                DateTable[key: "year"] = dt.Year;
+                DateTable[key: "month"] = dt.Month;
+                DateTable[key: "day"] = dt.Day;
+                DateTable[key: "hour"] = dt.Hour;
+                DateTable[key: "min"] = dt.Minute;
+                DateTable[key: "sec"] = dt.Second;
+                DateTable[key: "wday"] = (int)dt.DayOfWeek + 1;
+                DateTable[key: "yday"] = dt.DayOfYear;
+                DateTable[key: "isdst"] = dt.IsDaylightSavingTime();
+                return DynValue.NewTable(table: DateTable);
             }
 
-            if (TryTranslateLuaDateFormat(format, out string dotNetFormat, out bool useUtc)) {
+            if (TryTranslateLuaDateFormat(format: format, dotNetFormat: out string dotNetFormat, useUtc: out bool useUtc)) {
                 System.DateTime dt = useUtc ? System.DateTime.UtcNow : System.DateTime.Now;
-                return DynValue.NewString(dt.ToString(dotNetFormat));
+                return DynValue.NewString(str: dt.ToString(format: dotNetFormat));
             }
 
-            return DynValue.NewString(System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            return DynValue.NewString(str: System.DateTime.Now.ToString(format: "yyyy-MM-dd HH:mm:ss"));
         });
-        _LuaWorld.Os["time"] = (System.Func<DynValue?, double>)((DynValue? timeTable) => System.DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-        _LuaWorld.Os["clock"] = () => System.Environment.TickCount / 1000.0;
+        _LuaWorld.Os[key: "time"] = (System.Func<DynValue?, double>)((DynValue? timeTable) => System.DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+        _LuaWorld.Os[key: "clock"] = () => System.Environment.TickCount / 1000.0;
 
         //
 
         // getenv - deny access to a specific set of environment variables to prevent information leaks
-        _LuaWorld.Os["getenv"] = (string env) => {
-            if (DisallowedEnv.Contains(env)) return null;
-            return System.Environment.GetEnvironmentVariable(env);
+        _LuaWorld.Os[key: "getenv"] = (string env) => {
+            if (DisallowedEnv.Contains(item: env)) return null;
+            return System.Environment.GetEnvironmentVariable(variable: env);
         };
         // removed os.execute for better alternatives via sdk.exec/run_process etc
-        _LuaWorld.Os["execute"] = DynValue.Nil;
+        _LuaWorld.Os[key: "execute"] = DynValue.Nil;
 
-        _LuaWorld.Os["exit"] = (System.Action<int?>)(code => {
-            throw new ScriptExitException(code ?? 0);
+        _LuaWorld.Os[key: "exit"] = (System.Action<int?>)(code => {
+            throw new ScriptExitException(exitCode: code ?? 0);
         });
 
-        _LuaWorld.LuaScript.Globals["os"] = _LuaWorld.Os;
+        _LuaWorld.LuaScript.Globals[key: "os"] = _LuaWorld.Os;
     }
 
     private static bool TryTranslateLuaDateFormat(string format, out string dotNetFormat, out bool useUtc) {
@@ -90,20 +90,20 @@ internal static partial class SetupEnvironment {
             return false;
         }
 
-        var builder = new StringBuilder(format.Length * 2);
+        var builder = new StringBuilder(capacity: format.Length * 2);
 
         for (int i = 0; i < format.Length; i++) {
-            char current = format[i];
+            char current = format[index: i];
 
             if (current == '%') {
                 if (i + 1 >= format.Length) {
                     return false;
                 }
 
-                char token = format[i + 1];
+                char token = format[index: i + 1];
                 if (token == '%') {
                     builder.Append("%%");
-                } else if (LuaDateFormatMap.TryGetValue(token, out string? mapped)) {
+                } else if (LuaDateFormatMap.TryGetValue(key: token, out string? mapped)) {
                     builder.Append(mapped);
                 } else {
                     return false;
@@ -125,7 +125,7 @@ internal static partial class SetupEnvironment {
     }
 
     private static bool IsLuaDateLiteral(char value) {
-        if (char.IsDigit(value) || char.IsWhiteSpace(value)) {
+        if (char.IsDigit(c: value) || char.IsWhiteSpace(c: value)) {
             return true;
         }
 

@@ -39,34 +39,34 @@ internal static class FileValidator {
     internal static bool Run(IList<string> args, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         // TODO: implement Cancelation Token handling
         try {
-            Options options = Parse(args);
-            options.DbPath = System.IO.Path.GetFullPath(options.DbPath);
-            options.BaseFolder = System.IO.Path.GetFullPath(options.BaseFolder);
+            Options options = Parse(args: args);
+            options.DbPath = System.IO.Path.GetFullPath(path: options.DbPath);
+            options.BaseFolder = System.IO.Path.GetFullPath(path: options.BaseFolder);
 
-            if (!System.IO.File.Exists(options.DbPath)) {
+            if (!System.IO.File.Exists(path: options.DbPath)) {
                 WriteRed($"Database not found: {options.DbPath}");
                 return false;
             }
 
-            if (!System.IO.Directory.Exists(options.BaseFolder)) {
+            if (!System.IO.Directory.Exists(path: options.BaseFolder)) {
                 WriteRed($"Base folder not found or not a directory: {options.BaseFolder}");
                 return false;
             }
 
-            Dictionary<string, string> tables = ParseTableSpecs(options.TablesSpec);
-            List<RequiredDirGroup> requiredDirs = SplitRequiredDirs(options.RequiredDirsSpec);
+            Dictionary<string, string> tables = ParseTableSpecs(spec: options.TablesSpec);
+            List<RequiredDirGroup> requiredDirs = SplitRequiredDirs(spec: options.RequiredDirsSpec);
             bool requiredDirsOk = true;
 
             if (!options.SkipRequiredDirs) {
-                requiredDirsOk = CheckRequiredDirectories(options.BaseFolder, requiredDirs);
+                requiredDirsOk = CheckRequiredDirectories(baseFolder: options.BaseFolder, requiredDirs: requiredDirs);
             } else {
                 WriteYellow("Skipping required directory check (--no-required-dirs-check).");
             }
 
-            (bool allFound, int totalChecked, int _) = ValidateTables(options.DbPath, options.BaseFolder, tables, options.Debug);
+            (bool allFound, int totalChecked, int _) = ValidateTables(dbPath: options.DbPath, baseFolder: options.BaseFolder, tables: tables, debug: options.Debug);
             return requiredDirsOk && (totalChecked == 0 || allFound);
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug("[FileValidator::Run()] Validation run failed.", ex);
+            Shared.IO.Diagnostics.Bug("[FileValidator::Run()] Validation run failed.", ex: ex);
             WriteRed(ex.Message);
             return false;
         }
@@ -85,7 +85,7 @@ internal static class FileValidator {
         List<string> positional = new List<string>();
 
         for (int i = 0; i < args.Count; i++) {
-            string current = args[i];
+            string current = args[index: i];
             if (string.IsNullOrWhiteSpace(current)) {
                 continue;
             }
@@ -96,14 +96,14 @@ internal static class FileValidator {
                         throw new System.ArgumentException("--tables expects a value.");
                     }
 
-                    tablesSpec = args[++i];
+                    tablesSpec = args[index: ++i];
                     break;
                 case "--required-dirs":
                     if (i + 1 >= args.Count) {
                         throw new System.ArgumentException("--required-dirs expects a value.");
                     }
 
-                    requiredDirsSpec = args[++i];
+                    requiredDirsSpec = args[index: ++i];
                     break;
                 case "--no-required-dirs-check":
                     skipRequiredDirs = true;
@@ -116,7 +116,7 @@ internal static class FileValidator {
                         throw new System.ArgumentException($"Unknown argument '{current}'.");
                     }
 
-                    positional.Add(current);
+                    positional.Add(item: current);
                     break;
             }
         }
@@ -129,8 +129,8 @@ internal static class FileValidator {
             throw new System.ArgumentException("Too many positional arguments provided.");
         }
 
-        options.DbPath = positional[0];
-        options.BaseFolder = positional[1];
+        options.DbPath = positional[index: 0];
+        options.BaseFolder = positional[index: 1];
         options.TablesSpec = tablesSpec;
         options.RequiredDirsSpec = requiredDirsSpec;
         options.SkipRequiredDirs = skipRequiredDirs;
@@ -139,12 +139,12 @@ internal static class FileValidator {
     }
 
     private static Dictionary<string, string> ParseTableSpecs(string? spec) {
-        Dictionary<string, string> result = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, string> result = new Dictionary<string, string>(comparer: System.StringComparer.OrdinalIgnoreCase);
         if (string.IsNullOrWhiteSpace(spec)) {
             return result;
         }
 
-        string[] parts = spec.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);
+        string[] parts = spec.Split(separator: ',', options: System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);
         foreach (string part in parts) {
             int idx = part.IndexOf(':');
             if (idx <= 0 || idx >= part.Length - 1) {
@@ -157,7 +157,7 @@ internal static class FileValidator {
                 throw new System.ArgumentException($"Invalid table spec '{part}'. Empty table or column.");
             }
 
-            result[table] = column;
+            result[key: table] = column;
         }
         return result;
     }
@@ -168,14 +168,14 @@ internal static class FileValidator {
             return groups;
         }
 
-        string[] entries = spec.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);
+        string[] entries = spec.Split(separator: ',', options: System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);
         foreach (string entry in entries) {
-            string[] options = entry.Split("||", System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);
+            string[] options = entry.Split(separator: "||", options: System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);
             if (options.Length == 0) {
                 throw new System.ArgumentException($"Invalid required directory spec '{entry}'.");
             }
 
-            groups.Add(new RequiredDirGroup(options));
+            groups.Add(item: new RequiredDirGroup(options: options));
         }
 
         return groups;
@@ -185,22 +185,22 @@ internal static class FileValidator {
         WriteBlue($"-- Checking Required Subdirectories in: {baseFolder} ---");
         if (requiredDirs.Count == 0) {
             WriteYellow("No required directories specified (skipping check).");
-            WriteYellow(new string('-', 20));
+            WriteYellow(new string(c: '-', count: 20));
             return true;
         }
 
         bool allFound = true;
         List<string> missing = new List<string>();
         int foundCount = 0;
-    Dictionary<string, string> matchedVariants = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+    Dictionary<string, string> matchedVariants = new Dictionary<string, string>(comparer: System.StringComparer.OrdinalIgnoreCase);
 
         foreach (RequiredDirGroup dirGroup in requiredDirs) {
             bool groupFound = false;
             string? matchedOption = null;
 
             foreach (string option in dirGroup.Variants) {
-                string expected = System.IO.Path.Combine(baseFolder, option);
-                if (System.IO.Directory.Exists(expected)) {
+                string expected = System.IO.Path.Combine(path1: baseFolder, path2: option);
+                if (System.IO.Directory.Exists(path: expected)) {
                     groupFound = true;
                     matchedOption = option;
                     break;
@@ -210,12 +210,12 @@ internal static class FileValidator {
             if (groupFound) {
                 foundCount += 1;
                 if (dirGroup.Variants.Count > 1) {
-                    string key = string.Join("||", dirGroup.Variants);
-                    matchedVariants[key] = matchedOption!;
+                    string key = string.Join(separator: "||", values: dirGroup.Variants);
+                    matchedVariants[key: key] = matchedOption!;
                 }
             } else {
                 allFound = false;
-                missing.Add(string.Join("||", dirGroup.Variants));
+                missing.Add(item: string.Join(separator: "||", values: dirGroup.Variants));
             }
         }
 
@@ -237,7 +237,7 @@ internal static class FileValidator {
             }
         }
 
-        WriteYellow(new string('-', 20));
+        WriteYellow(new string(c: '-', count: 20));
         return allFound;
     }
 
@@ -250,12 +250,12 @@ internal static class FileValidator {
         WriteBlue("--- Validating SQLite references ---");
         if (tables.Count == 0) {
             WriteYellow("No tables specified for validation (skipping DB check).");
-            WriteYellow(new string('-', 20));
+            WriteYellow(new string(c: '-', count: 20));
             return (true, 0, 0);
         }
 
         try {
-            using Microsoft.Data.Sqlite.SqliteConnection connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath}");
+            using Microsoft.Data.Sqlite.SqliteConnection connection = new Microsoft.Data.Sqlite.SqliteConnection(connectionString: $"Data Source={dbPath}");
             connection.Open();
 
             bool overallAllFound = true;
@@ -268,25 +268,25 @@ internal static class FileValidator {
 
                 WriteBlue($"-- Table: {table} (column: {column}) --");
                 using Microsoft.Data.Sqlite.SqliteCommand command = connection.CreateCommand();
-                command.CommandText = $"SELECT {QuoteIdentifier(column)} FROM {QuoteIdentifier(table)}";
+                command.CommandText = $"SELECT {QuoteIdentifier(identifier: column)} FROM {QuoteIdentifier(identifier: table)}";
 
                 List<string?> rows = new();
                 try {
                     using Microsoft.Data.Sqlite.SqliteDataReader reader = command.ExecuteReader();
                     while (reader.Read()) {
-                        rows.Add(reader.IsDBNull(0) ? null : reader.GetString(0));
+                        rows.Add(item: reader.IsDBNull(ordinal: 0) ? null : reader.GetString(ordinal: 0));
                     }
                 } catch (Microsoft.Data.Sqlite.SqliteException ex) {
-                    Shared.IO.Diagnostics.Bug($"[FileValidator::ValidateTables()] Failed querying '{table}.{column}'.", ex);
+                    Shared.IO.Diagnostics.Bug($"[FileValidator::ValidateTables()] Failed querying '{table}.{column}'.", ex: ex);
                     WriteRed($"  ERROR: Unable to query {table}.{column}: {ex.Message}");
-                    WriteYellow(new string('-', 20));
+                    WriteYellow(new string(c: '-', count: 20));
                     overallAllFound = false;
                     continue;
                 }
 
                 if (rows.Count == 0) {
                     WriteYellow("  No entries in table.");
-                    WriteYellow(new string('-', 20));
+                    WriteYellow(new string(c: '-', count: 20));
                     continue;
                 }
 
@@ -295,22 +295,22 @@ internal static class FileValidator {
                 List<string>? tableMissingDebug = debug ? new List<string>() : null;
 
                 for (int idx = 0; idx < rows.Count; idx++) {
-                    string? relPath = rows[idx];
+                    string? relPath = rows[index: idx];
                     if (relPath is null) {
                         WriteYellow($"  Row {idx + 1} NULL {column} (skipped)");
                         continue;
                     }
 
                     tableChecked += 1;
-                    string combinedPath = System.IO.Path.Combine(baseFolder, relPath);
-                    string fullPath = System.IO.Path.GetFullPath(combinedPath);
-                    string displayRel = System.IO.Path.GetRelativePath(baseFolder, fullPath);
-                    if (!System.IO.File.Exists(fullPath)) {
+                    string combinedPath = System.IO.Path.Combine(path1: baseFolder, path2: relPath);
+                    string fullPath = System.IO.Path.GetFullPath(path: combinedPath);
+                    string displayRel = System.IO.Path.GetRelativePath(relativeTo: baseFolder, path: fullPath);
+                    if (!System.IO.File.Exists(path: fullPath)) {
                         overallAllFound = false;
                         totalMissing += 1;
                         tableMissing += 1;
                         if (debug) {
-                            tableMissingDebug!.Add(displayRel);
+                            tableMissingDebug!.Add(item: displayRel);
                         }
                     }
 
@@ -325,9 +325,9 @@ internal static class FileValidator {
                     WriteRed($"  {tableMissing} missing of {tableChecked}.");
                     if (debug && tableMissingDebug is { Count: > 0 }) {
                         WriteYellow($"  -- Missing in {table} --");
-                        int limit = System.Math.Min(50, tableMissingDebug.Count);
+                        int limit = System.Math.Min(val1: 50, val2: tableMissingDebug.Count);
                         for (int i = 0; i < limit; i++) {
-                            WriteYellow("    " + tableMissingDebug[i]);
+                            WriteYellow("    " + tableMissingDebug[index: i]);
                         }
 
                         if (tableMissingDebug.Count > limit) {
@@ -336,7 +336,7 @@ internal static class FileValidator {
                     }
                 }
 
-                WriteYellow(new string('-', 20));
+                WriteYellow(new string(c: '-', count: 20));
             }
 
             WriteBlue("--- Overall Summary ---");
@@ -350,7 +350,7 @@ internal static class FileValidator {
 
             return (overallAllFound, totalChecked, totalMissing);
         } catch (Microsoft.Data.Sqlite.SqliteException ex) {
-            Shared.IO.Diagnostics.Bug($"[FileValidator::ValidateTables()] SQLite failure opening '{dbPath}'.", ex);
+            Shared.IO.Diagnostics.Bug($"[FileValidator::ValidateTables()] SQLite failure opening '{dbPath}'.", ex: ex);
             WriteRed($"SQLite error: {ex.Message}");
             return (false, 0, 0);
         }
@@ -359,19 +359,19 @@ internal static class FileValidator {
     private static string QuoteIdentifier(string identifier) {
         return string.IsNullOrWhiteSpace(identifier)
             ? throw new System.ArgumentException("Identifier cannot be null or empty.")
-            : "\"" + identifier.Replace("\"", "\"\"") + "\"";
+            : "\"" + identifier.Replace(oldValue: "\"", newValue: "\"\"") + "\"";
     }
 
     private static readonly object ConsoleLock = new();
 
-    private static void WriteBlue(string message) => Write(System.ConsoleColor.Blue, message);
-    private static void WriteGreen(string message) => Write(System.ConsoleColor.Green, message);
-    private static void WriteYellow(string message) => Write(System.ConsoleColor.DarkYellow, message);
-    private static void WriteRed(string message) => Write(System.ConsoleColor.Red, message);
+    private static void WriteBlue(string message) => Write(colour: System.ConsoleColor.Blue, message);
+    private static void WriteGreen(string message) => Write(colour: System.ConsoleColor.Green, message);
+    private static void WriteYellow(string message) => Write(colour: System.ConsoleColor.DarkYellow, message);
+    private static void WriteRed(string message) => Write(colour: System.ConsoleColor.Red, message);
 
     private static void Write(System.ConsoleColor colour, string message) {
         lock (ConsoleLock) {
-            IO.writeLine(Format(message), colour);
+            IO.writeLine(Format(message), color: colour);
         }
     }
 

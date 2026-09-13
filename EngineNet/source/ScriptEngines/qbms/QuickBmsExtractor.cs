@@ -34,35 +34,35 @@ internal static class QuickBmsExtractor {
     internal static bool Run(IList<string> args, CancellationToken cancellationToken = default) {
         Options options;
         try {
-            options = Parse(args);
+            options = Parse(args: args);
         } catch (System.ArgumentException ex) {
             WriteError(ex.Message);
             return false;
         }
 
-        options.QuickBmsExe = NormalizePath(options.QuickBmsExe);
-        options.BmsScript = NormalizePath(options.BmsScript);
-        options.InputPath = NormalizePath(options.InputPath);
-        options.OutputPath = NormalizePath(options.OutputPath);
+        options.QuickBmsExe = NormalizePath(path: options.QuickBmsExe);
+        options.BmsScript = NormalizePath(path: options.BmsScript);
+        options.InputPath = NormalizePath(path: options.InputPath);
+        options.OutputPath = NormalizePath(path: options.OutputPath);
         for (int i = 0; i < options.Targets.Count; i++) {
-            options.Targets[i] = NormalizePath(options.Targets[i]);
+            options.Targets[index: i] = NormalizePath(path: options.Targets[index: i]);
         }
 
-        if (!System.IO.File.Exists(options.QuickBmsExe)) {
+        if (!System.IO.File.Exists(path: options.QuickBmsExe)) {
             WriteError($"QuickBMS executable not found: {options.QuickBmsExe}");
             return false;
         }
-        if (!System.IO.File.Exists(options.BmsScript)) {
+        if (!System.IO.File.Exists(path: options.BmsScript)) {
             WriteError($"BMS script not found: {options.BmsScript}");
             return false;
         }
-        if (!System.IO.Directory.Exists(options.OutputPath)) {
-            System.IO.Directory.CreateDirectory(options.OutputPath);
+        if (!System.IO.Directory.Exists(path: options.OutputPath)) {
+            System.IO.Directory.CreateDirectory(path: options.OutputPath);
         }
 
-        string ext = NormalizeExtension(options.Extension);
-        string extensionLabel = ext == "*" ? "extracted" : ext.TrimStart('.');
-        List<string> files = ResolveFiles(options, ext).ToList();
+        string ext = NormalizeExtension(ext: options.Extension);
+        string extensionLabel = ext == "*" ? "extracted" : ext.TrimStart(trimChar: '.');
+        List<string> files = ResolveFiles(options: options, normalizedExtension: ext).ToList();
         if (files.Count == 0) {
             WriteWarn($"No files found matching extension '{options.Extension}' under provided targets.");
             return false;
@@ -81,12 +81,12 @@ internal static class QuickBmsExtractor {
         System.Threading.Tasks.Task panel = EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.StartPanel(
             total: () => total,
             snapshot: () => (
-                System.Threading.Volatile.Read(ref progressState.Processed),
-                System.Threading.Volatile.Read(ref progressState.Ok),
-                System.Threading.Volatile.Read(ref progressState.Skip),
-                System.Threading.Volatile.Read(ref progressState.Err)
+                System.Threading.Volatile.Read(location: ref progressState.Processed),
+                System.Threading.Volatile.Read(location: ref progressState.Ok),
+                System.Threading.Volatile.Read(location: ref progressState.Skip),
+                System.Threading.Volatile.Read(location: ref progressState.Err)
             ),
-            activeSnapshot: () => new List<EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess>(s_active.Values),
+            activeSnapshot: () => new List<EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess>(collection: s_active.Values),
             label: () => "Extracting Archives",
             token: cts.Token
         );
@@ -97,10 +97,10 @@ internal static class QuickBmsExtractor {
         };
 
         try {
-            System.Threading.Tasks.Parallel.ForEach(files, parallelOptions, file => {
-                string relative = GetSafeRelative(options.InputPath, file);
-                string outputDir = BuildOutputDirectory(options.OutputPath, relative, file, extensionLabel);
-                System.IO.Directory.CreateDirectory(outputDir);
+            System.Threading.Tasks.Parallel.ForEach(source: files, parallelOptions: parallelOptions, body: file => {
+                string relative = GetSafeRelative(basePath: options.InputPath, filePath: file);
+                string outputDir = BuildOutputDirectory(baseOutput: options.OutputPath, relativePath: relative, sourceFile: file, extensionLabel: extensionLabel);
+                System.IO.Directory.CreateDirectory(path: outputDir);
 
                 RegisterActive(tool: "quickbms", srcPath: file);
                 try {
@@ -114,22 +114,22 @@ internal static class QuickBmsExtractor {
                         outputDir
                     };
 
-                    Dictionary<string, object?> env = new Dictionary<string, object?> { ["TERM"] = "dumb" };
+                    Dictionary<string, object?> env = new Dictionary<string, object?> { [key: "TERM"] = "dumb" };
                     bool ok = runner.Execute(
-                        command,
-                        System.IO.Path.GetFileName(file),
+                        commandParts: command,
+                        opTitle: System.IO.Path.GetFileName(path: file),
                         onOutput: ForwardProcessOutput,
                         envOverrides: env);
 
                     if (ok) {
-                        System.Threading.Interlocked.Increment(ref progressState.Ok);
+                        System.Threading.Interlocked.Increment(location: ref progressState.Ok);
                     } else {
-                        System.Threading.Interlocked.Increment(ref progressState.Err);
+                        System.Threading.Interlocked.Increment(location: ref progressState.Err);
                         WriteWarn($"QuickBMS reported a failure for '{file}'.");
                     }
                 } finally {
                     UnregisterActive();
-                    System.Threading.Interlocked.Increment(ref progressState.Processed);
+                    System.Threading.Interlocked.Increment(location: ref progressState.Processed);
                 }
             });
         } catch (System.OperationCanceledException) {
@@ -140,9 +140,9 @@ internal static class QuickBmsExtractor {
         try {
             panel.Wait();
         } catch (System.AggregateException ex) {
-            Shared.IO.Diagnostics.Bug("[QuickBmsExtractor::Run()] Progress task wait failed.", ex);
+            Shared.IO.Diagnostics.Bug("[QuickBmsExtractor::Run()] Progress task wait failed.", ex: ex);
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug("[QuickBmsExtractor::Run()] Progress task wait failed.", ex);
+            Shared.IO.Diagnostics.Bug("[QuickBmsExtractor::Run()] Progress task wait failed.", ex: ex);
         }
 
         WriteInfo($"QuickBMS extraction complete. Success: {progressState.Ok}/{files.Count}.");
@@ -157,13 +157,13 @@ internal static class QuickBmsExtractor {
     private static void RegisterActive(string tool, string srcPath) {
         try {
             int key = System.Threading.Thread.CurrentThread.ManagedThreadId;
-            s_active[key] = new EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess {
+            s_active[key: key] = new EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess {
                 Tool = tool,
-                File = System.IO.Path.GetFileName(srcPath),
+                File = System.IO.Path.GetFileName(path: srcPath),
                 StartedUtc = System.DateTime.UtcNow
             };
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug("[QuickBmsExtractor::RegisterActive()] Failed to register active process.", ex);
+            Shared.IO.Diagnostics.Bug("[QuickBmsExtractor::RegisterActive()] Failed to register active process.", ex: ex);
             /* ignore */
         }
     }
@@ -173,9 +173,9 @@ internal static class QuickBmsExtractor {
     /// </summary>
     private static void UnregisterActive() {
         try {
-            s_active.TryRemove(System.Threading.Thread.CurrentThread.ManagedThreadId, out _);
+            s_active.TryRemove(key: System.Threading.Thread.CurrentThread.ManagedThreadId, out _);
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug("[QuickBmsExtractor::UnregisterActive()] Failed to unregister active process.", ex);
+            Shared.IO.Diagnostics.Bug("[QuickBmsExtractor::UnregisterActive()] Failed to unregister active process.", ex: ex);
             /* ignore */
         }
     }
@@ -187,35 +187,35 @@ internal static class QuickBmsExtractor {
 
         Options options = new Options();
         for (int i = 0; i < args.Count; i++) {
-            string current = args[i];
+            string current = args[index: i];
             switch (current) {
                 case "-e":
                 case "--quickbms":
-                    options.QuickBmsExe = ExpectValue(args, ref i, current);
+                    options.QuickBmsExe = ExpectValue(args: args, index: ref i, option: current);
                     break;
                 case "-s":
                 case "--script":
-                    options.BmsScript = ExpectValue(args, ref i, current);
+                    options.BmsScript = ExpectValue(args: args, index: ref i, option: current);
                     break;
                 case "-i":
                 case "--input":
-                    options.InputPath = ExpectValue(args, ref i, current);
+                    options.InputPath = ExpectValue(args: args, index: ref i, option: current);
                     break;
                 case "-o":
                 case "--output":
-                    options.OutputPath = ExpectValue(args, ref i, current);
+                    options.OutputPath = ExpectValue(args: args, index: ref i, option: current);
                     break;
                 case "-ext":
                 case "--extension":
-                    options.Extension = ExpectValue(args, ref i, current);
+                    options.Extension = ExpectValue(args: args, index: ref i, option: current);
                     break;
                 case "--overwrite":
                     options.Overwrite = true;
                     break;
                 case "-w":
                 case "--workers":
-                    if (int.TryParse(ExpectValue(args, ref i, current), out int w)) {
-                        options.Workers = System.Math.Max(1, w);
+                    if (int.TryParse(s: ExpectValue(args: args, index: ref i, option: current), result: out int w)) {
+                        options.Workers = System.Math.Max(val1: 1, val2: w);
                     }
                     break;
                 default:
@@ -223,7 +223,7 @@ internal static class QuickBmsExtractor {
                         throw new System.ArgumentException($"Unknown argument '{current}'.");
                     }
 
-                    options.Targets.Add(current);
+                    options.Targets.Add(item: current);
                     break;
             }
         }
@@ -249,12 +249,12 @@ internal static class QuickBmsExtractor {
         }
 
         if (options.Workers is null) {
-            int cores = System.Math.Max(1, System.Environment.ProcessorCount);
-            options.Workers = System.Math.Max(1, (int)System.Math.Floor(cores * 0.75));
+            int cores = System.Math.Max(val1: 1, val2: System.Environment.ProcessorCount);
+            options.Workers = System.Math.Max(val1: 1, val2: (int)System.Math.Floor(d: cores * 0.75));
         }
 
         if (options.Targets.Count == 0) {
-            options.Targets.Add(options.InputPath);
+            options.Targets.Add(item: options.InputPath);
         }
 
         return options;
@@ -266,26 +266,26 @@ internal static class QuickBmsExtractor {
         }
 
         index += 1;
-        return args[index];
+        return args[index: index];
     }
 
     private static IEnumerable<string> ResolveFiles(Options options, string normalizedExtension) {
         bool matchesAll = normalizedExtension == "*";
-        HashSet<string> seen = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+        HashSet<string> seen = new HashSet<string>(comparer: System.StringComparer.OrdinalIgnoreCase);
 
         foreach (string target in options.Targets) {
-            if (System.IO.Directory.Exists(target)) {
-                foreach (string file in System.IO.Directory.EnumerateFiles(target, "*", SearchOption.AllDirectories)) {
-                    if (!matchesAll && !file.EndsWith(normalizedExtension, System.StringComparison.OrdinalIgnoreCase))
+            if (System.IO.Directory.Exists(path: target)) {
+                foreach (string file in System.IO.Directory.EnumerateFiles(path: target, searchPattern: "*", searchOption: SearchOption.AllDirectories)) {
+                    if (!matchesAll && !file.EndsWith(normalizedExtension, comparisonType: System.StringComparison.OrdinalIgnoreCase))
                         continue;
-                    if (seen.Add(file)) {
+                    if (seen.Add(item: file)) {
                         yield return file;
                     }
                 }
-            } else if (System.IO.File.Exists(target)) {
+            } else if (System.IO.File.Exists(path: target)) {
                 if (!matchesAll &&
-                    !target.EndsWith(normalizedExtension, System.StringComparison.OrdinalIgnoreCase)) continue;
-                if (seen.Add(target)) {
+                    !target.EndsWith(normalizedExtension, comparisonType: System.StringComparison.OrdinalIgnoreCase)) continue;
+                if (seen.Add(item: target)) {
                     yield return target;
                 }
             } else {
@@ -297,26 +297,26 @@ internal static class QuickBmsExtractor {
     private static string BuildOutputDirectory(string baseOutput, string relativePath, string sourceFile, string extensionLabel) {
         string folder = baseOutput;
         if (!string.IsNullOrWhiteSpace(relativePath) && !relativePath.StartsWith("..")) {
-            string? relDir = System.IO.Path.GetDirectoryName(relativePath);
+            string? relDir = System.IO.Path.GetDirectoryName(path: relativePath);
             if (!string.IsNullOrEmpty(relDir) && relDir != ".") {
-                folder = System.IO.Path.Join(folder, relDir);
+                folder = System.IO.Path.Join(path1: folder, path2: relDir);
             }
         }
-        string fileStem = System.IO.Path.GetFileNameWithoutExtension(sourceFile);
+        string fileStem = System.IO.Path.GetFileNameWithoutExtension(path: sourceFile);
         string finalName = string.IsNullOrEmpty(fileStem) ? "extracted" : fileStem + "_" + extensionLabel;
-        return System.IO.Path.Combine(folder, finalName);
+        return System.IO.Path.Combine(path1: folder, path2: finalName);
     }
 
     private static string GetSafeRelative(string basePath, string filePath) {
         if (string.IsNullOrWhiteSpace(basePath)) {
-            return System.IO.Path.GetFileName(filePath);
+            return System.IO.Path.GetFileName(path: filePath);
         }
 
         try {
-            string relative = System.IO.Path.GetRelativePath(basePath, filePath);
-            return string.IsNullOrWhiteSpace(relative) || relative.StartsWith("..") ? System.IO.Path.GetFileName(filePath) : relative;
+            string relative = System.IO.Path.GetRelativePath(relativeTo: basePath, path: filePath);
+            return string.IsNullOrWhiteSpace(relative) || relative.StartsWith("..") ? System.IO.Path.GetFileName(path: filePath) : relative;
         } catch {
-            return System.IO.Path.GetFileName(filePath);
+            return System.IO.Path.GetFileName(path: filePath);
         }
     }
 
@@ -326,7 +326,7 @@ internal static class QuickBmsExtractor {
         }
 
         try {
-            return System.IO.Path.GetFullPath(path);
+            return System.IO.Path.GetFullPath(path: path);
         } catch {
             return path;
         }
@@ -352,19 +352,19 @@ internal static class QuickBmsExtractor {
         // due to large output volumes, only forward stderr in DEBUG builds, use Progress Bar in release
         // tui has been improved, this shouldnt be an issue, GUI may still freeze.. untested
         // this will make stderr red, but for somereason quickbms often outputs to it so outputs may be mixed
-        Write(colour, "[quickbms] " + line);
+        Write(colour: colour, "[quickbms] " + line);
     }
 
     private static void WriteInfo(string message) {
-        Write(System.ConsoleColor.Cyan, message);
+        Write(colour: System.ConsoleColor.Cyan, message);
     }
 
     private static void WriteWarn(string message) {
-        Write(System.ConsoleColor.Yellow, message);
+        Write(colour: System.ConsoleColor.Yellow, message);
     }
 
     private static void WriteError(string message) {
-        Write(System.ConsoleColor.Red, message);
+        Write(colour: System.ConsoleColor.Red, message);
     }
 
     private static readonly Lock s_consoleLock = new Lock();
@@ -375,12 +375,12 @@ internal static class QuickBmsExtractor {
         // Ensure all messages written from this extractor have a consistent prefix unless
         // they are already tagged as coming from the wrapped quickbms process.
         if (!string.IsNullOrEmpty(message) &&
-            !message.StartsWith("[quickbms]", System.StringComparison.OrdinalIgnoreCase) &&
-            !message.StartsWith(s_prefix, System.StringComparison.Ordinal)) {
+            !message.StartsWith("[quickbms]", comparisonType: System.StringComparison.OrdinalIgnoreCase) &&
+            !message.StartsWith(s_prefix, comparisonType: System.StringComparison.Ordinal)) {
             message = s_prefix + message;
         }
         lock (s_consoleLock) {
-            Shared.IO.UI.EngineSdk.PrintLine(message, colour);
+            Shared.IO.UI.EngineSdk.PrintLine(message, color: colour);
         }
     }
 }

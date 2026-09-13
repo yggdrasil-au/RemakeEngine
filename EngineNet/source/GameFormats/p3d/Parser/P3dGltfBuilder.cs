@@ -30,7 +30,7 @@ internal sealed class P3dGltfBuilder {
 
     internal int InsertImageUri(string name, string? mimeType, string uri) {
         int index = _root.Images.Count;
-        _root.Images.Add(new GltfImage {
+        _root.Images.Add(item: new GltfImage {
             Name = name,
             MimeType = mimeType,
             Uri = uri,
@@ -40,7 +40,7 @@ internal sealed class P3dGltfBuilder {
 
     internal int InsertTexture(string name, int imageIndex) {
         int index = _root.Textures.Count;
-        _root.Textures.Add(new GltfTexture {
+        _root.Textures.Add(item: new GltfTexture {
             Name = name,
             Source = imageIndex,
         });
@@ -49,49 +49,49 @@ internal sealed class P3dGltfBuilder {
 
     internal int InsertMesh(string name) {
         int index = _root.Meshes.Count;
-        _root.Meshes.Add(new GltfMesh {
+        _root.Meshes.Add(item: new GltfMesh {
             Name = name,
         });
         return index;
     }
 
     internal int InsertPrimitive(int meshIndex, int mode) {
-        GltfMesh mesh = _root.Meshes[meshIndex];
+        GltfMesh mesh = _root.Meshes[index: meshIndex];
         int index = mesh.Primitives.Count;
-        mesh.Primitives.Add(new GltfPrimitive {
+        mesh.Primitives.Add(item: new GltfPrimitive {
             Mode = mode,
         });
         return index;
     }
 
     internal void InsertPositions(int meshIndex, int primitiveIndex, IReadOnlyList<Vector3> data) {
-        int accessor = InsertVec3($"{GetMeshName(meshIndex)} vertex positions", data);
-        GetPrimitive(meshIndex, primitiveIndex).Attributes["POSITION"] = accessor;
+        int accessor = InsertVec3(name: $"{GetMeshName(meshIndex: meshIndex)} vertex positions", data: data);
+        GetPrimitive(meshIndex: meshIndex, primitiveIndex: primitiveIndex).Attributes[key: "POSITION"] = accessor;
     }
 
     internal void InsertNormals(int meshIndex, int primitiveIndex, IReadOnlyList<Vector3> data) {
-        int accessor = InsertVec3($"{GetMeshName(meshIndex)} normals", data);
-        GetPrimitive(meshIndex, primitiveIndex).Attributes["NORMAL"] = accessor;
+        int accessor = InsertVec3(name: $"{GetMeshName(meshIndex: meshIndex)} normals", data: data);
+        GetPrimitive(meshIndex: meshIndex, primitiveIndex: primitiveIndex).Attributes[key: "NORMAL"] = accessor;
     }
 
     internal void InsertUvMap(int meshIndex, int primitiveIndex, IReadOnlyList<Vector2> data) {
-        int accessor = InsertVec2($"{GetMeshName(meshIndex)} uv map", data);
-        GetPrimitive(meshIndex, primitiveIndex).Attributes["TEXCOORD_0"] = accessor;
+        int accessor = InsertVec2(name: $"{GetMeshName(meshIndex: meshIndex)} uv map", data: data);
+        GetPrimitive(meshIndex: meshIndex, primitiveIndex: primitiveIndex).Attributes[key: "TEXCOORD_0"] = accessor;
     }
 
     internal void InsertIndices(int meshIndex, int primitiveIndex, IReadOnlyList<uint> data) {
-        int accessor = InsertVecU32($"{GetMeshName(meshIndex)} indices", data);
-        GetPrimitive(meshIndex, primitiveIndex).Indices = accessor;
+        int accessor = InsertVecU32(name: $"{GetMeshName(meshIndex: meshIndex)} indices", data: data);
+        GetPrimitive(meshIndex: meshIndex, primitiveIndex: primitiveIndex).Indices = accessor;
     }
 
     internal void InsertWeights(int meshIndex, int primitiveIndex, IReadOnlyList<Vector4> data) {
-        int accessor = InsertVec4($"{GetMeshName(meshIndex)} weights", data);
-        GetPrimitive(meshIndex, primitiveIndex).Attributes["WEIGHTS_0"] = accessor;
+        int accessor = InsertVec4(name: $"{GetMeshName(meshIndex: meshIndex)} weights", data: data);
+        GetPrimitive(meshIndex: meshIndex, primitiveIndex: primitiveIndex).Attributes[key: "WEIGHTS_0"] = accessor;
     }
 
     internal void InsertJoints(int meshIndex, int primitiveIndex, IReadOnlyList<ushort[]> data) {
-        int accessor = InsertVec4U16($"{GetMeshName(meshIndex)} joints", data);
-        GetPrimitive(meshIndex, primitiveIndex).Attributes["JOINTS_0"] = accessor;
+        int accessor = InsertVec4U16(name: $"{GetMeshName(meshIndex: meshIndex)} joints", data: data);
+        GetPrimitive(meshIndex: meshIndex, primitiveIndex: primitiveIndex).Attributes[key: "JOINTS_0"] = accessor;
     }
 
     internal int InsertMaterial(
@@ -120,22 +120,22 @@ internal sealed class P3dGltfBuilder {
             },
         };
 
-        _root.Materials.Add(material);
+        _root.Materials.Add(item: material);
         return index;
     }
 
     internal void SetPrimitiveMaterial(int meshIndex, int primitiveIndex, int materialIndex) {
-        GetPrimitive(meshIndex, primitiveIndex).Material = materialIndex;
+        GetPrimitive(meshIndex: meshIndex, primitiveIndex: primitiveIndex).Material = materialIndex;
     }
 
     internal int InsertNode(GltfNode node) {
         int index = _root.Nodes.Count;
-        _root.Nodes.Add(node);
+        _root.Nodes.Add(item: node);
         return index;
     }
 
     internal int InsertMeshSkinNode(string name, int meshIndex, int skinIndex) {
-        return InsertNode(new GltfNode {
+        return InsertNode(node: new GltfNode {
             Name = name,
             Mesh = meshIndex,
             Skin = skinIndex,
@@ -143,7 +143,7 @@ internal sealed class P3dGltfBuilder {
     }
 
     internal int InsertMeshNode(string name, int meshIndex) {
-        return InsertNode(new GltfNode {
+        return InsertNode(node: new GltfNode {
             Name = name,
             Mesh = meshIndex,
         });
@@ -151,7 +151,7 @@ internal sealed class P3dGltfBuilder {
 
     internal int InsertSkin(string name, IReadOnlyList<int> joints, int skeletonNodeIndex) {
         int index = _root.Skins.Count;
-        _root.Skins.Add(new GltfSkin {
+        _root.Skins.Add(item: new GltfSkin {
             Name = name,
             Joints = joints.ToList(),
             Skeleton = skeletonNodeIndex,
@@ -160,19 +160,19 @@ internal sealed class P3dGltfBuilder {
     }
 
     internal void InsertInverseBindMatrices(int skinIndex, IReadOnlyList<float[]> data) {
-        int accessor = InsertMat4($"{_root.Skins[skinIndex].Name} weights", data);
-        _root.Skins[skinIndex].InverseBindMatrices = accessor;
+        int accessor = InsertMat4(name: $"{_root.Skins[index: skinIndex].Name} weights", data: data);
+        _root.Skins[index: skinIndex].InverseBindMatrices = accessor;
     }
 
     internal void InsertNodeChild(int parentNodeIndex, int childNodeIndex) {
-        GltfNode parent = _root.Nodes[parentNodeIndex];
+        GltfNode parent = _root.Nodes[index: parentNodeIndex];
         parent.Children ??= new List<int>();
-        parent.Children.Add(childNodeIndex);
+        parent.Children.Add(item: childNodeIndex);
     }
 
     internal int InsertScene(string name, bool isDefault, IReadOnlyList<int> nodes) {
         int index = _root.Scenes.Count;
-        _root.Scenes.Add(new GltfScene {
+        _root.Scenes.Add(item: new GltfScene {
             Name = name,
             Nodes = nodes.ToList(),
         });
@@ -186,61 +186,61 @@ internal sealed class P3dGltfBuilder {
 
     internal string Build() {
         for (int i = 0; i < _unencodedBuffers.Count; i++) {
-            string base64 = Convert.ToBase64String(_unencodedBuffers[i].ToArray());
-            _root.Buffers[i].Uri = $"data:application/octet-stream;base64,{base64}";
+            string base64 = Convert.ToBase64String(inArray: _unencodedBuffers[index: i].ToArray());
+            _root.Buffers[index: i].Uri = $"data:application/octet-stream;base64,{base64}";
         }
 
-        return JsonSerializer.Serialize(_root, SerializerOptions);
+        return JsonSerializer.Serialize(_root, options: SerializerOptions);
     }
 
     private int InsertVecU32(string name, IReadOnlyList<uint> data) {
-        int buffer = AutoBuffer(checked(data.Count * sizeof(uint)));
-        PadToAlignment(buffer, sizeof(uint));
-        int bufferView = InsertRawData(name, buffer, EncodeU32(data));
-        return CreateAccessor(name, bufferView, 0, checked((uint)data.Count), 5125, "SCALAR", null, null);
+        int buffer = AutoBuffer(dataLength: checked(data.Count * sizeof(uint)));
+        PadToAlignment(bufferIndex: buffer, alignment: sizeof(uint));
+        int bufferView = InsertRawData(name: name, bufferIndex: buffer, data: EncodeU32(data: data));
+        return CreateAccessor(name: name, bufferView: bufferView, byteOffset: 0, count: checked((uint)data.Count), componentType: 5125, type: "SCALAR", min: null, max: null);
     }
 
     private int InsertVec2(string name, IReadOnlyList<Vector2> data) {
-        int buffer = AutoBuffer(checked(data.Count * sizeof(float) * 2));
-        PadToAlignment(buffer, sizeof(float));
-        int bufferView = InsertRawData(name, buffer, EncodeVector2(data));
+        int buffer = AutoBuffer(dataLength: checked(data.Count * sizeof(float) * 2));
+        PadToAlignment(bufferIndex: buffer, alignment: sizeof(float));
+        int bufferView = InsertRawData(name: name, bufferIndex: buffer, data: EncodeVector2(data: data));
 
-        ComputeMinMaxVec2(data, out float[] min, out float[] max);
-        return CreateAccessor(name, bufferView, 0, checked((uint)data.Count), 5126, "VEC2", min, max);
+        ComputeMinMaxVec2(data: data, min: out float[] min, max: out float[] max);
+        return CreateAccessor(name: name, bufferView: bufferView, byteOffset: 0, count: checked((uint)data.Count), componentType: 5126, type: "VEC2", min: min, max: max);
     }
 
     private int InsertVec3(string name, IReadOnlyList<Vector3> data) {
-        int buffer = AutoBuffer(checked(data.Count * sizeof(float) * 3));
-        PadToAlignment(buffer, sizeof(float));
-        int bufferView = InsertRawData(name, buffer, EncodeVector3(data));
+        int buffer = AutoBuffer(dataLength: checked(data.Count * sizeof(float) * 3));
+        PadToAlignment(bufferIndex: buffer, alignment: sizeof(float));
+        int bufferView = InsertRawData(name: name, bufferIndex: buffer, data: EncodeVector3(data: data));
 
-        ComputeMinMaxVec3(data, out float[] min, out float[] max);
-        return CreateAccessor(name, bufferView, 0, checked((uint)data.Count), 5126, "VEC3", min, max);
+        ComputeMinMaxVec3(data: data, min: out float[] min, max: out float[] max);
+        return CreateAccessor(name: name, bufferView: bufferView, byteOffset: 0, count: checked((uint)data.Count), componentType: 5126, type: "VEC3", min: min, max: max);
     }
 
     private int InsertVec4(string name, IReadOnlyList<Vector4> data) {
-        int buffer = AutoBuffer(checked(data.Count * sizeof(float) * 4));
-        PadToAlignment(buffer, sizeof(float));
-        int bufferView = InsertRawData(name, buffer, EncodeVector4(data));
+        int buffer = AutoBuffer(dataLength: checked(data.Count * sizeof(float) * 4));
+        PadToAlignment(bufferIndex: buffer, alignment: sizeof(float));
+        int bufferView = InsertRawData(name: name, bufferIndex: buffer, data: EncodeVector4(data: data));
 
-        ComputeMinMaxVec4(data, out float[] min, out float[] max);
-        return CreateAccessor(name, bufferView, 0, checked((uint)data.Count), 5126, "VEC4", min, max);
+        ComputeMinMaxVec4(data: data, min: out float[] min, max: out float[] max);
+        return CreateAccessor(name: name, bufferView: bufferView, byteOffset: 0, count: checked((uint)data.Count), componentType: 5126, type: "VEC4", min: min, max: max);
     }
 
     private int InsertVec4U16(string name, IReadOnlyList<ushort[]> data) {
-        int buffer = AutoBuffer(checked(data.Count * sizeof(ushort) * 4));
-        PadToAlignment(buffer, sizeof(ushort));
-        int bufferView = InsertRawData(name, buffer, EncodeU16x4(data));
-        return CreateAccessor(name, bufferView, 0, checked((uint)data.Count), 5123, "VEC4", null, null);
+        int buffer = AutoBuffer(dataLength: checked(data.Count * sizeof(ushort) * 4));
+        PadToAlignment(bufferIndex: buffer, alignment: sizeof(ushort));
+        int bufferView = InsertRawData(name: name, bufferIndex: buffer, data: EncodeU16x4(data: data));
+        return CreateAccessor(name: name, bufferView: bufferView, byteOffset: 0, count: checked((uint)data.Count), componentType: 5123, type: "VEC4", min: null, max: null);
     }
 
     private int InsertMat4(string name, IReadOnlyList<float[]> data) {
-        int buffer = AutoBuffer(checked(data.Count * sizeof(float) * 16));
-        PadToAlignment(buffer, sizeof(float));
-        int bufferView = InsertRawData(name, buffer, EncodeMat4(data));
+        int buffer = AutoBuffer(dataLength: checked(data.Count * sizeof(float) * 16));
+        PadToAlignment(bufferIndex: buffer, alignment: sizeof(float));
+        int bufferView = InsertRawData(name: name, bufferIndex: buffer, data: EncodeMat4(data: data));
 
-        ComputeMinMaxMat4(data, out float[] min, out float[] max);
-        return CreateAccessor(name, bufferView, 0, checked((uint)data.Count), 5126, "MAT4", min, max);
+        ComputeMinMaxMat4(data: data, min: out float[] min, max: out float[] max);
+        return CreateAccessor(name: name, bufferView: bufferView, byteOffset: 0, count: checked((uint)data.Count), componentType: 5126, type: "MAT4", min: min, max: max);
     }
 
     private int CreateAccessor(
@@ -254,7 +254,7 @@ internal sealed class P3dGltfBuilder {
         object? max
     ) {
         int index = _root.Accessors.Count;
-        _root.Accessors.Add(new GltfAccessor {
+        _root.Accessors.Add(item: new GltfAccessor {
             Name = name,
             BufferView = bufferView,
             ByteOffset = byteOffset,
@@ -269,43 +269,43 @@ internal sealed class P3dGltfBuilder {
 
     private int AutoBuffer(int dataLength) {
         for (int i = 0; i < _root.Buffers.Count; i++) {
-            int projected = checked((int)_root.Buffers[i].ByteLength) + dataLength;
+            int projected = checked((int)_root.Buffers[index: i].ByteLength) + dataLength;
             if (projected <= MaxBufferLength) {
                 return i;
             }
         }
 
-        return CreateBuffer($"Autogenerated buffer {_root.Buffers.Count}");
+        return CreateBuffer(name: $"Autogenerated buffer {_root.Buffers.Count}");
     }
 
     private int CreateBuffer(string? name) {
         int index = _root.Buffers.Count;
-        _root.Buffers.Add(new GltfBuffer {
+        _root.Buffers.Add(item: new GltfBuffer {
             Name = name,
             ByteLength = 0,
         });
-        _unencodedBuffers.Add(new List<byte>());
+        _unencodedBuffers.Add(item: new List<byte>());
         return index;
     }
 
     private void PadToAlignment(int bufferIndex, int alignment) {
-        List<byte> data = _unencodedBuffers[bufferIndex];
+        List<byte> data = _unencodedBuffers[index: bufferIndex];
         while ((data.Count % alignment) != 0) {
-            data.Add(0);
+            data.Add(item: 0);
         }
 
-        _root.Buffers[bufferIndex].ByteLength = checked((uint)data.Count);
+        _root.Buffers[index: bufferIndex].ByteLength = checked((uint)data.Count);
     }
 
     private int InsertRawData(string name, int bufferIndex, byte[] data) {
-        List<byte> realBuffer = _unencodedBuffers[bufferIndex];
+        List<byte> realBuffer = _unencodedBuffers[index: bufferIndex];
         uint byteOffset = checked((uint)realBuffer.Count);
 
-        realBuffer.AddRange(data);
-        _root.Buffers[bufferIndex].ByteLength = checked((uint)realBuffer.Count);
+        realBuffer.AddRange(collection: data);
+        _root.Buffers[index: bufferIndex].ByteLength = checked((uint)realBuffer.Count);
 
         int index = _root.BufferViews.Count;
-        _root.BufferViews.Add(new GltfBufferView {
+        _root.BufferViews.Add(item: new GltfBufferView {
             Name = name,
             Buffer = bufferIndex,
             ByteLength = checked((uint)data.Length),
@@ -316,18 +316,18 @@ internal sealed class P3dGltfBuilder {
     }
 
     private string GetMeshName(int meshIndex) {
-        return _root.Meshes[meshIndex].Name ?? $"mesh-{meshIndex}";
+        return _root.Meshes[index: meshIndex].Name ?? $"mesh-{meshIndex}";
     }
 
     private GltfPrimitive GetPrimitive(int meshIndex, int primitiveIndex) {
-        return _root.Meshes[meshIndex].Primitives[primitiveIndex];
+        return _root.Meshes[index: meshIndex].Primitives[index: primitiveIndex];
     }
 
     private static byte[] EncodeU32(IReadOnlyList<uint> data) {
         byte[] bytes = new byte[checked(data.Count * sizeof(uint))];
         int offset = 0;
         for (int i = 0; i < data.Count; i++) {
-            BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(offset, sizeof(uint)), data[i]);
+            BinaryPrimitives.WriteUInt32LittleEndian(destination: bytes.AsSpan(start: offset, length: sizeof(uint)), data[index: i]);
             offset += sizeof(uint);
         }
 
@@ -339,15 +339,15 @@ internal sealed class P3dGltfBuilder {
         int offset = 0;
 
         for (int i = 0; i < data.Count; i++) {
-            ushort[] joints = data[i];
+            ushort[] joints = data[index: i];
             if (joints.Length != 4) {
                 throw new P3dParseException("Expected JOINTS_0 data as arrays of 4 ushort values.");
             }
 
-            BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset, sizeof(ushort)), joints[0]);
-            BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset + 2, sizeof(ushort)), joints[1]);
-            BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset + 4, sizeof(ushort)), joints[2]);
-            BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset + 6, sizeof(ushort)), joints[3]);
+            BinaryPrimitives.WriteUInt16LittleEndian(destination: bytes.AsSpan(start: offset, length: sizeof(ushort)), joints[0]);
+            BinaryPrimitives.WriteUInt16LittleEndian(destination: bytes.AsSpan(start: offset + 2, length: sizeof(ushort)), joints[1]);
+            BinaryPrimitives.WriteUInt16LittleEndian(destination: bytes.AsSpan(start: offset + 4, length: sizeof(ushort)), joints[2]);
+            BinaryPrimitives.WriteUInt16LittleEndian(destination: bytes.AsSpan(start: offset + 6, length: sizeof(ushort)), joints[3]);
             offset += sizeof(ushort) * 4;
         }
 
@@ -359,8 +359,8 @@ internal sealed class P3dGltfBuilder {
         int offset = 0;
 
         for (int i = 0; i < data.Count; i++) {
-            BinaryPrimitives.WriteSingleLittleEndian(bytes.AsSpan(offset, sizeof(float)), data[i].X);
-            BinaryPrimitives.WriteSingleLittleEndian(bytes.AsSpan(offset + 4, sizeof(float)), data[i].Y);
+            BinaryPrimitives.WriteSingleLittleEndian(destination: bytes.AsSpan(start: offset, length: sizeof(float)), data[index: i].X);
+            BinaryPrimitives.WriteSingleLittleEndian(destination: bytes.AsSpan(start: offset + 4, length: sizeof(float)), data[index: i].Y);
             offset += sizeof(float) * 2;
         }
 
@@ -372,9 +372,9 @@ internal sealed class P3dGltfBuilder {
         int offset = 0;
 
         for (int i = 0; i < data.Count; i++) {
-            BinaryPrimitives.WriteSingleLittleEndian(bytes.AsSpan(offset, sizeof(float)), data[i].X);
-            BinaryPrimitives.WriteSingleLittleEndian(bytes.AsSpan(offset + 4, sizeof(float)), data[i].Y);
-            BinaryPrimitives.WriteSingleLittleEndian(bytes.AsSpan(offset + 8, sizeof(float)), data[i].Z);
+            BinaryPrimitives.WriteSingleLittleEndian(destination: bytes.AsSpan(start: offset, length: sizeof(float)), data[index: i].X);
+            BinaryPrimitives.WriteSingleLittleEndian(destination: bytes.AsSpan(start: offset + 4, length: sizeof(float)), data[index: i].Y);
+            BinaryPrimitives.WriteSingleLittleEndian(destination: bytes.AsSpan(start: offset + 8, length: sizeof(float)), data[index: i].Z);
             offset += sizeof(float) * 3;
         }
 
@@ -386,10 +386,10 @@ internal sealed class P3dGltfBuilder {
         int offset = 0;
 
         for (int i = 0; i < data.Count; i++) {
-            BinaryPrimitives.WriteSingleLittleEndian(bytes.AsSpan(offset, sizeof(float)), data[i].X);
-            BinaryPrimitives.WriteSingleLittleEndian(bytes.AsSpan(offset + 4, sizeof(float)), data[i].Y);
-            BinaryPrimitives.WriteSingleLittleEndian(bytes.AsSpan(offset + 8, sizeof(float)), data[i].Z);
-            BinaryPrimitives.WriteSingleLittleEndian(bytes.AsSpan(offset + 12, sizeof(float)), data[i].W);
+            BinaryPrimitives.WriteSingleLittleEndian(destination: bytes.AsSpan(start: offset, length: sizeof(float)), data[index: i].X);
+            BinaryPrimitives.WriteSingleLittleEndian(destination: bytes.AsSpan(start: offset + 4, length: sizeof(float)), data[index: i].Y);
+            BinaryPrimitives.WriteSingleLittleEndian(destination: bytes.AsSpan(start: offset + 8, length: sizeof(float)), data[index: i].Z);
+            BinaryPrimitives.WriteSingleLittleEndian(destination: bytes.AsSpan(start: offset + 12, length: sizeof(float)), data[index: i].W);
             offset += sizeof(float) * 4;
         }
 
@@ -401,13 +401,13 @@ internal sealed class P3dGltfBuilder {
         int offset = 0;
 
         for (int i = 0; i < data.Count; i++) {
-            float[] matrix = data[i];
+            float[] matrix = data[index: i];
             if (matrix.Length != 16) {
                 throw new P3dParseException("Expected MAT4 data as arrays of 16 float values.");
             }
 
             for (int c = 0; c < 16; c++) {
-                BinaryPrimitives.WriteSingleLittleEndian(bytes.AsSpan(offset, sizeof(float)), matrix[c]);
+                BinaryPrimitives.WriteSingleLittleEndian(destination: bytes.AsSpan(start: offset, length: sizeof(float)), matrix[c]);
                 offset += sizeof(float);
             }
         }
@@ -422,13 +422,13 @@ internal sealed class P3dGltfBuilder {
             return;
         }
 
-        float minX = data[0].X;
-        float minY = data[0].Y;
+        float minX = data[index: 0].X;
+        float minY = data[index: 0].Y;
         float maxX = minX;
         float maxY = minY;
 
         for (int i = 1; i < data.Count; i++) {
-            Vector2 value = data[i];
+            Vector2 value = data[index: i];
             if (value.X < minX) {
                 minX = value.X;
             }
@@ -457,15 +457,15 @@ internal sealed class P3dGltfBuilder {
             return;
         }
 
-        float minX = data[0].X;
-        float minY = data[0].Y;
-        float minZ = data[0].Z;
+        float minX = data[index: 0].X;
+        float minY = data[index: 0].Y;
+        float minZ = data[index: 0].Z;
         float maxX = minX;
         float maxY = minY;
         float maxZ = minZ;
 
         for (int i = 1; i < data.Count; i++) {
-            Vector3 value = data[i];
+            Vector3 value = data[index: i];
             if (value.X < minX) {
                 minX = value.X;
             }
@@ -502,17 +502,17 @@ internal sealed class P3dGltfBuilder {
             return;
         }
 
-        float minX = data[0].X;
-        float minY = data[0].Y;
-        float minZ = data[0].Z;
-        float minW = data[0].W;
+        float minX = data[index: 0].X;
+        float minY = data[index: 0].Y;
+        float minZ = data[index: 0].Z;
+        float minW = data[index: 0].W;
         float maxX = minX;
         float maxY = minY;
         float maxZ = minZ;
         float maxW = minW;
 
         for (int i = 1; i < data.Count; i++) {
-            Vector4 value = data[i];
+            Vector4 value = data[index: i];
             if (value.X < minX) {
                 minX = value.X;
             }
@@ -559,11 +559,11 @@ internal sealed class P3dGltfBuilder {
 
         min = new float[16];
         max = new float[16];
-        Array.Copy(data[0], min, 16);
-        Array.Copy(data[0], max, 16);
+        Array.Copy(sourceArray: data[index: 0], destinationArray: min, length: 16);
+        Array.Copy(sourceArray: data[index: 0], destinationArray: max, length: 16);
 
         for (int i = 1; i < data.Count; i++) {
-            float[] matrix = data[i];
+            float[] matrix = data[index: i];
             if (matrix.Length != 16) {
                 throw new P3dParseException("Expected MAT4 data as arrays of 16 float values.");
             }
@@ -581,224 +581,224 @@ internal sealed class P3dGltfBuilder {
     }
 
     internal sealed class GltfNode {
-        [JsonPropertyName("name")]
+        [JsonPropertyName(name: "name")]
         public string? Name { get; set; }
 
-        [JsonPropertyName("children")]
+        [JsonPropertyName(name: "children")]
         public List<int>? Children { get; set; }
 
-        [JsonPropertyName("matrix")]
+        [JsonPropertyName(name: "matrix")]
         public float[]? Matrix { get; set; }
 
-        [JsonPropertyName("mesh")]
+        [JsonPropertyName(name: "mesh")]
         public int? Mesh { get; set; }
 
-        [JsonPropertyName("skin")]
+        [JsonPropertyName(name: "skin")]
         public int? Skin { get; set; }
     }
 
     private sealed class GltfRoot {
-        [JsonPropertyName("asset")]
+        [JsonPropertyName(name: "asset")]
         public GltfAsset Asset { get; set; } = new() { Version = "2.0" };
 
-        [JsonPropertyName("buffers")]
+        [JsonPropertyName(name: "buffers")]
         public List<GltfBuffer> Buffers { get; set; } = new();
 
-        [JsonPropertyName("bufferViews")]
+        [JsonPropertyName(name: "bufferViews")]
         public List<GltfBufferView> BufferViews { get; set; } = new();
 
-        [JsonPropertyName("accessors")]
+        [JsonPropertyName(name: "accessors")]
         public List<GltfAccessor> Accessors { get; set; } = new();
 
-        [JsonPropertyName("images")]
+        [JsonPropertyName(name: "images")]
         public List<GltfImage> Images { get; set; } = new();
 
-        [JsonPropertyName("textures")]
+        [JsonPropertyName(name: "textures")]
         public List<GltfTexture> Textures { get; set; } = new();
 
-        [JsonPropertyName("materials")]
+        [JsonPropertyName(name: "materials")]
         public List<GltfMaterial> Materials { get; set; } = new();
 
-        [JsonPropertyName("meshes")]
+        [JsonPropertyName(name: "meshes")]
         public List<GltfMesh> Meshes { get; set; } = new();
 
-        [JsonPropertyName("nodes")]
+        [JsonPropertyName(name: "nodes")]
         public List<GltfNode> Nodes { get; set; } = new();
 
-        [JsonPropertyName("skins")]
+        [JsonPropertyName(name: "skins")]
         public List<GltfSkin> Skins { get; set; } = new();
 
-        [JsonPropertyName("scenes")]
+        [JsonPropertyName(name: "scenes")]
         public List<GltfScene> Scenes { get; set; } = new();
 
-        [JsonPropertyName("scene")]
+        [JsonPropertyName(name: "scene")]
         public int? Scene { get; set; }
     }
 
     private sealed class GltfAsset {
-        [JsonPropertyName("version")]
+        [JsonPropertyName(name: "version")]
         public required string Version { get; set; }
 
-        [JsonPropertyName("generator")]
+        [JsonPropertyName(name: "generator")]
         public string? Generator { get; set; }
     }
 
     private sealed class GltfBuffer {
-        [JsonPropertyName("name")]
+        [JsonPropertyName(name: "name")]
         public string? Name { get; set; }
 
-        [JsonPropertyName("byteLength")]
+        [JsonPropertyName(name: "byteLength")]
         public uint ByteLength { get; set; }
 
-        [JsonPropertyName("uri")]
+        [JsonPropertyName(name: "uri")]
         public string? Uri { get; set; }
     }
 
     private sealed class GltfBufferView {
-        [JsonPropertyName("name")]
+        [JsonPropertyName(name: "name")]
         public string? Name { get; set; }
 
-        [JsonPropertyName("buffer")]
+        [JsonPropertyName(name: "buffer")]
         public int Buffer { get; set; }
 
-        [JsonPropertyName("byteOffset")]
+        [JsonPropertyName(name: "byteOffset")]
         public uint? ByteOffset { get; set; }
 
-        [JsonPropertyName("byteLength")]
+        [JsonPropertyName(name: "byteLength")]
         public uint ByteLength { get; set; }
     }
 
     private sealed class GltfAccessor {
-        [JsonPropertyName("name")]
+        [JsonPropertyName(name: "name")]
         public string? Name { get; set; }
 
-        [JsonPropertyName("bufferView")]
+        [JsonPropertyName(name: "bufferView")]
         public int? BufferView { get; set; }
 
-        [JsonPropertyName("byteOffset")]
+        [JsonPropertyName(name: "byteOffset")]
         public uint ByteOffset { get; set; }
 
-        [JsonPropertyName("componentType")]
+        [JsonPropertyName(name: "componentType")]
         public int ComponentType { get; set; }
 
-        [JsonPropertyName("count")]
+        [JsonPropertyName(name: "count")]
         public uint Count { get; set; }
 
-        [JsonPropertyName("type")]
+        [JsonPropertyName(name: "type")]
         public string Type { get; set; } = "SCALAR";
 
-        [JsonPropertyName("min")]
+        [JsonPropertyName(name: "min")]
         public object? Min { get; set; }
 
-        [JsonPropertyName("max")]
+        [JsonPropertyName(name: "max")]
         public object? Max { get; set; }
     }
 
     private sealed class GltfImage {
-        [JsonPropertyName("name")]
+        [JsonPropertyName(name: "name")]
         public string? Name { get; set; }
 
-        [JsonPropertyName("mimeType")]
+        [JsonPropertyName(name: "mimeType")]
         public string? MimeType { get; set; }
 
-        [JsonPropertyName("uri")]
+        [JsonPropertyName(name: "uri")]
         public string? Uri { get; set; }
 
-        [JsonPropertyName("bufferView")]
+        [JsonPropertyName(name: "bufferView")]
         public int? BufferView { get; set; }
     }
 
     private sealed class GltfTexture {
-        [JsonPropertyName("name")]
+        [JsonPropertyName(name: "name")]
         public string? Name { get; set; }
 
-        [JsonPropertyName("source")]
+        [JsonPropertyName(name: "source")]
         public int Source { get; set; }
 
-        [JsonPropertyName("sampler")]
+        [JsonPropertyName(name: "sampler")]
         public int? Sampler { get; set; }
     }
 
     private sealed class GltfMaterial {
-        [JsonPropertyName("name")]
+        [JsonPropertyName(name: "name")]
         public string? Name { get; set; }
 
-        [JsonPropertyName("alphaMode")]
+        [JsonPropertyName(name: "alphaMode")]
         public string AlphaMode { get; set; } = "OPAQUE";
 
-        [JsonPropertyName("doubleSided")]
+        [JsonPropertyName(name: "doubleSided")]
         public bool DoubleSided { get; set; }
 
-        [JsonPropertyName("pbrMetallicRoughness")]
+        [JsonPropertyName(name: "pbrMetallicRoughness")]
         public GltfPbrMetallicRoughness PbrMetallicRoughness { get; set; } = new();
 
-        [JsonPropertyName("emissiveFactor")]
+        [JsonPropertyName(name: "emissiveFactor")]
         public float[] EmissiveFactor { get; set; } = new[] { 0.0f, 0.0f, 0.0f };
     }
 
     private sealed class GltfPbrMetallicRoughness {
-        [JsonPropertyName("baseColorFactor")]
+        [JsonPropertyName(name: "baseColorFactor")]
         public float[] BaseColorFactor { get; set; } = new[] { 1.0f, 1.0f, 1.0f, 1.0f };
 
-        [JsonPropertyName("baseColorTexture")]
+        [JsonPropertyName(name: "baseColorTexture")]
         public GltfTextureInfo? BaseColorTexture { get; set; }
 
-        [JsonPropertyName("metallicFactor")]
+        [JsonPropertyName(name: "metallicFactor")]
         public float MetallicFactor { get; set; }
 
-        [JsonPropertyName("roughnessFactor")]
+        [JsonPropertyName(name: "roughnessFactor")]
         public float RoughnessFactor { get; set; }
     }
 
     private sealed class GltfTextureInfo {
-        [JsonPropertyName("index")]
+        [JsonPropertyName(name: "index")]
         public int Index { get; set; }
 
-        [JsonPropertyName("texCoord")]
+        [JsonPropertyName(name: "texCoord")]
         public int TexCoord { get; set; }
     }
 
     private sealed class GltfMesh {
-        [JsonPropertyName("name")]
+        [JsonPropertyName(name: "name")]
         public string? Name { get; set; }
 
-        [JsonPropertyName("primitives")]
+        [JsonPropertyName(name: "primitives")]
         public List<GltfPrimitive> Primitives { get; set; } = new();
     }
 
     private sealed class GltfPrimitive {
-        [JsonPropertyName("attributes")]
-        public Dictionary<string, int> Attributes { get; set; } = new(StringComparer.Ordinal);
+        [JsonPropertyName(name: "attributes")]
+        public Dictionary<string, int> Attributes { get; set; } = new(comparer: StringComparer.Ordinal);
 
-        [JsonPropertyName("indices")]
+        [JsonPropertyName(name: "indices")]
         public int? Indices { get; set; }
 
-        [JsonPropertyName("material")]
+        [JsonPropertyName(name: "material")]
         public int? Material { get; set; }
 
-        [JsonPropertyName("mode")]
+        [JsonPropertyName(name: "mode")]
         public int Mode { get; set; }
     }
 
     private sealed class GltfSkin {
-        [JsonPropertyName("name")]
+        [JsonPropertyName(name: "name")]
         public string? Name { get; set; }
 
-        [JsonPropertyName("inverseBindMatrices")]
+        [JsonPropertyName(name: "inverseBindMatrices")]
         public int? InverseBindMatrices { get; set; }
 
-        [JsonPropertyName("joints")]
+        [JsonPropertyName(name: "joints")]
         public List<int> Joints { get; set; } = new();
 
-        [JsonPropertyName("skeleton")]
+        [JsonPropertyName(name: "skeleton")]
         public int? Skeleton { get; set; }
     }
 
     private sealed class GltfScene {
-        [JsonPropertyName("name")]
+        [JsonPropertyName(name: "name")]
         public string? Name { get; set; }
 
-        [JsonPropertyName("nodes")]
+        [JsonPropertyName(name: "nodes")]
         public List<int> Nodes { get; set; } = new();
     }
 }

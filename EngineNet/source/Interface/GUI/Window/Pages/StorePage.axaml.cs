@@ -18,7 +18,7 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
     public string Status {
         get => _status; private set {
             _status = value;
-            Raise(nameof(Status));
+            Raise(name: nameof(Status));
         }
     }
 
@@ -26,7 +26,7 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
     public string Query {
         get => _query; set {
             _query = value;
-            Raise(nameof(Query));
+            Raise(name: nameof(Query));
         }
     }
 
@@ -53,10 +53,10 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
     /// <param name="engine"></param>
     public StorePage() {
 
-        Button_Refresh_Click = new Cmd(async _ => await LoadAsync());
-        Button_Search_Click = new Cmd(async _ => await LoadAsync(Query));
-        Button_Download_Click = new Cmd(async item => await DownloadAsync(item as StoreItem));
-        Button_OpenModule_Click = new Cmd(async item => await OpenModuleAsync(item as StoreItem));
+        Button_Refresh_Click = new Cmd(run: async _ => await LoadAsync());
+        Button_Search_Click = new Cmd(run: async _ => await LoadAsync(query: Query));
+        Button_Download_Click = new Cmd(run: async item => await DownloadAsync(item: item as StoreItem));
+        Button_OpenModule_Click = new Cmd(run: async item => await OpenModuleAsync(item: item as StoreItem));
 
         DataContext = this;
         InitializeComponent();
@@ -79,7 +79,7 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
             Items.Clear();
 
             if (GuiBootstrapper.MiniEngine == null) {
-                throw new InvalidOperationException(message: "Engine is not initialized.");
+                throw new InvalidOperationException("Engine is not initialized.");
             }
 
             // Get registered modules from EngineApps\Registries\Modules\Main.json
@@ -87,14 +87,14 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
             IReadOnlyDictionary<string, object?> modules = GuiBootstrapper.MiniEngine.GameRegistry_GetRegisteredModules();
 
             // Get already downloaded games
-            Core.Data.GameModules downloadedGames = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Data.ModuleFilter.Installed);
+            Core.Data.GameModules downloadedGames = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.Installed);
 
             foreach (KeyValuePair<string, object?> kv in modules) {
                 string moduleName = kv.Key;
 
                 // Apply search filter if provided
                 if (!string.IsNullOrWhiteSpace(query) &&
-                    !moduleName.Contains(query, System.StringComparison.OrdinalIgnoreCase)) {
+                    !moduleName.Contains(query, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                     continue;
                 }
 
@@ -105,21 +105,21 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
                 string? description = null;
 
                 if (moduleInfo != null) {
-                    url = moduleInfo.TryGetValue("url", out object? u) ? u?.ToString() : null;
-                    title = moduleInfo.TryGetValue("title", out object? t) ? t?.ToString() : null;
-                    description = moduleInfo.TryGetValue("description", out object? d) ? d?.ToString() : null;
+                    url = moduleInfo.TryGetValue(key: "url", out object? u) ? u?.ToString() : null;
+                    title = moduleInfo.TryGetValue(key: "title", out object? t) ? t?.ToString() : null;
+                    description = moduleInfo.TryGetValue(key: "description", out object? d) ? d?.ToString() : null;
                 }
 
                 // Check if already downloaded
-                bool isDownloaded = downloadedGames.ContainsKey(moduleName);
+                bool isDownloaded = downloadedGames.ContainsKey(key: moduleName);
 
                 // Check if installed (has game.toml with exe)
                 bool isInstalled = false;
-                if (isDownloaded && downloadedGames.TryGetValue(moduleName, out Core.Data.GameModuleInfo? gameInfo)) {
+                if (isDownloaded && downloadedGames.TryGetValue(key: moduleName, out Core.Data.GameModuleInfo? gameInfo)) {
                     isInstalled = gameInfo.IsInstalled;
                 }
 
-                Items.Add(new StoreItem {
+                Items.Add(item: new StoreItem {
                     Id = moduleName,
                     Name = moduleName,
                     Title = title ?? moduleName,
@@ -138,7 +138,7 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
         } catch (System.Exception ex) {
             Status = "Failed to load store.";
             Items.Clear();
-            Items.Add(new StoreItem {
+            Items.Add(item: new StoreItem {
                 Name = "Error",
                 Title = "Error",
                 Description = ex.Message,
@@ -166,25 +166,25 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
 
             Status = $"Downloading {item.Name}…";
 
-            OperationOutputService.Instance.AddOutput($"Starting download for {item.Name}…", "stdout");
+            OperationOutputService.Instance.AddOutput(text: $"Starting download for {item.Name}…", stream: "stdout");
 
             bool success = await EngineOperationRunner.RunAsync(
-                item.Name,
-                $"Download {item.Name}",
-                async (onOutput, onEvent, stdin) => {
-                    onEvent(new Dictionary<string, object?> {
-                        ["event"] = EngineSdk.Events.Start,
-                        ["name"] = item.Name,
-                        ["url"] = item.Url ?? string.Empty
+                moduleName: item.Name,
+                operationName: $"Download {item.Name}",
+                executor: async (onOutput, onEvent, stdin) => {
+                    onEvent(evt: new Dictionary<string, object?> {
+                        [key: "event"] = EngineSdk.Events.Start,
+                        [key: "name"] = item.Name,
+                        [key: "url"] = item.Url ?? string.Empty
                     });
 
-                    bool result = await Task.Run(() => GuiBootstrapper.MiniEngine.GitService_CloneModule(item.Url!));
+                    bool result = await Task.Run(function: () => GuiBootstrapper.MiniEngine.GitService_CloneModule(url: item.Url!));
 
-                    onOutput(result ? $"Download complete for {item.Name}." : $"Download failed for {item.Name}.", result ? "stdout" : "stderr");
-                    onEvent(new Dictionary<string, object?> {
-                        ["event"] = EngineSdk.Events.End,
-                        ["success"] = result,
-                        ["name"] = item.Name
+                    onOutput(line: result ? $"Download complete for {item.Name}." : $"Download failed for {item.Name}.", streamName: result ? "stdout" : "stderr");
+                    onEvent(evt: new Dictionary<string, object?> {
+                        [key: "event"] = EngineSdk.Events.End,
+                        [key: "success"] = result,
+                        [key: "name"] = item.Name
                     });
 
                     return result;
@@ -192,12 +192,12 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
             );
 
             OperationOutputService.Instance.AddOutput(
-                success ? $"Finished downloading {item.Name}." : $"Unable to download {item.Name}.",
-                success ? "stdout" : "stderr"
+                text: success ? $"Finished downloading {item.Name}." : $"Unable to download {item.Name}.",
+                stream: success ? "stdout" : "stderr"
             );
             if (success) {
                 Status = $"Downloaded {item.Name} successfully.";
-                await LoadAsync(Query);
+                await LoadAsync(query: Query);
             } else {
                 Status = $"Failed to download {item.Name}.";
             }
@@ -214,9 +214,9 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
     private async System.Threading.Tasks.Task OpenModuleAsync(StoreItem? item) {
         if (item is null) return;
         try {
-            Window? w = TopLevel.GetTopLevel(this) as Window;
+            Window? w = TopLevel.GetTopLevel(visual: this) as Window;
             if (w is MainWindow mw && GuiBootstrapper.MiniEngine is not null) {
-                mw.ShowLibraryFor(item.Name);
+                mw.ShowLibraryFor(moduleName: item.Name);
             }
         } catch { /* ignore */ }
         await System.Threading.Tasks.Task.CompletedTask;
@@ -262,12 +262,12 @@ public partial class StorePage:UserControl, INotifyPropertyChanged {
         remove => _propertyChanged -= value;
     }
 
-    private void Raise(string name) => _propertyChanged?.Invoke(this, e: new PropertyChangedEventArgs(name));
+    private void Raise(string name) => _propertyChanged?.Invoke(sender: this, e: new PropertyChangedEventArgs(propertyName: name));
 
     private sealed class Cmd(System.Func<object?, Task> run):System.Windows.Input.ICommand {
         private readonly Func<object?, Task> _run = run;
         public bool CanExecute(object? p) => true;
-        public async void Execute(object? p) => await _run(p);
+        public async void Execute(object? p) => await _run(arg: p);
         public event EventHandler? CanExecuteChanged {
             add { }
             remove { }

@@ -15,7 +15,7 @@ internal sealed class Main : IScriptAction {
 
     internal Main(string scriptPath, IEnumerable<string>? args, string gameRoot, string projectRoot) {
         this._scriptPath = scriptPath;
-        this._args = args is null ? System.Array.Empty<string>() : args as string[] ?? new List<string>(args).ToArray();
+        this._args = args is null ? System.Array.Empty<string>() : args as string[] ?? new List<string>(collection: args).ToArray();
         this._gameRoot = gameRoot;
         this._projectRoot = projectRoot;
     }
@@ -28,7 +28,7 @@ internal sealed class Main : IScriptAction {
     private static bool IsMoonSharpIteratorPrepNullReference(Exception exception) {
         Exception? current = exception;
         while (current is not null) {
-            if (current is NullReferenceException && current.StackTrace?.Contains("MoonSharp.Interpreter.Execution.VM.Processor.ExecIterPrep", StringComparison.Ordinal) == true) {
+            if (current is NullReferenceException && current.StackTrace?.Contains("MoonSharp.Interpreter.Execution.VM.Processor.ExecIterPrep", comparisonType: StringComparison.Ordinal) == true) {
                 return true;
             }
 
@@ -45,19 +45,19 @@ internal sealed class Main : IScriptAction {
         System.Exception? executionError = null;
         LuaWorld? LuaWorld = null;
         try {
-            if (!System.IO.File.Exists(this._scriptPath)) {
-                throw new System.IO.FileNotFoundException("Lua script not found", this._scriptPath);
+            if (!System.IO.File.Exists(path: this._scriptPath)) {
+                throw new System.IO.FileNotFoundException("Lua script not found", fileName: this._scriptPath);
             }
 
             // ::
             // ::
 
             // read script code
-            string code = await System.IO.File.ReadAllTextAsync(this._scriptPath, cancellationToken);
+            string code = await System.IO.File.ReadAllTextAsync(path: this._scriptPath, cancellationToken: cancellationToken);
             // create new Lua script environment with default modules, all sandboxing is done manually
-            Script LuaScript = new Script(CoreModules.Preset_Default);
+            Script LuaScript = new Script(coreModules: CoreModules.Preset_Default);
             // object to hold all exposed tables
-            LuaWorld = new LuaWorld(LuaScript, this._scriptPath);
+            LuaWorld = new LuaWorld(_luaScript: LuaScript, _scriptPath: this._scriptPath);
 
 
 
@@ -65,14 +65,14 @@ internal sealed class Main : IScriptAction {
             // ::
 
             // Setup safer environment
-            SetupEnvironment.LuaEnvironment(LuaWorld);
+            SetupEnvironment.LuaEnvironment(_LuaWorld: LuaWorld);
 
             // Load versions from current game module context
-            Dictionary<string,string> moduleVersions = Helper.LoadModuleToolVersions(_gameRoot);
-            var contextualTools = new ContextualToolResolver(tools, moduleVersions);
+            Dictionary<string,string> moduleVersions = Helper.LoadModuleToolVersions(_gameRoot: _gameRoot);
+            var contextualTools = new ContextualToolResolver(baseResolver: tools, contextVersions: moduleVersions);
 
             // Expose core functions, SDK and modules
-            LuaAction.CreateGlobals(LuaWorld, contextualTools, commandService, this._args, this._gameRoot, this._projectRoot, this._scriptPath);
+            LuaAction.CreateGlobals(_LuaWorld: LuaWorld, _tools: contextualTools, _commandService: commandService, _args: this._args, _gameRoot: this._gameRoot, _projectRoot: this._projectRoot, _scriptPath: this._scriptPath);
 
             // Register UserData types
             UserData.RegisterType<Shared.IO.UI.EngineSdk.PanelProgress>();
@@ -85,7 +85,7 @@ internal sealed class Main : IScriptAction {
 
 #if DEBUG
             Shared.IO.UI.EngineSdk.PrintLine($"Running lua script '{this._scriptPath}' with {this._args.Length} args...");
-            Shared.IO.UI.EngineSdk.PrintLine($"input args: {string.Join(", ", this._args)}");
+            Shared.IO.UI.EngineSdk.PrintLine($"input args: {string.Join(separator: ", ", this._args)}");
 #endif
 
             // ::
@@ -93,11 +93,11 @@ internal sealed class Main : IScriptAction {
 
             // Create a fresh object array specifically for this call
             object[] argsForLua = new object[this._args.Length];
-            Array.Copy(this._args, argsForLua, this._args.Length);
+            Array.Copy(sourceArray: this._args, destinationArray: argsForLua, length: this._args.Length);
 
-            await System.Threading.Tasks.Task.Run(() => {
-                LuaWorld.LuaScript.Call(LuaWorld.LuaScript.LoadString(code, codeFriendlyName: this._scriptPath), argsForLua);
-            }, cancellationToken).ConfigureAwait(false);
+            await System.Threading.Tasks.Task.Run(action: () => {
+                LuaWorld.LuaScript.Call(function: LuaWorld.LuaScript.LoadString(code: code, codeFriendlyName: this._scriptPath), args: argsForLua);
+            }, cancellationToken: cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
             ok = true;
             exitCode = 0;
 
@@ -110,8 +110,8 @@ internal sealed class Main : IScriptAction {
             }
         } catch (MoonSharp.Interpreter.SyntaxErrorException syntaxEx) {
             // Catches parse errors (e.g. missing 'end', unexpected symbols) before the script even runs
-            Shared.IO.UI.EngineSdk.PrintLine(message: $"Lua Syntax Error: {syntaxEx.DecoratedMessage}", color: System.ConsoleColor.Red);
-            Shared.IO.UI.EngineSdk.PrintLine(message: $"Error: {syntaxEx.Message}", color: System.ConsoleColor.Yellow);
+            Shared.IO.UI.EngineSdk.PrintLine($"Lua Syntax Error: {syntaxEx.DecoratedMessage}", color: System.ConsoleColor.Red);
+            Shared.IO.UI.EngineSdk.PrintLine($"Error: {syntaxEx.Message}", color: System.ConsoleColor.Yellow);
 
             exitCode = 1;
             executionError = syntaxEx;
@@ -119,12 +119,12 @@ internal sealed class Main : IScriptAction {
             // luaEx.DecoratedMessage contains the file path and line number
             string luaErrorMessage = luaEx.DecoratedMessage;
 
-            Shared.IO.UI.EngineSdk.PrintLine(message: $"Lua Runtime Error: {luaErrorMessage}", color: System.ConsoleColor.Red);
-            Shared.IO.UI.EngineSdk.PrintLine(message: $"Error: {luaEx.Message}", color: System.ConsoleColor.Yellow);
+            Shared.IO.UI.EngineSdk.PrintLine($"Lua Runtime Error: {luaErrorMessage}", color: System.ConsoleColor.Red);
+            Shared.IO.UI.EngineSdk.PrintLine($"Error: {luaEx.Message}", color: System.ConsoleColor.Yellow);
 
             // Print the detailed Lua Call Stack cleanly
             if (luaEx.CallStack != null && luaEx.CallStack.Count > 0) {
-                Shared.IO.UI.EngineSdk.PrintLine(message: "Lua Stack Trace:", color: System.ConsoleColor.DarkRed);
+                Shared.IO.UI.EngineSdk.PrintLine("Lua Stack Trace:", color: System.ConsoleColor.DarkRed);
                 foreach (var frame in luaEx.CallStack) {
                     string functionName = string.IsNullOrEmpty(frame.Name) ? "main chunk" : frame.Name;
                     string location = "[C# / native code]";
@@ -135,7 +135,7 @@ internal sealed class Main : IScriptAction {
                         // Try to get the specific file/chunk name from MoonSharp using SourceIdx
                         if (LuaWorld?.LuaScript != null) {
                             try {
-                                var source = LuaWorld.LuaScript.GetSourceCode(frame.Location.SourceIdx);
+                                var source = LuaWorld.LuaScript.GetSourceCode(sourceCodeID: frame.Location.SourceIdx);
                                 if (source != null && !string.IsNullOrEmpty(source.Name)) {
                                     fileName = source.Name;
                                 }
@@ -147,7 +147,7 @@ internal sealed class Main : IScriptAction {
                         location = $"{fileName}:line {frame.Location.FromLine}";
                     }
 
-                    Shared.IO.UI.EngineSdk.PrintLine(message: $"  at {functionName} in {location}", color: System.ConsoleColor.DarkRed);
+                    Shared.IO.UI.EngineSdk.PrintLine($"  at {functionName} in {location}", color: System.ConsoleColor.DarkRed);
                 }
             }
 
@@ -164,18 +164,18 @@ internal sealed class Main : IScriptAction {
                     $"CRITICAL: MoonSharp VM Internal Crash (IndexOutOfRangeException) while executing '{this._scriptPath}'. " +
                     "This usually indicates a stack overflow or an infinite metamethod loop.";
 
-                Shared.IO.UI.EngineSdk.PrintLine(message: vmErrorMessage, color: System.ConsoleColor.Red);
-                Shared.IO.Diagnostics.LuaInternalCatch(vmErrorMessage);
+                Shared.IO.UI.EngineSdk.PrintLine(vmErrorMessage, color: System.ConsoleColor.Red);
+                Shared.IO.Diagnostics.LuaInternalCatch(ex: vmErrorMessage);
 
-                executionError = new InvalidOperationException(vmErrorMessage, ex);
-            } else if (IsMoonSharpIteratorPrepNullReference(ex)) {
+                executionError = new InvalidOperationException(vmErrorMessage, innerException: ex);
+            } else if (IsMoonSharpIteratorPrepNullReference(exception: ex)) {
                 string compatibilityMessage =
                     "Lua compatibility limitation: MoonSharp 'for ... in' iteration failure. Use pairs()/ipairs() instead.";
-                executionError = new InvalidOperationException(compatibilityMessage, ex);
-                Shared.IO.UI.EngineSdk.PrintLine(message: compatibilityMessage, color: System.ConsoleColor.Yellow);
+                executionError = new InvalidOperationException(compatibilityMessage, innerException: ex);
+                Shared.IO.UI.EngineSdk.PrintLine(compatibilityMessage, color: System.ConsoleColor.Yellow);
             } else {
-                Shared.IO.Diagnostics.LuaInternalCatch("Lua script threw an unhandled exception: " + ex);
-                Shared.IO.UI.EngineSdk.PrintLine(message: $"Unhandled Exception in Lua Provider: {ex.Message}",
+                Shared.IO.Diagnostics.LuaInternalCatch(ex: "Lua script threw an unhandled exception: " + ex);
+                Shared.IO.UI.EngineSdk.PrintLine($"Unhandled Exception in Lua Provider: {ex.Message}",
                     color: System.ConsoleColor.Red);
                 executionError = ex;
             }
@@ -189,14 +189,14 @@ internal sealed class Main : IScriptAction {
 
         if (!ok || exitCode != 0) {
             throw new System.InvalidOperationException(
-                message: $"Lua script failed with exit code {exitCode}: '{this._scriptPath}'",
+                $"Lua script failed with exit code {exitCode}: '{this._scriptPath}'",
                 innerException: executionError
             );
         }
 
         if (!ok) {
             throw new System.InvalidOperationException(
-                message: $"Lua script failed with exit code {exitCode}: '{this._scriptPath}'",
+                $"Lua script failed with exit code {exitCode}: '{this._scriptPath}'",
                 innerException: executionError
             );
         }

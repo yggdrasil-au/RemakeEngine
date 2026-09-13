@@ -12,9 +12,9 @@ internal class ContextualToolResolver : Core.ExternalTools.JsonToolResolver {
         _contextVersions = contextVersions;
     }
     public override string ResolveToolPath(string toolId, string? version = null) {
-        if (version == null && _contextVersions.TryGetValue(toolId, out var v)) {
+        if (version == null && _contextVersions.TryGetValue(key: toolId, out var v)) {
             version = v;
         }
-        return _base.ResolveToolPath(toolId, version);
+        return _base.ResolveToolPath(toolId: toolId, version: version);
     }
 }

@@ -7,22 +7,22 @@ namespace EngineNet.ScriptEngines.Global.SdkModule;
 /// </summary>
 internal static class HardLink {
     internal static void Create(string existingFile, string newLinkPath) {
-        if (string.IsNullOrWhiteSpace(existingFile)) throw new ArgumentNullException(nameof(existingFile));
-        if (string.IsNullOrWhiteSpace(newLinkPath)) throw new ArgumentNullException(nameof(newLinkPath));
+        if (string.IsNullOrWhiteSpace(existingFile)) throw new ArgumentNullException(paramName: nameof(existingFile));
+        if (string.IsNullOrWhiteSpace(newLinkPath)) throw new ArgumentNullException(paramName: nameof(newLinkPath));
 
-        string src = System.IO.Path.GetFullPath(existingFile);
-        string dst = System.IO.Path.GetFullPath(newLinkPath);
+        string src = System.IO.Path.GetFullPath(path: existingFile);
+        string dst = System.IO.Path.GetFullPath(path: newLinkPath);
 
-        if (!System.IO.File.Exists(src)) throw new System.IO.FileNotFoundException("Existing file not found.", src);
+        if (!System.IO.File.Exists(path: src)) throw new System.IO.FileNotFoundException("Existing file not found.", fileName: src);
 
         if (OperatingSystem.IsWindows()) {
-            if (!CreateHardLinkW(dst, src, IntPtr.Zero)) {
+            if (!CreateHardLinkW(lpFileName: dst, lpExistingFileName: src, lpSecurityAttributes: IntPtr.Zero)) {
                 int err = System.Runtime.InteropServices.Marshal.GetLastWin32Error();
                 throw new IOException($"CreateHardLink failed with error {err}.");
             }
         } else {
             // Unix (Linux/macOS): libc link() returns 0 on success
-            int rc = link(src, dst);
+            int rc = link(oldpath: src, newpath: dst);
             if (rc != 0) {
                 int err = System.Runtime.InteropServices.Marshal.GetLastWin32Error(); // maps to errno
                 throw new IOException($"link(2) failed with errno {err}.");
@@ -31,13 +31,13 @@ internal static class HardLink {
     }
 
     // Windows
-    [System.Runtime.InteropServices.DllImport("Kernel32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Unicode, EntryPoint = "CreateHardLinkW")]
+    [System.Runtime.InteropServices.DllImport(dllName: "Kernel32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Unicode, EntryPoint = "CreateHardLinkW")]
     private static extern bool CreateHardLinkW(
         string lpFileName,
         string lpExistingFileName,
         IntPtr lpSecurityAttributes);
 
     // Unix (Linux/macOS): libc's link()
-    [System.Runtime.InteropServices.DllImport("libc", SetLastError = true, EntryPoint = "link")]
+    [System.Runtime.InteropServices.DllImport(dllName: "libc", SetLastError = true, EntryPoint = "link")]
     private static extern int link(string oldpath, string newpath);
 }

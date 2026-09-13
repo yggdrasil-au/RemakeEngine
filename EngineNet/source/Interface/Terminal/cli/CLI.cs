@@ -25,7 +25,7 @@ public partial class CLI {
                 return 0;
             }
 
-            InlineOperationOptions options = InlineOperationOptions.Parse(args);
+            InlineOperationOptions options = InlineOperationOptions.Parse(args: args);
 
             if (options.RunAll) {
                 Shared.IO.Diagnostics.Trace("Detected run-all operation invocation.");
@@ -34,19 +34,19 @@ public partial class CLI {
                     return 2;
                 }
 
-                return await RunAllOperationsAsync(options, cancellationToken);
+                return await RunAllOperationsAsync(options: options, cancellationToken: cancellationToken);
             }
 
             if (options.RunOperationSelector is not null) {
                 Shared.IO.Diagnostics.Trace("Detected named operation invocation.");
-                return await RunSelectedOperationAsync(options, cancellationToken);
+                return await RunSelectedOperationAsync(options: options, cancellationToken: cancellationToken);
             }
 
             // Check for inline operation invocation
-            if (IsInlineOperationInvocation(args)) {
+            if (IsInlineOperationInvocation(args: args)) {
                 Shared.IO.Diagnostics.Trace("Detected inline operation invocation.");
                 // Run operation directly from command-line args
-                return await RunInlineOperationAsync(options, cancellationToken);
+                return await RunInlineOperationAsync(options: options, cancellationToken: cancellationToken);
             }
 
             string cmd = args[0].ToLowerInvariant();
@@ -60,7 +60,7 @@ public partial class CLI {
                 case "--list-games":
                     return ListGames();
                 case "--list-ops":
-                    return ListOps(GetArg(args, 1, "<game> required for list-ops"));
+                    return ListOps(game: GetArg(args: args, index: 1, error: "<game> required for list-ops"));
                 default:
                     System.Console.WriteLine($"Unknown command '{args[0]}'.");
                     PrintHelp();
@@ -90,27 +90,27 @@ public partial class CLI {
         }
 
         // Validate script option
-        if (string.IsNullOrWhiteSpace(options.Script) && !options.OperationFields.ContainsKey("script")) {
+        if (string.IsNullOrWhiteSpace(options.Script) && !options.OperationFields.ContainsKey(key: "script")) {
             Shared.IO.Diagnostics.Log("ERROR: --script must be provided for inline execution.");
             return 2;
         }
 
         // Find game modules
-        Core.Data.GameModules games = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
-        if (!TryResolveInlineGame(options, games, out string? gameName)) {
+        Core.Data.GameModules games = Engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.All);
+        if (!TryResolveInlineGame(options: options, games: games, resolvedName: out string? gameName)) {
             Shared.IO.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
             return 1;
         }
 
         // Build operation dictionary
         Dictionary<string, object?> op = options.BuildOperation();
-        if (!op.TryGetValue("script", out object? scriptObj) || scriptObj is null || string.IsNullOrWhiteSpace(scriptObj.ToString())) {
+        if (!op.TryGetValue(key: "script", out object? scriptObj) || scriptObj is null || string.IsNullOrWhiteSpace(scriptObj.ToString())) {
             Shared.IO.Diagnostics.Log("ERROR: Inline operation is missing a script path or identifier.");
             return 2;
         }
 
         // Execute the operation
-        bool ok = await new Utils().ExecuteOpAsync(Engine, gameName!, games, op, options.PromptAnswers, options.AutoPromptResponses, cancellationToken);
+        bool ok = await new Utils().ExecuteOpAsync(Engine: Engine, game: gameName!, games: games, op: op, promptAnswers: options.PromptAnswers, autoPromptResponses: options.AutoPromptResponses, cancellationToken: cancellationToken);
         return ok ? 0 : 1;
     }
 
@@ -131,30 +131,30 @@ public partial class CLI {
             return 2;
         }
 
-        Core.Data.GameModules games = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
-        if (!TryResolveInlineGame(options, games, out string? gameName)) {
+        Core.Data.GameModules games = Engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.All);
+        if (!TryResolveInlineGame(options: options, games: games, resolvedName: out string? gameName)) {
             Shared.IO.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
             return 1;
         }
 
-        if (!TryLoadPreparedOperations(gameName!, games, options.OpsFile, out Core.Data.PreparedOperations? preparedOps, out int loadCode)) {
+        if (!TryLoadPreparedOperations(gameName: gameName!, games: games, opsFileOverride: options.OpsFile, preparedOps: out Core.Data.PreparedOperations? preparedOps, exitCode: out int loadCode)) {
             return loadCode;
         }
 
-        if (!TryResolvePreparedOperation(preparedOps!, options.RunOperationSelector, out Core.Data.PreparedOperation? selectedOp, out string? errorMessage)) {
+        if (!TryResolvePreparedOperation(preparedOps: preparedOps!, selector: options.RunOperationSelector, selected: out Core.Data.PreparedOperation? selectedOp, errorMessage: out string? errorMessage)) {
             if (!string.IsNullOrWhiteSpace(errorMessage)) {
-                System.Console.Error.WriteLine($"ERROR: {errorMessage}");
+                await System.Console.Error.WriteLineAsync($"ERROR: {errorMessage}");
                 Shared.IO.Diagnostics.Log($"ERROR: {errorMessage}");
             }
 
             if (preparedOps is not null) {
-                WriteOperationSelectionHint(gameName!, preparedOps);
+                WriteOperationSelectionHint(gameName: gameName!, preparedOps: preparedOps);
             }
             return 1;
         }
 
         Core.Data.PromptAnswers promptAnswers = options.PromptAnswers;
-        bool ok = await new Utils().ExecuteOpAsync(Engine, gameName!, games, selectedOp!.Operation, promptAnswers, options.AutoPromptResponses, cancellationToken);
+        bool ok = await new Utils().ExecuteOpAsync(Engine: Engine, game: gameName!, games: games, op: selectedOp!.Operation, promptAnswers: promptAnswers, autoPromptResponses: options.AutoPromptResponses, cancellationToken: cancellationToken);
         return ok ? 0 : 1;
     }
 
@@ -170,19 +170,19 @@ public partial class CLI {
             return 2;
         }
 
-        Core.Data.GameModules games = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
-        if (!TryResolveInlineGame(options, games, out string? gameName)) {
+        Core.Data.GameModules games = Engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.All);
+        if (!TryResolveInlineGame(options: options, games: games, resolvedName: out string? gameName)) {
             Shared.IO.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
             return 1;
         }
 
-        if (!TryLoadPreparedOperations(gameName!, games, options.OpsFile, out _, out int loadCode)) {
+        if (!TryLoadPreparedOperations(gameName: gameName!, games: games, opsFileOverride: options.OpsFile, preparedOps: out _, exitCode: out int loadCode)) {
             return loadCode;
         }
 
         try {
             Core.Operations.RunAllResult result = await Engine.RunAllAsync(
-                gameName!,
+                gameName: gameName!,
                 onOutput: Utils.OnOutput,
                 onEvent: Utils.OnEvent,
                 stdinProvider: static () => System.Console.ReadLine() ?? string.Empty,
@@ -208,11 +208,11 @@ public partial class CLI {
         bool sawScript = false;
 
         foreach (string token in args) {
-            if (!token.StartsWith("--", System.StringComparison.Ordinal)) {
+            if (!token.StartsWith("--", comparisonType: System.StringComparison.Ordinal)) {
                 continue;
             }
 
-            string key = NormalizeOptionKey(GetOptionKey(token));
+            string key = NormalizeOptionKey(key: GetOptionKey(token: token));
             if (key is "game" or "game_module" or "module" or "gameid" or "game_name" or "game_root") {
                 // Indicate that a game/module was specified
                 sawGame = true;
@@ -255,9 +255,9 @@ public partial class CLI {
         internal bool RunAll {
             get; private set;
         }
-        internal Dictionary<string, object?> OperationFields { get; } = new(System.StringComparer.OrdinalIgnoreCase);
+        internal Dictionary<string, object?> OperationFields { get; } = new(comparer: System.StringComparer.OrdinalIgnoreCase);
         internal Core.Data.PromptAnswers PromptAnswers { get; } = new Core.Data.PromptAnswers(); // respond to operations.toml prompts
-        internal Dictionary<string, string> AutoPromptResponses { get; } = new(System.StringComparer.OrdinalIgnoreCase); // responde to lua prompt() calls
+        internal Dictionary<string, string> AutoPromptResponses { get; } = new(comparer: System.StringComparer.OrdinalIgnoreCase); // responde to lua prompt() calls
 
         private readonly List<string> _args = new();
         private bool _argsOverride;
@@ -273,21 +273,21 @@ public partial class CLI {
 
             for (int index = 0; index < args.Length; index++) {
                 string token = args[index];
-                if (!token.StartsWith("--", System.StringComparison.Ordinal)) {
+                if (!token.StartsWith("--", comparisonType: System.StringComparison.Ordinal)) {
                     continue;
                 }
 
-                string key = token.Substring(2);
+                string key = token.Substring(startIndex: 2);
                 string? value = null;
-                if (key.Contains('=', System.StringComparison.Ordinal)) {
-                    string[] kv = key.Split('=', 2);
+                if (key.Contains('=', comparisonType: System.StringComparison.Ordinal)) {
+                    string[] kv = key.Split(separator: '=', count: 2);
                     key = kv[0];
                     value = kv[1];
-                } else if (index + 1 < args.Length && !args[index + 1].StartsWith("--", System.StringComparison.Ordinal)) {
+                } else if (index + 1 < args.Length && !args[index + 1].StartsWith("--", comparisonType: System.StringComparison.Ordinal)) {
                     value = args[++index];
                 }
 
-                string normalized = NormalizeOptionKey(key);
+                string normalized = NormalizeOptionKey(key: key);
                 Shared.IO.Diagnostics.Log($"DEBUG: Parsing option --{key} (normalized: {normalized}) with value '{value}'");
                 switch (normalized) {
                     case "game":
@@ -352,55 +352,55 @@ public partial class CLI {
                         if (value is null) {
                             throw new System.ArgumentException("Option '--arg' requires a value.");
                         }
-                        options._args.Add(value);
+                        options._args.Add(item: value);
                         break;
                     case "args":
                         if (value is null) {
                             Shared.IO.Diagnostics.Log("DEBUG: --args missing value");
                             throw new System.ArgumentException("Option '--args' requires a value.");
                         }
-                        foreach (string item in ParseArgsList(value)) {
-                            options._args.Add(item);
+                        foreach (string item in ParseArgsList(raw: value)) {
+                            options._args.Add(item: item);
                         }
 #if DEBUG
                         Shared.IO.Diagnostics.Log($"DEBUG: --args parsed {options._args.Count} items");
-                        Shared.IO.Diagnostics.Log($"DEBUG: --args items: {string.Join(", ", options._args)}");
-                        Shared.IO.Diagnostics.Log($"DEBUG: --args raw value: {value}");
+                        Shared.IO.Diagnostics.Log($"DEBUG: --args items: {string.Join(separator: ", ", values: options._args)}");
+                        Shared.IO.Diagnostics.Log($"DEBUG: --args raw {value}");
 #endif
                         break;
                     case "answer":
                         if (value is null) {
                             throw new System.ArgumentException("Option '--answer' requires KEY=VALUE.");
                         }
-                        (string answerKey, object? answerValue) = ParseKeyValue(value);
-                        options.PromptAnswers[answerKey] = answerValue;
+                        (string answerKey, object? answerValue) = ParseKeyValue(input: value);
+                        options.PromptAnswers[key: answerKey] = answerValue;
                         break;
                     case "auto_prompt":
                         if (value is null) {
                             throw new System.ArgumentException("Option '--auto_prompt' requires PROMPT_ID=RESPONSE.");
                         }
-                        (string promptId, object? promptResponse) = ParseKeyValue(value);
-                        options.AutoPromptResponses[promptId] = promptResponse?.ToString() ?? string.Empty;
+                        (string promptId, object? promptResponse) = ParseKeyValue(input: value);
+                        options.AutoPromptResponses[key: promptId] = promptResponse?.ToString() ?? string.Empty;
                         break;
                     case "set":
                         if (value is null) {
                             throw new System.ArgumentException("Option '--set' requires KEY=VALUE.");
                         }
-                        (string setKey, object? setValue) = ParseKeyValue(value);
-                        string normalizedSetKey = NormalizeOptionKey(setKey);
+                        (string setKey, object? setValue) = ParseKeyValue(input: value);
+                        string normalizedSetKey = NormalizeOptionKey(key: setKey);
                         if (normalizedSetKey == "args") {
                             options._argsOverride = true;
                         }
-                        options.OperationFields[NormalizeOperationKey(setKey)] = setValue;
+                        options.OperationFields[key: NormalizeOperationKey(key: setKey)] = setValue;
                         break;
                     default:
                         if (value is null) {
-                            options.OperationFields[NormalizeOperationKey(key)] = true;
+                            options.OperationFields[key: NormalizeOperationKey(key: key)] = true;
                         } else {
-                            if (NormalizeOptionKey(key) == "args") {
+                            if (NormalizeOptionKey(key: key) == "args") {
                                 options._argsOverride = true;
                             }
-                            options.OperationFields[NormalizeOperationKey(key)] = ParseValueToken(value);
+                            options.OperationFields[key: NormalizeOperationKey(key: key)] = ParseValueToken(value);
                         }
                         break;
                 }
@@ -414,18 +414,18 @@ public partial class CLI {
         /// </summary>
         /// <returns></returns>
         internal Dictionary<string, object?> BuildOperation() {
-            Dictionary<string, object?> op = new Dictionary<string, object?>(OperationFields, System.StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, object?> op = new Dictionary<string, object?>(dictionary: OperationFields, comparer: System.StringComparer.OrdinalIgnoreCase);
 
-            if (!op.ContainsKey("script_type") && !string.IsNullOrWhiteSpace(ScriptType)) {
-                op["script_type"] = ScriptType;
+            if (!op.ContainsKey(key: "script_type") && !string.IsNullOrWhiteSpace(ScriptType)) {
+                op[key: "script_type"] = ScriptType;
             }
 
             if (!string.IsNullOrWhiteSpace(Script)) {
-                op["script"] = Script;
+                op[key: "script"] = Script;
             }
 
-            if (!op.ContainsKey("args") && !_argsOverride && _args.Count > 0) {
-                op["args"] = _args.ToList();
+            if (!op.ContainsKey(key: "args") && !_argsOverride && _args.Count > 0) {
+                op[key: "args"] = _args.ToList();
             }
 
             return op;

@@ -12,30 +12,30 @@ internal static partial class Sdk {
         // Use the shared text table created in LuaWorld: sdk.text.json
 
         // sdk.text.json.encode(value, opts)
-        _LuaWorld.Sdk.Text.Json["encode"] = (System.Func<DynValue, DynValue, string>)((val, opts) => {
+        _LuaWorld.Sdk.Text.Json[key: "encode"] = (System.Func<DynValue, DynValue, string>)((val, opts) => {
             bool indent = false;
             if (opts.Type == DataType.Table) {
-                DynValue indentVal = opts.Table.Get("indent");
+                DynValue indentVal = opts.Table.Get(key: "indent");
                 indent = indentVal.Type == DataType.Boolean && indentVal.Boolean;
             }
-            object? obj = Lua.Globals.Utils.FromDynValue(val);
+            object? obj = Lua.Globals.Utils.FromDynValue(v: val);
             var jsonOpts = new System.Text.Json.JsonSerializerOptions { WriteIndented = indent };
-            return System.Text.Json.JsonSerializer.Serialize(obj, jsonOpts);
+            return System.Text.Json.JsonSerializer.Serialize(obj, options: jsonOpts);
         });
 
         // sdk.text.json.decode(string)
-        _LuaWorld.Sdk.Text.Json["decode"] = (System.Func<string, DynValue>)((json) => {
+        _LuaWorld.Sdk.Text.Json[key: "decode"] = (System.Func<string, DynValue>)((json) => {
             try {
-                using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(json);
-                return Lua.Globals.Utils.JsonElementToDynValue(_LuaWorld.LuaScript, doc.RootElement);
+                using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(json: json);
+                return Lua.Globals.Utils.JsonElementToDynValue(lua: _LuaWorld.LuaScript, el: doc.RootElement);
             } catch (Exception ex) {
-                Shared.IO.Diagnostics.LuaInternalCatch("sdk.text.json.decode failed: " + ex);
+                Shared.IO.Diagnostics.LuaInternalCatch(ex: "sdk.text.json.decode failed: " + ex);
                 return DynValue.Nil;
             }
         });
 
         // sdk.text.json.isNull(val)
-        _LuaWorld.Sdk.Text.Json["isNull"] = (System.Func<DynValue, bool>)((val) => {
+        _LuaWorld.Sdk.Text.Json[key: "isNull"] = (System.Func<DynValue, bool>)((val) => {
             return val.Type == DataType.Nil || val.Type == DataType.Void;
         });
     }

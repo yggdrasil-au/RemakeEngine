@@ -27,9 +27,9 @@ internal sealed class SegmentScanner {
         List<int> eofOccurrences = [];
         int searchIdx = 0;
         while (true) {
-            int pos = FindEofPattern(searchIdx);
+            int pos = FindEofPattern(searchStartOffset: searchIdx);
             if (pos != -1) {
-                eofOccurrences.Add(pos);
+                eofOccurrences.Add(item: pos);
                 searchIdx = pos + 1;
             } else {
                 break;
@@ -46,16 +46,16 @@ internal sealed class SegmentScanner {
             throw new Sys.TxdExportException($"  ERROR: Expected 1 EOF pattern, found {totalEofPatterns}. This may indicate a corrupted or incomplete TXD file.");
         }
 
-        int totalSigFileStart = utils.Util.CountOccurrences(data, SigFileStart);
+        int totalSigFileStart = utils.Util.CountOccurrences(data: data, pattern: SigFileStart);
         utils.Log.Blue($"  Found {totalSigFileStart} occurrences of sig_file_start in the entire file.");
 
-        int totalSigBlockStart = utils.Util.CountOccurrences(data, SigBlockStart);
+        int totalSigBlockStart = utils.Util.CountOccurrences(data: data, pattern: SigBlockStart);
         utils.Log.Blue($"  Found {totalSigBlockStart} occurrences of sig_block_start in the entire file.");
 
         int totalSigCompoundEndMarker = totalSigBlockStart;
         utils.Log.Blue($"  Found {totalSigCompoundEndMarker} occurrences of sig_compound_end_marker in the entire file.");
 
-        int totalTextureNameSignature = utils.Util.CountOccurrences(data, TextureNameSignature);
+        int totalTextureNameSignature = utils.Util.CountOccurrences(data: data, pattern: TextureNameSignature);
         utils.Log.Blue($"  Found {totalTextureNameSignature} occurrences of texture_name_signature in the entire file.");
 
         int totalTextures = 0;
@@ -64,43 +64,43 @@ internal sealed class SegmentScanner {
         }
 
         int searchPtr;
-        if (utils.Util.StartsWith(data, 0, SigFileStart)) {
+        if (utils.Util.StartsWith(data: data, offset: 0, pattern: SigFileStart)) {
             utils.Log.Cyan("  File starts with sig_file_start (0x16). Processing initial segment.");
             int startAfter16 = SigFileStart.Length;
-            int posMarker = utils.Util.IndexOf(data, SigBlockStart, startAfter16);
+            int posMarker = utils.Util.IndexOf(data: data, pattern: SigBlockStart, start: startAfter16);
             if (posMarker != -1) {
-                if (IsEofPatternAt(posMarker)) {
+                if (IsEofPatternAt(position: posMarker)) {
                     utils.Log.Cyan($"      0x16 segment data (offset 0x{startAfter16:X}) ends before EOF_SIGNATURE pattern found at 0x{posMarker:X}.");
-                    byte[] segmentData = data.AsSpan(startAfter16, posMarker - startAfter16).ToArray();
+                    byte[] segmentData = data.AsSpan(start: startAfter16, length: posMarker - startAfter16).ToArray();
                     if (segmentData.Length > 0) {
-                        segments.Add(new Segment(startAfter16, segmentData));
+                        segments.Add(item: new Segment(startOffset: startAfter16, data: segmentData));
                     }
 
                     searchPtr = data.Length;
                 } else {
                     utils.Log.Cyan($"      0x16 segment data (offset 0x{startAfter16:X}) ends before sig_compound_end_marker at 0x{posMarker:X}.");
-                    byte[] segmentData = data.AsSpan(startAfter16, posMarker - startAfter16).ToArray();
+                    byte[] segmentData = data.AsSpan(start: startAfter16, length: posMarker - startAfter16).ToArray();
                     if (segmentData.Length > 0) {
-                        segments.Add(new Segment(startAfter16, segmentData));
+                        segments.Add(item: new Segment(startOffset: startAfter16, data: segmentData));
                     }
 
                     searchPtr = posMarker;
                 }
             } else {
-                int posEof = FindEofPattern(startAfter16);
+                int posEof = FindEofPattern(searchStartOffset: startAfter16);
                 if (posEof != -1) {
                     utils.Log.Cyan($"      0x16 segment data (offset 0x{startAfter16:X}) ends before EOF_SIGNATURE pattern (direct find) at 0x{posEof:X}.");
-                    byte[] segmentData = data.AsSpan(startAfter16, posEof - startAfter16).ToArray();
+                    byte[] segmentData = data.AsSpan(start: startAfter16, length: posEof - startAfter16).ToArray();
                     if (segmentData.Length > 0) {
-                        segments.Add(new Segment(startAfter16, segmentData));
+                        segments.Add(item: new Segment(startOffset: startAfter16, data: segmentData));
                     }
 
                     searchPtr = data.Length;
                 } else {
                     utils.Log.Yellow("      Warning: No sig_compound_end_marker or EOF_SIGNATURE pattern found after 0x16 segment start. Assuming 0x16 data to end of file.");
-                    byte[] segmentData = data.AsSpan(startAfter16).ToArray();
+                    byte[] segmentData = data.AsSpan(start: startAfter16).ToArray();
                     if (segmentData.Length > 0) {
-                        segments.Add(new Segment(startAfter16, segmentData));
+                        segments.Add(item: new Segment(startOffset: startAfter16, data: segmentData));
                     }
 
                     searchPtr = data.Length;
@@ -113,53 +113,53 @@ internal sealed class SegmentScanner {
 
         int currentScanPos = searchPtr;
         while (currentScanPos < data.Length) {
-            int foundBlockStart = utils.Util.IndexOf(data, SigBlockStart, currentScanPos);
+            int foundBlockStart = utils.Util.IndexOf(data: data, pattern: SigBlockStart, start: currentScanPos);
             if (foundBlockStart == -1) {
                 utils.Log.Blue($"  No more sig_block_start (or EOF pattern prefix) found after offset 0x{currentScanPos:X}. Ending 0x14 block scan.");
                 break;
             }
 
-            if (IsEofPatternAt(foundBlockStart)) {
+            if (IsEofPatternAt(position: foundBlockStart)) {
                 utils.Log.Cyan($"  Encountered EOF_SIGNATURE pattern at 0x{foundBlockStart:X} while searching for a 0x14 block start. Ending block scan.");
                 break;
             }
 
             utils.Log.Cyan($"  Found 0x14 block start signature at file offset 0x{foundBlockStart:X}.");
             int startAfter14 = foundBlockStart + SigBlockStart.Length;
-            int posNextMarker = utils.Util.IndexOf(data, SigBlockStart, startAfter14);
+            int posNextMarker = utils.Util.IndexOf(data: data, pattern: SigBlockStart, start: startAfter14);
             if (posNextMarker != -1) {
-                if (IsEofPatternAt(posNextMarker)) {
+                if (IsEofPatternAt(position: posNextMarker)) {
                     utils.Log.Cyan($"      0x14 block (data from 0x{startAfter14:X}) ends before EOF_SIGNATURE pattern (found as next marker) at 0x{posNextMarker:X}.");
-                    byte[] segmentData = data.AsSpan(startAfter14, posNextMarker - startAfter14).ToArray();
+                    byte[] segmentData = data.AsSpan(start: startAfter14, length: posNextMarker - startAfter14).ToArray();
                     if (segmentData.Length > 0) {
-                        segments.Add(new Segment(startAfter14, segmentData));
+                        segments.Add(item: new Segment(startOffset: startAfter14, data: segmentData));
                     }
 
                     currentScanPos = data.Length;
                 } else {
                     utils.Log.Cyan($"      0x14 block (data from 0x{startAfter14:X}) ends before next sig_compound_end_marker at 0x{posNextMarker:X}.");
-                    byte[] segmentData = data.AsSpan(startAfter14, posNextMarker - startAfter14).ToArray();
+                    byte[] segmentData = data.AsSpan(start: startAfter14, length: posNextMarker - startAfter14).ToArray();
                     if (segmentData.Length > 0) {
-                        segments.Add(new Segment(startAfter14, segmentData));
+                        segments.Add(item: new Segment(startOffset: startAfter14, data: segmentData));
                     }
 
                     currentScanPos = posNextMarker;
                 }
             } else {
-                int posEof = FindEofPattern(startAfter14);
+                int posEof = FindEofPattern(searchStartOffset: startAfter14);
                 if (posEof != -1) {
                     utils.Log.Cyan($"      0x14 block (data from 0x{startAfter14:X}) ends before EOF_SIGNATURE pattern (direct find) at 0x{posEof:X}.");
-                    byte[] segmentData = data.AsSpan(startAfter14, posEof - startAfter14).ToArray();
+                    byte[] segmentData = data.AsSpan(start: startAfter14, length: posEof - startAfter14).ToArray();
                     if (segmentData.Length > 0) {
-                        segments.Add(new Segment(startAfter14, segmentData));
+                        segments.Add(item: new Segment(startOffset: startAfter14, data: segmentData));
                     }
 
                     currentScanPos = data.Length;
                 } else {
                     utils.Log.Yellow($"      Warning: For 0x14 block (data from 0x{startAfter14:X}), no subsequent marker or EOF pattern found. Assuming data to end of file.");
-                    byte[] segmentData = data.AsSpan(startAfter14).ToArray();
+                    byte[] segmentData = data.AsSpan(start: startAfter14).ToArray();
                     if (segmentData.Length > 0) {
-                        segments.Add(new Segment(startAfter14, segmentData));
+                        segments.Add(item: new Segment(startOffset: startAfter14, data: segmentData));
                     }
 
                     currentScanPos = data.Length;
@@ -167,12 +167,12 @@ internal sealed class SegmentScanner {
             }
         }
 
-        if (segments.Count == 0 && utils.Util.StartsWith(data, 0, SigFileStart) && data.Length > 0x28) {
+        if (segments.Count == 0 && utils.Util.StartsWith(data: data, offset: 0, pattern: SigFileStart) && data.Length > 0x28) {
             utils.Log.Yellow("  No segments found by primary rules, but file starts with 0x16. Defaulting to process from offset 0x28 (Noesis-style).");
-            int eofFallback = FindEofPattern(0x28);
-            segments.Add(eofFallback != -1
-                ? new Segment(0x28, data.AsSpan(0x28, eofFallback - 0x28).ToArray())
-                : new Segment(0x28, data.AsSpan(0x28).ToArray()));
+            int eofFallback = FindEofPattern(searchStartOffset: 0x28);
+            segments.Add(item: eofFallback != -1
+                ? new Segment(startOffset: 0x28, data: data.AsSpan(start: 0x28, length: eofFallback - 0x28).ToArray())
+                : new Segment(startOffset: 0x28, data: data.AsSpan(start: 0x28).ToArray()));
         } else if (segments.Count == 0) {
             throw new Sys.TxdExportException($"  No processable data segments ultimately found in '{_txdFilePath}'.");
         }
@@ -183,7 +183,7 @@ internal sealed class SegmentScanner {
     private int FindEofPattern(int searchStartOffset) {
         byte[] data = _data;
         while (searchStartOffset <= data.Length - _lenEofSignature) {
-            int prefixPos = utils.Util.IndexOf(data, EofPrefix, searchStartOffset);
+            int prefixPos = utils.Util.IndexOf(data: data, pattern: EofPrefix, start: searchStartOffset);
             if (prefixPos == -1) {
                 return -1;
             }
@@ -193,7 +193,7 @@ internal sealed class SegmentScanner {
             }
 
             int expectedSuffixPos = prefixPos + EofPrefix.Length + LenEofVariablePart;
-            if (utils.Util.StartsWith(data, expectedSuffixPos, EofSuffix)) {
+            if (utils.Util.StartsWith(data: data, offset: expectedSuffixPos, pattern: EofSuffix)) {
                 return prefixPos;
             }
 
@@ -207,12 +207,12 @@ internal sealed class SegmentScanner {
             return false;
         }
 
-        if (!utils.Util.StartsWith(_data, position, EofPrefix)) {
+        if (!utils.Util.StartsWith(data: _data, offset: position, pattern: EofPrefix)) {
             return false;
         }
 
         int expectedSuffixStart = position + EofPrefix.Length + LenEofVariablePart;
-        return utils.Util.StartsWith(_data, expectedSuffixStart, EofSuffix);
+        return utils.Util.StartsWith(data: _data, offset: expectedSuffixStart, pattern: EofSuffix);
     }
 }
 

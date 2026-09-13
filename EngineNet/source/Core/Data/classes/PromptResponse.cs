@@ -15,14 +15,14 @@ public sealed class PromptResponse {
     }
 
     public static PromptResponse Cancelled() {
-        return new PromptResponse(isCancelled: true, useDefault: false, value: null);
+        return new PromptResponse(isCancelled: true, useDefault: false, null);
     }
 
     public static PromptResponse UseDefaultValue() {
-        return new PromptResponse(isCancelled: false, useDefault: true, value: null);
+        return new PromptResponse(isCancelled: false, useDefault: true, null);
     }
 
     public static PromptResponse FromValue(object? value) {
-        return new PromptResponse(isCancelled: false, useDefault: false, value: value);
+        return new PromptResponse(isCancelled: false, useDefault: false, value);
     }
 }

@@ -12,58 +12,58 @@ internal static class Utils {
 
         // Map common primitives directly first
         switch (value) {
-            case bool b: return DynValue.NewBoolean(b);
-            case byte bt: return DynValue.NewNumber(bt);
-            case sbyte sb: return DynValue.NewNumber(sb);
-            case short i16: return DynValue.NewNumber(i16);
-            case ushort ui16: return DynValue.NewNumber(ui16);
-            case int i32: return DynValue.NewNumber(i32);
-            case uint ui32: return DynValue.NewNumber(ui32);
-            case long i64: return DynValue.NewNumber(i64);
-            case ulong ui64: return DynValue.NewNumber(ui64);
-            case float f: return DynValue.NewNumber(f);
-            case double d: return DynValue.NewNumber(d);
-            case decimal dec: return DynValue.NewNumber((double)dec);
-            case System.DateTime dt: return DynValue.NewString(dt.ToString("o", System.Globalization.CultureInfo.InvariantCulture));
-            case System.DateTimeOffset dto: return DynValue.NewString(dto.ToString("o", System.Globalization.CultureInfo.InvariantCulture));
-            case byte[] bytes: return DynValue.NewString(System.Convert.ToHexString(bytes));
-            case string s: return DynValue.NewString(s);
+            case bool b: return DynValue.NewBoolean(v: b);
+            case byte bt: return DynValue.NewNumber(num: bt);
+            case sbyte sb: return DynValue.NewNumber(num: sb);
+            case short i16: return DynValue.NewNumber(num: i16);
+            case ushort ui16: return DynValue.NewNumber(num: ui16);
+            case int i32: return DynValue.NewNumber(num: i32);
+            case uint ui32: return DynValue.NewNumber(num: ui32);
+            case long i64: return DynValue.NewNumber(num: i64);
+            case ulong ui64: return DynValue.NewNumber(num: ui64);
+            case float f: return DynValue.NewNumber(num: f);
+            case double d: return DynValue.NewNumber(num: d);
+            case decimal dec: return DynValue.NewNumber(num: (double)dec);
+            case System.DateTime dt: return DynValue.NewString(str: dt.ToString(format: "o", provider: System.Globalization.CultureInfo.InvariantCulture));
+            case System.DateTimeOffset dto: return DynValue.NewString(str: dto.ToString(format: "o", formatProvider: System.Globalization.CultureInfo.InvariantCulture));
+            case byte[] bytes: return DynValue.NewString(str: System.Convert.ToHexString(inArray: bytes));
+            case string s: return DynValue.NewString(str: s);
         }
 
         // IDictionary -> Lua table with string keys
         if (value is System.Collections.IDictionary idict) {
-            var t = new Table(lua);
+            var t = new Table(owner: lua);
             foreach (System.Collections.DictionaryEntry entry in idict) {
                 string key = entry.Key?.ToString() ?? string.Empty;
-                t[key] = ToDynValue(lua, entry.Value);
+                t[key: key] = ToDynValue(lua: lua, entry.Value);
             }
-            return DynValue.NewTable(t);
+            return DynValue.NewTable(table: t);
         }
 
         // IEnumerable -> Lua array-like table (1-based)
         if (value is System.Collections.IEnumerable ienum && value is not string) {
-            var t = new Table(lua);
+            var t = new Table(owner: lua);
             int i = 1;
             foreach (object? item in ienum) {
-                t[i++] = ToDynValue(lua, item);
+                t[key: i++] = ToDynValue(lua: lua, item);
             }
-            return DynValue.NewTable(t);
+            return DynValue.NewTable(table: t);
         }
 
         // Fallback to string representation
-        return DynValue.NewString(value.ToString() ?? string.Empty);
+        return DynValue.NewString(str: value.ToString() ?? string.Empty);
     }
 
     internal static IDictionary<string, object?> TableToDictionary(Table table) {
-        Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.Ordinal);
+        Dictionary<string, object?> dict = new Dictionary<string, object?>(comparer: System.StringComparer.Ordinal);
         foreach (TablePair pair in table.Pairs) {
             // Convert key to string
             string key = pair.Key.Type switch {
                 DataType.String => pair.Key.String,
-                DataType.Number => pair.Key.Number.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                DataType.Number => pair.Key.Number.ToString(provider: System.Globalization.CultureInfo.InvariantCulture),
                 _ => pair.Key.ToPrintString()
             };
-            dict[key] = FromDynValue(pair.Value);
+            dict[key: key] = FromDynValue(v: pair.Value);
         }
         return dict;
     }
@@ -71,17 +71,17 @@ internal static class Utils {
     internal static object? FromDynValue(DynValue v) => v.Type switch {
         DataType.Nil or DataType.Void => null,
         DataType.Boolean => v.Boolean,
-        DataType.Number => NormalizeLuaNumber(v.Number),
+        DataType.Number => NormalizeLuaNumber(d: v.Number),
         DataType.String => v.String,
-        DataType.Table => TableToPlainObject(v.Table),
+        DataType.Table => TableToPlainObject(t: v.Table),
         _ => v.ToPrintString()
     };
 
     private static object NormalizeLuaNumber(double d) {
-        if (double.IsNaN(d) || double.IsInfinity(d)) {
+        if (double.IsNaN(d: d) || double.IsInfinity(d: d)) {
             return d;
         }
-        double rounded = System.Math.Round(d);
+        double rounded = System.Math.Round(a: d);
         if (System.Math.Abs(d - rounded) < 1e-9 && rounded <= long.MaxValue && rounded >= long.MinValue) {
             long asLong = (long)rounded;
             return (asLong <= int.MaxValue && asLong >= int.MinValue) ? (int)asLong : asLong;
@@ -100,27 +100,27 @@ internal static class Utils {
             }
         }
         if (arrayLike) {
-            List<object?> list = new List<object?>(count);
+            List<object?> list = new List<object?>(capacity: count);
             for (int i = 1; i <= count; i++) {
-                DynValue dv = t.Get(i);
-                list.Add(FromDynValue(dv));
+                DynValue dv = t.Get(key: i);
+                list.Add(item: FromDynValue(v: dv));
             }
             return list;
         }
-        return TableToDictionary(t);
+        return TableToDictionary(table: t);
     }
 
     internal static List<string> TableToStringList(Table t) {
         List<string> list = new List<string>();
         // Iterate up to the numeric length; stop when we hit a Nil entry
         for (int i = 1; i <= t.Length; i++) {
-            DynValue dv = t.Get(i);
+            DynValue dv = t.Get(key: i);
             if (dv.Type == DataType.Nil || dv.Type == DataType.Void) {
                 break;
             }
 
             string s = dv.Type == DataType.String ? dv.String : dv.ToPrintString();
-            list.Add(s);
+            list.Add(item: s);
         }
         return list;
     }
@@ -128,26 +128,26 @@ internal static class Utils {
     internal static DynValue JsonElementToDynValue(Script lua, System.Text.Json.JsonElement el) {
         switch (el.ValueKind) {
             case System.Text.Json.JsonValueKind.Object:
-                Table t = new Table(lua);
+                Table t = new Table(owner: lua);
                 foreach (System.Text.Json.JsonProperty p in el.EnumerateObject()) {
-                    t[p.Name] = JsonElementToDynValue(lua, p.Value);
+                    t[key: p.Name] = JsonElementToDynValue(lua: lua, el: p.Value);
                 }
-                return DynValue.NewTable(t);
+                return DynValue.NewTable(table: t);
             case System.Text.Json.JsonValueKind.Array:
-                Table arr = new Table(lua);
+                Table arr = new Table(owner: lua);
                 int i = 1;
                 foreach (System.Text.Json.JsonElement item in el.EnumerateArray()) {
-                    arr[i++] = JsonElementToDynValue(lua, item);
+                    arr[key: i++] = JsonElementToDynValue(lua: lua, el: item);
                 }
-                return DynValue.NewTable(arr);
+                return DynValue.NewTable(table: arr);
             case System.Text.Json.JsonValueKind.String:
-                return DynValue.NewString(el.GetString() ?? string.Empty);
+                return DynValue.NewString(str: el.GetString() ?? string.Empty);
             case System.Text.Json.JsonValueKind.Number:
                 if (el.TryGetDouble(out double d)) {
-                    return DynValue.NewNumber(d);
+                    return DynValue.NewNumber(num: d);
                 }
 
-                return DynValue.NewNumber(0);
+                return DynValue.NewNumber(num: 0);
             case System.Text.Json.JsonValueKind.True:
                 return DynValue.True;
             case System.Text.Json.JsonValueKind.False:

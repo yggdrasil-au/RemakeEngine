@@ -54,49 +54,49 @@ internal static class AvTools {
     /// <returns>True if all files were processed successfully; false otherwise.</returns>
     internal static bool Run(EngineNet.Core.ExternalTools.JsonToolResolver toolResolver, IList<string> args, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         try {
-            Options opt = Parse(args);
+            Options opt = Parse(argv: args);
 
             // Resolve executables using the tool resolver
-            opt.FfmpegPath ??= toolResolver.ResolveToolPath(ToolFfmpeg);
-            opt.VgmstreamCli ??= toolResolver.ResolveToolPath(VgmstreamCliName);
+            opt.FfmpegPath ??= toolResolver.ResolveToolPath(toolId: ToolFfmpeg);
+            opt.VgmstreamCli ??= toolResolver.ResolveToolPath(toolId: VgmstreamCliName);
 
             // check if current required tool exist
-            if (string.Equals(opt.Mode, ToolFfmpeg, System.StringComparison.OrdinalIgnoreCase)) {
-                if (!System.IO.File.Exists(opt.FfmpegPath!)) {
+            if (string.Equals(a: opt.Mode, b: ToolFfmpeg, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
+                if (!System.IO.File.Exists(path: opt.FfmpegPath!)) {
                     IO.Error($"ffmpeg executable not found: {opt.FfmpegPath}");
                     IO.Error("Please ensure ffmpeg is installed. You can download it using the 'Download Required Tools' operation.");
                     return false;
                 }
-            } else if (string.Equals(opt.Mode, ToolVgmstream, System.StringComparison.OrdinalIgnoreCase)) {
-                if (!System.IO.File.Exists(opt.VgmstreamCli!)) {
+            } else if (string.Equals(a: opt.Mode, b: ToolVgmstream, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
+                if (!System.IO.File.Exists(path: opt.VgmstreamCli!)) {
                     IO.Error($"vgmstream-cli executable not found: {opt.VgmstreamCli}");
                     IO.Error("Please ensure vgmstream-cli is installed. You can download it using the 'Download Required Tools' operation.");
                     return false;
                 }
                 // If using vgmstream with Godot mode, we also need ffmpeg
-                if (opt.GodotCompatible && (string.IsNullOrEmpty(opt.FfmpegPath) || !System.IO.File.Exists(opt.FfmpegPath))) {
+                if (opt.GodotCompatible && (string.IsNullOrEmpty(opt.FfmpegPath) || !System.IO.File.Exists(path: opt.FfmpegPath))) {
                     IO.Error($"ffmpeg executable not found: {opt.FfmpegPath ?? "null"}");
                     IO.Error("vgmstream with --godot-compatible requires ffmpeg for post-processing. Please ensure ffmpeg is installed.");
                     return false;
                 }
             }
 
-            if (!System.IO.Directory.Exists(opt.Source)) {
+            if (!System.IO.Directory.Exists(path: opt.Source)) {
                 IO.Error($"Source directory not found: {opt.Source}");
                 return false;
             }
-            System.IO.Directory.CreateDirectory(opt.Target);
+            System.IO.Directory.CreateDirectory(path: opt.Target);
 
             if (opt.Workers is null) {
-                int cores = System.Math.Max(1, System.Environment.ProcessorCount);
-                opt.Workers = System.Math.Max(1, (int)System.Math.Floor(cores * 0.75));
+                int cores = System.Math.Max(val1: 1, val2: System.Environment.ProcessorCount);
+                opt.Workers = System.Math.Max(val1: 1, val2: (int)System.Math.Floor(d: cores * 0.75));
             }
 
             IO.Info($"--- Starting {opt.Mode.ToUpperInvariant()} Conversion ---");
-            WriteVerbose(opt.Verbose, $"Using executable: {(opt.Mode == "ffmpeg" ? opt.FfmpegPath : opt.VgmstreamCli)}");
+            WriteVerbose(enabled: opt.Verbose, msg: $"Using executable: {(opt.Mode == "ffmpeg" ? opt.FfmpegPath : opt.VgmstreamCli)}");
 
-            List<string> allFiles = System.IO.Directory.EnumerateFiles(opt.Source, "*" + opt.InputExt, System.IO.SearchOption.AllDirectories)
-                                    .Where(p => p.EndsWith(opt.InputExt, System.StringComparison.OrdinalIgnoreCase))
+            List<string> allFiles = System.IO.Directory.EnumerateFiles(path: opt.Source, searchPattern: "*" + opt.InputExt, searchOption: System.IO.SearchOption.AllDirectories)
+                                    .Where(predicate: p => p.EndsWith(opt.InputExt, comparisonType: System.StringComparison.OrdinalIgnoreCase))
                                     .ToList();
             if (allFiles.Count == 0) {
                 IO.Warn($"No '{opt.InputExt}' files found in {opt.Source}.");
@@ -116,60 +116,60 @@ internal static class AvTools {
                 CancellationToken = cancellationToken
             };
             long total = allFiles.Count;
-            using System.Threading.CancellationTokenSource progressCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            using System.Threading.CancellationTokenSource progressCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(token: cancellationToken);
             System.Threading.Tasks.Task progressTask = EngineSdk.SdkConsoleProgress.StartPanel(
                 total: () => total,
-                snapshot: () => (System.Threading.Volatile.Read(ref processed), System.Threading.Volatile.Read(ref success), System.Threading.Volatile.Read(ref skipped), System.Threading.Volatile.Read(ref errors)),
+                snapshot: () => (System.Threading.Volatile.Read(location: ref processed), System.Threading.Volatile.Read(location: ref success), System.Threading.Volatile.Read(location: ref skipped), System.Threading.Volatile.Read(location: ref errors)),
                 activeSnapshot: () => s_active.Values.ToList(), // This now returns List<SdkConsoleProgress.ActiveProcess>
                 label: () => "Converting Files",
                 token: progressCts.Token
             );
 
             try {
-                System.Threading.Tasks.Parallel.ForEach(allFiles, po, src => {
+                System.Threading.Tasks.Parallel.ForEach(source: allFiles, parallelOptions: po, body: src => {
                     try {
-                        string rel = System.IO.Path.GetRelativePath(opt.Source, src);
-                        string dest = System.IO.Path.ChangeExtension(System.IO.Path.Combine(opt.Target, rel), opt.OutputExt);
-                        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(dest)!);
+                        string rel = System.IO.Path.GetRelativePath(relativeTo: opt.Source, path: src);
+                        string dest = System.IO.Path.ChangeExtension(path: System.IO.Path.Combine(path1: opt.Target, path2: rel), extension: opt.OutputExt);
+                        System.IO.Directory.CreateDirectory(path: System.IO.Path.GetDirectoryName(path: dest)!);
 
                         // Pre-skip if destination exists and not overwriting
                         if (!opt.Overwrite) {
-                            if (opt.GodotCompatible && string.Equals(opt.Type, TypeAudio, System.StringComparison.OrdinalIgnoreCase)) {
+                            if (opt.GodotCompatible && string.Equals(a: opt.Type, b: TypeAudio, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                                 // In Godot mode we may produce two files (quad split) or a single file
-                                string basePath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(dest)!, System.IO.Path.GetFileNameWithoutExtension(dest));
+                                string basePath = System.IO.Path.Combine(path1: System.IO.Path.GetDirectoryName(path: dest)!, path2: System.IO.Path.GetFileNameWithoutExtension(path: dest));
                                 string outFront = basePath + "_front" + opt.OutputExt;
                                 string outRear = basePath + "_rear" + opt.OutputExt;
-                                if ((System.IO.File.Exists(outFront) && System.IO.File.Exists(outRear)) || System.IO.File.Exists(dest)) {
-                                    System.Threading.Interlocked.Increment(ref skipped);
-                                    System.Threading.Interlocked.Increment(ref processed);
+                                if ((System.IO.File.Exists(path: outFront) && System.IO.File.Exists(path: outRear)) || System.IO.File.Exists(path: dest)) {
+                                    System.Threading.Interlocked.Increment(location: ref skipped);
+                                    System.Threading.Interlocked.Increment(location: ref processed);
                                     return;
                                 }
-                            } else if (System.IO.File.Exists(dest)) {
-                                System.Threading.Interlocked.Increment(ref skipped);
-                                System.Threading.Interlocked.Increment(ref processed);
+                            } else if (System.IO.File.Exists(path: dest)) {
+                                System.Threading.Interlocked.Increment(location: ref skipped);
+                                System.Threading.Interlocked.Increment(location: ref processed);
                                 return;
                             }
                         }
 
-                        (bool ok, string? msg) = ConvertOne(src, dest, opt, cancellationToken);
+                        (bool ok, string? msg) = ConvertOne(srcPath: src, destPath: dest, opt: opt, cancellationToken: cancellationToken);
                         if (ok) {
-                            System.Threading.Interlocked.Increment(ref success);
+                            System.Threading.Interlocked.Increment(location: ref success);
                             if (opt.Replace) {
-                                TryDelete(src);
+                                TryDelete(path: src);
                             }
                         } else {
-                            System.Threading.Interlocked.Increment(ref errors);
-                            errorList.Add((System.IO.Path.GetFileName(src), msg ?? "unknown error"));
+                            System.Threading.Interlocked.Increment(location: ref errors);
+                            errorList.Add(item: (System.IO.Path.GetFileName(path: src), msg ?? "unknown error"));
     #if DEBUG
                             Shared.IO.Diagnostics.Log($"Conversion failed for file {src}: {msg}");
     #endif
                         }
                     } catch (System.Exception ex) {
-                        System.Threading.Interlocked.Increment(ref errors);
-                        errorList.Add((System.IO.Path.GetFileName(src), ex.Message));
+                        System.Threading.Interlocked.Increment(location: ref errors);
+                        errorList.Add(item: (System.IO.Path.GetFileName(path: src), ex.Message));
                         Shared.IO.Diagnostics.Bug($"Conversion error for file {src}: {ex.Message}");
                     } finally {
-                        System.Threading.Interlocked.Increment(ref processed);
+                        System.Threading.Interlocked.Increment(location: ref processed);
                     }
                 });
             } catch (System.OperationCanceledException ex) {
@@ -179,7 +179,7 @@ internal static class AvTools {
 
             progressCts.Cancel();
             try {
-                progressTask.Wait(cancellationToken);
+                progressTask.Wait(cancellationToken: cancellationToken);
             } catch (System.AggregateException ex) {
                 Shared.IO.Diagnostics.Bug($"[MediaConverter::Run()] Progress task wait failed: {ex}");
                 Shared.IO.Diagnostics.Trace("[MediaConverter] Progress task cancelled.");
@@ -188,16 +188,16 @@ internal static class AvTools {
 
             IO.Info("\n--- Conversion Completed ---");
 
-            IO.writeLine($"Success: {success}", System.ConsoleColor.Green);
-            IO.writeLine($"Skipped: {skipped}", System.ConsoleColor.Yellow);
-            IO.writeLine($"Errors: {errors}", System.ConsoleColor.Red);
+            IO.writeLine($"Success: {success}", color: System.ConsoleColor.Green);
+            IO.writeLine($"Skipped: {skipped}", color: System.ConsoleColor.Yellow);
+            IO.writeLine($"Errors: {errors}", color: System.ConsoleColor.Red);
 
             if (errorList.IsEmpty){
                 return true;
             } else {
                 IO.Error("\nEncountered the following errors:");
                 foreach ((string file, string msg) in errorList) {
-                    IO.writeLine($" Fail - File: {file}\n    Reason: {msg}", System.ConsoleColor.Red);
+                    IO.writeLine($" Fail - File: {file}\n    Reason: {msg}", color: System.ConsoleColor.Red);
                 }
                 return false;
             }
@@ -213,9 +213,9 @@ internal static class AvTools {
     private static (bool ok, string? message) ConvertOne(string srcPath, string destPath, Options opt, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         try {
             // Build external commands
-            if (string.Equals(opt.Mode, ToolFfmpeg, System.StringComparison.OrdinalIgnoreCase)) {
+            if (string.Equals(a: opt.Mode, b: ToolFfmpeg, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                 string ff = opt.FfmpegPath ?? ToolFfmpeg;
-                if (string.Equals(opt.Type, TypeVideo, System.StringComparison.OrdinalIgnoreCase)) {
+                if (string.Equals(a: opt.Type, b: TypeVideo, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                     List<string> args = new List<string> {
                         "-y",
                         "-i", srcPath,
@@ -226,15 +226,15 @@ internal static class AvTools {
                         "-q:v", opt.VideoQuality,
                         "-loglevel", "error",
                     };
-                    args.AddRange(BuildAudioCodecArgs(opt.OutputExt, opt.AudioCodec, opt.AudioQuality));
-                    args.Add(destPath);
-                    RegisterActive("ffmpeg", srcPath);
-                    try { return Exec(ff, args, opt.Debug, cancellationToken); }
+                    args.AddRange(collection: BuildAudioCodecArgs(outputExt: opt.OutputExt, requestedCodec: opt.AudioCodec, requestedQuality: opt.AudioQuality));
+                    args.Add(item: destPath);
+                    RegisterActive(tool: "ffmpeg", srcPath: srcPath);
+                    try { return Exec(fileName: ff, arguments: args, passthroughOutput: opt.Debug, cancellationToken: cancellationToken); }
                     finally { UnregisterActive(); }
-                } else if (string.Equals(opt.Type, TypeAudio, System.StringComparison.OrdinalIgnoreCase)) {
+                } else if (string.Equals(a: opt.Type, b: TypeAudio, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                     if (opt.GodotCompatible) {
                         // Split quad to two stereo files
-                        string basePath = System.IO.Path.Join(System.IO.Path.GetDirectoryName(destPath)!, System.IO.Path.GetFileNameWithoutExtension(destPath));
+                        string basePath = System.IO.Path.Join(path1: System.IO.Path.GetDirectoryName(path: destPath)!, path2: System.IO.Path.GetFileNameWithoutExtension(path: destPath));
                         string outFront = basePath + "_front" + opt.OutputExt;
                         string outRear = basePath + "_rear" + opt.OutputExt;
                         List<string> args = new List<string> {
@@ -245,14 +245,14 @@ internal static class AvTools {
                             "[0:a]channelsplit=channel_layout=quad[FL][FR][BL][BR];[FL][FR]join=inputs=2:channel_layout=stereo[FRONT];[BL][BR]join=inputs=2:channel_layout=stereo[REAR]",
                         };
                         // Apply codec/quality per output to ensure both files use desired settings
-                        args.AddRange(new [] { "-map", "[FRONT]" });
-                        args.AddRange(BuildAudioCodecArgs(opt.OutputExt, opt.AudioCodec, opt.AudioQuality));
-                        args.Add(outFront);
-                        args.AddRange(new [] { "-map", "[REAR]" });
-                        args.AddRange(BuildAudioCodecArgs(opt.OutputExt, opt.AudioCodec, opt.AudioQuality));
-                        args.Add(outRear);
-                        RegisterActive("ffmpeg", srcPath);
-                        try { return Exec(ff, args, opt.Debug, cancellationToken); }
+                        args.AddRange(collection: new [] { "-map", "[FRONT]" });
+                        args.AddRange(collection: BuildAudioCodecArgs(outputExt: opt.OutputExt, requestedCodec: opt.AudioCodec, requestedQuality: opt.AudioQuality));
+                        args.Add(item: outFront);
+                        args.AddRange(collection: new [] { "-map", "[REAR]" });
+                        args.AddRange(collection: BuildAudioCodecArgs(outputExt: opt.OutputExt, requestedCodec: opt.AudioCodec, requestedQuality: opt.AudioQuality));
+                        args.Add(item: outRear);
+                        RegisterActive(tool: "ffmpeg", srcPath: srcPath);
+                        try { return Exec(fileName: ff, arguments: args, passthroughOutput: opt.Debug, cancellationToken: cancellationToken); }
                         finally { UnregisterActive(); }
                     } else {
                         List<string> args = new List<string> {
@@ -260,34 +260,34 @@ internal static class AvTools {
                             "-i", srcPath,
                             "-loglevel", "error",
                         };
-                        args.AddRange(BuildAudioCodecArgs(opt.OutputExt, opt.AudioCodec, opt.AudioQuality));
-                        args.Add(destPath);
-                        RegisterActive("ffmpeg", srcPath);
-                        try { return Exec(ff, args, opt.Debug, cancellationToken); }
+                        args.AddRange(collection: BuildAudioCodecArgs(outputExt: opt.OutputExt, requestedCodec: opt.AudioCodec, requestedQuality: opt.AudioQuality));
+                        args.Add(item: destPath);
+                        RegisterActive(tool: "ffmpeg", srcPath: srcPath);
+                        try { return Exec(fileName: ff, arguments: args, passthroughOutput: opt.Debug, cancellationToken: cancellationToken); }
                         finally { UnregisterActive(); }
                     }
                 } else {
                     return (false, $"Unsupported type: {opt.Type}");
                 }
-            } else if (string.Equals(opt.Mode, "vgmstream", System.StringComparison.OrdinalIgnoreCase)) {
+            } else if (string.Equals(a: opt.Mode, b: "vgmstream", comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                 string vg = opt.VgmstreamCli ?? VgmstreamCliName;
-                if (string.Equals(opt.Type, TypeAudio, System.StringComparison.OrdinalIgnoreCase)) {
+                if (string.Equals(a: opt.Type, b: TypeAudio, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                     if (opt.GodotCompatible) {
                         // First decode to temp wav via vgmstream, then split via ffmpeg
-                        string tmpWav = System.IO.Path.Join(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName() + ".wav");
+                        string tmpWav = System.IO.Path.Join(path1: System.IO.Path.GetTempPath(), path2: System.IO.Path.GetRandomFileName() + ".wav");
                         try {
                             List<string> a1 = new List<string> { "-o", tmpWav, srcPath };
-                            RegisterActive("vgmstream", srcPath);
-                            (bool ok1, string? msg1) = Exec(vg, a1, opt.Debug, cancellationToken);
+                            RegisterActive(tool: "vgmstream", srcPath: srcPath);
+                            (bool ok1, string? msg1) = Exec(fileName: vg, arguments: a1, passthroughOutput: opt.Debug, cancellationToken: cancellationToken);
                             UnregisterActive();
                             if (!ok1) {
                                 return (false, msg1);
                             }
 
                             string ff = opt.FfmpegPath ?? ToolFfmpeg;
-                            int? channels = TryReadWavChannels(tmpWav);
+                            int? channels = TryReadWavChannels(path: tmpWav);
                             if (channels == 4) {
-                                string basePath = System.IO.Path.Join(System.IO.Path.GetDirectoryName(destPath)!, System.IO.Path.GetFileNameWithoutExtension(destPath));
+                                string basePath = System.IO.Path.Join(path1: System.IO.Path.GetDirectoryName(path: destPath)!, path2: System.IO.Path.GetFileNameWithoutExtension(path: destPath));
                                 string outFront = basePath + "_front" + opt.OutputExt;
                                 string outRear = basePath + "_rear" + opt.OutputExt;
                                 List<string> a2 = new List<string> {
@@ -298,15 +298,15 @@ internal static class AvTools {
                                     "[0:a]channelsplit=channel_layout=quad[FL][FR][BL][BR];[FL][FR]join=inputs=2:channel_layout=stereo[FRONT];[BL][BR]join=inputs=2:channel_layout=stereo[REAR]",
                                 };
                                 // FRONT
-                                a2.AddRange(new [] { "-map", "[FRONT]" });
-                                a2.AddRange(BuildAudioCodecArgs(opt.OutputExt, opt.AudioCodec, opt.AudioQuality));
-                                a2.Add(outFront);
+                                a2.AddRange(collection: new [] { "-map", "[FRONT]" });
+                                a2.AddRange(collection: BuildAudioCodecArgs(outputExt: opt.OutputExt, requestedCodec: opt.AudioCodec, requestedQuality: opt.AudioQuality));
+                                a2.Add(item: outFront);
                                 // REAR
-                                a2.AddRange(new [] { "-map", "[REAR]" });
-                                a2.AddRange(BuildAudioCodecArgs(opt.OutputExt, opt.AudioCodec, opt.AudioQuality));
-                                a2.Add(outRear);
-                                RegisterActive("ffmpeg", System.IO.Path.GetFileName(tmpWav));
-                                (bool ok2, string? msg2) = Exec(ff, a2, opt.Debug, cancellationToken);
+                                a2.AddRange(collection: new [] { "-map", "[REAR]" });
+                                a2.AddRange(collection: BuildAudioCodecArgs(outputExt: opt.OutputExt, requestedCodec: opt.AudioCodec, requestedQuality: opt.AudioQuality));
+                                a2.Add(item: outRear);
+                                RegisterActive(tool: "ffmpeg", srcPath: System.IO.Path.GetFileName(path: tmpWav));
+                                (bool ok2, string? msg2) = Exec(fileName: ff, arguments: a2, passthroughOutput: opt.Debug, cancellationToken: cancellationToken);
                                 UnregisterActive();
                                 if (!ok2) {
                                     return (false, msg2);
@@ -319,10 +319,10 @@ internal static class AvTools {
                                     "-loglevel", "error",
                                     "-i", tmpWav,
                                 };
-                                a2.AddRange(BuildAudioCodecArgs(opt.OutputExt, opt.AudioCodec, opt.AudioQuality));
-                                a2.Add(destPath);
-                                RegisterActive("ffmpeg", System.IO.Path.GetFileName(tmpWav));
-                                (bool ok2, string? msg2) = Exec(ff, a2, opt.Debug, cancellationToken);
+                                a2.AddRange(collection: BuildAudioCodecArgs(outputExt: opt.OutputExt, requestedCodec: opt.AudioCodec, requestedQuality: opt.AudioQuality));
+                                a2.Add(item: destPath);
+                                RegisterActive(tool: "ffmpeg", srcPath: System.IO.Path.GetFileName(path: tmpWav));
+                                (bool ok2, string? msg2) = Exec(fileName: ff, arguments: a2, passthroughOutput: opt.Debug, cancellationToken: cancellationToken);
                                 UnregisterActive();
                                 if (!ok2) {
                                     return (false, msg2);
@@ -332,8 +332,8 @@ internal static class AvTools {
                             }
                         } finally {
                             try {
-                                if (System.IO.File.Exists(tmpWav)) {
-                                    System.IO.File.Delete(tmpWav);
+                                if (System.IO.File.Exists(path: tmpWav)) {
+                                    System.IO.File.Delete(path: tmpWav);
                                 }
                             } catch (System.IO.IOException ex) {
                                 Shared.IO.Diagnostics.Bug("[MediaConverter::ConvertOne()] Failed to delete temporary WAV file: " + tmpWav + " with exception: " + ex);
@@ -345,8 +345,8 @@ internal static class AvTools {
                         }
                     } else {
                         List<string> a = new List<string> { "-o", destPath, srcPath };
-                        RegisterActive("vgmstream", srcPath);
-                        try { return Exec(vg, a, opt.Debug, cancellationToken); }
+                        RegisterActive(tool: "vgmstream", srcPath: srcPath);
+                        try { return Exec(fileName: vg, arguments: a, passthroughOutput: opt.Debug, cancellationToken: cancellationToken); }
                         finally { UnregisterActive(); }
                     }
                 } else {
@@ -358,8 +358,8 @@ internal static class AvTools {
         } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"[MediaConverter::ConvertOne()] Conversion failed for '{srcPath}' -> '{destPath}': {ex}");
             try {
-                if (System.IO.File.Exists(destPath)) {
-                    System.IO.File.Delete(destPath);
+                if (System.IO.File.Exists(path: destPath)) {
+                    System.IO.File.Delete(path: destPath);
                 }
             } catch (System.IO.IOException cleanupEx) {
                 Shared.IO.Diagnostics.Bug($"[MediaConverter::ConvertOne()] Failed to clean up destination '{destPath}' after error: {cleanupEx}");
@@ -375,9 +375,9 @@ internal static class AvTools {
     private static void RegisterActive(string tool, string srcPath) {
         try {
             int key = System.Threading.Thread.CurrentThread.ManagedThreadId;
-            s_active[key] = new EngineSdk.SdkConsoleProgress.ActiveProcess {
+            s_active[key: key] = new EngineSdk.SdkConsoleProgress.ActiveProcess {
                 Tool = tool,
-                File = System.IO.Path.GetFileName(srcPath),
+                File = System.IO.Path.GetFileName(path: srcPath),
                 StartedUtc = System.DateTime.UtcNow
             };
         } catch (System.Exception ex) {
@@ -387,7 +387,7 @@ internal static class AvTools {
     }
 
     private static void UnregisterActive() {
-        try { s_active.TryRemove(System.Threading.Thread.CurrentThread.ManagedThreadId, out _); } catch (System.Exception ex) {
+        try { s_active.TryRemove(key: System.Threading.Thread.CurrentThread.ManagedThreadId, out _); } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"[MediaConverter::UnregisterActive()] Failed to unregister active process for media conversion: {ex}");
             /* ignore */
         }
@@ -398,7 +398,7 @@ internal static class AvTools {
             using System.Diagnostics.Process p = new System.Diagnostics.Process();
             p.StartInfo.FileName = fileName;
             foreach (string a in arguments) {
-                p.StartInfo.ArgumentList.Add(a);
+                p.StartInfo.ArgumentList.Add(item: a);
             }
 
             p.StartInfo.UseShellExecute = false;
@@ -415,14 +415,14 @@ internal static class AvTools {
             }
 
             if (job != null) {
-                job.AddProcess(p);
+                job.AddProcess(process: p);
             }
 
             System.Text.StringBuilder? errBuf = null;
             System.Text.StringBuilder? outBuf = null;
             if (!passthroughOutput) {
-                errBuf = new System.Text.StringBuilder(8 * 1024);
-                outBuf = new System.Text.StringBuilder(8 * 1024);
+                errBuf = new System.Text.StringBuilder(capacity: 8 * 1024);
+                outBuf = new System.Text.StringBuilder(capacity: 8 * 1024);
                 p.OutputDataReceived += (_, e) => {
                     if (e.Data == null) return;
                     lock (outBuf!) { outBuf!.Append(e.Data); }
@@ -437,10 +437,10 @@ internal static class AvTools {
 
             while (!p.HasExited) {
                 if (cancellationToken.IsCancellationRequested) {
-                    try { p.Kill(true); } catch (System.Exception ex) { Shared.IO.Diagnostics.Bug($"[MediaConverter::Exec()] Failed to kill process '{fileName}' during cancellation: {ex}"); }
+                    try { p.Kill(entireProcessTree: true); } catch (System.Exception ex) { Shared.IO.Diagnostics.Bug($"[MediaConverter::Exec()] Failed to kill process '{fileName}' during cancellation: {ex}"); }
                     return (false, "cancelled by user");
                 }
-                System.Threading.Thread.Sleep(100);
+                System.Threading.Thread.Sleep(millisecondsTimeout: 100);
             }
 
             int exitCode = p.ExitCode;
@@ -467,30 +467,30 @@ internal static class AvTools {
 
     private static List<string> BuildAudioCodecArgs(string outputExt, string requestedCodec, string requestedQuality) {
         // Choose sane defaults based on container. WAV should be PCM, not Vorbis.
-        if (outputExt.Equals(".wav", System.StringComparison.OrdinalIgnoreCase)) {
+        if (outputExt.Equals(".wav", comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
             return new List<string> { "-c:a", "pcm_s16le" };
         }
         string codec = string.IsNullOrWhiteSpace(requestedCodec) ? "libvorbis" : requestedCodec;
         List<string> args = new List<string> { "-c:a", codec };
         if (!string.IsNullOrWhiteSpace(requestedQuality)) {
-            args.AddRange(new [] { "-q:a", requestedQuality });
+            args.AddRange(collection: new [] { "-q:a", requestedQuality });
         }
         return args;
     }
 
     private static int? TryReadWavChannels(string path) {
         try {
-            using System.IO.FileStream fs = System.IO.File.OpenRead(path);
-            using System.IO.BinaryReader br = new System.IO.BinaryReader(fs, System.Text.Encoding.ASCII, leaveOpen: false);
-            string riff = new string(br.ReadChars(4));
+            using System.IO.FileStream fs = System.IO.File.OpenRead(path: path);
+            using System.IO.BinaryReader br = new System.IO.BinaryReader(input: fs, encoding: System.Text.Encoding.ASCII, leaveOpen: false);
+            string riff = new string(br.ReadChars(count: 4));
             br.ReadUInt32(); // file size
-            string wave = new string(br.ReadChars(4));
+            string wave = new string(br.ReadChars(count: 4));
             if (riff != "RIFF" || wave != "WAVE") {
                 return null;
             }
             // Find 'fmt ' chunk
             while (fs.Position + 8 <= fs.Length) {
-                string id = new string(br.ReadChars(4));
+                string id = new string(br.ReadChars(count: 4));
                 uint size = br.ReadUInt32();
                 if (id == "fmt ") {
                     //ushort audioFormat = br.ReadUInt16();
@@ -498,12 +498,12 @@ internal static class AvTools {
                     // skip rest of fmt
                     long remaining = (long)size - 4;
                     if (remaining > 0) {
-                        fs.Position = System.Math.Min(fs.Length, fs.Position + remaining);
+                        fs.Position = System.Math.Min(val1: fs.Length, val2: fs.Position + remaining);
                     }
 
                     return channels;
                 } else {
-                    fs.Position = System.Math.Min(fs.Length, fs.Position + size);
+                    fs.Position = System.Math.Min(val1: fs.Length, val2: fs.Position + size);
                 }
                 // chunks are word-aligned
                 if ((size & 1) != 0 && fs.Position < fs.Length) {
@@ -527,9 +527,9 @@ internal static class AvTools {
         Options o = new Options();
         // Simple argv parser (supports both short and long flags)
         for (int i = 0; i < argv.Count; i++) {
-            string a = argv[i];
+            string a = argv[index: i];
             string NextVal() {
-                return ++i < argv.Count ? argv[i] : throw new System.ArgumentException($"Missing value for {a}");
+                return ++i < argv.Count ? argv[index: i] : throw new System.ArgumentException($"Missing value for {a}");
             }
 
             switch (a) {
@@ -542,19 +542,19 @@ internal static class AvTools {
                     break;
                 case "-s":
                 case "--source":
-                    o.Source = NormalizeDir(NextVal());
+                    o.Source = NormalizeDir(path: NextVal());
                     break;
                 case "-t":
                 case "--target":
-                    o.Target = NormalizeDir(NextVal());
+                    o.Target = NormalizeDir(path: NextVal());
                     break;
                 case "-i":
                 case "--input-ext":
-                    o.InputExt = EnsureDot(NextVal());
+                    o.InputExt = EnsureDot(ext: NextVal());
                     break;
                 case "-o":
                 case "--output-ext":
-                    o.OutputExt = EnsureDot(NextVal());
+                    o.OutputExt = EnsureDot(ext: NextVal());
                     break;
                 case "--overwrite":
                     o.Overwrite = true;
@@ -579,8 +579,8 @@ internal static class AvTools {
                     break;
                 case "-w":
                 case "--workers":
-                    if (int.TryParse(NextVal(), out int w)) {
-                        o.Workers = System.Math.Max(1, w);
+                    if (int.TryParse(s: NextVal(), result: out int w)) {
+                        o.Workers = System.Math.Max(val1: 1, val2: w);
                     }
                     break;
                 case "-v":
@@ -612,7 +612,7 @@ internal static class AvTools {
     }
 
     private static string NormalizeDir(string path) {
-        return string.IsNullOrWhiteSpace(path) ? path : System.IO.Path.GetFullPath(path);
+        return string.IsNullOrWhiteSpace(path) ? path : System.IO.Path.GetFullPath(path: path);
     }
 
     private static string EnsureDot(string ext) {
@@ -628,8 +628,8 @@ internal static class AvTools {
 
     private static void TryDelete(string path) {
         try {
-            if (!string.IsNullOrWhiteSpace(path) && System.IO.File.Exists(path)) {
-                System.IO.File.Delete(path);
+            if (!string.IsNullOrWhiteSpace(path) && System.IO.File.Exists(path: path)) {
+                System.IO.File.Delete(path: path);
             }
         } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"[MediaConverter] Failed to delete source file after conversion: {path}. Error: {ex.Message}");

@@ -5,7 +5,7 @@ internal partial class InternalOperations {
     internal bool DownloadModuleRegistry(Core.Data.PromptAnswers promptAnswers, Engine.EngineContext context) {
 
         string? input = null;
-        if (promptAnswers.TryGetValue("url", out object? u)) {
+        if (promptAnswers.TryGetValue(key: "url", out object? u)) {
             input = u?.ToString();
         }
 
@@ -18,8 +18,8 @@ internal partial class InternalOperations {
         var knownModules = context.GameRegistry.GetRegisteredModules();
         string? url = input;
 
-        if (knownModules.TryGetValue(input, out object? modObj) && modObj is Dictionary<string, object?> modData) {
-            if (modData.TryGetValue("url", out object? uObj)) {
+        if (knownModules.TryGetValue(key: input, out object? modObj) && modObj is Dictionary<string, object?> modData) {
+            if (modData.TryGetValue(key: "url", out object? uObj)) {
                 url = uObj?.ToString();
             }
         }
@@ -29,6 +29,6 @@ internal partial class InternalOperations {
             return false;
         }
 
-        return Core.Utils.GitTools.CloneModule(url, context.CommandService);
+        return Core.Utils.GitTools.CloneModule(url: url, commandService: context.CommandService);
     }
 }

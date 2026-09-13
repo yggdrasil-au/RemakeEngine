@@ -37,28 +37,28 @@ public sealed class All {
         Shared.IO.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Starting RunAllAsync for game '{gameName}', onOutput: {(onOutput is null ? "null" : "set")}, onEvent: {(onEvent is null ? "null" : "set")}, stdinProvider: {(stdinProvider is null ? "null" : "set")}");
 
         if (string.IsNullOrWhiteSpace(gameName)) {
-            throw new System.ArgumentException("Game name is required.", nameof(gameName));
+            throw new System.ArgumentException("Game name is required.", paramName: nameof(gameName));
         }
 
-        Core.Data.GameModules games = Context.GameRegistry.GetModules(Core.Data.ModuleFilter.All);
-        if (!games.TryGetValue(gameName, out EngineNet.Core.Data.GameModuleInfo? gameInfo)) {
+        Core.Data.GameModules games = Context.GameRegistry.GetModules(filter: Core.Data.ModuleFilter.All);
+        if (!games.TryGetValue(key: gameName, out EngineNet.Core.Data.GameModuleInfo? gameInfo)) {
             throw new KeyNotFoundException($"Game '{gameName}' not found.");
         }
 
-        Core.Data.ModuleOperationSession session = OperationContext.OperationsService.LoadModuleSession(gameName, games, Context.EngineConfig.Data);
+        Core.Data.ModuleOperationSession session = OperationContext.OperationsService.LoadModuleSession(gameName: gameName, games: games, engineConfig: Context.EngineConfig.Data);
         if (!session.PreparedOperations.IsLoaded) {
             throw new System.InvalidOperationException(session.PreparedOperations.ErrorMessage ?? $"Failed to load operations file for '{gameName}'.");
         }
 
         List<Dictionary<string, object?>> allOps = session.PreparedOperations.InitOperations
-            .Concat(session.PreparedOperations.RegularOperations)
-            .Select(operation => operation.Operation)
+            .Concat(second: session.PreparedOperations.RegularOperations)
+            .Select(selector: operation => operation.Operation)
             .ToList();
 
         // --- NEW DEPENDENCY GRAPH LOGIC ---
         // Build the graph and print it to the trace log for debugging.
         // It does not alter 'allOps' or affect the standard linear execution.
-        var dependencyGraph = new helpers.OpDependencyGraph(allOps);
+        var dependencyGraph = new helpers.OpDependencyGraph(operations: allOps);
         dependencyGraph.PrintGraphToTrace();
 
         if (!dependencyGraph.IsValid) {
@@ -68,37 +68,37 @@ public sealed class All {
 
         List<Dictionary<string, object?>> selected = new List<Dictionary<string, object?>>();
         foreach (Core.Data.PreparedOperation operation in session.PreparedOperations.InitOperations) {
-            AddUnique(selected, operation.Operation);
+            AddUnique(list: selected, op: operation.Operation);
         }
 
         foreach (Core.Data.PreparedOperation operation in session.PreparedOperations.RunAllOperations) {
-            AddUnique(selected, operation.Operation);
+            AddUnique(list: selected, op: operation.Operation);
         }
 
         if (selected.Count == 0) {
-            selected.AddRange(allOps);
+            selected.AddRange(collection: allOps);
         }
 
-        EmitSequenceEvent(onEvent, EngineSdk.Events.RunAllStart, gameName, new Dictionary<string, object?> {
-            ["total"] = selected.Count
+        EmitSequenceEvent(sink: onEvent, evt: EngineSdk.Events.RunAllStart, game: gameName, extras: new Dictionary<string, object?> {
+            [key: "total"] = selected.Count
         });
 
         System.IO.TextReader? previousReader = null;
         if (stdinProvider is not null) {
             previousReader = System.Console.In;
-            System.Console.SetIn(new StdinRedirectReader(stdinProvider));
+            System.Console.SetIn(newIn: new StdinRedirectReader(provider: stdinProvider));
         }
 
         OperationState currentOperation = new OperationState();
         using Shared.IO.UI.SdkEventScope? sdkScope = onEvent is not null
             ? new Shared.IO.UI.SdkEventScope(
                 sink: evt => {
-                    Dictionary<string, object?> payload = CloneEvent(evt);
-                    payload["game"] = gameName;
+                    Dictionary<string, object?> payload = CloneEvent(evt: evt);
+                    payload[key: "game"] = gameName;
                     if (!string.IsNullOrEmpty(currentOperation.Value)) {
-                        payload["operation"] = currentOperation.Value;
+                        payload[key: "operation"] = currentOperation.Value;
                     }
-                    onEvent(payload);
+                    onEvent(evt: payload);
                 },
                 muteStdout: true,
                 autoPromptResponses: null)
@@ -115,21 +115,21 @@ public sealed class All {
                     break;
                 }
 
-                Dictionary<string, object?> op = selected[index];
-                currentOperation.Value = ResolveOperationName(op);
-                EmitSequenceEvent(onEvent, EngineSdk.Events.RunAllOpStart, gameName, new Dictionary<string, object?> {
-                    ["index"] = index,
-                    ["total"] = selected.Count,
-                    ["name"] = currentOperation.Value
+                Dictionary<string, object?> op = selected[index: index];
+                currentOperation.Value = ResolveOperationName(op: op);
+                EmitSequenceEvent(sink: onEvent, evt: EngineSdk.Events.RunAllOpStart, game: gameName, extras: new Dictionary<string, object?> {
+                    [key: "index"] = index,
+                    [key: "total"] = selected.Count,
+                    [key: "name"] = currentOperation.Value
                 });
 
-                Core.Data.PromptAnswers promptAnswers = BuildPromptDefaults(op);
+                Core.Data.PromptAnswers promptAnswers = BuildPromptDefaults(op: op);
                 bool ok = false;
                 try {
-                    string? scriptType = GetScriptType(op);
+                    string? scriptType = GetScriptType(op: op);
                     // ensure script type is valid
-                    if (Core.Utils.ScriptConstants.IsSupported(scriptType)) {
-                        ok = await OperationContext.Single.RunAsync(gameName, games, op, promptAnswers, Context,OperationContext, cancellationToken).ConfigureAwait(false);
+                    if (Core.Utils.ScriptConstants.IsSupported(script_type: scriptType)) {
+                        ok = await OperationContext.Single.RunAsync(currentGame: gameName, games: games, op: op, promptAnswers: promptAnswers, Context: Context,OperationContext: OperationContext, cancellationToken: cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
                     } else if (string.IsNullOrEmpty(scriptType)) {
                         Shared.IO.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Skipping operation '{currentOperation.Value}' due to null or empty script type");
                         overallSuccess = false;
@@ -139,7 +139,7 @@ public sealed class All {
                     }
                 } catch (System.Exception ex) {
                     overallSuccess = false;
-                    EmitSequenceEvent(onEvent, evt: EngineSdk.Events.RunAllOpError, gameName, extras: new Dictionary<string, object?> {
+                    EmitSequenceEvent(sink: onEvent, evt: EngineSdk.Events.RunAllOpError, game: gameName, extras: new Dictionary<string, object?> {
                         [key: "name"] = currentOperation.Value,
                         [key: "message"] = ex.Message
                     });
@@ -151,29 +151,29 @@ public sealed class All {
                     succeeded++;
                 }
 
-                EmitSequenceEvent(onEvent, EngineSdk.Events.RunAllOpEnd, gameName, new Dictionary<string, object?> {
-                    ["index"] = index,
-                    ["total"] = selected.Count,
-                    ["name"] = currentOperation.Value,
-                    ["success"] = ok
+                EmitSequenceEvent(sink: onEvent, evt: EngineSdk.Events.RunAllOpEnd, game: gameName, extras: new Dictionary<string, object?> {
+                    [key: "index"] = index,
+                    [key: "total"] = selected.Count,
+                    [key: "name"] = currentOperation.Value,
+                    [key: "success"] = ok
                 });
             }
         } finally {
             if (previousReader is not null) {
-                System.Console.SetIn(previousReader);
+                System.Console.SetIn(newIn: previousReader);
             }
 
             currentOperation.Value = string.Empty;
             Shared.IO.Diagnostics.Trace($"[RunAll.cs::RunAllAsync()] finished running all operations for game '{gameName}'");
         }
 
-        EmitSequenceEvent(onEvent, EngineSdk.Events.RunAllComplete, gameName, new Dictionary<string, object?> {
-            ["success"] = overallSuccess,
-            ["total"] = selected.Count,
-            ["succeeded"] = succeeded
+        EmitSequenceEvent(sink: onEvent, evt: EngineSdk.Events.RunAllComplete, game: gameName, extras: new Dictionary<string, object?> {
+            [key: "success"] = overallSuccess,
+            [key: "total"] = selected.Count,
+            [key: "succeeded"] = succeeded
         });
 
-        return new RunAllResult(gameName, overallSuccess, selected.Count, succeeded);
+        return new RunAllResult(Game: gameName, Success: overallSuccess, TotalOperations: selected.Count, SucceededOperations: succeeded);
     }
 
 
@@ -187,9 +187,9 @@ public sealed class All {
     /// <param name="evt"></param>
     /// <returns></returns>
     private static Dictionary<string, object?> CloneEvent(Dictionary<string, object?> evt) {
-        Dictionary<string, object?> clone = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object?> clone = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
         foreach (KeyValuePair<string, object?> kv in evt) {
-            clone[kv.Key] = kv.Value;
+            clone[key: kv.Key] = kv.Value;
         }
 
         return clone;
@@ -214,18 +214,18 @@ public sealed class All {
             return;
         }
 
-        Dictionary<string, object?> payload = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase) {
-            ["event"] = evt,
-            ["game"] = game
+        Dictionary<string, object?> payload = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase) {
+            [key: "event"] = evt,
+            [key: "game"] = game
         };
 
         if (extras is not null) {
             foreach (KeyValuePair<string, object?> kv in extras) {
-                payload[kv.Key] = kv.Value;
+                payload[key: kv.Key] = kv.Value;
             }
         }
 
-        sink(payload);
+        sink(evt: payload);
     }
 
     /// <summary>
@@ -245,12 +245,12 @@ public sealed class All {
     /// <param name="op"></param>
     private static void AddUnique(List<Dictionary<string, object?>> list, Dictionary<string, object?> op) {
         foreach (Dictionary<string, object?> existing in list) {
-            if (ReferenceEquals(existing, op)) {
+            if (ReferenceEquals(objA: existing, objB: op)) {
                 return;
             }
         }
 
-        list.Add(op);
+        list.Add(item: op);
     }
 
     /// <summary>
@@ -260,7 +260,7 @@ public sealed class All {
     /// <returns></returns>
     private static Core.Data.PromptAnswers BuildPromptDefaults(Dictionary<string, object?> op) {
         Core.Data.PromptAnswers answers = new Core.Data.PromptAnswers();
-        if (!op.TryGetValue("prompts", out object? promptsObj) || promptsObj is not IList<object?> prompts) {
+        if (!op.TryGetValue(key: "prompts", out object? promptsObj) || promptsObj is not IList<object?> prompts) {
             return answers;
         }
 
@@ -269,19 +269,19 @@ public sealed class All {
                 continue;
             }
 
-            string name = GetString(prompt, "Name");
+            string name = GetString(dict: prompt, key: "Name");
             if (string.IsNullOrEmpty(name)) {
                 continue;
             }
 
-            string type = GetString(prompt, "type").ToLowerInvariant();
-            if (prompt.TryGetValue("condition", out object? conditionObj) && conditionObj is string conditionName) {
-                if (!answers.TryGetValue(conditionName, out object? _)) {
+            string type = GetString(dict: prompt, key: "type").ToLowerInvariant();
+            if (prompt.TryGetValue(key: "condition", out object? conditionObj) && conditionObj is string conditionName) {
+                if (!answers.TryGetValue(key: conditionName, out object? _)) {
                     foreach (object? other in prompts) {
                         if (other is Dictionary<string, object?> otherPrompt &&
-                            string.Equals(GetString(otherPrompt, "Name"), conditionName, System.StringComparison.OrdinalIgnoreCase)) {
-                            if (!answers.ContainsKey(conditionName) && otherPrompt.TryGetValue("default", out object? condDefault)) {
-                                answers[conditionName] = condDefault;
+                            string.Equals(a: GetString(dict: otherPrompt, key: "Name"), b: conditionName, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
+                            if (!answers.ContainsKey(key: conditionName) && otherPrompt.TryGetValue(key: "default", out object? condDefault)) {
+                                answers[key: conditionName] = condDefault;
                             }
 
                             break;
@@ -289,16 +289,16 @@ public sealed class All {
                     }
                 }
 
-                if (!answers.TryGetValue(conditionName, out object? evaluated) || evaluated is not bool condBool || !condBool) {
-                    answers[name] = EmptyForPrompt(type);
+                if (!answers.TryGetValue(key: conditionName, out object? evaluated) || evaluated is not bool condBool || !condBool) {
+                    answers[key: name] = EmptyForPrompt(type: type);
                     continue;
                 }
             }
 
-            if (prompt.TryGetValue("default", out object? defaultValue)) {
-                answers[name] = defaultValue;
-            } else if (!answers.ContainsKey(name)) {
-                answers[name] = EmptyForPrompt(type);
+            if (prompt.TryGetValue(key: "default", out object? defaultValue)) {
+                answers[key: name] = defaultValue;
+            } else if (!answers.ContainsKey(key: name)) {
+                answers[key: name] = EmptyForPrompt(type: type);
             }
         }
 
@@ -312,7 +312,7 @@ public sealed class All {
     /// <param name="key"></param>
     /// <returns></returns>
     private static string GetString(Dictionary<string, object?> dict, string key) {
-        return dict.TryGetValue(key, out object? value) ? value?.ToString() ?? string.Empty : string.Empty;
+        return dict.TryGetValue(key: key, out object? value) ? value?.ToString() ?? string.Empty : string.Empty;
     }
 
     /// <summary>
@@ -332,17 +332,17 @@ public sealed class All {
     /// <param name="op"></param>
     /// <returns></returns>
     private static string ResolveOperationName(Dictionary<string, object?> op) {
-        if (op.TryGetValue("Name", out object? nameObj) && nameObj is not null) {
+        if (op.TryGetValue(key: "Name", out object? nameObj) && nameObj is not null) {
             string name = nameObj.ToString() ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(name)) {
                 return name;
             }
         }
 
-        if (op.TryGetValue("script", out object? scriptObj) && scriptObj is not null) {
+        if (op.TryGetValue(key: "script", out object? scriptObj) && scriptObj is not null) {
             string script = scriptObj.ToString() ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(script)) {
-                return System.IO.Path.GetFileName(script);
+                return System.IO.Path.GetFileName(path: script);
             }
         }
 
@@ -355,7 +355,7 @@ public sealed class All {
     /// <param name="op"></param>
     /// <returns></returns>
     private static string? GetScriptType(Dictionary<string, object?> op) {
-        if (op.TryGetValue("script_type", out object? value) && value is not null) {
+        if (op.TryGetValue(key: "script_type", out object? value) && value is not null) {
             return value.ToString()?.ToLowerInvariant();
         }
 

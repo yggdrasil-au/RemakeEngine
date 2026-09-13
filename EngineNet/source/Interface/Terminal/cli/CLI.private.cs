@@ -4,12 +4,12 @@ public partial class CLI {
 
     private int ListGames() {
         try {
-            Core.Data.GameModules modules = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
+            Core.Data.GameModules modules = Engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.All);
             if (modules.Count == 0) {
                 System.Console.WriteLine("No modules found.");
                 return 0;
             }
-            foreach (var item in modules.Values.Select(m => (Name: m.Name, State: m.DescribeState(), Root: m.GameRoot))) {
+            foreach (var item in modules.Values.Select(selector: m => (Name: m.Name, State: m.DescribeState(), Root: m.GameRoot))) {
                 System.Console.WriteLine($"- {item.Name}  (state: {item.State}; root: {item.Root})");
             }
             return 0;
@@ -22,18 +22,18 @@ public partial class CLI {
     private int ListOps(string game) {
         try {
             // Find the game module
-            Core.Data.GameModules modules = Engine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
-            if (!modules.TryGetValue(game, out Core.Data.GameModuleInfo? mod)) {
+            Core.Data.GameModules modules = Engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.All);
+            if (!modules.TryGetValue(key: game, out Core.Data.GameModuleInfo? mod)) {
                 System.Console.WriteLine($"Game '{game}' not found.");
                 return 1;
             }
             // Load operations list
             string? opsFile = mod.OpsFile;
-            if (string.IsNullOrWhiteSpace(opsFile) || !System.IO.File.Exists(opsFile)) {
+            if (string.IsNullOrWhiteSpace(opsFile) || !System.IO.File.Exists(path: opsFile)) {
                 throw new System.ArgumentException($"Game '{game}' missing ops_file.");
             }
             // Load and validate operations
-            Core.Data.PreparedOperations preparedOps = Engine.OperationsService_LoadAndPrepare(opsFile, game, modules, Engine.EngineConfig_Data);
+            Core.Data.PreparedOperations preparedOps = Engine.OperationsService_LoadAndPrepare(opsFile: opsFile, currentGame: game, games: modules, engineConfig: Engine.EngineConfig_Data);
             if (!preparedOps.IsLoaded) {
                 System.Console.WriteLine(preparedOps.ErrorMessage ?? "Failed to load operations.");
                 return 1;
@@ -45,15 +45,15 @@ public partial class CLI {
                 return 0;
             }
 
-            WritePreparedOperationWarnings(preparedOps, game, opsFile);
+            WritePreparedOperationWarnings(preparedOps: preparedOps, game: game, opsFile: opsFile);
 
             // Print operations
             System.Console.WriteLine($"Operations for game '{game}':");
             foreach (Core.Data.PreparedOperation op in preparedOps.InitOperations) {
-                System.Console.WriteLine($"- [init] {FormatPreparedOperation(op)}");
+                System.Console.WriteLine($"- [init] {FormatPreparedOperation(op: op)}");
             }
             foreach (Core.Data.PreparedOperation op in preparedOps.RegularOperations) {
-                System.Console.WriteLine($"- {FormatPreparedOperation(op)}");
+                System.Console.WriteLine($"- {FormatPreparedOperation(op: op)}");
             }
 
             return 0;
@@ -95,41 +95,41 @@ public partial class CLI {
         }
 
         string? identifier = options.GameIdentifier;
-        string? preferredRoot = ResolveFullPathSafe(GameRoot);
+        string? preferredRoot = ResolveFullPathSafe(path: GameRoot);
 
         if (!string.IsNullOrWhiteSpace(identifier)) {
             foreach (KeyValuePair<string, Core.Data.GameModuleInfo> kv in games) {
-                if (string.Equals(kv.Key, identifier, System.StringComparison.OrdinalIgnoreCase)) {
+                if (string.Equals(a: kv.Key, b: identifier, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                     resolvedName = kv.Key;
-                    ApplyGameOverrides(games, resolvedName, preferredRoot, options.OpsFile);
+                    ApplyGameOverrides(games: games, gameName: resolvedName, preferredRoot: preferredRoot, opsFile: options.OpsFile);
                     return true;
                 }
             }
 
-            if (TryResolveGameByRegisteredId(games, identifier, out string? resolvedById)) {
+            if (TryResolveGameByRegisteredId(games: games, identifier: identifier, resolvedName: out string? resolvedById)) {
                 resolvedName = resolvedById;
                 if (resolvedName is not null) {
-                    ApplyGameOverrides(games, resolvedName, preferredRoot, options.OpsFile);
+                    ApplyGameOverrides(games: games, gameName: resolvedName, preferredRoot: preferredRoot, opsFile: options.OpsFile);
                     return true;
                 }
                 return false;
             }
 
-            string? identifierPath = ResolveFullPathSafe(identifier);
+            string? identifierPath = ResolveFullPathSafe(path: identifier);
             if (!string.IsNullOrWhiteSpace(identifierPath)) {
                 foreach (KeyValuePair<string, Core.Data.GameModuleInfo> kv in games) {
                     if (kv.Value.GameRoot is not null) {
-                        string? existingRoot = ResolveFullPathSafe(kv.Value.GameRoot);
-                        if (!string.IsNullOrWhiteSpace(existingRoot) && PathsEqual(existingRoot, identifierPath)) {
+                        string? existingRoot = ResolveFullPathSafe(path: kv.Value.GameRoot);
+                        if (!string.IsNullOrWhiteSpace(existingRoot) && PathsEqual(a: existingRoot, b: identifierPath)) {
                             resolvedName = kv.Key;
-                            ApplyGameOverrides(games, resolvedName, preferredRoot, options.OpsFile);
+                            ApplyGameOverrides(games: games, gameName: resolvedName, preferredRoot: preferredRoot, opsFile: options.OpsFile);
                             return true;
                         }
                     }
                 }
 
-                if (System.IO.Directory.Exists(identifierPath)) {
-                    string inferredName = options.GameName ?? new System.IO.DirectoryInfo(identifierPath).Name;
+                if (System.IO.Directory.Exists(path: identifierPath)) {
+                    string inferredName = options.GameName ?? new System.IO.DirectoryInfo(path: identifierPath).Name;
                     Core.Data.GameModuleInfo moduleInfo = new Core.Data.GameModuleInfo {
                         Id = string.Empty,
                         GameRoot = identifierPath,
@@ -140,16 +140,16 @@ public partial class CLI {
                         Url = string.Empty
                     };
                     if (!string.IsNullOrWhiteSpace(options.OpsFile)) {
-                        moduleInfo.OpsFile = ResolveFullPathSafe(options.OpsFile);
+                        moduleInfo.OpsFile = ResolveFullPathSafe(path: options.OpsFile);
                     }
-                    games[inferredName] = moduleInfo;
+                    games[key: inferredName] = moduleInfo;
                     resolvedName = inferredName;
                     return true;
                 }
             }
         }
-        if (!string.IsNullOrWhiteSpace(preferredRoot) && System.IO.Directory.Exists(preferredRoot)) {
-            string inferredName = options.GameName ?? new System.IO.DirectoryInfo(preferredRoot).Name;
+        if (!string.IsNullOrWhiteSpace(preferredRoot) && System.IO.Directory.Exists(path: preferredRoot)) {
+            string inferredName = options.GameName ?? new System.IO.DirectoryInfo(path: preferredRoot).Name;
             Core.Data.GameModuleInfo moduleInfo = new Core.Data.GameModuleInfo {
                 Id = string.Empty,
                 GameRoot = preferredRoot,
@@ -160,9 +160,9 @@ public partial class CLI {
                 Url = string.Empty
             };
             if (!string.IsNullOrWhiteSpace(options.OpsFile)) {
-                moduleInfo.OpsFile = ResolveFullPathSafe(options.OpsFile);
+                moduleInfo.OpsFile = ResolveFullPathSafe(path: options.OpsFile);
             }
-            games[inferredName] = moduleInfo;
+            games[key: inferredName] = moduleInfo;
             resolvedName = inferredName;
             return true;
         }
@@ -173,7 +173,7 @@ public partial class CLI {
     private static bool TryResolveGameByRegisteredId(Core.Data.GameModules games, string identifier, out string? resolvedName) {
         resolvedName = null;
 
-        if (!long.TryParse(identifier, out long requestedId)) {
+        if (!long.TryParse(s: identifier, result: out long requestedId)) {
             return false;
         }
 
@@ -183,7 +183,7 @@ public partial class CLI {
                 continue;
             }
 
-            if (!long.TryParse(moduleInfo.Id, out long moduleId)) {
+            if (!long.TryParse(s: moduleInfo.Id, result: out long moduleId)) {
                 continue;
             }
 
@@ -206,30 +206,30 @@ public partial class CLI {
         preparedOps = null;
         exitCode = 1;
 
-        if (!games.TryGetValue(gameName, out Core.Data.GameModuleInfo? moduleInfo)) {
+        if (!games.TryGetValue(key: gameName, out Core.Data.GameModuleInfo? moduleInfo)) {
             WriteUserError($"Game '{gameName}' was not found.");
             exitCode = 1;
             return false;
         }
 
         string opsFile = !string.IsNullOrWhiteSpace(opsFileOverride)
-            ? ResolveFullPathSafe(opsFileOverride)
+            ? ResolveFullPathSafe(path: opsFileOverride)
             : moduleInfo.OpsFile;
 
-        if (string.IsNullOrWhiteSpace(opsFile) || !System.IO.File.Exists(opsFile)) {
+        if (string.IsNullOrWhiteSpace(opsFile) || !System.IO.File.Exists(path: opsFile)) {
             WriteUserError($"Game '{gameName}' is missing an operations file.");
             exitCode = 1;
             return false;
         }
 
-        preparedOps = Engine.OperationsService_LoadAndPrepare(opsFile, gameName, games, Engine.EngineConfig_Data);
+        preparedOps = Engine.OperationsService_LoadAndPrepare(opsFile: opsFile, currentGame: gameName, games: games, engineConfig: Engine.EngineConfig_Data);
         if (!preparedOps.IsLoaded) {
             WriteUserError(preparedOps.ErrorMessage ?? "Failed to load operations.");
             exitCode = 1;
             return false;
         }
 
-        WritePreparedOperationWarnings(preparedOps, gameName, opsFile);
+        WritePreparedOperationWarnings(preparedOps: preparedOps, game: gameName, opsFile: opsFile);
         exitCode = 0;
         return true;
     }
@@ -243,7 +243,7 @@ public partial class CLI {
         selected = null;
         errorMessage = null;
 
-        List<(Core.Data.PreparedOperation Operation, bool IsInit)> candidates = GetPreparedOperationCandidates(preparedOps);
+        List<(Core.Data.PreparedOperation Operation, bool IsInit)> candidates = GetPreparedOperationCandidates(preparedOps: preparedOps);
         if (candidates.Count == 0) {
             errorMessage = "No operations found.";
             return false;
@@ -255,20 +255,20 @@ public partial class CLI {
             return false;
         }
 
-        bool selectorIsNumeric = long.TryParse(selectorText, out long selectorId);
+        bool selectorIsNumeric = long.TryParse(s: selectorText, result: out long selectorId);
 
         if (selectorIsNumeric) {
             List<(Core.Data.PreparedOperation Operation, bool IsInit)> idMatches = candidates
-                .Where(entry => entry.Operation.OperationId.HasValue && entry.Operation.OperationId.Value == selectorId)
+                .Where(predicate: entry => entry.Operation.OperationId.HasValue && entry.Operation.OperationId.Value == selectorId)
                 .ToList();
 
             if (idMatches.Count == 1) {
-                selected = idMatches[0].Operation;
+                selected = idMatches[index: 0].Operation;
                 return true;
             }
 
             if (idMatches.Count > 1) {
-                selected = PromptForPreparedOperationChoice(idMatches, $"Multiple operations share ID {selectorId}. Select one:");
+                selected = PromptForPreparedOperationChoice(matches: idMatches, $"Multiple operations share ID {selectorId}. Select one:");
                 if (selected is not null) {
                     return true;
                 }
@@ -279,16 +279,16 @@ public partial class CLI {
         }
 
         List<(Core.Data.PreparedOperation Operation, bool IsInit)> nameMatches = candidates
-            .Where(entry => string.Equals(entry.Operation.DisplayName, selectorText, System.StringComparison.OrdinalIgnoreCase))
+            .Where(predicate: entry => string.Equals(a: entry.Operation.DisplayName, b: selectorText, comparisonType: System.StringComparison.OrdinalIgnoreCase))
             .ToList();
 
         if (nameMatches.Count == 1) {
-            selected = nameMatches[0].Operation;
+            selected = nameMatches[index: 0].Operation;
             return true;
         }
 
         if (nameMatches.Count > 1) {
-            selected = PromptForPreparedOperationChoice(nameMatches, $"Multiple operations share the name '{selectorText}'. Select one:");
+            selected = PromptForPreparedOperationChoice(matches: nameMatches, $"Multiple operations share the name '{selectorText}'. Select one:");
             if (selected is not null) {
                 return true;
             }
@@ -311,8 +311,8 @@ public partial class CLI {
     private static void WriteOperationSelectionHint(string gameName, Core.Data.PreparedOperations preparedOps) {
         System.Console.Error.WriteLine($"Use --list-ops {gameName} to inspect the available operations.");
 
-        List<string> options = GetPreparedOperationCandidates(preparedOps)
-            .Select(entry => FormatPreparedOperationChoice(entry.Operation, entry.IsInit))
+        List<string> options = GetPreparedOperationCandidates(preparedOps: preparedOps)
+            .Select(selector: entry => FormatPreparedOperationChoice(op: entry.Operation, isInit: entry.IsInit))
             .ToList();
 
         if (options.Count == 0) {
@@ -321,7 +321,7 @@ public partial class CLI {
         }
 
         System.Console.Error.WriteLine("Available operations:");
-        foreach (string option in options.Take(10)) {
+        foreach (string option in options.Take(count: 10)) {
             System.Console.Error.WriteLine($"  - {option}");
         }
 
@@ -341,7 +341,7 @@ public partial class CLI {
         if (System.Console.IsInputRedirected || System.Console.IsOutputRedirected) {
             System.Console.WriteLine(message);
             for (int index = 0; index < matches.Count; index++) {
-                System.Console.WriteLine($"  {index + 1}. {FormatPreparedOperationChoice(matches[index].Operation, matches[index].IsInit)}");
+                System.Console.WriteLine($"  {index + 1}. {FormatPreparedOperationChoice(op: matches[index: index].Operation, isInit: matches[index: index].IsInit)}");
             }
             return null;
         }
@@ -349,7 +349,7 @@ public partial class CLI {
         while (true) {
             System.Console.WriteLine(message);
             for (int index = 0; index < matches.Count; index++) {
-                System.Console.WriteLine($"  {index + 1}. {FormatPreparedOperationChoice(matches[index].Operation, matches[index].IsInit)}");
+                System.Console.WriteLine($"  {index + 1}. {FormatPreparedOperationChoice(op: matches[index: index].Operation, isInit: matches[index: index].IsInit)}");
             }
 
             System.Console.Write("Selection (blank to cancel): ");
@@ -358,8 +358,8 @@ public partial class CLI {
                 return null;
             }
 
-            if (int.TryParse(input.Trim(), out int choice) && choice >= 1 && choice <= matches.Count) {
-                return matches[choice - 1].Operation;
+            if (int.TryParse(s: input.Trim(), result: out int choice) && choice >= 1 && choice <= matches.Count) {
+                return matches[index: choice - 1].Operation;
             }
 
             System.Console.WriteLine("Invalid selection. Please enter a valid number.");
@@ -368,13 +368,13 @@ public partial class CLI {
 
     private static List<(Core.Data.PreparedOperation Operation, bool IsInit)> GetPreparedOperationCandidates(Core.Data.PreparedOperations preparedOps) {
         List<(Core.Data.PreparedOperation Operation, bool IsInit)> candidates = new();
-        candidates.AddRange(preparedOps.InitOperations.Select(op => (op, true)));
-        candidates.AddRange(preparedOps.RegularOperations.Select(op => (op, false)));
+        candidates.AddRange(collection: preparedOps.InitOperations.Select(selector: op => (op, true)));
+        candidates.AddRange(collection: preparedOps.RegularOperations.Select(selector: op => (op, false)));
         return candidates;
     }
 
     private static string FormatPreparedOperation(Core.Data.PreparedOperation op) {
-        return FormatPreparedOperationChoice(op, false);
+        return FormatPreparedOperationChoice(op: op, isInit: false);
     }
 
     private static string FormatPreparedOperationChoice(Core.Data.PreparedOperation op, bool isInit) {
@@ -403,7 +403,7 @@ public partial class CLI {
     }
 
     private static void ApplyGameOverrides(Core.Data.GameModules games, string gameName, string? preferredRoot, string? opsFile) {
-        if (!games.TryGetValue(gameName, out Core.Data.GameModuleInfo? moduleInfo)) {
+        if (!games.TryGetValue(key: gameName, out Core.Data.GameModuleInfo? moduleInfo)) {
             return;
         }
 
@@ -412,7 +412,7 @@ public partial class CLI {
         }
 
         if (!string.IsNullOrWhiteSpace(opsFile)) {
-            moduleInfo.OpsFile = ResolveFullPathSafe(opsFile);
+            moduleInfo.OpsFile = ResolveFullPathSafe(path: opsFile);
         }
     }
 
@@ -421,9 +421,9 @@ public partial class CLI {
             return string.Empty;
         }
 
-        if (System.IO.File.Exists(path) || System.IO.Directory.Exists(path)) {
+        if (System.IO.File.Exists(path: path) || System.IO.Directory.Exists(path: path)) {
             try {
-                return System.IO.Path.GetFullPath(path);
+                return System.IO.Path.GetFullPath(path: path);
             } catch {
                 return path;
             }
@@ -433,26 +433,26 @@ public partial class CLI {
     }
 
     private static bool PathsEqual(string a, string b) {
-        string normalizedA = NormalizePath(a);
-        string normalizedB = NormalizePath(b);
+        string normalizedA = NormalizePath(path: a);
+        string normalizedB = NormalizePath(path: b);
         return System.OperatingSystem.IsWindows()
-            ? string.Equals(normalizedA, normalizedB, System.StringComparison.OrdinalIgnoreCase)
-            : string.Equals(normalizedA, normalizedB, System.StringComparison.Ordinal);
+            ? string.Equals(a: normalizedA, b: normalizedB, comparisonType: System.StringComparison.OrdinalIgnoreCase)
+            : string.Equals(a: normalizedA, b: normalizedB, comparisonType: System.StringComparison.Ordinal);
     }
 
     private static string NormalizePath(string path) {
-        string full = ResolveFullPathSafe(path) ?? path;
-        return full.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
+        string full = ResolveFullPathSafe(path: path) ?? path;
+        return full.TrimEnd(trimChars: [System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar]);
     }
 
     private static string GetOptionKey(string token) {
-        string trimmed = token.StartsWith("--", System.StringComparison.Ordinal) ? token.Substring(2) : token;
+        string trimmed = token.StartsWith("--", comparisonType: System.StringComparison.Ordinal) ? token.Substring(startIndex: 2) : token;
         int eq = trimmed.IndexOf('=');
-        return eq >= 0 ? trimmed.Substring(0, eq) : trimmed;
+        return eq >= 0 ? trimmed.Substring(startIndex: 0, length: eq) : trimmed;
     }
 
     private static string NormalizeOptionKey(string key) {
-        return key.Replace('-', '_').Trim().ToLowerInvariant();
+        return key.Replace(oldChar: '-', newChar: '_').Trim().ToLowerInvariant();
     }
 
     private static object? ParseValueToken(string value) {
@@ -461,35 +461,35 @@ public partial class CLI {
             return string.Empty;
         }
 
-        if (string.Equals(trimmed, "null", System.StringComparison.OrdinalIgnoreCase)) {
+        if (string.Equals(a: trimmed, b: "null", comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
             return null;
         }
 
-        if (bool.TryParse(trimmed, out bool boolValue)) {
+        if (bool.TryParse(trimmed, result: out bool boolValue)) {
             return boolValue;
         }
 
-        if (long.TryParse(trimmed, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out long longValue)) {
+        if (long.TryParse(s: trimmed, style: System.Globalization.NumberStyles.Integer, provider: System.Globalization.CultureInfo.InvariantCulture, result: out long longValue)) {
             return longValue;
         }
 
-        if (double.TryParse(trimmed, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, System.Globalization.CultureInfo.InvariantCulture, out double doubleValue)) {
+        if (double.TryParse(s: trimmed, style: System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, provider: System.Globalization.CultureInfo.InvariantCulture, result: out double doubleValue)) {
             return doubleValue;
         }
 
-        if ((trimmed.StartsWith("[", System.StringComparison.Ordinal) && trimmed.EndsWith("]", System.StringComparison.Ordinal)) ||
-            (trimmed.StartsWith("{", System.StringComparison.Ordinal) && trimmed.EndsWith("}", System.StringComparison.Ordinal))) {
+        if ((trimmed.StartsWith("[", comparisonType: System.StringComparison.Ordinal) && trimmed.EndsWith("]", comparisonType: System.StringComparison.Ordinal)) ||
+            (trimmed.StartsWith("{", comparisonType: System.StringComparison.Ordinal) && trimmed.EndsWith("}", comparisonType: System.StringComparison.Ordinal))) {
             try {
-                using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(trimmed);
-                return FromJsonElement(doc.RootElement);
+                using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(json: trimmed);
+                return FromJsonElement(element: doc.RootElement);
             } catch (System.Text.Json.JsonException) {
                 // fall back to string literal
             }
         }
 
-        if ((trimmed.StartsWith("\"", System.StringComparison.Ordinal) && trimmed.EndsWith("\"", System.StringComparison.Ordinal)) ||
-            (trimmed.StartsWith("'", System.StringComparison.Ordinal) && trimmed.EndsWith("'", System.StringComparison.Ordinal))) {
-            return trimmed.Substring(1, trimmed.Length - 2);
+        if ((trimmed.StartsWith("\"", comparisonType: System.StringComparison.Ordinal) && trimmed.EndsWith("\"", comparisonType: System.StringComparison.Ordinal)) ||
+            (trimmed.StartsWith("'", comparisonType: System.StringComparison.Ordinal) && trimmed.EndsWith("'", comparisonType: System.StringComparison.Ordinal))) {
+            return trimmed.Substring(startIndex: 1, length: trimmed.Length - 2);
         }
 
         return trimmed;
@@ -497,8 +497,8 @@ public partial class CLI {
 
     private static object? FromJsonElement(System.Text.Json.JsonElement element) {
         return element.ValueKind switch {
-            System.Text.Json.JsonValueKind.Object => element.EnumerateObject().ToDictionary(p => p.Name, p => FromJsonElement(p.Value), System.StringComparer.OrdinalIgnoreCase),
-            System.Text.Json.JsonValueKind.Array => element.EnumerateArray().Select(FromJsonElement).ToList(),
+            System.Text.Json.JsonValueKind.Object => element.EnumerateObject().ToDictionary(keySelector: p => p.Name, elementSelector: p => FromJsonElement(element: p.Value), comparer: System.StringComparer.OrdinalIgnoreCase),
+            System.Text.Json.JsonValueKind.Array => element.EnumerateArray().Select(selector: FromJsonElement).ToList(),
             System.Text.Json.JsonValueKind.String => element.GetString(),
             System.Text.Json.JsonValueKind.Number => element.TryGetInt64(out long l) ? l : element.TryGetDouble(out double d) ? d : element.GetRawText(),
             System.Text.Json.JsonValueKind.True => true,
@@ -513,14 +513,14 @@ public partial class CLI {
             yield break;
         }
 
-        if (trimmed.StartsWith("[", System.StringComparison.Ordinal) && trimmed.EndsWith("]", System.StringComparison.Ordinal)) {
-            foreach (string item in ParseArgsJson(trimmed)) {
+        if (trimmed.StartsWith("[", comparisonType: System.StringComparison.Ordinal) && trimmed.EndsWith("]", comparisonType: System.StringComparison.Ordinal)) {
+            foreach (string item in ParseArgsJson(json: trimmed)) {
                 yield return item;
             }
             yield break;
         }
 
-        List<string> parsed = ParseArgsJson($"[{trimmed}]").ToList();
+        List<string> parsed = ParseArgsJson(json: $"[{trimmed}]").ToList();
         if (parsed.Count > 0) {
             foreach (string item in parsed) {
                 yield return item;
@@ -528,9 +528,9 @@ public partial class CLI {
             yield break;
         }
 
-        string[] commaSplit = trimmed.Split(',', System.StringSplitOptions.RemoveEmptyEntries);
+        string[] commaSplit = trimmed.Split(separator: ',', options: System.StringSplitOptions.RemoveEmptyEntries);
         if (commaSplit.Length > 0) {
-            foreach (string value in commaSplit.Select(segment => StripEnclosingQuotes(segment.Trim())).Where(value => value.Length > 0)) {
+            foreach (string value in commaSplit.Select(selector: segment => StripEnclosingQuotes(segment.Trim())).Where(predicate: value => value.Length > 0)) {
                 yield return value;
             }
             yield break;
@@ -541,14 +541,14 @@ public partial class CLI {
 
     private static IEnumerable<string> ParseArgsJson(string json) {
         try {
-            using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(json);
+            using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(json: json);
             if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Array) {
                 return System.Array.Empty<string>();
             }
 
             List<string> values = new List<string>();
             foreach (System.Text.Json.JsonElement element in doc.RootElement.EnumerateArray()) {
-                values.Add(element.ToString());
+                values.Add(item: element.ToString());
             }
             return values;
         } catch (System.Text.Json.JsonException) {
@@ -557,9 +557,9 @@ public partial class CLI {
     }
 
     private static string StripEnclosingQuotes(string value) {
-        if ((value.StartsWith("\"", System.StringComparison.Ordinal) && value.EndsWith("\"", System.StringComparison.Ordinal)) ||
-            (value.StartsWith("'", System.StringComparison.Ordinal) && value.EndsWith("'", System.StringComparison.Ordinal))) {
-            return value.Length >= 2 ? value.Substring(1, value.Length - 2) : string.Empty;
+        if ((value.StartsWith("\"", comparisonType: System.StringComparison.Ordinal) && value.EndsWith("\"", comparisonType: System.StringComparison.Ordinal)) ||
+            (value.StartsWith("'", comparisonType: System.StringComparison.Ordinal) && value.EndsWith("'", comparisonType: System.StringComparison.Ordinal))) {
+            return value.Length >= 2 ? value.Substring(startIndex: 1, length: value.Length - 2) : string.Empty;
         }
         return value;
     }
@@ -570,20 +570,20 @@ public partial class CLI {
             throw new System.ArgumentException($"Expected KEY=VALUE pair but received '{input}'.");
         }
 
-        string key = input.Substring(0, idx).Trim();
-        string raw = input.Substring(idx + 1).Trim();
+        string key = input.Substring(startIndex: 0, length: idx).Trim();
+        string raw = input.Substring(startIndex: idx + 1).Trim();
         return (key, ParseValueToken(raw));
     }
 
     private static string NormalizeOperationKey(string key) {
-        return key.Replace('-', '_').Trim();
+        return key.Replace(oldChar: '-', newChar: '_').Trim();
     }
 
     private static bool IsTruthy(object? value) {
         return value switch {
             null => false,
             bool b => b,
-            string s => bool.TryParse(s, out bool parsed) && parsed,
+            string s => bool.TryParse(s, result: out bool parsed) && parsed,
             long l => l != 0,
             int i => i != 0,
             short s => s != 0,

@@ -4,9 +4,9 @@ namespace EngineNet.Core.Data;
 /// Represents a case-insensitive map of prompt answers for an operation.
 /// </summary>
 public sealed class PromptAnswers : Dictionary<string, object?> {
-    public PromptAnswers() : base(System.StringComparer.OrdinalIgnoreCase) {
+    public PromptAnswers() : base(comparer: System.StringComparer.OrdinalIgnoreCase) {
     }
 
-    public PromptAnswers(IDictionary<string, object?> values) : base(values, System.StringComparer.OrdinalIgnoreCase) {
+    public PromptAnswers(IDictionary<string, object?> values) : base(dictionary: values, comparer: System.StringComparer.OrdinalIgnoreCase) {
     }
 }

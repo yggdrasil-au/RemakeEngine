@@ -11,16 +11,16 @@ public sealed class JsonHelpers {
     /// <returns></returns>
     public static Dictionary<string, object?> LoadJsonFile(string filePath) {
         try {
-            if (System.IO.File.Exists(filePath)) {
-                using System.IO.FileStream fs = System.IO.File.OpenRead(filePath);
-                using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(fs);
+            if (System.IO.File.Exists(path: filePath)) {
+                using System.IO.FileStream fs = System.IO.File.OpenRead(path: filePath);
+                using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(utf8Json: fs);
 
                 if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object) {
                     return Shared.Serialization.DocModelConverter.FromJsonObject(obj: doc.RootElement);
                 }
 
                 fs.Position = 0; // Rewind stream for a second read
-                Dictionary<string, object?>? dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(fs, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                Dictionary<string, object?>? dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(utf8Json: fs, options: new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
                 // Step 6: Ensure we never return null.
                 return dict ?? new Dictionary<string, object?>();

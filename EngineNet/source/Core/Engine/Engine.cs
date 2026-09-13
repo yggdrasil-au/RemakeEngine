@@ -28,15 +28,15 @@ internal sealed class Engine : IEngineFace{
     ) {
         this.GameLauncher = gameLauncher;
         this.Context = new Core.Engine.EngineContext(
-            gameRegistry,
-            commandService,
-            toolResolver,
-            engineConfig
+            GameRegistry: gameRegistry,
+            CommandService: commandService,
+            ToolResolver: toolResolver,
+            EngineConfig: engineConfig
         );
         this.OperationContext = new OperationContext(
-            OperationsService,
-            OperationsLoader,
-            Runner
+            OperationsService: OperationsService,
+            OperationsLoader: OperationsLoader,
+            Single: Runner
         );
     }
 
@@ -52,11 +52,11 @@ internal sealed class Engine : IEngineFace{
         Data.PromptAnswers promptAnswers,
         System.Threading.CancellationToken cancellationToken = default
     ) {
-        return await this.OperationContext.Single.RunAsync(currentGame, games, op, promptAnswers, this.Context, this.OperationContext, cancellationToken);
+        return await this.OperationContext.Single.RunAsync(currentGame: currentGame, games: games, op: op, promptAnswers: promptAnswers, Context: this.Context, OperationContext: this.OperationContext, cancellationToken: cancellationToken);
     }
 
     public bool CloneModule(string url, System.Threading.CancellationToken cancellationToken = default) {
-        return Utils.GitTools.CloneModule(url, this.Context.CommandService);
+        return Utils.GitTools.CloneModule(url: url, commandService: this.Context.CommandService);
     }
 
 }

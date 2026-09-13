@@ -15,7 +15,7 @@ internal static class Placeholders {
     /// - Captures one or more word/dot characters inside (letters, digits, underscore, dot)
     /// Examples: {{user}}, {{user.name}}, {{config.db.port}}
     /// </remarks>
-    private static readonly System.Text.RegularExpressions.Regex PlaceholderRe = new(@"\{\{([\w\.]+)\}\}", System.Text.RegularExpressions.RegexOptions.Compiled);
+    private static readonly System.Text.RegularExpressions.Regex PlaceholderRe = new(pattern: @"\{\{([\w\.]+)\}\}", options: System.Text.RegularExpressions.RegexOptions.Compiled);
 
     /// <summary>
     /// Recursively resolves placeholders in the given value using the provided context.
@@ -36,24 +36,24 @@ internal static class Placeholders {
             // If it's a dictionary, resolve each value and return a new dictionary.
             case IDictionary<string, object?> dict: {
                 // Note: output dictionary uses case-insensitive keys for convenience.
-                Dictionary<string, object?> outDict = new Dictionary<string, object?>(dict.Count, System.StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, object?> outDict = new Dictionary<string, object?>(capacity: dict.Count, comparer: System.StringComparer.OrdinalIgnoreCase);
                 foreach (KeyValuePair<string, object?> kv in dict) {
-                    outDict[kv.Key] = Resolve(kv.Value, context);
+                    outDict[key: kv.Key] = Resolve(kv.Value, context: context);
                 }
 
                 return outDict;
             }
             // If it's a list, resolve each element and return a new list.
             case IList list: {
-                List<object?> outList = new List<object?>(list.Count);
-                outList.AddRange(from object? item in list select Resolve(item, context));
+                List<object?> outList = new List<object?>(capacity: list.Count);
+                outList.AddRange(collection: from object? item in list select Resolve(item, context: context));
 
                 return outList;
             }
             // If it's a string, replace all placeholder occurrences using the context.
             case string s:
                 // For each match: try to look up the dotted path; if missing, keep the original token unchanged.
-                return PlaceholderRe.Replace(s, m => Lookup(context, m.Groups[1].Value) ?? m.Value);
+                return PlaceholderRe.Replace(input: s, evaluator: m => Lookup(ctx: context, dotted: m.Groups[groupnum: 1].Value) ?? m.Value);
             default:
                 // Any other type is returned unchanged.
                 return value;
@@ -71,10 +71,10 @@ internal static class Placeholders {
     /// </returns>
     private static string? Lookup(IDictionary<string, object?> ctx, string dotted) {
         object? current = ctx;
-        foreach (string part in dotted.Split('.')) {
+        foreach (string part in dotted.Split(separator: '.')) {
             // Traverse only dictionaries with string keys; bail out if structure doesn't match.
             if (current is IDictionary<string, object?> d) {
-                if (!d.TryGetValue(part, out current)) {
+                if (!d.TryGetValue(key: part, out current)) {
                     return null; // Missing key
                 }
             } else {

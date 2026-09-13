@@ -28,16 +28,16 @@ internal static class LuaAction {
         string _scriptPath
     ) {
         // --- 1. Global Variables & Environment Constants ---
-        CreateGlobalVars(_LuaWorld, _args, _gameRoot, _projectRoot, _scriptPath);
+        CreateGlobalVars(_LuaWorld: _LuaWorld, _args: _args, _gameRoot: _gameRoot, _projectRoot: _projectRoot, _scriptPath: _scriptPath);
 
         // --- 2. Global Functions ---
-        CreateGlobalFunctions(_LuaWorld, _tools);
+        CreateGlobalFunctions(_LuaWorld: _LuaWorld, _tools: _tools);
 
         // --- 3. Global Modules & Sub-Module Setup ---
-        CreateGlobalModules(_LuaWorld, _tools, _commandService);
+        CreateGlobalModules(_LuaWorld: _LuaWorld, _tools: _tools, _commandService: _commandService);
 
         // --- 4. Diagnostics & Logging ---
-        CreateGlobalDiagnostics(_LuaWorld, _gameRoot, _projectRoot);
+        CreateGlobalDiagnostics(_LuaWorld: _LuaWorld, _gameRoot: _gameRoot, _projectRoot: _projectRoot);
     }
 
     /// <summary>
@@ -50,31 +50,31 @@ internal static class LuaAction {
     /// <param name="_scriptPath"></param>
     private static void CreateGlobalVars(LuaWorld _LuaWorld, string[] _args, string _gameRoot, string _projectRoot, string _scriptPath) {
         // Game and Project path constants
-        _LuaWorld.LuaScript.Globals["Game_Root"] = _gameRoot;
-        _LuaWorld.LuaScript.Globals["Project_Root"] = _projectRoot;
+        _LuaWorld.LuaScript.Globals[key: "Game_Root"] = _gameRoot;
+        _LuaWorld.LuaScript.Globals[key: "Project_Root"] = _projectRoot;
 
         // script_dir - directory containing the executing script
-        string scriptDir = System.IO.Path.GetDirectoryName(_scriptPath)?.Replace("\\", "/") ?? "";
-        _LuaWorld.LuaScript.Globals["script_dir"] = scriptDir;
+        string scriptDir = System.IO.Path.GetDirectoryName(path: _scriptPath)?.Replace(oldValue: "\\", newValue: "/") ?? "";
+        _LuaWorld.LuaScript.Globals[key: "script_dir"] = scriptDir;
 
         // script arguments
-        Table argvTable = new Table(_LuaWorld.LuaScript);
+        Table argvTable = new Table(owner: _LuaWorld.LuaScript);
         for (int index = 0; index < _args.Length; index++) {
-            argvTable[index + 1] = DynValue.NewString(_args[index]);
+            argvTable[key: index + 1] = DynValue.NewString(str: _args[index]);
         }
-        _LuaWorld.LuaScript.Globals["argv"] = argvTable; // array of arguments
-        _LuaWorld.LuaScript.Globals["argc"] = _args.Length; // number of arguments
+        _LuaWorld.LuaScript.Globals[key: "argv"] = argvTable; // array of arguments
+        _LuaWorld.LuaScript.Globals[key: "argc"] = _args.Length; // number of arguments
 
         // UI Mode (cli, gui, tui)
         string mode = "unknown";
         if (EngineNet.Shared.State.IsCli) mode = "cli";
         else if (EngineNet.Shared.State.IsGui) mode = "gui";
         else if (EngineNet.Shared.State.IsTui) mode = "tui";
-        _LuaWorld.LuaScript.Globals["UIMode"] = mode;
+        _LuaWorld.LuaScript.Globals[key: "UIMode"] = mode;
 
         // Debug state
 #if DEBUG
-        _LuaWorld.LuaScript.Globals["DEBUG"] = true;
+        _LuaWorld.LuaScript.Globals[key: "DEBUG"] = true;
 #else
         _LuaWorld.LuaScript.Globals["DEBUG"] = false;
 #endif
@@ -91,22 +91,22 @@ internal static class LuaAction {
     private static void CreateGlobalFunctions(LuaWorld _LuaWorld, Core.ExternalTools.JsonToolResolver _tools) {
 
         // Methods for emitting engineSDK events (warn, error, prompt)
-        EngineSdkGlobals(_LuaWorld);
+        EngineSdkGlobals(_LuaWorld: _LuaWorld);
 
         // Global path normalization helpers and path join (soft join, host separator aware)
-        _LuaWorld.LuaScript.Globals["normalize"] = (System.Func<ScriptExecutionContext, CallbackArguments, DynValue>)((_, args) => NormalizePath(args));
-        _LuaWorld.LuaScript.Globals["normalise"] = _LuaWorld.LuaScript.Globals["normalize"];
-        _LuaWorld.LuaScript.Globals["Normalize"] = _LuaWorld.LuaScript.Globals["normalize"];
+        _LuaWorld.LuaScript.Globals[key: "normalize"] = (System.Func<ScriptExecutionContext, CallbackArguments, DynValue>)((_, args) => NormalizePath(args: args));
+        _LuaWorld.LuaScript.Globals[key: "normalise"] = _LuaWorld.LuaScript.Globals[key: "normalize"];
+        _LuaWorld.LuaScript.Globals[key: "Normalize"] = _LuaWorld.LuaScript.Globals[key: "normalize"];
 
         // Global path join (soft join, host separator aware)
-        _LuaWorld.LuaScript.Globals["join"] = (System.Func<ScriptExecutionContext, CallbackArguments, DynValue>)((_, args) => JoinPaths(args));
+        _LuaWorld.LuaScript.Globals[key: "join"] = (System.Func<ScriptExecutionContext, CallbackArguments, DynValue>)((_, args) => JoinPaths(args: args));
 
         static DynValue NormalizePath(CallbackArguments args) {
             if (args.Count == 0) {
                 return DynValue.Nil;
             }
 
-            return NormalizePathValue(args[0]);
+            return NormalizePathValue(args[index: 0]);
         }
 
         static DynValue NormalizePathValue(DynValue value) {
@@ -116,15 +116,15 @@ internal static class LuaAction {
 
             string path = value.Type == DataType.String ? value.String : value.ToPrintString();
             if (string.IsNullOrEmpty(path)) {
-                return DynValue.NewString(string.Empty);
+                return DynValue.NewString(str: string.Empty);
             }
 
-            return DynValue.NewString(NormalizePathString(path));
+            return DynValue.NewString(str: NormalizePathString(path: path));
         }
 
         static string NormalizePathString(string path) {
             char separator = System.IO.Path.DirectorySeparatorChar;
-            var builder = new System.Text.StringBuilder(path.Length);
+            var builder = new System.Text.StringBuilder(capacity: path.Length);
             bool previousWasSeparator = false;
 
             foreach (char character in path) {
@@ -144,22 +144,22 @@ internal static class LuaAction {
 
         static DynValue JoinPaths(CallbackArguments args) {
             char separator = System.IO.Path.DirectorySeparatorChar;
-            var parts = Enumerable.Range(0, args.Count)
-                .Select(i => args[i])
-                .Select(NormalizePathValue)
-                .Where(v => v.Type == DataType.String && !string.IsNullOrEmpty(v.String))
-                .Select(v => v.String)
+            var parts = Enumerable.Range(start: 0, count: args.Count)
+                .Select(selector: i => args[index: i])
+                .Select(selector: NormalizePathValue)
+                .Where(predicate: v => v.Type == DataType.String && !string.IsNullOrEmpty(v.String))
+                .Select(selector: v => v.String)
                 .ToList();
 
             if (parts.Count == 0) {
-                return DynValue.NewString(string.Empty);
+                return DynValue.NewString(str: string.Empty);
             }
 
             var sb = new System.Text.StringBuilder();
             for (int i = 0; i < parts.Count; i++) {
-                string part = parts[i];
+                string part = parts[index: i];
                 if (i > 0) {
-                    part = part.TrimStart(separator);
+                    part = part.TrimStart(trimChar: separator);
                     if (part.Length == 0) {
                         continue;
                     }
@@ -172,47 +172,47 @@ internal static class LuaAction {
                 sb.Append(part);
             }
 
-            return DynValue.NewString(sb.ToString());
+            return DynValue.NewString(str: sb.ToString());
         }
 
         // Resolve external tool path
-        _LuaWorld.LuaScript.Globals["ResolveToolPath"] = (string id, string? ver) => _tools.ResolveToolPath(id, ver);
-        _LuaWorld.LuaScript.Globals["tool"] = _LuaWorld.LuaScript.Globals["ResolveToolPath"]; // alias for convenience
+        _LuaWorld.LuaScript.Globals[key: "ResolveToolPath"] = (string id, string? ver) => _tools.ResolveToolPath(toolId: id, version: ver);
+        _LuaWorld.LuaScript.Globals[key: "tool"] = _LuaWorld.LuaScript.Globals[key: "ResolveToolPath"]; // alias for convenience
 
         // Global 'import' function - loads and executes Lua files relative to current script_dir global
-        _LuaWorld.LuaScript.Globals["import"] = (System.Func<ScriptExecutionContext, string, DynValue>)((_, path) => {
+        _LuaWorld.LuaScript.Globals[key: "import"] = (System.Func<ScriptExecutionContext, string, DynValue>)((_, path) => {
             // Re-fetch script_dir from globals at runtime to allow dynamic updates
-            string currentScriptDir = _LuaWorld.LuaScript.Globals.Get("script_dir").String ?? "";
-            string absolutePath = System.IO.Path.IsPathRooted(path) ? path : System.IO.Path.Combine(currentScriptDir, path);
+            string currentScriptDir = _LuaWorld.LuaScript.Globals.Get(key: "script_dir").String ?? "";
+            string absolutePath = System.IO.Path.IsPathRooted(path: path) ? path : System.IO.Path.Combine(path1: currentScriptDir, path2: path);
 
-            if (!absolutePath.EndsWith(".lua", StringComparison.OrdinalIgnoreCase)) {
+            if (!absolutePath.EndsWith(".lua", comparisonType: StringComparison.OrdinalIgnoreCase)) {
                 absolutePath += ".lua";
             }
 
-            if (!Security.TryGetAllowedCanonicalPathWithPrompt(absolutePath, out string safePath)) {
+            if (!Security.TryGetAllowedCanonicalPathWithPrompt(path: absolutePath, canonicalPath: out string safePath)) {
                 throw new ScriptRuntimeException($"import error: access denied '{absolutePath}'");
             }
 
-            if (!System.IO.File.Exists(safePath)) {
+            if (!System.IO.File.Exists(path: safePath)) {
                 throw new ScriptRuntimeException($"import error: file not found '{safePath}'");
             }
 
             string previousScriptDir = currentScriptDir;
-            string nextScriptDir = System.IO.Path.GetDirectoryName(safePath)?.Replace("\\", "/") ?? "";
+            string nextScriptDir = System.IO.Path.GetDirectoryName(path: safePath)?.Replace(oldValue: "\\", newValue: "/") ?? "";
 
             try {
                 // Ensure nested imports resolve relative to the currently imported file.
-                _LuaWorld.LuaScript.Globals["script_dir"] = nextScriptDir;
-                return _LuaWorld.LuaScript.DoFile(safePath);
+                _LuaWorld.LuaScript.Globals[key: "script_dir"] = nextScriptDir;
+                return _LuaWorld.LuaScript.DoFile(filename: safePath);
             } catch (Exception ex) {
                 throw new ScriptRuntimeException($"import error in '{safePath}': {ex.Message}");
             } finally {
-                _LuaWorld.LuaScript.Globals["script_dir"] = previousScriptDir;
+                _LuaWorld.LuaScript.Globals[key: "script_dir"] = previousScriptDir;
             }
         });
 
         // Custom 'require' implementation that matches the 'import' behavior
-        _LuaWorld.LuaScript.Globals["require"] = _LuaWorld.LuaScript.Globals["import"];
+        _LuaWorld.LuaScript.Globals[key: "require"] = _LuaWorld.LuaScript.Globals[key: "import"];
     }
 
     /// <summary>
@@ -223,9 +223,9 @@ internal static class LuaAction {
     /// <param name="_tools"></param>
     /// <param name="_commandService"></param>
     private static void CreateGlobalModules(LuaWorld _LuaWorld, Core.ExternalTools.JsonToolResolver _tools, Core.Services.CommandService _commandService) {
-        Global.Sdk.CreateSdkModule(_LuaWorld, _tools, _commandService);
-        Global.Sqlite.CreateSqliteModule(_LuaWorld);
-        Global.Progress.CreateProgressModule(_LuaWorld);
+        Global.Sdk.CreateSdkModule(_LuaWorld: _LuaWorld, tools: _tools, commandService: _commandService);
+        Global.Sqlite.CreateSqliteModule(_LuaWorld: _LuaWorld);
+        Global.Progress.CreateProgressModule(_LuaWorld: _LuaWorld);
     }
 
     /// <summary>
@@ -238,9 +238,9 @@ internal static class LuaAction {
     /// <param name="_projectRoot"></param>
     private static void CreateGlobalDiagnostics(LuaWorld _LuaWorld, string _gameRoot, string _projectRoot) {
         // Lua Diagnostics logging methods
-        _LuaWorld.DiagnosticsMethods["Log"] = (System.Action<string>)Shared.IO.Diagnostics.LuaLogger.LuaLog;
-        _LuaWorld.DiagnosticsMethods["Trace"] = (System.Action<string>)Shared.IO.Diagnostics.LuaLogger.LuaTrace;
-        _LuaWorld.LuaScript.Globals["Diagnostics"] = _LuaWorld.DiagnosticsMethods;
+        _LuaWorld.DiagnosticsMethods[key: "Log"] = (System.Action<string>)Shared.IO.Diagnostics.LuaLogger.LuaLog;
+        _LuaWorld.DiagnosticsMethods[key: "Trace"] = (System.Action<string>)Shared.IO.Diagnostics.LuaLogger.LuaTrace;
+        _LuaWorld.LuaScript.Globals[key: "Diagnostics"] = _LuaWorld.DiagnosticsMethods;
 
         // Final startup logs
         Shared.IO.Diagnostics.Log($"[LuaScriptAction.cs::SetupCoreFunctions()] Set Game_Root to '{_gameRoot}'");
@@ -253,37 +253,37 @@ internal static class LuaAction {
     /// <param name="_LuaWorld"></param>
     private static void EngineSdkGlobals(LuaWorld _LuaWorld) {
         // basic outputs for warning and error events
-        _LuaWorld.LuaScript.Globals["warn"] = (System.Action<string>)Shared.IO.UI.EngineSdk.Warn;
-        _LuaWorld.LuaScript.Globals["error"] = (System.Action<string>)Shared.IO.UI.EngineSdk.Error;
+        _LuaWorld.LuaScript.Globals[key: "warn"] = (System.Action<string>)Shared.IO.UI.EngineSdk.Warn;
+        _LuaWorld.LuaScript.Globals[key: "error"] = (System.Action<string>)Shared.IO.UI.EngineSdk.Error;
 
         // overwrite built in Print method, and direct to sdk print
-        _LuaWorld.LuaScript.Globals["print"] = DynValue.NewCallback((ctx, args) => {
+        _LuaWorld.LuaScript.Globals[key: "print"] = DynValue.NewCallback(callBack: (ctx, args) => {
             var parts = new System.Collections.Generic.List<string>();
             for (int i = 0; i < args.Count; i++) {
                 // ToPrintString() safely converts Lua types (nil, tables, etc.) to strings
-                parts.Add(args[i].ToPrintString());
+                parts.Add(item: args[index: i].ToPrintString());
             }
 
             // Standard Lua print separates multiple arguments with a tab
-            Shared.IO.UI.EngineSdk.PrintLine(string.Join("\t", parts));
+            Shared.IO.UI.EngineSdk.PrintLine(string.Join(separator: "\t", values: parts));
             return DynValue.Nil;
         });
 
         // emits the prompt query to the engine/ui and returns the user input
-        _LuaWorld.LuaScript.Globals["prompt"] = (System.Func<DynValue, DynValue, DynValue, string>)((message, id, secret) => {
+        _LuaWorld.LuaScript.Globals[key: "prompt"] = (System.Func<DynValue, DynValue, DynValue, string>)((message, id, secret) => {
             string msg = message.Type == DataType.String ? message.String : message.ToPrintString();
             string pid = id.Type == DataType.Nil || id.Type == DataType.Void ? "q1" : id.Type == DataType.String ? id.String : id.ToPrintString();
             bool sec = secret.Type == DataType.Boolean && secret.Boolean;
-            return Shared.IO.UI.EngineSdk.Prompt(msg, pid, sec);
+            return Shared.IO.UI.EngineSdk.Prompt(msg, id: pid, secret: sec);
         });
-        _LuaWorld.LuaScript.Globals["color_prompt"] = (System.Func<DynValue, DynValue, DynValue, DynValue, string>)((message, color, id, secret) => {
+        _LuaWorld.LuaScript.Globals[key: "color_prompt"] = (System.Func<DynValue, DynValue, DynValue, DynValue, string>)((message, color, id, secret) => {
             string msg = message.Type == DataType.String ? message.String : message.ToPrintString();
             string col = color.Type == DataType.String ? color.String : color.ToPrintString();
             string pid = id.Type == DataType.Nil || id.Type == DataType.Void ? "q1" : id.Type == DataType.String ? id.String : id.ToPrintString();
             bool sec = secret.Type == DataType.Boolean && secret.Boolean;
-            return Shared.IO.UI.EngineSdk.color_prompt(msg, col, pid, sec);
+            return Shared.IO.UI.EngineSdk.color_prompt(msg, color: col, id: pid, secret: sec);
         });
-        _LuaWorld.LuaScript.Globals["colour_prompt"] = _LuaWorld.LuaScript.Globals["color_prompt"]; // (Correct) AU spelling
+        _LuaWorld.LuaScript.Globals[key: "colour_prompt"] = _LuaWorld.LuaScript.Globals[key: "color_prompt"]; // (Correct) AU spelling
     }
 
 

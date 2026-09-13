@@ -16,19 +16,19 @@ public static class ScriptConstants {
     internal const string TypeInternal = "internal";
 
     // Define the "Embedded" group (Languages handled by EmbeddedActionDispatcher)
-    private static readonly HashSet<string> _embeddedTypes = new(System.StringComparer.OrdinalIgnoreCase) {
+    private static readonly HashSet<string> _embeddedTypes = new(comparer: System.StringComparer.OrdinalIgnoreCase) {
         TypeLua,
         TypeJs,
         TypePython
     };
 
     // define the "External" group (Languages handled by ExternalActionDispatcher)
-    private static readonly HashSet<string> _externalTypes = new(System.StringComparer.OrdinalIgnoreCase) {
+    private static readonly HashSet<string> _externalTypes = new(comparer: System.StringComparer.OrdinalIgnoreCase) {
         TypeBms
     };
 
     // define the "Internal" group (Operations handled directly in code, not via script dispatchers)
-    private static readonly HashSet<string> _internalTypes = new(System.StringComparer.OrdinalIgnoreCase) {
+    private static readonly HashSet<string> _internalTypes = new(comparer: System.StringComparer.OrdinalIgnoreCase) {
         TypeInternal,
         TypeEngine
     };
@@ -39,7 +39,7 @@ public static class ScriptConstants {
     /// <param name="script_type"></param>
     /// <returns></returns>
     internal static bool IsEmbedded(string? script_type) {
-        return !string.IsNullOrWhiteSpace(script_type) && _embeddedTypes.Contains(script_type);
+        return !string.IsNullOrWhiteSpace(script_type) && _embeddedTypes.Contains(item: script_type);
     }
 
     /// <summary>
@@ -48,16 +48,16 @@ public static class ScriptConstants {
     /// <param name="script_type"></param>
     /// <returns></returns>
     internal static bool IsExternal(string? script_type) {
-        return !string.IsNullOrWhiteSpace(script_type) && _externalTypes.Contains(script_type);
+        return !string.IsNullOrWhiteSpace(script_type) && _externalTypes.Contains(item: script_type);
     }
 
     // is BuiltInOperation, internal or engine
     internal static bool IsBuiltIn(string? script_type) {
-        return !string.IsNullOrWhiteSpace(script_type) && _internalTypes.Contains(script_type);
+        return !string.IsNullOrWhiteSpace(script_type) && _internalTypes.Contains(item: script_type);
     }
 
     // 2. Create a hashed set for fast, case-insensitive lookups
-    private static readonly HashSet<string> _supportedTypes = new(System.StringComparer.OrdinalIgnoreCase) {
+    private static readonly HashSet<string> _supportedTypes = new(comparer: System.StringComparer.OrdinalIgnoreCase) {
         TypeEngine,
         TypeLua,
         TypeJs,
@@ -70,6 +70,6 @@ public static class ScriptConstants {
     /// Checks if the provided script type string is a valid, supported type.
     /// </summary>
     public static bool IsSupported(string? script_type) {
-        return !string.IsNullOrWhiteSpace(script_type) && _supportedTypes.Contains(script_type);
+        return !string.IsNullOrWhiteSpace(script_type) && _supportedTypes.Contains(item: script_type);
     }
 }

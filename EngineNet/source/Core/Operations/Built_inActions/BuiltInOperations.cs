@@ -10,38 +10,38 @@ internal class BuiltInOperations {
         Core.Data.GameModules games
     ) {
         // Parse arguments
-        var argsList = op.TryGetValue("args", out object? argsObj) && argsObj is IList<object?> list
-            ? list.Select(x => x?.ToString() ?? "").ToList()
+        var argsList = op.TryGetValue(key: "args", out object? argsObj) && argsObj is IList<object?> list
+            ? list.Select(selector: x => x?.ToString() ?? "").ToList()
             : new List<string>();
 
-        var opts = Utils.ConfigHelpers.ParseArgs(argsList);
+        var opts = Utils.ConfigHelpers.ParseArgs(args: argsList);
 
         string? configPath = opts.ConfigPath;
         if (string.IsNullOrEmpty(configPath)) {
             // Try to resolve Game Root
-            if (!string.IsNullOrEmpty(currentGame) && games.TryGetValue(currentGame, out var gameInfo)) {
-                configPath = System.IO.Path.Combine(gameInfo.GameRoot, "config.toml");
+            if (!string.IsNullOrEmpty(currentGame) && games.TryGetValue(key: currentGame, out var gameInfo)) {
+                configPath = System.IO.Path.Combine(path1: gameInfo.GameRoot, path2: "config.toml");
             } else {
                 // Fallback
-                configPath = System.IO.Path.Combine(EngineNet.Shared.State.RootPath, "config.toml");
+                configPath = System.IO.Path.Combine(path1: EngineNet.Shared.State.RootPath, path2: "config.toml");
             }
         }
 
         // Ensure absolute path
-        if (!System.IO.Path.IsPathRooted(configPath)) {
-            configPath = System.IO.Path.GetFullPath(configPath);
+        if (!System.IO.Path.IsPathRooted(path: configPath)) {
+            configPath = System.IO.Path.GetFullPath(path: configPath);
         }
 
         // --list functionality
         if (opts.List) {
-            if (!System.IO.File.Exists(configPath)) {
+            if (!System.IO.File.Exists(path: configPath)) {
                 IO.Error($"Config file does not exist at {configPath}");
                 return false;
             }
             try {
                 // Parse and re-serialize to show structure (matching behavior of listing the TOML structure)
-                object docObj = TomlHelpers.ParseFileToPlainObject(configPath);
-                string dump = TomlHelpers.WriteDocument(docObj);
+                object docObj = TomlHelpers.ParseFileToPlainObject(path: configPath);
+                string dump = TomlHelpers.WriteDocument(data: docObj);
                 IO.writeLine($"Config file: {configPath}");
                 IO.writeLine(dump);
                 return true;
@@ -52,15 +52,15 @@ internal class BuiltInOperations {
         }
 
         // Check file existence
-        if (!System.IO.File.Exists(configPath)) {
+        if (!System.IO.File.Exists(path: configPath)) {
             // create if missing
             Shared.IO.Diagnostics.Trace($"Config file does not exist at {configPath}, creating new.");
-            System.IO.File.Create(configPath).Close();
+            System.IO.File.Create(path: configPath).Close();
         }
 
         try {
             // Read existing document
-            object docObj = TomlHelpers.ParseFileToPlainObject(configPath);
+            object docObj = TomlHelpers.ParseFileToPlainObject(path: configPath);
             IDictionary<string, object?> doc;
             if (docObj is IDictionary<string, object?> dict) {
                 doc = dict;
@@ -72,9 +72,9 @@ internal class BuiltInOperations {
             // Handle Multi-set
             if (opts.Sets.Count > 0) {
                 foreach (var set in opts.Sets) {
-                    Utils.ConfigHelpers.ApplyUpdate(doc, opts.Group, opts.Index, set.Key, set.Value, set.TypeHint);
-                    string msg = $"Updated {opts.Group}[{(opts.Index == 0 ? 1 : opts.Index)}].{set.Key} = {Utils.ConfigHelpers.ConvertValue(set.Value, set.TypeHint)}";
-                    IO.writeLine(msg, System.ConsoleColor.Green);
+                    Utils.ConfigHelpers.ApplyUpdate(doc: doc, group: opts.Group, index: opts.Index, key: set.Key, set.Value, typeHint: set.TypeHint);
+                    string msg = $"Updated {opts.Group}[{(opts.Index == 0 ? 1 : opts.Index)}].{set.Key} = {Utils.ConfigHelpers.ConvertValue(raw: set.Value, hint: set.TypeHint)}";
+                    IO.writeLine(msg, color: System.ConsoleColor.Green);
                 }
             } else {
                 // Single set
@@ -90,14 +90,14 @@ internal class BuiltInOperations {
                         return false;
                     }
                 } else {
-                    Utils.ConfigHelpers.ApplyUpdate(doc, opts.Group, opts.Index, opts.Key, opts.Value, opts.TypeHint);
-                    string msg = $"Updated {opts.Group}[{(opts.Index == 0 ? 1 : opts.Index)}].{opts.Key} = {Utils.ConfigHelpers.ConvertValue(opts.Value, opts.TypeHint)}";
-                    IO.writeLine(msg, System.ConsoleColor.Green);
+                    Utils.ConfigHelpers.ApplyUpdate(doc: doc, group: opts.Group, index: opts.Index, key: opts.Key, opts.Value, typeHint: opts.TypeHint);
+                    string msg = $"Updated {opts.Group}[{(opts.Index == 0 ? 1 : opts.Index)}].{opts.Key} = {Utils.ConfigHelpers.ConvertValue(raw: opts.Value, hint: opts.TypeHint)}";
+                    IO.writeLine(msg, color: System.ConsoleColor.Green);
                 }
             }
 
             // Write back
-            TomlHelpers.WriteTomlFile(configPath, doc);
+            TomlHelpers.WriteTomlFile(path: configPath, data: doc);
             // IO.writeLine($"Updated config at {configPath}", System.ConsoleColor.Green);
             // Lua prints the specific updates. The above loops print the updates.
             return true;
@@ -113,28 +113,28 @@ internal class BuiltInOperations {
         Shared.IO.Diagnostics.Log("[Engine.private.cs :: Operations()]] format-convert");
 
         // 1. Determine tool - check both 'tool' field and '-m'/'--mode' in args
-        string? tool = operationArgs.op.TryGetValue("tool", out object? ft)
+        string? tool = operationArgs.op.TryGetValue(key: "tool", out object? ft)
             ? ft?.ToString()?.ToLowerInvariant() : null;
 
     #if DEBUG
-        if (operationArgs.op.TryGetValue("args", out object? argsDebugObj)) {
+        if (operationArgs.op.TryGetValue(key: "args", out object? argsDebugObj)) {
             Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: args type = {argsDebugObj?.GetType().FullName ?? "null"}");
             if (argsDebugObj is System.Collections.IList argsDebugList) {
                 Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: args count = {argsDebugList.Count}");
                 for (int i = 0; i < argsDebugList.Count; i++) {
-                    Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: args[{i}] = '{argsDebugList[i]}'");
+                    Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: args[{i}] = '{argsDebugList[index: i]}'");
                 }
             }
         }
     #endif
 
         // 2. If tool not specified, try to extract from args
-        if (string.IsNullOrWhiteSpace(tool) && operationArgs.op.TryGetValue("args", out object? argsObj)
-            && (argsObj is System.Collections.IList argsList)) {
+        if (string.IsNullOrWhiteSpace(tool) && operationArgs.op.TryGetValue(key: "args", out object? argsObj)
+                                                   && (argsObj is System.Collections.IList argsList)) {
             for (int i = 0; i < argsList.Count - 1; i++) {
-                string arg = argsList[i]?.ToString() ?? string.Empty;
+                string arg = argsList[index: i]?.ToString() ?? string.Empty;
                 if (arg != "-m" && arg != "--mode") continue;
-                tool = argsList[i + 1]?.ToString()?.ToLowerInvariant();
+                tool = argsList[index: i + 1]?.ToString()?.ToLowerInvariant();
                 Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: extracted tool from args: '{tool}'");
                 break;
             }
@@ -144,26 +144,26 @@ internal class BuiltInOperations {
         Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: final tool = '{tool}'");
 
         // 3. Prepare Execution Context
-        Dictionary<string, object?> ctx = Utils.Helpers.BuildOperationContext(operationArgs.context, operationArgs.currentGame, operationArgs.games);
-        List<string> args = Utils.Helpers.ResolveOperationArgs(operationArgs.op, ctx);
+        Dictionary<string, object?> ctx = Utils.Helpers.BuildOperationContext(context: operationArgs.context, currentGame: operationArgs.currentGame, games: operationArgs.games);
+        List<string> args = Utils.Helpers.ResolveOperationArgs(op: operationArgs.op, ctx: ctx);
 
         // 4. Execute via Switch
         switch (tool) {
             case "ffmpeg":
             case "vgmstream":
                 IO.writeLine("\n>>> Built-in media conversion");
-                Shared.IO.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running media conversion with args: {string.Join(' ', args)}");
-                return Core.Media.AvTools.Run(operationArgs.context.ToolResolver, args, operationArgs.cancellationToken);
+                Shared.IO.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running media conversion with args: {string.Join(separator: ' ', values: args)}");
+                return Core.Media.AvTools.Run(toolResolver: operationArgs.context.ToolResolver, args: args, cancellationToken: operationArgs.cancellationToken);
 
             case "imagemagick":
                 IO.writeLine("\n>>> Built-in image conversion");
-                Shared.IO.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running image conversion with args: {string.Join(' ', args)}");
-                return Core.Media.ImageMagickConverter.Run(operationArgs.context.ToolResolver, args, operationArgs.cancellationToken);
+                Shared.IO.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running image conversion with args: {string.Join(separator: ' ', values: args)}");
+                return Core.Media.ImageMagickConverter.Run(toolResolver: operationArgs.context.ToolResolver, args: args, cancellationToken: operationArgs.cancellationToken);
 
             case "p3d":
                 IO.writeLine("\n>>> Built-in p3d conversion");
-                Shared.IO.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running p3d conversion with args: {string.Join(' ', args)}");
-                return EngineNet.GameFormats.p3d.P3dExtractor.Run(args, operationArgs.cancellationToken);
+                Shared.IO.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running p3d conversion with args: {string.Join(separator: ' ', values: args)}");
+                return EngineNet.GameFormats.p3d.P3dExtractor.Run(args: args, cancellationToken: operationArgs.cancellationToken);
 
             default:
                 Shared.IO.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: unknown tool '{tool}'");
@@ -178,26 +178,26 @@ internal class BuiltInOperations {
         Operations.helpers.OperationArgs operationArgs
     ) {
         // Expect a 'tools_manifest' value (path), or fallback to first arg
-        string? manifest = Utils.Helpers.GetFieldOrFirstArgRawValue(operationArgs.op, "tools_manifest");
+        string? manifest = Utils.Helpers.GetFieldOrFirstArgRawValue(op: operationArgs.op, fieldName: "tools_manifest");
 
         if (string.IsNullOrWhiteSpace(manifest)) {
             return false;
         }
-        Dictionary<string, object?> ctx = Utils.Helpers.BuildOperationContext(operationArgs.context, operationArgs.currentGame, operationArgs.games);
-        string resolvedManifest = Utils.Helpers.ResolveOperationValue(operationArgs.op, "tools_manifest", ctx, fallbackToRawValue: true)
-            ?? Core.Utils.Placeholders.Resolve(manifest, ctx)?.ToString()
+        Dictionary<string, object?> ctx = Utils.Helpers.BuildOperationContext(context: operationArgs.context, currentGame: operationArgs.currentGame, games: operationArgs.games);
+        string resolvedManifest = Utils.Helpers.ResolveOperationValue(op: operationArgs.op, key: "tools_manifest", ctx: ctx, fallbackToRawValue: true)
+            ?? Core.Utils.Placeholders.Resolve(manifest, context: ctx)?.ToString()
             ?? manifest;
 
         bool force = false;
-        if (operationArgs.promptAnswers.TryGetValue("force download", out object? fd) && fd is bool b1) {
+        if (operationArgs.promptAnswers.TryGetValue(key: "force download", out object? fd) && fd is bool b1) {
             force = b1;
         }
-        if (operationArgs.promptAnswers.TryGetValue("force_download", out object? fd2) && fd2 is bool b2) {
+        if (operationArgs.promptAnswers.TryGetValue(key: "force_download", out object? fd2) && fd2 is bool b2) {
             force = b2;
         }
 
         // execute
-        await ExternalTools.ToolsDownloader.ProcessAsync(resolvedManifest, EngineNet.Shared.State.RootPath,force, ctx, operationArgs.cancellationToken);
+        await ExternalTools.ToolsDownloader.ProcessAsync(moduleTomlPath: resolvedManifest, rootPath: EngineNet.Shared.State.RootPath,force: force, context: ctx, cancellationToken: operationArgs.cancellationToken);
         return true;
     }
 
@@ -205,23 +205,23 @@ internal class BuiltInOperations {
         Operations.helpers.OperationArgs operationArgs
     ) {
         // Determine input file format
-        string? format = operationArgs.op.TryGetValue("format", out object? ft)
+        string? format = operationArgs.op.TryGetValue(key: "format", out object? ft)
             ? ft?.ToString()?.ToLowerInvariant() : null;
 
-        Dictionary<string, object?> ctx = Utils.Helpers.BuildOperationContext(operationArgs.context, operationArgs.currentGame, operationArgs.games);
-        List<string> args = Utils.Helpers.ResolveOperationArgs(operationArgs.op, ctx);
+        Dictionary<string, object?> ctx = Utils.Helpers.BuildOperationContext(context: operationArgs.context, currentGame: operationArgs.currentGame, games: operationArgs.games);
+        List<string> args = Utils.Helpers.ResolveOperationArgs(op: operationArgs.op, ctx: ctx);
 
         // execute
         switch (format) {
             case "p3d": {
                 // in future will be specifically for converting p3d into there core component files (meshes, textures, shaders, etc)
                 IO.writeLine("\n>>> Built-in P3D extraction");
-                IO.writeLine($"with args: {string.Join(' ', args)}");
-                return EngineNet.GameFormats.p3d.P3dExtractor.Run(args, operationArgs.cancellationToken);
+                IO.writeLine($"with args: {string.Join(separator: ' ', values: args)}");
+                return EngineNet.GameFormats.p3d.P3dExtractor.Run(args: args, cancellationToken: operationArgs.cancellationToken);
             } case "txd": {
                 IO.writeLine("\n>>> Built-in TXD extraction");
-                IO.writeLine($"with args: {string.Join(' ', args)}");
-                return EngineNet.GameFormats.txd.Extractor.Run(args, operationArgs.cancellationToken);
+                IO.writeLine($"with args: {string.Join(separator: ' ', values: args)}");
+                return EngineNet.GameFormats.txd.Extractor.Run(args: args, cancellationToken: operationArgs.cancellationToken);
             } default: {
                 IO.writeLine($"ERROR: format-extract does not support format '{format}'");
                 IO.writeLine("Supported formats: p3d, txd");
@@ -233,37 +233,37 @@ internal class BuiltInOperations {
     internal static bool rename_folders(
         Operations.helpers.OperationArgs operationArgs
     ) {
-        Dictionary<string, object?> ctx = Utils.Helpers.BuildOperationContext(operationArgs.context, operationArgs.currentGame, operationArgs.games);
-        List<string> args = Utils.Helpers.ResolveOperationArgs(operationArgs.op, ctx);
+        Dictionary<string, object?> ctx = Utils.Helpers.BuildOperationContext(context: operationArgs.context, currentGame: operationArgs.currentGame, games: operationArgs.games);
+        List<string> args = Utils.Helpers.ResolveOperationArgs(op: operationArgs.op, ctx: ctx);
 
         // execute
         IO.writeLine("\n>>> Built-in folder rename");
 
-        IO.writeLine($"with args: {string.Join(' ', args)}");
-        bool ok = Utils.FolderRenamer.Run(args, operationArgs.cancellationToken);
+        IO.writeLine($"with args: {string.Join(separator: ' ', values: args)}");
+        bool ok = Utils.FolderRenamer.Run(args: args, cancellationToken: operationArgs.cancellationToken);
         return ok;
     }
 
     internal static bool validate_files(
         Operations.helpers.OperationArgs operationArgs
     ) {
-        Dictionary<string, object?> ctx = Utils.Helpers.BuildOperationContext(operationArgs.context, operationArgs.currentGame, operationArgs.games);
-        string? resolvedDbPath = Utils.Helpers.ResolveOperationValue(operationArgs.op, "db", ctx);
+        Dictionary<string, object?> ctx = Utils.Helpers.BuildOperationContext(context: operationArgs.context, currentGame: operationArgs.currentGame, games: operationArgs.games);
+        string? resolvedDbPath = Utils.Helpers.ResolveOperationValue(op: operationArgs.op, key: "db", ctx: ctx);
 
         // create args list
         List<string> args = new List<string>();
         // if a db path was resolved and is not already in args, add it as the first arg
         if (!string.IsNullOrWhiteSpace(resolvedDbPath)) {
-            args.Add(resolvedDbPath);
+            args.Add(item: resolvedDbPath);
         }
-        List<string> resolvedArgs = Utils.Helpers.ResolveOperationArgs(operationArgs.op, ctx);
+        List<string> resolvedArgs = Utils.Helpers.ResolveOperationArgs(op: operationArgs.op, ctx: ctx);
         for (int i = 0; i < resolvedArgs.Count; i++) {
-            string value = resolvedArgs[i];
-            if (!string.IsNullOrWhiteSpace(resolvedDbPath) && args.Count == 1 && i == 0 && string.Equals(args[0], value, System.StringComparison.OrdinalIgnoreCase)) {
+            string value = resolvedArgs[index: i];
+            if (!string.IsNullOrWhiteSpace(resolvedDbPath) && args.Count == 1 && i == 0 && string.Equals(a: args[index: 0], b: value, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                 continue;
             }
 
-            args.Add(value);
+            args.Add(item: value);
         }
         // if less than 2 args, print message and return false
         if (args.Count < 2) {
@@ -275,8 +275,8 @@ internal class BuiltInOperations {
 
         // execute
         IO.writeLine("\n>>> Built-in file validation");
-        IO.writeLine($"with args: {string.Join(' ', args)}");
-        bool ok = Utils.FileValidator.Run(args, operationArgs.cancellationToken);
+        IO.writeLine($"with args: {string.Join(separator: ' ', values: args)}");
+        bool ok = Utils.FileValidator.Run(args: args, cancellationToken: operationArgs.cancellationToken);
         return ok;
     }
 

@@ -2,9 +2,12 @@
 
 namespace EngineNet.Shared.IO;
 
-// Diagnostic logging utility
-public static class Diagnostics {
+using System.Diagnostics.CodeAnalysis;
 
+// Diagnostic logging utility
+[SuppressMessage(category: "Compiler", checkId: "CS0162:Unreachable code detected")]
+[SuppressMessage(category: "ReSharper", checkId: "HeuristicUnreachableCode")] // caused by the IsTraceEnabled compile-time constant
+public static class Diagnostics {
     private static string _rootPath = string.Empty;
 
     // assign trace enabled as a compile-time constant to allow dead code elimination of trace logging in
@@ -23,7 +26,7 @@ public static class Diagnostics {
     private static StreamWriter? _luaLogWriter; // Just Shared.IO.Diagnostics.LuaLog
     private static StreamWriter? _jsLogWriter; // Just Shared.IO.Diagnostics.JsLog
     private static StreamWriter? _pythonLogWriter; // Just Shared.IO.Diagnostics.PythonLog
-    private static StreamWriter? _bugWriter;   // Just Shared.IO.Diagnostics.Bug
+    private static StreamWriter? _bugWriter; // Just Shared.IO.Diagnostics.Bug
     private static StreamWriter? _tuiLogWriter; // Scrollback history
     private static readonly object _lock = new object();
 
@@ -32,73 +35,75 @@ public static class Diagnostics {
 
         string logDirectory = string.Empty;
         try {
-            string logDir = System.IO.Path.Combine(_rootPath, "logs");
+            string logDir = System.IO.Path.Combine(path1: _rootPath, path2: "logs");
             if (isGui) {
-                logDir = System.IO.Path.Combine(logDir, "gui");
+                logDir = System.IO.Path.Combine(path1: logDir, path2: "gui");
             } else if (isTui) {
-                logDir = System.IO.Path.Combine(logDir, "tui");
+                logDir = System.IO.Path.Combine(path1: logDir, path2: "tui");
             } else {
-                logDir = System.IO.Path.Combine(logDir, "cli");
+                logDir = System.IO.Path.Combine(path1: logDir, path2: "cli");
             }
 
             // 1. Cleanup old logs (keep last 24 hours)
-            CleanLogDirectory(logDir, retentionHours: 24);
+            CleanLogDirectory(logDir: logDir, retentionHours: 24);
 
             // 2. Create the new log subdirectory for this session
-            logDirectory = CreateSessionLogDirectory(logDir);
+            logDirectory = CreateSessionLogDirectory(logDir: logDir);
 
             // 3. Define Paths
-            string debugPath = System.IO.Path.Combine(logDirectory, "debug.log");
-            string luaLogPath = System.IO.Path.Combine(logDirectory, "lua.log");
-            string jsLogPath = System.IO.Path.Combine(logDirectory, "js.log");
-            string pythonLogPath = System.IO.Path.Combine(logDirectory, "python.log");
-            string bugPath = System.IO.Path.Combine(logDirectory, "exception.log");
+            string debugPath = System.IO.Path.Combine(path1: logDirectory, path2: "debug.log");
+            string luaLogPath = System.IO.Path.Combine(path1: logDirectory, path2: "lua.log");
+            string jsLogPath = System.IO.Path.Combine(path1: logDirectory, path2: "js.log");
+            string pythonLogPath = System.IO.Path.Combine(path1: logDirectory, path2: "python.log");
+            string bugPath = System.IO.Path.Combine(path1: logDirectory, path2: "exception.log");
 
             // 4. Open Streams (Shared access allowed)
             // Trace Writer (Master) - Debug builds only
             if (IsTraceEnabled) {
-                var fsTrace = new FileStream(System.IO.Path.Combine(logDirectory, "trace.log"), FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-                _traceWriter = new StreamWriter(fsTrace) { AutoFlush = true };
+                var fsTrace = new FileStream(path: System.IO.Path.Combine(path1: logDirectory, path2: "trace.log"), mode: FileMode.Append,
+                    access: FileAccess.Write, share: FileShare.ReadWrite);
+                _traceWriter = new StreamWriter(stream: fsTrace) { AutoFlush = true };
             }
 
             // Debug Writer (all builds)
-            var fsDebug = new FileStream(debugPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-            _debugWriter = new StreamWriter(fsDebug) { AutoFlush = true };
+            var fsDebug = new FileStream(path: debugPath, mode: FileMode.Append, access: FileAccess.Write, share: FileShare.ReadWrite);
+            _debugWriter = new StreamWriter(stream: fsDebug) { AutoFlush = true };
 
             // Lua Log Writer (all builds)
-            var fsLuaLog = new FileStream(luaLogPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-            _luaLogWriter = new StreamWriter(fsLuaLog) { AutoFlush = true };
+            var fsLuaLog = new FileStream(path: luaLogPath, mode: FileMode.Append, access: FileAccess.Write, share: FileShare.ReadWrite);
+            _luaLogWriter = new StreamWriter(stream: fsLuaLog) { AutoFlush = true };
 
             // JS Log Writer (all builds)
-            var fsJsLog = new FileStream(jsLogPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-            _jsLogWriter = new StreamWriter(fsJsLog) { AutoFlush = true };
+            var fsJsLog = new FileStream(path: jsLogPath, mode: FileMode.Append, access: FileAccess.Write, share: FileShare.ReadWrite);
+            _jsLogWriter = new StreamWriter(stream: fsJsLog) { AutoFlush = true };
 
             // Python Log Writer (all builds)
-            var fsPythonLog = new FileStream(pythonLogPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-            _pythonLogWriter = new StreamWriter(fsPythonLog) { AutoFlush = true };
+            var fsPythonLog = new FileStream(path: pythonLogPath, mode: FileMode.Append, access: FileAccess.Write, share: FileShare.ReadWrite);
+            _pythonLogWriter = new StreamWriter(stream: fsPythonLog) { AutoFlush = true };
 
             // Bug Writer (all builds)
-            var fsBug = new FileStream(bugPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-            _bugWriter = new StreamWriter(fsBug) { AutoFlush = true };
+            var fsBug = new FileStream(path: bugPath, mode: FileMode.Append, access: FileAccess.Write, share: FileShare.ReadWrite);
+            _bugWriter = new StreamWriter(stream: fsBug) { AutoFlush = true };
 
-#if DEBUG
+        #if DEBUG
             if (isTui) {
-                var fsTui = new FileStream(System.IO.Path.Combine(logDirectory, "tui_history.log"), FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-                _tuiLogWriter = new StreamWriter(fsTui) { AutoFlush = true };
+                var fsTui = new FileStream(path: System.IO.Path.Combine(path1: logDirectory, path2: "tui_history.log"), mode: FileMode.Append,
+                    access: FileAccess.Write, share: FileShare.ReadWrite);
+                _tuiLogWriter = new StreamWriter(stream: fsTui) { AutoFlush = true };
             }
-#endif
+        #endif
 
             // 5. Hook System.Diagnostics.Trace to the Master Trace Log (Debug only)
             // This ensures public .NET traces go to trace.log when debugging
             if (IsTraceEnabled) {
-                System.Diagnostics.Trace.Listeners.Add(new TextWriterTraceListener(_traceWriter));
+                System.Diagnostics.Trace.Listeners.Add(listener: new TextWriterTraceListener(writer: _traceWriter));
                 System.Diagnostics.Trace.AutoFlush = true;
             }
 
             Log($"[System] Logging initialized at {DateTime.Now}");
-
-        } catch (Exception ex) {
-            Bug("[Diagnostics::Initialize()] Failed to initialize logging subsystem.", ex);
+        }
+        catch (Exception ex) {
+            Bug("[Diagnostics::Initialize()] Failed to initialize logging subsystem.", ex: ex);
             Console.Error.WriteLine($"CRITICAL: Failed to init loggers. {ex.Message}");
             Console.WriteLine(logDirectory);
         }
@@ -111,32 +116,35 @@ public static class Diagnostics {
     /// <param name="logDir"></param>
     /// <param name="retentionHours"></param>
     private static void CleanLogDirectory(string logDir, int retentionHours) {
-        if (!Directory.Exists(logDir)) {
-            Directory.CreateDirectory(logDir);
+        if (!Directory.Exists(path: logDir)) {
+            Directory.CreateDirectory(path: logDir);
             return;
         }
 
         try {
             DateTime threshold = DateTime.Now.AddHours(-retentionHours);
-            DirectoryInfo directoryInfo = new DirectoryInfo(logDir);
+            DirectoryInfo directoryInfo = new DirectoryInfo(path: logDir);
 
             foreach (DirectoryInfo subDir in directoryInfo.GetDirectories()) {
                 if (subDir.LastWriteTime >= threshold) continue;
                 try {
-                    subDir.Delete(true);
+                    subDir.Delete(recursive: true);
                 } catch (System.IO.IOException ex) {
-                    Bug($"[Diagnostics::CleanLogDirectory()] Failed to delete log folder '{subDir.FullName}'.", ex);
+                    Bug($"[Diagnostics::CleanLogDirectory()] Failed to delete log folder '{subDir.FullName}'.", ex: ex);
                     // Folder might be locked by another process; skip it for now.
                 } catch (System.UnauthorizedAccessException ex) {
-                    Bug($"[Diagnostics::CleanLogDirectory()] Access denied deleting log folder '{subDir.FullName}'.", ex);
+                    Bug($"[Diagnostics::CleanLogDirectory()] Access denied deleting log folder '{subDir.FullName}'.",
+                        ex: ex);
                     // Folder might be locked by another process; skip it for now.
                 }
             }
-        } catch (System.IO.IOException ex) {
-            Bug($"[Diagnostics::CleanLogDirectory()] IO error while cleaning '{logDir}'.", ex);
+        }
+        catch (System.IO.IOException ex) {
+            Bug($"[Diagnostics::CleanLogDirectory()] IO error while cleaning '{logDir}'.", ex: ex);
             // continue
-        } catch (System.UnauthorizedAccessException ex) {
-            Bug($"[Diagnostics::CleanLogDirectory()] Access denied while cleaning '{logDir}'.", ex);
+        }
+        catch (System.UnauthorizedAccessException ex) {
+            Bug($"[Diagnostics::CleanLogDirectory()] Access denied while cleaning '{logDir}'.", ex: ex);
             // continue
         }
     }
@@ -146,31 +154,31 @@ public static class Diagnostics {
     /// </summary>
     /// <param name="logDir"></param>
     private static string CreateSessionLogDirectory(string logDir) {
-        string logSubdir = DateTime.Now.ToString("dd-MM-HH-mm");
-        string logDirectory = System.IO.Path.Combine(logDir, logSubdir);
+        string logSubdir = DateTime.Now.ToString(format: "dd-MM-HH-mm");
+        string logDirectory = System.IO.Path.Combine(path1: logDir, path2: logSubdir);
 
-        if (!Directory.Exists(logDirectory)) {
-            Directory.CreateDirectory(logDirectory);
+        if (!Directory.Exists(path: logDirectory)) {
+            Directory.CreateDirectory(path: logDirectory);
             return logDirectory;
         }
 
-        string collisionSuffix = DateTime.Now.ToString("ss");
-        string collisionDirectory = System.IO.Path.Join(logDir, $"{logSubdir}_{collisionSuffix}");
-        if (!Directory.Exists(collisionDirectory)) {
-            Directory.CreateDirectory(collisionDirectory);
+        string collisionSuffix = DateTime.Now.ToString(format: "ss");
+        string collisionDirectory = System.IO.Path.Join(path1: logDir, path2: $"{logSubdir}_{collisionSuffix}");
+        if (!Directory.Exists(path: collisionDirectory)) {
+            Directory.CreateDirectory(path: collisionDirectory);
             return collisionDirectory;
         }
 
-        string fallbackDirectory = System.IO.Path.Combine(logDir, $"{logSubdir}_{collisionSuffix}_{Guid.NewGuid():N}");
-        Directory.CreateDirectory(fallbackDirectory);
+        string fallbackDirectory = System.IO.Path.Combine(path1: logDir, path2: $"{logSubdir}_{collisionSuffix}_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(path: fallbackDirectory);
         return fallbackDirectory;
     }
 
     /// <summary>
     /// Helper to write to trace log if enabled
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void WriteTracepublic(string message, string? stack = null) {
+    [System.Runtime.CompilerServices.MethodImpl(methodImplOptions: System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void WriteTrace(string message, string? stack = null) {
         if (!IsTraceEnabled || _traceWriter == null) {
             return;
         }
@@ -187,15 +195,15 @@ public static class Diagnostics {
     /// </summary>
     /// <param name="message"></param>
     public static void TuiLog(string message) {
-#if DEBUG
+    #if DEBUG
         if (_tuiLogWriter == null) return;
         lock (_lock) {
-            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+            string timestamp = DateTime.Now.ToString(format: "HH:mm:ss");
             // Strip out newlines for clean logging
-            string cleanMsg = message.Replace("\r", "").Replace("\n", " ");
+            string cleanMsg = message.Replace(oldValue: "\r", newValue: "").Replace(oldValue: "\n", newValue: " ");
             _tuiLogWriter.WriteLine($"[{timestamp}] {cleanMsg}");
         }
-#endif
+    #endif
     }
 
     /// <summary>
@@ -208,7 +216,7 @@ public static class Diagnostics {
         }
 
         lock (_lock) {
-            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+            string timestamp = DateTime.Now.ToString(format: "HH:mm:ss");
             string formattedMsg = $"[{timestamp}] [TRACE] {message}";
             // Write to trace.log in Debug builds
             _traceWriter.WriteLine(formattedMsg);
@@ -223,16 +231,15 @@ public static class Diagnostics {
         if (_debugWriter == null) return;
 
         lock (_lock) {
-            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+            string timestamp = DateTime.Now.ToString(format: "HH:mm:ss");
             string formattedMsg = $"[{timestamp}] [INFO] {message}";
 
             // 1. Write to specific debug.log
             _debugWriter.WriteLine(formattedMsg);
 
             // 2. Write to master trace.log in Debug builds
-            WriteTracepublic(formattedMsg);
+            WriteTrace(formattedMsg);
         }
-
     }
 
     /// <summary>
@@ -243,14 +250,14 @@ public static class Diagnostics {
         if (_debugWriter == null) return;
 
         lock (_lock) {
-            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+            string timestamp = DateTime.Now.ToString(format: "HH:mm:ss");
             string formattedMsg = $"[{timestamp}] [Log] {message}";
 
             // 1. Write to specific debug.log
             _debugWriter.WriteLine(formattedMsg);
 
             // 2. Write to master trace.log in Debug builds
-            WriteTracepublic(formattedMsg);
+            WriteTrace(formattedMsg);
         }
     }
 
@@ -264,7 +271,7 @@ public static class Diagnostics {
         if (_bugWriter == null) return;
 
         lock (_lock) {
-            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+            string timestamp = DateTime.Now.ToString(format: "HH:mm:ss");
 
             // Format the header
             string header = $"[{timestamp}] [BUG] {message}";
@@ -275,20 +282,20 @@ public static class Diagnostics {
             if (stack != null) _bugWriter.WriteLine(stack);
 
             // 2. Write to master trace.log in Debug builds
-            WriteTracepublic(header, stack);
+            WriteTrace(header, stack: stack);
         }
     }
 
     /// <summary>
     /// Like the Bug method but specifically for logging exceptions from C# invoked by Lua scripts.
-    /// eg when a Lua script calls a C# function that throws an exception, this method can be used to log that exception from C# into lua.log and trace.log.
+    /// e.g. when a Lua script calls a C# function that throws an exception, this method can be used to log that exception from C# into lua.log and trace.log.
     /// </summary>
     /// <param name="ex"></param>
     public static void LuaInternalCatch(string ex) {
         if (Diagnostics._bugWriter == null) return;
 
         lock (Diagnostics._lock) {
-            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+            string timestamp = DateTime.Now.ToString(format: "HH:mm:ss");
 
             // Format the header
             string header = $"[{timestamp}] [LUA_BUG] Caught exception from Lua-invoked C# code.";
@@ -299,20 +306,20 @@ public static class Diagnostics {
             Shared.IO.Diagnostics._bugWriter.WriteLine(stack);
 
             // 2. Write to master trace.log in Debug builds
-            WriteTracepublic(header, stack);
+            WriteTrace(header, stack: stack);
         }
     }
 
     /// <summary>
     /// Like the Bug method but specifically for logging exceptions from C# invoked by JS scripts.
-    /// eg when a JS script calls a C# function that throws an exception, this method can be used to log that exception from C# into js.log and trace.log.
+    /// e.g. when a JS script calls a C# function that throws an exception, this method can be used to log that exception from C# into js.log and trace.log.
     /// </summary>
     /// <param name="ex"></param>
-    public static void JspublicCatch(string ex) {
+    public static void JsInternalCatch(string ex) {
         if (Diagnostics._bugWriter == null) return;
 
         lock (Diagnostics._lock) {
-            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+            string timestamp = DateTime.Now.ToString(format: "HH:mm:ss");
 
             // Format the header
             string header = $"[{timestamp}] [JS_BUG] Caught exception from JS-invoked C# code.";
@@ -323,21 +330,20 @@ public static class Diagnostics {
             Shared.IO.Diagnostics._bugWriter.WriteLine(stack);
 
             // 2. Write to master trace.log in Debug builds
-            WriteTracepublic(header, stack);
+            WriteTrace(header, stack: stack);
         }
     }
 
 
-    public static void Close() {
+    internal static void Close() {
         _debugWriter?.Close();
         _bugWriter?.Close();
         _luaLogWriter?.Close();
         _jsLogWriter?.Close();
 
-        if (IsTraceEnabled) {
-            _traceWriter?.Close();
-            System.Diagnostics.Trace.Listeners.Clear();
-        }
+        if (!IsTraceEnabled) return;
+        _traceWriter?.Close();
+        System.Diagnostics.Trace.Listeners.Clear();
     }
 
 
@@ -352,14 +358,14 @@ public static class Diagnostics {
             if (Diagnostics._luaLogWriter == null) return;
 
             lock (Diagnostics._lock) {
-                string timestamp = DateTime.Now.ToString("HH:mm:ss");
+                string timestamp = DateTime.Now.ToString(format: "HH:mm:ss");
                 string formattedMsg = $"[{timestamp}] [LUA_LOG] {message}";
 
                 // 1. Write to specific lua.log
                 Shared.IO.Diagnostics._luaLogWriter.WriteLine(formattedMsg);
 
                 // 2. Write to master trace.log in Debug builds
-                WriteTracepublic(formattedMsg);
+                WriteTrace(formattedMsg);
             }
         }
 
@@ -372,7 +378,7 @@ public static class Diagnostics {
                 if (Diagnostics._traceWriter == null) return;
 
                 lock (Diagnostics._lock) {
-                    string timestamp = DateTime.Now.ToString("HH:mm:ss");
+                    string timestamp = DateTime.Now.ToString(format: "HH:mm:ss");
                     string formattedMsg = $"[{timestamp}] [LUA_TRACE] {message}";
                     // Write to trace.log in Debug builds
                     Shared.IO.Diagnostics._traceWriter.WriteLine(formattedMsg);
@@ -394,14 +400,14 @@ public static class Diagnostics {
             if (Diagnostics._jsLogWriter == null) return;
 
             lock (Diagnostics._lock) {
-                string timestamp = DateTime.Now.ToString("HH:mm:ss");
+                string timestamp = DateTime.Now.ToString(format: "HH:mm:ss");
                 string formattedMsg = $"[{timestamp}] [JS_LOG] {message}";
 
                 // 1. Write to specific js.log
                 Shared.IO.Diagnostics._jsLogWriter.WriteLine(formattedMsg);
 
                 // 2. Write to master trace.log in Debug builds
-                WriteTracepublic(formattedMsg);
+                WriteTrace(formattedMsg);
             }
         }
 
@@ -410,7 +416,7 @@ public static class Diagnostics {
                 if (Diagnostics._traceWriter == null) return;
 
                 lock (Diagnostics._lock) {
-                    string timestamp = DateTime.Now.ToString("HH:mm:ss");
+                    string timestamp = DateTime.Now.ToString(format: "HH:mm:ss");
                     string formattedMsg = $"[{timestamp}] [JS_TRACE] {message}";
                     // Write to trace.log in Debug builds
                     Shared.IO.Diagnostics._traceWriter.WriteLine(formattedMsg);
@@ -432,14 +438,14 @@ public static class Diagnostics {
             if (Diagnostics._pythonLogWriter == null) return;
 
             lock (Diagnostics._lock) {
-                string timestamp = DateTime.Now.ToString("HH:mm:ss");
+                string timestamp = DateTime.Now.ToString(format: "HH:mm:ss");
                 string formattedMsg = $"[{timestamp}] [PYTHON_LOG] {message}";
 
                 // 1. Write to specific python.log
                 Shared.IO.Diagnostics._pythonLogWriter.WriteLine(formattedMsg);
 
                 // 2. Write to master trace.log in Debug builds
-                WriteTracepublic(formattedMsg);
+                WriteTrace(formattedMsg);
             }
         }
 
@@ -448,7 +454,7 @@ public static class Diagnostics {
                 if (Diagnostics._traceWriter == null) return;
 
                 lock (Diagnostics._lock) {
-                    string timestamp = DateTime.Now.ToString("HH:mm:ss");
+                    string timestamp = DateTime.Now.ToString(format: "HH:mm:ss");
                     string formattedMsg = $"[{timestamp}] [PYTHON_TRACE] {message}";
                     // Write to trace.log in Debug builds
                     Shared.IO.Diagnostics._traceWriter.WriteLine(formattedMsg);

@@ -49,20 +49,20 @@ public class GameLauncher {
     /// <param name="cancellationToken"></param>
     /// <returns>A task that represents the asynchronous launch operation, returning <c>true</c> if the launch was successful; otherwise, <c>false</c>.</returns>
     public async Task<bool> LaunchGameAsync(string name, CancellationToken cancellationToken = default(CancellationToken)) {
-        string root = _gameRegistry.GetGamePath(name) ?? this._rootPath;
-        string gameToml = System.IO.Path.Combine(root, "game.toml");
+        string root = _gameRegistry.GetGamePath(name: name) ?? this._rootPath;
+        string gameToml = System.IO.Path.Combine(path1: root, path2: "game.toml");
 
         // Build placeholder context for resolution
-        Core.Data.GameModules games = _gameRegistry.GetModules(ModuleFilter.All);
+        Core.Data.GameModules games = _gameRegistry.GetModules(filter: ModuleFilter.All);
         //ExecutionContextBuilder ctxBuilder = new ExecutionContextBuilder();
         Dictionary<string, object?> ctx;
         try {
             ctx = Core.Utils.ExecutionContextBuilder.Build(currentGame: name, games: games, engineConfig: _config.Data);
         } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"[GameLauncher] err building context for game '{name}': {ex}");
-            ctx = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase) {
-                ["Game_Root"] = root,
-                ["Project_Root"] = this._rootPath
+            ctx = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase) {
+                [key: "Game_Root"] = root,
+                [key: "Project_Root"] = this._rootPath
             };
         }
 
@@ -71,33 +71,33 @@ public class GameLauncher {
         string? scriptPath = null;
         string? godotProject = null;
         try {
-            if (System.IO.File.Exists(gameToml)) {
-                foreach (string line in (await System.IO.File.ReadAllLinesAsync(gameToml, cancellationToken)).Select(raw => raw.Trim())) {
+            if (System.IO.File.Exists(path: gameToml)) {
+                foreach (string line in (await System.IO.File.ReadAllLinesAsync(path: gameToml, cancellationToken: cancellationToken)).Select(selector: raw => raw.Trim())) {
                     if (line.Length == 0 || line.StartsWith('#')) continue;
                     if (line.StartsWith('[')) continue;
                     int eq = line.IndexOf('=');
                     if (eq <= 0) continue;
-                    string key = line.Substring(0, eq).Trim();
-                    string valRaw = line.Substring(eq + 1).Trim();
-                    string val = valRaw.StartsWith('\"') && valRaw.EndsWith('\"') ? valRaw.Substring(1, valRaw.Length - 2) : valRaw;
+                    string key = line.Substring(startIndex: 0, length: eq).Trim();
+                    string valRaw = line.Substring(startIndex: eq + 1).Trim();
+                    string val = valRaw.StartsWith('\"') && valRaw.EndsWith('\"') ? valRaw.Substring(startIndex: 1, length: valRaw.Length - 2) : valRaw;
                     if (string.IsNullOrWhiteSpace(val)) continue;
                     switch (key.ToLowerInvariant()) {
                         case "exe":
                         case "executable":
-                            string resolvedExe = Placeholders.Resolve(val, ctx)?.ToString() ?? val;
-                            exePath = PathHelper.ResolveRelativePath(root, resolvedExe);
+                            string resolvedExe = Placeholders.Resolve(val, context: ctx)?.ToString() ?? val;
+                            exePath = PathHelper.ResolveRelativePath(root: root, path: resolvedExe);
                             break;
                         case "lua":
                         case "lua_script":
                         case "script":
-                            string resolvedScript = Placeholders.Resolve(val, ctx)?.ToString() ?? val;
-                            scriptPath = PathHelper.ResolveRelativePath(root, resolvedScript);
+                            string resolvedScript = Placeholders.Resolve(val, context: ctx)?.ToString() ?? val;
+                            scriptPath = PathHelper.ResolveRelativePath(root: root, path: resolvedScript);
                         break;
                         case "godot":
                         case "godot_project":
                         case "project":
-                            string resolvedGodot = Placeholders.Resolve(val, ctx)?.ToString() ?? val;
-                            godotProject = PathHelper.ResolveRelativePath(root, resolvedGodot);
+                            string resolvedGodot = Placeholders.Resolve(val, context: ctx)?.ToString() ?? val;
+                            godotProject = PathHelper.ResolveRelativePath(root: root, path: resolvedGodot);
                             break;
                     }
                 }
@@ -114,9 +114,9 @@ public class GameLauncher {
         }
 
         // if lua script exists, run it
-        if (!string.IsNullOrWhiteSpace(scriptPath) && System.IO.File.Exists(scriptPath)) {
+        if (!string.IsNullOrWhiteSpace(scriptPath) && System.IO.File.Exists(path: scriptPath)) {
             try {
-                string ext = System.IO.Path.GetExtension(scriptPath).TrimStart('.').ToLowerInvariant();
+                string ext = System.IO.Path.GetExtension(path: scriptPath).TrimStart(trimChar: '.').ToLowerInvariant();
 
                 // Use the dispatcher to create the correct action (Lua, JS, or Python)
                 var action = this._scriptActionDispatcher.TryCreateEmbedded(
@@ -145,12 +145,12 @@ public class GameLauncher {
         if (!string.IsNullOrWhiteSpace(godotProject)) {
             try {
                 //var provider = new ToolMetadataProvider(projectRoot: this._rootPath, resolver: this._toolResolver);
-                (string? godotExe, _) = ToolMetadataProvider.ResolveExeAndVersion(toolId: "godot", this._rootPath, this._toolResolver);
-                string godotPath = string.IsNullOrWhiteSpace(godotExe) ? this._toolResolver.ResolveToolPath("godot") : godotExe;
-                if (!System.IO.File.Exists(godotPath)) return false;
+                (string? godotExe, _) = ToolMetadataProvider.ResolveExeAndVersion(toolId: "godot", _rootPath: this._rootPath, _toolResolver: this._toolResolver);
+                string godotPath = string.IsNullOrWhiteSpace(godotExe) ? this._toolResolver.ResolveToolPath(toolId: "godot") : godotExe;
+                if (!System.IO.File.Exists(path: godotPath)) return false;
 
-                string workDir = System.IO.Path.GetDirectoryName(godotProject) ?? root;
-                return _commandService.LaunchDetached(godotPath, new[] { godotProject }, workDir, new DetachedLaunchOptions {
+                string workDir = System.IO.Path.GetDirectoryName(path: godotProject) ?? root;
+                return _commandService.LaunchDetached(executable: godotPath, args: new[] { godotProject }, cwd: workDir, options: new DetachedLaunchOptions {
                     UseShellExecute = false
                 });
             } catch (System.Exception ex) {
@@ -160,13 +160,13 @@ public class GameLauncher {
         }
 
         // exe path from game.toml or registry
-        string? exe = exePath ?? _gameRegistry.GetGameExecutable(name);
-        string work = _gameRegistry.GetGamePath(name) ?? root;
-        if (string.IsNullOrWhiteSpace(exe) || !Path.Exists(exe)) {
+        string? exe = exePath ?? _gameRegistry.GetGameExecutable(name: name);
+        string work = _gameRegistry.GetGamePath(name: name) ?? root;
+        if (string.IsNullOrWhiteSpace(exe) || !Path.Exists(path: exe)) {
             return false;
         }
         try {
-            return _commandService.LaunchDetached(exe, System.Array.Empty<string>(), work, new DetachedLaunchOptions {
+            return _commandService.LaunchDetached(executable: exe, args: System.Array.Empty<string>(), cwd: work, options: new DetachedLaunchOptions {
                 UseShellExecute = true,
             });
         } catch (System.Exception ex) {

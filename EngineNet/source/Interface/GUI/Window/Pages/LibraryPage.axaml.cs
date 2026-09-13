@@ -35,11 +35,11 @@ public partial class LibraryPage:UserControl {
     /// <param name="engine"></param>
     public LibraryPage() {
         try {
-            Button_Refresh_Click = new SimpleCommand(_ => Load());
+            Button_Refresh_Click = new SimpleCommand(a: _ => Load());
 
-            Button_Details_Click = new SimpleCommand(p => {
+            Button_Details_Click = new SimpleCommand(a: p => {
                 if (p is Row r && !string.IsNullOrWhiteSpace(r.ModuleName)) {
-                    ShowDetails(r.ModuleName);
+                    ShowDetails(moduleName: r.ModuleName);
                 }
             });
 
@@ -64,10 +64,10 @@ public partial class LibraryPage:UserControl {
             Items.Clear(); // reset
             if (GuiBootstrapper.MiniEngine == null) {
                 Shared.IO.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] Load() aborted: GuiBootstrapper.MiniEngine is null.");
-                throw new System.InvalidOperationException(message: "Engine is not initialized.");
+                throw new System.InvalidOperationException("Engine is not initialized.");
             }
 
-            var modules = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Data.ModuleFilter.Installed);
+            var modules = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.Installed);
 #if DEBUG
             Shared.IO.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] Found {modules.Count} modules.");
             // list all modules
@@ -76,7 +76,7 @@ public partial class LibraryPage:UserControl {
                 Shared.IO.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()]   Module: {m.Name}, Installed: {m.IsInstalled}, Built: {m.IsBuilt}, Unverified: {m.IsUnverified}, Registered: {m.IsRegistered}");
             }
 #endif
-            foreach (var item in modules.Values.Select(m => (
+            foreach (var item in modules.Values.Select(selector: m => (
                 Name: m.Name,
                 ExePath: m.ExePath,
                 Title: string.IsNullOrWhiteSpace(m.Title) ? m.Name : m.Title,
@@ -98,11 +98,11 @@ public partial class LibraryPage:UserControl {
 
                 string primaryActionText = isBuilt ? "Play" : "Run All Build Operations";
 
-                Items.Add(new Row {
+                Items.Add(item: new Row {
                     ModuleName = item.Name,
                     Title = item.Title,
                     ExePath = item.ExePath,
-                    Image = ResolveCoverUri(item.GameRoot),
+                    Image = ResolveCoverUri(gameRoot: item.GameRoot),
                     IsBuilt = isBuilt,
                     IsInstalled = isInstalled,
                     IsRegistered = isRegistered,
@@ -140,7 +140,7 @@ public partial class LibraryPage:UserControl {
     private Bitmap? ResolveCoverUri(string? gameRoot) {
         if (GuiBootstrapper.MiniEngine == null) {
             Shared.IO.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() aborted: GuiBootstrapper.MiniEngine is null.");
-            throw new System.InvalidOperationException(message: "Engine is not initialized.");
+            throw new System.InvalidOperationException("Engine is not initialized.");
         }
         if (string.IsNullOrWhiteSpace(gameRoot)) {
             return null;
@@ -150,17 +150,17 @@ public partial class LibraryPage:UserControl {
         if (string.IsNullOrWhiteSpace(gameRoot)) {
             Shared.IO.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() aborted: gameRoot is null/whitespace; skipping icon.png.");
         } else {
-            icon = System.IO.Path.Combine(gameRoot, "icon.png");
+            icon = System.IO.Path.Combine(path1: gameRoot, path2: "icon.png");
         }
 
         // 2) fallback to <project_root>/placeholder.png
-        string placeholder = System.IO.Path.Combine(EngineNet.Shared.State.RootPath, "placeholder.png");
+        string placeholder = System.IO.Path.Combine(path1: EngineNet.Shared.State.RootPath, path2: "placeholder.png");
 
         string pick;
-        if (!string.IsNullOrWhiteSpace(icon) && System.IO.File.Exists(icon)) {
+        if (!string.IsNullOrWhiteSpace(icon) && System.IO.File.Exists(path: icon)) {
             pick = icon;
         } else {
-            if (System.IO.File.Exists(placeholder)) {
+            if (System.IO.File.Exists(path: placeholder)) {
                 Shared.IO.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() Using placeholder image at '{placeholder}'.");
                 pick = placeholder;
             } else {
@@ -170,9 +170,9 @@ public partial class LibraryPage:UserControl {
             }
         }
 
-        if (System.IO.File.Exists(pick)) {
+        if (System.IO.File.Exists(path: pick)) {
             try {
-                return new Bitmap(pick); // Load the image
+                return new Bitmap(fileName: pick); // Load the image
             } catch (System.Exception ex) {
                 Shared.IO.Diagnostics.Bug($"[GUI :: LibraryPage.axaml.cs::ResolveCoverUri() Failed to load bitmap at '{pick}': {ex.Message}");
                 return null; // Return null if loading fails
@@ -185,7 +185,7 @@ public partial class LibraryPage:UserControl {
 
     /* :: :: Methods :: END :: */
     // //
-    public void ShowDetailsPublic(string moduleName) => ShowDetails(moduleName);
+    public void ShowDetailsPublic(string moduleName) => ShowDetails(moduleName: moduleName);
 
     private void ShowDetails(string moduleName) {
         try {
@@ -193,7 +193,7 @@ public partial class LibraryPage:UserControl {
             ScrollViewer? cards = this.FindControl<ScrollViewer>(name: "CardsGrid");
             if (host is null || cards is null) return;
             if (GuiBootstrapper.MiniEngine is null) return;
-            host.Content = new ModulePage(moduleName);
+            host.Content = new ModulePage(moduleName: moduleName);
             host.IsVisible = true;
             cards.IsVisible = false;
         } catch {
@@ -216,7 +216,7 @@ public partial class LibraryPage:UserControl {
 
     private void OnModuleSelected(object? sender, SelectionChangedEventArgs e) {
         if (SelectedRow is Row r && !string.IsNullOrWhiteSpace(r.ModuleName)) {
-            ShowDetails(r.ModuleName);
+            ShowDetails(moduleName: r.ModuleName);
         }
     }
 
@@ -252,7 +252,7 @@ public partial class LibraryPage:UserControl {
         private readonly System.Action<object?> _a;
         public SimpleCommand(System.Action<object?> a) => _a = a;
         public bool CanExecute(object? p) => true;
-        public void Execute(object? p) => _a(p);
+        public void Execute(object? p) => _a(obj: p);
         public event System.EventHandler? CanExecuteChanged {
             add { }
             remove { }

@@ -5,13 +5,13 @@ namespace EngineNet.Core.ExternalTools;
 /// Prioritizes <see cref="ToolLockfile.ToolLockfileName"/> for persistent installations.
 /// </summary>
 public class JsonToolResolver {
-    private readonly Dictionary<string, Dictionary<string, string>> _tools = new Dictionary<string, Dictionary<string, string>>(System.StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Dictionary<string, string>> _tools = new Dictionary<string, Dictionary<string, string>>(comparer: System.StringComparer.OrdinalIgnoreCase);
     private readonly string _lockfilePath;
     private string? _loadedFile;
     private System.DateTime _lastWriteTime;
 
     public JsonToolResolver() {
-        _lockfilePath = ToolLockfile.GetPath(EngineNet.Shared.State.RootPath);
+        _lockfilePath = ToolLockfile.GetPath(rootPath: EngineNet.Shared.State.RootPath);
         Load();
     }
 
@@ -19,7 +19,7 @@ public class JsonToolResolver {
     /// Loads or reloads the tool definitions from the local tracking file.
     /// </summary>
     private void Load() {
-        string? found = System.IO.File.Exists(_lockfilePath) ? _lockfilePath : null;
+        string? found = System.IO.File.Exists(path: _lockfilePath) ? _lockfilePath : null;
 
         if (found == null) {
             if (_loadedFile == null) {
@@ -31,8 +31,8 @@ public class JsonToolResolver {
             return;
         }
 
-        bool isNewFile = !string.Equals(found, _loadedFile, System.StringComparison.OrdinalIgnoreCase);
-        System.DateTime writeTime = System.IO.File.GetLastWriteTimeUtc(found);
+        bool isNewFile = !string.Equals(a: found, b: _loadedFile, comparisonType: System.StringComparison.OrdinalIgnoreCase);
+        System.DateTime writeTime = System.IO.File.GetLastWriteTimeUtc(path: found);
 
         if (!isNewFile && writeTime <= _lastWriteTime) {
             return;
@@ -42,22 +42,22 @@ public class JsonToolResolver {
         _loadedFile = found;
         _lastWriteTime = writeTime;
 
-        string baseDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(found)) ?? System.IO.Directory.GetCurrentDirectory();
-        Dictionary<string, Dictionary<string, ToolLockfileEntry>> lockData = ToolLockfileManager.Load(found);
+        string baseDir = System.IO.Path.GetDirectoryName(path: System.IO.Path.GetFullPath(path: found)) ?? System.IO.Directory.GetCurrentDirectory();
+        Dictionary<string, Dictionary<string, ToolLockfileEntry>> lockData = ToolLockfileManager.Load(lockPath: found);
 
         foreach (KeyValuePair<string, Dictionary<string, ToolLockfileEntry>> toolProp in lockData) {
-            var versions = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+            var versions = new Dictionary<string, string>(comparer: System.StringComparer.OrdinalIgnoreCase);
 
             foreach (KeyValuePair<string, ToolLockfileEntry> versionEntry in toolProp.Value) {
                 if (string.IsNullOrWhiteSpace(versionEntry.Value.Exe)) {
                     continue;
                 }
 
-                versions[versionEntry.Key] = ResolvePath(baseDir, versionEntry.Value.Exe);
+                versions[key: versionEntry.Key] = ResolvePath(baseDir: baseDir, path: versionEntry.Value.Exe);
             }
 
             if (versions.Count > 0) {
-                _tools[toolProp.Key] = versions;
+                _tools[key: toolProp.Key] = versions;
             }
         }
     }
@@ -67,8 +67,8 @@ public class JsonToolResolver {
             return string.Empty;
         }
 
-        if (!System.IO.Path.IsPathRooted(path)) {
-            return System.IO.Path.GetFullPath(System.IO.Path.Combine(baseDir, path));
+        if (!System.IO.Path.IsPathRooted(path: path)) {
+            return System.IO.Path.GetFullPath(path: System.IO.Path.Combine(path1: baseDir, path2: path));
         }
 
         return path;
@@ -77,11 +77,11 @@ public class JsonToolResolver {
     public virtual string ResolveToolPath(string toolId, string? version = null) {
         Load();
 
-        if (!_tools.TryGetValue(toolId, out var versions)) {
+        if (!_tools.TryGetValue(key: toolId, out var versions)) {
             return toolId;
         }
 
-        if (version != null && versions.TryGetValue(version, out string? resolvedPath)) {
+        if (version != null && versions.TryGetValue(key: version, out string? resolvedPath)) {
             return resolvedPath;
         }
 

@@ -64,7 +64,7 @@ internal class PyWorld {
         Sqlite = new Dictionary<string, object>();
 
         // Nesting hierarchy to match Lua/JS
-        Sdk["io"] = Io;
-        Sdk["os"] = Os;
+        Sdk[key: "io"] = Io;
+        Sdk[key: "os"] = Os;
     }
 }

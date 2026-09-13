@@ -15,25 +15,25 @@ internal static class ProcessExecution {
         if (string.IsNullOrWhiteSpace(s)) return false;
         string v = s.Trim();
         // Ignore obvious URLs
-        if (v.Contains("://", StringComparison.Ordinal)) return false;
+        if (v.Contains("://", comparisonType: StringComparison.Ordinal)) return false;
         // key=value -> analyze the value part
         int eq = v.IndexOf('=');
         if (eq > 0 && eq < v.Length - 1) {
-            v = v.Substring(eq + 1).Trim('"', '\'', ' ');
+            v = v.Substring(startIndex: eq + 1).Trim(trimChars: ['"', '\'', ' ']);
         }
         // Strip quotes
-        v = v.Trim('"', '\'');
-        if (System.IO.Path.IsPathRooted(v)) return true;
+        v = v.Trim(trimChars: ['"', '\'']);
+        if (System.IO.Path.IsPathRooted(path: v)) return true;
         if (v.Contains(System.IO.Path.DirectorySeparatorChar) || v.Contains(System.IO.Path.AltDirectorySeparatorChar)) return true;
         if (v.StartsWith("./") || v.StartsWith(".\\") || v.StartsWith("..") || v.StartsWith("~")) return true;
-        if (v.Length >= 2 && char.IsLetter(v[0]) && v[1] == ':') return true; // Windows drive
+        if (v.Length >= 2 && char.IsLetter(c: v[index: 0]) && v[index: 1] == ':') return true; // Windows drive
         int dot = v.LastIndexOf('.');
         if (dot > 0 && dot < v.Length - 1 && dot >= v.Length - 8) return true;
         return false;
     }
 
     private static bool ValidateArgPaths(IEnumerable<string> args, string? cwd) {
-        if (!string.IsNullOrEmpty(cwd) && !EngineNet.ScriptEngines.Security.IsAllowedPath(cwd)) {
+        if (!string.IsNullOrEmpty(cwd) && !EngineNet.ScriptEngines.Security.IsAllowedPath(path: cwd)) {
             Shared.IO.UI.EngineSdk.Error($"Access denied: working directory outside allowed areas ('{cwd}')");
             return false;
         }
@@ -42,11 +42,11 @@ internal static class ProcessExecution {
             string candidate = a;
             int eq = candidate.IndexOf('=');
             if (eq > 0 && eq < candidate.Length - 1) {
-                candidate = candidate.Substring(eq + 1);
+                candidate = candidate.Substring(startIndex: eq + 1);
             }
-            candidate = candidate.Trim('"', '\'', ' ');
-            if (!LooksLikePath(candidate)) continue;
-            if (EngineNet.ScriptEngines.Security.IsAllowedPath(candidate)) continue;
+            candidate = candidate.Trim(trimChars: ['"', '\'', ' ']);
+            if (!LooksLikePath(s: candidate)) continue;
+            if (EngineNet.ScriptEngines.Security.IsAllowedPath(path: candidate)) continue;
             Shared.IO.UI.EngineSdk.Error($"Access denied: process argument references path outside allowed areas ('{candidate}')");
             return false;
         }
@@ -54,7 +54,7 @@ internal static class ProcessExecution {
     }
 
     internal static DynValue RunProcess(Script lua, CommandService cs, Table commandArgs, Table? options) {
-        List<string> arguments = Lua.Globals.Utils.TableToStringList(commandArgs);
+        List<string> arguments = Lua.Globals.Utils.TableToStringList(t: commandArgs);
         if (arguments.Count == 0) throw new ScriptRuntimeException("run_process requires at least one argument");
 
         string? cwd = null;
@@ -64,42 +64,42 @@ internal static class ProcessExecution {
         Dictionary<string, string> env = new Dictionary<string, string>();
 
         if (options != null) {
-            DynValue v = options.Get("cwd");
+            DynValue v = options.Get(key: "cwd");
             if (!v.IsNil() && v.Type == DataType.String) cwd = v.String;
-            v = options.Get("capture_stdout");
+            v = options.Get(key: "capture_stdout");
             if (v.Type == DataType.Boolean) captureStdout = v.Boolean;
-            v = options.Get("capture_stderr");
+            v = options.Get(key: "capture_stderr");
             if (v.Type == DataType.Boolean) captureStderr = v.Boolean;
-            v = options.Get("timeout_ms");
-            if (v.Type == DataType.Number) timeoutMs = (int)Math.Max(0, v.Number);
-            v = options.Get("env");
+            v = options.Get(key: "timeout_ms");
+            if (v.Type == DataType.Number) timeoutMs = (int)Math.Max(val1: 0, val2: v.Number);
+            v = options.Get(key: "env");
             if (v.Type == DataType.Table) {
                 foreach (TablePair pair in v.Table.Pairs) {
                     if (pair.Key.Type == DataType.String && pair.Value.Type == DataType.String) {
-                        env[pair.Key.String] = pair.Value.String;
+                        env[key: pair.Key.String] = pair.Value.String;
                     }
                 }
             }
         }
 
-        if (!ValidateArgPaths(arguments, cwd)) throw new ScriptRuntimeException("Restricted path detected");
+        if (!ValidateArgPaths(args: arguments, cwd: cwd)) throw new ScriptRuntimeException("Restricted path detected");
 
         try {
-            ProcessResult res = cs.RunProcess(arguments[0], arguments.Skip(1), cwd, env, timeoutMs, captureStdout, captureStderr);
-            Table t = new Table(lua) {
-                ["exit_code"] = res.ExitCode,
-                ["success"] = res.Success
+            ProcessResult res = cs.RunProcess(executable: arguments[index: 0], args: arguments.Skip(count: 1), cwd: cwd, env: env, timeoutMs: timeoutMs, captureStdout: captureStdout, captureStderr: captureStderr);
+            Table t = new Table(owner: lua) {
+                [key: "exit_code"] = res.ExitCode,
+                [key: "success"] = res.Success
             };
-            if (captureStdout) t["stdout"] = res.Stdout;
-            if (captureStderr) t["stderr"] = res.Stderr;
-            return DynValue.NewTable(t);
+            if (captureStdout) t[key: "stdout"] = res.Stdout;
+            if (captureStderr) t[key: "stderr"] = res.Stderr;
+            return DynValue.NewTable(table: t);
         } catch (Exception ex) {
             throw new ScriptRuntimeException(ex.Message);
         }
     }
 
     internal static DynValue ExecProcess(Script lua, CommandService cs, Table commandArgs, Table? options, bool silentRun) {
-        List<string> parts = Lua.Globals.Utils.TableToStringList(commandArgs);
+        List<string> parts = Lua.Globals.Utils.TableToStringList(t: commandArgs);
         if (parts.Count == 0) throw new ScriptRuntimeException("exec requires at least one argument");
 
         string? cwd = null;
@@ -109,37 +109,37 @@ internal static class ProcessExecution {
         Dictionary<string, string> env = new Dictionary<string, string>();
 
         if (options != null) {
-            DynValue v = options.Get("cwd");
+            DynValue v = options.Get(key: "cwd");
             if (!v.IsNil() && v.Type == DataType.String) cwd = v.String;
-            v = options.Get("new_terminal");
+            v = options.Get(key: "new_terminal");
             if (v.Type == DataType.Boolean) newTerminal = v.Boolean;
-            v = options.Get("keep_open");
+            v = options.Get(key: "keep_open");
             if (v.Type == DataType.Boolean) keepOpen = v.Boolean;
-            v = options.Get("wait");
+            v = options.Get(key: "wait");
             if (v.Type == DataType.Boolean) wait = v.Boolean;
-            v = options.Get("env");
+            v = options.Get(key: "env");
             if (v.Type == DataType.Table) {
                 foreach (TablePair p in v.Table.Pairs) {
                     if (p.Key.Type == DataType.String && p.Value.Type == DataType.String) {
-                        env[p.Key.String] = p.Value.String;
+                        env[key: p.Key.String] = p.Value.String;
                     }
                 }
             }
         }
 
-        if (!ValidateArgPaths(parts, cwd)) throw new ScriptRuntimeException("Restricted path detected");
+        if (!ValidateArgPaths(args: parts, cwd: cwd)) throw new ScriptRuntimeException("Restricted path detected");
 
         if (newTerminal) {
-            return HandleNewTerminalExecution(lua, cs, parts, cwd, env, keepOpen, wait, silentRun);
+            return HandleNewTerminalExecution(lua: lua, cs: cs, parts: parts, cwd: cwd, env: env, keepOpen: keepOpen, wait: wait, silentRun: silentRun);
         }
 
-        return ExecInCurrentTerminal(lua, cs, parts, cwd, env, silentRun);
+        return ExecInCurrentTerminal(lua: lua, cs: cs, parts: parts, cwd: cwd, env: env, silentRun: silentRun);
     }
 
     internal static DynValue SpawnProcess(Script lua, CommandService cs, Table commandArgs, Table? options, Core.ExternalTools.JsonToolResolver tools) {
-        List<string> parts = Lua.Globals.Utils.TableToStringList(commandArgs);
+        List<string> parts = Lua.Globals.Utils.TableToStringList(t: commandArgs);
         if (parts.Count == 0) throw new ScriptRuntimeException("spawn_process requires executable");
-        if (!EngineNet.ScriptEngines.Security.IsApprovedExecutable(parts[0], tools)) throw new ScriptRuntimeException("Not approved");
+        if (!EngineNet.ScriptEngines.Security.IsApprovedExecutable(executable: parts[index: 0], tools: tools)) throw new ScriptRuntimeException("Not approved");
 
         string? cwd = null;
         bool captureStdout = true;
@@ -147,30 +147,30 @@ internal static class ProcessExecution {
         Dictionary<string, string> env = new Dictionary<string, string>();
 
         if (options != null) {
-            DynValue v = options.Get("cwd");
+            DynValue v = options.Get(key: "cwd");
             if (!v.IsNil() && v.Type == DataType.String) cwd = v.String;
-            v = options.Get("capture_stdout");
+            v = options.Get(key: "capture_stdout");
             if (v.Type == DataType.Boolean) captureStdout = v.Boolean;
-            v = options.Get("capture_stderr");
+            v = options.Get(key: "capture_stderr");
             if (v.Type == DataType.Boolean) captureStderr = v.Boolean;
-            v = options.Get("env");
+            v = options.Get(key: "env");
             if (v.Type == DataType.Table) {
                 foreach (TablePair pair in v.Table.Pairs) {
                     if (pair.Key.Type == DataType.String && pair.Value.Type == DataType.String) {
-                        env[pair.Key.String] = pair.Value.String;
+                        env[key: pair.Key.String] = pair.Value.String;
                     }
                 }
             }
         }
 
-        if (!ValidateArgPaths(parts, cwd)) throw new ScriptRuntimeException("Restricted path detected");
+        if (!ValidateArgPaths(args: parts, cwd: cwd)) throw new ScriptRuntimeException("Restricted path detected");
 
         try {
-            int pid = cs.SpawnProcess(parts[0], parts.Skip(1), cwd, env, captureStdout, captureStderr);
-            Table t = new Table(lua) {
-                ["pid"] = pid,
+            int pid = cs.SpawnProcess(executable: parts[index: 0], args: parts.Skip(count: 1), cwd: cwd, env: env, captureStdout: captureStdout, captureStderr: captureStderr);
+            Table t = new Table(owner: lua) {
+                [key: "pid"] = pid,
             };
-            return DynValue.NewTable(t);
+            return DynValue.NewTable(table: t);
         } catch (Exception ex) {
             throw new ScriptRuntimeException(ex.Message);
         }
@@ -178,16 +178,16 @@ internal static class ProcessExecution {
 
     internal static DynValue PollProcess(Script lua, CommandService cs, int pid) {
         try {
-            ProcessPollResult res = cs.PollProcess(pid);
-            Table t = new Table(lua) {
-                ["running"] = res.Running,
+            ProcessPollResult res = cs.PollProcess(pid: pid);
+            Table t = new Table(owner: lua) {
+                [key: "running"] = res.Running,
             };
-            if (!res.Running) t["exit_code"] = res.ExitCode;
-            t["stdout"] = res.StdoutFull;
-            t["stderr"] = res.StderrFull;
-            t["stdout_delta"] = res.StdoutDelta;
-            t["stderr_delta"] = res.StderrDelta;
-            return DynValue.NewTable(t);
+            if (!res.Running) t[key: "exit_code"] = res.ExitCode;
+            t[key: "stdout"] = res.StdoutFull;
+            t[key: "stderr"] = res.StderrFull;
+            t[key: "stdout_delta"] = res.StdoutDelta;
+            t[key: "stderr_delta"] = res.StderrDelta;
+            return DynValue.NewTable(table: t);
         } catch (Exception ex) {
             throw new ScriptRuntimeException(ex.Message);
         }
@@ -197,23 +197,23 @@ internal static class ProcessExecution {
         try {
             // Keep parity with previous behavior: wait_process acted as a status check.
             _ = timeoutMs;
-            ProcessPollResult res = cs.PollProcess(pid);
-            Table t = new Table(lua) {
-                ["running"] = res.Running,
+            ProcessPollResult res = cs.PollProcess(pid: pid);
+            Table t = new Table(owner: lua) {
+                [key: "running"] = res.Running,
             };
-            if (!res.Running) t["exit_code"] = res.ExitCode;
-            t["stdout"] = res.StdoutFull;
-            t["stderr"] = res.StderrFull;
-            t["stdout_delta"] = res.StdoutDelta;
-            t["stderr_delta"] = res.StderrDelta;
-            return DynValue.NewTable(t);
+            if (!res.Running) t[key: "exit_code"] = res.ExitCode;
+            t[key: "stdout"] = res.StdoutFull;
+            t[key: "stderr"] = res.StderrFull;
+            t[key: "stdout_delta"] = res.StdoutDelta;
+            t[key: "stderr_delta"] = res.StderrDelta;
+            return DynValue.NewTable(table: t);
         } catch (Exception ex) {
             throw new ScriptRuntimeException(ex.Message);
         }
     }
 
     internal static DynValue CloseProcess(Script lua, CommandService cs, int pid) {
-        return DynValue.NewBoolean(cs.CloseProcess(pid));
+        return DynValue.NewBoolean(v: cs.CloseProcess(pid: pid));
     }
 
     private static DynValue HandleNewTerminalExecution(Script lua, CommandService cs, List<string> parts, string? cwd, Dictionary<string, string> env, bool keepOpen, bool wait, bool silentRun) {
@@ -221,15 +221,15 @@ internal static class ProcessExecution {
             // Parity fallback: when no terminal emulator is available on Unix-like systems,
             // execute in the current terminal path instead of failing.
             if ((System.OperatingSystem.IsLinux() || System.OperatingSystem.IsMacOS()) && !HasKnownTerminalEmulator()) {
-                return ExecInCurrentTerminal(lua, cs, parts, cwd, env, silentRun);
+                return ExecInCurrentTerminal(lua: lua, cs: cs, parts: parts, cwd: cwd, env: env, silentRun: silentRun);
             }
 
-            ProcessResult res = cs.RunInNewTerminal(parts[0], parts.Skip(1), cwd, env, keepOpen, wait);
-            Table t = new Table(lua) {
-                ["success"] = res.Success,
-                ["exit_code"] = res.ExitCode,
+            ProcessResult res = cs.RunInNewTerminal(executable: parts[index: 0], args: parts.Skip(count: 1), cwd: cwd, env: env, keepOpen: keepOpen, wait: wait);
+            Table t = new Table(owner: lua) {
+                [key: "success"] = res.Success,
+                [key: "exit_code"] = res.ExitCode,
             };
-            return DynValue.NewTable(t);
+            return DynValue.NewTable(table: t);
         } catch (Exception ex) {
             throw new ScriptRuntimeException(ex.Message);
         }
@@ -237,24 +237,24 @@ internal static class ProcessExecution {
 
     private static DynValue ExecInCurrentTerminal(Script lua, CommandService cs, List<string> parts, string? cwd, Dictionary<string, string> env, bool silentRun) {
         try {
-            Dictionary<string, object?> envObj = env.ToDictionary(k => k.Key, v => (object?)v.Value);
+            Dictionary<string, object?> envObj = env.ToDictionary(keySelector: k => k.Key, elementSelector: v => (object?)v.Value);
             if (!string.IsNullOrEmpty(cwd)) {
-                envObj["PWD"] = cwd;
+                envObj[key: "PWD"] = cwd;
             }
 
             int exitCode = -1;
             bool success = cs.ExecuteCommand(
                 commandParts: parts,
-                title: System.IO.Path.GetFileName(parts[0]),
+                title: System.IO.Path.GetFileName(path: parts[index: 0]),
                 onOutput: (msg, type) => {
                     if (silentRun) return;
                     string? color = type == "stderr" ? "red" : null;
-                    Shared.IO.UI.EngineSdk.Print(msg, color, true);
+                    Shared.IO.UI.EngineSdk.Print(msg, color: color, newline: true);
                     Shared.IO.Diagnostics.Log($"[ProcessRunner][{type}] {msg}");
                 },
                 onEvent: evt => {
-                    if (!evt.TryGetValue("event", out object? ev) || !string.Equals(ev?.ToString(), "end", System.StringComparison.OrdinalIgnoreCase)) return;
-                    if (evt.TryGetValue("exit_code", out object? code) && int.TryParse(code?.ToString(), out int parsed)) {
+                    if (!evt.TryGetValue(key: "event", out object? ev) || !string.Equals(a: ev?.ToString(), b: "end", comparisonType: System.StringComparison.OrdinalIgnoreCase)) return;
+                    if (evt.TryGetValue(key: "exit_code", out object? code) && int.TryParse(s: code?.ToString(), result: out int parsed)) {
                         exitCode = parsed;
                     }
                 },
@@ -265,11 +265,11 @@ internal static class ProcessExecution {
                 exitCode = 1;
             }
 
-            Table result = new Table(lua) {
-                ["exit_code"] = exitCode >= 0 ? exitCode : (success ? 0 : 1),
-                ["success"] = success && (exitCode == 0 || exitCode == -1),
+            Table result = new Table(owner: lua) {
+                [key: "exit_code"] = exitCode >= 0 ? exitCode : (success ? 0 : 1),
+                [key: "success"] = success && (exitCode == 0 || exitCode == -1),
             };
-            return DynValue.NewTable(result);
+            return DynValue.NewTable(table: result);
         } catch (Exception ex) {
             throw new ScriptRuntimeException(ex.Message);
         }
@@ -288,6 +288,6 @@ internal static class ProcessExecution {
             "/usr/bin/xfce4-terminal"
         };
 
-        return candidates.Any(static candidate => System.IO.File.Exists(candidate));
+        return candidates.Any(predicate: static candidate => System.IO.File.Exists(path: candidate));
     }
 }

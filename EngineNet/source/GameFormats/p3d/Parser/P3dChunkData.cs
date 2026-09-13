@@ -33,15 +33,15 @@ internal sealed class ChunkData {
     }
 
     internal static ChunkData None(ChunkType sourceType) {
-        return new ChunkData(sourceType, null, null, null, isUnknown: false);
+        return new ChunkData(sourceType: sourceType, name: null, version: null, payload: null, isUnknown: false);
     }
 
     internal static ChunkData Unknown(ChunkType sourceType) {
-        return new ChunkData(sourceType, null, null, new UnknownPayload(), isUnknown: true);
+        return new ChunkData(sourceType: sourceType, name: null, version: null, payload: new UnknownPayload(), isUnknown: true);
     }
 
     internal static ChunkData Create(ChunkType sourceType, string? name, uint? version, object? payload) {
-        return new ChunkData(sourceType, name, version, payload, isUnknown: false);
+        return new ChunkData(sourceType: sourceType, name: name, version: version, payload: payload, isUnknown: false);
     }
 
     internal string GetDisplayName() {

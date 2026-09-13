@@ -3,19 +3,19 @@ namespace EngineNet.GameFormats.txd.utils;
 public static class Util {
 
     internal static List<string> EnumerateTxdFiles(string inputPathAbs) {
-        if (!System.IO.File.Exists(inputPathAbs) && !System.IO.Directory.Exists(inputPathAbs)) {
+        if (!System.IO.File.Exists(path: inputPathAbs) && !System.IO.Directory.Exists(path: inputPathAbs)) {
             throw new Sys.TxdExportException($"Error: Input path '{inputPathAbs}' does not exist.");
         }
 
         List<string> txdFilesToProcess = new List<string>();
-        if (System.IO.File.Exists(inputPathAbs)) {
-            if (!inputPathAbs.EndsWith(".txd", System.StringComparison.OrdinalIgnoreCase)) {
+        if (System.IO.File.Exists(path: inputPathAbs)) {
+            if (!inputPathAbs.EndsWith(".txd", comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                 throw new Sys.TxdExportException($"Error: Input file '{inputPathAbs}' is not a .txd file.");
             }
-            txdFilesToProcess.Add(inputPathAbs);
+            txdFilesToProcess.Add(item: inputPathAbs);
         } else {
-            foreach (string file in System.IO.Directory.EnumerateFiles(inputPathAbs, "*.txd", System.IO.SearchOption.AllDirectories)) {
-                txdFilesToProcess.Add(file);
+            foreach (string file in System.IO.Directory.EnumerateFiles(path: inputPathAbs, searchPattern: "*.txd", searchOption: System.IO.SearchOption.AllDirectories)) {
+                txdFilesToProcess.Add(item: file);
             }
             if (txdFilesToProcess.Count == 0) {
                 throw new Sys.TxdExportException($"No .txd files found in directory '{inputPathAbs}'.");
@@ -32,7 +32,7 @@ public static class Util {
 
         Options options = new();
         for (int i = 0; i < args.Count; i++) {
-            string current = args[i];
+            string current = args[index: i];
             if (string.IsNullOrWhiteSpace(current)) {
                 continue;
             }
@@ -44,7 +44,7 @@ public static class Util {
                         throw new Sys.TxdExportException($"Option '{current}' expects a value.");
                     }
 
-                    options.OutputDirectory = args[++i];
+                    options.OutputDirectory = args[index: ++i];
                     break;
                 }
                 case "--source": {
@@ -52,7 +52,7 @@ public static class Util {
                         throw new Sys.TxdExportException($"Option '{current}' expects a value.");
                     }
 
-                    options.InputPath = args[++i];
+                    options.InputPath = args[index: ++i];
                     break;
                 }
                 case "--output-ext": {
@@ -60,8 +60,8 @@ public static class Util {
                         throw new Sys.TxdExportException($"Option '{current}' expects a value.");
                     }
 
-                    string ext = args[++i].ToLowerInvariant();
-                    options.OutputExtension = ext.TrimStart('.');
+                    string ext = args[index: ++i].ToLowerInvariant();
+                    options.OutputExtension = ext.TrimStart(trimChar: '.');
                     if (options.OutputExtension != "dds" && options.OutputExtension != "png") {
                         throw new Sys.TxdExportException($"Unsupported output extension '{ext}'. Allowed: dds, png.");
                     }
@@ -85,9 +85,9 @@ public static class Util {
             throw new Sys.TxdExportException("Missing input path argument for TXD extraction.");
         }
 
-        options.InputPath = System.IO.Path.GetFullPath(options.InputPath);
+        options.InputPath = System.IO.Path.GetFullPath(path: options.InputPath);
         if (!string.IsNullOrWhiteSpace(options.OutputDirectory)) {
-            options.OutputDirectory = System.IO.Path.GetFullPath(options.OutputDirectory!);
+            options.OutputDirectory = System.IO.Path.GetFullPath(path: options.OutputDirectory!);
         }
 
         return options;
@@ -117,14 +117,14 @@ public static class Util {
         byte[] linear = new byte[linearSize];
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                int mortonIdx = MortonEncode2D(x, y);
+                int mortonIdx = MortonEncode2D(x: x, y: y);
                 int pixelStart = mortonIdx * bytesPerPixel;
                 if (pixelStart + bytesPerPixel > swizzledData.Length) {
                     continue;
                 }
 
                 int linearStart = ((y * width) + x) * bytesPerPixel;
-                swizzledData.Slice(pixelStart, bytesPerPixel).CopyTo(System.MemoryExtensions.AsSpan(linear, linearStart, bytesPerPixel));
+                swizzledData.Slice(start: pixelStart, length: bytesPerPixel).CopyTo(destination: System.MemoryExtensions.AsSpan(array: linear, start: linearStart, length: bytesPerPixel));
 
             }
         }
@@ -137,7 +137,7 @@ public static class Util {
             return null;
         }
 
-        System.Text.StringBuilder builder = new(name.Length);
+        System.Text.StringBuilder builder = new(capacity: name.Length);
         foreach (char ch in name) {
             _ = ch is < (char)32 or (char)127
                 ? builder.Append('_')
@@ -153,8 +153,8 @@ public static class Util {
             return 0;
         }
 
-        int blocksWide = System.Math.Max(1, (width + 3) / 4);
-        int blocksHigh = System.Math.Max(1, (height + 3) / 4);
+        int blocksWide = System.Math.Max(val1: 1, val2: (width + 3) / 4);
+        int blocksHigh = System.Math.Max(val1: 1, val2: (height + 3) / 4);
         int bytesPerBlock = fourcc switch {
             "DXT1" => 8,
             "DXT3" => 16,
@@ -172,7 +172,7 @@ public static class Util {
         int index = 0;
 
         while (index <= data.Length - pattern.Length) {
-            int found = System.MemoryExtensions.IndexOf(data.Slice(index), pattern);
+            int found = System.MemoryExtensions.IndexOf(span: data.Slice(start: index), pattern);
             if (found == -1)
                 break;
 
@@ -190,12 +190,12 @@ public static class Util {
         if (start < 0 || start > data.Length - pattern.Length)
             return -1;
 
-        int pos = System.MemoryExtensions.IndexOf(data.Slice(start), pattern); // fully qualified
+        int pos = System.MemoryExtensions.IndexOf(span: data.Slice(start: start), pattern); // fully qualified
         return pos == -1 ? -1 : start + pos;
     }
 
     internal static bool StartsWith(System.ReadOnlySpan<byte> data, int offset, System.ReadOnlySpan<byte> pattern) {
-        return pattern.IsEmpty || (offset >= 0 && offset + pattern.Length <= data.Length && System.MemoryExtensions.SequenceEqual(data.Slice(offset, pattern.Length), pattern));
+        return pattern.IsEmpty || (offset >= 0 && offset + pattern.Length <= data.Length && System.MemoryExtensions.SequenceEqual(span: data.Slice(start: offset, length: pattern.Length), other: pattern));
     }
 
 }

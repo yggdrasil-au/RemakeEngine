@@ -25,10 +25,10 @@ public sealed class CommandBuilder {
         EngineNet.Core.Data.PromptAnswers promptAnswers
     ) {
         if (string.IsNullOrWhiteSpace(currentGame)) {
-            throw new System.ArgumentException(message: "No game has been loaded.", nameof(currentGame));
+            throw new System.ArgumentException("No game has been loaded.", paramName: nameof(currentGame));
         }
 
-        string script_type = (op.TryGetValue("script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant() ?? "python";
+        string script_type = (op.TryGetValue(key: "script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant() ?? "python";
         if (!op.TryGetValue(key: "script", out object? scriptObj)) {
             return [];
         }
@@ -40,7 +40,7 @@ public sealed class CommandBuilder {
         if (op.TryGetValue(key: "args", out object? argsObj) && argsObj is System.Collections.IList resolvedList) {
             foreach (object? a in resolvedList) {
                 if (a is not null) {
-                    parts.Add(a.ToString()!);
+                    parts.Add(item: a.ToString()!);
                 }
             }
         }
@@ -58,8 +58,8 @@ public sealed class CommandBuilder {
                     continue;
                 }
 
-                if (!promptAnswers.ContainsKey(name) && prompt.TryGetValue("default", out object? defVal)) {
-                    promptAnswers[name] = defVal;
+                if (!promptAnswers.ContainsKey(key: name) && prompt.TryGetValue(key: "default", out object? defVal)) {
+                    promptAnswers[key: name] = defVal;
                 }
             }
 
@@ -76,25 +76,25 @@ public sealed class CommandBuilder {
                     continue;
                 }
 
-                if (prompt.TryGetValue("condition", out object? cond) && cond is string condName && (!promptAnswers.TryGetValue(condName, out object? condVal) || condVal is not bool b || !b)) {
+                if (prompt.TryGetValue(key: "condition", out object? cond) && cond is string condName && (!promptAnswers.TryGetValue(key: condName, out object? condVal) || condVal is not bool b || !b)) {
                     continue;
                 }
 
-                _ = promptAnswers.TryGetValue(name, out object? ans);
+                _ = promptAnswers.TryGetValue(key: name, out object? ans);
 
                 switch (type) {
                     case "confirm":
                         if (ans is bool cb && cb && prompt.TryGetValue(key: "cli_arg", out object? cli) && cli is string s1) {
-                            parts.Add(s1);
+                            parts.Add(item: s1);
                         }
 
                         break;
                     case "checkbox":
                         if (ans is IList<object?> items && prompt.TryGetValue(key: "cli_prefix", out object? pref) && pref is string sp) {
-                            parts.Add(sp);
+                            parts.Add(item: sp);
                             foreach (object? it in items) {
                                 if (it is not null) {
-                                    parts.Add(it.ToString()!);
+                                    parts.Add(item: it.ToString()!);
                                 }
                             }
                         }
@@ -102,12 +102,12 @@ public sealed class CommandBuilder {
                     case "text":
                         string? v = ans?.ToString();
                         if (!string.IsNullOrWhiteSpace(v)) {
-                            if (prompt.TryGetValue("cli_arg_prefix", out object? ap) && ap is string apx) {
-                                parts.Add(apx);
-                                parts.Add(v);
-                            } else if (prompt.TryGetValue("cli_arg", out object? ca) && ca is string cas) {
-                                parts.Add(cas);
-                                parts.Add(v);
+                            if (prompt.TryGetValue(key: "cli_arg_prefix", out object? ap) && ap is string apx) {
+                                parts.Add(item: apx);
+                                parts.Add(item: v);
+                            } else if (prompt.TryGetValue(key: "cli_arg", out object? ca) && ca is string cas) {
+                                parts.Add(item: cas);
+                                parts.Add(item: v);
                             }
                         }
                         break;

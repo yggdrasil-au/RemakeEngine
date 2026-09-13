@@ -15,9 +15,9 @@ public static class DocModelConverter {
     /// <param name="obj"></param>
     /// <returns></returns>
     public static Dictionary<string, object?> FromJsonObject(System.Text.Json.JsonElement obj) {
-        Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object?> dict = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
         foreach (System.Text.Json.JsonProperty p in obj.EnumerateObject()) {
-            dict[p.Name] = FromJsonElement(p.Value);
+            dict[key: p.Name] = FromJsonElement(el: p.Value);
         }
 
         return dict;
@@ -31,11 +31,11 @@ public static class DocModelConverter {
     public static object? FromJsonElement(System.Text.Json.JsonElement el) {
         switch (el.ValueKind) {
             case System.Text.Json.JsonValueKind.Object:
-                return FromJsonObject(el);
+                return FromJsonObject(obj: el);
             case System.Text.Json.JsonValueKind.Array:
                 List<object?> list = new List<object?>();
                 foreach (System.Text.Json.JsonElement item in el.EnumerateArray()) {
-                    list.Add(FromJsonElement(item));
+                    list.Add(item: FromJsonElement(el: item));
                 }
                 return list;
             case System.Text.Json.JsonValueKind.String:
@@ -65,9 +65,9 @@ public static class DocModelConverter {
     /// <param name="table"></param>
     /// <returns></returns>
     public static Dictionary<string, object?> FromTomlTable(Tomlyn.Model.TomlTable table) {
-        Dictionary<string, object?> dict = new Dictionary<string, object?>(System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object?> dict = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
         foreach (KeyValuePair<string, object> kv in table) {
-            dict[kv.Key] = FromTomlValue(kv.Value);
+            dict[key: kv.Key] = FromTomlValue(kv.Value);
         }
         return dict;
     }
@@ -83,13 +83,13 @@ public static class DocModelConverter {
         }
 
         if (value is Tomlyn.Model.TomlTable tt) {
-            return FromTomlTable(tt);
+            return FromTomlTable(table: tt);
         }
 
         if (value is Tomlyn.Model.TomlTableArray ta) {
             List<object?> list = new List<object?>();
             foreach (Tomlyn.Model.TomlTable item in ta) {
-                list.Add(FromTomlValue(item));
+                list.Add(item: FromTomlValue(item));
             }
             return list;
         }
@@ -97,7 +97,7 @@ public static class DocModelConverter {
         if (value is Tomlyn.Model.TomlArray arr) {
             List<object?> list = new List<object?>();
             foreach (object? item in arr) {
-                list.Add(FromTomlValue(item));
+                list.Add(item: FromTomlValue(item));
             }
             return list;
         }

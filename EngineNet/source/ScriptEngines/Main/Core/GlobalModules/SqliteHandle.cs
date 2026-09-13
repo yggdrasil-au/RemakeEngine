@@ -12,11 +12,11 @@ internal sealed class SqliteHandle:System.IDisposable {
 
     internal SqliteHandle(MoonSharp.Interpreter.Script script, string path) {
         _script = script;
-        string fullPath = System.IO.Path.GetFullPath(path);
+        string fullPath = System.IO.Path.GetFullPath(path: path);
         Microsoft.Data.Sqlite.SqliteConnectionStringBuilder builder = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder {
             DataSource = fullPath
         };
-        _connection = new Microsoft.Data.Sqlite.SqliteConnection(builder.ConnectionString);
+        _connection = new Microsoft.Data.Sqlite.SqliteConnection(connectionString: builder.ConnectionString);
         _connection.Open();
     }
 
@@ -28,7 +28,7 @@ internal sealed class SqliteHandle:System.IDisposable {
             command.Transaction = _transaction;
         }
 
-        BindParameters(command, parameters);
+        BindParameters(command: command, parameters: parameters);
         return command.ExecuteNonQuery();
     }
 
@@ -40,20 +40,20 @@ internal sealed class SqliteHandle:System.IDisposable {
             command.Transaction = _transaction;
         }
 
-        BindParameters(command, parameters);
+        BindParameters(command: command, parameters: parameters);
         using Microsoft.Data.Sqlite.SqliteDataReader reader = command.ExecuteReader();
-        MoonSharp.Interpreter.Table result = new MoonSharp.Interpreter.Table(_script);
+        MoonSharp.Interpreter.Table result = new MoonSharp.Interpreter.Table(owner: _script);
         int index = 1;
         while (reader.Read()) {
-            MoonSharp.Interpreter.Table row = new MoonSharp.Interpreter.Table(_script);
+            MoonSharp.Interpreter.Table row = new MoonSharp.Interpreter.Table(owner: _script);
             for (int i = 0; i < reader.FieldCount; i++) {
-                string columnName = reader.GetName(i);
-                object? value = reader.GetValue(i);
-                row[columnName] = Lua.Globals.Utils.ToDynValue(_script, value);
+                string columnName = reader.GetName(ordinal: i);
+                object? value = reader.GetValue(ordinal: i);
+                row[key: columnName] = Lua.Globals.Utils.ToDynValue(lua: _script, value);
             }
-            result[index++] = MoonSharp.Interpreter.DynValue.NewTable(row);
+            result[key: index++] = MoonSharp.Interpreter.DynValue.NewTable(table: row);
         }
-        return MoonSharp.Interpreter.DynValue.NewTable(result);
+        return MoonSharp.Interpreter.DynValue.NewTable(table: result);
     }
 
     internal void BeginTransaction() {
@@ -101,7 +101,7 @@ internal sealed class SqliteHandle:System.IDisposable {
 
     private void EnsureNotDisposed() {
         if (_disposed) {
-            throw new System.ObjectDisposedException(nameof(SqliteHandle));
+            throw new System.ObjectDisposedException(objectName: nameof(SqliteHandle));
         }
     }
 
@@ -110,11 +110,11 @@ internal sealed class SqliteHandle:System.IDisposable {
             return;
         }
 
-        IDictionary<string, object?> dict = Lua.Globals.Utils.TableToDictionary(parameters);
+        IDictionary<string, object?> dict = Lua.Globals.Utils.TableToDictionary(table: parameters);
         foreach (KeyValuePair<string, object?> kv in dict) {
             Microsoft.Data.Sqlite.SqliteParameter parameter = command.CreateParameter();
             string name = kv.Key;
-            if (!name.StartsWith(":", System.StringComparison.Ordinal) && !name.StartsWith("@", System.StringComparison.Ordinal) && !name.StartsWith("$", System.StringComparison.Ordinal)) {
+            if (!name.StartsWith(":", comparisonType: System.StringComparison.Ordinal) && !name.StartsWith("@", comparisonType: System.StringComparison.Ordinal) && !name.StartsWith("$", comparisonType: System.StringComparison.Ordinal)) {
                 name = ":" + name;
             }
 

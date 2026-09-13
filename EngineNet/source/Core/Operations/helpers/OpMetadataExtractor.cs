@@ -22,20 +22,20 @@ internal class OpMetadataExtractor {
             if (value is IList<object?> arr) {
                 foreach (object? item in arr) {
                     if (item is IDictionary<string, object?> map) {
-                        list.Add(new Dictionary<string, object?>(map, System.StringComparer.OrdinalIgnoreCase));
+                        list.Add(item: new Dictionary<string, object?>(dictionary: map, comparer: System.StringComparer.OrdinalIgnoreCase));
                     }
                 }
             } else if (value is IDictionary<string, object?> single) {
-                list.Add(new Dictionary<string, object?>(single, System.StringComparer.OrdinalIgnoreCase));
+                list.Add(item: new Dictionary<string, object?>(dictionary: single, comparer: System.StringComparer.OrdinalIgnoreCase));
             }
             return list.Count > 0 ? list : null;
         }
 
-        if (op.TryGetValue("onsuccess", out object? v1)) {
+        if (op.TryGetValue(key: "onsuccess", out object? v1)) {
             ops = Coerce(v1);
             if (ops is not null) return true;
         }
-        if (op.TryGetValue("on_success", out object? v2)) {
+        if (op.TryGetValue(key: "on_success", out object? v2)) {
             ops = Coerce(v2);
             if (ops is not null) return true;
         }

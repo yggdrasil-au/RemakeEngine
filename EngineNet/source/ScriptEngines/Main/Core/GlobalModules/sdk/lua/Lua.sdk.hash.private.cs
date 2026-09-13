@@ -4,20 +4,20 @@ internal static partial class Sdk {
 
     private static void AddHashMethods(LuaWorld _LuaWorld) {
         //old
-        _LuaWorld.Sdk.Table["md5"] = (string text) => {
-            return ScriptEngines.Global.SdkModule.Helpers.AddHashMethods.Md5Hash(text);
+        _LuaWorld.Sdk.Table[key: "md5"] = (string text) => {
+            return ScriptEngines.Global.SdkModule.Helpers.AddHashMethods.Md5Hash(text: text);
         };
-        _LuaWorld.Sdk.Table["sha1_file"] = (string path) => {
-            return ScriptEngines.Global.SdkModule.Helpers.AddHashMethods.sha1_file(path);
+        _LuaWorld.Sdk.Table[key: "sha1_file"] = (string path) => {
+            return ScriptEngines.Global.SdkModule.Helpers.AddHashMethods.sha1_file(path: path);
         };
 
         // new, under sdk.Hash
-        _LuaWorld.Sdk.Hash["sha1_file"] = (string path) => {
-            return ScriptEngines.Global.SdkModule.Helpers.AddHashMethods.sha1_file(path);
+        _LuaWorld.Sdk.Hash[key: "sha1_file"] = (string path) => {
+            return ScriptEngines.Global.SdkModule.Helpers.AddHashMethods.sha1_file(path: path);
         };
 
-        _LuaWorld.Sdk.Hash["md5"] = (string text) => {
-            return ScriptEngines.Global.SdkModule.Helpers.AddHashMethods.Md5Hash(text);
+        _LuaWorld.Sdk.Hash[key: "md5"] = (string text) => {
+            return ScriptEngines.Global.SdkModule.Helpers.AddHashMethods.Md5Hash(text: text);
         };
 
     }

@@ -7,7 +7,7 @@ namespace EngineNet.Core.Utils;
 internal static class GitTools {
 
     /* :: :: Constructor, Var :: START :: */
-    private static readonly string _gamesDir = System.IO.Path.Combine(EngineNet.Shared.State.RootPath, "EngineApps", "Games");
+    private static readonly string _gamesDir = System.IO.Path.Combine(path1: EngineNet.Shared.State.RootPath, path2: "EngineApps", path3: "Games");
 
     /* :: :: Constructor, Var :: END :: */
     //
@@ -17,21 +17,21 @@ internal static class GitTools {
             return false;
         }
 
-        if (!IsGitInstalled(commandService)) {
+        if (!IsGitInstalled(commandService: commandService)) {
             IO.Warn("Git is not installed or not found in PATH.");
             Shared.IO.Diagnostics.Log("[GitTools.cs::CloneModule()] GitTools: Git is not installed or not found in PATH.");
             return false;
         }
 
         try {
-            string repoName = GuessRepoName(url);
-            string target = System.IO.Path.Combine(_gamesDir, repoName);
-            if (System.IO.Directory.Exists(target)) {
+            string repoName = GuessRepoName(url: url);
+            string target = System.IO.Path.Combine(path1: _gamesDir, path2: repoName);
+            if (System.IO.Directory.Exists(path: target)) {
                 IO.Info($"Directory '{repoName}' already exists. Skipping download.");
                 return true;
             }
 
-            System.IO.Directory.CreateDirectory(_gamesDir);
+            System.IO.Directory.CreateDirectory(path: _gamesDir);
             IO.writeLine($"Downloading '{repoName}' from '{url}'...");
             IO.writeLine($"Target directory: '{target}'");
 
@@ -41,10 +41,10 @@ internal static class GitTools {
                 title: "git clone",
                 onOutput: (line, _) => { IO.writeLine(line); },
                 onEvent: evt => {
-                    if (!evt.TryGetValue("event", out object? kind) || !string.Equals(kind?.ToString(), "end",
-                            System.StringComparison.OrdinalIgnoreCase)) return;
-                    if (evt.TryGetValue("exit_code", out object? code) &&
-                        int.TryParse(code?.ToString(), out int parsed)) {
+                    if (!evt.TryGetValue(key: "event", out object? kind) || !string.Equals(a: kind?.ToString(), b: "end",
+                            comparisonType: System.StringComparison.OrdinalIgnoreCase)) return;
+                    if (evt.TryGetValue(key: "exit_code", out object? code) &&
+                        int.TryParse(s: code?.ToString(), result: out int parsed)) {
                         rc = parsed;
                     }
                 }
@@ -56,7 +56,7 @@ internal static class GitTools {
 
             if (rc == 0) {
                 // Success
-                IO.writeLine($"\nSuccessfully downloaded '{repoName}'.", ConsoleColor.Green);
+                IO.writeLine($"\nSuccessfully downloaded '{repoName}'.", color: ConsoleColor.Green);
                 return true;
             }
 
@@ -123,10 +123,10 @@ internal static class GitTools {
 
     private static string GuessRepoName(string url) {
         try {
-            System.Uri uri = new System.Uri(url);
-            string leaf = System.IO.Path.GetFileName(uri.AbsolutePath);
-            if (leaf.EndsWith(".git", System.StringComparison.OrdinalIgnoreCase)) {
-                leaf = leaf.Substring(0, leaf.Length - 4);
+            System.Uri uri = new System.Uri(uriString: url);
+            string leaf = System.IO.Path.GetFileName(path: uri.AbsolutePath);
+            if (leaf.EndsWith(".git", comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
+                leaf = leaf.Substring(startIndex: 0, length: leaf.Length - 4);
             }
 
             if (!string.IsNullOrWhiteSpace(leaf)) {
@@ -140,10 +140,10 @@ internal static class GitTools {
                 $"[GitTools.cs::GuessRepoName()] ArgumentNullException: Passed URL was null, falling back to string parsing. Exception: {ex}");
         }
 
-        string tail = url.Replace("\\", "/");
+        string tail = url.Replace(oldValue: "\\", newValue: "/");
         int idx = tail.LastIndexOf('/');
-        string name = idx >= 0 ? tail.Substring(idx + 1) : tail;
-        return name.EndsWith(".git", System.StringComparison.OrdinalIgnoreCase) ? name[..^4] : name;
+        string name = idx >= 0 ? tail.Substring(startIndex: idx + 1) : tail;
+        return name.EndsWith(".git", comparisonType: System.StringComparison.OrdinalIgnoreCase) ? name[..^4] : name;
     }
 
 }

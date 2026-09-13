@@ -54,12 +54,12 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     public ModulePage() {
         ModuleName = this._moduleName = "demo";
 
-        Button_Play_Click = new Cmd(async _ => await PlayAsync());
-        Button_RunAll_Click = new Cmd(async _ => await RunAllAsync());
-        Button_Stop_Click = new Cmd(async _ => Stop());
-        Button_RunOp_Click = new Cmd(async p => await RunOpAsync(p as OpRow));
-        Button_Download_Click = new Cmd(async _ => await DownloadAsync());
-        Button_OpenFolder_Click = new Cmd(async _ => await OpenFolderAsync());
+        Button_Play_Click = new Cmd(run: async _ => await PlayAsync());
+        Button_RunAll_Click = new Cmd(run: async _ => await RunAllAsync());
+        Button_Stop_Click = new Cmd(run: async _ => Stop());
+        Button_RunOp_Click = new Cmd(run: async p => await RunOpAsync(row: p as OpRow));
+        Button_Download_Click = new Cmd(run: async _ => await DownloadAsync());
+        Button_OpenFolder_Click = new Cmd(run: async _ => await OpenFolderAsync());
 
         DataContext = this;
         InitializeComponent();
@@ -72,12 +72,12 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     internal ModulePage(string moduleName) {
         ModuleName = this._moduleName = moduleName;
 
-        Button_Play_Click = new Cmd(async _ => await PlayAsync());
-        Button_RunAll_Click = new Cmd(async _ => await RunAllAsync());
-        Button_Stop_Click = new Cmd(async _ => Stop());
-        Button_RunOp_Click = new Cmd(async p => await RunOpAsync(p as OpRow));
-        Button_Download_Click = new Cmd(async _ => await DownloadAsync());
-        Button_OpenFolder_Click = new Cmd(async _ => await OpenFolderAsync());
+        Button_Play_Click = new Cmd(run: async _ => await PlayAsync());
+        Button_RunAll_Click = new Cmd(run: async _ => await RunAllAsync());
+        Button_Stop_Click = new Cmd(run: async _ => Stop());
+        Button_RunOp_Click = new Cmd(run: async p => await RunOpAsync(row: p as OpRow));
+        Button_Download_Click = new Cmd(run: async _ => await DownloadAsync());
+        Button_OpenFolder_Click = new Cmd(run: async _ => await OpenFolderAsync());
 
         DataContext = this;
         InitializeComponent();
@@ -93,16 +93,16 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     private async void OnLoaded(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e) {
         if (_initOperations.Count == 0 || GuiBootstrapper.MiniEngine is null) {
             IsExecutionEnabled = true;
-            Raise(nameof(CanPlay));
-            Raise(nameof(CanRunAll));
-            Raise(nameof(CanRunOperation));
+            Raise(name: nameof(CanPlay));
+            Raise(name: nameof(CanRunAll));
+            Raise(name: nameof(CanRunOperation));
             return;
         }
 
         IsExecutionEnabled = false;
-        Raise(nameof(CanPlay));
-        Raise(nameof(CanRunAll));
-        Raise(nameof(CanRunOperation));
+        Raise(name: nameof(CanPlay));
+        Raise(name: nameof(CanRunAll));
+        Raise(name: nameof(CanRunOperation));
 
         // Auto-run init operations only when the engine-owned session does not report a successful run.
         bool shouldRunInit = false;
@@ -117,15 +117,15 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         }
 
         IsExecutionEnabled = true;
-        Raise(nameof(CanPlay));
-        Raise(nameof(CanRunAll));
-        Raise(nameof(CanRunOperation));
+        Raise(name: nameof(CanPlay));
+        Raise(name: nameof(CanRunAll));
+        Raise(name: nameof(CanRunOperation));
     }
 
     private void Load() {
         try {
             if (GuiBootstrapper.MiniEngine is null) {
-                throw new InvalidOperationException(message: "Engine is not initialized.");
+                throw new InvalidOperationException("Engine is not initialized.");
             }
 
             // Clear ops
@@ -133,8 +133,8 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             _initOperations.Clear();
 
             // Gather module info from multiple sources
-            Core.Data.GameModules modules = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
-            Core.Data.GameModuleInfo? m = modules.GetValueOrDefault(_moduleName);
+            Core.Data.GameModules modules = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.All);
+            Core.Data.GameModuleInfo? m = modules.GetValueOrDefault(key: _moduleName);
             if (m is not null) {
                 Title = string.IsNullOrWhiteSpace(m.Title) ? m.Name : m.Title;
                 ExePath = m.ExePath;
@@ -152,16 +152,16 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
             // Registry info (URL)
             IReadOnlyDictionary<string, object?> regs = GuiBootstrapper.MiniEngine.GameRegistry_GetRegisteredModules();
-            if (regs.TryGetValue(_moduleName, out object? regObj) && regObj is IDictionary<string, object?> reg) {
-                RegistryUrl = reg.TryGetValue(key: "url", value: out object? u) ? u?.ToString() : null;
+            if (regs.TryGetValue(key: _moduleName, out object? regObj) && regObj is IDictionary<string, object?> reg) {
+                RegistryUrl = reg.TryGetValue(key: "url", out object? u) ? u?.ToString() : null;
                 if (string.IsNullOrWhiteSpace(Title)) {
-                    string? title = reg.TryGetValue(key: "title", value: out object? t) ? t?.ToString() : null;
+                    string? title = reg.TryGetValue(key: "title", out object? t) ? t?.ToString() : null;
                     Title = string.IsNullOrWhiteSpace(title) ? _moduleName : title;
                 }
             }
 
-            Core.Data.GameModules games = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
-            ModuleOperationSession session = GuiBootstrapper.MiniEngine.OperationsService_LoadModuleSession(_moduleName, games);
+            Core.Data.GameModules games = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.All);
+            ModuleOperationSession session = GuiBootstrapper.MiniEngine.OperationsService_LoadModuleSession(gameName: _moduleName, games: games);
             if (session.Module is not null) {
                 if (string.IsNullOrWhiteSpace(ExePath)) {
                     ExePath = session.Module.ExePath;
@@ -180,11 +180,11 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 if (preparedOps.Warnings.Count > 0) {
                     foreach (string warning in preparedOps.Warnings) {
                         Shared.IO.Diagnostics.Log($"[ModulePage::Load()] Warning: {warning}");
-                        OperationOutputService.Instance.AddOutput($"Validation: {warning}", "stderr");
+                        OperationOutputService.Instance.AddOutput(text: $"Validation: {warning}", stream: "stderr");
                     }
                 }
 
-                _initOperations.AddRange(session.InitOperations);
+                _initOperations.AddRange(collection: session.InitOperations);
 
                 foreach (SessionOperation sessionOperation in session.RegularOperations) {
                     Core.Data.PreparedOperation op = sessionOperation.Operation;
@@ -213,20 +213,20 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 Shared.IO.Diagnostics.Log($"Load: No game info found for module {_moduleName}.");
             }
 
-            Raise(nameof(Title));
-            Raise(nameof(ExePath));
-            Raise(nameof(GameRoot));
-            Raise(nameof(IsBuilt));
-            Raise(nameof(IsInstalled));
-            Raise(nameof(IsRegistered));
-            Raise(nameof(IsUnverified));
-            Raise(nameof(IsUnbuilt));
-            Raise(nameof(CanPlay));
-            Raise(nameof(CanRunAll));
-            Raise(nameof(CanRunOperation));
-            Raise(nameof(CanDownload));
-            Raise(nameof(Image));
-            Raise(nameof(RegistryUrl));
+            Raise(name: nameof(Title));
+            Raise(name: nameof(ExePath));
+            Raise(name: nameof(GameRoot));
+            Raise(name: nameof(IsBuilt));
+            Raise(name: nameof(IsInstalled));
+            Raise(name: nameof(IsRegistered));
+            Raise(name: nameof(IsUnverified));
+            Raise(name: nameof(IsUnbuilt));
+            Raise(name: nameof(CanPlay));
+            Raise(name: nameof(CanRunAll));
+            Raise(name: nameof(CanRunOperation));
+            Raise(name: nameof(CanDownload));
+            Raise(name: nameof(Image));
+            Raise(name: nameof(RegistryUrl));
         } catch (System.Exception ex) {
             OperationOutputService.Instance.AddOutput(text: $"Module load failed: {ex.Message}", stream: "stderr");
             Shared.IO.Diagnostics.Bug($"Load: {ex}");
@@ -241,7 +241,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         string placeholder = System.IO.Path.Combine(path1: EngineNet.Shared.State.RootPath, path2: "placeholder.png");
         string pick = (!string.IsNullOrWhiteSpace(icon) && System.IO.File.Exists(path: icon)) ? icon : placeholder;
         try {
-            return System.IO.File.Exists(path: pick) ? new Bitmap(pick) : null;
+            return System.IO.File.Exists(path: pick) ? new Bitmap(fileName: pick) : null;
         } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"ResolveCoverBitmap: Failed to load bitmap from {pick}. {ex}");
             return null;
@@ -253,24 +253,24 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
         IsRunning = true;
         _cts = new CancellationTokenSource();
-        Raise(nameof(CanPlay));
-        Raise(nameof(CanRunAll));
-        Raise(nameof(CanRunOperation));
-        Raise(nameof(CanStop));
+        Raise(name: nameof(CanPlay));
+        Raise(name: nameof(CanRunAll));
+        Raise(name: nameof(CanRunOperation));
+        Raise(name: nameof(CanStop));
 
         try {
-            Core.Data.GameModules games = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
+            Core.Data.GameModules games = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.All);
 
             await EngineOperationRunner.RunAsync(
                 moduleName: ModuleName,
                 operationName: "Initialization Ops",
                 executor: async (_, onEvent, stdin) => {
-                    Shared.IO.UI.EngineSdk.LocalEventSink = e => onEvent(e);
+                    Shared.IO.UI.EngineSdk.LocalEventSink = e => onEvent(evt: e);
                     Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
 
                     System.IO.TextReader previous = System.Console.In;
                     try {
-                        System.Console.SetIn(new GuiStdinRedirectReader(provider: stdin));
+                        System.Console.SetIn(newIn: new GuiStdinRedirectReader(provider: stdin));
                         bool okAllInit = true;
                         foreach (SessionOperation sessionOperation in _initOperations) {
                             PreparedOperation op = sessionOperation.Operation;
@@ -279,9 +279,9 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
                             bool ok = await GuiBootstrapper.MiniEngine.RunSingleOperationAsync(
                                 currentGame: ModuleName,
-                                games,
+                                games: games,
                                 op: op.Operation,
-                                answers,
+                                promptAnswers: answers,
                                 cancellationToken: _cts.Token
                             );
                             okAllInit &= ok;
@@ -289,9 +289,9 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                         return okAllInit;
                     } finally {
                         try {
-                            System.Console.SetIn(previous);
+                            System.Console.SetIn(newIn: previous);
                         } catch (Exception ex) {
-                            System.Console.SetIn(previous);
+                            System.Console.SetIn(newIn: previous);
                             Shared.IO.Diagnostics.Bug($"ExecuteInitOperationsAsync: Failed to restore Console.In. {ex}");
                         }
                     }
@@ -306,10 +306,10 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             IsRunning = false;
             _cts?.Dispose();
             _cts = null;
-            Raise(nameof(CanPlay));
-            Raise(nameof(CanRunAll));
-            Raise(nameof(CanRunOperation));
-            Raise(nameof(CanStop));
+            Raise(name: nameof(CanPlay));
+            Raise(name: nameof(CanRunAll));
+            Raise(name: nameof(CanRunOperation));
+            Raise(name: nameof(CanStop));
         }
     }
 
@@ -318,10 +318,10 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
         IsRunning = true;
         _cts = new CancellationTokenSource();
-        Raise(nameof(CanPlay));
-        Raise(nameof(CanRunAll));
-        Raise(nameof(CanRunOperation));
-        Raise(nameof(CanStop));
+        Raise(name: nameof(CanPlay));
+        Raise(name: nameof(CanRunAll));
+        Raise(name: nameof(CanRunOperation));
+        Raise(name: nameof(CanStop));
         try {
             await EngineOperationRunner.RunAsync(
                 moduleName: ModuleName,
@@ -332,16 +332,16 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                     bool previousMute = Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink;
                     var previousIn = System.Console.In;
 
-                    Shared.IO.UI.EngineSdk.LocalEventSink = e => onEvent(e);
+                    Shared.IO.UI.EngineSdk.LocalEventSink = e => onEvent(evt: e);
                     Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
 
                     try {
-                        System.Console.SetIn(new GuiStdinRedirectReader(provider: stdin));
+                        System.Console.SetIn(newIn: new GuiStdinRedirectReader(provider: stdin));
                         return await GuiBootstrapper.MiniEngine.GameLauncher_LaunchGameAsync(name: ModuleName, cancellationToken: _cts.Token);
                     } finally {
                         Shared.IO.UI.EngineSdk.LocalEventSink = previousSink;
                         Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = previousMute;
-                        System.Console.SetIn(previousIn);
+                        System.Console.SetIn(newIn: previousIn);
                     }
                 }
             );
@@ -352,10 +352,10 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             IsRunning = false;
             _cts?.Dispose();
             _cts = null;
-            Raise(nameof(CanPlay));
-            Raise(nameof(CanRunAll));
-            Raise(nameof(CanRunOperation));
-            Raise(nameof(CanStop));
+            Raise(name: nameof(CanPlay));
+            Raise(name: nameof(CanRunAll));
+            Raise(name: nameof(CanRunOperation));
+            Raise(name: nameof(CanStop));
         }
     }
 
@@ -364,10 +364,10 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
         IsRunning = true;
         _cts = new CancellationTokenSource();
-        Raise(nameof(CanPlay));
-        Raise(nameof(CanRunAll));
-        Raise(nameof(CanRunOperation));
-        Raise(nameof(CanStop));
+        Raise(name: nameof(CanPlay));
+        Raise(name: nameof(CanRunAll));
+        Raise(name: nameof(CanRunOperation));
+        Raise(name: nameof(CanStop));
 
         try {
             await EngineOperationRunner.RunAsync(
@@ -388,10 +388,10 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             IsRunning = false;
             _cts?.Dispose();
             _cts = null;
-            Raise(nameof(CanPlay));
-            Raise(nameof(CanRunAll));
-            Raise(nameof(CanRunOperation));
-            Raise(nameof(CanStop));
+            Raise(name: nameof(CanPlay));
+            Raise(name: nameof(CanRunAll));
+            Raise(name: nameof(CanRunOperation));
+            Raise(name: nameof(CanStop));
         }
     }
 
@@ -404,13 +404,13 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
         IsRunning = true;
         _cts = new CancellationTokenSource();
-        Raise(nameof(CanPlay));
-        Raise(nameof(CanRunAll));
-        Raise(nameof(CanRunOperation));
-        Raise(nameof(CanStop));
+        Raise(name: nameof(CanPlay));
+        Raise(name: nameof(CanRunAll));
+        Raise(name: nameof(CanRunOperation));
+        Raise(name: nameof(CanStop));
 
         try {
-            Core.Data.GameModules games = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(Core.Data.ModuleFilter.All);
+            Core.Data.GameModules games = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.All);
 
             Core.Data.PromptAnswers promptAnswers = new Core.Data.PromptAnswers();
             await CollectAnswersForOperationAsync(op: row.Op, answers: promptAnswers);
@@ -420,25 +420,25 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 moduleName: ModuleName,
                 operationName: row.Name,
                 executor: async (_, onEvent, stdin) => {
-                    Shared.IO.UI.EngineSdk.LocalEventSink = e => onEvent(e);
+                    Shared.IO.UI.EngineSdk.LocalEventSink = e => onEvent(evt: e);
                     Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
 
                     System.IO.TextReader previous = System.Console.In;
                     try {
-                        System.Console.SetIn(new GuiStdinRedirectReader(provider: stdin));
+                        System.Console.SetIn(newIn: new GuiStdinRedirectReader(provider: stdin));
                         bool ok = await GuiBootstrapper.MiniEngine.RunSingleOperationAsync(
                             currentGame: ModuleName,
-                            games,
+                            games: games,
                             op: row.Op,
-                            promptAnswers,
+                            promptAnswers: promptAnswers,
                             cancellationToken: _cts.Token
                         );
                         return ok;
                     } finally {
                         try {
-                            System.Console.SetIn(previous);
+                            System.Console.SetIn(newIn: previous);
                         } catch (Exception ex) {
-                            System.Console.SetIn(previous);
+                            System.Console.SetIn(newIn: previous);
                             Shared.IO.Diagnostics.Bug($"RunOpAsync: Failed to restore Console.In. {ex}");
                         }
                     }
@@ -454,10 +454,10 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             IsRunning = false;
             _cts?.Dispose();
             _cts = null;
-            Raise(nameof(CanPlay));
-            Raise(nameof(CanRunAll));
-            Raise(nameof(CanRunOperation));
-            Raise(nameof(CanStop));
+            Raise(name: nameof(CanPlay));
+            Raise(name: nameof(CanRunAll));
+            Raise(name: nameof(CanRunOperation));
+            Raise(name: nameof(CanStop));
         }
     }
 
@@ -469,10 +469,10 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 moduleName: ModuleName,
                 operationName: $"Download {ModuleName}",
                 executor: async (onOutput, onEvent, _) => {
-                    onEvent(new Dictionary<string, object?> { ["event"] = EngineSdk.Events.Start, ["name"] = ModuleName, ["url"] = RegistryUrl });
-                    bool result = await System.Threading.Tasks.Task.Run(function: () => GuiBootstrapper.MiniEngine.GitService_CloneModule(RegistryUrl!));
-                    onOutput(result ? $"Download complete for {ModuleName}." : $"Download failed for {ModuleName}.", result ? "stdout" : "stderr");
-                    onEvent(new Dictionary<string, object?> { ["event"] = EngineSdk.Events.End, ["success"] = result, ["name"] = ModuleName });
+                    onEvent(evt: new Dictionary<string, object?> { [key: "event"] = EngineSdk.Events.Start, [key: "name"] = ModuleName, [key: "url"] = RegistryUrl });
+                    bool result = await System.Threading.Tasks.Task.Run(function: () => GuiBootstrapper.MiniEngine.GitService_CloneModule(url: RegistryUrl!));
+                    onOutput(line: result ? $"Download complete for {ModuleName}." : $"Download failed for {ModuleName}.", streamName: result ? "stdout" : "stderr");
+                    onEvent(evt: new Dictionary<string, object?> { [key: "event"] = EngineSdk.Events.End, [key: "success"] = result, [key: "name"] = ModuleName });
                     return result;
                 }
             );
@@ -489,13 +489,13 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         if (string.IsNullOrWhiteSpace(path) || !System.IO.Directory.Exists(path: path)) {
             return;
         }
-        GuiBootstrapper.MiniEngine.CommandService_OpenFolder(path);
+        GuiBootstrapper.MiniEngine.CommandService_OpenFolder(path: path);
         await System.Threading.Tasks.Task.CompletedTask;
     }
 
     private bool IsDownloaded() {
         if (GuiBootstrapper.MiniEngine is null) return false;
-        string path = System.IO.Path.Combine(path1: EngineNet.Shared.State.RootPath, path2: System.IO.Path.Combine("EngineApps", "Games", _moduleName));
+        string path = System.IO.Path.Combine(path1: EngineNet.Shared.State.RootPath, path2: System.IO.Path.Combine(path1: "EngineApps", path2: "Games", path3: _moduleName));
         return System.IO.Directory.Exists(path: path);
     }
 
@@ -508,7 +508,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             switch (request.Type) {
                 case EngineSdk.Events.Confirm: {
                     bool defVal = request.DefaultValue is bool b && b;
-                    bool? res = await OperationOutputService.Instance.RequestConfirmPromptAsync(title: request.Title, message: request.Title, defaultValue: defVal);
+                    bool? res = await OperationOutputService.Instance.RequestConfirmPromptAsync(title: request.Title, request.Title, defaultValue: defVal);
                     if (res == null) {
                         return Core.Data.PromptResponse.Cancelled();
                     }
@@ -517,9 +517,9 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 }
                 case "select": {
                     string hint = request.Choices.Count > 0
-                        ? $"Choices: {string.Join(", ", request.Choices.Select(choice => choice.Label))}"
+                        ? $"Choices: {string.Join(separator: ", ", values: request.Choices.Select(selector: choice => choice.Label))}"
                         : "No choices provided";
-                    string? v = await OperationOutputService.Instance.RequestTextPromptAsync(title: request.Title, message: hint, defaultValue: request.DefaultValue?.ToString(), secret: request.IsSecret);
+                    string? v = await OperationOutputService.Instance.RequestTextPromptAsync(title: request.Title, hint, defaultValue: request.DefaultValue?.ToString(), secret: request.IsSecret);
                     if (string.IsNullOrWhiteSpace(v)) {
                         return request.DefaultValue is not null
                             ? Core.Data.PromptResponse.UseDefaultValue()
@@ -530,9 +530,9 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 }
                 case "checkbox": {
                     string hint = request.Choices.Count > 0
-                        ? $"Enter comma-separated values (Choices: {string.Join(", ", request.Choices.Select(choice => choice.Label))})"
+                        ? $"Enter comma-separated values (Choices: {string.Join(separator: ", ", values: request.Choices.Select(selector: choice => choice.Label))})"
                         : "Enter comma-separated values";
-                    string? v = await OperationOutputService.Instance.RequestTextPromptAsync(title: request.Title, message: hint, defaultValue: null, secret: request.IsSecret);
+                    string? v = await OperationOutputService.Instance.RequestTextPromptAsync(title: request.Title, hint, defaultValue: null, secret: request.IsSecret);
 
                     if (string.IsNullOrWhiteSpace(v)) {
                         if (request.DefaultValue is IList<object?>) {
@@ -543,9 +543,9 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                     }
 
                     List<object?> list = new List<object?>();
-                    string[] parts = v.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);
+                    string[] parts = v.Split(separator: ',', options: System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);
                     foreach (string s in parts) {
-                        list.Add(s);
+                        list.Add(item: s);
                     }
 
                     return Core.Data.PromptResponse.FromValue(list);
@@ -553,7 +553,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 //case "text":
                 default: {
                     string? def = request.DefaultValue?.ToString();
-                    string? v = await OperationOutputService.Instance.RequestTextPromptAsync(title: request.Title, message: request.Title, defaultValue: def, secret: request.IsSecret);
+                    string? v = await OperationOutputService.Instance.RequestTextPromptAsync(title: request.Title, request.Title, defaultValue: def, secret: request.IsSecret);
                     if (string.IsNullOrWhiteSpace(v)) {
                         return request.DefaultValue is not null
                             ? Core.Data.PromptResponse.UseDefaultValue()
@@ -565,7 +565,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             }
         }
 
-        await GuiBootstrapper.MiniEngine.OperationsService_CollectAnswersAsync(op, answers, promptHandler, defaultsOnly);
+        await GuiBootstrapper.MiniEngine.OperationsService_CollectAnswersAsync(op: op, answers: answers, promptHandler: promptHandler, defaultsOnly: defaultsOnly);
     }
 
     /* :: :: Methods :: END :: */
@@ -618,13 +618,13 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         remove => _propertyChanged -= value;
     }
 
-    private void Raise(string name) => _propertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName: name));
+    private void Raise(string name) => _propertyChanged?.Invoke(sender: this, e: new PropertyChangedEventArgs(propertyName: name));
 
     private sealed class Cmd:System.Windows.Input.ICommand {
         private readonly System.Func<object?, System.Threading.Tasks.Task> _run;
         internal Cmd(System.Func<object?, System.Threading.Tasks.Task> run) { _run = run; }
         public bool CanExecute(object? parameter) => true;
-        public async void Execute(object? parameter) => await _run(parameter);
+        public async void Execute(object? parameter) => await _run(arg: parameter);
         public event System.EventHandler? CanExecuteChanged {
             add { }
             remove { }

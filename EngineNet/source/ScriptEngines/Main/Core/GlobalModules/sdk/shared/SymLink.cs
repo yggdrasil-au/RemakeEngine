@@ -20,28 +20,28 @@ internal static class SymLink {
                 return false;
             }
 
-            string destFull = System.IO.Path.GetFullPath(destination);
-            string srcFull = System.IO.Path.GetFullPath(source);
-            string? parent = System.IO.Path.GetDirectoryName(destFull);
+            string destFull = System.IO.Path.GetFullPath(path: destination);
+            string srcFull = System.IO.Path.GetFullPath(path: source);
+            string? parent = System.IO.Path.GetDirectoryName(path: destFull);
 
             if (!string.IsNullOrEmpty(parent)) {
-                System.IO.Directory.CreateDirectory(parent);
+                System.IO.Directory.CreateDirectory(path: parent);
             }
 
             if (overwrite) {
-                RemoveExistingDestination(destFull);
+                RemoveExistingDestination(destinationFullPath: destFull);
             }
 
             if (isDirectory) {
-                System.IO.Directory.CreateSymbolicLink(destFull, srcFull);
+                System.IO.Directory.CreateSymbolicLink(path: destFull, pathToTarget: srcFull);
             } else {
-                System.IO.File.CreateSymbolicLink(destFull, srcFull);
+                System.IO.File.CreateSymbolicLink(path: destFull, pathToTarget: srcFull);
             }
 
             return true;
         } catch (Exception ex) {
             Shared.IO.UI.EngineSdk.Error($"create_symlink failed: {ex.Message}");
-            Shared.IO.Diagnostics.LuaInternalCatch($"create_symlink failed with exception: {ex}");
+            Shared.IO.Diagnostics.LuaInternalCatch(ex: $"create_symlink failed with exception: {ex}");
             return false;
         }
     }
@@ -50,20 +50,20 @@ internal static class SymLink {
     /// Removes an existing file, directory, or symlink at the target path.
     /// </summary>
     private static void RemoveExistingDestination(string destinationFullPath) {
-        if (FileSystemUtils.IsSymlink(destinationFullPath) || System.IO.File.Exists(destinationFullPath)) {
-            System.IO.File.Delete(destinationFullPath);
+        if (FileSystemUtils.IsSymlink(path: destinationFullPath) || System.IO.File.Exists(path: destinationFullPath)) {
+            System.IO.File.Delete(path: destinationFullPath);
             return;
         }
 
-        if (System.IO.Directory.Exists(destinationFullPath)) {
-            System.IO.Directory.Delete(destinationFullPath, true);
+        if (System.IO.Directory.Exists(path: destinationFullPath)) {
+            System.IO.Directory.Delete(path: destinationFullPath, recursive: true);
         }
     }
 
     /// <summary>
     /// Checks if Developer Mode is enabled AND if the current user has the SeCreateSymbolicLinkPrivilege.
     /// </summary>
-    [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform(platformName: "windows")]
     internal static bool CanCreateSymLinks() {
         return IsDevModeEnabled() || HasSymbolicLinkPrivilege();
     }
@@ -87,46 +87,46 @@ internal static class SymLink {
     // //
     /* :: :: Internal Checks :: START :: */
 
-    [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform(platformName: "windows")]
     private static bool IsDevModeEnabled() {
         const string keyName = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock";
         const string valueName = "AllowDevelopmentWithoutDevLicense";
         try {
-            object? val = Registry.GetValue(keyName, valueName, 0);
+            object? val = Registry.GetValue(keyName: keyName, valueName: valueName, defaultValue: 0);
             return val != null && (int)val == 1;
         } catch {
             return false;
         }
     }
 
-    [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform(platformName: "windows")]
     private static bool HasSymbolicLinkPrivilege() {
         IntPtr hToken = IntPtr.Zero;
         try {
             // Open the access token for the current process
             // TOKEN_QUERY = 0x0008
-            if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, out hToken)) {
+            if (!OpenProcessToken(ProcessHandle: GetCurrentProcess(), DesiredAccess: TOKEN_QUERY, TokenHandle: out hToken)) {
                 return false;
             }
 
             Luid luid = new Luid();
             // "SeCreateSymbolicLinkPrivilege"
-            if (!LookupPrivilegeValue(null, SE_CREATE_SYMBOLIC_LINK_NAME, ref luid)) {
+            if (!LookupPrivilegeValue(lpSystemName: null, lpName: SE_CREATE_SYMBOLIC_LINK_NAME, lpLuid: ref luid)) {
                 return false;
             }
 
             uint tokenInfoLength;
-            GetTokenInformation(hToken, TokenInformationClass.TokenPrivileges, IntPtr.Zero, 0, out tokenInfoLength);
+            GetTokenInformation(TokenHandle: hToken, TokenInformationClass: TokenInformationClass.TokenPrivileges, TokenInformation: IntPtr.Zero, TokenInformationLength: 0, ReturnLength: out tokenInfoLength);
 
-            IntPtr tokenInfo = Marshal.AllocHGlobal((int)tokenInfoLength);
+            IntPtr tokenInfo = Marshal.AllocHGlobal(cb: (int)tokenInfoLength);
             try {
-                if (GetTokenInformation(hToken, TokenInformationClass.TokenPrivileges, tokenInfo, tokenInfoLength, out tokenInfoLength)) {
-                    int privilegeCount = Marshal.ReadInt32(tokenInfo);
+                if (GetTokenInformation(TokenHandle: hToken, TokenInformationClass: TokenInformationClass.TokenPrivileges, TokenInformation: tokenInfo, TokenInformationLength: tokenInfoLength, ReturnLength: out tokenInfoLength)) {
+                    int privilegeCount = Marshal.ReadInt32(ptr: tokenInfo);
                     // Ptr arithmetic: offset by size of int (PrivilegeCount)
                     IntPtr currentPtr = new IntPtr(tokenInfo.ToInt64() + sizeof(int));
 
                     for (int i = 0; i < privilegeCount; i++) {
-                        LuidAndAttributes laa = Marshal.PtrToStructure<LuidAndAttributes>(currentPtr);
+                        LuidAndAttributes laa = Marshal.PtrToStructure<LuidAndAttributes>(ptr: currentPtr);
                         if (laa.Luid.LowPart == luid.LowPart && laa.Luid.HighPart == luid.HighPart) {
                             // If the privilege is present in the token (even if disabled, it can often be enabled, 
                             // but usually for this check we just care if it's assigned).
@@ -134,15 +134,15 @@ internal static class SymLink {
                             // but .NET runtime handles enabling it if present.
                             return true;
                         }
-                        currentPtr = new IntPtr(currentPtr.ToInt64() + Marshal.SizeOf(typeof(LuidAndAttributes)));
+                        currentPtr = new IntPtr(currentPtr.ToInt64() + Marshal.SizeOf(t: typeof(LuidAndAttributes)));
                     }
                 }
             } finally {
-                Marshal.FreeHGlobal(tokenInfo);
+                Marshal.FreeHGlobal(hglobal: tokenInfo);
             }
         } finally {
             if (hToken != IntPtr.Zero) {
-                CloseHandle(hToken);
+                CloseHandle(hObject: hToken);
             }
         }
         return false;
@@ -152,35 +152,35 @@ internal static class SymLink {
     // //
     /* :: :: P/Invoke Boilerplate :: START :: */
 
-    [DllImport("advapi32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
+    [DllImport(dllName: "advapi32.dll", SetLastError = true)]
+    [return: MarshalAs(unmanagedType: UnmanagedType.Bool)]
     private static extern bool OpenProcessToken(IntPtr ProcessHandle, uint DesiredAccess, out IntPtr TokenHandle);
 
-    [DllImport("kernel32.dll")]
+    [DllImport(dllName: "kernel32.dll")]
     private static extern IntPtr GetCurrentProcess();
 
-    [DllImport("advapi32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
+    [DllImport(dllName: "advapi32.dll", SetLastError = true)]
+    [return: MarshalAs(unmanagedType: UnmanagedType.Bool)]
     private static extern bool GetTokenInformation(IntPtr TokenHandle, TokenInformationClass TokenInformationClass, IntPtr TokenInformation, uint TokenInformationLength, out uint ReturnLength);
 
-    [DllImport("advapi32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
+    [DllImport(dllName: "advapi32.dll", SetLastError = true)]
+    [return: MarshalAs(unmanagedType: UnmanagedType.Bool)]
     private static extern bool LookupPrivilegeValue(string? lpSystemName, string lpName, ref Luid lpLuid);
 
-    [DllImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
+    [DllImport(dllName: "kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(unmanagedType: UnmanagedType.Bool)]
     private static extern bool CloseHandle(IntPtr hObject);
 
     private const uint TOKEN_QUERY = 0x0008;
 
     private enum TokenInformationClass { TokenPrivileges = 3 }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(layoutKind: LayoutKind.Sequential)]
     private struct Luid {
         internal uint LowPart; internal int HighPart;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(layoutKind: LayoutKind.Sequential)]
     private struct LuidAndAttributes {
         internal Luid Luid; internal uint Attributes;
     }

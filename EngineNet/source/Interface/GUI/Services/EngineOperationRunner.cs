@@ -25,7 +25,7 @@ public static class EngineOperationRunner {
     ) {
 
         OperationOutputService outputService = OperationOutputService.Instance;
-        outputService.StartOperation(operationName, moduleName);
+        outputService.StartOperation(operationName: operationName, gameName: moduleName);
 
         object promptLock = new object();
         string? lastPromptMessage = null;
@@ -35,7 +35,7 @@ public static class EngineOperationRunner {
         bool lastPromptDefault = false;
 
         void CapturePrompt(Dictionary<string, object?> evt) {
-            if (!evt.TryGetValue("event", out object? typeObj)) {
+            if (!evt.TryGetValue(key: "event", out object? typeObj)) {
                 return;
             }
 
@@ -43,22 +43,22 @@ public static class EngineOperationRunner {
             if (type == EngineSdk.Events.Prompt || type == EngineSdk.Events.ColorPrompt || type == EngineSdk.Events.Confirm) {
                 lock (promptLock) {
                     lastPromptType = type;
-                    lastPromptMessage = evt.TryGetValue("message", out object? msg) ? msg?.ToString() : "Input required";
-                    lastPromptId = evt.TryGetValue("id", out object? idObj) ? idObj?.ToString() : null;
-                    lastPromptSecret = evt.TryGetValue("secret", out object? secretObj) && secretObj is bool b && b;
+                    lastPromptMessage = evt.TryGetValue(key: "message", out object? msg) ? msg?.ToString() : "Input required";
+                    lastPromptId = evt.TryGetValue(key: "id", out object? idObj) ? idObj?.ToString() : null;
+                    lastPromptSecret = evt.TryGetValue(key: "secret", out object? secretObj) && secretObj is bool b && b;
                     if (type == EngineSdk.Events.Confirm) {
-                        lastPromptDefault = evt.TryGetValue("default", out object? defObj) && defObj is bool d && d;
+                        lastPromptDefault = evt.TryGetValue(key: "default", out object? defObj) && defObj is bool d && d;
                     }
                 }
             }
         }
 
         Core.ProcessRunner.EventHandler eventHandler = evt => {
-            CapturePrompt(evt);
-            outputService.HandleEvent(evt);
+            CapturePrompt(evt: evt);
+            outputService.HandleEvent(evt: evt);
         };
 
-        Core.ProcessRunner.OutputHandler outputHandler = (string line, string stream) => outputService.AddOutput(line, stream);
+        Core.ProcessRunner.OutputHandler outputHandler = (string line, string stream) => outputService.AddOutput(text: line, stream: stream);
 
         Core.ProcessRunner.StdinProvider stdinProvider = () => {
             string? promptMessage;
@@ -76,17 +76,17 @@ public static class EngineOperationRunner {
 
             string? response = null;
             try {
-                global::Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () => {
+                global::Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(callback: async () => {
                     try {
                         string title = !string.IsNullOrWhiteSpace(promptId) ? promptId : "Input Required";
                         if (promptType == EngineSdk.Events.Confirm) {
-                            bool? res = await OperationOutputService.Instance.RequestConfirmPromptAsync(title, promptMessage, promptDefault);
+                            bool? res = await OperationOutputService.Instance.RequestConfirmPromptAsync(title: title, promptMessage, defaultValue: promptDefault);
                             response = res.HasValue ? (res.Value ? "y" : "n") : string.Empty;
                         } else {
-                            response = await OperationOutputService.Instance.RequestTextPromptAsync(title, promptMessage, defaultValue: null, promptSecret);
+                            response = await OperationOutputService.Instance.RequestTextPromptAsync(title: title, promptMessage, defaultValue: null, secret: promptSecret);
                         }
                     } catch (System.Exception ex) {
-                        outputService.AddOutput($"Prompt dialog failed: {ex.Message}", stream: "stderr");
+                        outputService.AddOutput(text: $"Prompt dialog failed: {ex.Message}", stream: "stderr");
                         response = string.Empty;
                     }
                 }).Wait();
@@ -98,9 +98,9 @@ public static class EngineOperationRunner {
             return response ?? string.Empty;
         };
 
-        System.Action<Dictionary<string, object?>> sink = evt => { CapturePrompt(evt); outputService.HandleEvent(evt); };
+        System.Action<Dictionary<string, object?>> sink = evt => { CapturePrompt(evt: evt); outputService.HandleEvent(evt: evt); };
         using (new Shared.IO.UI.SdkEventScope(sink: sink, muteStdout: true, autoPromptResponses: autoPromptResponses)) {
-            return await Task.Run(() => executor(outputHandler, eventHandler, stdinProvider)).ConfigureAwait(false);
+            return await Task.Run(function: () => executor(arg1: outputHandler, arg2: eventHandler, arg3: stdinProvider)).ConfigureAwait(continueOnCapturedContext: false);
         }
     }
 }

@@ -9,66 +9,66 @@ namespace EngineNet.ScriptEngines.Lua.Global;
 internal static class Sqlite {
     internal static void CreateSqliteModule(LuaWorld _LuaWorld) {
 
-        _LuaWorld.SqliteModule["open"] = DynValue.NewCallback((ctx, args) => {
-            if (args.Count < 1 || args[0].Type != DataType.String) {
+        _LuaWorld.SqliteModule[key: "open"] = DynValue.NewCallback(callBack: (ctx, args) => {
+            if (args.Count < 1 || args[index: 0].Type != DataType.String) {
                 throw new ScriptRuntimeException("sqlite.open(path) requires a string path");
             }
 
-            string path = args[0].String;
+            string path = args[index: 0].String;
 
             // Security: Restrict SQLite database paths to within the project directory
-            if (!EngineNet.ScriptEngines.Security.IsAllowedPath(path)) {
+            if (!EngineNet.ScriptEngines.Security.IsAllowedPath(path: path)) {
                 throw new ScriptRuntimeException($"Access denied: SQLite database path '{path}' is outside allowed workspace areas");
             }
 
-            SqliteHandle handle = new SqliteHandle(_LuaWorld.LuaScript, path);
-            return DynValue.NewTable(CreateSqliteHandleTable(_LuaWorld, handle));
+            SqliteHandle handle = new SqliteHandle(script: _LuaWorld.LuaScript, path: path);
+            return DynValue.NewTable(table: CreateSqliteHandleTable(_LuaWorld: _LuaWorld, handle: handle));
         });
         // return _LuaWorld.SqliteModule;
-        _LuaWorld.LuaScript.Globals["sqlite"] = _LuaWorld.SqliteModule;
+        _LuaWorld.LuaScript.Globals[key: "sqlite"] = _LuaWorld.SqliteModule;
     }
 
     private static Table CreateSqliteHandleTable(LuaWorld _LuaWorld, SqliteHandle handle) {
-        Table SqliteHandleTable = new Table(_LuaWorld.LuaScript);
-        SqliteHandleTable["exec"] = DynValue.NewCallback((ctx, args) => {
-            int offset = args.Count > 0 && args[0].Type == DataType.Table ? 1 : 0;
-            if (args.Count <= offset || args[offset].Type != DataType.String) {
+        Table SqliteHandleTable = new Table(owner: _LuaWorld.LuaScript);
+        SqliteHandleTable[key: "exec"] = DynValue.NewCallback(callBack: (ctx, args) => {
+            int offset = args.Count > 0 && args[index: 0].Type == DataType.Table ? 1 : 0;
+            if (args.Count <= offset || args[index: offset].Type != DataType.String) {
                 throw new ScriptRuntimeException("sqlite handle exec(sql [, params])");
             }
 
-            string sql = args[offset].String;
-            Table? paramTable = args.Count > offset + 1 && args[offset + 1].Type == DataType.Table ? args[offset + 1].Table : null;
-            int affected = handle.Execute(sql, paramTable);
-            return DynValue.NewNumber(affected);
+            string sql = args[index: offset].String;
+            Table? paramTable = args.Count > offset + 1 && args[index: offset + 1].Type == DataType.Table ? args[index: offset + 1].Table : null;
+            int affected = handle.Execute(sql: sql, parameters: paramTable);
+            return DynValue.NewNumber(num: affected);
         });
-        SqliteHandleTable["query"] = DynValue.NewCallback((ctx, args) => {
-            int offset = args.Count > 0 && args[0].Type == DataType.Table ? 1 : 0;
-            if (args.Count <= offset || args[offset].Type != DataType.String) {
+        SqliteHandleTable[key: "query"] = DynValue.NewCallback(callBack: (ctx, args) => {
+            int offset = args.Count > 0 && args[index: 0].Type == DataType.Table ? 1 : 0;
+            if (args.Count <= offset || args[index: offset].Type != DataType.String) {
                 throw new ScriptRuntimeException("sqlite handle query(sql [, params])");
             }
 
-            string sql = args[offset].String;
-            Table? paramTable = args.Count > offset + 1 && args[offset + 1].Type == DataType.Table ? args[offset + 1].Table : null;
-            return handle.Query(sql, paramTable);
+            string sql = args[index: offset].String;
+            Table? paramTable = args.Count > offset + 1 && args[index: offset + 1].Type == DataType.Table ? args[index: offset + 1].Table : null;
+            return handle.Query(sql: sql, parameters: paramTable);
         });
-        SqliteHandleTable["begin"] = DynValue.NewCallback((ctx, args) => {
+        SqliteHandleTable[key: "begin"] = DynValue.NewCallback(callBack: (ctx, args) => {
             handle.BeginTransaction();
             return DynValue.Nil;
         });
-        SqliteHandleTable["commit"] = DynValue.NewCallback((ctx, args) => {
+        SqliteHandleTable[key: "commit"] = DynValue.NewCallback(callBack: (ctx, args) => {
             handle.Commit();
             return DynValue.Nil;
         });
-        SqliteHandleTable["rollback"] = DynValue.NewCallback((ctx, args) => {
+        SqliteHandleTable[key: "rollback"] = DynValue.NewCallback(callBack: (ctx, args) => {
             handle.Rollback();
             return DynValue.Nil;
         });
-        SqliteHandleTable["close"] = DynValue.NewCallback((ctx, args) => {
+        SqliteHandleTable[key: "close"] = DynValue.NewCallback(callBack: (ctx, args) => {
             handle.Dispose();
             return DynValue.Nil;
         });
-        SqliteHandleTable["dispose"] = SqliteHandleTable.Get("close");
-        SqliteHandleTable["__handle"] = UserData.Create(handle);
+        SqliteHandleTable[key: "dispose"] = SqliteHandleTable.Get(key: "close");
+        SqliteHandleTable[key: "__handle"] = UserData.Create(o: handle);
         return SqliteHandleTable;
     }
 }

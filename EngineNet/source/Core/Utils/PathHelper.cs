@@ -15,12 +15,12 @@ internal static class PathHelper {
         if (string.IsNullOrWhiteSpace(path)) return path ?? string.Empty;
 
         // Ensure path uses consistent separators for the OS
-        string normalizedPath = path.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
+        string normalizedPath = path.Replace(oldChar: '/', newChar: Path.DirectorySeparatorChar).Replace(oldChar: '\\', newChar: Path.DirectorySeparatorChar);
 
-        if (Path.IsPathRooted(normalizedPath)) {
-            return Path.GetFullPath(normalizedPath);
+        if (Path.IsPathRooted(path: normalizedPath)) {
+            return Path.GetFullPath(path: normalizedPath);
         }
 
-        return Path.GetFullPath(Path.Combine(root, normalizedPath));
+        return Path.GetFullPath(path: Path.Combine(path1: root, path2: normalizedPath));
     }
 }

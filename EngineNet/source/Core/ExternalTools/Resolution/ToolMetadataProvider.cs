@@ -7,23 +7,23 @@ namespace EngineNet.Core.ExternalTools;
 public static class ToolMetadataProvider {
 
     public static (string? exe, string? version) ResolveExeAndVersion(string toolId, string _rootPath, JsonToolResolver _toolResolver) {
-        string jsonPath = ToolLockfile.GetPath(_rootPath);
+        string jsonPath = ToolLockfile.GetPath(rootPath: _rootPath);
 
-        if (System.IO.File.Exists(jsonPath)) {
-            Dictionary<string, Dictionary<string, ToolLockfileEntry>> lockData = ToolLockfileManager.Load(jsonPath);
-            if (lockData.TryGetValue(toolId, out Dictionary<string, ToolLockfileEntry>? versions)) {
+        if (System.IO.File.Exists(path: jsonPath)) {
+            Dictionary<string, Dictionary<string, ToolLockfileEntry>> lockData = ToolLockfileManager.Load(lockPath: jsonPath);
+            if (lockData.TryGetValue(key: toolId, out Dictionary<string, ToolLockfileEntry>? versions)) {
                 foreach (KeyValuePair<string, ToolLockfileEntry> versionEntry in versions) {
                     if (string.IsNullOrWhiteSpace(versionEntry.Value.Exe)) {
                         continue;
                     }
 
-                    string exe = ResolveRelative(jsonPath, versionEntry.Value.Exe);
+                    string exe = ResolveRelative(jsonPath: jsonPath, path: versionEntry.Value.Exe);
                     return (exe, versionEntry.Key);
                 }
             }
         }
 
-        string path = _toolResolver.ResolveToolPath(toolId);
+        string path = _toolResolver.ResolveToolPath(toolId: toolId);
         return (path, null);
     }
 
@@ -32,11 +32,11 @@ public static class ToolMetadataProvider {
             return string.Empty;
         }
 
-        if (System.IO.Path.IsPathRooted(path)) {
+        if (System.IO.Path.IsPathRooted(path: path)) {
             return path;
         }
 
-        string baseDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(jsonPath)) ?? System.IO.Directory.GetCurrentDirectory();
-        return System.IO.Path.GetFullPath(System.IO.Path.Combine(baseDir, path));
+        string baseDir = System.IO.Path.GetDirectoryName(path: System.IO.Path.GetFullPath(path: jsonPath)) ?? System.IO.Directory.GetCurrentDirectory();
+        return System.IO.Path.GetFullPath(path: System.IO.Path.Combine(path1: baseDir, path2: path));
     }
 }
