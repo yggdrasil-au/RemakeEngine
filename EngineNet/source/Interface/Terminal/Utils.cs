@@ -386,7 +386,7 @@ public sealed class Utils {
         try {
             Dictionary<string, object?> safe = CloneForLogging(evt: evt);
             string json = JsonSerializer.Serialize(safe, options: s_jsonOpts);
-            Shared.IO.Diagnostics.Log($"{json}");
+            Shared.IO.Diagnostics.Trace($"{json}");
         }
         catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"<serialization failed: {ex.Message}>");

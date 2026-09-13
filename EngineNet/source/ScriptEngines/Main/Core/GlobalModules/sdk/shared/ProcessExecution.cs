@@ -4,6 +4,8 @@ using EngineNet.Core.Services;
 
 namespace EngineNet.ScriptEngines.Global.SdkModule;
 
+// todo refactor this class to be a general-purpose process execution utility for all languages, and move Lua-specific code to ModuleHelpers/Lua.ProcessExecution.cs
+
 /// <summary>
 /// Process execution functionality for Lua scripts.
 /// Provides secure process execution with validation.
@@ -235,6 +237,16 @@ internal static class ProcessExecution {
         }
     }
 
+    /// <summary>
+    /// Executes a command in the current terminal, capturing its output and exit code.
+    /// </summary>
+    /// <param name="lua">The Lua script context.</param>
+    /// <param name="cs">The command service used to execute the command.</param>
+    /// <param name="parts">The command and its arguments as a list of strings.</param>
+    /// <param name="cwd">The current working directory for the command execution.</param>
+    /// <param name="env">Environment variables to set for the command execution.</param>
+    /// <param name="silentRun">If true, suppresses output to the terminal.</param>
+    /// <returns>A DynValue representing the result of the command execution, including success status and exit code.</returns>
     private static DynValue ExecInCurrentTerminal(Script lua, CommandService cs, List<string> parts, string? cwd, Dictionary<string, string> env, bool silentRun) {
         try {
             Dictionary<string, object?> envObj = env.ToDictionary(keySelector: k => k.Key, elementSelector: v => (object?)v.Value);
@@ -275,6 +287,9 @@ internal static class ProcessExecution {
         }
     }
 
+    /// <summary>
+    /// Checks if the current system has a known terminal emulator available.
+    /// </summary>
     private static bool HasKnownTerminalEmulator() {
         if (System.OperatingSystem.IsWindows()) {
             return true;

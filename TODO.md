@@ -13,24 +13,6 @@ avoid massive unit tests, i dont want tests to be as complicated as the project 
 ## Engine
 
 
-TUI
-Choose how to use the source files:
-  1) Copy folder 'PS3_GAME' into local 'EU' (Recommended, Safe)
-  2) Move folder 'PS3_GAME' into local 'EU' (Warning: Deletes originals)
-  3) Use original path 'PS3_GAME' directly (Warning: Tools may modify original files)
-? Choose how to use the source files:
-1) Copy folder 'PS3_GAME' into local 'EU' (Recommended, Safe)
-2) Move folder 'PS3_GAME' into local 'EU' (Warning: Deletes originals)
-3) Use original path 'PS3_GAME' directly (Warning: Tools may modify original files)
-
-Enter your choice (1, 2, or 3):
-
-
-outputs are repeated, likly due to differences in tui and gui
-
-
-consider seperating Core.Formats into a independent csproj lib to prevent bloating the main engine assembly with format-specific tooling
-
 update the new p3d format conversion and extraction tooling
 ensure format_convert is used for converting p3d files to obj and glb files
 and format_extract is used for extracting p3d file data into its core components (meshes, textures, animations, etc)
@@ -69,44 +51,7 @@ Implementation requirements:
 ---
 
 ### CLI
-
-Currently the CLI **bypasses `Operations.toml`**, requiring the user to manually specify parameters that may already exist in the operations file.
-
-While this is useful for **one-off executions** or tools that are not yet defined in the operations file, it creates problems when the user wants to run **exactly what is defined in the configuration**, and can lead to inconsistencies if parameters are incorrectly re-entered.
-
-* :: FEATURE :: Add support for **executing operations defined in a module directly by name or ID**.
-
-Example current command:
-
-```
-dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo" --script_type lua --script "{{Game_Root}}/scripts/lua_feature_demo.lua" --args '"--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-demo"' --note "extended_demo_run"
-```
-
-Proposed simplified command (by name):
-
-```
-dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo" --run_op "Lua Feature Showcase"
-```
-
-Proposed simplified command (by ID):
-
-```
-dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo" --run_op 1
-```
-
-If **duplicate operation names** are found, prompt the user to select from a list.
-
-Additional improvement:
-
-* Allow **simple module resolution by name** instead of requiring the full path.
-
-Example:
-
-```
-dotnet run -c Debug --project EngineNet --framework net10.0 -- --game_module "demo" --run_op 1
-```
-
-:: FEATURE :: add run-all option to cli after adding support for running operations by name/id.
+:: FEATURE :: add run-all option to cli
 
 ---
 
