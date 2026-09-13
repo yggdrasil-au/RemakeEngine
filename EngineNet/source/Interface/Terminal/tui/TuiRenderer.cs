@@ -2,7 +2,6 @@ namespace EngineNet.Terminal;
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading;
 
@@ -59,7 +58,7 @@ public static class TuiRenderer {
         public ConsoleColor Color;
     }
 
-    public static void Initialize(CancellationTokenSource? cts = null) {
+    internal static void Initialize(CancellationTokenSource? cts = null) {
         if (_isActive) return;
         _cts = cts;
         try {
@@ -80,7 +79,7 @@ public static class TuiRenderer {
         RenderFull();
     }
 
-    public static void Shutdown() {
+    internal static void Shutdown() {
         if (!_isActive) return;
         lock (_lock) {
             _isActive = false;
@@ -97,7 +96,7 @@ public static class TuiRenderer {
         Console.ResetColor();
     }
 
-    public static void ResetContext(bool clearLogs = true) {
+    internal static void ResetContext(bool clearLogs = true) {
         lock (_lock) {
             ResetContextInternal(clearLogs);
         }
@@ -108,7 +107,7 @@ public static class TuiRenderer {
     }
 
     // --- NEW: Script Progress Methods ---
-    public static void UpdateScriptProgress(int current, int total, string label) {
+    public static void UpdateScriptProgress(int current, int total, string? label) {
         lock (_lock) {
             _scriptProgressActive = true;
             _scriptProgressCurrent = current;
@@ -125,7 +124,7 @@ public static class TuiRenderer {
         }
     }
 
-    public static void ClearScriptProgress() {
+    internal static void ClearScriptProgress() {
         lock (_lock) {
             _scriptProgressActive = false;
 
@@ -139,7 +138,7 @@ public static class TuiRenderer {
         }
     }
 
-    public static void ClearStatus() {
+    internal static void ClearStatus() {
         lock (_lock) {
             int oldHeight = _statusHeight;
             _statusLines.Clear();
@@ -153,13 +152,13 @@ public static class TuiRenderer {
         }
     }
 
-    public static void SetCancellationMode(CancellationMode mode) {
+    internal static void SetCancellationMode(CancellationMode mode) {
         lock (_lock) {
             _cancellationMode = mode;
         }
     }
 
-    public static void ShowStatusNotice(string message, ConsoleColor color = ConsoleColor.Yellow) {
+    private static void ShowStatusNotice(string message, ConsoleColor color = ConsoleColor.Yellow) {
         if (!_isActive) {
             Console.ForegroundColor = color;
             Console.WriteLine(message);
@@ -240,7 +239,7 @@ public static class TuiRenderer {
         RenderFull();
     }
 
-    public static void Log(string message, ConsoleColor color = ConsoleColor.Gray) {
+    internal static void Log(string message, ConsoleColor color = ConsoleColor.Gray) {
         Shared.IO.Diagnostics.TuiLog(message);
 
         if (!_isActive) {
@@ -269,7 +268,7 @@ public static class TuiRenderer {
         }
     }
 
-    public static void UpdateStatus(List<string> lines) {
+    internal static void UpdateStatus(List<string> lines) {
         if (!_isActive) return;
 
         lock (_lock) {
@@ -474,7 +473,7 @@ public static class TuiRenderer {
         }
     }
 
-    public static void RenderFull() {
+    internal static void RenderFull() {
         RenderLogs();
         RenderStatus();
     }
@@ -509,7 +508,7 @@ public static class TuiRenderer {
         return new string('█', Math.Max(0, filled)) + new string('░', Math.Max(0, width - filled));
     }
 
-    public static string? ReadLineCustom(string label, bool isSecret) {
+    internal static string? ReadLineCustom(string label, bool isSecret) {
         lock (_lock) {
             _isInputActive = true;
             _promptLabel = label;
@@ -583,7 +582,7 @@ public static class TuiRenderer {
         }
     }
 
-    public static void WaitForKey() {
+    internal static void WaitForKey() {
         if (!_isActive) {
             Console.ReadKey(true);
             return;

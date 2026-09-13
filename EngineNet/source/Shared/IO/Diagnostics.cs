@@ -27,7 +27,7 @@ public static class Diagnostics {
     private static StreamWriter? _tuiLogWriter; // Scrollback history
     private static readonly object _lock = new object();
 
-    public static void Initialize(string rootPath, bool isGui, bool isTui) {
+    internal static void Initialize(string rootPath, bool isGui, bool isTui) {
         _rootPath = string.IsNullOrWhiteSpace(rootPath) ? System.IO.Directory.GetCurrentDirectory() : rootPath;
 
         string logDirectory = string.Empty;

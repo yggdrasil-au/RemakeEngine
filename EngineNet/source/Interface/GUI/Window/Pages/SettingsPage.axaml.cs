@@ -27,7 +27,10 @@ public partial class SettingsPage:UserControl, INotifyPropertyChanged {
         remove => _propertyChanged -= value;
     }
 
+    // ReSharper disable once UnusedMember.Local
+#pragma warning disable IDE0051
     private void Raise(string name) => _propertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+#pragma warning restore IDE0051
 
     private sealed class Cmd:System.Windows.Input.ICommand {
         private readonly Func<object?, Task> _run;

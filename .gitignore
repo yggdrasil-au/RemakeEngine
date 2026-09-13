@@ -11,3 +11,5 @@ EngineBuild/
 RemakeEngineDocs/
 
 /logs
+
+qodana.yaml

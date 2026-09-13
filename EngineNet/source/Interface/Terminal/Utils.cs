@@ -168,7 +168,7 @@ public class Utils {
         return TuiRenderer.ReadLineCustom("Input >", false);
     }
 
-    public static void OnOutput(string line, string stream) {
+    internal static void OnOutput(string line, string stream) {
         OnEvent(new Dictionary<string, object?> {
             ["event"] = EngineSdk.Events.Print,
             ["message"] = line,
@@ -178,7 +178,7 @@ public class Utils {
 
     // --- Handlers to bridge SDK events <-> CLI ---
 
-    public static void OnEvent(Dictionary<string, object?> evt) {
+    internal static void OnEvent(Dictionary<string, object?> evt) {
         LogEvent(evt);
         if (!evt.TryGetValue("event", out object? typObj)) return;
 
@@ -529,14 +529,10 @@ public class Utils {
 
         // 1. Build Progress Bar Line
         if (stats != null) {
-            int total = (stats.TryGetValue("total", out object? t) ? (t as System.IConvertible)?.ToInt32(null) : 0) ??
-                        0;
-            int processed = (stats.TryGetValue("processed", out object? p)
-                ? (p as System.IConvertible)?.ToInt32(null)
-                : 0) ?? 0;
+            int total = (stats.TryGetValue("total", out object? t) ? (t as System.IConvertible)?.ToInt32(null) : 0) ?? 0;
+            int processed = (stats.TryGetValue("processed", out object? p) ? (p as System.IConvertible)?.ToInt32(null) : 0) ?? 0;
             int ok = (stats.TryGetValue("ok", out object? o) ? (o as System.IConvertible)?.ToInt32(null) : 0) ?? 0;
-            int skip = (stats.TryGetValue("skip", out object? sk) ? (sk as System.IConvertible)?.ToInt32(null) : 0) ??
-                       0;
+            int skip = (stats.TryGetValue("skip", out object? sk) ? (sk as System.IConvertible)?.ToInt32(null) : 0) ?? 0;
             int err = (stats.TryGetValue("err", out object? e) ? (e as System.IConvertible)?.ToInt32(null) : 0) ?? 0;
             double percent = (stats.TryGetValue("percent", out object? pct)
                 ? (pct as System.IConvertible)?.ToDouble(null)
@@ -588,22 +584,20 @@ public class Utils {
             bar.Append(err);
             bar.Append(')');
             lines.Add(bar.ToString());
-        }
-        else {
+        } else {
             lines.Add(label); // Fallback
         }
 
         // 2. Build Active Jobs Lines
         if (activeTotal == 0) {
             lines.Add("Active: none");
-        }
-        else {
+        } else {
             lines.Add($"Active: {activeTotal}");
             if (activeJobs != null) {
                 foreach (object jobObj in activeJobs) {
-                    if (jobObj is not IReadOnlyDictionary<string, object?> job)
+                    if (jobObj is not IReadOnlyDictionary<string, object?> job) {
                         continue;
-
+                    }
                     string tool = (job.TryGetValue("tool", out object? t) ? t?.ToString() : "...") ?? "...";
                     string file = (job.TryGetValue("file", out object? f) ? f?.ToString() : "...") ?? "...";
                     string elapsed = (job.TryGetValue("elapsed", out object? e) ? e?.ToString() : "...") ?? "...";

@@ -3,6 +3,8 @@ namespace EngineNet.ScriptEngines.Lua.Global;
 /// <summary>
 /// Lua wrapper for fully controllable console progress panels.
 /// </summary>
+[SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+[SuppressMessage("ReSharper", "UnusedMember.Global")]
 internal sealed class LuaConsoleProgress : System.IDisposable {
     private readonly System.Threading.CancellationTokenSource _cts;
     private readonly System.Threading.Tasks.Task _panelTask;

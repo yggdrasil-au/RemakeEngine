@@ -11,7 +11,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\Core\EngineNet.Core.csproj" />
-        <ProjectReference Include="..\..\Interface\GUI\EngineNet.GUI.csproj" />
+        <ProjectReference Include="..\..\Interface\EngineNet.Interface.csproj" />
     </ItemGroup>
 
     <PropertyGroup>

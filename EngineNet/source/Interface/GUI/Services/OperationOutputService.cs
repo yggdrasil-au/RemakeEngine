@@ -13,18 +13,18 @@ namespace EngineNet.GUI.Services;
 /// This ensures that output persists when navigating between pages.
 /// </summary>
 public sealed class OperationOutputService : INotifyPropertyChanged {
-    public static OperationOutputService Instance { get; } = new OperationOutputService();
+    internal static OperationOutputService Instance { get; } = new OperationOutputService();
 
     private readonly Lock _lock = new Lock();
 
-    public OperationOutputService() {
+    private OperationOutputService() {
         Lines.CollectionChanged += OnLinesCollectionChanged;
     }
 
     /// <summary>
     /// Shared output lines collection. Thread-safe via Dispatcher.
     /// </summary>
-    public ObservableCollection<OutputLine> Lines { get; } = new ObservableCollection<OutputLine>();
+    internal ObservableCollection<OutputLine> Lines { get; } = new ObservableCollection<OutputLine>();
 
     private readonly HashSet<OutputLine> _trackedLines = new HashSet<OutputLine>();
     private bool _isFullLogDirty = true;
@@ -71,12 +71,12 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     }
 
 
-    public string ProgressLabel {
+    public string? ProgressLabel {
         get;
         private set => SetField(ref field, value);
     }
 
-    public string ProgressSummaryLine {
+    public string? ProgressSummaryLine {
         get;
         private set => SetField(ref field, value);
     }
@@ -852,12 +852,12 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
         private set => SetField(ref field, value);
     }
 
-    public string PromptTitle {
+    public string? PromptTitle {
         get;
         private set => SetField(ref field, value);
     }
 
-    public string PromptMessage {
+    public string? PromptMessage {
         get;
         private set => SetField(ref field, value);
     }

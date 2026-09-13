@@ -1,7 +1,7 @@
 
 namespace EngineNet.GUI.Pages;
 
-public partial class MainWindow:Window {
+internal sealed partial class MainWindow:Window {
 
     // //
     /* :: :: Constructors :: START :: */
@@ -9,11 +9,9 @@ public partial class MainWindow:Window {
     /// <summary>
     /// Main constructor
     /// </summary>
-    public MainWindow() {
-        DataContext = this;
+    internal MainWindow() {
+        DataContext = OperationOutputService.Instance;
         InitializeComponent();
-        TryWireBottomPanel();
-        TryWirePromptOverlay();
         ShowLibrary(); // default page
     }
 
@@ -36,33 +34,11 @@ public partial class MainWindow:Window {
     }
 
     private void ShowBuilding() {
-        if (GuiBootstrapper.MiniEngine is null) {
-            ContentHost.Content = new Pages.BuildingPage();
-            return;
-        }
         ContentHost.Content = new Pages.BuildingPage();
     }
 
     private void ShowSettings() {
-        if (GuiBootstrapper.MiniEngine is null) {
-            ContentHost.Content = new Pages.SettingsPage();
-            return;
-        }
         ContentHost.Content = new Pages.SettingsPage();
-    }
-
-    private void TryWireBottomPanel() {
-        var bottom = this.FindControl<Border>("BottomPanel");
-        if (bottom != null) {
-            bottom.DataContext = OperationOutputService.Instance;
-        }
-    }
-
-    private void TryWirePromptOverlay() {
-        var overlay = this.FindControl<Border>("PromptOverlay");
-        if (overlay != null) {
-            overlay.DataContext = OperationOutputService.Instance;
-        }
     }
 
     // navbar button handlers

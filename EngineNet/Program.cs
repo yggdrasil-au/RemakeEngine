@@ -280,7 +280,7 @@ public static class Program {
     // //
 }
 
-public class InitUI {
+internal class InitUI {
     // choose ui, and manage engine, instead of passing engine to ui, this class will manage and expose methods via a child class it passes into the ui
     public async Task<int> init(string[] args, string ui, Interface.MiniEngineFace miniEngine, System.Threading.CancellationToken cancellationToken) {
         switch (ui) {
@@ -297,7 +297,7 @@ public class InitUI {
                 Terminal.CLI CLI = new Terminal.CLI(miniEngine);
                 return await CLI.RunAsync(args, cancellationToken);
             default:
-                await System.Console.Error.WriteLineAsync(value: $"No valid interface mode selected. Expected 'gui', 'tui', or 'cli', but got '{ui}'.");
+                await System.Console.Error.WriteLineAsync($"No valid interface mode selected. Expected 'gui', 'tui', or 'cli', but got '{ui}'.");
                 Shared.IO.Diagnostics.Bug("No valid interface mode selected.");
                 break;
         }

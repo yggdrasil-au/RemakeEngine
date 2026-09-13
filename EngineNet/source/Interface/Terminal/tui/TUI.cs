@@ -1,16 +1,10 @@
-using System.Text;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+
 
 namespace EngineNet.Terminal;
-using EngineNet.Shared.IO;
 using Interface;
 using Core.Data;
-using EngineNet.Terminal;
 
-public partial class TUI {
+public class TUI {
 
     private readonly MiniEngineFace Engine;
 

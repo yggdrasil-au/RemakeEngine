@@ -47,8 +47,8 @@
 
         <!-- interfaces -->
         <ProjectReference Include="source\Interface\EngineNet.Interface.csproj" />
-        <ProjectReference Include="source\Interface\Terminal\EngineNet.Terminal.csproj" />
-        <ProjectReference Include="source\Interface\GUI\EngineNet.GUI.csproj" />
+        <ProjectReference Include="source\Interface\Terminal\EngineNet.Interface.Terminal.csproj" />
+        <ProjectReference Include="source\Interface\GUI\EngineNet.Interface.GUI.csproj" />
 
     </ItemGroup>
 

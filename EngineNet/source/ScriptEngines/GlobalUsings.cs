@@ -14,4 +14,6 @@ global using EngineNet.Core.Abstractions;
 
 global using EngineNet.Shared.Serialization.Toml;
 
+// for functions that are exposed implicitly to lua
+global using System.Diagnostics.CodeAnalysis;
 
