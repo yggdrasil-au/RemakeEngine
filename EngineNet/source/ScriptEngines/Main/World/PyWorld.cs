@@ -5,7 +5,7 @@ namespace EngineNet.ScriptEngines.Python;
 /// <summary>
 /// Container for the Python script engine and its exposed components.
 /// </summary>
-internal class PyWorld {
+internal sealed class PyWorld {
     /// <summary>
     /// gets the python engine
     /// </summary>

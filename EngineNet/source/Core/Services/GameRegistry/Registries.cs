@@ -39,7 +39,7 @@ internal sealed class Registries {
             await Core.ExternalTools.RemoteFallbacks.EnsureRepoFileAsync(repoRelativePath: Module_registry, localPath: modulesRel);
         }
 
-        var instance = new Registries(gamesRel: gamesRel, modulesRel: modulesRel);
+        Registries instance = new Registries(gamesRel: gamesRel, modulesRel: modulesRel);
         instance._modules = Shared.Serialization.Json.JsonHelpers.LoadJsonFile(filePath: instance._modulesRegistryPath);
         return instance;
     }
@@ -197,7 +197,7 @@ internal sealed class Registries {
             }
 
             // Prepare resolution context
-            var ctx = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase) {
+            Dictionary<string, object?> ctx = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase) {
                 [key: "Game_Root"] = dir,
                 [key: "Project_Root"] = EngineNet.Shared.State.RootPath
             };

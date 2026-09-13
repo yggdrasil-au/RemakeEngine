@@ -12,7 +12,7 @@ namespace EngineNet.Core.Services;
 /// It resolves game metadata, execution paths, and handles different launch types
 /// such as direct executables, Lua scripts, or Godot project files.
 /// </summary>
-public class GameLauncher {
+public sealed class GameLauncher {
     private readonly GameRegistry _gameRegistry;
     private readonly ExternalTools.JsonToolResolver _toolResolver;
     private readonly EngineConfig _config;
@@ -119,7 +119,7 @@ public class GameLauncher {
                 string ext = System.IO.Path.GetExtension(path: scriptPath).TrimStart(trimChar: '.').ToLowerInvariant();
 
                 // Use the dispatcher to create the correct action (Lua, JS, or Python)
-                var action = this._scriptActionDispatcher.TryCreateEmbedded(
+                IScriptAction? action = this._scriptActionDispatcher.TryCreateEmbedded(
                     scriptType: ext,
                     scriptPath: scriptPath,
                     args: System.Array.Empty<string>(), // Launching a game usually implies no args, or you could parse them from toml

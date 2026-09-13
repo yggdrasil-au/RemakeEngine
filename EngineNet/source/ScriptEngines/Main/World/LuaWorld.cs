@@ -7,7 +7,7 @@ namespace EngineNet.ScriptEngines.Lua;
 /// This is created fresh for each script execution and passed to all helper methods that register functions/tables in the Lua environment.
 /// It also tracks any IDisposable resources created during execution to ensure they can be cleaned up at the end of the script's lifecycle, preventing resource leaks across multiple script executions.
 /// </summary>
-internal class LuaWorld {
+internal sealed class LuaWorld {
     /* :: :: Properties :: START :: */
 
     /// <summary>
@@ -59,7 +59,7 @@ internal class LuaWorld {
     /// <summary>
     /// Container for sdk tables to mirror Lua usage (sdk, sdk.IO, sdk.Hash, sdk.text.*).
     /// </summary>
-    internal class SdkContainer {
+    internal sealed class SdkContainer {
         /// <summary>
         /// Gets the root sdk table.
         /// </summary>
@@ -98,7 +98,7 @@ internal class LuaWorld {
     /// <summary>
     /// Container for sdk.text tables (sdk.text.json, sdk.text.toml, sdk.text.yaml).
     /// </summary>
-    internal class TextContainer {
+    internal sealed class TextContainer {
         /// <summary>
         /// Gets the sdk.text table.
         /// </summary>

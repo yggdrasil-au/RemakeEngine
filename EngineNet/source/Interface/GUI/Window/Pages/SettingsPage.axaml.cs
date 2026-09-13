@@ -1,7 +1,7 @@
 
 namespace EngineNet.GUI.Pages;
 
-public partial class SettingsPage:UserControl, INotifyPropertyChanged {
+public sealed partial class SettingsPage:UserControl, INotifyPropertyChanged {
     //
     /** :: :: Vars :: START :: **/
     public string ProjectRoot { get; set; } = EngineNet.Shared.State.RootPath;

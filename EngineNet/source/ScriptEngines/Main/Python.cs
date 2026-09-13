@@ -2,6 +2,8 @@
 
 namespace EngineNet.ScriptEngines.Python;
 
+using Microsoft.Scripting.Hosting;
+
 /// <summary>
 /// entry point for executing a Python script, called from EngineNet.ScriptEngines.Helpers.EmbeddedActionDispatcher
 /// </summary>
@@ -33,7 +35,7 @@ internal sealed class Main : IScriptAction {
             // create new Python script environment
             Microsoft.Scripting.Hosting.ScriptEngine PythonEngine = IronPython.Hosting.Python.CreateEngine();
             // create a scope for variables, functions, and imported modules; this is separate from the engine to allow multiple executions with different scopes if desired
-            var scope = PythonEngine.CreateScope();
+            ScriptScope scope = PythonEngine.CreateScope();
             // object to hold all exposed tables
             PyWorld PyWorld = new PyWorld(engine: PythonEngine, scope: scope);
 
@@ -46,8 +48,8 @@ internal sealed class Main : IScriptAction {
             SetupSafeEnvironment.PyEnvironment(_PyWorld: PyWorld);
 
             // Load versions from current game module context
-            var moduleVersions = Helper.LoadModuleToolVersions(_gameRoot: _gameRoot);
-            var contextualTools = new ContextualToolResolver(baseResolver: tools, contextVersions: moduleVersions);
+            Dictionary<string, string> moduleVersions = Helper.LoadModuleToolVersions(_gameRoot: _gameRoot);
+            ContextualToolResolver contextualTools = new ContextualToolResolver(baseResolver: tools, contextVersions: moduleVersions);
 
             // Expose core functions, SDK and modules
             PyAction.SetupCoreFunctions(world: PyWorld, tools: contextualTools, args: _args, gameRoot: _gameRoot, projectRoot: _projectRoot, scriptPath: _scriptPath);

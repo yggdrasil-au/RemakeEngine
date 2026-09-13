@@ -1,7 +1,7 @@
 
 namespace EngineNet.GUI.Pages.PromptWindows;
 
-internal partial class ConfirmWindow:Window {
+internal sealed partial class ConfirmWindow:Window {
     internal bool Result {
         get; private set;
     }

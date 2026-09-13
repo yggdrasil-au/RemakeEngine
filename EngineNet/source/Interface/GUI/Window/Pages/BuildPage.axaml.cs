@@ -4,7 +4,7 @@ using EngineNet.Shared.IO.UI;
 
 namespace EngineNet.GUI.Pages;
 
-public partial class BuildingPage:UserControl {
+public sealed partial class BuildingPage:UserControl {
     public OperationOutputService Service => OperationOutputService.Instance;
 
     public Cmd Button_ClearOutput_Click {
@@ -68,9 +68,9 @@ public partial class BuildingPage:UserControl {
         try {
             // Consider within 24px of bottom as "at bottom"
             double bottomThreshold = 24.0;
-            var extent = _outputScroll.Extent;
-            var viewport = _outputScroll.Viewport;
-            var offset = _outputScroll.Offset;
+            Size extent = _outputScroll.Extent;
+            Size viewport = _outputScroll.Viewport;
+            Vector offset = _outputScroll.Offset;
             double remaining = (extent.Height - viewport.Height) - offset.Y;
             _autoScrollEnabled = remaining <= bottomThreshold;
         } catch (System.Exception ex) {
@@ -82,8 +82,8 @@ public partial class BuildingPage:UserControl {
     private void ScrollToEndSafe() {
         if (_outputScroll is null) return;
         try {
-            var extent = _outputScroll.Extent;
-            var offset = _outputScroll.Offset;
+            Size extent = _outputScroll.Extent;
+            Vector offset = _outputScroll.Offset;
             // Set Y to max extent to pin bottom; X unchanged
             _outputScroll.Offset = new Avalonia.Vector(x: offset.X, y: extent.Height);
         } catch (System.Exception ex) {

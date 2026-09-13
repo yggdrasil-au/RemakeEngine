@@ -6,7 +6,7 @@ namespace EngineNet.Core.Services;
 /// Provides a registry for discovering and managing game information within the engine.
 /// This class is responsible for locating game modules, built games, and their associated files.
 /// </summary>
-public class GameRegistry {
+public sealed class GameRegistry {
     private readonly Core.Utils.ModuleScanner _scanner;
     internal readonly Core.Utils.Registries _registries;
     private readonly string _rootPath = EngineNet.Shared.State.RootPath;

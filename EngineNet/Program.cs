@@ -10,6 +10,10 @@ using EngineNet.Core.Data;
 
 namespace EngineNet;
 
+using Core.ExternalTools;
+using Core.Operations;
+using Core.Services;
+using Core.Utils;
 
 public static class Program {
 
@@ -29,7 +33,7 @@ public static class Program {
     /* :: :: Main :: START :: */
     [STAThread]
     public static async System.Threading.Tasks.Task<int> Main(string[] args) {
-        var shutdownCancellationController = new ShutdownCancellationController();
+        ShutdownCancellationController shutdownCancellationController = new ShutdownCancellationController();
 
         System.ConsoleCancelEventHandler cancelHandler = (_, e) => {
             e.Cancel = true;
@@ -153,7 +157,7 @@ public static class Program {
 
     // Walks arguments, extracts --root value, and keeps the rest preserving order
     private static ParsedArgs ParseArguments(string[] args) {
-        var result = new ParsedArgs();
+        ParsedArgs result = new ParsedArgs();
         for (int i = 0; i < args.Length; i++) {
             bool isRootFlag = args[i].Equals("--root", comparisonType: System.StringComparison.OrdinalIgnoreCase);
             bool hasRootValue = isRootFlag
@@ -223,20 +227,20 @@ public static class Program {
             return Engine;
         }
 
-        var tools = new Core.ExternalTools.JsonToolResolver();
-        var engineConfig = new EngineConfig();
+        JsonToolResolver tools = new Core.ExternalTools.JsonToolResolver();
+        EngineConfig engineConfig = new EngineConfig();
 
-        var _registries = await Core.Utils.Registries.CreateAsync();
-        var _scanner = new Core.Utils.ModuleScanner(registries: _registries);
+        Registries _registries = await Core.Utils.Registries.CreateAsync();
+        ModuleScanner _scanner = new Core.Utils.ModuleScanner(registries: _registries);
 
-        var gameRegistry = new Core.Services.GameRegistry(registries: _registries, scanner: _scanner);
+        GameRegistry gameRegistry = new Core.Services.GameRegistry(registries: _registries, scanner: _scanner);
 
-        var _commandService = new Core.Services.CommandService();
-        var _gameLauncher = new Core.Services.GameLauncher(gameRegistry: gameRegistry, toolResolver: tools, config: engineConfig, commandService: _commandService, scriptActionDispatcher: scriptActionDispatcher);
-        var _opsLoader = new Core.Services.OperationsLoader();
-        var _operationsService = new Core.Services.OperationsService(loader: _opsLoader, gameRegistry: gameRegistry);
+        CommandService _commandService = new Core.Services.CommandService();
+        GameLauncher _gameLauncher = new Core.Services.GameLauncher(gameRegistry: gameRegistry, toolResolver: tools, config: engineConfig, commandService: _commandService, scriptActionDispatcher: scriptActionDispatcher);
+        OperationsLoader _opsLoader = new Core.Services.OperationsLoader();
+        OperationsService _operationsService = new Core.Services.OperationsService(loader: _opsLoader, gameRegistry: gameRegistry);
 
-        var Single = new Core.Operations.Single(scriptActionDispatcher: scriptActionDispatcher);
+        Single Single = new Core.Operations.Single(scriptActionDispatcher: scriptActionDispatcher);
 
         EngineNet.Core.Engine.Engine _engine = new EngineNet.Core.Engine.Engine(
             gameRegistry: gameRegistry,
@@ -280,7 +284,7 @@ public static class Program {
     // //
 }
 
-internal class InitUI {
+internal sealed class InitUI {
     // choose ui, and manage engine, instead of passing engine to ui, this class will manage and expose methods via a child class it passes into the ui
     public async Task<int> init(string[] args, string ui, Interface.MiniEngineFace miniEngine, System.Threading.CancellationToken cancellationToken) {
         switch (ui) {

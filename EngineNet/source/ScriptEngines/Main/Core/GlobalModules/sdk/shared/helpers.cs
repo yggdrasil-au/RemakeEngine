@@ -1,6 +1,8 @@
 
 namespace EngineNet.ScriptEngines.Global.SdkModule;
 
+using System.IO.Compression;
+
 internal static class Helpers {
 
     //AddConfigurationHelpers
@@ -50,17 +52,17 @@ internal static class Helpers {
             }
 
             try {
-                var attrs = new Dictionary<string, object>();
+                Dictionary<string, object> attrs = new Dictionary<string, object>();
 
                 if (System.IO.Directory.Exists(path: safePath)) {
-                    var dirInfo = new System.IO.DirectoryInfo(path: safePath);
+                    DirectoryInfo dirInfo = new System.IO.DirectoryInfo(path: safePath);
                     attrs[key: "mode"] = "directory";
                     attrs[key: "modification"] = (double)new System.DateTimeOffset(dateTime: dirInfo.LastWriteTime).ToUnixTimeSeconds();
                     return attrs;
                 }
 
                 if (System.IO.File.Exists(path: safePath)) {
-                    var fileInfo = new System.IO.FileInfo(fileName: safePath);
+                    FileInfo fileInfo = new System.IO.FileInfo(fileName: safePath);
                     attrs[key: "mode"] = "file";
                     attrs[key: "size"] = fileInfo.Length;
                     attrs[key: "modification"] = (double)new System.DateTimeOffset(dateTime: fileInfo.LastWriteTime).ToUnixTimeSeconds();
@@ -179,10 +181,10 @@ internal static class Helpers {
                         System.IO.Compression.ZipFile.CreateFromDirectory(sourceDirectoryName: srcPath, destinationArchiveFileName: archivePath);
                     } else if (System.IO.File.Exists(path: srcPath)) {
                         // Create zip with single file
-                        using var archive = System.IO.Compression.ZipFile.Open(archiveFileName: archivePath, mode: System.IO.Compression.ZipArchiveMode.Create);
-                        var entry = archive.CreateEntry(entryName: System.IO.Path.GetFileName(path: srcPath));
-                        using var entryStream = entry.Open();
-                        using var fileStream = System.IO.File.OpenRead(path: srcPath);
+                        using ZipArchive archive = System.IO.Compression.ZipFile.Open(archiveFileName: archivePath, mode: System.IO.Compression.ZipArchiveMode.Create);
+                        ZipArchiveEntry entry = archive.CreateEntry(entryName: System.IO.Path.GetFileName(path: srcPath));
+                        using Stream entryStream = entry.Open();
+                        using FileStream fileStream = System.IO.File.OpenRead(path: srcPath);
                         fileStream.CopyTo(destination: entryStream);
                     } else {
                         return false;

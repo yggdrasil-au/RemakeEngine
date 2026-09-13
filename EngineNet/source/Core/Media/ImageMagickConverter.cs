@@ -4,6 +4,9 @@ using EngineNet.Shared.IO.UI;
 
 namespace EngineNet.Core.Media;
 
+using System.Collections.Concurrent;
+using Utils;
+
 /// <summary>
 /// Batch image converter powered by ImageMagick (magick.exe).
 /// Preserves directory layout, supports parallel workers, and reports via IO.
@@ -96,9 +99,9 @@ internal static class ImageMagickConverter {
             int skipped = 0;
             int errors = 0;
             int processed = 0;
-            var errorList = new System.Collections.Concurrent.ConcurrentBag<(string file, string message)>();
+            ConcurrentBag<(string file, string message)> errorList = new System.Collections.Concurrent.ConcurrentBag<(string file, string message)>();
 
-            var po = new System.Threading.Tasks.ParallelOptions {
+            ParallelOptions po = new System.Threading.Tasks.ParallelOptions {
                 MaxDegreeOfParallelism = opt.Workers ?? 1,
                 CancellationToken = cancellationToken
             };
@@ -175,7 +178,7 @@ internal static class ImageMagickConverter {
     private static (bool ok, string? message) ConvertOne(string srcPath, string destPath, Options opt, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         try {
             // Build: magick [global opts] input [ops...] output
-            var a = new List<string> {
+            List<string> a = new List<string> {
                 // Input
                 ToLongPath(path: srcPath)
             };
@@ -208,7 +211,7 @@ internal static class ImageMagickConverter {
             // Run
             RegisterActive(tool: ToolMagick, srcPath: srcPath);
             try {
-                var (ok, msg) = Exec(fileName: opt.MagickPath!, arguments: a, passthroughOutput: opt.Debug, cancellationToken: cancellationToken);
+                (bool ok, string? msg) = Exec(fileName: opt.MagickPath!, arguments: a, passthroughOutput: opt.Debug, cancellationToken: cancellationToken);
                 if (!ok) {
                     // best-effort cleanup
                     TryDelete(path: destPath);
@@ -249,7 +252,7 @@ internal static class ImageMagickConverter {
 
     private static (bool ok, string? message) Exec(string fileName, IList<string> arguments, bool passthroughOutput, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         try {
-            using var p = new System.Diagnostics.Process();
+            using Process p = new System.Diagnostics.Process();
             p.StartInfo.FileName = ToLongPath(path: fileName);
 
             // ImageMagick can be invoked as:
@@ -265,7 +268,7 @@ internal static class ImageMagickConverter {
             try { p.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8; } catch (Exception ex) { Shared.IO.Diagnostics.Bug("[ImageMagickConverter::Exec()] Failed setting stderr encoding.", ex: ex); }
             try { p.StartInfo.StandardOutputEncoding = System.Text.Encoding.UTF8; } catch (Exception ex) { Shared.IO.Diagnostics.Bug("[ImageMagickConverter::Exec()] Failed setting stdout encoding.", ex: ex); }
 
-            using var job = System.OperatingSystem.IsWindows() ? new Utils.JobObject() : null;
+            using JobObject? job = System.OperatingSystem.IsWindows() ? new Utils.JobObject() : null;
 
             if (!p.Start()) {
                 return (false, "failed to start process");

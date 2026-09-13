@@ -53,7 +53,7 @@ internal static class OpDispatcher {
         }
 
         // create built-in object for passing to built-in actions
-        var operationArgs = new OperationArgs(
+        OperationArgs operationArgs = new OperationArgs(
             op: executableOperation,
             promptAnswers: promptAnswers,
             currentGame: currentGame,
@@ -110,7 +110,7 @@ internal static class OpDispatcher {
 /// Encapsulates arguments for engine operations of type "engine".
 /// This is used to pass multiple parameters to built-in actions in a clean way, and can be extended in the future without changing method signatures.
 /// </summary>
-internal class OperationArgs {
+internal sealed class OperationArgs {
     // values here must be readonly to ensure immutability, as the BuiltInOperations class and methods are static (for now) and should not have mutable state.
 
     internal readonly IDictionary<string, object?> op;

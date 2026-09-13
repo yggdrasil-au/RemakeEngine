@@ -166,7 +166,7 @@ internal static class FileSystemUtils {
 
         try {
             // Copy files with progress
-            foreach (var item in files.Select(selector: file => (File: file, Target: System.IO.Path.Combine(path1: dstRoot, path2: System.IO.Path.GetRelativePath(relativeTo: srcRoot, path: file))))) {
+            foreach ((string File, string Target) item in files.Select(selector: file => (File: file, Target: System.IO.Path.Combine(path1: dstRoot, path2: System.IO.Path.GetRelativePath(relativeTo: srcRoot, path: file))))) {
                 System.IO.Directory.CreateDirectory(path: System.IO.Path.GetDirectoryName(path: item.Target)!);
                 System.IO.File.Copy(sourceFileName: item.File, destFileName: item.Target, overwrite: true);
 

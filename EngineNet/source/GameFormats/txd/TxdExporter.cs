@@ -28,7 +28,7 @@ internal sealed class TxdExporter {
             }
         }
 
-        var scanner = new SegmentScanner(data: data, txdFilePath: txdFilePath);
+        SegmentScanner scanner = new SegmentScanner(data: data, txdFilePath: txdFilePath);
         (List<Segment> segments, int totalTextures) = scanner.CollectSegments();
         if (segments.Count == 0) {
             return 0;

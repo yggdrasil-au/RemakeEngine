@@ -3,7 +3,7 @@ using System.Collections;
 
 namespace EngineNet.Core.Services;
 
-public class OperationsLoader {
+public sealed class OperationsLoader {
 
     /// <summary>
     /// Loads operations from a specified file, supporting both JSON and TOML formats.
@@ -33,7 +33,7 @@ public class OperationsLoader {
                             foreach (object? item in arr) {
                                 if (item is IDictionary tt) {
                                     // Convert IDictionary to Dictionary<string, object?> for consistency
-                                    var opDict = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
+                                    Dictionary<string, object?> opDict = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
                                     foreach (DictionaryEntry de in tt) {
                                         opDict[key: de.Key.ToString() ?? ""] = de.Value;
                                     }
@@ -55,7 +55,7 @@ public class OperationsLoader {
                 List<Dictionary<string, object?>> list = new List<Dictionary<string, object?>>();
                 foreach (System.Text.Json.JsonElement item in jdoc.RootElement.EnumerateArray()) {
                     if (item.ValueKind == System.Text.Json.JsonValueKind.Object) {
-                        var map = Operations.ToMap(obj: item);
+                        Dictionary<string, object?> map = Operations.ToMap(obj: item);
                         map[key: "_source_file"] = opsFile;
                         list.Add(item: map);
                     }
@@ -72,7 +72,7 @@ public class OperationsLoader {
                     if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Array) {
                         foreach (System.Text.Json.JsonElement item in prop.Value.EnumerateArray()) {
                             if (item.ValueKind == System.Text.Json.JsonValueKind.Object) {
-                                var map = Operations.ToMap(obj: item);
+                                Dictionary<string, object?> map = Operations.ToMap(obj: item);
                                 map[key: "_source_file"] = opsFile;
                                 flat.Add(item: map);
                             }

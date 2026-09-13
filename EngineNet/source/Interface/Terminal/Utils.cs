@@ -9,7 +9,7 @@ using System.Text.Json;
 /// <summary>
 /// Utility methods for CLI/TUI handling, can also be used by GUI if needed
 /// </summary>
-public class Utils {
+public sealed class Utils {
     private static readonly JsonSerializerOptions s_jsonOpts = new() {
         WriteIndented = false,
         PropertyNamingPolicy = null,
@@ -75,7 +75,7 @@ public class Utils {
                 // Route in-process SDK events to our terminal renderer
                 System.Action<Dictionary<string, object?>>? prevSink = Shared.IO.UI.EngineSdk.LocalEventSink;
                 bool prevMute = Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink;
-                var prevAutoResponses = new Dictionary<string, string>(dictionary: Shared.IO.UI.EngineSdk.AutoPromptResponses);
+                Dictionary<string, string> prevAutoResponses = new Dictionary<string, string>(dictionary: Shared.IO.UI.EngineSdk.AutoPromptResponses);
                 try {
                     // Set auto-prompt responses if provided
                     if (autoPromptResponses is { Count: > 0 }) {
@@ -293,7 +293,7 @@ public class Utils {
             case EngineSdk.Events.ProgressPanelEnd: {
                 string id = evt.TryGetValue(key: "id", out object? idObj) ? idObj?.ToString() ?? "p1" : "p1";
                 lock (s_consoleLock) {
-                    if (s_panelStatus.TryGetValue(key: id, out var lastLines) && lastLines.Count > 0) {
+                    if (s_panelStatus.TryGetValue(key: id, out List<string>? lastLines) && lastLines.Count > 0) {
                         // Log the FIRST line (the progress bar) to the log area so it sticks in history
                         if (EngineNet.Shared.State.IsCli) {
                             System.Console.WriteLine(); // Newline to clear the fixed \r line
@@ -360,8 +360,8 @@ public class Utils {
     }
 
     private static void UpdateTuiStatus() {
-        var allLines = new List<string>();
-        foreach (var panelLines in s_panelStatus.Values) {
+        List<string> allLines = new List<string>();
+        foreach (List<string> panelLines in s_panelStatus.Values) {
             allLines.AddRange(collection: panelLines);
         }
 
@@ -512,7 +512,7 @@ public class Utils {
     }
 
     private static List<string> BuildTuiProgressLines(IReadOnlyDictionary<string, object?> payload) {
-        var lines = new List<string>(capacity: 10);
+        List<string> lines = new List<string>(capacity: 10);
 
         // Extract data from payload
         string label = (payload.TryGetValue(key: "label", out object? l) ? l?.ToString() : "Processing") ?? "Processing";
@@ -521,8 +521,8 @@ public class Utils {
             ? (at as System.IConvertible)?.ToInt32(provider: null)
             : 0) ?? 0;
 
-        var stats = payload.TryGetValue(key: "stats", out object? st) ? st as IReadOnlyDictionary<string, object?> : null;
-        var activeJobs = payload.TryGetValue(key: "active_jobs", out object? aj) ? aj as IEnumerable<object> : null;
+        IReadOnlyDictionary<string, object?>? stats = payload.TryGetValue(key: "stats", out object? st) ? st as IReadOnlyDictionary<string, object?> : null;
+        IEnumerable<object>? activeJobs = payload.TryGetValue(key: "active_jobs", out object? aj) ? aj as IEnumerable<object> : null;
 
         // 1. Build Progress Bar Line
         if (stats != null) {
@@ -545,7 +545,7 @@ public class Utils {
             }
 
             int filled = (int)System.Math.Round(a: percent * width);
-            var bar = new System.Text.StringBuilder(capacity: width + 48);
+            StringBuilder bar = new System.Text.StringBuilder(capacity: width + 48);
 
             // Truncate label to keep line short; Draw method still clamps
             string lbl = label;

@@ -2,6 +2,9 @@ using EngineNet.Shared.IO.UI;
 
 namespace EngineNet.Core;
 
+using System.Collections.Concurrent;
+using Utils;
+
 /// <summary>
 /// Executes external processes while streaming output and handling structured
 /// events. Lines prefixed with the SDK event marker
@@ -92,7 +95,7 @@ public sealed partial class ProcessRunner {
         proc.StartInfo = psi;
         proc.EnableRaisingEvents = true;
 
-        using var q = new System.Collections.Concurrent.BlockingCollection<(string stream, string line)>(boundedCapacity: 1000);
+        using BlockingCollection<(string stream, string line)> q = new System.Collections.Concurrent.BlockingCollection<(string stream, string line)>(boundedCapacity: 1000);
         int queueLogOnce = 0;
         bool isQueueOpen = true;
 
@@ -133,7 +136,7 @@ public sealed partial class ProcessRunner {
             }
         };
 
-        using var job = System.OperatingSystem.IsWindows() ? new Utils.JobObject() : null;
+        using JobObject? job = System.OperatingSystem.IsWindows() ? new Utils.JobObject() : null;
 
         try {
             if (!proc.Start()) {

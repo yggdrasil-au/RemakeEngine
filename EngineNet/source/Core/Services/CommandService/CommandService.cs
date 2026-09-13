@@ -6,7 +6,7 @@ using EngineNet.Core.Utils;
 
 namespace EngineNet.Core.Services;
 
-public class CommandService {
+public sealed class CommandService {
     private readonly CommandBuilder _builder = new CommandBuilder();
     private readonly ProcessRunner _runner = new ProcessRunner();
 
@@ -228,7 +228,7 @@ public class CommandService {
                 };
                 if (!string.IsNullOrEmpty(cwd)) { psi.WorkingDirectory = cwd; }
                 if (env != null) {
-                    foreach (var kv in env) { psi.Environment[key: kv.Key] = kv.Value; }
+                    foreach (KeyValuePair<string, string> kv in env) { psi.Environment[key: kv.Key] = kv.Value; }
                 }
 
                 using Process p = new Process();
@@ -296,7 +296,7 @@ public class CommandService {
             psi.WorkingDirectory = cwd;
         }
         if (env != null) {
-            foreach (var kvp in env) {
+            foreach (KeyValuePair<string, string> kvp in env) {
                 psi.Environment[key: kvp.Key] = kvp.Value;
             }
         }
@@ -352,14 +352,14 @@ public class CommandService {
     }
 }
 
-public class ProcessResult {
+public sealed class ProcessResult {
     public int ExitCode { get; set; }
     public bool Success { get; set; }
     public string Stdout { get; set; } = string.Empty;
     public string Stderr { get; set; } = string.Empty;
 }
 
-public class ProcessPollResult {
+public sealed class ProcessPollResult {
     public bool Running { get; set; }
     public int? ExitCode { get; set; }
     public string StdoutFull { get; set; } = string.Empty;

@@ -1,7 +1,7 @@
 
 namespace EngineNet.GUI.Pages.PromptWindows;
 
-internal partial class TextPromptWindow:Window {
+internal sealed partial class TextPromptWindow:Window {
     internal string? Result {
         get; private set;
     }
@@ -19,7 +19,7 @@ internal partial class TextPromptWindow:Window {
         Title = title;
 
         _textInput = this.FindControl<TextBox>(name: "Input");
-        var messageBlock = this.FindControl<TextBlock>(name: "PromptMessage");
+        TextBlock? messageBlock = this.FindControl<TextBlock>(name: "PromptMessage");
 
         if (messageBlock is not null)
             messageBlock.Text = message;

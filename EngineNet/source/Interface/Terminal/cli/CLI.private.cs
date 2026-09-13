@@ -1,6 +1,6 @@
 namespace EngineNet.Terminal;
 
-public partial class CLI {
+public sealed partial class CLI {
 
     private int ListGames() {
         try {
@@ -9,7 +9,7 @@ public partial class CLI {
                 System.Console.WriteLine("No modules found.");
                 return 0;
             }
-            foreach (var item in modules.Values.Select(selector: m => (Name: m.Name, State: m.DescribeState(), Root: m.GameRoot))) {
+            foreach ((string Name, string State, string Root) item in modules.Values.Select(selector: m => (Name: m.Name, State: m.DescribeState(), Root: m.GameRoot))) {
                 System.Console.WriteLine($"- {item.Name}  (state: {item.State}; root: {item.Root})");
             }
             return 0;

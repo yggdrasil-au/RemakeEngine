@@ -3,6 +3,8 @@ using EngineNet.Shared.IO.UI;
 
 namespace EngineNet.Core.Operations;
 
+using helpers;
+
 public sealed record RunAllResult(string Game, bool Success, int TotalOperations, int SucceededOperations);
 
 public sealed class All {
@@ -58,7 +60,7 @@ public sealed class All {
         // --- NEW DEPENDENCY GRAPH LOGIC ---
         // Build the graph and print it to the trace log for debugging.
         // It does not alter 'allOps' or affect the standard linear execution.
-        var dependencyGraph = new helpers.OpDependencyGraph(operations: allOps);
+        OpDependencyGraph dependencyGraph = new helpers.OpDependencyGraph(operations: allOps);
         dependencyGraph.PrintGraphToTrace();
 
         if (!dependencyGraph.IsValid) {

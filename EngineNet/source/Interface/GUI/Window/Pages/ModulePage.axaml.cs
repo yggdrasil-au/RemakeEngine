@@ -1,8 +1,10 @@
 
 namespace EngineNet.GUI.Pages;
 
+using System.IO;
 using Avalonia.Media;
 using Core.Data;
+using Core.Operations;
 using EngineNet.Shared.IO.UI;
 
 internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
@@ -328,9 +330,9 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 operationName: "Play",
                 executor: async (_, onEvent, stdin) => {
                     // Temporarily redirect engine events/output for this launch
-                    var previousSink = Shared.IO.UI.EngineSdk.LocalEventSink;
+                    Action<Dictionary<string, object?>>? previousSink = Shared.IO.UI.EngineSdk.LocalEventSink;
                     bool previousMute = Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink;
-                    var previousIn = System.Console.In;
+                    TextReader previousIn = System.Console.In;
 
                     Shared.IO.UI.EngineSdk.LocalEventSink = e => onEvent(evt: e);
                     Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink = true;
@@ -374,7 +376,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 moduleName: ModuleName,
                 operationName: "Run All",
                 executor: async (onOutput, onEvent, stdin) => {
-                    var res = await GuiBootstrapper.MiniEngine.RunAllAsync(gameName: ModuleName, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdin, cancellationToken: _cts.Token);
+                    RunAllResult res = await GuiBootstrapper.MiniEngine.RunAllAsync(gameName: ModuleName, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdin, cancellationToken: _cts.Token);
                     return res.Success;
                 }
             );

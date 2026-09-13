@@ -14,7 +14,7 @@ internal static class InternalToolRegistry {
     /// Result structure: { "ToolName": { "Version": { "Platform": { "url": "...", ... } } } }
     /// </summary>
     internal static Dictionary<string, object?> Assemble() {
-        var registry = new Dictionary<string, object?>(comparer: StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object?> registry = new Dictionary<string, object?>(comparer: StringComparer.OrdinalIgnoreCase);
 
         if (!Directory.Exists(path: ToolsRegistryRoot)) {
             Shared.IO.Diagnostics.Trace($"[InternalToolRegistry] Tools registry root not found: {ToolsRegistryRoot}");
@@ -23,12 +23,12 @@ internal static class InternalToolRegistry {
 
         foreach (string toolDir in Directory.GetDirectories(path: ToolsRegistryRoot)) {
             string toolName = Path.GetFileName(path: toolDir);
-            var toolData = new Dictionary<string, object?>(comparer: StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, object?> toolData = new Dictionary<string, object?>(comparer: StringComparer.OrdinalIgnoreCase);
 
             foreach (string jsonFile in Directory.GetFiles(path: toolDir, searchPattern: "*.json")) {
                 try {
                     string content = File.ReadAllText(path: jsonFile);
-                    var fileData = JsonSerializer.Deserialize<Dictionary<string, object?>>(json: content);
+                    Dictionary<string, object?>? fileData = JsonSerializer.Deserialize<Dictionary<string, object?>>(json: content);
                     if (fileData != null) {
                         MergeDictionaries(target: toolData, source: fileData);
                     }
@@ -47,7 +47,7 @@ internal static class InternalToolRegistry {
     }
 
     private static void MergeDictionaries(IDictionary<string, object?> target, IDictionary<string, object?> source) {
-        foreach (var kvp in source) {
+        foreach (KeyValuePair<string, object?> kvp in source) {
             if (target.TryGetValue(key: kvp.Key, out object? existingValue)) {
                 if (existingValue is IDictionary<string, object?> targetDict && kvp.Value is IDictionary<string, object?> sourceDict) {
                     MergeDictionaries(target: targetDict, source: sourceDict);
@@ -57,7 +57,7 @@ internal static class InternalToolRegistry {
                 if (existingValue is JsonElement targetElem && targetElem.ValueKind == JsonValueKind.Object &&
                     kvp.Value is JsonElement sourceElem && sourceElem.ValueKind == JsonValueKind.Object) {
                     
-                    var merged = MergeJsonElements(target: targetElem, source: sourceElem);
+                    Dictionary<string, object?> merged = MergeJsonElements(target: targetElem, source: sourceElem);
                     target[key: kvp.Key] = merged;
                     continue;
                 }
@@ -67,13 +67,13 @@ internal static class InternalToolRegistry {
     }
 
     private static Dictionary<string, object?> MergeJsonElements(JsonElement target, JsonElement source) {
-        var result = new Dictionary<string, object?>(comparer: StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object?> result = new Dictionary<string, object?>(comparer: StringComparer.OrdinalIgnoreCase);
         
-        foreach (var prop in target.EnumerateObject()) {
+        foreach (JsonProperty prop in target.EnumerateObject()) {
             result[key: prop.Name] = prop.Value;
         }
         
-        foreach (var prop in source.EnumerateObject()) {
+        foreach (JsonProperty prop in source.EnumerateObject()) {
             if (result.TryGetValue(key: prop.Name, out object? existing) && existing is JsonElement targetSub && targetSub.ValueKind == JsonValueKind.Object &&
                 prop.Value.ValueKind == JsonValueKind.Object) {
                 result[key: prop.Name] = MergeJsonElements(target: targetSub, source: prop.Value);

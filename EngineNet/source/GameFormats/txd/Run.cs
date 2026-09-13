@@ -21,7 +21,7 @@ public static class Extractor {
     public static bool Run(List<string> args, System.Threading.CancellationToken cancellationToken) {
         try {
             Options options = utils.Util.Parse(args: args);
-            var exporter = new TxdExporter();
+            TxdExporter exporter = new TxdExporter();
 
             // Assemble file list and set up progress tracking
             List<string> files = utils.Util.EnumerateTxdFiles(inputPathAbs: options.InputPath);

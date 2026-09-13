@@ -1,10 +1,12 @@
 
 namespace EngineNet.GUI.Pages;
 
+using Core.Data;
+
 /// <summary>
 /// library page in the Graphical Interface.
 /// </summary>
-public partial class LibraryPage:UserControl {
+public sealed partial class LibraryPage:UserControl {
 
     /* :: :: Vars :: START :: */
     // //
@@ -67,16 +69,16 @@ public partial class LibraryPage:UserControl {
                 throw new System.InvalidOperationException("Engine is not initialized.");
             }
 
-            var modules = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.Installed);
+            GameModules modules = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.Installed);
 #if DEBUG
             Shared.IO.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] Found {modules.Count} modules.");
             // list all modules
-            foreach (var kv in modules) {
-                var m = kv.Value;
+            foreach (KeyValuePair<string, GameModuleInfo> kv in modules) {
+                GameModuleInfo m = kv.Value;
                 Shared.IO.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()]   Module: {m.Name}, Installed: {m.IsInstalled}, Built: {m.IsBuilt}, Unverified: {m.IsUnverified}, Registered: {m.IsRegistered}");
             }
 #endif
-            foreach (var item in modules.Values.Select(selector: m => (
+            foreach ((string Name, string ExePath, string Title, string GameRoot, bool IsBuilt, bool IsInstalled, bool IsRegistered, bool IsUnverified) item in modules.Values.Select(selector: m => (
                 Name: m.Name,
                 ExePath: m.ExePath,
                 Title: string.IsNullOrWhiteSpace(m.Title) ? m.Name : m.Title,

@@ -27,7 +27,7 @@ internal static partial class SetupEnvironment {
                 if (fs == null)
                     return DynValue.NewTuple(values: [DynValue.Nil, DynValue.NewString(str: "io.open failed to open path: " + safePath)]);
 
-                var activeStream = fs;
+                FileStream activeStream = fs;
 
                 _LuaWorld.RegisterDisposable(disposable: activeStream);
                 registered = true;
@@ -64,7 +64,7 @@ internal static partial class SetupEnvironment {
                                     return System.Text.Encoding.Latin1.GetString(bytes: buffer, index: 0, count: bytesRead);
                                 } else {
                                     // Text mode: use StreamReader for proper text handling
-                                    using var reader = new System.IO.StreamReader(stream: activeStream, leaveOpen: true);
+                                    using StreamReader reader = new System.IO.StreamReader(stream: activeStream, leaveOpen: true);
                                     return reader.ReadToEnd();
                                 }
                             }
@@ -73,7 +73,7 @@ internal static partial class SetupEnvironment {
                             case "*line": {
                                 if (binaryMode) {
                                     // Read until newline in binary mode
-                                    var lineBytes = new System.Collections.Generic.List<byte>();
+                                    List<byte> lineBytes = new System.Collections.Generic.List<byte>();
                                     int b;
                                     while ((b = activeStream.ReadByte()) != -1) {
                                         if (b == '\n') break;
@@ -82,7 +82,7 @@ internal static partial class SetupEnvironment {
 
                                     return lineBytes.Count == 0 && b == -1 ? null : System.Text.Encoding.Latin1.GetString(bytes: lineBytes.ToArray());
                                 } else {
-                                    using var reader = new System.IO.StreamReader(stream: activeStream, leaveOpen: true);
+                                    using StreamReader reader = new System.IO.StreamReader(stream: activeStream, leaveOpen: true);
                                     return reader.ReadLine();
                                 }
                             }

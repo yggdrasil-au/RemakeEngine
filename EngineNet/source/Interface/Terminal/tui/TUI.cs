@@ -4,7 +4,7 @@ namespace EngineNet.Terminal;
 using Interface;
 using Core.Data;
 
-public class TUI {
+public sealed class TUI {
 
     private readonly MiniEngineFace Engine;
 
@@ -18,7 +18,7 @@ public class TUI {
             GameModules internalModules = Engine.GameRegistry_GetModules(filter: ModuleFilter.Internal);
 
             GameModules allAvailableModules = new(dictionary: modules);
-            foreach (var kv in internalModules) {
+            foreach (KeyValuePair<string, GameModuleInfo> kv in internalModules) {
                 allAvailableModules[key: kv.Key] = kv.Value;
             }
 
@@ -35,7 +35,7 @@ public class TUI {
 
                 // Build menu with states
                 // foreach module, display '<Name> [<isRegistered>, <isInstalled (always true here)>, <isBuilt>]'
-                foreach (var item in modules.Values.Select(selector: m => (Display: $"{m.Name}  [{m.DescribeState()}]", m.Name))) {
+                foreach ((string Display, string Name) item in modules.Values.Select(selector: m => (Display: $"{m.Name}  [{m.DescribeState()}]", m.Name))) {
                     gameMenu.Add(item: item.Display);
                     gameKeyMap.Add(item: item.Name);
                 }
@@ -215,10 +215,10 @@ public class TUI {
                         continue;
                     }
                     case "Run All": {
-                        using var runAllCts = new CancellationTokenSource();
+                        using CancellationTokenSource runAllCts = new CancellationTokenSource();
 
                         // Register global intercept for Lua script prompts while TUI runs
-                        var oldPromptHandler = Shared.IO.UI.EngineSdk.ExternalPromptHandler;
+                        Func<string, bool, string?>? oldPromptHandler = Shared.IO.UI.EngineSdk.ExternalPromptHandler;
                         Shared.IO.UI.EngineSdk.ExternalPromptHandler = (msg, sec) => TuiRenderer.ReadLineCustom(label: $"{msg} >", isSecret: sec);
 
                         try {
@@ -265,10 +265,10 @@ public class TUI {
 
                 {
                     Dictionary<string, object?> op = preparedOps.RegularOperations[index: opIndex].Operation;
-                    var answers = new PromptAnswers();
-                    using var opCts = CancellationTokenSource.CreateLinkedTokenSource(token: cancellationToken);
+                    PromptAnswers answers = new PromptAnswers();
+                    using CancellationTokenSource opCts = CancellationTokenSource.CreateLinkedTokenSource(token: cancellationToken);
 
-                    var oldPromptHandler = Shared.IO.UI.EngineSdk.ExternalPromptHandler;
+                    Func<string, bool, string?>? oldPromptHandler = Shared.IO.UI.EngineSdk.ExternalPromptHandler;
                     Shared.IO.UI.EngineSdk.ExternalPromptHandler = (msg, sec) => TuiRenderer.ReadLineCustom(label: $"{msg} >", isSecret: sec);
 
                     TuiRenderer.Initialize(cts: opCts);
@@ -699,7 +699,7 @@ public class TUI {
         cancelled = false;
         StringBuilder sb = new StringBuilder();
         while (true) {
-            var key = SafeReadKey(intercept: true);
+            ConsoleKeyInfo key = SafeReadKey(intercept: true);
             switch (key.Key) {
                 case ConsoleKey.Enter:
                     System.Console.WriteLine();

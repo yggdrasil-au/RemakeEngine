@@ -1,6 +1,6 @@
 
 namespace EngineNet.Core.Operations.Built_inActions;
-internal partial class InternalOperations {
+internal sealed partial class InternalOperations {
 
     internal bool DownloadModuleRegistry(Core.Data.PromptAnswers promptAnswers, Engine.EngineContext context) {
 
@@ -15,7 +15,7 @@ internal partial class InternalOperations {
             return false;
         }
 
-        var knownModules = context.GameRegistry.GetRegisteredModules();
+        IReadOnlyDictionary<string, object?> knownModules = context.GameRegistry.GetRegisteredModules();
         string? url = input;
 
         if (knownModules.TryGetValue(key: input, out object? modObj) && modObj is Dictionary<string, object?> modData) {

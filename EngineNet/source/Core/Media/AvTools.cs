@@ -3,6 +3,7 @@ namespace EngineNet.Core.Media;
 
 using System.Collections.Concurrent;
 using Shared.IO.UI;
+using Utils;
 
 /// <summary>
 /// Built-in media converter that mirrors Tools/ffmpeg-vgmstream/convert.py behavior.
@@ -408,7 +409,7 @@ internal static class AvTools {
             try { p.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8; } catch (System.Exception ex) { Shared.IO.Diagnostics.Bug($"[MediaConverter::Exec()] Failed to set stderr encoding for '{fileName}': {ex}"); /* non-critical: default encoding is fine */ }
             try { p.StartInfo.StandardOutputEncoding = System.Text.Encoding.UTF8; } catch (System.Exception ex) { Shared.IO.Diagnostics.Bug($"[MediaConverter::Exec()] Failed to set stdout encoding for '{fileName}': {ex}"); /* non-critical */ }
 
-            using var job = System.OperatingSystem.IsWindows() ? new Utils.JobObject() : null;
+            using JobObject? job = System.OperatingSystem.IsWindows() ? new Utils.JobObject() : null;
 
             if (!p.Start()) {
                 return (false, "failed to start process");

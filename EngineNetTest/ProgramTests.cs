@@ -7,17 +7,17 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 public sealed class ProgramTests {
 
     private static object InvokeParseArguments(string[] args) {
-        var method = typeof(EngineNet.Program).GetMethod(name: "ParseArguments", bindingAttr: BindingFlags.NonPublic | BindingFlags.Static);
+        MethodInfo? method = typeof(EngineNet.Program).GetMethod(name: "ParseArguments", bindingAttr: BindingFlags.NonPublic | BindingFlags.Static);
         return method?.Invoke(obj: null, parameters: [args]) ?? throw new System.Exception(message: "Method ParseArguments not found");
     }
 
     private static object? GetPropertyValue(object obj, string propertyName) {
-        var prop = obj.GetType().GetProperty(name: propertyName, bindingAttr: BindingFlags.Public | BindingFlags.Instance);
+        PropertyInfo? prop = obj.GetType().GetProperty(name: propertyName, bindingAttr: BindingFlags.Public | BindingFlags.Instance);
         return prop?.GetValue(obj: obj);
     }
 
     private static string InvokeTryFindProjectRoot(string startDir) {
-        var method = typeof(EngineNet.Program).GetMethod(name: "TryFindProjectRoot", bindingAttr: BindingFlags.NonPublic | BindingFlags.Static);
+        MethodInfo? method = typeof(EngineNet.Program).GetMethod(name: "TryFindProjectRoot", bindingAttr: BindingFlags.NonPublic | BindingFlags.Static);
         return (string?)method?.Invoke(obj: null, parameters: [startDir]) ?? string.Empty;
     }
 
@@ -31,7 +31,7 @@ public sealed class ProgramTests {
 
         // Assert
         Assert.AreEqual(expected: "C:\\CustomRoot", actual: GetPropertyValue(obj: result, propertyName: "ExplicitRoot"));
-        var remaining = (System.Collections.Generic.List<string>?)GetPropertyValue(obj: result, propertyName: "Remaining");
+        List<string>? remaining = (System.Collections.Generic.List<string>?)GetPropertyValue(obj: result, propertyName: "Remaining");
         Assert.IsNotNull(value: remaining);
         Assert.HasCount(expected: 1, collection: remaining);
         Assert.AreEqual(expected: "--gui", actual: remaining[index: 0]);
@@ -50,7 +50,7 @@ public sealed class ProgramTests {
         // because i+1 is out of range.
         Assert.IsNull(value: GetPropertyValue(obj: result, propertyName: "ExplicitRoot"));
 
-        var remaining = (System.Collections.Generic.List<string>?)GetPropertyValue(obj: result, propertyName: "Remaining");
+        List<string>? remaining = (System.Collections.Generic.List<string>?)GetPropertyValue(obj: result, propertyName: "Remaining");
         Assert.IsNotNull(value: remaining);
         Assert.HasCount(expected: 1, collection: remaining);
         Assert.AreEqual(expected: "--tui", actual: remaining[index: 0]);
@@ -66,7 +66,7 @@ public sealed class ProgramTests {
 
         // Assert
         Assert.IsNull(value: GetPropertyValue(obj: result, propertyName: "ExplicitRoot"));
-        var remaining = (System.Collections.Generic.List<string>?)GetPropertyValue(obj: result, propertyName: "Remaining");
+        List<string>? remaining = (System.Collections.Generic.List<string>?)GetPropertyValue(obj: result, propertyName: "Remaining");
         Assert.IsNotNull(value: remaining);
         Assert.HasCount(expected: 2, collection: remaining);
     }

@@ -47,8 +47,8 @@ internal sealed class Main : IScriptAction {
             SetupSafeEnvironment.JsEnvironment(_JSWorld: JsWorld);
 
             // Load versions from current game module context
-            var moduleVersions = Helper.LoadModuleToolVersions(_gameRoot: _gameRoot);
-            var contextualTools = new ContextualToolResolver(baseResolver: tools, contextVersions: moduleVersions);
+            Dictionary<string, string> moduleVersions = Helper.LoadModuleToolVersions(_gameRoot: _gameRoot);
+            ContextualToolResolver contextualTools = new ContextualToolResolver(baseResolver: tools, contextVersions: moduleVersions);
 
             // Expose core functions, SDK and modules
             JsAction.SetupCoreFunctions(_JSWorld: JsWorld, _tools: contextualTools, _args: _args, _gameRoot: _gameRoot, _projectRoot: _projectRoot, _scriptPath: _scriptPath);

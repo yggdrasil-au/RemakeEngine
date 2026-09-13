@@ -408,7 +408,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
         string? id = payload?.TryGetValue(key: "id", out object? idObj) == true ? idObj?.ToString() : null;
         if (!string.IsNullOrEmpty(id)) {
             if (_panelsById.ContainsKey(key: id)) return;
-            var panel = new ProgressPanelState { Id = id };
+            ProgressPanelState panel = new ProgressPanelState { Id = id };
             _panelsById[key: id] = panel;
             TaskPanels.Add(item: panel);
             return;
@@ -749,7 +749,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     }
 
     private static string FormatEventData(Dictionary<string, object?> evt) {
-        var parts = new List<string>();
+        List<string> parts = new List<string>();
         foreach (KeyValuePair<string, object?> kv in evt) {
             if (kv.Key.Equals("event", comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                 continue;

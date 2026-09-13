@@ -291,8 +291,8 @@ public static class TuiRenderer {
         if (_statusHeight == 0) logAreaHeight = _height - 1;
         if (logAreaHeight <= 0) return;
 
-        var node = _logBuffer.Last;
-        var linesToDraw = new List<LogEntry>();
+        LinkedListNode<LogEntry>? node = _logBuffer.Last;
+        List<LogEntry> linesToDraw = new List<LogEntry>();
 
         for (int i = 0; i < _scrollOffset && node != null; i++) {
             node = node.Previous;
@@ -312,7 +312,7 @@ public static class TuiRenderer {
             for (int i = 0; i < logAreaHeight; i++) {
                 Console.SetCursorPosition(left: 0, top: i);
                 if (i < linesToDraw.Count) {
-                    var entry = linesToDraw[index: i];
+                    LogEntry entry = linesToDraw[index: i];
                     Console.ForegroundColor = entry.Color;
                     string safeMsg = ClipToWidth(text: entry.Message, width: outputWidth);
                     Console.Write(safeMsg.PadRight(totalWidth: outputWidth));
@@ -520,7 +520,7 @@ public static class TuiRenderer {
         StringBuilder input = new StringBuilder();
         while (_isActive) {
             if (Console.KeyAvailable) {
-                var key = Console.ReadKey(intercept: true);
+                ConsoleKeyInfo key = Console.ReadKey(intercept: true);
 
                 if (IsNavigationKey(key: key.Key) || key.Key == ConsoleKey.Escape) {
                     HandleScrollInput(key: key);
@@ -596,7 +596,7 @@ public static class TuiRenderer {
         try {
             while (_isActive) {
                 if (Console.KeyAvailable) {
-                    var key = Console.ReadKey(intercept: true);
+                    ConsoleKeyInfo key = Console.ReadKey(intercept: true);
                     if (IsNavigationKey(key: key.Key)) {
                         HandleScrollInput(key: key);
                         lock (_lock) {

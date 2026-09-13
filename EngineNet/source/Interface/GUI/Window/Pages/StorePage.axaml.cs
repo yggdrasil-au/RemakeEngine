@@ -3,7 +3,7 @@ using EngineNet.Shared.IO.UI;
 
 namespace EngineNet.GUI.Pages;
 
-public partial class StorePage:UserControl, INotifyPropertyChanged {
+public sealed partial class StorePage:UserControl, INotifyPropertyChanged {
 
     /* :: :: Vars :: START :: */
     // //

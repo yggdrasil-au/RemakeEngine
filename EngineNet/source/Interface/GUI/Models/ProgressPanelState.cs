@@ -3,7 +3,7 @@ using System.ComponentModel;
 
 namespace EngineNet.GUI.Models;
 
-public class ProgressPanelState : INotifyPropertyChanged {
+public sealed class ProgressPanelState : INotifyPropertyChanged {
     private string _id = string.Empty;
     private string _label = string.Empty;
     private string _spinner = string.Empty;
@@ -72,9 +72,9 @@ public class ProgressPanelState : INotifyPropertyChanged {
 
         // sync jobs
         for (int i = 0; i < model.Jobs.Count; i++) {
-            var snapshot = model.Jobs[index: i];
+            ProgressJobSnapshot snapshot = model.Jobs[index: i];
             if (i < Jobs.Count) {
-                var job = Jobs[index: i];
+                ActiveJob job = Jobs[index: i];
                 job.Spinner = model.Spinner;
                 job.Tool = snapshot.Tool;
                 job.File = snapshot.File;

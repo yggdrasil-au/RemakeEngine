@@ -1,11 +1,13 @@
 
 namespace EngineNet.Core.Operations.helpers;
 
+using Data;
+
 /// <summary>
 /// Builds, validates, and visualizes the operation dependency graph.
 /// used by the Run-All operation to determine execution order and detect issues before starting execution.
 /// </summary>
-internal class OpDependencyGraph {
+internal sealed class OpDependencyGraph {
     internal bool IsValid { get; private set; }
     internal List<string> Errors { get; private set; } = new();
 
@@ -24,7 +26,7 @@ internal class OpDependencyGraph {
         if (!IsValid) {
             Shared.IO.Diagnostics.Trace("[DependencyGraph] Graph is INVALID. Parallel features would be disabled.");
             Shared.IO.Diagnostics.Trace("[DependencyGraph] Errors:");
-            foreach (var err in Errors) {
+            foreach (string err in Errors) {
                 Shared.IO.Diagnostics.Trace($"  => {err}");
             }
             Shared.IO.Diagnostics.Trace("==================================");
@@ -33,7 +35,7 @@ internal class OpDependencyGraph {
 
         Shared.IO.Diagnostics.Trace("[DependencyGraph] Graph is VALID. Dependency Map:");
 
-        foreach (var node in _nodes.Values) {
+        foreach (OperationNode node in _nodes.Values) {
             string line = $"  [{node.Id}]";
 
             if (node.Dependencies.Count > 0) {
@@ -53,10 +55,10 @@ internal class OpDependencyGraph {
         _nodes.Clear();
 
         // Pass 1: Filter relevant operations (Run-All entry points and their transitive dependencies)
-        var relevantOps = FilterRelevantOperations(allOps: operations);
+        List<Dictionary<string, object?>> relevantOps = FilterRelevantOperations(allOps: operations);
 
         // Pass 2: Create nodes and validate IDs for relevant operations
-        foreach (var op in relevantOps) {
+        foreach (Dictionary<string, object?> op in relevantOps) {
             string id = GetString(dict: op, key: "id");
             string name = GetString(dict: op, key: "Name");
             if (string.IsNullOrWhiteSpace(name)) name = id; // Fallback to ID for display
@@ -84,9 +86,9 @@ internal class OpDependencyGraph {
         if (!IsValid) return; // Stop if IDs are broken (we can't link safely)
 
         // Pass 3: Link dependencies and validate references
-        foreach (var node in _nodes.Values) {
-            foreach (var depId in node.Dependencies) {
-                if (!_nodes.TryGetValue(key: depId, out var depNode)) {
+        foreach (OperationNode node in _nodes.Values) {
+            foreach (string depId in node.Dependencies) {
+                if (!_nodes.TryGetValue(key: depId, out OperationNode? depNode)) {
                     IsValid = false;
                     Errors.Add(item: $"Operation '{node.Id}' depends on unknown or irrelevant ID: '{depId}'.");
                 } else {
@@ -104,11 +106,11 @@ internal class OpDependencyGraph {
     }
 
     private List<Dictionary<string, object?>> FilterRelevantOperations(List<Dictionary<string, object?>> allOps) {
-        var relevant = new HashSet<Dictionary<string, object?>>();
-        var queue = new Queue<Dictionary<string, object?>>();
+        HashSet<Dictionary<string, object?>> relevant = new HashSet<Dictionary<string, object?>>();
+        Queue<Dictionary<string, object?>> queue = new Queue<Dictionary<string, object?>>();
 
         // Start with entry points (init or run-all flag set)
-        foreach (var op in allOps) {
+        foreach (Dictionary<string, object?> op in allOps) {
             if (IsFlagSet(op: op, key: "init") || IsFlagSet(op: op, key: "run-all") || IsFlagSet(op: op, key: "run_all")) {
                 if (relevant.Add(item: op)) {
                     queue.Enqueue(item: op);
@@ -117,17 +119,17 @@ internal class OpDependencyGraph {
         }
 
         // Trace recursive dependencies
-        var idToOpMap = allOps
+        Dictionary<string, Dictionary<string, object?>> idToOpMap = allOps
             .Where(predicate: o => !string.IsNullOrEmpty(GetString(dict: o, key: "id")))
             .GroupBy(keySelector: o => GetString(dict: o, key: "id"))
             .ToDictionary(keySelector: g => g.Key, elementSelector: g => g.First(), comparer: StringComparer.OrdinalIgnoreCase);
 
         while (queue.Count > 0) {
-            var current = queue.Dequeue();
-            var deps = GetStringList(dict: current, key: "depends_on").Concat(second: GetStringList(dict: current, key: "depends-on"));
+            Dictionary<string, object?> current = queue.Dequeue();
+            IEnumerable<string> deps = GetStringList(dict: current, key: "depends_on").Concat(second: GetStringList(dict: current, key: "depends-on"));
 
-            foreach (var depId in deps) {
-                if (!idToOpMap.TryGetValue(key: depId, out var depOp)) continue;
+            foreach (string depId in deps) {
+                if (!idToOpMap.TryGetValue(key: depId, out Dictionary<string, object?>? depOp)) continue;
                 if (relevant.Add(item: depOp)) {
                     queue.Enqueue(item: depOp);
                 }
@@ -145,10 +147,10 @@ internal class OpDependencyGraph {
     }
 
     private bool HasCycles() {
-        var visited = new HashSet<string>(comparer: StringComparer.OrdinalIgnoreCase);
-        var recursionStack = new HashSet<string>(comparer: StringComparer.OrdinalIgnoreCase);
+        HashSet<string> visited = new HashSet<string>(comparer: StringComparer.OrdinalIgnoreCase);
+        HashSet<string> recursionStack = new HashSet<string>(comparer: StringComparer.OrdinalIgnoreCase);
 
-        foreach (var node in _nodes.Values) {
+        foreach (OperationNode node in _nodes.Values) {
             if (DetectCycle(node: node, visited: visited, recursionStack: recursionStack)) {
                 return true;
             }
@@ -167,7 +169,7 @@ internal class OpDependencyGraph {
         visited.Add(item: node.Id);
         recursionStack.Add(item: node.Id);
 
-        foreach (var dep in node.DependentNodes) {
+        foreach (OperationNode dep in node.DependentNodes) {
             if (DetectCycle(node: dep, visited: visited, recursionStack: recursionStack)) return true;
         }
 
@@ -183,9 +185,9 @@ internal class OpDependencyGraph {
     }
 
     private static List<string> GetStringList(Dictionary<string, object?> dict, string key) {
-        var list = new List<string>();
+        List<string> list = new List<string>();
         if (dict.TryGetValue(key: key, out object? value) && value is System.Collections.IEnumerable enumerable && value is not string) {
-            foreach (var item in enumerable) {
+            foreach (object? item in enumerable) {
                 if (item is not null) list.Add(item: item.ToString()!);
             }
         }

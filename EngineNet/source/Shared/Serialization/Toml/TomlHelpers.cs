@@ -1,6 +1,7 @@
 
 namespace EngineNet.Shared.Serialization.Toml;
 
+using Tomlyn.Model;
 
 /// <summary>
 /// Reusable TOML read/write utilities built on Tomlyn.
@@ -15,7 +16,7 @@ public static class TomlHelpers {
         string text = System.IO.File.Exists(path: path) ? System.IO.File.ReadAllText(path: path) : string.Empty;
 
         // Handle empty strings explicitly to avoid deserialization exceptions
-        var model = string.IsNullOrWhiteSpace(text)
+        TomlTable model = string.IsNullOrWhiteSpace(text)
             ? new Tomlyn.Model.TomlTable()
             : Tomlyn.TomlSerializer.Deserialize<Tomlyn.Model.TomlTable>(toml: text)!;
 
@@ -55,7 +56,7 @@ public static class TomlHelpers {
             }
             case Tomlyn.Model.TomlTableArray taa: {
                 List<object?> list = new List<object?>();
-                foreach (var t in taa) {
+                foreach (TomlTable t in taa) {
                     list.Add(item: ConvertTomlToPlain(t));
                 }
                 return list;
@@ -90,7 +91,7 @@ public static class TomlHelpers {
             case Tomlyn.Model.TomlTable t:
                 return t;
             case IDictionary rawDict: {
-                var table = new Tomlyn.Model.TomlTable();
+                TomlTable table = new Tomlyn.Model.TomlTable();
                 foreach (DictionaryEntry entry in rawDict) {
                     //if (entry.Key is null)
                     //    continue;
@@ -106,14 +107,14 @@ public static class TomlHelpers {
         if (data is IEnumerable enumerable and not string) {
             // If the root is a list, wrap it under a single key "root"? Better to coerce into a table
             // For our purposes we expect a table at the root. Create a table with a single key if needed.
-            var table = new Tomlyn.Model.TomlTable();
+            TomlTable table = new Tomlyn.Model.TomlTable();
             object? rootVal = ConvertPlainToTomlValue(enumerable);
             if (rootVal != null)
                 table[key: "root"] = rootVal;
             return table;
         }
         // Primitive at root -> put under "value"
-        var t2 = new Tomlyn.Model.TomlTable();
+        TomlTable t2 = new Tomlyn.Model.TomlTable();
         object? v2 = ConvertPlainToTomlValue(data);
         if (v2 != null)
             t2[key: "value"] = v2;
@@ -131,7 +132,7 @@ public static class TomlHelpers {
                 return value;
             // IDictionary -> Tomlyn.Model.TomlTable
             case IDictionary dict: {
-                var table = new Tomlyn.Model.TomlTable();
+                TomlTable table = new Tomlyn.Model.TomlTable();
                 foreach (DictionaryEntry entry in dict) {
                     //if (entry.Key is null)
                     //    continue;
@@ -146,16 +147,16 @@ public static class TomlHelpers {
 
         // IEnumerable -> Tomlyn.Model.TomlArray or Tomlyn.Model.TomlTableArray (arrays of tables)
         if (value is IEnumerable enumerable and not string) {
-            var items = enumerable.Cast<object?>().ToList();
+            List<object?> items = enumerable.Cast<object?>().ToList();
             bool allDicts = items.Count > 0 && items.All(predicate: x => x is IDictionary);
             if (allDicts) {
-                var taa = new Tomlyn.Model.TomlTableArray();
-                foreach (var table in items.Select(selector: ConvertPlainToTomlTable).Where(predicate: _ => true)) {
+                TomlTableArray taa = new Tomlyn.Model.TomlTableArray();
+                foreach (TomlTable table in items.Select(selector: ConvertPlainToTomlTable).Where(predicate: _ => true)) {
                     taa.Add(item: table);
                 }
                 return taa;
             } else {
-                var arr = new Tomlyn.Model.TomlArray();
+                TomlArray arr = new Tomlyn.Model.TomlArray();
                 foreach (object? entryValue in items.Select(selector: ConvertPlainToTomlValue)) {
                     arr.Add(item: entryValue ?? string.Empty);
                 }
@@ -164,7 +165,7 @@ public static class TomlHelpers {
         }
 
         // Fallback: try to reflect into a dictionary of properties
-        var props = value.GetType().GetProperties()
+        Dictionary<string, object?> props = value.GetType().GetProperties()
             .Where(predicate: p => p.CanRead)
             .ToDictionary(keySelector: p => p.Name, elementSelector: p => p.GetValue(obj: value), comparer: System.StringComparer.OrdinalIgnoreCase);
         return ConvertPlainToTomlValue(props);
@@ -195,7 +196,7 @@ public static class TomlHelpers {
     /// Specialized helper to read and merge [[placeholders]] blocks from config files.
     /// </summary>
     public static Dictionary<string, object?> ReadPlaceholdersFile(string path) {
-        var result = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object?> result = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
         if (!System.IO.File.Exists(path: path)) return result; // return empty if file doesn't exist
 
         object parsed = ParseFileToPlainObject(path: path); // this should give us a Dictionary<string, object?> representing the root TOML table
@@ -207,7 +208,7 @@ public static class TomlHelpers {
         // Merge all tables in the [[placeholders]] array into the result dictionary. Later tables overwrite earlier ones in case of key conflicts, allowing for modular overrides.
         foreach (object item in placeholdersList) {
             if (item is not IDictionary<string, object?> table) continue;
-            foreach (var kvp in table) {
+            foreach (KeyValuePair<string, object?> kvp in table) {
                 result[key: kvp.Key] = kvp.Value;
             }
         }

@@ -3,7 +3,7 @@ namespace EngineNet.Terminal;
 
 using Interface;
 
-public partial class CLI {
+public sealed partial class CLI {
 
     /* :: :: Constructor, Var :: START :: */
     private readonly MiniEngineFace Engine;
@@ -29,12 +29,12 @@ public partial class CLI {
 
             if (options.RunAll) {
                 Shared.IO.Diagnostics.Trace("Detected run-all operation invocation.");
-                if (options.RunOperationSelector is not null) {
-                    Shared.IO.Diagnostics.Log("ERROR: --run_op cannot be combined with --run_all.");
-                    return 2;
+                if (options.RunOperationSelector is null){
+                    return await RunAllOperationsAsync(options: options, cancellationToken: cancellationToken);
                 }
+                Shared.IO.Diagnostics.Log("ERROR: --run_op cannot be combined with --run_all.");
+                return 2;
 
-                return await RunAllOperationsAsync(options: options, cancellationToken: cancellationToken);
             }
 
             if (options.RunOperationSelector is not null) {
@@ -164,7 +164,7 @@ public partial class CLI {
     /// <param name="options"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    internal async System.Threading.Tasks.Task<int> RunAllOperationsAsync(InlineOperationOptions options, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
+    private async System.Threading.Tasks.Task<int> RunAllOperationsAsync(InlineOperationOptions options, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot)) {
             Shared.IO.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) is required for --run_all.");
             return 2;
@@ -203,7 +203,7 @@ public partial class CLI {
     /// </summary>
     /// <param name="args"></param>
     /// <returns></returns>
-    public static bool IsInlineOperationInvocation(string[] args) {
+    private static bool IsInlineOperationInvocation(string[] args) {
         bool sawGame = false;
         bool sawScript = false;
 
@@ -230,7 +230,7 @@ public partial class CLI {
     /// <summary>
     /// Options for inline operation execution.
     /// </summary>
-    internal class InlineOperationOptions {
+    internal sealed class InlineOperationOptions {
         internal string? GameIdentifier {
             get; private set;
         }
@@ -246,8 +246,8 @@ public partial class CLI {
         internal string? Script {
             get; private set;
         }
-        internal string? ScriptType {
-            get; private set;
+        private string? ScriptType {
+            get; set;
         }
         internal object? RunOperationSelector {
             get; private set;
@@ -256,7 +256,7 @@ public partial class CLI {
             get; private set;
         }
         internal Dictionary<string, object?> OperationFields { get; } = new(comparer: System.StringComparer.OrdinalIgnoreCase);
-        internal Core.Data.PromptAnswers PromptAnswers { get; } = new Core.Data.PromptAnswers(); // respond to operations.toml prompts
+        internal Core.Data.PromptAnswers PromptAnswers { get; } = new(); // respond to operations.toml prompts
         internal Dictionary<string, string> AutoPromptResponses { get; } = new(comparer: System.StringComparer.OrdinalIgnoreCase); // responde to lua prompt() calls
 
         private readonly List<string> _args = new();

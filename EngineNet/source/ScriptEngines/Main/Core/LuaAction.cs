@@ -3,6 +3,8 @@ using MoonSharp.Interpreter;
 
 namespace EngineNet.ScriptEngines.Lua;
 
+using System.Text;
+
 /// <summary>
 /// LuaAction sets up the core global variables, functions, modules, and diagnostics for Lua scripts in the EngineNet environment.
 /// </summary>
@@ -124,7 +126,7 @@ internal static class LuaAction {
 
         static string NormalizePathString(string path) {
             char separator = System.IO.Path.DirectorySeparatorChar;
-            var builder = new System.Text.StringBuilder(capacity: path.Length);
+            StringBuilder builder = new System.Text.StringBuilder(capacity: path.Length);
             bool previousWasSeparator = false;
 
             foreach (char character in path) {
@@ -144,7 +146,7 @@ internal static class LuaAction {
 
         static DynValue JoinPaths(CallbackArguments args) {
             char separator = System.IO.Path.DirectorySeparatorChar;
-            var parts = Enumerable.Range(start: 0, count: args.Count)
+            List<string> parts = Enumerable.Range(start: 0, count: args.Count)
                 .Select(selector: i => args[index: i])
                 .Select(selector: NormalizePathValue)
                 .Where(predicate: v => v.Type == DataType.String && !string.IsNullOrEmpty(v.String))
@@ -155,7 +157,7 @@ internal static class LuaAction {
                 return DynValue.NewString(str: string.Empty);
             }
 
-            var sb = new System.Text.StringBuilder();
+            StringBuilder sb = new System.Text.StringBuilder();
             for (int i = 0; i < parts.Count; i++) {
                 string part = parts[index: i];
                 if (i > 0) {
@@ -258,7 +260,7 @@ internal static class LuaAction {
 
         // overwrite built in Print method, and direct to sdk print
         _LuaWorld.LuaScript.Globals[key: "print"] = DynValue.NewCallback(callBack: (ctx, args) => {
-            var parts = new System.Collections.Generic.List<string>();
+            List<string> parts = new System.Collections.Generic.List<string>();
             for (int i = 0; i < args.Count; i++) {
                 // ToPrintString() safely converts Lua types (nil, tables, etc.) to strings
                 parts.Add(item: args[index: i].ToPrintString());

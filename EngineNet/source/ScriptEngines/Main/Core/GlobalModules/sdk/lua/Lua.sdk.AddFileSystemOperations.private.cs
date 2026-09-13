@@ -106,7 +106,7 @@ internal static partial class Sdk {
 
         _LuaWorld.Sdk.Table[key: "attributes"] = (string path) => {
             // Call the shared logic
-            var resultDict = ScriptEngines.Global.SdkModule.Helpers.AddFileSystemOperations.FileAttributes(path: path);
+            Dictionary<string, object>? resultDict = ScriptEngines.Global.SdkModule.Helpers.AddFileSystemOperations.FileAttributes(path: path);
 
             if (resultDict == null) {
                 return DynValue.Nil;
@@ -114,7 +114,7 @@ internal static partial class Sdk {
 
             // Convert C# Dictionary to MoonSharp Table
             Table table = new Table(owner: _LuaWorld.LuaScript);
-            foreach (var kvp in resultDict) {
+            foreach (KeyValuePair<string, object> kvp in resultDict) {
                 // We use DynValue.FromObject to handle the conversion of strings/doubles/longs automatically
                 table[key: kvp.Key] = DynValue.FromObject(script: _LuaWorld.LuaScript, obj: kvp.Value);
             }

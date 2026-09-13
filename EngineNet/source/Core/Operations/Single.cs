@@ -1,6 +1,8 @@
 
 namespace EngineNet.Core.Operations;
 
+using Abstractions;
+
 public sealed class Single {
 
     private readonly Core.Abstractions.IScriptActionDispatcher _scriptActionDispatcher;
@@ -87,7 +89,7 @@ public sealed class Single {
                             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                         }
 
-                        var action = this._scriptActionDispatcher.TryCreateExternal(
+                        IScriptAction? action = this._scriptActionDispatcher.TryCreateExternal(
                             scriptType: scriptType,
                             scriptPath: scriptPath,
                             gameRoot: gameInfo.GameRoot,
@@ -195,7 +197,7 @@ public sealed class Single {
         executionPayload.Remove(key: "on_success");
 
         // tmp debug log each in diagnostics trace before resolution
-        foreach (var kvp in executionPayload) {
+        foreach (KeyValuePair<string, object?> kvp in executionPayload) {
             Shared.IO.Diagnostics.Trace($"[Single.cs::ResolveExecutionPayload()] Pre-resolution payload field: {kvp.Key} = {kvp.Value}");
             // if value is args array, log each arg separately
             if (kvp.Key.Equals("args", comparisonType: System.StringComparison.OrdinalIgnoreCase) && kvp.Value is IEnumerable<object?> argsEnum) {
@@ -211,7 +213,7 @@ public sealed class Single {
             Shared.IO.Diagnostics.Trace("[Single.cs::ResolveExecutionPayload()] Successfully resolved execution payload");
 
             // tmp debug log each resolved field in diagnostics trace
-            foreach (var kvp in resolvedPayload) {
+            foreach (KeyValuePair<string, object?> kvp in resolvedPayload) {
                 Shared.IO.Diagnostics.Trace($"[Single.cs::ResolveExecutionPayload()] Resolved payload field: {kvp.Key} = {kvp.Value}");
                 // if value is args array, log each arg separately
                 if (kvp.Key.Equals("args", comparisonType: System.StringComparison.OrdinalIgnoreCase) && kvp.Value is IEnumerable<object?> argsEnum) {

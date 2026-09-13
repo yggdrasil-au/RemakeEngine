@@ -39,7 +39,7 @@ internal static partial class Sdk {
         };
 
         // Expose CPU count both globally and as a member of the sdk table
-        var cpuCount = DynValue.NewNumber(num: System.Environment.ProcessorCount);
+        DynValue cpuCount = DynValue.NewNumber(num: System.Environment.ProcessorCount);
         _LuaWorld.LuaScript.Globals[key: "cpu_count"] = cpuCount;
         _LuaWorld.Sdk.Table[key: "cpu_count"] = cpuCount;
 

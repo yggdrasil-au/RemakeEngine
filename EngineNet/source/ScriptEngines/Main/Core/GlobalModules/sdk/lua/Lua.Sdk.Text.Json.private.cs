@@ -2,6 +2,8 @@ using MoonSharp.Interpreter;
 
 namespace EngineNet.ScriptEngines.Lua.Global;
 
+using System.Text.Json;
+
 internal static partial class Sdk {
     /// <summary>
     /// register JSON encoding/decoding functions in sdk.text.json
@@ -19,7 +21,7 @@ internal static partial class Sdk {
                 indent = indentVal.Type == DataType.Boolean && indentVal.Boolean;
             }
             object? obj = Lua.Globals.Utils.FromDynValue(v: val);
-            var jsonOpts = new System.Text.Json.JsonSerializerOptions { WriteIndented = indent };
+            JsonSerializerOptions jsonOpts = new System.Text.Json.JsonSerializerOptions { WriteIndented = indent };
             return System.Text.Json.JsonSerializer.Serialize(obj, options: jsonOpts);
         });
 

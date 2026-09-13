@@ -558,7 +558,7 @@ public static class EngineSdk {
 
             double percent = System.Math.Clamp(total == 0 ? 1.0 : (double)s.processed / System.Math.Max(val1: 1, val2: total), min: 0.0, max: 1.0);
 
-            var stats = new Dictionary<string, object?> {
+            Dictionary<string, object?> stats = new Dictionary<string, object?> {
                 [key: "total"] = total,
                 [key: "processed"] = s.processed,
                 [key: "ok"] = s.ok,
@@ -567,7 +567,7 @@ public static class EngineSdk {
                 [key: "percent"] = percent
             };
 
-            var jobList = new List<Dictionary<string, object?>>();
+            List<Dictionary<string, object?>> jobList = new List<Dictionary<string, object?>>();
             if (actives.Count > 0) {
                 int max = 8;
                 try {

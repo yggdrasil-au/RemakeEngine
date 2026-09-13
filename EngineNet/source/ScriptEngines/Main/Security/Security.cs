@@ -347,8 +347,8 @@ internal static class Security {
 
                 while (!string.IsNullOrEmpty(check) && !string.Equals(a: check, b: root, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                     if (System.IO.Directory.Exists(path: check)) {
-                        var info = new System.IO.DirectoryInfo(path: check);
-                        var target = info.ResolveLinkTarget(returnFinalTarget: true); // true = return final target
+                        DirectoryInfo info = new System.IO.DirectoryInfo(path: check);
+                        FileSystemInfo? target = info.ResolveLinkTarget(returnFinalTarget: true); // true = return final target
                         if (target != null) {
                             string targetPath = target.FullName;
                             string suffix = "";

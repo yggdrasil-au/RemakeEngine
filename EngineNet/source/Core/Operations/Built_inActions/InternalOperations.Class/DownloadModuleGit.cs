@@ -1,6 +1,6 @@
 
 namespace EngineNet.Core.Operations.Built_inActions;
-internal partial class InternalOperations {
+internal sealed partial class InternalOperations {
 
     internal bool DownloadModuleGit(Core.Data.PromptAnswers promptAnswers, Engine.EngineContext context) {
         string? url = null;

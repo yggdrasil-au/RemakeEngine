@@ -2,6 +2,9 @@ using EngineNet.Shared.Serialization.Toml;
 
 namespace EngineNet.Core.Operations.Built_inActions;
 
+using Data;
+using Utils;
+
 internal class BuiltInOperations {
 
     internal static bool config(
@@ -10,16 +13,16 @@ internal class BuiltInOperations {
         Core.Data.GameModules games
     ) {
         // Parse arguments
-        var argsList = op.TryGetValue(key: "args", out object? argsObj) && argsObj is IList<object?> list
+        List<string> argsList = op.TryGetValue(key: "args", out object? argsObj) && argsObj is IList<object?> list
             ? list.Select(selector: x => x?.ToString() ?? "").ToList()
             : new List<string>();
 
-        var opts = Utils.ConfigHelpers.ParseArgs(args: argsList);
+        ConfigHelpers.ConfigOptions opts = Utils.ConfigHelpers.ParseArgs(args: argsList);
 
         string? configPath = opts.ConfigPath;
         if (string.IsNullOrEmpty(configPath)) {
             // Try to resolve Game Root
-            if (!string.IsNullOrEmpty(currentGame) && games.TryGetValue(key: currentGame, out var gameInfo)) {
+            if (!string.IsNullOrEmpty(currentGame) && games.TryGetValue(key: currentGame, out GameModuleInfo? gameInfo)) {
                 configPath = System.IO.Path.Combine(path1: gameInfo.GameRoot, path2: "config.toml");
             } else {
                 // Fallback
@@ -71,7 +74,7 @@ internal class BuiltInOperations {
 
             // Handle Multi-set
             if (opts.Sets.Count > 0) {
-                foreach (var set in opts.Sets) {
+                foreach (ConfigHelpers.SetToken set in opts.Sets) {
                     Utils.ConfigHelpers.ApplyUpdate(doc: doc, group: opts.Group, index: opts.Index, key: set.Key, set.Value, typeHint: set.TypeHint);
                     string msg = $"Updated {opts.Group}[{(opts.Index == 0 ? 1 : opts.Index)}].{set.Key} = {Utils.ConfigHelpers.ConvertValue(raw: set.Value, hint: set.TypeHint)}";
                     IO.writeLine(msg, color: System.ConsoleColor.Green);

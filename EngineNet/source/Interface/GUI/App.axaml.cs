@@ -1,7 +1,7 @@
 
 namespace EngineNet.GUI;
 
-public class App:Avalonia.Application {
+public sealed class App:Avalonia.Application {
 
     public override void Initialize() {
         Avalonia.Markup.Xaml.AvaloniaXamlLoader.Load(obj: this);

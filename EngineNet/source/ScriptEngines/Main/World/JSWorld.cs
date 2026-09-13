@@ -3,7 +3,7 @@ using Table = System.Collections.Generic.Dictionary<string, object>;
 
 namespace EngineNet.ScriptEngines.Js;
 
-internal class JsWorld {
+internal sealed class JsWorld {
     // get engine
     internal Jint.Engine JsScript { get; }
 

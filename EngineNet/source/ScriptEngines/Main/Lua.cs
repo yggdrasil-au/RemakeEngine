@@ -3,6 +3,8 @@ using MoonSharp.Interpreter;
 
 namespace EngineNet.ScriptEngines.Lua;
 
+using MoonSharp.Interpreter.Debugging;
+
 /// <summary>
 /// entry point for executing a Lua script, called from EngineNet.ScriptEngines.Helpers.EmbeddedActionDispatcher
 /// </summary>
@@ -69,7 +71,7 @@ internal sealed class Main : IScriptAction {
 
             // Load versions from current game module context
             Dictionary<string,string> moduleVersions = Helper.LoadModuleToolVersions(_gameRoot: _gameRoot);
-            var contextualTools = new ContextualToolResolver(baseResolver: tools, contextVersions: moduleVersions);
+            ContextualToolResolver contextualTools = new ContextualToolResolver(baseResolver: tools, contextVersions: moduleVersions);
 
             // Expose core functions, SDK and modules
             LuaAction.CreateGlobals(_LuaWorld: LuaWorld, _tools: contextualTools, _commandService: commandService, _args: this._args, _gameRoot: this._gameRoot, _projectRoot: this._projectRoot, _scriptPath: this._scriptPath);
@@ -125,7 +127,7 @@ internal sealed class Main : IScriptAction {
             // Print the detailed Lua Call Stack cleanly
             if (luaEx.CallStack != null && luaEx.CallStack.Count > 0) {
                 Shared.IO.UI.EngineSdk.PrintLine("Lua Stack Trace:", color: System.ConsoleColor.DarkRed);
-                foreach (var frame in luaEx.CallStack) {
+                foreach (WatchItem frame in luaEx.CallStack) {
                     string functionName = string.IsNullOrEmpty(frame.Name) ? "main chunk" : frame.Name;
                     string location = "[C# / native code]";
 
@@ -135,7 +137,7 @@ internal sealed class Main : IScriptAction {
                         // Try to get the specific file/chunk name from MoonSharp using SourceIdx
                         if (LuaWorld?.LuaScript != null) {
                             try {
-                                var source = LuaWorld.LuaScript.GetSourceCode(sourceCodeID: frame.Location.SourceIdx);
+                                SourceCode? source = LuaWorld.LuaScript.GetSourceCode(sourceCodeID: frame.Location.SourceIdx);
                                 if (source != null && !string.IsNullOrEmpty(source.Name)) {
                                     fileName = source.Name;
                                 }

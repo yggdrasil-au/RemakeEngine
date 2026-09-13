@@ -5,7 +5,9 @@ using IronPython.Hosting;
 
 namespace EngineNet.ScriptEngines.Python;
 
-internal class PyProgressProxy {
+using Microsoft.Scripting.Hosting;
+
+internal sealed class PyProgressProxy {
     internal Shared.IO.UI.EngineSdk.ScriptProgress? ActiveScriptProgress { get; set; }
 
     internal Func<int, string?, string?, Shared.IO.UI.EngineSdk.PanelProgress>? NewFunc { get; set; }
@@ -21,7 +23,7 @@ internal class PyProgressProxy {
     internal void finish() => FinishAction!();
 }
 
-internal class PyDiagnosticsProxy {
+internal sealed class PyDiagnosticsProxy {
     internal Action<string>? LogAction { get; set; }
     internal Action<string>? TraceAction { get; set; }
 
@@ -83,7 +85,7 @@ internal static class PyAction {
         world.PythonScope.SetVariable(name: "colour_prompt", value: world.PythonScope.GetVariable(name: "color_prompt"));
 
         // :: Progress System ::
-        var progressProxy = new PyProgressProxy();
+        PyProgressProxy progressProxy = new PyProgressProxy();
 
         // progress.new(total, id, label) -> Shared.IO.UI.EngineSdk.PanelProgress userdata
         progressProxy.NewFunc = (total, id, label) => {
@@ -132,7 +134,7 @@ internal static class PyAction {
 #endif
 
         // :: Python Diagnostics logging ::
-        var diagnosticsProxy = new PyDiagnosticsProxy();
+        PyDiagnosticsProxy diagnosticsProxy = new PyDiagnosticsProxy();
         diagnosticsProxy.LogAction = (Action<string>)Shared.IO.Diagnostics.PythonLogger.PythonLog;
         diagnosticsProxy.TraceAction = (Action<string>)Shared.IO.Diagnostics.PythonLogger.PythonTrace;
 
@@ -140,7 +142,7 @@ internal static class PyAction {
 
         // :: Mock Typing Module ::
         // This allows 'from typing import ...' to work in IDEs while remaining a no-op in IronPython
-        var typingModule = world.PythonEngine.CreateModule(name: "typing");
+        ScriptScope typingModule = world.PythonEngine.CreateModule(name: "typing");
         typingModule.SetVariable(name: "TYPE_CHECKING", false);
         typingModule.SetVariable(name: "Any", null);
         typingModule.SetVariable(name: "Dict", null);

@@ -46,7 +46,7 @@ public class JsonToolResolver {
         Dictionary<string, Dictionary<string, ToolLockfileEntry>> lockData = ToolLockfileManager.Load(lockPath: found);
 
         foreach (KeyValuePair<string, Dictionary<string, ToolLockfileEntry>> toolProp in lockData) {
-            var versions = new Dictionary<string, string>(comparer: System.StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, string> versions = new Dictionary<string, string>(comparer: System.StringComparer.OrdinalIgnoreCase);
 
             foreach (KeyValuePair<string, ToolLockfileEntry> versionEntry in toolProp.Value) {
                 if (string.IsNullOrWhiteSpace(versionEntry.Value.Exe)) {
@@ -77,7 +77,7 @@ public class JsonToolResolver {
     public virtual string ResolveToolPath(string toolId, string? version = null) {
         Load();
 
-        if (!_tools.TryGetValue(key: toolId, out var versions)) {
+        if (!_tools.TryGetValue(key: toolId, out Dictionary<string, string>? versions)) {
             return toolId;
         }
 

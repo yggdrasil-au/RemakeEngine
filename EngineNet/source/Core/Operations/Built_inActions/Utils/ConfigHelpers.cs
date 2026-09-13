@@ -16,10 +16,10 @@ internal static class ConfigHelpers {
 
     internal static object EnsureGroupEntry(IDictionary<string, object?> doc, string group, int index) {
         if (!doc.TryGetValue(key: group, out object? g) || g == null) {
-            var newDict = new Dictionary<string, object?>();
+            Dictionary<string, object?> newDict = new Dictionary<string, object?>();
             // If index > 1, we must start as a list
             if (index > 1) {
-                var newlist = new List<object?>();
+                List<object?> newlist = new List<object?>();
                 while (newlist.Count < index) newlist.Add(item: new Dictionary<string, object?>());
                 doc[key: group] = newlist;
                 return newlist[index: index - 1]!;
@@ -29,34 +29,36 @@ internal static class ConfigHelpers {
             }
         }
 
-        // Existing group
-        if (g is IList<object?> list) {
-            // Extend if needed
-            while (list.Count < index) {
-                list.Add(item: new Dictionary<string, object?>());
-            }
-            object? item = list[index: index - 1];
-            if (item == null) {
+        switch (g) {
+            // Existing group
+            case IList<object?> list: {
+                // Extend if needed
+                while (list.Count < index) {
+                    list.Add(item: new Dictionary<string, object?>());
+                }
+                object? item = list[index: index - 1];
+                if (item != null) return item;
                 item = new Dictionary<string, object?>();
                 list[index: index - 1] = item;
+                return item;
             }
-            return item;
-        } else if (g is IDictionary<string, object?> dict) {
-            if (index == 1) return dict;
-
+            case IDictionary<string, object?> dict when index == 1:
+                return dict;
             // Need to convert single dict to list to handle index > 1
-            var newList = new List<object?> { dict };
-            while (newList.Count < index) {
-                newList.Add(item: new Dictionary<string, object?>());
+            case IDictionary<string, object?> dict: {
+                List<object?> newList = new List<object?> { dict };
+                while (newList.Count < index) {
+                    newList.Add(item: new Dictionary<string, object?>());
+                }
+                doc[key: group] = newList;
+                return newList[index: index - 1]!;
             }
-            doc[key: group] = newList;
-            return newList[index: index - 1]!;
         }
 
         // If it's something else (primitive), overwrite it?
-        var replacement = new Dictionary<string, object?>();
+        Dictionary<string, object?> replacement = new Dictionary<string, object?>();
         if (index > 1) {
-            var l = new List<object?>();
+            List<object?> l = new List<object?>();
             while (l.Count < index) l.Add(item: new Dictionary<string, object?>());
             l[index: index-1] = replacement;
             doc[key: group] = l;
@@ -103,7 +105,7 @@ internal static class ConfigHelpers {
     }
 
     internal static ConfigOptions ParseArgs(List<string> args) {
-        var opts = new ConfigOptions();
+        ConfigOptions opts = new ConfigOptions();
         for (int i = 0; i < args.Count; i++) {
             string a = args[index: i];
             switch (a) {
@@ -148,7 +150,7 @@ internal static class ConfigHelpers {
                 case "-s":
                 case "--set": {
                     if (++i < args.Count) {
-                        var token = ParseSetToken(token: args[index: i]);
+                        SetToken? token = ParseSetToken(token: args[index: i]);
                         if (token != null) opts.Sets.Add(item: token);
                     }
 
@@ -174,13 +176,15 @@ internal static class ConfigHelpers {
         string[] allowedTypes = { "string", "boolean", "bool", "integer", "int", "float", "number", "double", "auto" };
 
         int lastColon = rest.LastIndexOf(':');
-        if (lastColon > 0) {
-            string possibleType = rest.Substring(startIndex: lastColon + 1);
-            if (allowedTypes.Contains(possibleType.ToLowerInvariant())) {
-                typeHint = possibleType;
-                rest = rest.Substring(startIndex: 0, length: lastColon);
-            }
+        if (lastColon <= 0) {
+            return new SetToken { Key = key, Value = rest, TypeHint = typeHint };
         }
+        string possibleType = rest.Substring(startIndex: lastColon + 1);
+        if (!allowedTypes.Contains(possibleType.ToLowerInvariant())) {
+            return new SetToken { Key = key, Value = rest, TypeHint = typeHint };
+        }
+        typeHint = possibleType;
+        rest = rest.Substring(startIndex: 0, length: lastColon);
 
         return new SetToken { Key = key, Value = rest, TypeHint = typeHint };
     }
