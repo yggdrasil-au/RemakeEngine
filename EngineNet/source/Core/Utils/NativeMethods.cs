@@ -95,7 +95,7 @@ internal sealed class JobObject : IDisposable {
         try {
             Marshal.StructureToPtr(structure: info, ptr: ptr, fDeleteOld: false);
             if (!NativeMethods.SetInformationJobObject(hJob: _handle, infoType: NativeMethods.JobObjectInfoType.ExtendedLimitInformation, lpJobObjectInfo: ptr, cbJobObjectInfoLength: (uint)length)) {
-                Shared.IO.Diagnostics.Log($"[JobObject] Failed to set JobObject information: {Marshal.GetLastWin32Error()}");
+                Shared.IO.Diagnostics.Log($"Failed to set JobObject information: {Marshal.GetLastWin32Error()}");
             }
         } finally {
             Marshal.FreeHGlobal(hglobal: ptr);

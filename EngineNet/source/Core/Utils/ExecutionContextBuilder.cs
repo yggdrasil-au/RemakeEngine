@@ -65,15 +65,15 @@ internal static class ExecutionContextBuilder {
                 }
             }
         } catch (System.IO.IOException ex) {
-            Shared.IO.Diagnostics.Bug($"[ExecutionContextBuilder] IOException reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Combine(path1: gdict.GameRoot, path2: "config.toml")}': {ex}");
+            Shared.IO.Diagnostics.Bug($"IOException reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Combine(path1: gdict.GameRoot, path2: "config.toml")}': {ex}");
         } catch (System.UnauthorizedAccessException ex) {
-            Shared.IO.Diagnostics.Bug($"[ExecutionContextBuilder] UnauthorizedAccessException reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Join(path1: gdict.GameRoot, path2: "config.toml")}': {ex}");
+            Shared.IO.Diagnostics.Bug($"UnauthorizedAccessException reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Join(path1: gdict.GameRoot, path2: "config.toml")}': {ex}");
         } catch (System.ArgumentException ex) {
-            Shared.IO.Diagnostics.Bug($"[ExecutionContextBuilder] ArgumentException reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Combine(path1: gdict.GameRoot, path2: "config.toml")}': {ex}");
+            Shared.IO.Diagnostics.Bug($"ArgumentException reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Combine(path1: gdict.GameRoot, path2: "config.toml")}': {ex}");
         } catch (System.NotSupportedException ex) {
-            Shared.IO.Diagnostics.Bug($"[ExecutionContextBuilder] NotSupportedException reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Combine(path1: gdict.GameRoot, path2: "config.toml")}': {ex}");
+            Shared.IO.Diagnostics.Bug($"NotSupportedException reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Combine(path1: gdict.GameRoot, path2: "config.toml")}': {ex}");
         } catch (System.Security.SecurityException ex) {
-            Shared.IO.Diagnostics.Bug($"[ExecutionContextBuilder] SecurityException reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Combine(path1: gdict.GameRoot, path2: "config.toml")}': {ex}");
+            Shared.IO.Diagnostics.Bug($"SecurityException reading config.toml for game '{currentGame}' at expected path '{System.IO.Path.Combine(path1: gdict.GameRoot, path2: "config.toml")}': {ex}");
         }
 
         return ctx;

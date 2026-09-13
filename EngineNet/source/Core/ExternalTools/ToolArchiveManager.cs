@@ -37,10 +37,10 @@ internal sealed class ToolArchiveManager {
         } catch (NotSupportedException ex) {
             IO.Warn($"{ex.Message} Leaving archive as-is.");
         } catch (System.IO.IOException ex) {
-            Shared.IO.Diagnostics.Bug($"[ToolArchiveManager.cs::ExtractAndFindExe()] Failed to unpack archive '{archivePath}' to '{installDir}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Failed to unpack archive '{archivePath}' to '{installDir}'.", ex: ex);
             IO.writeLine($"1 ERROR: Failed to unpack '{archivePath}': {ex.Message}", color: System.ConsoleColor.Red);
         } catch (UnauthorizedAccessException ex) {
-            Shared.IO.Diagnostics.Bug($"[ToolArchiveManager.cs::ExtractAndFindExe()] Access denied unpacking archive '{archivePath}' to '{installDir}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Access denied unpacking archive '{archivePath}' to '{installDir}'.", ex: ex);
             IO.writeLine($"1 ERROR: Failed to unpack '{archivePath}': {ex.Message}", color: System.ConsoleColor.Red);
         }
 
@@ -165,13 +165,13 @@ internal sealed class ToolArchiveManager {
                 return filePath;
             }
         } catch (System.IO.DirectoryNotFoundException ex) {
-            Shared.IO.Diagnostics.Bug($"[ToolArchiveManager.cs::SearchForFile()] Root directory does not exist: {root}", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Root directory does not exist: {root}", ex: ex);
         } catch (ArgumentException ex) {
-            Shared.IO.Diagnostics.Bug($"[ToolArchiveManager.cs::SearchForFile()] Invalid path or pattern: {ex.Message}", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Invalid path or pattern: {ex.Message}", ex: ex);
         } catch (System.IO.IOException ex) {
-            Shared.IO.Diagnostics.Bug($"[ToolArchiveManager.cs::SearchForFile()] IO error searching '{pattern}' in {root}: {ex.Message}", ex: ex);
+            Shared.IO.Diagnostics.Bug($"IO error searching '{pattern}' in {root}: {ex.Message}", ex: ex);
         } catch (UnauthorizedAccessException ex) {
-            Shared.IO.Diagnostics.Bug($"[ToolArchiveManager.cs::SearchForFile()] Access denied searching '{pattern}' in {root}: {ex.Message}", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Access denied searching '{pattern}' in {root}: {ex.Message}", ex: ex);
         }
 
         return null;
@@ -188,10 +188,10 @@ internal sealed class ToolArchiveManager {
             System.IO.File.SetUnixFileMode(path: path, mode: newMode);
             IO.Info($"Applied executable permissions to: {path}");
         } catch (UnauthorizedAccessException ex) {
-            Shared.IO.Diagnostics.Bug($"[ToolArchiveManager.cs::ApplyExecutablePermissions()] Access denied setting permissions for '{path}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Access denied setting permissions for '{path}'.", ex: ex);
             IO.Warn($"Insufficient permissions to set executable bit on {path}");
         } catch (System.IO.IOException ex) {
-            Shared.IO.Diagnostics.Bug($"[ToolArchiveManager.cs::ApplyExecutablePermissions()] IO error while updating permissions for '{path}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"IO error while updating permissions for '{path}'.", ex: ex);
             IO.Warn($"Could not update permissions for {path}: {ex.Message}");
         }
     }

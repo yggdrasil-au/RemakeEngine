@@ -342,7 +342,7 @@ internal sealed class InitUI {
 
             return 0;
         } catch (OperationCanceledException) {
-            Shared.IO.Diagnostics.Trace("[Program.cs:InitUI:init()] exiting ui");
+            Shared.IO.Diagnostics.Trace("exiting ui");
             throw;
         } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"Error initializing UI '{ui}': {ex.Message}", ex: ex);

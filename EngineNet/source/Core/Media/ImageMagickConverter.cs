@@ -138,7 +138,7 @@ internal static class ImageMagickConverter {
                             errorList.Add(item: (Path.GetFileName(path: src), msg ?? "unknown error"));
                         }
                     } catch (Exception ex) {
-                        Shared.IO.Diagnostics.Bug($"[ImageMagickConverter::Run()] Conversion worker failed for source '{src}'.", ex: ex);
+                        Shared.IO.Diagnostics.Bug($"Conversion worker failed for source '{src}'.", ex: ex);
                         Interlocked.Increment(location: ref errors);
                         errorList.Add(item: (Path.GetFileName(path: src), ex.Message));
                     } finally {
@@ -146,7 +146,7 @@ internal static class ImageMagickConverter {
                     }
                 });
             } catch (OperationCanceledException ex) {
-                Shared.IO.Diagnostics.Bug("[ImageMagickConverter::Run()] Conversion cancelled by user.", ex: ex);
+                Shared.IO.Diagnostics.Bug("Conversion cancelled by user.", ex: ex);
                 IO.Warn("\nConversion cancelled by user.");
             }
 
@@ -154,7 +154,7 @@ internal static class ImageMagickConverter {
             try {
                 progressTask.Wait(); // todo add cancellationToken
             } catch (System.AggregateException ex) {
-                Shared.IO.Diagnostics.Bug("[ImageMagickConverter::Run()] Progress panel wait failed.", ex: ex);
+                Shared.IO.Diagnostics.Bug("Progress panel wait failed.", ex: ex);
             }
 
             // Final summary
@@ -169,7 +169,7 @@ internal static class ImageMagickConverter {
 
             return errors == 0;
         } catch (Exception ex) {
-            Shared.IO.Diagnostics.Bug("[ImageMagickConverter::Run()] Unhandled conversion failure.", ex: ex);
+            Shared.IO.Diagnostics.Bug("Unhandled conversion failure.", ex: ex);
             IO.Error($"ImageMagick conversion failed: {ex.Message}");
             return false;
         }
@@ -222,7 +222,7 @@ internal static class ImageMagickConverter {
             }
 
         } catch (Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[ImageMagickConverter::ConvertOne()] Conversion failed for '{srcPath}' -> '{destPath}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Conversion failed for '{srcPath}' -> '{destPath}'.", ex: ex);
             TryDelete(path: destPath);
             return (false, ex.Message);
         }
@@ -238,14 +238,14 @@ internal static class ImageMagickConverter {
                 StartedUtc = System.DateTime.UtcNow
             };
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug("[ImageMagickConverter::RegisterActive()] Failed to register active process.", ex: ex);
+            Shared.IO.Diagnostics.Bug("Failed to register active process.", ex: ex);
             /* ignore */
         }
     }
 
     private static void UnregisterActive() {
         try { s_active.TryRemove(key: System.Threading.Thread.CurrentThread.ManagedThreadId, out _); } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug("[ImageMagickConverter::UnregisterActive()] Failed to unregister active process.", ex: ex);
+            Shared.IO.Diagnostics.Bug("Failed to unregister active process.", ex: ex);
             /* ignore */
         }
     }
@@ -265,8 +265,8 @@ internal static class ImageMagickConverter {
             p.StartInfo.CreateNoWindow = true;
             p.StartInfo.RedirectStandardError = !passthroughOutput;
             p.StartInfo.RedirectStandardOutput = !passthroughOutput;
-            try { p.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8; } catch (Exception ex) { Shared.IO.Diagnostics.Bug("[ImageMagickConverter::Exec()] Failed setting stderr encoding.", ex: ex); }
-            try { p.StartInfo.StandardOutputEncoding = System.Text.Encoding.UTF8; } catch (Exception ex) { Shared.IO.Diagnostics.Bug("[ImageMagickConverter::Exec()] Failed setting stdout encoding.", ex: ex); }
+            try { p.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8; } catch (Exception ex) { Shared.IO.Diagnostics.Bug("Failed setting stderr encoding.", ex: ex); }
+            try { p.StartInfo.StandardOutputEncoding = System.Text.Encoding.UTF8; } catch (Exception ex) { Shared.IO.Diagnostics.Bug("Failed setting stdout encoding.", ex: ex); }
 
             using JobObject? job = System.OperatingSystem.IsWindows() ? new Utils.JobObject() : null;
 
@@ -293,13 +293,13 @@ internal static class ImageMagickConverter {
                         outBuf!.AppendLine(e.Data);
                     }
                 };
-                try { p.BeginErrorReadLine(); } catch (Exception ex) { Shared.IO.Diagnostics.Bug($"[ImageMagickConverter] BeginErrorReadLine catch triggered: {ex}"); }
-                try { p.BeginOutputReadLine(); } catch (Exception ex) { Shared.IO.Diagnostics.Bug($"[ImageMagickConverter] BeginOutputReadLine catch triggered: {ex}"); }
+                try { p.BeginErrorReadLine(); } catch (Exception ex) { Shared.IO.Diagnostics.Bug($"BeginErrorReadLine catch triggered: {ex}"); }
+                try { p.BeginOutputReadLine(); } catch (Exception ex) { Shared.IO.Diagnostics.Bug($"BeginOutputReadLine catch triggered: {ex}"); }
             }
 
             while (!p.HasExited) {
                 if (cancellationToken.IsCancellationRequested) {
-                    try { p.Kill(entireProcessTree: true); } catch (Exception ex) { Shared.IO.Diagnostics.Bug($"[ImageMagickConverter] Kill catch triggered during cancellation: {ex}"); }
+                    try { p.Kill(entireProcessTree: true); } catch (Exception ex) { Shared.IO.Diagnostics.Bug($"Kill catch triggered during cancellation: {ex}"); }
                     return (false, "cancelled by user");
                 }
                 System.Threading.Thread.Sleep(millisecondsTimeout: 100);
@@ -318,7 +318,7 @@ internal static class ImageMagickConverter {
             return (false, msg);
 
         } catch (Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[ImageMagickConverter::Exec()] Process execution failed for '{fileName}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Process execution failed for '{fileName}'.", ex: ex);
             return (false, ex.Message);
         }
     }
@@ -335,7 +335,7 @@ internal static class ImageMagickConverter {
         try {
             fullPath = Path.GetFullPath(path: path);
         } catch (Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[ImageMagickConverter::ToLongPath()] Failed to normalize path '{path}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Failed to normalize path '{path}'.", ex: ex);
             fullPath = path; // Fallback if GetFullPath fails (e.g., invalid chars)
         }
 
@@ -427,7 +427,7 @@ internal static class ImageMagickConverter {
                     o.ExtraArgs.Add(item: NextVal());
                     break;
                 default:
-                    Shared.IO.Diagnostics.Log($"[ImageMagickConverter::Parse()] Unknown argument '{a}'.");
+                    Shared.IO.Diagnostics.Log($"Unknown argument '{a}'.");
                     break;
             }
         }
@@ -455,13 +455,13 @@ internal static class ImageMagickConverter {
                 File.Delete(path: path);
             }
         } catch (System.IO.IOException ex) {
-            Shared.IO.Diagnostics.Bug($"[ImageMagickConverter::TryDelete()] IO error deleting '{path}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"IO error deleting '{path}'.", ex: ex);
             /* ignore */
         } catch (System.UnauthorizedAccessException ex) {
-            Shared.IO.Diagnostics.Bug($"[ImageMagickConverter::TryDelete()] Access denied deleting '{path}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Access denied deleting '{path}'.", ex: ex);
             /* ignore */
         } catch (System.ArgumentException ex) {
-            Shared.IO.Diagnostics.Bug($"[ImageMagickConverter::TryDelete()] Invalid path '{path}' during delete.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Invalid path '{path}' during delete.", ex: ex);
             /* ignore */
         }
     }

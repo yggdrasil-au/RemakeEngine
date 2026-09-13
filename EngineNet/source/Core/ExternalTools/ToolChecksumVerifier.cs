@@ -54,7 +54,7 @@ internal sealed class ToolChecksumVerifier {
                     IO.Warn($"Could not find entry for '{fileName}' in upstream checksums.");
                 }
             } catch (System.Net.Http.HttpRequestException ex) {
-                Shared.IO.Diagnostics.Bug($"[ToolChecksumVerifier.cs::VerifyAsync()] Failed to fetch upstream checksums from '{fallbackSourceUrl}'.", ex: ex);
+                Shared.IO.Diagnostics.Bug($"Failed to fetch upstream checksums from '{fallbackSourceUrl}'.", ex: ex);
                 IO.Warn($"Failed to fetch upstream checksums: {ex.Message}");
             }
         }

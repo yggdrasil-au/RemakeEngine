@@ -17,7 +17,7 @@ public sealed partial class ProcessRunner {
             // Process has already exited between the check and the Kill call
         } catch (System.ComponentModel.Win32Exception ex) {
             // Access denied or the process is already terminating
-            Shared.IO.Diagnostics.Bug($"[ToolsDownloader] Win32 error terminating process: {ex.Message}");
+            Shared.IO.Diagnostics.Bug($"Win32 error terminating process: {ex.Message}");
         } catch (System.NotSupportedException) {
             // entireProcessTree: true is not supported on some older/specific platforms
             proc.Kill();
@@ -123,18 +123,18 @@ public sealed partial class ProcessRunner {
              executable.Contains("ffmpeg", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
              executable.Contains("ImageMagick", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
              executable.Contains("Lucas_Radcore_Cement_Library_Builder", comparisonType: System.StringComparison.OrdinalIgnoreCase))) {
-            Shared.IO.Diagnostics.Log($"[ProcessRunner.cs::IsApprovedExecutable()] Allowing specific executable in Tools directory: {executable}");
+            Shared.IO.Diagnostics.Log($"Allowing specific executable in Tools directory: {executable}");
             return true;
         } else if (executable.Contains("Tools", comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
-            Shared.IO.Diagnostics.Log($"[ProcessRunner.cs::IsApprovedExecutable()] Allowing executable in Tools directory: {executable}");
+            Shared.IO.Diagnostics.Log($"Allowing executable in Tools directory: {executable}");
             return true;
         } else {
-            Shared.IO.Diagnostics.Log($"[ProcessRunner.cs::IsApprovedExecutable()] executable not in Tools directory: {executable}, disallowing.");
+            Shared.IO.Diagnostics.Log($"executable not in Tools directory: {executable}, disallowing.");
         }
 
         // For unrecognized executables, provide guidance
         onOutput?.Invoke(line: $"SECURITY: Executable '{executable}' is not approved for RemakeEngine. Use registered tools from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" or SDK methods for file operations.", streamName: "stderr");
-        Shared.IO.Diagnostics.Log($"[ProcessRunner.cs::IsApprovedExecutable()] Blocked unrecognized executable: {executable}");
+        Shared.IO.Diagnostics.Log($"Blocked unrecognized executable: {executable}");
         return false;
     }
 

@@ -11,7 +11,7 @@ internal sealed partial class InternalOperations {
 
         if (string.IsNullOrWhiteSpace(input)) {
             IO.Error("No input provided.");
-            Shared.IO.Diagnostics.Trace("[Engine.private.cs :: InternalOperations()]] download_module_registry: no input provided");
+            Shared.IO.Diagnostics.Trace("] download_module_registry: no input provided");
             return false;
         }
 

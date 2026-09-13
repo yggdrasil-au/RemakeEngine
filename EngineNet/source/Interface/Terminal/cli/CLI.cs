@@ -189,7 +189,7 @@ public sealed partial class CLI {
                 cancellationToken: cancellationToken
             );
 
-            Shared.IO.Diagnostics.Log($"[CLI::RunAllOperationsAsync()] Completed run-all for '{result.Game}' with {result.SucceededOperations}/{result.TotalOperations} successful operations.");
+            Shared.IO.Diagnostics.Log($"Completed run-all for '{result.Game}' with {result.SucceededOperations}/{result.TotalOperations} successful operations.");
             return result.Success ? 0 : 1;
         } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"CLI RunAll Error: {ex}");

@@ -63,7 +63,7 @@ public static class Extractor {
                 } catch (System.OperationCanceledException) {
                     throw;
                 } catch (System.Exception ex) {
-                    Shared.IO.Diagnostics.Bug($"[Extractor::Run()] Failed processing txd file '{txdFile}'.", ex: ex);
+                    Shared.IO.Diagnostics.Bug($"Failed processing txd file '{txdFile}'.", ex: ex);
                     System.Threading.Interlocked.Increment(location: ref progressState.Err);
                 } finally {
                     UnregisterActive();
@@ -75,8 +75,8 @@ public static class Extractor {
             try {
                 progress.Wait(cancellationToken: cancellationToken);
             } catch (System.AggregateException ex) {
-                Shared.IO.Diagnostics.Bug("[Extractor::Run()] Progress task wait failed.", ex: ex);
-                Shared.IO.Diagnostics.Bug("[Extractor] Progress task cancelled.");
+                Shared.IO.Diagnostics.Bug("Progress task wait failed.", ex: ex);
+                Shared.IO.Diagnostics.Bug("Progress task cancelled.");
                 /* ignore */
             }
             return true;
@@ -84,11 +84,11 @@ public static class Extractor {
             utils.Log.Gray("TXD extraction cancelled.");
             return false;
         } catch (Sys.TxdExportException ex) {
-            Shared.IO.Diagnostics.Bug("[Extractor::Run()] TXD export exception.", ex: ex);
+            Shared.IO.Diagnostics.Bug("TXD export exception.", ex: ex);
             utils.Log.Red(ex.Message);
             return false;
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug("[Extractor::Run()] Unhandled TXD extraction error.", ex: ex);
+            Shared.IO.Diagnostics.Bug("Unhandled TXD extraction error.", ex: ex);
             utils.Log.Red($"Unhandled TXD extraction error: {ex.Message}");
             if (!string.IsNullOrWhiteSpace(ex.StackTrace)) {
                 utils.Log.Gray(ex.StackTrace!);
@@ -112,7 +112,7 @@ public static class Extractor {
                 StartedUtc = System.DateTime.UtcNow
             };
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug("[Extractor::RegisterActive()] Failed to register active process.", ex: ex);
+            Shared.IO.Diagnostics.Bug("Failed to register active process.", ex: ex);
             /* ignore */
         }
     }
@@ -124,7 +124,7 @@ public static class Extractor {
         try {
             s_active.TryRemove(key: System.Threading.Thread.CurrentThread.ManagedThreadId, out _);
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug("[Extractor::UnregisterActive()] Failed to unregister active process.", ex: ex);
+            Shared.IO.Diagnostics.Bug("Failed to unregister active process.", ex: ex);
             /* ignore */
         }
     }

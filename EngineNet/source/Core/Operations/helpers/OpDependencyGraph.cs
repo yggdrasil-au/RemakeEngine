@@ -24,8 +24,8 @@ internal sealed class OpDependencyGraph {
         Shared.IO.Diagnostics.Trace("=== [Dependency Graph Builder] ===");
 
         if (!IsValid) {
-            Shared.IO.Diagnostics.Trace("[DependencyGraph] Graph is INVALID. Parallel features would be disabled.");
-            Shared.IO.Diagnostics.Trace("[DependencyGraph] Errors:");
+            Shared.IO.Diagnostics.Trace("Graph is INVALID. Parallel features would be disabled.");
+            Shared.IO.Diagnostics.Trace("Errors:");
             foreach (string err in Errors) {
                 Shared.IO.Diagnostics.Trace($"  => {err}");
             }
@@ -33,7 +33,7 @@ internal sealed class OpDependencyGraph {
             return;
         }
 
-        Shared.IO.Diagnostics.Trace("[DependencyGraph] Graph is VALID. Dependency Map:");
+        Shared.IO.Diagnostics.Trace("Graph is VALID. Dependency Map:");
 
         foreach (OperationNode node in _nodes.Values) {
             string line = $"  [{node.Id}]";
@@ -143,7 +143,7 @@ internal sealed class OpDependencyGraph {
         if (!op.TryGetValue(key: key, out object? value) || value is null) return false;
         if (value is bool b) return b;
         if (value is string s) return bool.TryParse(s, result: out bool parsed) && parsed;
-        try { return Convert.ToInt32(value) != 0; } catch (System.Exception ex) { Shared.IO.Diagnostics.Bug($"[OpDependencyGraph::IsFlagSet()] Failed to convert flag '{key}' value '{value}' to boolean.", ex: ex); return false; }
+        try { return Convert.ToInt32(value) != 0; } catch (System.Exception ex) { Shared.IO.Diagnostics.Bug($"Failed to convert flag '{key}' value '{value}' to boolean.", ex: ex); return false; }
     }
 
     private bool HasCycles() {

@@ -39,19 +39,19 @@ internal static class RemoteFallbacks {
                     Shared.IO.Diagnostics.Log($"Fetched missing file from GitHub: {repoRelativePath} -> {localPath}");
                     return true;
                 } catch (System.Net.Http.HttpRequestException ex) {
-                    Shared.IO.Diagnostics.Bug($"[RemoteFallbacks::EnsureRepoFileAsync()] HTTP error fetching '{repoRelativePath}' from branch '{branch}'.", ex: ex);
+                    Shared.IO.Diagnostics.Bug($"HTTP error fetching '{repoRelativePath}' from branch '{branch}'.", ex: ex);
 #if DEBUG
                     Shared.IO.Diagnostics.Log($"Failed to fetch file from GitHub: {repoRelativePath} -> {localPath}");
                     /* try next branch */
 #endif
                 } catch (System.Threading.Tasks.TaskCanceledException ex) {
-                    Shared.IO.Diagnostics.Bug($"[RemoteFallbacks::EnsureRepoFileAsync()] Timeout fetching '{repoRelativePath}' from branch '{branch}'.", ex: ex);
+                    Shared.IO.Diagnostics.Bug($"Timeout fetching '{repoRelativePath}' from branch '{branch}'.", ex: ex);
 #if DEBUG
                     Shared.IO.Diagnostics.Log($"Failed to fetch file from GitHub: {repoRelativePath} -> {localPath}");
                     /* try next branch */
 #endif
                 } catch (System.IO.IOException ex) {
-                    Shared.IO.Diagnostics.Bug($"[RemoteFallbacks::EnsureRepoFileAsync()] IO error writing downloaded file '{localPath}'.", ex: ex);
+                    Shared.IO.Diagnostics.Bug($"IO error writing downloaded file '{localPath}'.", ex: ex);
 #if DEBUG
                     Shared.IO.Diagnostics.Log($"Failed to fetch file from GitHub: {repoRelativePath} -> {localPath}");
                     /* try next branch */
@@ -59,7 +59,7 @@ internal static class RemoteFallbacks {
                 }
             }
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[RemoteFallbacks::EnsureRepoFileAsync()] Unexpected failure ensuring '{repoRelativePath}' at '{localPath}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Unexpected failure ensuring '{repoRelativePath}' at '{localPath}'.", ex: ex);
 #if DEBUG
             Shared.IO.Diagnostics.Log($"Failed to fetch missing file from GitHub: {repoRelativePath} -> {localPath}");
             // ignore failures, caller will handle missing file case

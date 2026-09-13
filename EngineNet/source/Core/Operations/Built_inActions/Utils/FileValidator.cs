@@ -66,7 +66,7 @@ internal static class FileValidator {
             (bool allFound, int totalChecked, int _) = ValidateTables(dbPath: options.DbPath, baseFolder: options.BaseFolder, tables: tables, debug: options.Debug);
             return requiredDirsOk && (totalChecked == 0 || allFound);
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug("[FileValidator::Run()] Validation run failed.", ex: ex);
+            Shared.IO.Diagnostics.Bug("Validation run failed.", ex: ex);
             WriteRed(ex.Message);
             return false;
         }
@@ -277,7 +277,7 @@ internal static class FileValidator {
                         rows.Add(item: reader.IsDBNull(ordinal: 0) ? null : reader.GetString(ordinal: 0));
                     }
                 } catch (Microsoft.Data.Sqlite.SqliteException ex) {
-                    Shared.IO.Diagnostics.Bug($"[FileValidator::ValidateTables()] Failed querying '{table}.{column}'.", ex: ex);
+                    Shared.IO.Diagnostics.Bug($"Failed querying '{table}.{column}'.", ex: ex);
                     WriteRed($"  ERROR: Unable to query {table}.{column}: {ex.Message}");
                     WriteYellow(new string(c: '-', count: 20));
                     overallAllFound = false;
@@ -350,7 +350,7 @@ internal static class FileValidator {
 
             return (overallAllFound, totalChecked, totalMissing);
         } catch (Microsoft.Data.Sqlite.SqliteException ex) {
-            Shared.IO.Diagnostics.Bug($"[FileValidator::ValidateTables()] SQLite failure opening '{dbPath}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"SQLite failure opening '{dbPath}'.", ex: ex);
             WriteRed($"SQLite error: {ex.Message}");
             return (false, 0, 0);
         }

@@ -9,7 +9,7 @@ internal sealed partial class InternalOperations {
         }
         if (string.IsNullOrWhiteSpace(url)) {
             IO.Error("No URL provided.");
-            Shared.IO.Diagnostics.Trace("[Engine.private.cs :: InternalOperations()]] download_module_git: no url provided");
+            Shared.IO.Diagnostics.Trace("] download_module_git: no url provided");
             return false;
         }
         return Core.Utils.GitTools.CloneModule(url: url, commandService: context.CommandService);

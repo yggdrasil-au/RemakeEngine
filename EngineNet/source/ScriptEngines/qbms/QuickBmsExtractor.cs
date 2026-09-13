@@ -140,9 +140,9 @@ internal static class QuickBmsExtractor {
         try {
             panel.Wait();
         } catch (System.AggregateException ex) {
-            Shared.IO.Diagnostics.Bug("[QuickBmsExtractor::Run()] Progress task wait failed.", ex: ex);
+            Shared.IO.Diagnostics.Bug("Progress task wait failed.", ex: ex);
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug("[QuickBmsExtractor::Run()] Progress task wait failed.", ex: ex);
+            Shared.IO.Diagnostics.Bug("Progress task wait failed.", ex: ex);
         }
 
         WriteInfo($"QuickBMS extraction complete. Success: {progressState.Ok}/{files.Count}.");
@@ -163,7 +163,7 @@ internal static class QuickBmsExtractor {
                 StartedUtc = System.DateTime.UtcNow
             };
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug("[QuickBmsExtractor::RegisterActive()] Failed to register active process.", ex: ex);
+            Shared.IO.Diagnostics.Bug("Failed to register active process.", ex: ex);
             /* ignore */
         }
     }
@@ -175,7 +175,7 @@ internal static class QuickBmsExtractor {
         try {
             s_active.TryRemove(key: System.Threading.Thread.CurrentThread.ManagedThreadId, out _);
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug("[QuickBmsExtractor::UnregisterActive()] Failed to unregister active process.", ex: ex);
+            Shared.IO.Diagnostics.Bug("Failed to unregister active process.", ex: ex);
             /* ignore */
         }
     }

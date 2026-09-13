@@ -173,7 +173,7 @@ internal static class P3dGltfExporter {
         if (!string.IsNullOrWhiteSpace(shader.Texture)) {
 #if DEBUG
             if (!textures.Any(predicate: t => string.Equals(a: t.Name, b: shader.Texture, comparisonType: StringComparison.Ordinal))) {
-                Shared.IO.Diagnostics.Log($"[p3d] Warning: Texture '{shader.Texture}' was not present in file, it will have to be supplemented.");
+                Shared.IO.Diagnostics.Log($"Warning: Texture '{shader.Texture}' was not present in file, it will have to be supplemented.");
             }
 #endif
             textureIndex = ExportTextureToGltf(builder: builder, name: shader.Texture!, format: null);
@@ -307,8 +307,7 @@ internal static class P3dGltfExporter {
             case (null, null, null):
                 break;
             default:
-                Shared.IO.Diagnostics.Log(
-                    $"[p3d] Unsupported skinning configuration for '{group.Shader}': " +
+                Shared.IO.Diagnostics.Log($"Unsupported skinning configuration for '{group.Shader}': " +
                              $"Matrices={group.Matrices is not null}, Palette={group.MatrixPalettes is not null}, Weights={group.Weights is not null}"
                 );
                 break;

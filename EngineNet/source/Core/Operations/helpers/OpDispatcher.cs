@@ -25,14 +25,14 @@ internal static class OpDispatcher {
         System.Threading.CancellationToken cancellationToken = default
     ) {
         if (!executableOperation.TryGetValue(key: "script", out object? s) || s is null) {
-            Shared.IO.Diagnostics.Log("[Engine.private.cs :: Operations()] Missing 'script' value in engine operation");
+            Shared.IO.Diagnostics.Log("Missing 'script' value in engine operation");
             return false;
         }
 
         // 'executableOperation' is already fully resolved from Runner.RunSingleOperationAsync!
         //IDictionary<string, object?> executableOperation = executableOperation;
 
-        Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] engine operation script: {s}");
+        Shared.IO.Diagnostics.Log($"] engine operation script: {s}");
 
         // ensure internal ops are from allowed dirs
         string? type = executableOperation.TryGetValue(key: "script_type", out object? st) ? st?.ToString()?.ToLowerInvariant() : null;
@@ -65,7 +65,7 @@ internal static class OpDispatcher {
         // Determine action
         string? action = s.ToString()?.ToLowerInvariant();
 
-        Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] Executing engine action: {action}");
+        Shared.IO.Diagnostics.Log($"] Executing engine action: {action}");
         switch (action) {
             // internal modules
             case "download_module_git": {
@@ -97,7 +97,7 @@ internal static class OpDispatcher {
                 return Built_inActions.BuiltInOperations.rename_folders(operationArgs: operationArgs);
             }
             default: {
-                Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] Unknown engine action: {action}");
+                Shared.IO.Diagnostics.Log($"] Unknown engine action: {action}");
                 return false;
             }
         }

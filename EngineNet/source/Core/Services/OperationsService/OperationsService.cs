@@ -113,7 +113,7 @@ public sealed class OperationsService {
             try {
                 ctx = Core.Utils.ExecutionContextBuilder.Build(currentGame: currentGame, games: games, engineConfig: engineConfig);
             } catch (System.Exception ex) {
-                Shared.IO.Diagnostics.Bug($"[OperationsService::LoadAndPrepare()] Failed building context for game '{currentGame}'.", ex: ex);
+                Shared.IO.Diagnostics.Bug($"Failed building context for game '{currentGame}'.", ex: ex);
                 /* ignore context build failure for menu rendering */
             }
         }
@@ -393,7 +393,7 @@ public sealed class OperationsService {
             value = System.Convert.ToInt64(raw);
             return true;
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[OperationsService::TryGetLong()] Failed to parse operation id value '{raw}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Failed to parse operation id value '{raw}'.", ex: ex);
             return false;
         }
     }
@@ -450,9 +450,9 @@ public sealed class OperationsService {
                     : OperationExecutionStatus.Failed;
             }
         } catch (System.IO.IOException ex) {
-            Shared.IO.Diagnostics.Bug($"[OperationsService::LoadLatestExecutionStatuses()] Failed reading '{logPath}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Failed reading '{logPath}'.", ex: ex);
         } catch (System.UnauthorizedAccessException ex) {
-            Shared.IO.Diagnostics.Bug($"[OperationsService::LoadLatestExecutionStatuses()] Access denied for '{logPath}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Access denied for '{logPath}'.", ex: ex);
         }
 
         return statuses;

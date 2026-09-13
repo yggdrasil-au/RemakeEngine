@@ -132,8 +132,7 @@ internal sealed class Registries {
 
             string gameToml = System.IO.Path.Join(path1: dir, path2: "game.toml");
             if (!System.IO.File.Exists(path: gameToml)) {
-                Shared.IO.Diagnostics.Trace(
-                    $"[GameRegistry] warning: game '{new System.IO.DirectoryInfo(path: dir).Name}' is missing game.toml - skipping");
+                Shared.IO.Diagnostics.Trace($"warning: game '{new System.IO.DirectoryInfo(path: dir).Name}' is missing game.toml - skipping");
                 continue; // not installed - requires a valid game.toml
             }
 
@@ -184,15 +183,15 @@ internal sealed class Registries {
                 }
             }
             catch (System.IO.IOException ex) {
-                Shared.IO.Diagnostics.Bug($"[GameRegistry] IO error reading game.toml for '{new System.IO.DirectoryInfo(path: dir).Name}': {ex.Message} - skipping");
+                Shared.IO.Diagnostics.Bug($"IO error reading game.toml for '{new System.IO.DirectoryInfo(path: dir).Name}': {ex.Message} - skipping");
                 continue;
             }
             catch (System.UnauthorizedAccessException ex) {
-                Shared.IO.Diagnostics.Bug($"[GameRegistry] Access denied reading game.toml for '{new System.IO.DirectoryInfo(path: dir).Name}': {ex.Message} - skipping");
+                Shared.IO.Diagnostics.Bug($"Access denied reading game.toml for '{new System.IO.DirectoryInfo(path: dir).Name}': {ex.Message} - skipping");
                 continue;
             }
             catch (System.ArgumentOutOfRangeException ex) {
-                Shared.IO.Diagnostics.Bug($"[GameRegistry] Malformed syntax in game.toml for '{new System.IO.DirectoryInfo(path: dir).Name}': {ex.Message} - skipping");
+                Shared.IO.Diagnostics.Bug($"Malformed syntax in game.toml for '{new System.IO.DirectoryInfo(path: dir).Name}': {ex.Message} - skipping");
                 continue;
             }
 

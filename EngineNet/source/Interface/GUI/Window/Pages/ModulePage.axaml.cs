@@ -181,7 +181,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
                 if (preparedOps.Warnings.Count > 0) {
                     foreach (string warning in preparedOps.Warnings) {
-                        Shared.IO.Diagnostics.Log($"[ModulePage::Load()] Warning: {warning}");
+                        Shared.IO.Diagnostics.Log($"Warning: {warning}");
                         OperationOutputService.Instance.AddOutput(text: $"Validation: {warning}", stream: "stderr");
                     }
                 }

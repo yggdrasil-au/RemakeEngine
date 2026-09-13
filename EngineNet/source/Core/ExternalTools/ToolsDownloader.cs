@@ -172,13 +172,13 @@ internal static class ToolsDownloader {
                 } catch (System.OperationCanceledException) {
                     /* ignore */
                 } catch (System.AggregateException ex) {
-                    Shared.IO.Diagnostics.Bug("[ToolsDownloader::DownloadToolAsync()] Progress task wait failed.", ex: ex);
+                    Shared.IO.Diagnostics.Bug("Progress task wait failed.", ex: ex);
                     /* ignore */
                 } catch (System.ObjectDisposedException ex) {
-                    Shared.IO.Diagnostics.Bug("[ToolsDownloader::DownloadToolAsync()] Progress task disposed while waiting.", ex: ex);
+                    Shared.IO.Diagnostics.Bug("Progress task disposed while waiting.", ex: ex);
                     /* ignore */
                 } catch (System.InvalidOperationException ex) {
-                    Shared.IO.Diagnostics.Bug("[ToolsDownloader::DownloadToolAsync()] Progress task wait failed with invalid state.", ex: ex);
+                    Shared.IO.Diagnostics.Bug("Progress task wait failed with invalid state.", ex: ex);
                     /* ignore */
                 }
             } finally {

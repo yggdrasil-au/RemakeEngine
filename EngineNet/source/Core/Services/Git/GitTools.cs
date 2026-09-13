@@ -19,7 +19,7 @@ internal static class GitTools {
 
         if (!IsGitInstalled(commandService: commandService)) {
             IO.Warn("Git is not installed or not found in PATH.");
-            Shared.IO.Diagnostics.Log("[GitTools.cs::CloneModule()] GitTools: Git is not installed or not found in PATH.");
+            Shared.IO.Diagnostics.Log("GitTools: Git is not installed or not found in PATH.");
             return false;
         }
 
@@ -61,35 +61,32 @@ internal static class GitTools {
             }
 
             IO.Error($"\nFailed to download '{repoName}'. Git exited with code {rc}.");
-            Shared.IO.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Git exited with code {rc}.");
+            Shared.IO.Diagnostics.Log($"GitTools: Git exited with code {rc}.");
             return false;
         } catch (System.IO.IOException ex) {
-            Shared.IO.Diagnostics.Bug($"[GitTools.cs::CloneModule()] IOException triggered during git clone: {ex}");
+            Shared.IO.Diagnostics.Bug($"IOException triggered during git clone: {ex}");
             IO.Error($"An IO error occurred during download: {ex.Message}");
-            Shared.IO.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
+            Shared.IO.Diagnostics.Log($"GitTools: Exception during git clone: {ex}");
             return false;
         } catch (System.UnauthorizedAccessException ex) {
-            Shared.IO.Diagnostics.Bug(
-                $"[GitTools.cs::CloneModule()] UnauthorizedAccessException triggered during git clone: {ex}");
+            Shared.IO.Diagnostics.Bug($"UnauthorizedAccessException triggered during git clone: {ex}");
             IO.Error($"Access denied during download: {ex.Message}");
-            Shared.IO.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
+            Shared.IO.Diagnostics.Log($"GitTools: Exception during git clone: {ex}");
             return false;
         } catch (System.ArgumentException ex) {
-            Shared.IO.Diagnostics.Bug($"[GitTools.cs::CloneModule()] ArgumentException triggered during git clone: {ex}");
+            Shared.IO.Diagnostics.Bug($"ArgumentException triggered during git clone: {ex}");
             IO.Error($"An argument error occurred during download: {ex.Message}");
-            Shared.IO.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
+            Shared.IO.Diagnostics.Log($"GitTools: Exception during git clone: {ex}");
             return false;
         } catch (System.InvalidOperationException ex) {
-            Shared.IO.Diagnostics.Bug(
-                $"[GitTools.cs::CloneModule()] InvalidOperationException triggered during git clone: {ex}");
+            Shared.IO.Diagnostics.Bug($"InvalidOperationException triggered during git clone: {ex}");
             IO.Error($"An invalid operation occurred during download: {ex.Message}");
-            Shared.IO.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
+            Shared.IO.Diagnostics.Log($"GitTools: Exception during git clone: {ex}");
             return false;
         } catch (System.NotSupportedException ex) {
-            Shared.IO.Diagnostics.Bug(
-                $"[GitTools.cs::CloneModule()] NotSupportedException triggered during git clone: {ex}");
+            Shared.IO.Diagnostics.Bug($"NotSupportedException triggered during git clone: {ex}");
             IO.Error($"A path format is not supported during download: {ex.Message}");
-            Shared.IO.Diagnostics.Log($"[GitTools.cs::CloneModule()] GitTools: Exception during git clone: {ex}");
+            Shared.IO.Diagnostics.Log($"GitTools: Exception during git clone: {ex}");
             return false;
         }
     }
@@ -107,16 +104,13 @@ internal static class GitTools {
             );
             return result.Success;
         } catch (System.ComponentModel.Win32Exception ex) {
-            Shared.IO.Diagnostics.Bug(
-                $"[GitTools.cs::IsGitInstalled()] Win32Exception while checking for git installation. Executable likely missing: {ex}");
+            Shared.IO.Diagnostics.Bug($"Win32Exception while checking for git installation. Executable likely missing: {ex}");
             return false;
         } catch (System.InvalidOperationException ex) {
-            Shared.IO.Diagnostics.Bug(
-                $"[GitTools.cs::IsGitInstalled()] InvalidOperationException while checking for git installation: {ex}");
+            Shared.IO.Diagnostics.Bug($"InvalidOperationException while checking for git installation: {ex}");
             return false;
         } catch (System.PlatformNotSupportedException ex) {
-            Shared.IO.Diagnostics.Bug(
-                $"[GitTools.cs::IsGitInstalled()] PlatformNotSupportedException while checking for git installation: {ex}");
+            Shared.IO.Diagnostics.Bug($"PlatformNotSupportedException while checking for git installation: {ex}");
             return false;
         }
     }
@@ -133,11 +127,9 @@ internal static class GitTools {
                 return leaf;
             }
         } catch (System.UriFormatException ex) {
-            Shared.IO.Diagnostics.Bug(
-                $"[GitTools.cs::GuessRepoName()] UriFormatException: Failed to parse URL as URI, falling back to string parsing. Exception: {ex}");
+            Shared.IO.Diagnostics.Bug($"UriFormatException: Failed to parse URL as URI, falling back to string parsing. Exception: {ex}");
         } catch (System.ArgumentNullException ex) {
-            Shared.IO.Diagnostics.Bug(
-                $"[GitTools.cs::GuessRepoName()] ArgumentNullException: Passed URL was null, falling back to string parsing. Exception: {ex}");
+            Shared.IO.Diagnostics.Bug($"ArgumentNullException: Passed URL was null, falling back to string parsing. Exception: {ex}");
         }
 
         string tail = url.Replace(oldValue: "\\", newValue: "/");

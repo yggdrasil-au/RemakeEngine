@@ -181,14 +181,14 @@ internal sealed class LuaConsoleProgress : System.IDisposable {
             try {
                 _panelTask.Wait();
             } catch (System.AggregateException ex) {
-                Shared.IO.Diagnostics.Bug($"[LuaConsoleProgress::Complete()] Failed while waiting for panel task completion: {ex}");
+                Shared.IO.Diagnostics.Bug($"Failed while waiting for panel task completion: {ex}");
             } catch (System.ObjectDisposedException ex) {
-                Shared.IO.Diagnostics.Bug($"[LuaConsoleProgress::Complete()] Panel task disposed while waiting: {ex}");
+                Shared.IO.Diagnostics.Bug($"Panel task disposed while waiting: {ex}");
             }
         } catch (System.ObjectDisposedException ex) {
-            Shared.IO.Diagnostics.Bug($"[LuaConsoleProgress::Complete()] Cancellation source disposed: {ex}");
+            Shared.IO.Diagnostics.Bug($"Cancellation source disposed: {ex}");
         } catch (System.InvalidOperationException ex) {
-            Shared.IO.Diagnostics.Bug($"[LuaConsoleProgress::Complete()] Failed to cancel panel task: {ex}");
+            Shared.IO.Diagnostics.Bug($"Failed to cancel panel task: {ex}");
         }
     }
 

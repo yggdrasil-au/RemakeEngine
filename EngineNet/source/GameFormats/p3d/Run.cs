@@ -13,7 +13,7 @@ public static class P3dExtractor {
     public static bool Run(List<string> args, System.Threading.CancellationToken cancellationToken) {
         try {
             if (args.Count == 0) {
-                Shared.IO.Diagnostics.Log("[p3d] Usage: p3d <file-or-directory> [--recurse] [--list] [-o|--out folder] [--parse-only] [--export gltf|obj] [--mode parse|list|gltf|obj]");
+                Shared.IO.Diagnostics.Log("Usage: p3d <file-or-directory> [--recurse] [--list] [-o|--out folder] [--parse-only] [--export gltf|obj] [--mode parse|list|gltf|obj]");
                 Shared.IO.UI.EngineSdk.PrintLine("Usage: p3d <file-or-directory> [--recurse] [--list] [-o|--out folder] [--parse-only] [--export gltf|obj] [--mode parse|list|gltf|obj]");
                 return false;
             }
@@ -26,7 +26,7 @@ public static class P3dExtractor {
             bool requireRecursiveFlag = mode != P3dRunMode.ParseOnly;
             List<string> files = EnumerateP3dFiles(inputPath: options.InputPath, recurse: options.Recurse, requireRecursiveFlag: requireRecursiveFlag);
             if (files.Count == 0) {
-                Shared.IO.Diagnostics.Log($"[p3d] No .p3d files found for '{options.InputPath}'.");
+                Shared.IO.Diagnostics.Log($"No .p3d files found for '{options.InputPath}'.");
                 Shared.IO.UI.EngineSdk.PrintLine($"No .p3d files found for '{options.InputPath}'.", color: System.ConsoleColor.Red);
                 return false;
             }
@@ -42,7 +42,7 @@ public static class P3dExtractor {
 
                     switch (mode) {
                         case P3dRunMode.ParseOnly:
-                            Shared.IO.Diagnostics.Log($"[p3d] OK {System.IO.Path.GetFileName(path: file)} | chunks={chunks.Count}");
+                            Shared.IO.Diagnostics.Log($"OK {System.IO.Path.GetFileName(path: file)} | chunks={chunks.Count}");
                             Shared.IO.UI.EngineSdk.PrintLine($"[OK] {System.IO.Path.GetFileName(path: file)} | chunks={chunks.Count}", color: System.ConsoleColor.Green);
                             break;
                         case P3dRunMode.ListHighLevel:
@@ -54,7 +54,7 @@ public static class P3dExtractor {
                             }
 
                             P3dGltfExporter.ExportAllToGltf(sourceFilename: file, tree: chunks, destinationFolder: options.OutputDirectory);
-                            Shared.IO.Diagnostics.Log($"[p3d] Exported {System.IO.Path.GetFileName(path: file)}");
+                            Shared.IO.Diagnostics.Log($"Exported {System.IO.Path.GetFileName(path: file)}");
                             Shared.IO.UI.EngineSdk.PrintLine($"[OK] Exported {System.IO.Path.GetFileName(path: file)}", color: System.ConsoleColor.Green);
                             break;
                         case P3dRunMode.ExportObj:
@@ -63,17 +63,17 @@ public static class P3dExtractor {
                             }
 
                             P3dObjExporter.ExportAllToObj(sourceFilename: file, tree: chunks, destinationFolder: options.OutputDirectory);
-                            Shared.IO.Diagnostics.Log($"[p3d] Exported OBJ {System.IO.Path.GetFileName(path: file)}");
+                            Shared.IO.Diagnostics.Log($"Exported OBJ {System.IO.Path.GetFileName(path: file)}");
                             Shared.IO.UI.EngineSdk.PrintLine($"[OK] Exported OBJ {System.IO.Path.GetFileName(path: file)}", color: System.ConsoleColor.Green);
                             break;
                     }
 
                     success++;
                 } catch (Exception ex) {
-                    Shared.IO.Diagnostics.Bug($"[p3d] Per-file processing failed for '{file}'.", ex: ex);
+                    Shared.IO.Diagnostics.Bug($"Per-file processing failed for '{file}'.", ex: ex);
                     failed++;
                     string details = ex.InnerException is null ? ex.Message : $"{ex.Message} | {ex.InnerException.Message}";
-                    Shared.IO.Diagnostics.Log($"[p3d] FAIL {System.IO.Path.GetFileName(path: file)} | {details}");
+                    Shared.IO.Diagnostics.Log($"FAIL {System.IO.Path.GetFileName(path: file)} | {details}");
                     Shared.IO.UI.EngineSdk.PrintLine($"[FAIL] {System.IO.Path.GetFileName(path: file)} | {details}", color: System.ConsoleColor.Red);
                 }
             }
@@ -86,12 +86,12 @@ public static class P3dExtractor {
                 _ => "unknown",
             };
 
-            Shared.IO.Diagnostics.Log($"[p3d] Completed ({modeName}) | success={success} failed={failed} total={files.Count}");
+            Shared.IO.Diagnostics.Log($"Completed ({modeName}) | success={success} failed={failed} total={files.Count}");
             System.ConsoleColor summaryColor = failed == 0 ? System.ConsoleColor.Green : System.ConsoleColor.Red;
             Shared.IO.UI.EngineSdk.PrintLine($"[p3d] Completed ({modeName}) | success={success} failed={failed} total={files.Count}", color: summaryColor);
             return failed == 0;
         } catch (Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[p3d] Run catch triggered: {ex}");
+            Shared.IO.Diagnostics.Bug($"Run catch triggered: {ex}");
             string details = ex.InnerException is null ? ex.Message : $"{ex.Message} | {ex.InnerException.Message}";
             Shared.IO.Diagnostics.Log($"Error: {details}");
             Shared.IO.UI.EngineSdk.PrintLine($"Error: {details}", color: System.ConsoleColor.Red);
@@ -100,7 +100,7 @@ public static class P3dExtractor {
     }
 
     private static void ListHighLevelTypes(string file, IReadOnlyList<Chunk> chunks) {
-        Shared.IO.Diagnostics.Log($"[p3d] Listing {System.IO.Path.GetFileName(path: file)}");
+        Shared.IO.Diagnostics.Log($"Listing {System.IO.Path.GetFileName(path: file)}");
         Shared.IO.UI.EngineSdk.PrintLine($"Listing {System.IO.Path.GetFileName(path: file)}");
         List<HighLevelType> highLevelTypes = P3dHighLevel.ParseHighLevelTypes(tree: chunks);
 

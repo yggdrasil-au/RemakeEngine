@@ -59,7 +59,7 @@ public sealed class GameLauncher {
         try {
             ctx = Core.Utils.ExecutionContextBuilder.Build(currentGame: name, games: games, engineConfig: _config.Data);
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[GameLauncher] err building context for game '{name}': {ex}");
+            Shared.IO.Diagnostics.Bug($"err building context for game '{name}': {ex}");
             ctx = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase) {
                 [key: "Game_Root"] = root,
                 [key: "Project_Root"] = this._rootPath
@@ -102,15 +102,15 @@ public sealed class GameLauncher {
                     }
                 }
             } else {
-                Shared.IO.Diagnostics.Trace($"[GameLauncher] no game.toml found for game '{name}' at expected path: {gameToml}");
+                Shared.IO.Diagnostics.Trace($"no game.toml found for game '{name}' at expected path: {gameToml}");
             }
         } catch (System.IO.IOException ex) {
             /* keep fallback behavior: malformed or unreadable toml should not block launch */
-            Shared.IO.Diagnostics.Bug($"[GameLauncher] IO error parsing game.toml for game '{name}': {ex}");
+            Shared.IO.Diagnostics.Bug($"IO error parsing game.toml for game '{name}': {ex}");
         } catch (System.UnauthorizedAccessException ex) {
-            Shared.IO.Diagnostics.Bug($"[GameLauncher] Access denied parsing game.toml for game '{name}': {ex}");
+            Shared.IO.Diagnostics.Bug($"Access denied parsing game.toml for game '{name}': {ex}");
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[GameLauncher] Unexpected error parsing game.toml for game '{name}': {ex}");
+            Shared.IO.Diagnostics.Bug($"Unexpected error parsing game.toml for game '{name}': {ex}");
         }
 
         // if lua script exists, run it
@@ -129,14 +129,14 @@ public sealed class GameLauncher {
                 );
 
                 if (action != null) {
-                    Shared.IO.Diagnostics.Trace($"[GameLauncher] executing {ext} script '{scriptPath}' for game '{name}'");
+                    Shared.IO.Diagnostics.Trace($"executing {ext} script '{scriptPath}' for game '{name}'");
                     await action.ExecuteAsync(tools: this._toolResolver, commandService: this._commandService, cancellationToken: cancellationToken);
                     return true;
                 } else {
-                    Shared.IO.Diagnostics.Log($"[GameLauncher] Unsupported script type '{ext}' in '{scriptPath}'");
+                    Shared.IO.Diagnostics.Log($"Unsupported script type '{ext}' in '{scriptPath}'");
                 }
             } catch (System.Exception ex) {
-                Shared.IO.Diagnostics.Bug($"[GameLauncher] err executing script '{scriptPath}' for game '{name}': {ex.Message}");
+                Shared.IO.Diagnostics.Bug($"err executing script '{scriptPath}' for game '{name}': {ex.Message}");
                 return false;
             }
         }
@@ -154,7 +154,7 @@ public sealed class GameLauncher {
                     UseShellExecute = false
                 });
             } catch (System.Exception ex) {
-                Shared.IO.Diagnostics.Bug($"[GameLauncher] err launching godot project '{godotProject}' for game '{name}': {ex}");
+                Shared.IO.Diagnostics.Bug($"err launching godot project '{godotProject}' for game '{name}': {ex}");
                 return false;
             }
         }
@@ -170,7 +170,7 @@ public sealed class GameLauncher {
                 UseShellExecute = true,
             });
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[GameLauncher] err launching exe '{exe}' for game '{name}': {ex}");
+            Shared.IO.Diagnostics.Bug($"err launching exe '{exe}' for game '{name}': {ex}");
             return false;
         }
     }

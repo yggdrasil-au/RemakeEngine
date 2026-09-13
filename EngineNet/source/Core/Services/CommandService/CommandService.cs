@@ -54,14 +54,14 @@ public sealed class CommandService {
 
             if (timeoutMs.HasValue) {
                 if (!process.WaitForExit(milliseconds: timeoutMs.Value)) {
-                    try { process.Kill(entireProcessTree: true); } catch (Exception ex) { Shared.IO.Diagnostics.Bug($"[CommandService::RunProcess()] Failed to kill timed-out process '{executable}': {ex}"); /* ignore */ }
+                    try { process.Kill(entireProcessTree: true); } catch (Exception ex) { Shared.IO.Diagnostics.Bug($"Failed to kill timed-out process '{executable}': {ex}"); /* ignore */ }
                     throw new Exception($"Process '{executable}' timed out after {timeoutMs.Value} ms");
                 }
             } else {
                 process.WaitForExit();
             }
         } catch (Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[CommandService::RunProcess()] Failed to run process '{executable}': {ex}");
+            Shared.IO.Diagnostics.Bug($"Failed to run process '{executable}': {ex}");
             throw new Exception($"Failed to run process '{executable}': {ex.Message}");
         }
 
@@ -98,7 +98,7 @@ public sealed class CommandService {
         }
 
         p.Exited += (_, _) => {
-            try { mp.ExitTcs.TrySetResult(result: p.ExitCode); } catch (Exception ex) { Shared.IO.Diagnostics.Bug($"[CommandService::SpawnProcess()] Failed setting ExitTcs result for '{executable}': {ex}"); /* ignore */ }
+            try { mp.ExitTcs.TrySetResult(result: p.ExitCode); } catch (Exception ex) { Shared.IO.Diagnostics.Bug($"Failed setting ExitTcs result for '{executable}': {ex}"); /* ignore */ }
         };
 
         if (!p.Start()) {
@@ -133,7 +133,7 @@ public sealed class CommandService {
                 mp.ExitTcs.Task.Wait(millisecondsTimeout: Timeout.Infinite);
             }
         } catch (Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[CommandService::WaitProcess()] Wait failed for pid {pid}: {ex}");
+            Shared.IO.Diagnostics.Bug($"Wait failed for pid {pid}: {ex}");
             /* ignore wait errors */
         }
 
@@ -145,13 +145,13 @@ public sealed class CommandService {
         try {
             if (!mp.Process.HasExited) mp.Process.Kill(entireProcessTree: true);
         } catch (Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[CommandService] CloseProcess kill catch triggered for pid {pid}: {ex}"); /* ignore */
+            Shared.IO.Diagnostics.Bug($"CloseProcess kill catch triggered for pid {pid}: {ex}"); /* ignore */
         }
 
         try {
             mp.Process.Dispose();
         } catch (Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[CommandService] CloseProcess dispose catch triggered for pid {pid}: {ex}"); /* ignore */
+            Shared.IO.Diagnostics.Bug($"CloseProcess dispose catch triggered for pid {pid}: {ex}"); /* ignore */
         }
 
         return true;
@@ -178,19 +178,19 @@ public sealed class CommandService {
             Process.Start(startInfo: psi);
             return true;
         } catch (System.ComponentModel.Win32Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[CommandService] Win32Exception launching detached process '{executable}': {ex}");
+            Shared.IO.Diagnostics.Bug($"Win32Exception launching detached process '{executable}': {ex}");
             return false;
         } catch (System.ObjectDisposedException ex) {
-            Shared.IO.Diagnostics.Bug($"[CommandService] ObjectDisposedException launching detached process '{executable}': {ex}");
+            Shared.IO.Diagnostics.Bug($"ObjectDisposedException launching detached process '{executable}': {ex}");
             return false;
         } catch (System.IO.FileNotFoundException ex) {
-            Shared.IO.Diagnostics.Bug($"[CommandService] FileNotFoundException launching detached process '{executable}': {ex}");
+            Shared.IO.Diagnostics.Bug($"FileNotFoundException launching detached process '{executable}': {ex}");
             return false;
         } catch (System.InvalidOperationException ex) {
-            Shared.IO.Diagnostics.Bug($"[CommandService] InvalidOperationException launching detached process '{executable}': {ex}");
+            Shared.IO.Diagnostics.Bug($"InvalidOperationException launching detached process '{executable}': {ex}");
             return false;
         } catch (System.PlatformNotSupportedException ex) {
-            Shared.IO.Diagnostics.Bug($"[CommandService] PlatformNotSupportedException launching detached process '{executable}': {ex}");
+            Shared.IO.Diagnostics.Bug($"PlatformNotSupportedException launching detached process '{executable}': {ex}");
             return false;
         }
     }
@@ -210,13 +210,13 @@ public sealed class CommandService {
             }
             Process.Start(startInfo: psi);
         } catch (System.ComponentModel.Win32Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[CommandService] Win32Exception failed to open folder '{path}': {ex}");
+            Shared.IO.Diagnostics.Bug($"Win32Exception failed to open folder '{path}': {ex}");
         } catch (System.ObjectDisposedException ex) {
-            Shared.IO.Diagnostics.Bug($"[CommandService] ObjectDisposedException failed to open folder '{path}': {ex}");
+            Shared.IO.Diagnostics.Bug($"ObjectDisposedException failed to open folder '{path}': {ex}");
         } catch (System.InvalidOperationException ex) {
-            Shared.IO.Diagnostics.Bug($"[CommandService] InvalidOperationException failed to open folder '{path}': {ex}");
+            Shared.IO.Diagnostics.Bug($"InvalidOperationException failed to open folder '{path}': {ex}");
         } catch (System.PlatformNotSupportedException ex) {
-            Shared.IO.Diagnostics.Bug($"[CommandService] PlatformNotSupportedException failed to open folder '{path}': {ex}");
+            Shared.IO.Diagnostics.Bug($"PlatformNotSupportedException failed to open folder '{path}': {ex}");
         }
     }
 
@@ -274,12 +274,12 @@ public sealed class CommandService {
                     }
                 } else {
                     // Fallback or error
-                    Shared.IO.Diagnostics.Bug("[CommandService] No terminal emulator found on Linux/macOS.");
+                    Shared.IO.Diagnostics.Bug("No terminal emulator found on Linux/macOS.");
                     return new ProcessResult { Success = false, ExitCode = -1 };
                 }
             }
         } catch (Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[CommandService] Failed to start new terminal: {ex.Message}");
+            Shared.IO.Diagnostics.Bug($"Failed to start new terminal: {ex.Message}");
             return new ProcessResult { Success = false, ExitCode = -1 };
         }
 

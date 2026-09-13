@@ -24,16 +24,16 @@ internal static class ToolLockfileManager {
             Dictionary<string, Dictionary<string, ToolLockfileEntry>>? data = await JsonSerializer.DeserializeAsync<Dictionary<string, Dictionary<string, ToolLockfileEntry>>>(utf8Json: stream, options: ReadOptions, cancellationToken: cancellationToken);
             return Normalize(data: data);
         } catch (JsonException ex) {
-            Shared.IO.Diagnostics.Bug($"[ToolLockfileManager.cs::LoadAsync()] Failed to parse lockfile '{lockPath}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Failed to parse lockfile '{lockPath}'.", ex: ex);
             IO.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
         } catch (IOException ex) {
-            Shared.IO.Diagnostics.Bug($"[ToolLockfileManager.cs::LoadAsync()] IO error loading lockfile '{lockPath}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"IO error loading lockfile '{lockPath}'.", ex: ex);
             IO.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
         } catch (UnauthorizedAccessException ex) {
-            Shared.IO.Diagnostics.Bug($"[ToolLockfileManager.cs::LoadAsync()] Access denied loading lockfile '{lockPath}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Access denied loading lockfile '{lockPath}'.", ex: ex);
             IO.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
         } catch (ArgumentException ex) {
-            Shared.IO.Diagnostics.Bug($"[ToolLockfileManager.cs::LoadAsync()] Invalid lockfile path '{lockPath}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Invalid lockfile path '{lockPath}'.", ex: ex);
             IO.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
         }
 
@@ -50,16 +50,16 @@ internal static class ToolLockfileManager {
             Dictionary<string, Dictionary<string, ToolLockfileEntry>>? data = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, ToolLockfileEntry>>>(utf8Json: stream, options: ReadOptions);
             return Normalize(data: data);
         } catch (JsonException ex) {
-            Shared.IO.Diagnostics.Bug($"[ToolLockfileManager.cs::Load()] Failed to parse lockfile '{lockPath}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Failed to parse lockfile '{lockPath}'.", ex: ex);
             IO.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
         } catch (IOException ex) {
-            Shared.IO.Diagnostics.Bug($"[ToolLockfileManager.cs::Load()] IO error loading lockfile '{lockPath}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"IO error loading lockfile '{lockPath}'.", ex: ex);
             IO.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
         } catch (UnauthorizedAccessException ex) {
-            Shared.IO.Diagnostics.Bug($"[ToolLockfileManager.cs::Load()] Access denied loading lockfile '{lockPath}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Access denied loading lockfile '{lockPath}'.", ex: ex);
             IO.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
         } catch (ArgumentException ex) {
-            Shared.IO.Diagnostics.Bug($"[ToolLockfileManager.cs::Load()] Invalid lockfile path '{lockPath}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Invalid lockfile path '{lockPath}'.", ex: ex);
             IO.Warn($"Failed to load lockfile: {ex.Message}. Starting fresh.");
         }
 

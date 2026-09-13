@@ -9,11 +9,11 @@ internal sealed class TxdExporter {
         try {
             data = System.IO.File.ReadAllBytes(path: txdFilePath);
         } catch (System.IO.FileNotFoundException ex) {
-            Shared.IO.Diagnostics.Bug($"[TxdExporter::ExportTexturesFromTxd()] TXD file not found '{txdFilePath}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"TXD file not found '{txdFilePath}'.", ex: ex);
             utils.Log.Red($"Error: File not found: {txdFilePath}");
             return 0;
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[TxdExporter::ExportTexturesFromTxd()] Failed reading TXD file '{txdFilePath}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Failed reading TXD file '{txdFilePath}'.", ex: ex);
             utils.Log.Red($"Error reading file {txdFilePath}: {ex.Message}");
             return 0;
         }
@@ -23,7 +23,7 @@ internal sealed class TxdExporter {
                 _ = System.IO.Directory.CreateDirectory(path: outputDirBase);
                 utils.Log.Cyan($"  Created output directory: {outputDirBase}");
             } catch (System.Exception ex) {
-                Shared.IO.Diagnostics.Bug($"[TxdExporter::ExportTexturesFromTxd()] Failed to create output directory '{outputDirBase}'.", ex: ex);
+                Shared.IO.Diagnostics.Bug($"Failed to create output directory '{outputDirBase}'.", ex: ex);
                 throw new Sys.TxdExportException($"  Error: Could not create output directory {outputDirBase}: {ex.Message}. Textures from this TXD cannot be saved.");
             }
         }

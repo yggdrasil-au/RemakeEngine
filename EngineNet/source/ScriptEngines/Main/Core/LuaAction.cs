@@ -245,8 +245,8 @@ internal static class LuaAction {
         _LuaWorld.LuaScript.Globals[key: "Diagnostics"] = _LuaWorld.DiagnosticsMethods;
 
         // Final startup logs
-        Shared.IO.Diagnostics.Log($"[LuaScriptAction.cs::SetupCoreFunctions()] Set Game_Root to '{_gameRoot}'");
-        Shared.IO.Diagnostics.Log($"[LuaScriptAction.cs::SetupCoreFunctions()] Set Project_Root to '{_projectRoot}'");
+        Shared.IO.Diagnostics.Log($"Set Game_Root to '{_gameRoot}'");
+        Shared.IO.Diagnostics.Log($"Set Project_Root to '{_projectRoot}'");
     }
 
     /// <summary>

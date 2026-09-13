@@ -36,7 +36,7 @@ public sealed class All {
         System.Threading.CancellationToken cancellationToken = default(CancellationToken)
     ) {
 
-        Shared.IO.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Starting RunAllAsync for game '{gameName}', onOutput: {(onOutput is null ? "null" : "set")}, onEvent: {(onEvent is null ? "null" : "set")}, stdinProvider: {(stdinProvider is null ? "null" : "set")}");
+        Shared.IO.Diagnostics.Log($"Starting RunAllAsync for game '{gameName}', onOutput: {(onOutput is null ? "null" : "set")}, onEvent: {(onEvent is null ? "null" : "set")}, stdinProvider: {(stdinProvider is null ? "null" : "set")}");
 
         if (string.IsNullOrWhiteSpace(gameName)) {
             throw new System.ArgumentException("Game name is required.", paramName: nameof(gameName));
@@ -64,7 +64,7 @@ public sealed class All {
         dependencyGraph.PrintGraphToTrace();
 
         if (!dependencyGraph.IsValid) {
-            Shared.IO.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Warning: Dependency graph is invalid. See trace.log for details.");
+            Shared.IO.Diagnostics.Log($"Warning: Dependency graph is invalid. See trace.log for details.");
         }
         // ----------------------------------
 
@@ -133,10 +133,10 @@ public sealed class All {
                     if (Core.Utils.ScriptConstants.IsSupported(script_type: scriptType)) {
                         ok = await OperationContext.Single.RunAsync(currentGame: gameName, games: games, op: op, promptAnswers: promptAnswers, Context: Context,OperationContext: OperationContext, cancellationToken: cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
                     } else if (string.IsNullOrEmpty(scriptType)) {
-                        Shared.IO.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Skipping operation '{currentOperation.Value}' due to null or empty script type");
+                        Shared.IO.Diagnostics.Log($"Skipping operation '{currentOperation.Value}' due to null or empty script type");
                         overallSuccess = false;
                     } else {
-                        Shared.IO.Diagnostics.Log($"[RunAll.cs::RunAllAsync()] Skipping operation '{currentOperation.Value}' due to unsupported script type '{scriptType}'");
+                        Shared.IO.Diagnostics.Log($"Skipping operation '{currentOperation.Value}' due to unsupported script type '{scriptType}'");
                         overallSuccess = false;
                     }
                 } catch (System.Exception ex) {
@@ -145,7 +145,7 @@ public sealed class All {
                         [key: "name"] = currentOperation.Value,
                         [key: "message"] = ex.Message
                     });
-                    Shared.IO.Diagnostics.Bug($"[RunAll.cs::RunAllAsync()] err running op '{currentOperation.Value}': {ex.Message}");
+                    Shared.IO.Diagnostics.Bug($"err running op '{currentOperation.Value}': {ex.Message}");
                 }
 
                 overallSuccess &= ok;
@@ -166,7 +166,7 @@ public sealed class All {
             }
 
             currentOperation.Value = string.Empty;
-            Shared.IO.Diagnostics.Trace($"[RunAll.cs::RunAllAsync()] finished running all operations for game '{gameName}'");
+            Shared.IO.Diagnostics.Trace($"finished running all operations for game '{gameName}'");
         }
 
         EmitSequenceEvent(sink: onEvent, evt: EngineSdk.Events.RunAllComplete, game: gameName, extras: new Dictionary<string, object?> {

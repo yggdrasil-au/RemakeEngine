@@ -37,7 +37,7 @@ public sealed class ScriptActionDispatcher : IScriptActionDispatcher {
                 case "python": case "py":
                     return new ScriptEngines.Python.Main(scriptPath: scriptPath, args: args, gameRoot: gameRoot, projectRoot: projectRoot);
                 default: {
-                    Shared.IO.Diagnostics.Log($"[EmbeddedActionDispatcher.cs::TryCreate()] Unsupported embedded script type '{scriptType}'");
+                    Shared.IO.Diagnostics.Log($"Unsupported embedded script type '{scriptType}'");
                     return null;
                 }
             }
@@ -65,7 +65,7 @@ public sealed class ScriptActionDispatcher : IScriptActionDispatcher {
                 case "bms":
                     return new ScriptEngines.qbms.Main(scriptPath: scriptPath, moduleRoot: gameRoot, inputDir: inputDir, outputDir: outputDir, extension: extension);
                 default: {
-                    Shared.IO.Diagnostics.Log($"[ExternalActionDispatcher.cs::TryCreate()] Unsupported external script type '{scriptType}'");
+                    Shared.IO.Diagnostics.Log($"Unsupported external script type '{scriptType}'");
                     return null;
                 }
             }

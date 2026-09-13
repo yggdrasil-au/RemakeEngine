@@ -42,7 +42,7 @@ public sealed class OperationsLoader {
                         }
                     }
                 }
-                Shared.IO.Diagnostics.Trace($"[OperationsLoader] loaded {list.Count} operations from ops file '{opsFile}'.");
+                Shared.IO.Diagnostics.Trace($"loaded {list.Count} operations from ops file '{opsFile}'.");
                 return list;
             }
 
@@ -58,7 +58,7 @@ public sealed class OperationsLoader {
                         list.Add(item: map);
                     }
                 }
-                Shared.IO.Diagnostics.Trace($"[OperationsLoader] loaded {list.Count} operations from ops file '{opsFile}'.");
+                Shared.IO.Diagnostics.Trace($"loaded {list.Count} operations from ops file '{opsFile}'.");
                 return list;
             }
 
@@ -77,15 +77,15 @@ public sealed class OperationsLoader {
                         }
                     }
                 }
-                Shared.IO.Diagnostics.Trace($"[OperationsLoader] flattened grouped ops file '{opsFile}' into {flat.Count} operations.");
+                Shared.IO.Diagnostics.Trace($"flattened grouped ops file '{opsFile}' into {flat.Count} operations.");
                 return flat;
             }
 
             // Unknown format
-            Shared.IO.Diagnostics.Log($"[OperationsLoader] unknown ops file format: '{opsFile}'");
+            Shared.IO.Diagnostics.Log($"unknown ops file format: '{opsFile}'");
             return new List<Dictionary<string, object?>>();
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[OperationsLoader] err loading ops file '{opsFile}': {ex.Message}");
+            Shared.IO.Diagnostics.Bug($"err loading ops file '{opsFile}': {ex.Message}");
             return null;
         }
     }

@@ -157,7 +157,7 @@ internal sealed class Main : IScriptAction {
             exitCode = 1;
             executionError = luaEx;
         } catch (Exception ex) {
-            Shared.IO.Diagnostics.Bug("[Lua.cs::Execute()] Lua script catch triggered: " + ex);
+            Shared.IO.Diagnostics.Bug("Lua script catch triggered: " + ex);
 
             // 1. Check for the specific VM IndexOutOfRange crash
             if (ex is IndexOutOfRangeException &&

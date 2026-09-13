@@ -101,7 +101,7 @@ public sealed partial class ProcessRunner {
 
         void LogQueueFailureOnce(System.Exception ex) {
             if (System.Threading.Interlocked.Exchange(location1: ref queueLogOnce, 1) == 0) {
-                Shared.IO.Diagnostics.Bug($"[ProcessRunner.private.cs::Execute()] Output queue add failed: {ex.Message}");
+                Shared.IO.Diagnostics.Bug($"Output queue add failed: {ex.Message}");
             }
         }
 
@@ -157,11 +157,11 @@ public sealed partial class ProcessRunner {
                     proc.StandardInput.WriteLine(text ?? string.Empty);
                     proc.StandardInput.Flush();
                 } catch (System.IO.IOException ex) {
-                    Shared.IO.Diagnostics.Bug("[ProcessRunner.cs::Execute()] IO error writing to child stdin: " + ex);
+                    Shared.IO.Diagnostics.Bug("IO error writing to child stdin: " + ex);
                 } catch (System.ObjectDisposedException ex) {
-                    Shared.IO.Diagnostics.Bug("[ProcessRunner.cs::Execute()] Child stdin disposed while writing: " + ex);
+                    Shared.IO.Diagnostics.Bug("Child stdin disposed while writing: " + ex);
                 } catch (System.InvalidOperationException ex) {
-                    Shared.IO.Diagnostics.Bug("[ProcessRunner.cs::Execute()] Child stdin unavailable while writing: " + ex);
+                    Shared.IO.Diagnostics.Bug("Child stdin unavailable while writing: " + ex);
                 }
             }
 
@@ -192,9 +192,9 @@ public sealed partial class ProcessRunner {
                 try {
                     ans = stdinProvider?.Invoke();
                 } catch (System.IO.IOException ex) {
-                    Shared.IO.Diagnostics.Bug("[ProcessRunner] IO error in stdinProvider while awaiting prompt: " + ex.Message);
+                    Shared.IO.Diagnostics.Bug("IO error in stdinProvider while awaiting prompt: " + ex.Message);
                 } catch (System.InvalidOperationException ex) {
-                    Shared.IO.Diagnostics.Bug("[ProcessRunner] Invalid operation in stdinProvider while awaiting prompt: " + ex.Message);
+                    Shared.IO.Diagnostics.Bug("Invalid operation in stdinProvider while awaiting prompt: " + ex.Message);
                 }
 
                 SendToChild(text: ans);
@@ -210,9 +210,9 @@ public sealed partial class ProcessRunner {
                 try {
                     ans = stdinProvider?.Invoke();
                 } catch (System.IO.IOException ex) {
-                    Shared.IO.Diagnostics.Bug("[ProcessRunner] IO error in stdinProvider while draining output: " + ex.Message);
+                    Shared.IO.Diagnostics.Bug("IO error in stdinProvider while draining output: " + ex.Message);
                 } catch (System.InvalidOperationException ex) {
-                    Shared.IO.Diagnostics.Bug("[ProcessRunner] Invalid operation in stdinProvider while draining output: " + ex.Message);
+                    Shared.IO.Diagnostics.Bug("Invalid operation in stdinProvider while draining output: " + ex.Message);
                 }
 
                 SendToChild(text: ans);
@@ -224,25 +224,25 @@ public sealed partial class ProcessRunner {
                 evt: new Dictionary<string, object?> { [key: "event"] = EngineSdk.Events.End, [key: "success"] = success, [key: "exit_code"] = rc });
             return success;
         } catch (System.OperationCanceledException ex) {
-            Shared.IO.Diagnostics.Bug("[ProcessRunner::Execute()] Operation cancelled: " + ex.Message);
+            Shared.IO.Diagnostics.Bug("Operation cancelled: " + ex.Message);
             TryTerminate(proc: proc);
             onEvent?.Invoke(evt: new Dictionary<string, object?>
                 { [key: "event"] = EngineSdk.Events.End, [key: "success"] = false, [key: "exit_code"] = 130 });
             return false;
         } catch (System.IO.FileNotFoundException ex) {
-            Shared.IO.Diagnostics.Bug("[ProcessRunner::Execute()] Command or script not found: " + ex.Message);
+            Shared.IO.Diagnostics.Bug("Command or script not found: " + ex.Message);
             onEvent?.Invoke(evt: new Dictionary<string, object?>
                 { [key: "event"] = EngineSdk.Events.Error, [key: "kind"] = "FileNotFoundError", [key: "message"] = "Command or script not found." });
             return false;
         } catch (System.ComponentModel.Win32Exception ex) {
             // Catches OS-level process failures (e.g., Access Denied, bad executable format)
-            Shared.IO.Diagnostics.Bug("[ProcessRunner::Execute()] OS error starting or running process: " + ex.Message);
+            Shared.IO.Diagnostics.Bug("OS error starting or running process: " + ex.Message);
             onEvent?.Invoke(evt: new Dictionary<string, object?>
                 { [key: "event"] = EngineSdk.Events.Error, [key: "kind"] = "Win32Exception", [key: "message"] = ex.Message });
             return false;
         } catch (System.InvalidOperationException ex) {
             // Catches bad process state operations (e.g., trying to read ExitCode before it exits, though HasExited check mitigates this)
-            Shared.IO.Diagnostics.Bug("[ProcessRunner::Execute()] Invalid process state: " + ex.Message);
+            Shared.IO.Diagnostics.Bug("Invalid process state: " + ex.Message);
             onEvent?.Invoke(evt: new Dictionary<string, object?>
                 { [key: "event"] = EngineSdk.Events.Error, [key: "kind"] = "InvalidOperation", [key: "message"] = ex.Message });
             return false;
@@ -251,29 +251,29 @@ public sealed partial class ProcessRunner {
             try {
                 q.CompleteAdding();
             } catch (System.ObjectDisposedException ex) {
-                Shared.IO.Diagnostics.Bug($"[ProcessRunner::Execute()] Output queue disposed before completion: {ex.Message}");
+                Shared.IO.Diagnostics.Bug($"Output queue disposed before completion: {ex.Message}");
             } catch (System.InvalidOperationException ex) {
-                Shared.IO.Diagnostics.Bug($"[ProcessRunner::Execute()] Failed to complete output queue: {ex.Message}");
+                Shared.IO.Diagnostics.Bug($"Failed to complete output queue: {ex.Message}");
             }
 
             try {
                 proc.CancelOutputRead();
             } catch (System.ObjectDisposedException ex) {
-                Shared.IO.Diagnostics.Bug($"[ProcessRunner::Execute()] Process disposed before CancelOutputRead: {ex.Message}");
+                Shared.IO.Diagnostics.Bug($"Process disposed before CancelOutputRead: {ex.Message}");
             } catch (System.InvalidOperationException ex) {
-                Shared.IO.Diagnostics.Bug($"[ProcessRunner::Execute()] Failed to cancel stdout read: {ex.Message}");
+                Shared.IO.Diagnostics.Bug($"Failed to cancel stdout read: {ex.Message}");
             } catch (System.PlatformNotSupportedException ex) {
-                Shared.IO.Diagnostics.Bug($"[ProcessRunner::Execute()] CancelOutputRead not supported: {ex.Message}");
+                Shared.IO.Diagnostics.Bug($"CancelOutputRead not supported: {ex.Message}");
             }
 
             try {
                 proc.CancelErrorRead();
             } catch (System.ObjectDisposedException ex) {
-                Shared.IO.Diagnostics.Bug($"[ProcessRunner::Execute()] Process disposed before CancelErrorRead: {ex.Message}");
+                Shared.IO.Diagnostics.Bug($"Process disposed before CancelErrorRead: {ex.Message}");
             } catch (System.InvalidOperationException ex) {
-                Shared.IO.Diagnostics.Bug($"[ProcessRunner::Execute()] Failed to cancel stderr read: {ex.Message}");
+                Shared.IO.Diagnostics.Bug($"Failed to cancel stderr read: {ex.Message}");
             } catch (System.PlatformNotSupportedException ex) {
-                Shared.IO.Diagnostics.Bug($"[ProcessRunner::Execute()] CancelErrorRead not supported: {ex.Message}");
+                Shared.IO.Diagnostics.Bug($"CancelErrorRead not supported: {ex.Message}");
             }
 
             try {
@@ -283,7 +283,7 @@ public sealed partial class ProcessRunner {
             catch (System.ObjectDisposedException ex) {
                 // Unsubscribing from events doesn't throw under normal circumstances in .NET,
                 // but ObjectDisposedException can occur if the underlying Component is deeply disposed.
-                Shared.IO.Diagnostics.Bug($"[ProcessRunner::Execute()] Process disposed while unsubscribing from events: {ex.Message}");
+                Shared.IO.Diagnostics.Bug($"Process disposed while unsubscribing from events: {ex.Message}");
             }
         }
     }

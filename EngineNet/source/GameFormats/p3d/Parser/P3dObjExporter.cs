@@ -22,14 +22,14 @@ internal static class P3dObjExporter {
                     ExportMeshOrSkin(destinationFolder: destinationFolder, modelName: meshType.Mesh.Name, primGroups: meshType.Mesh.PrimGroups, shaders: meshType.Mesh.Shaders, textures: meshType.Mesh.Textures);
                     break;
                 case HighLevelType.SkinType skinType:
-                    Shared.IO.Diagnostics.Log($"[p3d] Warning: OBJ does not support skeletons/weights. Exporting skin '{skinType.Skin.Name}' as static mesh.");
+                    Shared.IO.Diagnostics.Log($"Warning: OBJ does not support skeletons/weights. Exporting skin '{skinType.Skin.Name}' as static mesh.");
                     Shared.IO.UI.EngineSdk.PrintLine($"[p3d] Warning: OBJ does not support skeletons/weights. Exporting skin '{skinType.Skin.Name}' as static mesh.", color: ConsoleColor.Yellow);
                     ExportMeshOrSkin(destinationFolder: destinationFolder, modelName: skinType.Skin.Name, primGroups: skinType.Skin.PrimGroups, shaders: skinType.Skin.Shaders, textures: skinType.Skin.Textures);
                     break;
             }
         }
 
-        Shared.IO.Diagnostics.Log($"[p3d] OBJ export completed for {System.IO.Path.GetFileName(path: sourceFilename)}");
+        Shared.IO.Diagnostics.Log($"OBJ export completed for {System.IO.Path.GetFileName(path: sourceFilename)}");
     }
 
     private static void ExportMeshOrSkin(
@@ -301,7 +301,7 @@ internal static class P3dObjExporter {
             }
         }
 
-        Shared.IO.Diagnostics.Log($"[p3d] Warning: Unable to locate texture format for '{textureName}', defaulting extension to png.");
+        Shared.IO.Diagnostics.Log($"Warning: Unable to locate texture format for '{textureName}', defaulting extension to png.");
         return "png";
     }
 

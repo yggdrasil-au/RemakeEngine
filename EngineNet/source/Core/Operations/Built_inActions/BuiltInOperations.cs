@@ -113,7 +113,7 @@ internal class BuiltInOperations {
 
 
     internal static bool format_convert(Operations.helpers.OperationArgs operationArgs) {
-        Shared.IO.Diagnostics.Log("[Engine.private.cs :: Operations()]] format-convert");
+        Shared.IO.Diagnostics.Log("] format-convert");
 
         // 1. Determine tool - check both 'tool' field and '-m'/'--mode' in args
         string? tool = operationArgs.op.TryGetValue(key: "tool", out object? ft)
@@ -121,11 +121,11 @@ internal class BuiltInOperations {
 
     #if DEBUG
         if (operationArgs.op.TryGetValue(key: "args", out object? argsDebugObj)) {
-            Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: args type = {argsDebugObj?.GetType().FullName ?? "null"}");
+            Shared.IO.Diagnostics.Log($"] format-convert: args type = {argsDebugObj?.GetType().FullName ?? "null"}");
             if (argsDebugObj is System.Collections.IList argsDebugList) {
-                Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: args count = {argsDebugList.Count}");
+                Shared.IO.Diagnostics.Log($"] format-convert: args count = {argsDebugList.Count}");
                 for (int i = 0; i < argsDebugList.Count; i++) {
-                    Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: args[{i}] = '{argsDebugList[index: i]}'");
+                    Shared.IO.Diagnostics.Log($"] format-convert: args[{i}] = '{argsDebugList[index: i]}'");
                 }
             }
         }
@@ -138,13 +138,13 @@ internal class BuiltInOperations {
                 string arg = argsList[index: i]?.ToString() ?? string.Empty;
                 if (arg != "-m" && arg != "--mode") continue;
                 tool = argsList[index: i + 1]?.ToString()?.ToLowerInvariant();
-                Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: extracted tool from args: '{tool}'");
+                Shared.IO.Diagnostics.Log($"] format-convert: extracted tool from args: '{tool}'");
                 break;
             }
         }
 
 
-        Shared.IO.Diagnostics.Log($"[Engine.private.cs :: Operations()]] format-convert: final tool = '{tool}'");
+        Shared.IO.Diagnostics.Log($"] format-convert: final tool = '{tool}'");
 
         // 3. Prepare Execution Context
         Dictionary<string, object?> ctx = Utils.Helpers.BuildOperationContext(context: operationArgs.context, currentGame: operationArgs.currentGame, games: operationArgs.games);
@@ -155,21 +155,21 @@ internal class BuiltInOperations {
             case "ffmpeg":
             case "vgmstream":
                 IO.writeLine("\n>>> Built-in media conversion");
-                Shared.IO.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running media conversion with args: {string.Join(separator: ' ', values: args)}");
+                Shared.IO.Diagnostics.Log($"] format-convert: running media conversion with args: {string.Join(separator: ' ', values: args)}");
                 return Core.Media.AvTools.Run(toolResolver: operationArgs.context.ToolResolver, args: args, cancellationToken: operationArgs.cancellationToken);
 
             case "imagemagick":
                 IO.writeLine("\n>>> Built-in image conversion");
-                Shared.IO.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running image conversion with args: {string.Join(separator: ' ', values: args)}");
+                Shared.IO.Diagnostics.Log($"] format-convert: running image conversion with args: {string.Join(separator: ' ', values: args)}");
                 return Core.Media.ImageMagickConverter.Run(toolResolver: operationArgs.context.ToolResolver, args: args, cancellationToken: operationArgs.cancellationToken);
 
             case "p3d":
                 IO.writeLine("\n>>> Built-in p3d conversion");
-                Shared.IO.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: running p3d conversion with args: {string.Join(separator: ' ', values: args)}");
+                Shared.IO.Diagnostics.Log($"] format-convert: running p3d conversion with args: {string.Join(separator: ' ', values: args)}");
                 return EngineNet.GameFormats.p3d.P3dExtractor.Run(args: args, cancellationToken: operationArgs.cancellationToken);
 
             default:
-                Shared.IO.Diagnostics.Log($"[format-convert.cs :: format_convert()]] format-convert: unknown tool '{tool}'");
+                Shared.IO.Diagnostics.Log($"] format-convert: unknown tool '{tool}'");
                 IO.writeLine($"ERROR: format-convert requires a valid tool. Found: '{tool ?? "(null)"}'");
                 IO.writeLine("Supported tools: ffmpeg, vgmstream, ImageMagick, p3d");
                 IO.writeLine("Specify tool with --tool parameter or -m/--mode in args.");

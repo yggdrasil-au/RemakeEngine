@@ -22,7 +22,7 @@ internal static class FileSystemUtils {
             System.IO.FileSystemInfo info = GetInfo(path: path);
             return info.Exists || info.LinkTarget != null;
         } catch (Exception ex) {
-            Shared.IO.Diagnostics.Bug("[FileSystemUtils] path_exists_including_links catch triggered for path: " + path + " with exception: " + ex);
+            Shared.IO.Diagnostics.Bug("path_exists_including_links catch triggered for path: " + path + " with exception: " + ex);
             Shared.IO.Diagnostics.LuaInternalCatch(ex: "path_exists_including_links failed for path: " + path + " with exception: " + ex);
             return false;
         }
@@ -185,13 +185,13 @@ internal static class FileSystemUtils {
                     try {
                         progressTask.Wait();
                     } catch (System.AggregateException ex) {
-                        Shared.IO.Diagnostics.Bug("[FileSystemUtils::CopyDirectory()] Progress task wait failed.", ex: ex);
+                        Shared.IO.Diagnostics.Bug("Progress task wait failed.", ex: ex);
                         /* ignore */
                     } catch (System.ObjectDisposedException ex) {
-                        Shared.IO.Diagnostics.Bug("[FileSystemUtils::CopyDirectory()] Progress task disposed while waiting.", ex: ex);
+                        Shared.IO.Diagnostics.Bug("Progress task disposed while waiting.", ex: ex);
                         /* ignore */
                     } catch (System.InvalidOperationException ex) {
-                        Shared.IO.Diagnostics.Bug("[FileSystemUtils::CopyDirectory()] Progress task wait failed with invalid state.", ex: ex);
+                        Shared.IO.Diagnostics.Bug("Progress task wait failed with invalid state.", ex: ex);
                         /* ignore */
                     }
                 } finally {
@@ -221,7 +221,7 @@ internal static class FileSystemUtils {
                 }
             }
         } catch {
-            Shared.IO.Diagnostics.Bug($"[ConfigHelpers] Failed to enumerate directories under '{baseDir}'");
+            Shared.IO.Diagnostics.Bug($"Failed to enumerate directories under '{baseDir}'");
         }
         return null;
     }

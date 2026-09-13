@@ -43,7 +43,7 @@ public sealed partial class BuildingPage:UserControl {
                 };
             }
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[BuildPage] TryWireAutoScroll catch triggered: {ex}");
+            Shared.IO.Diagnostics.Bug($"TryWireAutoScroll catch triggered: {ex}");
             /* ignore; non-critical */
         }
     }
@@ -74,7 +74,7 @@ public sealed partial class BuildingPage:UserControl {
             double remaining = (extent.Height - viewport.Height) - offset.Y;
             _autoScrollEnabled = remaining <= bottomThreshold;
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[BuildPage] UpdateAutoScrollFlag catch triggered: {ex}");
+            Shared.IO.Diagnostics.Bug($"UpdateAutoScrollFlag catch triggered: {ex}");
             _autoScrollEnabled = true;
         }
     }
@@ -87,7 +87,7 @@ public sealed partial class BuildingPage:UserControl {
             // Set Y to max extent to pin bottom; X unchanged
             _outputScroll.Offset = new Avalonia.Vector(x: offset.X, y: extent.Height);
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[BuildPage] ScrollToEndSafe catch triggered: {ex}");
+            Shared.IO.Diagnostics.Bug($"ScrollToEndSafe catch triggered: {ex}");
             // Fallback: no-op
         }
     }

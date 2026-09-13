@@ -50,7 +50,7 @@ public sealed partial class LibraryPage:UserControl {
 
             Load();
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[GUI :: LibraryPage.axaml.cs::LibraryPage()::constructor] Error during initialization: {ex}");
+            Shared.IO.Diagnostics.Bug($"Error during initialization: {ex}");
         }
     }
 
@@ -65,17 +65,17 @@ public sealed partial class LibraryPage:UserControl {
         try {
             Items.Clear(); // reset
             if (GuiBootstrapper.MiniEngine == null) {
-                Shared.IO.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] Load() aborted: GuiBootstrapper.MiniEngine is null.");
+                Shared.IO.Diagnostics.Log($"Load() aborted: GuiBootstrapper.MiniEngine is null.");
                 throw new System.InvalidOperationException("Engine is not initialized.");
             }
 
             GameModules modules = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.Installed);
 #if DEBUG
-            Shared.IO.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] Found {modules.Count} modules.");
+            Shared.IO.Diagnostics.Log($"Found {modules.Count} modules.");
             // list all modules
             foreach (KeyValuePair<string, GameModuleInfo> kv in modules) {
                 GameModuleInfo m = kv.Value;
-                Shared.IO.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()]   Module: {m.Name}, Installed: {m.IsInstalled}, Built: {m.IsBuilt}, Unverified: {m.IsUnverified}, Registered: {m.IsRegistered}");
+                Shared.IO.Diagnostics.Log($"Module: {m.Name}, Installed: {m.IsInstalled}, Built: {m.IsBuilt}, Unverified: {m.IsUnverified}, Registered: {m.IsRegistered}");
             }
 #endif
             foreach ((string Name, string ExePath, string Title, string GameRoot, bool IsBuilt, bool IsInstalled, bool IsRegistered, bool IsUnverified) item in modules.Values.Select(selector: m => (
@@ -115,7 +115,7 @@ public sealed partial class LibraryPage:UserControl {
             }
 
             if (Items.Count == 0) {
-                Shared.IO.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load()] No games found. Adding placeholder row.");
+                Shared.IO.Diagnostics.Log($"No games found. Adding placeholder row.");
                 Items.Add(item: new Row {
                     Title = "No games found.",
                     ModuleName = "",
@@ -124,7 +124,7 @@ public sealed partial class LibraryPage:UserControl {
                 });
             }
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[GUI :: LibraryPage.axaml.cs::Load()] Exception during Load(): {ex}");
+            Shared.IO.Diagnostics.Bug($"Exception during Load(): {ex}");
             Items.Add(item: new Row {
                 Title = "Error loading games.",
                 ModuleName = "",

@@ -22,7 +22,7 @@ internal static class FolderRenamer {
         try {
             options = Parse(args: args);
         } catch (System.ArgumentException ex) {
-            Shared.IO.Diagnostics.Bug("[FolderRenamer::Run()] Invalid arguments.", ex: ex);
+            Shared.IO.Diagnostics.Bug("Invalid arguments.", ex: ex);
             WriteError(ex.Message);
             return false;
         }
@@ -173,7 +173,7 @@ internal static class FolderRenamer {
             WriteSuccess($"Loaded {map.Count} rename entries from database.");
             return map;
         } catch (Microsoft.Data.Sqlite.SqliteException ex) {
-            Shared.IO.Diagnostics.Bug($"[FolderRenamer::LoadFromDatabase()] SQLite error reading '{dbPath}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"SQLite error reading '{dbPath}'.", ex: ex);
             WriteError($"SQLite error while reading {dbPath}: {ex.Message}");
             return null;
         }
@@ -216,11 +216,11 @@ internal static class FolderRenamer {
             WriteSuccess($"Loaded {map.Count} rename entries from JSON.");
             return map;
         } catch (System.Text.Json.JsonException ex) {
-            Shared.IO.Diagnostics.Bug($"[FolderRenamer::LoadFromJson()] JSON parse error in '{jsonPath}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"JSON parse error in '{jsonPath}'.", ex: ex);
             WriteError($"Error decoding JSON from {jsonPath}: {ex.Message}");
             return null;
         } catch (System.IO.IOException ex) {
-            Shared.IO.Diagnostics.Bug($"[FolderRenamer::LoadFromJson()] IO error reading '{jsonPath}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"IO error reading '{jsonPath}'.", ex: ex);
             WriteError($"Error reading JSON file {jsonPath}: {ex.Message}");
             return null;
         }
@@ -239,11 +239,11 @@ internal static class FolderRenamer {
         try {
             items = System.IO.Directory.GetFileSystemEntries(path: directoryPath);
         } catch (System.UnauthorizedAccessException ex) {
-            Shared.IO.Diagnostics.Bug($"[FolderRenamer::RenameDirectories()] Access denied listing directory '{directoryPath}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Access denied listing directory '{directoryPath}'.", ex: ex);
             WriteError($"Permission denied when reading directory: {directoryPath}");
             return false;
         } catch (System.IO.IOException ex) {
-            Shared.IO.Diagnostics.Bug($"[FolderRenamer::RenameDirectories()] IO error listing directory '{directoryPath}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"IO error listing directory '{directoryPath}'.", ex: ex);
             WriteError($"Error listing directory '{directoryPath}': {ex.Message}");
             return false;
         }
@@ -280,11 +280,11 @@ internal static class FolderRenamer {
                 WriteSuccess($"Successfully renamed '{itemName}' to '{newName}'.");
                 renamed += 1;
             } catch (System.IO.IOException ex) {
-                Shared.IO.Diagnostics.Bug($"[FolderRenamer::RenameDirectories()] IO error renaming '{itemPath}' to '{newPath}'.", ex: ex);
+                Shared.IO.Diagnostics.Bug($"IO error renaming '{itemPath}' to '{newPath}'.", ex: ex);
                 WriteError($"Error renaming '{itemName}' to '{newName}': {ex.Message}");
                 skipped += 1;
             } catch (System.UnauthorizedAccessException ex) {
-                Shared.IO.Diagnostics.Bug($"[FolderRenamer::RenameDirectories()] Access denied renaming '{itemPath}' to '{newPath}'.", ex: ex);
+                Shared.IO.Diagnostics.Bug($"Access denied renaming '{itemPath}' to '{newPath}'.", ex: ex);
                 WriteError($"Permission denied renaming '{itemName}': {ex.Message}");
                 skipped += 1;
             }
@@ -301,7 +301,7 @@ internal static class FolderRenamer {
         try {
             return System.IO.Path.GetFullPath(path: path);
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug("[FolderRenamer::NormalizePath()] Failed to normalize path.", ex: ex);
+            Shared.IO.Diagnostics.Bug("Failed to normalize path.", ex: ex);
             return path;
         }
     }
@@ -333,7 +333,7 @@ internal static class FolderRenamer {
         try {
             Shared.IO.Diagnostics.Log(message);
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug("[FolderRenamer::TraceError()] Failed to write diagnostic message.", ex: ex);
+            Shared.IO.Diagnostics.Bug("Failed to write diagnostic message.", ex: ex);
             // ignore trace failures for best-effort logging
         }
     }

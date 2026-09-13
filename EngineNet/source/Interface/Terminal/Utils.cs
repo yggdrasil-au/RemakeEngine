@@ -107,8 +107,7 @@ public sealed class Utils {
                 }
             }
 
-            Shared.IO.Diagnostics.Log(
-                $"[Utils.cs::ExecuteOp()] Routing operation of type '{script_type}' to external command execution");
+            Shared.IO.Diagnostics.Log($"Routing operation of type '{script_type}' to external command execution");
 
             // Default: build and execute as external command (e.g., python)
             List<string> parts =
@@ -129,7 +128,7 @@ public sealed class Utils {
                 envOverrides: new Dictionary<string, object?> { [key: "TERM"] = "dumb" }
             );
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[Utils.cs::ExecuteOp()] Error executing operation: {ex.Message}");
+            Shared.IO.Diagnostics.Bug($"Error executing operation: {ex.Message}");
             return false;
         }
     }
@@ -354,7 +353,7 @@ public sealed class Utils {
 
             default: {
                 // Log unknown events to debug
-                Shared.IO.Diagnostics.Log($"[Utils.cs::OnEvent()] Unhandled event type: {typ}");
+                Shared.IO.Diagnostics.Log($"Unhandled event type: {typ}");
                 break;
             }
         }
@@ -378,7 +377,7 @@ public sealed class Utils {
             return System.Convert.ToInt32(value);
         }
         catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[Utils.cs::GetEventInt()] Failed to parse event field '{key}'.", ex: ex);
+            Shared.IO.Diagnostics.Bug($"Failed to parse event field '{key}'.", ex: ex);
             return 0;
         }
     }
@@ -387,10 +386,10 @@ public sealed class Utils {
         try {
             Dictionary<string, object?> safe = CloneForLogging(evt: evt);
             string json = JsonSerializer.Serialize(safe, options: s_jsonOpts);
-            Shared.IO.Diagnostics.Log($"[Utils.cs::OnEvent()] {json}");
+            Shared.IO.Diagnostics.Log($"{json}");
         }
         catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[Utils.cs::OnEvent()] <serialization failed: {ex.Message}>");
+            Shared.IO.Diagnostics.Bug($"<serialization failed: {ex.Message}>");
         }
     }
 
@@ -405,7 +404,7 @@ public sealed class Utils {
             return clone;
         }
         catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[Utils.cs::CloneForLogging()] Clone serialization catch triggered: {ex}");
+            Shared.IO.Diagnostics.Bug($"Clone serialization catch triggered: {ex}");
             Dictionary<string, object?> safe =
                 new Dictionary<string, object?>(capacity: clone.Count, comparer: System.StringComparer.Ordinal);
             foreach (KeyValuePair<string, object?> kv in clone) {

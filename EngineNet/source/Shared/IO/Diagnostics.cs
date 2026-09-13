@@ -104,7 +104,7 @@ public static class Diagnostics {
             Log($"[System] Logging initialized at {DateTime.Now}");
         }
         catch (Exception ex) {
-            Bug("[Diagnostics::Initialize()] Failed to initialize logging subsystem.", ex: ex);
+            Bug("Failed to initialize logging subsystem.", ex: ex);
             Console.Error.WriteLine($"CRITICAL: Failed to init loggers. {ex.Message}");
             Console.WriteLine(logDirectory);
         }
@@ -131,21 +131,21 @@ public static class Diagnostics {
                 try {
                     subDir.Delete(recursive: true);
                 } catch (System.IO.IOException ex) {
-                    Bug($"[Diagnostics::CleanLogDirectory()] Failed to delete log folder '{subDir.FullName}'.", ex: ex);
+                    Bug($"Failed to delete log folder '{subDir.FullName}'.", ex: ex);
                     // Folder might be locked by another process; skip it for now.
                 } catch (System.UnauthorizedAccessException ex) {
-                    Bug($"[Diagnostics::CleanLogDirectory()] Access denied deleting log folder '{subDir.FullName}'.",
+                    Bug($"Access denied deleting log folder '{subDir.FullName}'.",
                         ex: ex);
                     // Folder might be locked by another process; skip it for now.
                 }
             }
         }
         catch (System.IO.IOException ex) {
-            Bug($"[Diagnostics::CleanLogDirectory()] IO error while cleaning '{logDir}'.", ex: ex);
+            Bug($"IO error while cleaning '{logDir}'.", ex: ex);
             // continue
         }
         catch (System.UnauthorizedAccessException ex) {
-            Bug($"[Diagnostics::CleanLogDirectory()] Access denied while cleaning '{logDir}'.", ex: ex);
+            Bug($"Access denied while cleaning '{logDir}'.", ex: ex);
             // continue
         }
     }

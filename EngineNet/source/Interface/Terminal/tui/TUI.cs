@@ -63,18 +63,18 @@ public sealed class TUI {
                     // Map selection index to actual module key
                     if (gidx >= 0 && gidx < gameKeyMap.Count) {
                         gameName = gameKeyMap[index: gidx];
-                        Shared.IO.Diagnostics.Trace($"[TUI::RunAsync()] Selected game: {gameName}");
+                        Shared.IO.Diagnostics.Trace($"Selected game: {gameName}");
                     } else {
                         // Fallback: treat selection as raw name
                         gameName = gsel;
-                        Shared.IO.Diagnostics.Trace($"[TUI::RunAsync()] Warning: could not map selected index {gidx} to module key; using raw selection '{gsel}'");
+                        Shared.IO.Diagnostics.Trace($"Warning: could not map selected index {gidx} to module key; using raw selection '{gsel}'");
                     }
                     break; // exit game selection loop
                 } catch (OperationCanceledException) {
-                    Shared.IO.Diagnostics.Log("[TUI::RunAsync()] Exiting gracefully due to cancellation during game selection.");
+                    Shared.IO.Diagnostics.Log("Exiting gracefully due to cancellation during game selection.");
                     throw;
                 } catch (Exception ex) {
-                    Shared.IO.Diagnostics.Bug($"[TUI::RunAsync()] Error during game selection: {ex.Message}");
+                    Shared.IO.Diagnostics.Bug($"Error during game selection: {ex.Message}");
                     System.Console.WriteLine($"Error during game selection: {ex.Message}\nPress any key to try again...");
                     SafeReadKey(intercept: true, cancellationToken: cancellationToken);
                 }
@@ -85,21 +85,21 @@ public sealed class TUI {
             PreparedOperations preparedOps = operationSession.PreparedOperations;
 
             if (info is null) {
-                Shared.IO.Diagnostics.Log("[TUI::RunAsync()] Selected game not found.");
+                Shared.IO.Diagnostics.Log("Selected game not found.");
                 return await RunAsync(msg: preparedOps.ErrorMessage ?? "Selected game not found. Please choose again.");
             }
             if (!preparedOps.IsLoaded) {
                 string message = preparedOps.ErrorMessage ?? "Failed to load operations list.";
-                Shared.IO.Diagnostics.Log($"[TUI::RunAsync()] {message}");
+                Shared.IO.Diagnostics.Log($"{message}");
                 System.Console.WriteLine($"{message} Press any key to exit...");
                 SafeReadKey(intercept: true, cancellationToken: cancellationToken);
-                Shared.IO.Diagnostics.Log("[TUI::RunAsync()] Exiting due to failed ops load.");
+                Shared.IO.Diagnostics.Log("Exiting due to failed ops load.");
                 return 1;
             }
 
             if (preparedOps.Warnings.Count > 0) {
                 foreach (string warning in preparedOps.Warnings) {
-                    Shared.IO.Diagnostics.Log($"[TUI::RunAsync()] Warning: {warning}");
+                    Shared.IO.Diagnostics.Log($"Warning: {warning}");
                 }
             }
 
@@ -121,7 +121,7 @@ public sealed class TUI {
                 }
                 initStopwatch.Stop();
 
-                Shared.IO.Diagnostics.Trace($"[TUI::RunAsync()] Completed init operations for {gameName} in {FormatElapsed(elapsed: initStopwatch.Elapsed)}. Success: {okAllInit}");
+                Shared.IO.Diagnostics.Trace($"Completed init operations for {gameName} in {FormatElapsed(elapsed: initStopwatch.Elapsed)}. Success: {okAllInit}");
                 System.Console.WriteLine(okAllInit
                     ? $"Initialization completed successfully. Time: {FormatElapsed(elapsed: initStopwatch.Elapsed)}. Press any key to continue..."
                     : $"One or more init operations failed. Time: {FormatElapsed(elapsed: initStopwatch.Elapsed)}. Press any key to continue...");
@@ -257,7 +257,7 @@ public sealed class TUI {
                             continue;
                         } catch (System.Exception ex) {
                             TuiRenderer.Log($"Error: {ex.Message}", color: ConsoleColor.Red);
-                            Shared.IO.Diagnostics.Bug($"[TUI::RunAll()] Error during Run All: {ex.Message}");
+                            Shared.IO.Diagnostics.Bug($"Error during Run All: {ex.Message}");
                             TuiRenderer.WaitForKey();
                             continue;
                         } finally {
@@ -313,10 +313,10 @@ public sealed class TUI {
                 }
             }
         } catch (OperationCanceledException) {
-            Shared.IO.Diagnostics.Log("[TUI::RunAsync()] Exiting gracefully due to cancellation.");
+            Shared.IO.Diagnostics.Log("Exiting gracefully due to cancellation.");
             throw;
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[TUI::RunAsync()] Error: {ex}");
+            Shared.IO.Diagnostics.Bug($"Error: {ex}");
             System.Console.WriteLine($"Error: {ex.Message}\nPress any key to exit...");
             SafeReadKey(intercept: true, cancellationToken: cancellationToken);
             return -1;
@@ -346,7 +346,7 @@ public sealed class TUI {
                 System.Console.Clear();
             }
         } catch (System.Exception e) {
-            Shared.IO.Diagnostics.Bug($"[TUI::SafeClear()] Error clearing console: {e.Message}");
+            Shared.IO.Diagnostics.Bug($"Error clearing console: {e.Message}");
         }
     }
 
@@ -388,7 +388,7 @@ public sealed class TUI {
             Shared.IO.Diagnostics.Trace("exiting");
             throw;
         } catch (System.Exception e) {
-            Shared.IO.Diagnostics.Bug($"[TUI::SafeReadKey()] Error reading key: {e.Message}");
+            Shared.IO.Diagnostics.Bug($"Error reading key: {e.Message}");
         }
 
         return new ConsoleKeyInfo(keyChar: '\0', key: 0, shift: false, alt: false, control: false);
@@ -404,7 +404,7 @@ public sealed class TUI {
                 System.Console.CursorVisible = visible;
             }
         } catch (System.Exception e) {
-            Shared.IO.Diagnostics.Bug($"[TUI::SafeSetCursorVisible()] Error setting cursor visibility: {e.Message}");
+            Shared.IO.Diagnostics.Bug($"Error setting cursor visibility: {e.Message}");
         }
     }
 
@@ -415,7 +415,7 @@ public sealed class TUI {
             }
             return System.Console.WindowHeight > 5;
         } catch {
-            Shared.IO.Diagnostics.Bug("[TUI::CanUseInteractiveMenu()] Error checking console capabilities.");
+            Shared.IO.Diagnostics.Bug("Error checking console capabilities.");
             return false;
         }
     }
@@ -563,10 +563,10 @@ public sealed class TUI {
                 }
             }
         } catch (OperationCanceledException) {
-            Shared.IO.Diagnostics.Log("[TUI::SelectFromMenu()] Exiting gracefully due to cancellation.");
+            Shared.IO.Diagnostics.Log("Exiting gracefully due to cancellation.");
             throw;
         } catch (System.Exception) {
-            Shared.IO.Diagnostics.Bug("[TUI::SelectFromMenu()] Error in SelectFromMenu");
+            Shared.IO.Diagnostics.Bug("Error in SelectFromMenu");
             return -1;
         }
     }
@@ -637,7 +637,7 @@ public sealed class TUI {
         } catch (OperationCanceledException) {
             throw;
         } catch (System.Exception) {
-            Shared.IO.Diagnostics.Bug("[TUI::SelectFromMenuFallback()] Error in SelectFromMenuFallback");
+            Shared.IO.Diagnostics.Bug("Error in SelectFromMenuFallback");
             return -1;
         }
     }
@@ -762,7 +762,7 @@ public sealed class TUI {
             Shared.IO.Diagnostics.Trace("Operation cancelled by user.");
             throw;
         } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"[TUI::PromptUser()] Error during interactive prompts: {ex.Message}");
+            Shared.IO.Diagnostics.Bug($"Error during interactive prompts: {ex.Message}");
             return false;
         }
     }

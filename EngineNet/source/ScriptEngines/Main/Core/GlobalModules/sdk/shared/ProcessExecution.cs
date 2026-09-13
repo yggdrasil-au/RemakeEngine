@@ -250,7 +250,7 @@ internal static class ProcessExecution {
                     if (silentRun) return;
                     string? color = type == "stderr" ? "red" : null;
                     Shared.IO.UI.EngineSdk.Print(msg, color: color, newline: true);
-                    Shared.IO.Diagnostics.Log($"[ProcessRunner][{type}] {msg}");
+                    Shared.IO.Diagnostics.Log($"[{type}] {msg}");
                 },
                 onEvent: evt => {
                     if (!evt.TryGetValue(key: "event", out object? ev) || !string.Equals(a: ev?.ToString(), b: "end", comparisonType: System.StringComparison.OrdinalIgnoreCase)) return;

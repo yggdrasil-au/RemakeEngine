@@ -393,7 +393,7 @@ public sealed partial class CLI {
         }
 
         foreach (string warning in preparedOps.Warnings) {
-            Shared.IO.Diagnostics.Log($"[CLI] Warning for '{game}' ({opsFile}): {warning}");
+            Shared.IO.Diagnostics.Log($"Warning for '{game}' ({opsFile}): {warning}");
         }
 
         System.Console.ForegroundColor = System.ConsoleColor.Yellow;
