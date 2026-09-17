@@ -4,7 +4,7 @@ namespace EngineNet.Core.Engine;
 /// <summary>
 /// Core Engine class providing main functionality
 /// </summary>
-internal sealed class Engine : IEngineFace{
+public sealed class Engine : IEngineFace{
 
     /* :: :: Vars :: Start :: */
 
@@ -16,7 +16,7 @@ internal sealed class Engine : IEngineFace{
 
     /* :: :: Vars :: End :: */
 
-    internal Engine(
+    public Engine(
         Core.Services.GameRegistry gameRegistry,
         Core.Services.GameLauncher gameLauncher,
         Core.Services.OperationsLoader OperationsLoader,

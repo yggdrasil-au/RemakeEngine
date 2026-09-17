@@ -1,5 +1,5 @@
 
-namespace EngineNet.GUI.Pages;
+namespace EngineNet.Interface.GUI.Pages;
 
 using Core.Data;
 

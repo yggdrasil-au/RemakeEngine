@@ -1,4 +1,4 @@
-namespace EngineNet.GUI.Models;
+namespace EngineNet.Interface.GUI.Models;
 
 public sealed class ProgressPanelState : INotifyPropertyChanged {
     private string _id = string.Empty;

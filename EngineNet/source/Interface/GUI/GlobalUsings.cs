@@ -17,5 +17,5 @@ global using Avalonia.Interactivity;
 global using Avalonia.Media.Imaging;
 
 
-global using EngineNet.GUI.Services;
+global using EngineNet.Interface.GUI.Services;
 

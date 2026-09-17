@@ -19,7 +19,7 @@ internal static class QuickBmsExtractor {
     private sealed class ProgressState {
         internal int Processed;
         internal int Ok;
-        internal int Skip;
+        internal int Skip = 0;
         internal int Err;
     }
 

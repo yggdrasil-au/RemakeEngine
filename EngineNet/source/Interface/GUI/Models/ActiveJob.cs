@@ -1,4 +1,4 @@
-namespace EngineNet.GUI.Models;
+namespace EngineNet.Interface.GUI.Models;
 
 public class ActiveJob : INotifyPropertyChanged {
     private string _spinner = string.Empty;

@@ -1,18 +1,16 @@
 
 using System;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Collections.Generic;
+
 using Avalonia;
-using EngineNet.Core.Abstractions;
-using EngineNet.Core.Data;
 
 namespace EngineNet;
 
 
 public static class Program {
 
-    private static EngineNet.Core.Engine.IEngineFace? Engine {get; set;}
+    internal static EngineNet.Core.Engine.IEngineFace? Engine {get; set;}
     private static string rootPath {get; set;} = string.Empty;
     private static bool isGui {get; set;}
     private static bool isTui {get; set;}
@@ -21,7 +19,7 @@ public static class Program {
     private static int _ctrlCCount = 0;
 
     public static AppBuilder BuildAvaloniaApp()  {
-        return GUI.GuiBootstrapper.BuildAvaloniaApp();
+        return Interface.GUI.GuiBootstrapper.BuildAvaloniaApp();
     }
 
     [STAThread]
@@ -106,7 +104,6 @@ public static class Program {
                 PreinitialDiagnosticsLog.Clear();
             }
 
-            IScriptActionDispatcher scriptActionDispatcher = new EngineNet.ScriptEngines.ScriptActionDispatcher();
             Shared.IO.Diagnostics.Trace($"Starting EngineNet in {(isGui ? "GUI" : isTui ? "TUI" : "CLI")} mode. Root Path: {rootPath}");
 
             Shared.State.ConfigureRuntime(
@@ -116,7 +113,7 @@ public static class Program {
                 isCli: isCli
             );
 
-            Engine ??= await InitialiseEngine(scriptActionDispatcher: scriptActionDispatcher);
+            Engine ??= await Init.InitialiseEngine();
             EngineNet.Interface.MiniEngineFace miniEngine = new Interface.MiniEngine(Engine: Engine);
             InitUI UI = new();
 
@@ -237,44 +234,6 @@ public static class Program {
         }
     }
 
-    /// <summary>
-    /// Initialises the engine
-    /// </summary>
-    private static async System.Threading.Tasks.Task<EngineNet.Core.Engine.IEngineFace> InitialiseEngine(IScriptActionDispatcher scriptActionDispatcher) {
-        if (Engine != null) {
-            return Engine;
-        }
-
-        JsonToolResolver tools = new();
-        EngineConfig engineConfig = new();
-
-        Registries _registries = await Core.Utils.Registries.CreateAsync();
-        ModuleScanner _scanner = new(registries: _registries);
-
-        GameRegistry gameRegistry = new(registries: _registries, scanner: _scanner);
-
-        CommandService _commandService = new();
-        GameLauncher _gameLauncher = new(gameRegistry: gameRegistry, toolResolver: tools, config: engineConfig, commandService: _commandService, scriptActionDispatcher: scriptActionDispatcher);
-        OperationsLoader _opsLoader = new();
-        OperationsService _operationsService = new(loader: _opsLoader, gameRegistry: gameRegistry);
-
-        Single Single = new(scriptActionDispatcher: scriptActionDispatcher);
-
-        EngineNet.Core.Engine.Engine _engine = new(
-            gameRegistry: gameRegistry,
-            gameLauncher: _gameLauncher,
-            OperationsLoader: _opsLoader,
-            commandService: _commandService,
-            OperationsService: _operationsService,
-
-            toolResolver: tools,
-
-            engineConfig: engineConfig,
-
-            Runner: Single
-        );
-        return _engine;
-    }
 
     /// <summary>
     /// Provides helper methods for managing the console window on Windows OS.
@@ -287,37 +246,3 @@ public static class Program {
     // //
 }
 
-internal sealed class InitUI {
-    // choose ui, and manage engine, instead of passing engine to ui, this class will manage and expose methods via a child class it passes into the ui
-    public async Task<int> init(string[] args, string ui, Interface.MiniEngineFace miniEngine, System.Threading.CancellationToken cancellationToken) {
-        try {
-            switch (ui) {
-                case "gui":
-                    // GUI uses the limited mini engine surface; the full engine is only stashed for previewer/bootstrapping.
-                    Shared.IO.Diagnostics.Trace("Launching GUI Interface...");
-                    return GUI.GuiBootstrapper.Run(miniEngine: miniEngine, cancellationToken: cancellationToken);
-                case "tui":
-                    Shared.IO.Diagnostics.Trace("Launching TUI Interface...");
-                    Terminal.TUI TUI = new(engine: miniEngine);
-                    return await TUI.RunAsync(cancellationToken: cancellationToken);
-                case "cli":
-                    Shared.IO.Diagnostics.Trace("Launching CLI Interface...");
-                    Terminal.CLI CLI = new(engine: miniEngine);
-                    return await CLI.RunAsync(args: args, cancellationToken: cancellationToken);
-                default:
-                    await System.Console.Error.WriteLineAsync($"No valid interface mode selected. Expected 'gui', 'tui', or 'cli', but got '{ui}'.");
-                    Shared.IO.Diagnostics.Bug("No valid interface mode selected.");
-                    break;
-            }
-
-            return 0;
-        } catch (OperationCanceledException) {
-            Shared.IO.Diagnostics.Trace("exiting ui");
-            throw;
-        } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"Error initializing UI '{ui}': {ex.Message}", ex: ex);
-            await System.Console.Error.WriteLineAsync($"Error initializing UI '{ui}': {ex.Message}");
-            return 1;
-        }
-    }
-}

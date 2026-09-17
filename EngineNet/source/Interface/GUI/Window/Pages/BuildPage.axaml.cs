@@ -2,7 +2,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using EngineNet.Shared.IO.UI;
 
-namespace EngineNet.GUI.Pages;
+namespace EngineNet.Interface.GUI.Pages;
 
 public sealed partial class BuildingPage:UserControl {
     public OperationOutputService Service => OperationOutputService.Instance;

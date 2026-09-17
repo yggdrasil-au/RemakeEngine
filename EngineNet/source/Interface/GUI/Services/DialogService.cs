@@ -1,4 +1,4 @@
-namespace EngineNet.GUI.Services;
+namespace EngineNet.Interface.GUI.Services;
 
 public static class DialogService {
     private static Window? TryGetMainWindow() {

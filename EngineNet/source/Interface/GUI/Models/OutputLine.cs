@@ -1,4 +1,4 @@
-namespace EngineNet.GUI.Models;
+namespace EngineNet.Interface.GUI.Models;
 
 /// <summary>
 /// Represents a single line of output in the operation log.

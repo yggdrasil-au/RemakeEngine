@@ -1,5 +1,5 @@
 
-namespace EngineNet.GUI;
+namespace EngineNet.Interface.GUI;
 
 using Interface;
 

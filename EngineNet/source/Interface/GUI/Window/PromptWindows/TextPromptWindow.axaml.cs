@@ -1,5 +1,5 @@
 
-namespace EngineNet.GUI.Pages.PromptWindows;
+namespace EngineNet.Interface.GUI.Pages.PromptWindows;
 
 internal sealed partial class TextPromptWindow:Window {
     internal string? Result {
