@@ -80,7 +80,8 @@ internal sealed class ToolArchiveManager {
                 return;
             case ".7z": {
                 using SevenZipArchive archive = SevenZipArchive.Open(filePath: archivePath);
-                ExtractionOptions options = new ExtractionOptions {
+                ExtractionOptions options = new()
+                {
                     ExtractFullPath = true,
                     Overwrite = true
                 };
@@ -153,7 +154,8 @@ internal sealed class ToolArchiveManager {
     }
 
     private static string? SearchForFile(string root, string pattern) {
-        System.IO.EnumerationOptions options = new System.IO.EnumerationOptions {
+        System.IO.EnumerationOptions options = new()
+        {
             RecurseSubdirectories = true,
             IgnoreInaccessible = true,
             MatchCasing = System.IO.MatchCasing.CaseInsensitive,

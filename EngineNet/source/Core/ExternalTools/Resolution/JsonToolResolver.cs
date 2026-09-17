@@ -5,7 +5,7 @@ namespace EngineNet.Core.ExternalTools;
 /// Prioritizes <see cref="ToolLockfile.ToolLockfileName"/> for persistent installations.
 /// </summary>
 public class JsonToolResolver {
-    private readonly Dictionary<string, Dictionary<string, string>> _tools = new Dictionary<string, Dictionary<string, string>>(comparer: System.StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Dictionary<string, string>> _tools = new(comparer: System.StringComparer.OrdinalIgnoreCase);
     private readonly string _lockfilePath;
     private string? _loadedFile;
     private System.DateTime _lastWriteTime;
@@ -46,7 +46,7 @@ public class JsonToolResolver {
         Dictionary<string, Dictionary<string, ToolLockfileEntry>> lockData = ToolLockfileManager.Load(lockPath: found);
 
         foreach (KeyValuePair<string, Dictionary<string, ToolLockfileEntry>> toolProp in lockData) {
-            Dictionary<string, string> versions = new Dictionary<string, string>(comparer: System.StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, string> versions = new(comparer: System.StringComparer.OrdinalIgnoreCase);
 
             foreach (KeyValuePair<string, ToolLockfileEntry> versionEntry in toolProp.Value) {
                 if (string.IsNullOrWhiteSpace(versionEntry.Value.Exe)) {

@@ -47,7 +47,7 @@ public static class YamlHelpers {
             case null:
                 return null;
             case IDictionary dict: {
-                Dictionary<string, object?> map = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, object?> map = new(comparer: System.StringComparer.OrdinalIgnoreCase);
                 foreach (DictionaryEntry entry in dict) {
                     string key = entry.Key?.ToString() ?? string.Empty;
                     map[key: key] = ConvertYamlToPlain(entry.Value);
@@ -55,7 +55,7 @@ public static class YamlHelpers {
                 return map;
             }
             case IEnumerable sequence when value is not string: {
-                List<object?> list = new List<object?>();
+                List<object?> list = new();
                 foreach (object? item in sequence) {
                     list.Add(item: ConvertYamlToPlain(item));
                 }
@@ -76,7 +76,7 @@ public static class YamlHelpers {
         }
 
         if (value is IDictionary dict) {
-            Dictionary<string, object?> map = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, object?> map = new(comparer: System.StringComparer.OrdinalIgnoreCase);
             foreach (DictionaryEntry entry in dict) {
                 string key = entry.Key?.ToString() ?? string.Empty;
                 map[key: key] = ConvertPlainToYaml(entry.Value);
@@ -85,14 +85,14 @@ public static class YamlHelpers {
         }
 
         if (value is IEnumerable sequence && value is not string) {
-            List<object?> list = new List<object?>();
+            List<object?> list = new();
             foreach (object? item in sequence) {
                 list.Add(item: ConvertPlainToYaml(item));
             }
             return list;
         }
 
-        Dictionary<string, object?> reflected = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object?> reflected = new(comparer: System.StringComparer.OrdinalIgnoreCase);
         System.Reflection.PropertyInfo[] props = value.GetType().GetProperties();
         foreach (System.Reflection.PropertyInfo prop in props) {
             if (!prop.CanRead) {

@@ -22,5 +22,5 @@ public sealed class EngineConfig {
     /// The Engine and its services can read from this dictionary to resolve variables when building execution contexts or commands.
     /// </summary>
     public IDictionary<string, object?> Data => this._data;
-    private readonly Dictionary<string, object?> _data = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, object?> _data = new(comparer: System.StringComparer.OrdinalIgnoreCase);
 }

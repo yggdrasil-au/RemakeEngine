@@ -6,7 +6,7 @@ internal static class ToolManifestParser {
 
     internal static List<ToolManifestEntry> Load(string moduleTomlPath) {
         List<Dictionary<string, object?>> rawEntries = TomlHelpers.ReadTools(path: moduleTomlPath);
-        List<ToolManifestEntry> entries = new List<ToolManifestEntry>();
+        List<ToolManifestEntry> entries = new();
 
         foreach (Dictionary<string, object?> entry in rawEntries) {
             string? name = ReadString(source: entry, key: "name") ?? ReadString(source: entry, key: "Name");

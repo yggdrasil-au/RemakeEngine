@@ -152,7 +152,7 @@ internal sealed class Chunk {
     }
 
     internal string GetLineage(IReadOnlyList<Chunk> chunks) {
-        System.Text.StringBuilder lineage = new System.Text.StringBuilder(GetName());
+        System.Text.StringBuilder lineage = new(GetName());
         Chunk current = this;
 
         while (current.Parent.HasValue) {

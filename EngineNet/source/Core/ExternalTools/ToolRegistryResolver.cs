@@ -9,7 +9,7 @@ internal static class ToolRegistryResolver {
     }
 
     private static Dictionary<string, Dictionary<string, RegistryToolVersion>> LoadTypedRegistry(Dictionary<string, object?> rawRegistry) {
-        Dictionary<string, Dictionary<string, RegistryToolVersion>> registry = new Dictionary<string, Dictionary<string, RegistryToolVersion>>(comparer: System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, Dictionary<string, RegistryToolVersion>> registry = new(comparer: System.StringComparer.OrdinalIgnoreCase);
 
         foreach (KeyValuePair<string, object?> toolEntry in rawRegistry) {
             Dictionary<string, RegistryToolVersion> versions = ConvertToolVersions(toolValue: toolEntry.Value);
@@ -64,7 +64,7 @@ internal static class ToolRegistryResolver {
     }
 
     private static Dictionary<string, RegistryToolVersion> ConvertToolVersions(object? toolValue) {
-        Dictionary<string, RegistryToolVersion> versions = new Dictionary<string, RegistryToolVersion>(comparer: System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, RegistryToolVersion> versions = new(comparer: System.StringComparer.OrdinalIgnoreCase);
 
         foreach (KeyValuePair<string, object?> versionEntry in GetProperties(obj: toolValue)) {
             RegistryToolVersion? typedVersion = ConvertVersion(versionValue: versionEntry.Value);
@@ -77,7 +77,8 @@ internal static class ToolRegistryResolver {
     }
 
     private static RegistryToolVersion? ConvertVersion(object? versionValue) {
-        RegistryToolVersion typedVersion = new RegistryToolVersion {
+        RegistryToolVersion typedVersion = new()
+        {
             Checksums = ConvertChecksums(GetProperty(obj: versionValue, key: "checksums"))
         };
 

@@ -9,7 +9,7 @@ internal static class RemoteFallbacks {
     private const string RepoName = "RemakeEngine";
     private static readonly string[] BranchCandidates = new[] { "main", "master" };
 
-    private static readonly HttpClient Http = new System.Net.Http.HttpClient {
+    private static readonly HttpClient Http = new() {
         Timeout = System.TimeSpan.FromSeconds(seconds: 20),
     };
 

@@ -34,9 +34,9 @@ internal sealed class Main : IScriptAction {
             // read script code
             string code = await System.IO.File.ReadAllTextAsync(path: _scriptPath, cancellationToken: cancellationToken);
             // create new JS script environment
-            Jint.Engine JsEngine = new Jint.Engine(options: options => options.CancellationToken(cancellationToken: cancellationToken));
+            Jint.Engine JsEngine = new(options: options => options.CancellationToken(cancellationToken: cancellationToken));
             // object to hold all exposed tables
-            JsWorld JsWorld = new JsWorld(_jsEngine: JsEngine);
+            JsWorld JsWorld = new(_jsEngine: JsEngine);
 
 
 
@@ -48,7 +48,7 @@ internal sealed class Main : IScriptAction {
 
             // Load versions from current game module context
             Dictionary<string, string> moduleVersions = Helper.LoadModuleToolVersions(_gameRoot: _gameRoot);
-            ContextualToolResolver contextualTools = new ContextualToolResolver(baseResolver: tools, contextVersions: moduleVersions);
+            ContextualToolResolver contextualTools = new(baseResolver: tools, contextVersions: moduleVersions);
 
             // Expose core functions, SDK and modules
             JsAction.SetupCoreFunctions(_JSWorld: JsWorld, _tools: contextualTools, _args: _args, _gameRoot: _gameRoot, _projectRoot: _projectRoot, _scriptPath: _scriptPath);

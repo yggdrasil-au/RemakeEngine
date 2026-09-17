@@ -32,7 +32,7 @@ internal static partial class SetupEnvironment {
                 _LuaWorld.RegisterDisposable(disposable: activeStream);
                 registered = true;
                 // Create a per-open handle table so concurrent files do not share state.
-                Table InstanceHandle = new Table(owner: _LuaWorld.LuaScript);
+                Table InstanceHandle = new(owner: _LuaWorld.LuaScript);
                 // Implement file:read() with support for both text and binary modes
                 InstanceHandle[key: "read"] = (DynValue readMode) => {
                     try {
@@ -64,7 +64,7 @@ internal static partial class SetupEnvironment {
                                     return System.Text.Encoding.Latin1.GetString(bytes: buffer, index: 0, count: bytesRead);
                                 } else {
                                     // Text mode: use StreamReader for proper text handling
-                                    using StreamReader reader = new System.IO.StreamReader(stream: activeStream, leaveOpen: true);
+                                    using StreamReader reader = new(stream: activeStream, leaveOpen: true);
                                     return reader.ReadToEnd();
                                 }
                             }
@@ -73,7 +73,7 @@ internal static partial class SetupEnvironment {
                             case "*line": {
                                 if (binaryMode) {
                                     // Read until newline in binary mode
-                                    List<byte> lineBytes = new System.Collections.Generic.List<byte>();
+                                    List<byte> lineBytes = new();
                                     int b;
                                     while ((b = activeStream.ReadByte()) != -1) {
                                         if (b == '\n') break;
@@ -82,7 +82,7 @@ internal static partial class SetupEnvironment {
 
                                     return lineBytes.Count == 0 && b == -1 ? null : System.Text.Encoding.Latin1.GetString(bytes: lineBytes.ToArray());
                                 } else {
-                                    using StreamReader reader = new System.IO.StreamReader(stream: activeStream, leaveOpen: true);
+                                    using StreamReader reader = new(stream: activeStream, leaveOpen: true);
                                     return reader.ReadLine();
                                 }
                             }
@@ -122,7 +122,7 @@ internal static partial class SetupEnvironment {
                             activeStream.Flush();
                         } else {
                             // Text mode: use StreamWriter
-                            using System.IO.StreamWriter writer = new System.IO.StreamWriter(stream: activeStream, leaveOpen: true);
+                            using System.IO.StreamWriter writer = new(stream: activeStream, leaveOpen: true);
                             writer.Write(content);
                             writer.Flush();
                         }

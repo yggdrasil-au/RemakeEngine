@@ -113,7 +113,7 @@ internal static partial class Sdk {
             }
 
             // Convert C# Dictionary to MoonSharp Table
-            Table table = new Table(owner: _LuaWorld.LuaScript);
+            Table table = new(owner: _LuaWorld.LuaScript);
             foreach (KeyValuePair<string, object> kvp in resultDict) {
                 // We use DynValue.FromObject to handle the conversion of strings/doubles/longs automatically
                 table[key: kvp.Key] = DynValue.FromObject(script: _LuaWorld.LuaScript, obj: kvp.Value);
@@ -251,7 +251,7 @@ internal static partial class Sdk {
         };
 
         _LuaWorld.Sdk.Table[key: "list_dir"] = (string path) => {
-            Table table = new Table(owner: _LuaWorld.LuaScript);
+            Table table = new(owner: _LuaWorld.LuaScript);
             List<string>? resultList = ScriptEngines.Global.SdkModule.Helpers.AddFileSystemOperations.List_Dir(path: path);
             if (resultList == null) {
                 return table;
@@ -411,7 +411,7 @@ internal static partial class Sdk {
                 // If it's a file, check file attributes and try to open for writing
                 if (File.Exists(path: safePath)) {
                     try {
-                        FileInfo fi = new FileInfo(fileName: safePath);
+                        FileInfo fi = new(fileName: safePath);
                         if (fi.IsReadOnly) return false;
                         using (File.Open(path: safePath, mode: FileMode.Open, access: FileAccess.Write, share: FileShare.ReadWrite)) {
                             return true;

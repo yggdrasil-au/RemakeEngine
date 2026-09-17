@@ -109,7 +109,7 @@ internal static class SymLink {
                 return false;
             }
 
-            Luid luid = new Luid();
+            Luid luid = new();
             // "SeCreateSymbolicLinkPrivilege"
             if (!LookupPrivilegeValue(lpSystemName: null, lpName: SE_CREATE_SYMBOLIC_LINK_NAME, lpLuid: ref luid)) {
                 return false;
@@ -123,7 +123,7 @@ internal static class SymLink {
                 if (GetTokenInformation(TokenHandle: hToken, TokenInformationClass: TokenInformationClass.TokenPrivileges, TokenInformation: tokenInfo, TokenInformationLength: tokenInfoLength, ReturnLength: out tokenInfoLength)) {
                     int privilegeCount = Marshal.ReadInt32(ptr: tokenInfo);
                     // Ptr arithmetic: offset by size of int (PrivilegeCount)
-                    IntPtr currentPtr = new IntPtr(tokenInfo.ToInt64() + sizeof(int));
+                    IntPtr currentPtr = new(tokenInfo.ToInt64() + sizeof(int));
 
                     for (int i = 0; i < privilegeCount; i++) {
                         LuidAndAttributes laa = Marshal.PtrToStructure<LuidAndAttributes>(ptr: currentPtr);

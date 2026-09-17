@@ -31,8 +31,8 @@ public sealed class TUI {
                     }
                     System.Console.WriteLine("Select a game:");
 
-                    List<string> gameMenu = new List<string>();
-                    List<string> gameKeyMap = new List<string>();
+                    List<string> gameMenu = new();
+                    List<string> gameKeyMap = new();
 
                     // Build menu with states
                     // foreach module, display '<Name> [<isRegistered>, <isInstalled (always true here)>, <isBuilt>]'
@@ -110,7 +110,7 @@ public sealed class TUI {
                 System.Diagnostics.Stopwatch initStopwatch = System.Diagnostics.Stopwatch.StartNew();
                 bool okAllInit = true;
                 foreach (Core.Data.PreparedOperation op in preparedOps.InitOperations) {
-                    Core.Data.PromptAnswers promptAnswers = new Core.Data.PromptAnswers();
+                    Core.Data.PromptAnswers promptAnswers = new();
                     // Initialization runs non-interactively; use defaults when provided
                     await CollectAnswersForOperation(op: op.Operation, answers: promptAnswers, defaultsOnly: true);
                     TuiRenderer.ResetContext(clearLogs: false);
@@ -132,7 +132,7 @@ public sealed class TUI {
             while (true) {
                 SafeClear();
                 System.Console.WriteLine($"--- Operations for: {gameName}");
-                List<string> menu = new List<string>();
+                List<string> menu = new();
                 int opStartIndex = 0;
 
                 // show a 'Play' option if isBuilt is true for the module, indicating the game is ready to run
@@ -275,7 +275,7 @@ public sealed class TUI {
 
                 {
                     Dictionary<string, object?> op = preparedOps.RegularOperations[index: opIndex].Operation;
-                    PromptAnswers answers = new PromptAnswers();
+                    PromptAnswers answers = new();
                     using CancellationTokenSource opCts = CancellationTokenSource.CreateLinkedTokenSource(token: cancellationToken);
 
                     Func<string, bool, string?>? oldPromptHandler = Shared.IO.UI.EngineSdk.ExternalPromptHandler;
@@ -588,7 +588,7 @@ public sealed class TUI {
 
     private static int SelectFromNumberedMenu(IList<string> items, bool highlightSeparators, HashSet<int>? disabledIndices = null, System.Threading.CancellationToken cancellationToken = default) {
         try {
-            List<int> selectable = new List<int>();
+            List<int> selectable = new();
 
             System.Console.WriteLine();
             System.Console.WriteLine("Terminal is too small for the interactive menu. Enter the option number instead:");
@@ -788,7 +788,7 @@ public sealed class TUI {
     private static string? ReadLineWithCancel(out bool cancelled, System.Threading.CancellationToken cancellationToken = default) {
         try {
             cancelled = false;
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
             while (true) {
                 ConsoleKeyInfo key = SafeReadKey(intercept: true, cancellationToken: cancellationToken);
                 switch (key.Key) {

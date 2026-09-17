@@ -100,13 +100,15 @@ public sealed partial class BuildingPage:UserControl {
             svc.AddOutput(text: "Downloading dependencies...");
         }
 
-        Dictionary<string, object?> progressStart = new Dictionary<string, object?> {
+        Dictionary<string, object?> progressStart = new()
+        {
             [key: "event"] = EngineSdk.Events.ProgressPanelStart,
             [key: "reserve"] = 6
         };
         svc.HandleEvent(evt: progressStart);
 
-        Dictionary<string, object?> progressPayload = new Dictionary<string, object?> {
+        Dictionary<string, object?> progressPayload = new()
+        {
             [key: "event"] = EngineSdk.Events.ProgressPanel,
             [key: "label"] = "Packaging",
             [key: "spinner"] = "/",
@@ -120,12 +122,12 @@ public sealed partial class BuildingPage:UserControl {
                 [key: "percent"] = 0.4
             },
             [key: "active_jobs"] = new List<Dictionary<string, object?>> {
-                new Dictionary<string, object?> {
+                new() {
                     [key: "tool"] = "ffmpeg",
                     [key: "file"] = "intro_cutscene.mp4",
                     [key: "elapsed"] = "00:12"
                 },
-                new Dictionary<string, object?> {
+                new() {
                     [key: "tool"] = "texturec",
                     [key: "file"] = "characters/player/body_diffuse.png",
                     [key: "elapsed"] = "00:03"

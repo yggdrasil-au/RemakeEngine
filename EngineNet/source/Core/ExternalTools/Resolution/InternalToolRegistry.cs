@@ -14,7 +14,7 @@ internal static class InternalToolRegistry {
     /// Result structure: { "ToolName": { "Version": { "Platform": { "url": "...", ... } } } }
     /// </summary>
     internal static Dictionary<string, object?> Assemble() {
-        Dictionary<string, object?> registry = new Dictionary<string, object?>(comparer: StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object?> registry = new(comparer: StringComparer.OrdinalIgnoreCase);
 
         if (!Directory.Exists(path: ToolsRegistryRoot)) {
             Shared.IO.Diagnostics.Trace($"Tools registry root not found: {ToolsRegistryRoot}");
@@ -23,7 +23,7 @@ internal static class InternalToolRegistry {
 
         foreach (string toolDir in Directory.GetDirectories(path: ToolsRegistryRoot)) {
             string toolName = Path.GetFileName(path: toolDir);
-            Dictionary<string, object?> toolData = new Dictionary<string, object?>(comparer: StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, object?> toolData = new(comparer: StringComparer.OrdinalIgnoreCase);
 
             foreach (string jsonFile in Directory.GetFiles(path: toolDir, searchPattern: "*.json")) {
                 try {
@@ -67,7 +67,7 @@ internal static class InternalToolRegistry {
     }
 
     private static Dictionary<string, object?> MergeJsonElements(JsonElement target, JsonElement source) {
-        Dictionary<string, object?> result = new Dictionary<string, object?>(comparer: StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object?> result = new(comparer: StringComparer.OrdinalIgnoreCase);
         
         foreach (JsonProperty prop in target.EnumerateObject()) {
             result[key: prop.Name] = prop.Value;

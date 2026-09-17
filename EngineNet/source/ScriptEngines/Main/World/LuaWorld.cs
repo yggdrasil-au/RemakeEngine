@@ -49,8 +49,8 @@ internal sealed class LuaWorld {
     // //
     /* :: :: Fields :: START :: */
 
-    private readonly List<System.IDisposable> _openDisposables = new List<IDisposable>();
-    private readonly Lock _openDisposablesLock = new Lock();
+    private readonly List<System.IDisposable> _openDisposables = new();
+    private readonly Lock _openDisposablesLock = new();
 
     /* :: :: Fields :: END :: */
     // //

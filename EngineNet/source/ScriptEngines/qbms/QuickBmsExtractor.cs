@@ -13,7 +13,7 @@ internal static class QuickBmsExtractor {
         internal string Extension = "*";
         internal bool Overwrite;
         internal int? Workers;
-        internal List<string> Targets { get; } = new List<string>();
+        internal List<string> Targets { get; } = new();
     }
 
     private sealed class ProgressState {
@@ -73,11 +73,11 @@ internal static class QuickBmsExtractor {
         WriteInfo($"Starting QuickBMS extraction using script '{options.BmsScript}'.");
         WriteInfo($"Found {files.Count} file(s) to process with {workers} worker(s).");
 
-        ProgressState progressState = new ProgressState();
+        ProgressState progressState = new();
 
         // Progress panel tracking uses a stable state container to avoid closure capture issues.
         long total = files.Count;
-        using System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
+        using System.Threading.CancellationTokenSource cts = new();
         System.Threading.Tasks.Task panel = EngineNet.Shared.IO.UI.EngineSdk.SdkConsoleProgress.StartPanel(
             total: () => total,
             snapshot: () => (
@@ -91,7 +91,7 @@ internal static class QuickBmsExtractor {
             token: cts.Token
         );
 
-        System.Threading.Tasks.ParallelOptions parallelOptions = new System.Threading.Tasks.ParallelOptions {
+        System.Threading.Tasks.ParallelOptions parallelOptions = new() {
             MaxDegreeOfParallelism = workers,
             CancellationToken = cancellationToken
         };
@@ -104,9 +104,10 @@ internal static class QuickBmsExtractor {
 
                 RegisterActive(tool: "quickbms", srcPath: file);
                 try {
-                    Core.ProcessRunner runner = new Core.ProcessRunner();
+                    Core.ProcessRunner runner = new();
 
-                    List<string> command = new List<string> {
+                    List<string> command = new()
+                    {
                         options.QuickBmsExe,
                         options.Overwrite ? "-o" : "-k",
                         options.BmsScript,
@@ -114,7 +115,7 @@ internal static class QuickBmsExtractor {
                         outputDir
                     };
 
-                    Dictionary<string, object?> env = new Dictionary<string, object?> { [key: "TERM"] = "dumb" };
+                    Dictionary<string, object?> env = new() { [key: "TERM"] = "dumb" };
                     bool ok = runner.Execute(
                         commandParts: command,
                         opTitle: System.IO.Path.GetFileName(path: file),
@@ -185,7 +186,7 @@ internal static class QuickBmsExtractor {
             throw new System.ArgumentException("No arguments provided for QuickBMS extractor.");
         }
 
-        Options options = new Options();
+        Options options = new();
         for (int i = 0; i < args.Count; i++) {
             string current = args[index: i];
             switch (current) {
@@ -271,7 +272,7 @@ internal static class QuickBmsExtractor {
 
     private static IEnumerable<string> ResolveFiles(Options options, string normalizedExtension) {
         bool matchesAll = normalizedExtension == "*";
-        HashSet<string> seen = new HashSet<string>(comparer: System.StringComparer.OrdinalIgnoreCase);
+        HashSet<string> seen = new(comparer: System.StringComparer.OrdinalIgnoreCase);
 
         foreach (string target in options.Targets) {
             if (System.IO.Directory.Exists(path: target)) {
@@ -367,7 +368,7 @@ internal static class QuickBmsExtractor {
         Write(colour: System.ConsoleColor.Red, message);
     }
 
-    private static readonly Lock s_consoleLock = new Lock();
+    private static readonly Lock s_consoleLock = new();
 
     private static readonly string s_prefix = "[QBMS-Extract] ";
 

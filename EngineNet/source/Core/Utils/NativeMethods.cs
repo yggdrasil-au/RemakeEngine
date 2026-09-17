@@ -84,7 +84,8 @@ internal sealed class JobObject : IDisposable {
         _handle = NativeMethods.CreateJobObject(lpJobAttributes: IntPtr.Zero, lpName: name);
         if (_handle == IntPtr.Zero) return;
 
-        NativeMethods.JOBOBJECT_EXTENDED_LIMIT_INFORMATION info = new NativeMethods.JOBOBJECT_EXTENDED_LIMIT_INFORMATION {
+        NativeMethods.JOBOBJECT_EXTENDED_LIMIT_INFORMATION info = new()
+        {
             BasicLimitInformation = new NativeMethods.JOBOBJECT_BASIC_LIMIT_INFORMATION {
                 LimitFlags = NativeMethods.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
             }

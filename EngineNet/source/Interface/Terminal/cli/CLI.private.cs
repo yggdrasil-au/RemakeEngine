@@ -133,7 +133,8 @@ public sealed partial class CLI {
 
                 if (System.IO.Directory.Exists(path: identifierPath)) {
                     string inferredName = options.GameName ?? new System.IO.DirectoryInfo(path: identifierPath).Name;
-                    Core.Data.GameModuleInfo moduleInfo = new Core.Data.GameModuleInfo {
+                    Core.Data.GameModuleInfo moduleInfo = new()
+                    {
                         Id = string.Empty,
                         GameRoot = identifierPath,
                         Name = string.Empty,
@@ -153,7 +154,8 @@ public sealed partial class CLI {
         }
         if (!string.IsNullOrWhiteSpace(preferredRoot) && System.IO.Directory.Exists(path: preferredRoot)) {
             string inferredName = options.GameName ?? new System.IO.DirectoryInfo(path: preferredRoot).Name;
-            Core.Data.GameModuleInfo moduleInfo = new Core.Data.GameModuleInfo {
+            Core.Data.GameModuleInfo moduleInfo = new()
+            {
                 Id = string.Empty,
                 GameRoot = preferredRoot,
                 Name = string.Empty,
@@ -549,7 +551,7 @@ public sealed partial class CLI {
                 return System.Array.Empty<string>();
             }
 
-            List<string> values = new List<string>();
+            List<string> values = new();
             foreach (System.Text.Json.JsonElement element in doc.RootElement.EnumerateArray()) {
                 values.Add(item: element.ToString());
             }

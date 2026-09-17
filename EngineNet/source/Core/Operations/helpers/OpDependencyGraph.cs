@@ -106,8 +106,8 @@ internal sealed class OpDependencyGraph {
     }
 
     private List<Dictionary<string, object?>> FilterRelevantOperations(List<Dictionary<string, object?>> allOps) {
-        HashSet<Dictionary<string, object?>> relevant = new HashSet<Dictionary<string, object?>>();
-        Queue<Dictionary<string, object?>> queue = new Queue<Dictionary<string, object?>>();
+        HashSet<Dictionary<string, object?>> relevant = new();
+        Queue<Dictionary<string, object?>> queue = new();
 
         // Start with entry points (init or run-all flag set)
         foreach (Dictionary<string, object?> op in allOps) {
@@ -147,8 +147,8 @@ internal sealed class OpDependencyGraph {
     }
 
     private bool HasCycles() {
-        HashSet<string> visited = new HashSet<string>(comparer: StringComparer.OrdinalIgnoreCase);
-        HashSet<string> recursionStack = new HashSet<string>(comparer: StringComparer.OrdinalIgnoreCase);
+        HashSet<string> visited = new(comparer: StringComparer.OrdinalIgnoreCase);
+        HashSet<string> recursionStack = new(comparer: StringComparer.OrdinalIgnoreCase);
 
         foreach (OperationNode node in _nodes.Values) {
             if (DetectCycle(node: node, visited: visited, recursionStack: recursionStack)) {
@@ -185,7 +185,7 @@ internal sealed class OpDependencyGraph {
     }
 
     private static List<string> GetStringList(Dictionary<string, object?> dict, string key) {
-        List<string> list = new List<string>();
+        List<string> list = new();
         if (dict.TryGetValue(key: key, out object? value) && value is System.Collections.IEnumerable enumerable && value is not string) {
             foreach (object? item in enumerable) {
                 if (item is not null) list.Add(item: item.ToString()!);

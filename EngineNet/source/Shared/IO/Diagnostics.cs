@@ -29,7 +29,7 @@ public static class Diagnostics {
     private static StreamWriter? _pythonLogWriter; // Just Shared.IO.Diagnostics.PythonLog
     private static StreamWriter? _bugWriter; // Just Shared.IO.Diagnostics.Bug
     private static StreamWriter? _tuiLogWriter; // Scrollback history
-    private static readonly object _lock = new object();
+    private static readonly object _lock = new();
 
     internal static void Initialize(string rootPath, bool isGui, bool isTui) {
         _rootPath = string.IsNullOrWhiteSpace(rootPath) ? System.IO.Directory.GetCurrentDirectory() : rootPath;
@@ -61,34 +61,34 @@ public static class Diagnostics {
             // 4. Open Streams (Shared access allowed)
             // Trace Writer (Master) - Debug builds only
             if (IsTraceEnabled) {
-                FileStream fsTrace = new FileStream(path: System.IO.Path.Combine(path1: logDirectory, path2: "trace.log"), mode: FileMode.Append,
+                FileStream fsTrace = new(path: System.IO.Path.Combine(path1: logDirectory, path2: "trace.log"), mode: FileMode.Append,
                     access: FileAccess.Write, share: FileShare.ReadWrite);
                 _traceWriter = new StreamWriter(stream: fsTrace) { AutoFlush = true };
             }
 
             // Debug Writer (all builds)
-            FileStream fsDebug = new FileStream(path: debugPath, mode: FileMode.Append, access: FileAccess.Write, share: FileShare.ReadWrite);
+            FileStream fsDebug = new(path: debugPath, mode: FileMode.Append, access: FileAccess.Write, share: FileShare.ReadWrite);
             _debugWriter = new StreamWriter(stream: fsDebug) { AutoFlush = true };
 
             // Lua Log Writer (all builds)
-            FileStream fsLuaLog = new FileStream(path: luaLogPath, mode: FileMode.Append, access: FileAccess.Write, share: FileShare.ReadWrite);
+            FileStream fsLuaLog = new(path: luaLogPath, mode: FileMode.Append, access: FileAccess.Write, share: FileShare.ReadWrite);
             _luaLogWriter = new StreamWriter(stream: fsLuaLog) { AutoFlush = true };
 
             // JS Log Writer (all builds)
-            FileStream fsJsLog = new FileStream(path: jsLogPath, mode: FileMode.Append, access: FileAccess.Write, share: FileShare.ReadWrite);
+            FileStream fsJsLog = new(path: jsLogPath, mode: FileMode.Append, access: FileAccess.Write, share: FileShare.ReadWrite);
             _jsLogWriter = new StreamWriter(stream: fsJsLog) { AutoFlush = true };
 
             // Python Log Writer (all builds)
-            FileStream fsPythonLog = new FileStream(path: pythonLogPath, mode: FileMode.Append, access: FileAccess.Write, share: FileShare.ReadWrite);
+            FileStream fsPythonLog = new(path: pythonLogPath, mode: FileMode.Append, access: FileAccess.Write, share: FileShare.ReadWrite);
             _pythonLogWriter = new StreamWriter(stream: fsPythonLog) { AutoFlush = true };
 
             // Bug Writer (all builds)
-            FileStream fsBug = new FileStream(path: bugPath, mode: FileMode.Append, access: FileAccess.Write, share: FileShare.ReadWrite);
+            FileStream fsBug = new(path: bugPath, mode: FileMode.Append, access: FileAccess.Write, share: FileShare.ReadWrite);
             _bugWriter = new StreamWriter(stream: fsBug) { AutoFlush = true };
 
         #if DEBUG
             if (isTui) {
-                FileStream fsTui = new FileStream(path: System.IO.Path.Combine(path1: logDirectory, path2: "tui_history.log"), mode: FileMode.Append,
+                FileStream fsTui = new(path: System.IO.Path.Combine(path1: logDirectory, path2: "tui_history.log"), mode: FileMode.Append,
                     access: FileAccess.Write, share: FileShare.ReadWrite);
                 _tuiLogWriter = new StreamWriter(stream: fsTui) { AutoFlush = true };
             }
@@ -124,7 +124,7 @@ public static class Diagnostics {
 
         try {
             DateTime threshold = DateTime.Now.AddHours(-retentionHours);
-            DirectoryInfo directoryInfo = new DirectoryInfo(path: logDir);
+            DirectoryInfo directoryInfo = new(path: logDir);
 
             foreach (DirectoryInfo subDir in directoryInfo.GetDirectories()) {
                 if (subDir.LastWriteTime >= threshold) continue;

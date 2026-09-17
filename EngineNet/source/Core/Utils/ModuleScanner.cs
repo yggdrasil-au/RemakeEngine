@@ -39,7 +39,7 @@ internal sealed class ModuleScanner {
 
         // Re-key into a new dictionary in case filter removed some.
         // No need to pass StringComparer anymore; it's handled by the GameModules constructor!
-        Core.Data.GameModules dict = new GameModules();
+        Core.Data.GameModules dict = new();
 
         foreach (Data.GameModuleInfo info in filtered) {
             dict[key: info.Name] = info;
@@ -98,7 +98,7 @@ internal sealed class ModuleScanner {
     /// and returns the superset of modules.
     /// </summary>
     private Core.Data.GameModules ScanAllModules() {
-        Core.Data.GameModules result = new Core.Data.GameModules();
+        Core.Data.GameModules result = new();
 
         // 1. Get all modules known to the central registry
         IReadOnlyDictionary<string, object?> registered = _registries.GetRegisteredModules();
@@ -133,7 +133,8 @@ internal sealed class ModuleScanner {
                 opsFile = string.Empty;
             }
 
-            Data.GameModuleInfo info = new Data.GameModuleInfo {
+            Data.GameModuleInfo info = new()
+            {
                 Id = id,
                 Name = name,
                 IsRegistered = true,
@@ -222,7 +223,8 @@ internal sealed class ModuleScanner {
                 string name = System.IO.Path.GetFileNameWithoutExtension(path: file);
 
                 if (!result.ContainsKey(key: name)) {
-                    Data.GameModuleInfo info = new Data.GameModuleInfo {
+                    Data.GameModuleInfo info = new()
+                    {
                         Id = name,
                         Name = name,
                         IsRegistered = true,

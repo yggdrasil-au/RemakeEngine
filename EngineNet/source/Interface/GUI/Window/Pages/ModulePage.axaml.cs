@@ -12,7 +12,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     /* :: :: Vars :: START :: */
     private readonly string _moduleName;
 
-    private readonly List<SessionOperation> _initOperations = new List<SessionOperation>();
+    private readonly List<SessionOperation> _initOperations = new();
 
 
     public string ModuleName { get; }
@@ -41,7 +41,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     public Bitmap? Image { get; private set; }
 
-    public ObservableCollection<OpRow> Operations { get; } = new ObservableCollection<OpRow>();
+    public ObservableCollection<OpRow> Operations { get; } = new();
 
     public System.Windows.Input.ICommand Button_Play_Click { get; }
     public System.Windows.Input.ICommand Button_RunAll_Click { get; }
@@ -276,7 +276,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                         bool okAllInit = true;
                         foreach (SessionOperation sessionOperation in _initOperations) {
                             PreparedOperation op = sessionOperation.Operation;
-                            Core.Data.PromptAnswers answers = new Core.Data.PromptAnswers();
+                            Core.Data.PromptAnswers answers = new();
                             await CollectAnswersForOperationAsync(op: op.Operation, answers: answers, defaultsOnly: true);
 
                             bool ok = await GuiBootstrapper.MiniEngine.RunSingleOperationAsync(
@@ -414,7 +414,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         try {
             Core.Data.GameModules games = GuiBootstrapper.MiniEngine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.All);
 
-            Core.Data.PromptAnswers promptAnswers = new Core.Data.PromptAnswers();
+            Core.Data.PromptAnswers promptAnswers = new();
             await CollectAnswersForOperationAsync(op: row.Op, answers: promptAnswers);
 
             // Use embedded execution path (Engine handles engine/lua/js/bms in-process)
@@ -544,7 +544,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                         return Core.Data.PromptResponse.FromValue(new List<object?>());
                     }
 
-                    List<object?> list = new List<object?>();
+                    List<object?> list = new();
                     string[] parts = v.Split(separator: ',', options: System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);
                     foreach (string s in parts) {
                         list.Add(item: s);
@@ -580,7 +580,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
         public string Name { get; init; } = string.Empty;
         public string ScriptType { get; set; } = string.Empty;
         public string ScriptPath { get; set; } = string.Empty;
-        public Dictionary<string, object?> Op { get; init; } = new Dictionary<string, object?>();
+        public Dictionary<string, object?> Op { get; init; } = new();
 
         /// <summary>
         /// Latest run success for this operation, based on operation_execution.log.

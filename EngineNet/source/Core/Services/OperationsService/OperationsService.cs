@@ -37,7 +37,8 @@ public sealed class OperationsService {
         IDictionary<string, object?> engineConfig
     ) {
         if (!games.TryGetValue(key: gameName, out GameModuleInfo? module)) {
-            PreparedOperations missingModule = new PreparedOperations {
+            PreparedOperations missingModule = new()
+            {
                 IsLoaded = false,
                 ErrorMessage = $"Game '{gameName}' was not found."
             };
@@ -45,7 +46,8 @@ public sealed class OperationsService {
         }
 
         if (string.IsNullOrWhiteSpace(module.OpsFile)) {
-            PreparedOperations missingOpsFile = new PreparedOperations {
+            PreparedOperations missingOpsFile = new()
+            {
                 IsLoaded = false,
                 ErrorMessage = "Selected game is missing operations file."
             };
@@ -64,7 +66,7 @@ public sealed class OperationsService {
         IReadOnlyList<PreparedOperation> preparedOperations,
         IReadOnlyDictionary<long, OperationExecutionStatus> statuses
     ) {
-        List<SessionOperation> sessionOperations = new List<SessionOperation>(capacity: preparedOperations.Count);
+        List<SessionOperation> sessionOperations = new(capacity: preparedOperations.Count);
 
         foreach (PreparedOperation operation in preparedOperations) {
             OperationExecutionStatus status = operation.OperationId.HasValue
@@ -91,7 +93,7 @@ public sealed class OperationsService {
         Core.Data.GameModules? games = null,
         IDictionary<string, object?>? engineConfig = null
     ) {
-        PreparedOperations result = new PreparedOperations();
+        PreparedOperations result = new();
         if (string.IsNullOrWhiteSpace(opsFile) || !System.IO.File.Exists(path: opsFile)) {
             result.IsLoaded = false;
             result.ErrorMessage = "Operations file is missing.";
@@ -118,8 +120,8 @@ public sealed class OperationsService {
             }
         }
 
-        Dictionary<long, int> idCounts = new Dictionary<long, int>();
-        HashSet<Dictionary<string, object?>> invalidIdOps = new HashSet<Dictionary<string, object?>>();
+        Dictionary<long, int> idCounts = new();
+        HashSet<Dictionary<string, object?>> invalidIdOps = new();
 
         foreach (Dictionary<string, object?> op in allOps) {
             if (TryGetLong(data: op, out long idValue)) {
@@ -160,7 +162,7 @@ public sealed class OperationsService {
             string? scriptPath = GetString(data: resolvedOp, keys: "script");
             string? scriptType = GetString(data: resolvedOp, keys: ["script_type", "scriptType"]);
 
-            PreparedOperation prepared = new PreparedOperation(
+            PreparedOperation prepared = new(
                 operation: op,
                 displayName: displayName,
                 operationId: id,
@@ -261,7 +263,7 @@ public sealed class OperationsService {
             bool isSecret = TryGetBool(data: prompt, out bool secretValue, keys: ["secret", "Secret"]) && secretValue;
             IReadOnlyList<PromptChoice> choices = ResolvePromptChoices(prompt: prompt);
 
-            PromptRequest request = new PromptRequest(
+            PromptRequest request = new(
                 name: name,
                 type: type,
                 title: title,
@@ -305,7 +307,7 @@ public sealed class OperationsService {
     }
 
     private IReadOnlyList<PromptChoice> ResolvePromptChoices(IDictionary<string, object?> prompt) {
-        List<PromptChoice> choices = new List<PromptChoice>();
+        List<PromptChoice> choices = new();
 
         if (TryGetString(data: prompt, out string? provider, keys: "choices_provider") && provider == "registry_modules") {
             Core.Data.GameModules registered = _gameRegistry.GetModules(filter: ModuleFilter.Registered);
@@ -432,7 +434,7 @@ public sealed class OperationsService {
     /// <param name="gameRoot"></param>
     /// <returns></returns>
     private static IReadOnlyDictionary<long, OperationExecutionStatus> LoadLatestExecutionStatuses(string gameRoot) {
-        Dictionary<long, OperationExecutionStatus> statuses = new Dictionary<long, OperationExecutionStatus>();
+        Dictionary<long, OperationExecutionStatus> statuses = new();
         string logPath = System.IO.Path.Combine(path1: gameRoot, path2: "operation_execution.log");
         if (!System.IO.File.Exists(path: logPath)) {
             return statuses;

@@ -15,7 +15,7 @@ internal sealed class Registries {
     private readonly string _gamesRegistryPath;
     private readonly string _modulesRegistryPath;
 
-    private Dictionary<string, object?> _modules = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, object?> _modules = new(comparer: System.StringComparer.OrdinalIgnoreCase);
 
     private Registries(string gamesRel, string modulesRel) {
         _gamesRegistryPath = gamesRel;
@@ -39,7 +39,7 @@ internal sealed class Registries {
             await Core.ExternalTools.RemoteFallbacks.EnsureRepoFileAsync(repoRelativePath: Module_registry, localPath: modulesRel);
         }
 
-        Registries instance = new Registries(gamesRel: gamesRel, modulesRel: modulesRel);
+        Registries instance = new(gamesRel: gamesRel, modulesRel: modulesRel);
         instance._modules = Shared.Serialization.Json.JsonHelpers.LoadJsonFile(filePath: instance._modulesRegistryPath);
         return instance;
     }
@@ -77,7 +77,7 @@ internal sealed class Registries {
     /// </summary>
     /// <returns></returns>
     internal Dictionary<string, GameInfo> DiscoverGames() {
-        Dictionary<string, GameInfo> games = new Dictionary<string, GameInfo>(comparer: System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, GameInfo> games = new(comparer: System.StringComparer.OrdinalIgnoreCase);
         if (!System.IO.Directory.Exists(path: _gamesRegistryPath)) {
             return games;
         }
@@ -111,7 +111,7 @@ internal sealed class Registries {
     /// </summary>
     /// <returns></returns>
     internal Dictionary<string, GameInfo> DiscoverBuiltGames() {
-        Dictionary<string, GameInfo> games = new Dictionary<string, GameInfo>(comparer: System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, GameInfo> games = new(comparer: System.StringComparer.OrdinalIgnoreCase);
         if (!System.IO.Directory.Exists(path: _gamesRegistryPath)) {
             return games;
         }
@@ -196,7 +196,7 @@ internal sealed class Registries {
             }
 
             // Prepare resolution context
-            Dictionary<string, object?> ctx = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase) {
+            Dictionary<string, object?> ctx = new(comparer: System.StringComparer.OrdinalIgnoreCase) {
                 [key: "Game_Root"] = dir,
                 [key: "Project_Root"] = EngineNet.Shared.State.RootPath
             };

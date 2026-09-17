@@ -254,7 +254,7 @@ internal class BuiltInOperations {
         string? resolvedDbPath = Utils.Helpers.ResolveOperationValue(op: operationArgs.op, key: "db", ctx: ctx);
 
         // create args list
-        List<string> args = new List<string>();
+        List<string> args = new();
         // if a db path was resolved and is not already in args, add it as the first arg
         if (!string.IsNullOrWhiteSpace(resolvedDbPath)) {
             args.Add(item: resolvedDbPath);

@@ -69,7 +69,7 @@ internal static class FolderRenamer {
 
 
     private static Options Parse(IList<string> args) {
-        Options options = new Options();
+        Options options = new();
         if (args.Count == 0) {
             throw new System.ArgumentException("Missing target directory argument.");
         }
@@ -141,7 +141,7 @@ internal static class FolderRenamer {
         }
 
         try {
-            using Microsoft.Data.Sqlite.SqliteConnection connection = new Microsoft.Data.Sqlite.SqliteConnection(connectionString: $"Data Source={dbPath}");
+            using Microsoft.Data.Sqlite.SqliteConnection connection = new(connectionString: $"Data Source={dbPath}");
             connection.Open();
 
             using (Microsoft.Data.Sqlite.SqliteCommand checkTable = connection.CreateCommand()) {
@@ -154,7 +154,7 @@ internal static class FolderRenamer {
                 }
             }
 
-            Dictionary<string, string> map = new Dictionary<string, string>();
+            Dictionary<string, string> map = new();
             using (Microsoft.Data.Sqlite.SqliteCommand cmd = connection.CreateCommand()) {
                 string quoted = QuoteIdentifier(identifier: tableName);
                 cmd.CommandText = $"SELECT old_name, new_name FROM {quoted}";
@@ -180,7 +180,7 @@ internal static class FolderRenamer {
     }
 
     private static Dictionary<string, string> LoadFromCli(IEnumerable<(string OldName, string NewName)> mappings, out string description) {
-        Dictionary<string, string> map = new Dictionary<string, string>();
+        Dictionary<string, string> map = new();
         foreach ((string oldName, string newName) in mappings) {
             if (string.IsNullOrWhiteSpace(oldName) || string.IsNullOrWhiteSpace(newName)) {
                 continue;
@@ -203,7 +203,7 @@ internal static class FolderRenamer {
                 return null;
             }
 
-            Dictionary<string, string> map = new Dictionary<string, string>();
+            Dictionary<string, string> map = new();
             foreach (System.Text.Json.JsonProperty property in doc.RootElement.EnumerateObject()) {
                 string? newName = property.Value.ValueKind == System.Text.Json.JsonValueKind.String ? property.Value.GetString() : property.Value.ToString();
                 if (string.IsNullOrWhiteSpace(property.Name) || string.IsNullOrWhiteSpace(newName)) {

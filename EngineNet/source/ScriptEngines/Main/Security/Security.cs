@@ -5,7 +5,7 @@ namespace EngineNet.ScriptEngines;
 /// Provides path validation and executable approval for RemakeEngine security.
 /// </summary>
 internal static class Security {
-    private static readonly HashSet<string> UserApprovedRoots = new HashSet<string>(comparer: System.StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> UserApprovedRoots = new(comparer: System.StringComparer.OrdinalIgnoreCase);
 
     private static bool IsPathWithinBoundary(string normalizedPath, string normalizedPattern) {
         if (string.IsNullOrWhiteSpace(normalizedPath) || string.IsNullOrWhiteSpace(normalizedPattern)) {
@@ -59,7 +59,7 @@ internal static class Security {
 
         try {
             if (System.IO.File.Exists(path: canonicalPath)) {
-                System.IO.FileInfo fileInfo = new System.IO.FileInfo(fileName: canonicalPath);
+                System.IO.FileInfo fileInfo = new(fileName: canonicalPath);
                 System.IO.FileSystemInfo? fileTarget = fileInfo.ResolveLinkTarget(returnFinalTarget: true);
                 if (fileTarget != null) {
                     return GetCanonicalFullPath(path: fileTarget.FullName);
@@ -71,7 +71,7 @@ internal static class Security {
 
             while (!string.IsNullOrEmpty(check) && !string.Equals(a: check, b: root, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                 if (System.IO.Directory.Exists(path: check)) {
-                    System.IO.DirectoryInfo info = new System.IO.DirectoryInfo(path: check);
+                    System.IO.DirectoryInfo info = new(path: check);
                     System.IO.FileSystemInfo? target = info.ResolveLinkTarget(returnFinalTarget: true);
                     if (target != null) {
                         string targetPath = GetCanonicalFullPath(path: target.FullName);
@@ -138,7 +138,8 @@ internal static class Security {
             ? currentDir
             : NormalizeLowerFullPath(path: EngineNet.Shared.State.RootPath);
 
-        List<string> forbiddenPatterns = new List<string> {
+        List<string> forbiddenPatterns = new()
+        {
             "/etc", "/bin", "/sbin",
             System.IO.Path.Combine(path1: "/usr", path2: "bin"),
             System.IO.Path.Combine(path1: "/usr", path2: "sbin"),
@@ -229,7 +230,7 @@ internal static class Security {
         }
 
         // Approved RemakeEngine tools (case-insensitive)
-        HashSet<string> approvedTools = new HashSet<string>(comparer: System.StringComparer.OrdinalIgnoreCase) {
+        HashSet<string> approvedTools = new(comparer: System.StringComparer.OrdinalIgnoreCase) {
             // Core RemakeEngine tools from "EngineApps", "Registries", "Tools", "Main.json", TODO: resolve dynamically
             "blender", "blender.exe", "blender-launcher.exe",
             "quickbms", "quickbms.exe",
@@ -347,7 +348,7 @@ internal static class Security {
 
                 while (!string.IsNullOrEmpty(check) && !string.Equals(a: check, b: root, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                     if (System.IO.Directory.Exists(path: check)) {
-                        DirectoryInfo info = new System.IO.DirectoryInfo(path: check);
+                        DirectoryInfo info = new(path: check);
                         FileSystemInfo? target = info.ResolveLinkTarget(returnFinalTarget: true); // true = return final target
                         if (target != null) {
                             string targetPath = target.FullName;

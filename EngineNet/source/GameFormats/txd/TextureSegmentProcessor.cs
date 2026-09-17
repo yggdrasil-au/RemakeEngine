@@ -164,7 +164,7 @@ internal sealed class TextureSegmentProcessor {
 
                             // 2. Decode the DDS buffer
                             using System.IO.MemoryStream ddsStream = new(buffer: ddsData);
-                            BcDecoder decoder = new BcDecoder();
+                            BcDecoder decoder = new();
                             // DecodeToImageRgba32 is provided by the BCnEncoder.Net.ImageSharp extension
                             using Image<SixLabors.ImageSharp.PixelFormats.Rgba32> image = decoder.DecodeToImageRgba32(inputStream: ddsStream);
 

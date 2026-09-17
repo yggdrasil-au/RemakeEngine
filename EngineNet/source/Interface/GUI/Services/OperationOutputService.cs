@@ -13,9 +13,9 @@ namespace EngineNet.GUI.Services;
 /// This ensures that output persists when navigating between pages.
 /// </summary>
 public sealed class OperationOutputService : INotifyPropertyChanged {
-    internal static OperationOutputService Instance { get; } = new OperationOutputService();
+    internal static OperationOutputService Instance { get; } = new();
 
-    private readonly Lock _lock = new Lock();
+    private readonly Lock _lock = new();
 
     private OperationOutputService() {
         Lines.CollectionChanged += OnLinesCollectionChanged;
@@ -24,9 +24,9 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     /// <summary>
     /// Shared output lines collection. Thread-safe via Dispatcher.
     /// </summary>
-    internal ObservableCollection<OutputLine> Lines { get; } = new ObservableCollection<OutputLine>();
+    internal ObservableCollection<OutputLine> Lines { get; } = new();
 
-    private readonly HashSet<OutputLine> _trackedLines = new HashSet<OutputLine>();
+    private readonly HashSet<OutputLine> _trackedLines = new();
     private bool _isFullLogDirty = true;
 
     /// <summary>
@@ -43,12 +43,12 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
         }
     } = string.Empty;
 
-    public ObservableCollection<ActiveJob> ActiveJobs { get; } = new ObservableCollection<ActiveJob>();
+    public ObservableCollection<ActiveJob> ActiveJobs { get; } = new();
 
     // Multiple concurrent task progress panels (keyed by id when provided by the engine)
-    public ObservableCollection<ProgressPanelState> TaskPanels { get; } = new ObservableCollection<ProgressPanelState>();
+    public ObservableCollection<ProgressPanelState> TaskPanels { get; } = new();
 
-    private readonly Dictionary<string, ProgressPanelState> _panelsById = new Dictionary<string, ProgressPanelState>(comparer: StringComparer.Ordinal);
+    private readonly Dictionary<string, ProgressPanelState> _panelsById = new(comparer: StringComparer.Ordinal);
 
     public string? CurrentOperation {
         get {
@@ -105,7 +105,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
         private set => SetField(field: ref field, value);
     } = string.Empty;
 
-    private readonly List<OutputLine> _progressPanelLines = new List<OutputLine>();
+    private readonly List<OutputLine> _progressPanelLines = new();
     private int _progressPanelInsertIndex = -1;
 
     /// <summary>
@@ -130,9 +130,9 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     }
 
     // --- High-volume output buffering/throttling state ---
-    private readonly System.Collections.Concurrent.ConcurrentQueue<OutputLine> _pendingLines = new System.Collections.Concurrent.ConcurrentQueue<OutputLine>();
+    private readonly System.Collections.Concurrent.ConcurrentQueue<OutputLine> _pendingLines = new();
     private DispatcherTimer? _flushTimer;
-    private readonly Lock _flushLock = new Lock();
+    private readonly Lock _flushLock = new();
     private const int FlushBatchMax = 250;
     private const int MaxLines = 5000;
     private const int MaxChars = 200_000;
@@ -143,7 +143,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     /// Add a raw output line (buffered + throttled for UI responsiveness).
     /// </summary>
     public void AddOutput(string text, string stream = "stdout") {
-        OutputLine line = new OutputLine {
+        OutputLine line = new() {
             Timestamp = System.DateTime.Now,
             Text = text,
             Type = stream == "stderr" ? "error" : "output",
@@ -259,7 +259,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
             return string.Empty;
         }
 
-        System.Text.StringBuilder builder = new System.Text.StringBuilder(capacity: _currentChars + Lines.Count);
+        System.Text.StringBuilder builder = new(capacity: _currentChars + Lines.Count);
         for (int i = 0; i < Lines.Count; i++) {
             if (i > 0) {
                 builder.Append('\n');
@@ -408,7 +408,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
         string? id = payload?.TryGetValue(key: "id", out object? idObj) == true ? idObj?.ToString() : null;
         if (!string.IsNullOrEmpty(id)) {
             if (_panelsById.ContainsKey(key: id)) return;
-            ProgressPanelState panel = new ProgressPanelState { Id = id };
+            ProgressPanelState panel = new() { Id = id };
             _panelsById[key: id] = panel;
             TaskPanels.Add(item: panel);
             return;
@@ -591,12 +591,12 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
         double percent = stats != null && stats.TryGetValue(key: "percent", out object? pct) ? SafeToDouble(pct) : 0.0;
         percent = System.Math.Clamp(percent, min: 0.0, max: 1.0);
 
-        List<string> lines = new List<string>();
+        List<string> lines = new();
         string progressLine;
         if (stats != null) {
             int width = 30;
             int filled = (int)System.Math.Round(a: percent * width);
-            System.Text.StringBuilder bar = new System.Text.StringBuilder(capacity: width + 64);
+            System.Text.StringBuilder bar = new(capacity: width + 64);
             bar.Append(label);
             bar.Append(' ');
             bar.Append('[');
@@ -627,7 +627,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
         string activeSummary = activeTotal == 0 ? "Active: none" : $"Active: {activeTotal}";
         lines.Add(item: activeSummary);
 
-        List<ProgressJobSnapshot> jobs = new List<ProgressJobSnapshot>();
+        List<ProgressJobSnapshot> jobs = new();
         if (payload.TryGetValue(key: "active_jobs", out object? aj) && aj is System.Collections.IEnumerable enumerable) {
             foreach (object? jobObj in enumerable) {
                 switch (jobObj) {
@@ -638,7 +638,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
                         jobs.Add(item: ToSnapshot(job: readOnlyJob.ToDictionary(keySelector: kv => kv.Key, elementSelector: kv => kv.Value)));
                         break;
                     case System.Text.Json.JsonElement element when element.ValueKind == System.Text.Json.JsonValueKind.Object: {
-                        Dictionary<string, object?> parsed = new Dictionary<string, object?>(comparer: System.StringComparer.Ordinal);
+                        Dictionary<string, object?> parsed = new(comparer: System.StringComparer.Ordinal);
                         foreach (System.Text.Json.JsonProperty prop in element.EnumerateObject()) {
                             parsed[key: prop.Name] = prop.Value.ValueKind == System.Text.Json.JsonValueKind.String ? prop.Value.GetString() : prop.Value.ToString();
                         }
@@ -691,7 +691,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
                 return readOnly.ToDictionary(keySelector: kv => kv.Key, elementSelector: kv => kv.Value);
         }
 
-        Dictionary<string, object?> parsed = new Dictionary<string, object?>(comparer: System.StringComparer.Ordinal);
+        Dictionary<string, object?> parsed = new(comparer: System.StringComparer.Ordinal);
         foreach (System.Text.Json.JsonProperty prop in element.EnumerateObject()) {
             parsed[key: prop.Name] = prop.Value.ValueKind switch {
                 System.Text.Json.JsonValueKind.Number => prop.Value.GetDouble(),
@@ -749,7 +749,7 @@ public sealed class OperationOutputService : INotifyPropertyChanged {
     }
 
     private static string FormatEventData(Dictionary<string, object?> evt) {
-        List<string> parts = new List<string>();
+        List<string> parts = new();
         foreach (KeyValuePair<string, object?> kv in evt) {
             if (kv.Key.Equals("event", comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                 continue;

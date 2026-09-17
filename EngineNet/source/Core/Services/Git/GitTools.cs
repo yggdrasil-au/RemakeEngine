@@ -117,7 +117,7 @@ internal static class GitTools {
 
     private static string GuessRepoName(string url) {
         try {
-            System.Uri uri = new System.Uri(uriString: url);
+            System.Uri uri = new(uriString: url);
             string leaf = System.IO.Path.GetFileName(path: uri.AbsolutePath);
             if (leaf.EndsWith(".git", comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                 leaf = leaf.Substring(startIndex: 0, length: leaf.Length - 4);

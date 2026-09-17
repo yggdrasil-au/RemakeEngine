@@ -6,11 +6,11 @@ using EngineNet.Core.Utils;
 namespace EngineNet.Core.Services;
 
 public sealed class CommandService {
-    private readonly CommandBuilder _builder = new CommandBuilder();
-    private readonly ProcessRunner _runner = new ProcessRunner();
+    private readonly CommandBuilder _builder = new();
+    private readonly ProcessRunner _runner = new();
 
     // Tracks spawned background processes
-    private readonly ConcurrentDictionary<int, ManagedProcess> _spawnedProcesses = new ConcurrentDictionary<int, ManagedProcess>();
+    private readonly ConcurrentDictionary<int, ManagedProcess> _spawnedProcesses = new();
     private int _nextPid;
 
     public List<string> BuildCommand(string currentGame, Core.Data.GameModules games, IDictionary<string, object?> engineData, IDictionary<string, object?> op, Data.PromptAnswers promptAnswers) {
@@ -28,10 +28,10 @@ public sealed class CommandService {
         psi.RedirectStandardOutput = captureStdout;
         psi.RedirectStandardError = captureStderr;
 
-        StringBuilder stdoutBuilder = new StringBuilder();
-        StringBuilder stderrBuilder = new StringBuilder();
+        StringBuilder stdoutBuilder = new();
+        StringBuilder stderrBuilder = new();
 
-        using Process process = new Process();
+        using Process process = new();
         process.StartInfo = psi;
 
         if (captureStdout) {
@@ -78,8 +78,8 @@ public sealed class CommandService {
         psi.RedirectStandardOutput = captureStdout;
         psi.RedirectStandardError = captureStderr;
 
-        ManagedProcess mp = new ManagedProcess();
-        Process p = new Process { StartInfo = psi, EnableRaisingEvents = true };
+        ManagedProcess mp = new();
+        Process p = new() { StartInfo = psi, EnableRaisingEvents = true };
 
         if (captureStdout) {
             p.OutputDataReceived += (_, e) => {
@@ -159,7 +159,7 @@ public sealed class CommandService {
 
     internal bool LaunchDetached(string executable, IEnumerable<string> args, string? cwd, DetachedLaunchOptions options) {
         try {
-            ProcessStartInfo psi = new ProcessStartInfo {
+            ProcessStartInfo psi = new() {
                 FileName = executable,
                 WorkingDirectory = cwd ?? string.Empty,
                 UseShellExecute = options.UseShellExecute
@@ -197,7 +197,7 @@ public sealed class CommandService {
 
     public void OpenFolder(string path) {
         try {
-            ProcessStartInfo psi = new ProcessStartInfo { UseShellExecute = true };
+            ProcessStartInfo psi = new() { UseShellExecute = true };
             if (OperatingSystem.IsWindows()) {
                 psi.FileName = "explorer";
                 psi.Arguments = $"\"{path}\"";
@@ -224,7 +224,7 @@ public sealed class CommandService {
         int exitCode = 0;
         try {
             if (OperatingSystem.IsWindows()) {
-                ProcessStartInfo psi = new ProcessStartInfo {
+                ProcessStartInfo psi = new() {
                     UseShellExecute = true,
                     FileName = executable,
                     Arguments = string.Join(separator: " ", values: args.Select(selector: QuoteArg)),
@@ -236,7 +236,7 @@ public sealed class CommandService {
                     foreach (KeyValuePair<string, string> kv in env) { psi.Environment[key: kv.Key] = kv.Value; }
                 }
 
-                using Process p = new Process();
+                using Process p = new();
                 p.StartInfo = psi;
                 p.Start();
                 if (wait) {
@@ -248,7 +248,7 @@ public sealed class CommandService {
                 string? term = FindTerminalEmulator();
 
                 if (term != null) {
-                    ProcessStartInfo psi = new ProcessStartInfo {
+                    ProcessStartInfo psi = new() {
                         UseShellExecute = false,
                         CreateNoWindow = false,
                         FileName = term
@@ -265,7 +265,7 @@ public sealed class CommandService {
                     }
 
                     if (!string.IsNullOrEmpty(cwd)) { psi.WorkingDirectory = cwd; }
-                    using Process p = new Process();
+                    using Process p = new();
                     p.StartInfo = psi;
                     p.Start();
                     if (wait) {
@@ -289,7 +289,7 @@ public sealed class CommandService {
     // --- Helpers ---
 
     private ProcessStartInfo CreateStandardPsi(string executable, IEnumerable<string> args, string? cwd, IDictionary<string, string>? env) {
-        ProcessStartInfo psi = new ProcessStartInfo {
+        ProcessStartInfo psi = new() {
             FileName = executable,
             UseShellExecute = false,
             CreateNoWindow = true
@@ -310,7 +310,7 @@ public sealed class CommandService {
 
     private ProcessPollResult ExtractProcessState(ManagedProcess mp) {
         bool running = !mp.Process.HasExited;
-        ProcessPollResult result = new ProcessPollResult {
+        ProcessPollResult result = new() {
             Running = running,
             ExitCode = running ? null : mp.Process.ExitCode
         };
@@ -347,13 +347,13 @@ public sealed class CommandService {
 
     private sealed class ManagedProcess {
         internal Process Process { get; set; } = null!;
-        internal StringBuilder Stdout { get; } = new StringBuilder();
-        internal StringBuilder Stderr { get; } = new StringBuilder();
-        internal object StdoutLock { get; } = new object();
-        internal object StderrLock { get; } = new object();
+        internal StringBuilder Stdout { get; } = new();
+        internal StringBuilder Stderr { get; } = new();
+        internal object StdoutLock { get; } = new();
+        internal object StderrLock { get; } = new();
         internal int StdoutCursor { get; set; }
         internal int StderrCursor { get; set; }
-        internal TaskCompletionSource<int> ExitTcs { get; } = new TaskCompletionSource<int>(creationOptions: TaskCreationOptions.RunContinuationsAsynchronously);
+        internal TaskCompletionSource<int> ExitTcs { get; } = new(creationOptions: TaskCreationOptions.RunContinuationsAsynchronously);
     }
 }
 

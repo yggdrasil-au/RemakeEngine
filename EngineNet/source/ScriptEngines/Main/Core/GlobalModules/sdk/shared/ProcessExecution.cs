@@ -63,7 +63,7 @@ internal static class ProcessExecution {
         bool captureStdout = true;
         bool captureStderr = true;
         int? timeoutMs = null;
-        Dictionary<string, string> env = new Dictionary<string, string>();
+        Dictionary<string, string> env = new();
 
         if (options != null) {
             DynValue v = options.Get(key: "cwd");
@@ -88,7 +88,7 @@ internal static class ProcessExecution {
 
         try {
             ProcessResult res = cs.RunProcess(executable: arguments[index: 0], args: arguments.Skip(count: 1), cwd: cwd, env: env, timeoutMs: timeoutMs, captureStdout: captureStdout, captureStderr: captureStderr);
-            Table t = new Table(owner: lua) {
+            Table t = new(owner: lua) {
                 [key: "exit_code"] = res.ExitCode,
                 [key: "success"] = res.Success
             };
@@ -108,7 +108,7 @@ internal static class ProcessExecution {
         bool newTerminal = false;
         bool keepOpen = false;
         bool wait = true;
-        Dictionary<string, string> env = new Dictionary<string, string>();
+        Dictionary<string, string> env = new();
 
         if (options != null) {
             DynValue v = options.Get(key: "cwd");
@@ -146,7 +146,7 @@ internal static class ProcessExecution {
         string? cwd = null;
         bool captureStdout = true;
         bool captureStderr = true;
-        Dictionary<string, string> env = new Dictionary<string, string>();
+        Dictionary<string, string> env = new();
 
         if (options != null) {
             DynValue v = options.Get(key: "cwd");
@@ -169,7 +169,7 @@ internal static class ProcessExecution {
 
         try {
             int pid = cs.SpawnProcess(executable: parts[index: 0], args: parts.Skip(count: 1), cwd: cwd, env: env, captureStdout: captureStdout, captureStderr: captureStderr);
-            Table t = new Table(owner: lua) {
+            Table t = new(owner: lua) {
                 [key: "pid"] = pid,
             };
             return DynValue.NewTable(table: t);
@@ -181,7 +181,7 @@ internal static class ProcessExecution {
     internal static DynValue PollProcess(Script lua, CommandService cs, int pid) {
         try {
             ProcessPollResult res = cs.PollProcess(pid: pid);
-            Table t = new Table(owner: lua) {
+            Table t = new(owner: lua) {
                 [key: "running"] = res.Running,
             };
             if (!res.Running) t[key: "exit_code"] = res.ExitCode;
@@ -200,7 +200,7 @@ internal static class ProcessExecution {
             // Keep parity with previous behavior: wait_process acted as a status check.
             _ = timeoutMs;
             ProcessPollResult res = cs.PollProcess(pid: pid);
-            Table t = new Table(owner: lua) {
+            Table t = new(owner: lua) {
                 [key: "running"] = res.Running,
             };
             if (!res.Running) t[key: "exit_code"] = res.ExitCode;
@@ -227,7 +227,7 @@ internal static class ProcessExecution {
             }
 
             ProcessResult res = cs.RunInNewTerminal(executable: parts[index: 0], args: parts.Skip(count: 1), cwd: cwd, env: env, keepOpen: keepOpen, wait: wait);
-            Table t = new Table(owner: lua) {
+            Table t = new(owner: lua) {
                 [key: "success"] = res.Success,
                 [key: "exit_code"] = res.ExitCode,
             };
@@ -277,7 +277,7 @@ internal static class ProcessExecution {
                 exitCode = 1;
             }
 
-            Table result = new Table(owner: lua) {
+            Table result = new(owner: lua) {
                 [key: "exit_code"] = exitCode >= 0 ? exitCode : (success ? 0 : 1),
                 [key: "success"] = success && (exitCode == 0 || exitCode == -1),
             };

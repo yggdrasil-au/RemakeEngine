@@ -259,12 +259,12 @@ internal static class FileSystemUtils {
 
     private static System.IO.FileSystemInfo GetInfo(string path) {
         string full = System.IO.Path.GetFullPath(path: path);
-        System.IO.DirectoryInfo dirInfo = new System.IO.DirectoryInfo(path: full);
+        System.IO.DirectoryInfo dirInfo = new(path: full);
         if (dirInfo.Exists) {
             return dirInfo;
         }
 
-        System.IO.FileInfo fileInfo = new System.IO.FileInfo(fileName: full);
+        System.IO.FileInfo fileInfo = new(fileName: full);
         if (fileInfo.Exists) {
             return fileInfo;
         }

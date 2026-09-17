@@ -60,7 +60,7 @@ public sealed class All {
         // --- NEW DEPENDENCY GRAPH LOGIC ---
         // Build the graph and print it to the trace log for debugging.
         // It does not alter 'allOps' or affect the standard linear execution.
-        OpDependencyGraph dependencyGraph = new helpers.OpDependencyGraph(operations: allOps);
+        OpDependencyGraph dependencyGraph = new(operations: allOps);
         dependencyGraph.PrintGraphToTrace();
 
         if (!dependencyGraph.IsValid) {
@@ -68,7 +68,7 @@ public sealed class All {
         }
         // ----------------------------------
 
-        List<Dictionary<string, object?>> selected = new List<Dictionary<string, object?>>();
+        List<Dictionary<string, object?>> selected = new();
         foreach (Core.Data.PreparedOperation operation in session.PreparedOperations.InitOperations) {
             AddUnique(list: selected, op: operation.Operation);
         }
@@ -91,7 +91,7 @@ public sealed class All {
             System.Console.SetIn(newIn: new StdinRedirectReader(provider: stdinProvider));
         }
 
-        OperationState currentOperation = new OperationState();
+        OperationState currentOperation = new();
         using Shared.IO.UI.SdkEventScope? sdkScope = onEvent is not null
             ? new Shared.IO.UI.SdkEventScope(
                 sink: evt => {
@@ -189,7 +189,7 @@ public sealed class All {
     /// <param name="evt"></param>
     /// <returns></returns>
     private static Dictionary<string, object?> CloneEvent(Dictionary<string, object?> evt) {
-        Dictionary<string, object?> clone = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object?> clone = new(comparer: System.StringComparer.OrdinalIgnoreCase);
         foreach (KeyValuePair<string, object?> kv in evt) {
             clone[key: kv.Key] = kv.Value;
         }
@@ -216,7 +216,7 @@ public sealed class All {
             return;
         }
 
-        Dictionary<string, object?> payload = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase) {
+        Dictionary<string, object?> payload = new(comparer: System.StringComparer.OrdinalIgnoreCase) {
             [key: "event"] = evt,
             [key: "game"] = game
         };
@@ -261,7 +261,7 @@ public sealed class All {
     /// <param name="op"></param>
     /// <returns></returns>
     private static Core.Data.PromptAnswers BuildPromptDefaults(Dictionary<string, object?> op) {
-        Core.Data.PromptAnswers answers = new Core.Data.PromptAnswers();
+        Core.Data.PromptAnswers answers = new();
         if (!op.TryGetValue(key: "prompts", out object? promptsObj) || promptsObj is not IList<object?> prompts) {
             return answers;
         }

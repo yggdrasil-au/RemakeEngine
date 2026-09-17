@@ -36,7 +36,7 @@ internal static class Placeholders {
             // If it's a dictionary, resolve each value and return a new dictionary.
             case IDictionary<string, object?> dict: {
                 // Note: output dictionary uses case-insensitive keys for convenience.
-                Dictionary<string, object?> outDict = new Dictionary<string, object?>(capacity: dict.Count, comparer: System.StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, object?> outDict = new(capacity: dict.Count, comparer: System.StringComparer.OrdinalIgnoreCase);
                 foreach (KeyValuePair<string, object?> kv in dict) {
                     outDict[key: kv.Key] = Resolve(kv.Value, context: context);
                 }
@@ -45,7 +45,7 @@ internal static class Placeholders {
             }
             // If it's a list, resolve each element and return a new list.
             case IList list: {
-                List<object?> outList = new List<object?>(capacity: list.Count);
+                List<object?> outList = new(capacity: list.Count);
                 outList.AddRange(collection: from object? item in list select Resolve(item, context: context));
 
                 return outList;

@@ -30,7 +30,7 @@ internal static class ExecutionContextBuilder {
             throw new System.ArgumentException("No game has been loaded.", paramName: nameof(currentGame));
         }
 
-        Dictionary<string, object?> ctx = new Dictionary<string, object?>(dictionary: engineConfig, comparer: System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object?> ctx = new(dictionary: engineConfig, comparer: System.StringComparer.OrdinalIgnoreCase);
 
         if (!games.TryGetValue(key: currentGame, out EngineNet.Core.Data.GameModuleInfo? g) ||
             g is not Data.GameModuleInfo gdict) {

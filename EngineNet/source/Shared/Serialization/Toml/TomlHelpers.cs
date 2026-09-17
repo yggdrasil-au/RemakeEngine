@@ -41,21 +41,21 @@ public static class TomlHelpers {
             case null:
                 return new Dictionary<string, object?>();
             case Tomlyn.Model.TomlTable tt:
-                Dictionary<string, object?> dict = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, object?> dict = new(comparer: System.StringComparer.OrdinalIgnoreCase);
                 foreach (string key in tt.Keys) {
                     object v = tt[key: key];
                     dict[key: key] = ConvertTomlToPlain(v);
                 }
                 return dict;
             case Tomlyn.Model.TomlArray arr: {
-                List<object?> list = new List<object?>();
+                List<object?> list = new();
                 foreach (object? item in arr) {
                     list.Add(item: ConvertTomlToPlain(item));
                 }
                 return list;
             }
             case Tomlyn.Model.TomlTableArray taa: {
-                List<object?> list = new List<object?>();
+                List<object?> list = new();
                 foreach (TomlTable t in taa) {
                     list.Add(item: ConvertTomlToPlain(t));
                 }
@@ -91,7 +91,7 @@ public static class TomlHelpers {
             case Tomlyn.Model.TomlTable t:
                 return t;
             case IDictionary rawDict: {
-                TomlTable table = new Tomlyn.Model.TomlTable();
+                TomlTable table = new();
                 foreach (DictionaryEntry entry in rawDict) {
                     //if (entry.Key is null)
                     //    continue;
@@ -107,14 +107,14 @@ public static class TomlHelpers {
         if (data is IEnumerable enumerable and not string) {
             // If the root is a list, wrap it under a single key "root"? Better to coerce into a table
             // For our purposes we expect a table at the root. Create a table with a single key if needed.
-            TomlTable table = new Tomlyn.Model.TomlTable();
+            TomlTable table = new();
             object? rootVal = ConvertPlainToTomlValue(enumerable);
             if (rootVal != null)
                 table[key: "root"] = rootVal;
             return table;
         }
         // Primitive at root -> put under "value"
-        TomlTable t2 = new Tomlyn.Model.TomlTable();
+        TomlTable t2 = new();
         object? v2 = ConvertPlainToTomlValue(data);
         if (v2 != null)
             t2[key: "value"] = v2;
@@ -132,7 +132,7 @@ public static class TomlHelpers {
                 return value;
             // IDictionary -> Tomlyn.Model.TomlTable
             case IDictionary dict: {
-                TomlTable table = new Tomlyn.Model.TomlTable();
+                TomlTable table = new();
                 foreach (DictionaryEntry entry in dict) {
                     //if (entry.Key is null)
                     //    continue;
@@ -150,13 +150,13 @@ public static class TomlHelpers {
             List<object?> items = enumerable.Cast<object?>().ToList();
             bool allDicts = items.Count > 0 && items.All(predicate: x => x is IDictionary);
             if (allDicts) {
-                TomlTableArray taa = new Tomlyn.Model.TomlTableArray();
+                TomlTableArray taa = new();
                 foreach (TomlTable table in items.Select(selector: ConvertPlainToTomlTable).Where(predicate: _ => true)) {
                     taa.Add(item: table);
                 }
                 return taa;
             } else {
-                TomlArray arr = new Tomlyn.Model.TomlArray();
+                TomlArray arr = new();
                 foreach (object? entryValue in items.Select(selector: ConvertPlainToTomlValue)) {
                     arr.Add(item: entryValue ?? string.Empty);
                 }
@@ -196,7 +196,7 @@ public static class TomlHelpers {
     /// Specialized helper to read and merge [[placeholders]] blocks from config files.
     /// </summary>
     public static Dictionary<string, object?> ReadPlaceholdersFile(string path) {
-        Dictionary<string, object?> result = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object?> result = new(comparer: System.StringComparer.OrdinalIgnoreCase);
         if (!System.IO.File.Exists(path: path)) return result; // return empty if file doesn't exist
 
         object parsed = ParseFileToPlainObject(path: path); // this should give us a Dictionary<string, object?> representing the root TOML table

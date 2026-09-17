@@ -197,7 +197,7 @@ public sealed class Single {
         IDictionary<string, object?> rawOperation,
         IDictionary<string, object?> context
     ) {
-        Dictionary<string, object?> executionPayload = new Dictionary<string, object?>(dictionary: rawOperation, comparer: System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object?> executionPayload = new(dictionary: rawOperation, comparer: System.StringComparer.OrdinalIgnoreCase);
         executionPayload.Remove(key: "onsuccess");
         executionPayload.Remove(key: "on_success");
 

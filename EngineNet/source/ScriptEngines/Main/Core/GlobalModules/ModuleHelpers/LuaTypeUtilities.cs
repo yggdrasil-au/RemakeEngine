@@ -32,7 +32,7 @@ internal static class Utils {
 
         // IDictionary -> Lua table with string keys
         if (value is System.Collections.IDictionary idict) {
-            Table t = new Table(owner: lua);
+            Table t = new(owner: lua);
             foreach (System.Collections.DictionaryEntry entry in idict) {
                 string key = entry.Key?.ToString() ?? string.Empty;
                 t[key: key] = ToDynValue(lua: lua, entry.Value);
@@ -42,7 +42,7 @@ internal static class Utils {
 
         // IEnumerable -> Lua array-like table (1-based)
         if (value is System.Collections.IEnumerable ienum && value is not string) {
-            Table t = new Table(owner: lua);
+            Table t = new(owner: lua);
             int i = 1;
             foreach (object? item in ienum) {
                 t[key: i++] = ToDynValue(lua: lua, item);
@@ -55,7 +55,7 @@ internal static class Utils {
     }
 
     internal static IDictionary<string, object?> TableToDictionary(Table table) {
-        Dictionary<string, object?> dict = new Dictionary<string, object?>(comparer: System.StringComparer.Ordinal);
+        Dictionary<string, object?> dict = new(comparer: System.StringComparer.Ordinal);
         foreach (TablePair pair in table.Pairs) {
             // Convert key to string
             string key = pair.Key.Type switch {
@@ -100,7 +100,7 @@ internal static class Utils {
             }
         }
         if (arrayLike) {
-            List<object?> list = new List<object?>(capacity: count);
+            List<object?> list = new(capacity: count);
             for (int i = 1; i <= count; i++) {
                 DynValue dv = t.Get(key: i);
                 list.Add(item: FromDynValue(v: dv));
@@ -111,7 +111,7 @@ internal static class Utils {
     }
 
     internal static List<string> TableToStringList(Table t) {
-        List<string> list = new List<string>();
+        List<string> list = new();
         // Iterate up to the numeric length; stop when we hit a Nil entry
         for (int i = 1; i <= t.Length; i++) {
             DynValue dv = t.Get(key: i);
@@ -128,13 +128,13 @@ internal static class Utils {
     internal static DynValue JsonElementToDynValue(Script lua, System.Text.Json.JsonElement el) {
         switch (el.ValueKind) {
             case System.Text.Json.JsonValueKind.Object:
-                Table t = new Table(owner: lua);
+                Table t = new(owner: lua);
                 foreach (System.Text.Json.JsonProperty p in el.EnumerateObject()) {
                     t[key: p.Name] = JsonElementToDynValue(lua: lua, el: p.Value);
                 }
                 return DynValue.NewTable(table: t);
             case System.Text.Json.JsonValueKind.Array:
-                Table arr = new Table(owner: lua);
+                Table arr = new(owner: lua);
                 int i = 1;
                 foreach (System.Text.Json.JsonElement item in el.EnumerateArray()) {
                     arr[key: i++] = JsonElementToDynValue(lua: lua, el: item);

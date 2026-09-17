@@ -8,9 +8,7 @@ public sealed partial class StorePage:UserControl, INotifyPropertyChanged {
     /* :: :: Vars :: START :: */
     // //
 
-    public ObservableCollection<StoreItem> Items {
-        get;
-    } = new ObservableCollection<StoreItem>();
+    public ObservableCollection<StoreItem> Items { get; } = new();
 
     // //
 

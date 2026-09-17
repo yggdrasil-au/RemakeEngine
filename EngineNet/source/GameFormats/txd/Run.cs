@@ -21,11 +21,11 @@ public static class Extractor {
     public static bool Run(List<string> args, System.Threading.CancellationToken cancellationToken) {
         try {
             Options options = utils.Util.Parse(args: args);
-            TxdExporter exporter = new TxdExporter();
+            TxdExporter exporter = new();
 
             // Assemble file list and set up progress tracking
             List<string> files = utils.Util.EnumerateTxdFiles(inputPathAbs: options.InputPath);
-            ProgressState progressState = new ProgressState();
+            ProgressState progressState = new();
 
             using CancellationTokenSource progressCts = CancellationTokenSource.CreateLinkedTokenSource(token: cancellationToken);
             long total = files.Count;

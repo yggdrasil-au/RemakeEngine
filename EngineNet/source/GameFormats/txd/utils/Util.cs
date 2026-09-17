@@ -7,7 +7,7 @@ public static class Util {
             throw new Sys.TxdExportException($"Error: Input path '{inputPathAbs}' does not exist.");
         }
 
-        List<string> txdFilesToProcess = new List<string>();
+        List<string> txdFilesToProcess = new();
         if (System.IO.File.Exists(path: inputPathAbs)) {
             if (!inputPathAbs.EndsWith(".txd", comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                 throw new Sys.TxdExportException($"Error: Input file '{inputPathAbs}' is not a .txd file.");

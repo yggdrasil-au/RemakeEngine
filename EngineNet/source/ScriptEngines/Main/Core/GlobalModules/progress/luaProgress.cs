@@ -8,8 +8,8 @@ namespace EngineNet.ScriptEngines.Lua.Global;
 internal sealed class LuaConsoleProgress : System.IDisposable {
     private readonly System.Threading.CancellationTokenSource _cts;
     private readonly System.Threading.Tasks.Task _panelTask;
-    private readonly List<Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> _activeJobs = new List<Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess>();
-    private readonly Lock _jobsLock = new Lock();
+    private readonly List<Shared.IO.UI.EngineSdk.SdkConsoleProgress.ActiveProcess> _activeJobs = new();
+    private readonly Lock _jobsLock = new();
 
     private long _processed;
     private long _total;
@@ -214,9 +214,9 @@ internal static class Progress {
         Shared.IO.UI.EngineSdk.ScriptProgress? activeScriptProgress = null;
 
         MoonSharp.Interpreter.Table progressTable = _LuaWorld.Progress;
-        MoonSharp.Interpreter.Table scriptTable = new MoonSharp.Interpreter.Table(owner: _LuaWorld.LuaScript);
-        MoonSharp.Interpreter.Table panelTable = new MoonSharp.Interpreter.Table(owner: _LuaWorld.LuaScript);
-        MoonSharp.Interpreter.Table consoleTable = new MoonSharp.Interpreter.Table(owner: _LuaWorld.LuaScript);
+        MoonSharp.Interpreter.Table scriptTable = new(owner: _LuaWorld.LuaScript);
+        MoonSharp.Interpreter.Table panelTable = new(owner: _LuaWorld.LuaScript);
+        MoonSharp.Interpreter.Table consoleTable = new(owner: _LuaWorld.LuaScript);
 
         // progress.script.* is for overall script completion (GUI only).
         scriptTable[key: "start"] = (System.Func<int, string?, Shared.IO.UI.EngineSdk.ScriptProgress>)((total, label) => {
@@ -249,7 +249,7 @@ internal static class Progress {
         // progress.panel.new() is for simple panel progress bars.
         panelTable[key: "new"] = (System.Func<long, string?, string?, Shared.IO.UI.EngineSdk.PanelProgress>)((total, id, label) => {
             string pid = string.IsNullOrEmpty(id) ? "p1" : id;
-            Shared.IO.UI.EngineSdk.PanelProgress progress = new Shared.IO.UI.EngineSdk.PanelProgress(total: total, id: pid, label: label);
+            Shared.IO.UI.EngineSdk.PanelProgress progress = new(total: total, id: pid, label: label);
             _LuaWorld.RegisterDisposable(disposable: progress);
             return progress;
         });
@@ -257,7 +257,7 @@ internal static class Progress {
         // progress.console.new() is for fully controllable panel progress bars.
         consoleTable[key: "new"] = (System.Func<long, string?, string?, LuaConsoleProgress>)((total, id, label) => {
             string pid = string.IsNullOrEmpty(id) ? "c1" : id;
-            LuaConsoleProgress progress = new LuaConsoleProgress(total: total, id: pid, label: label ?? string.Empty);
+            LuaConsoleProgress progress = new(total: total, id: pid, label: label ?? string.Empty);
             _LuaWorld.RegisterDisposable(disposable: progress);
             return progress;
         });

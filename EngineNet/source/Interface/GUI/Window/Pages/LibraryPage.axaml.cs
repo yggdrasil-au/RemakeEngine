@@ -10,9 +10,7 @@ public sealed partial class LibraryPage:UserControl {
 
     /* :: :: Vars :: START :: */
     // //
-    public ObservableCollection<Row> Items {
-        get;
-    } = new ObservableCollection<Row>();
+    public ObservableCollection<Row> Items { get; } = new();
 
     // //
 

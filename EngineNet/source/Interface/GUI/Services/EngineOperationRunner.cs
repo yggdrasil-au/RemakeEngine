@@ -27,7 +27,7 @@ public static class EngineOperationRunner {
         OperationOutputService outputService = OperationOutputService.Instance;
         outputService.StartOperation(operationName: operationName, gameName: moduleName);
 
-        object promptLock = new object();
+        object promptLock = new();
         string? lastPromptMessage = null;
         string? lastPromptId = null;
         bool lastPromptSecret = false;

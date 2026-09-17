@@ -75,7 +75,7 @@ public sealed class Utils {
                 // Route in-process SDK events to our terminal renderer
                 System.Action<Dictionary<string, object?>>? prevSink = Shared.IO.UI.EngineSdk.LocalEventSink;
                 bool prevMute = Shared.IO.UI.EngineSdk.MuteStdoutWhenLocalSink;
-                Dictionary<string, string> prevAutoResponses = new Dictionary<string, string>(dictionary: Shared.IO.UI.EngineSdk.AutoPromptResponses);
+                Dictionary<string, string> prevAutoResponses = new(dictionary: Shared.IO.UI.EngineSdk.AutoPromptResponses);
                 try {
                     // Set auto-prompt responses if provided
                     if (autoPromptResponses is { Count: > 0 }) {
@@ -360,7 +360,7 @@ public sealed class Utils {
     }
 
     private static void UpdateTuiStatus() {
-        List<string> allLines = new List<string>();
+        List<string> allLines = new();
         foreach (List<string> panelLines in s_panelStatus.Values) {
             allLines.AddRange(collection: panelLines);
         }
@@ -394,7 +394,7 @@ public sealed class Utils {
     }
 
     private static Dictionary<string, object?> CloneForLogging(IReadOnlyDictionary<string, object?> evt) {
-        Dictionary<string, object?> clone = new Dictionary<string, object?>(capacity: evt.Count, comparer: System.StringComparer.Ordinal);
+        Dictionary<string, object?> clone = new(capacity: evt.Count, comparer: System.StringComparer.Ordinal);
         foreach (KeyValuePair<string, object?> kv in evt) {
             clone[key: kv.Key] = CloneValue(kv.Value);
         }
@@ -406,7 +406,7 @@ public sealed class Utils {
         catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"Clone serialization catch triggered: {ex}");
             Dictionary<string, object?> safe =
-                new Dictionary<string, object?>(capacity: clone.Count, comparer: System.StringComparer.Ordinal);
+                new(capacity: clone.Count, comparer: System.StringComparer.Ordinal);
             foreach (KeyValuePair<string, object?> kv in clone) {
                 safe[key: kv.Key] = SafeStringify(kv.Value);
             }
@@ -447,7 +447,7 @@ public sealed class Utils {
         }
 
         if (value is IReadOnlyDictionary<string, object?> roDict) {
-            Dictionary<string, object?> nested = new Dictionary<string, object?>(comparer: System.StringComparer.Ordinal);
+            Dictionary<string, object?> nested = new(comparer: System.StringComparer.Ordinal);
             foreach (KeyValuePair<string, object?> kv in roDict) {
                 nested[key: kv.Key] = CloneValue(kv.Value);
             }
@@ -456,7 +456,7 @@ public sealed class Utils {
         }
 
         if (value is IDictionary dict) {
-            Dictionary<string, object?> nested = new Dictionary<string, object?>(comparer: System.StringComparer.Ordinal);
+            Dictionary<string, object?> nested = new(comparer: System.StringComparer.Ordinal);
             foreach (DictionaryEntry entry in dict) {
                 string key = entry.Key.ToString() ?? string.Empty;
                 nested[key: key] = CloneValue(entry.Value);
@@ -466,7 +466,7 @@ public sealed class Utils {
         }
 
         if (value is IEnumerable enumerable and not string) {
-            List<object?> list = new List<object?>();
+            List<object?> list = new();
             foreach (object? item in enumerable) {
                 list.Add(item: CloneValue(item));
             }
@@ -489,7 +489,7 @@ public sealed class Utils {
                 return null;
 
             case IReadOnlyDictionary<string, object?> roDict: {
-                Dictionary<string, object?> nested = new Dictionary<string, object?>(comparer: System.StringComparer.Ordinal);
+                Dictionary<string, object?> nested = new(comparer: System.StringComparer.Ordinal);
                 foreach (KeyValuePair<string, object?> kv in roDict) {
                     nested[key: kv.Key] = SafeStringify(kv.Value);
                 }
@@ -498,7 +498,7 @@ public sealed class Utils {
             }
 
             case IEnumerable enumerable when value is not string: {
-                List<object?> list = new List<object?>();
+                List<object?> list = new();
                 foreach (object? item in enumerable) {
                     list.Add(item: SafeStringify(item));
                 }
@@ -512,7 +512,7 @@ public sealed class Utils {
     }
 
     private static List<string> BuildTuiProgressLines(IReadOnlyDictionary<string, object?> payload) {
-        List<string> lines = new List<string>(capacity: 10);
+        List<string> lines = new(capacity: 10);
 
         // Extract data from payload
         string label = (payload.TryGetValue(key: "label", out object? l) ? l?.ToString() : "Processing") ?? "Processing";
@@ -544,7 +544,7 @@ public sealed class Utils {
             }
 
             int filled = (int)System.Math.Round(a: percent * width);
-            StringBuilder bar = new System.Text.StringBuilder(capacity: width + 48);
+            StringBuilder bar = new(capacity: width + 48);
 
             // Truncate label to keep line short; Draw method still clamps
             string lbl = label;

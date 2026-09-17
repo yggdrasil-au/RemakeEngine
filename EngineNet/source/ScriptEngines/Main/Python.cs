@@ -37,7 +37,7 @@ internal sealed class Main : IScriptAction {
             // create a scope for variables, functions, and imported modules; this is separate from the engine to allow multiple executions with different scopes if desired
             ScriptScope scope = PythonEngine.CreateScope();
             // object to hold all exposed tables
-            PyWorld PyWorld = new PyWorld(engine: PythonEngine, scope: scope);
+            PyWorld PyWorld = new(engine: PythonEngine, scope: scope);
 
 
 
@@ -49,7 +49,7 @@ internal sealed class Main : IScriptAction {
 
             // Load versions from current game module context
             Dictionary<string, string> moduleVersions = Helper.LoadModuleToolVersions(_gameRoot: _gameRoot);
-            ContextualToolResolver contextualTools = new ContextualToolResolver(baseResolver: tools, contextVersions: moduleVersions);
+            ContextualToolResolver contextualTools = new(baseResolver: tools, contextVersions: moduleVersions);
 
             // Expose core functions, SDK and modules
             PyAction.SetupCoreFunctions(world: PyWorld, tools: contextualTools, args: _args, gameRoot: _gameRoot, projectRoot: _projectRoot, scriptPath: _scriptPath);

@@ -9,10 +9,6 @@ using EngineNet.Core.Data;
 
 namespace EngineNet;
 
-using Core.ExternalTools;
-using Core.Operations;
-using Core.Services;
-using Core.Utils;
 
 public static class Program {
 
@@ -22,17 +18,12 @@ public static class Program {
     private static bool isTui {get; set;}
     private static bool isCli {get; set;}
 
-    // Add a static counter inside the Program class
     private static int _ctrlCCount = 0;
 
-    /* :: :: Vars :: START :: */
     public static AppBuilder BuildAvaloniaApp()  {
         return GUI.GuiBootstrapper.BuildAvaloniaApp();
     }
 
-    /* :: :: Vars :: END :: */
-    // //
-    /* :: :: Main :: START :: */
     [STAThread]
     public static async System.Threading.Tasks.Task<int> Main(string[] args) {
         // 1. Parse arguments BEFORE touching System.Console
@@ -48,11 +39,11 @@ public static class Program {
             ConsoleHelper.FreeConsole(); // hides the console window on Windows when running in GUI mode, it will appear for a second, this cannot be avoided
         }
 
-        ShutdownCancellationController shutdownCancellationController = new ShutdownCancellationController();
-        List<string> PreinitialDiagnosticsLog = new List<string>();
+        ShutdownCancellationController shutdownCancellationController = new();
+        List<string> PreinitialDiagnosticsLog = new();
 
         bool diagnosticsInitialized = false;
-        object logLock = new object();
+        object logLock = new();
 
         // Local function to safely route log messages based on initialization state
         void LogCancelMessage(string msg) {
@@ -127,7 +118,7 @@ public static class Program {
 
             Engine ??= await InitialiseEngine(scriptActionDispatcher: scriptActionDispatcher);
             EngineNet.Interface.MiniEngineFace miniEngine = new Interface.MiniEngine(Engine: Engine);
-            InitUI UI = new InitUI();
+            InitUI UI = new();
 
             if (isGui) {
                 Shared.IO.Diagnostics.Trace("Launching GUI Interface...");
@@ -185,7 +176,7 @@ public static class Program {
 
     // Walks arguments, extracts --root value, and keeps the rest preserving order
     private static ParsedArgs ParseArguments(string[] args) {
-        ParsedArgs result = new ParsedArgs();
+        ParsedArgs result = new();
         for (int i = 0; i < args.Length; i++) {
             bool isRootFlag = args[i].Equals("--root", comparisonType: System.StringComparison.OrdinalIgnoreCase);
             bool hasRootValue = isRootFlag
@@ -254,22 +245,22 @@ public static class Program {
             return Engine;
         }
 
-        JsonToolResolver tools = new Core.ExternalTools.JsonToolResolver();
-        EngineConfig engineConfig = new EngineConfig();
+        JsonToolResolver tools = new();
+        EngineConfig engineConfig = new();
 
         Registries _registries = await Core.Utils.Registries.CreateAsync();
-        ModuleScanner _scanner = new Core.Utils.ModuleScanner(registries: _registries);
+        ModuleScanner _scanner = new(registries: _registries);
 
-        GameRegistry gameRegistry = new Core.Services.GameRegistry(registries: _registries, scanner: _scanner);
+        GameRegistry gameRegistry = new(registries: _registries, scanner: _scanner);
 
-        CommandService _commandService = new Core.Services.CommandService();
-        GameLauncher _gameLauncher = new Core.Services.GameLauncher(gameRegistry: gameRegistry, toolResolver: tools, config: engineConfig, commandService: _commandService, scriptActionDispatcher: scriptActionDispatcher);
-        OperationsLoader _opsLoader = new Core.Services.OperationsLoader();
-        OperationsService _operationsService = new Core.Services.OperationsService(loader: _opsLoader, gameRegistry: gameRegistry);
+        CommandService _commandService = new();
+        GameLauncher _gameLauncher = new(gameRegistry: gameRegistry, toolResolver: tools, config: engineConfig, commandService: _commandService, scriptActionDispatcher: scriptActionDispatcher);
+        OperationsLoader _opsLoader = new();
+        OperationsService _operationsService = new(loader: _opsLoader, gameRegistry: gameRegistry);
 
-        Single Single = new Core.Operations.Single(scriptActionDispatcher: scriptActionDispatcher);
+        Single Single = new(scriptActionDispatcher: scriptActionDispatcher);
 
-        EngineNet.Core.Engine.Engine _engine = new EngineNet.Core.Engine.Engine(
+        EngineNet.Core.Engine.Engine _engine = new(
             gameRegistry: gameRegistry,
             gameLauncher: _gameLauncher,
             OperationsLoader: _opsLoader,
@@ -307,11 +298,11 @@ internal sealed class InitUI {
                     return GUI.GuiBootstrapper.Run(miniEngine: miniEngine, cancellationToken: cancellationToken);
                 case "tui":
                     Shared.IO.Diagnostics.Trace("Launching TUI Interface...");
-                    Terminal.TUI TUI = new Terminal.TUI(engine: miniEngine);
+                    Terminal.TUI TUI = new(engine: miniEngine);
                     return await TUI.RunAsync(cancellationToken: cancellationToken);
                 case "cli":
                     Shared.IO.Diagnostics.Trace("Launching CLI Interface...");
-                    Terminal.CLI CLI = new Terminal.CLI(engine: miniEngine);
+                    Terminal.CLI CLI = new(engine: miniEngine);
                     return await CLI.RunAsync(args: args, cancellationToken: cancellationToken);
                 default:
                     await System.Console.Error.WriteLineAsync($"No valid interface mode selected. Expected 'gui', 'tui', or 'cli', but got '{ui}'.");

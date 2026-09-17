@@ -44,8 +44,8 @@ public sealed class ProgressPanelState : INotifyPropertyChanged {
         set => SetField(field: ref _activeTotal, value, propertyName: nameof(ActiveTotal));
     }
 
-    public ObservableCollection<ActiveJob> Jobs { get; } = new ObservableCollection<ActiveJob>();
-    public ObservableCollection<string> Lines { get; } = new ObservableCollection<string>();
+    public ObservableCollection<ActiveJob> Jobs { get; } = new();
+    public ObservableCollection<string> Lines { get; } = new();
 
     public void UpdateFrom(ProgressPanelModel model) {
         Label = model.Label;

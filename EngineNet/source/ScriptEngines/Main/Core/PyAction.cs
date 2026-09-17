@@ -85,7 +85,7 @@ internal static class PyAction {
         world.PythonScope.SetVariable(name: "colour_prompt", value: world.PythonScope.GetVariable(name: "color_prompt"));
 
         // :: Progress System ::
-        PyProgressProxy progressProxy = new PyProgressProxy();
+        PyProgressProxy progressProxy = new();
 
         // progress.new(total, id, label) -> Shared.IO.UI.EngineSdk.PanelProgress userdata
         progressProxy.NewFunc = (total, id, label) => {
@@ -134,7 +134,7 @@ internal static class PyAction {
 #endif
 
         // :: Python Diagnostics logging ::
-        PyDiagnosticsProxy diagnosticsProxy = new PyDiagnosticsProxy();
+        PyDiagnosticsProxy diagnosticsProxy = new();
         diagnosticsProxy.LogAction = (Action<string>)Shared.IO.Diagnostics.PythonLogger.PythonLog;
         diagnosticsProxy.TraceAction = (Action<string>)Shared.IO.Diagnostics.PythonLogger.PythonTrace;
 

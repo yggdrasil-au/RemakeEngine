@@ -21,7 +21,7 @@ internal static class Sqlite {
                 throw new ScriptRuntimeException($"Access denied: SQLite database path '{path}' is outside allowed workspace areas");
             }
 
-            SqliteHandle handle = new SqliteHandle(script: _LuaWorld.LuaScript, path: path);
+            SqliteHandle handle = new(script: _LuaWorld.LuaScript, path: path);
             return DynValue.NewTable(table: CreateSqliteHandleTable(_LuaWorld: _LuaWorld, handle: handle));
         });
         // return _LuaWorld.SqliteModule;
@@ -29,7 +29,7 @@ internal static class Sqlite {
     }
 
     private static Table CreateSqliteHandleTable(LuaWorld _LuaWorld, SqliteHandle handle) {
-        Table SqliteHandleTable = new Table(owner: _LuaWorld.LuaScript);
+        Table SqliteHandleTable = new(owner: _LuaWorld.LuaScript);
         SqliteHandleTable[key: "exec"] = DynValue.NewCallback(callBack: (ctx, args) => {
             int offset = args.Count > 0 && args[index: 0].Type == DataType.Table ? 1 : 0;
             if (args.Count <= offset || args[index: offset].Type != DataType.String) {

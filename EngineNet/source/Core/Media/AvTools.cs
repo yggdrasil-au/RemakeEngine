@@ -1,7 +1,6 @@
 
 namespace EngineNet.Core.Media;
 
-using System.Collections.Concurrent;
 using Shared.IO.UI;
 using Utils;
 
@@ -41,7 +40,7 @@ internal static class AvTools {
 
     // Tracks currently running external conversions (for progress panel)
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, EngineSdk.SdkConsoleProgress.ActiveProcess> s_active =
-        new ConcurrentDictionary<int, EngineSdk.SdkConsoleProgress.ActiveProcess>();
+        new();
 
     /// <summary>
     /// Converts media files using ffmpeg or vgmstream while preserving directory layout.
@@ -110,9 +109,9 @@ internal static class AvTools {
             int skipped = 0;
             int errors = 0;
             int processed = 0;
-            System.Collections.Concurrent.ConcurrentBag<(string file, string message)> errorList = new System.Collections.Concurrent.ConcurrentBag<(string file, string message)>();
+            System.Collections.Concurrent.ConcurrentBag<(string file, string message)> errorList = new();
 
-            System.Threading.Tasks.ParallelOptions po = new System.Threading.Tasks.ParallelOptions { 
+            System.Threading.Tasks.ParallelOptions po = new() {
                 MaxDegreeOfParallelism = opt.Workers ?? 1,
                 CancellationToken = cancellationToken
             };
@@ -217,7 +216,8 @@ internal static class AvTools {
             if (string.Equals(a: opt.Mode, b: ToolFfmpeg, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                 string ff = opt.FfmpegPath ?? ToolFfmpeg;
                 if (string.Equals(a: opt.Type, b: TypeVideo, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
-                    List<string> args = new List<string> {
+                    List<string> args = new()
+                    {
                         "-y",
                         "-i", srcPath,
                         "-map", "0:v",
@@ -238,7 +238,8 @@ internal static class AvTools {
                         string basePath = System.IO.Path.Join(path1: System.IO.Path.GetDirectoryName(path: destPath)!, path2: System.IO.Path.GetFileNameWithoutExtension(path: destPath));
                         string outFront = basePath + "_front" + opt.OutputExt;
                         string outRear = basePath + "_rear" + opt.OutputExt;
-                        List<string> args = new List<string> {
+                        List<string> args = new()
+                        {
                             "-y",
                             "-loglevel", "error",
                             "-i", srcPath,
@@ -256,7 +257,8 @@ internal static class AvTools {
                         try { return Exec(fileName: ff, arguments: args, passthroughOutput: opt.Debug, cancellationToken: cancellationToken); }
                         finally { UnregisterActive(); }
                     } else {
-                        List<string> args = new List<string> {
+                        List<string> args = new()
+                        {
                             "-y",
                             "-i", srcPath,
                             "-loglevel", "error",
@@ -277,7 +279,7 @@ internal static class AvTools {
                         // First decode to temp wav via vgmstream, then split via ffmpeg
                         string tmpWav = System.IO.Path.Join(path1: System.IO.Path.GetTempPath(), path2: System.IO.Path.GetRandomFileName() + ".wav");
                         try {
-                            List<string> a1 = new List<string> { "-o", tmpWav, srcPath };
+                            List<string> a1 = new() { "-o", tmpWav, srcPath };
                             RegisterActive(tool: "vgmstream", srcPath: srcPath);
                             (bool ok1, string? msg1) = Exec(fileName: vg, arguments: a1, passthroughOutput: opt.Debug, cancellationToken: cancellationToken);
                             UnregisterActive();
@@ -291,7 +293,8 @@ internal static class AvTools {
                                 string basePath = System.IO.Path.Join(path1: System.IO.Path.GetDirectoryName(path: destPath)!, path2: System.IO.Path.GetFileNameWithoutExtension(path: destPath));
                                 string outFront = basePath + "_front" + opt.OutputExt;
                                 string outRear = basePath + "_rear" + opt.OutputExt;
-                                List<string> a2 = new List<string> {
+                                List<string> a2 = new()
+                                {
                                     "-y",
                                     "-loglevel", "error",
                                     "-i", tmpWav,
@@ -315,7 +318,8 @@ internal static class AvTools {
 
                                 return (true, null);
                             } else {
-                                List<string> a2 = new List<string> {
+                                List<string> a2 = new()
+                                {
                                     "-y",
                                     "-loglevel", "error",
                                     "-i", tmpWav,
@@ -345,7 +349,7 @@ internal static class AvTools {
                             }
                         }
                     } else {
-                        List<string> a = new List<string> { "-o", destPath, srcPath };
+                        List<string> a = new() { "-o", destPath, srcPath };
                         RegisterActive(tool: "vgmstream", srcPath: srcPath);
                         try { return Exec(fileName: vg, arguments: a, passthroughOutput: opt.Debug, cancellationToken: cancellationToken); }
                         finally { UnregisterActive(); }
@@ -396,7 +400,7 @@ internal static class AvTools {
 
     private static (bool ok, string? message) Exec(string fileName, IList<string> arguments, bool passthroughOutput, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         try {
-            using System.Diagnostics.Process p = new System.Diagnostics.Process();
+            using System.Diagnostics.Process p = new();
             p.StartInfo.FileName = fileName;
             foreach (string a in arguments) {
                 p.StartInfo.ArgumentList.Add(item: a);
@@ -472,7 +476,7 @@ internal static class AvTools {
             return new List<string> { "-c:a", "pcm_s16le" };
         }
         string codec = string.IsNullOrWhiteSpace(requestedCodec) ? "libvorbis" : requestedCodec;
-        List<string> args = new List<string> { "-c:a", codec };
+        List<string> args = new() { "-c:a", codec };
         if (!string.IsNullOrWhiteSpace(requestedQuality)) {
             args.AddRange(collection: new [] { "-q:a", requestedQuality });
         }
@@ -482,16 +486,16 @@ internal static class AvTools {
     private static int? TryReadWavChannels(string path) {
         try {
             using System.IO.FileStream fs = System.IO.File.OpenRead(path: path);
-            using System.IO.BinaryReader br = new System.IO.BinaryReader(input: fs, encoding: System.Text.Encoding.ASCII, leaveOpen: false);
-            string riff = new string(br.ReadChars(count: 4));
+            using System.IO.BinaryReader br = new(input: fs, encoding: System.Text.Encoding.ASCII, leaveOpen: false);
+            string riff = new(br.ReadChars(count: 4));
             br.ReadUInt32(); // file size
-            string wave = new string(br.ReadChars(count: 4));
+            string wave = new(br.ReadChars(count: 4));
             if (riff != "RIFF" || wave != "WAVE") {
                 return null;
             }
             // Find 'fmt ' chunk
             while (fs.Position + 8 <= fs.Length) {
-                string id = new string(br.ReadChars(count: 4));
+                string id = new(br.ReadChars(count: 4));
                 uint size = br.ReadUInt32();
                 if (id == "fmt ") {
                     //ushort audioFormat = br.ReadUInt16();
@@ -525,7 +529,7 @@ internal static class AvTools {
     }
 
     private static Options Parse(IList<string> argv) {
-        Options o = new Options();
+        Options o = new();
         // Simple argv parser (supports both short and long flags)
         for (int i = 0; i < argv.Count; i++) {
             string a = argv[index: i];

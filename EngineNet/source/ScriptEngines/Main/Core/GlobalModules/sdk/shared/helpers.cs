@@ -52,17 +52,17 @@ internal static class Helpers {
             }
 
             try {
-                Dictionary<string, object> attrs = new Dictionary<string, object>();
+                Dictionary<string, object> attrs = new();
 
                 if (System.IO.Directory.Exists(path: safePath)) {
-                    DirectoryInfo dirInfo = new System.IO.DirectoryInfo(path: safePath);
+                    DirectoryInfo dirInfo = new(path: safePath);
                     attrs[key: "mode"] = "directory";
                     attrs[key: "modification"] = (double)new System.DateTimeOffset(dateTime: dirInfo.LastWriteTime).ToUnixTimeSeconds();
                     return attrs;
                 }
 
                 if (System.IO.File.Exists(path: safePath)) {
-                    FileInfo fileInfo = new System.IO.FileInfo(fileName: safePath);
+                    FileInfo fileInfo = new(fileName: safePath);
                     attrs[key: "mode"] = "file";
                     attrs[key: "size"] = fileInfo.Length;
                     attrs[key: "modification"] = (double)new System.DateTimeOffset(dateTime: fileInfo.LastWriteTime).ToUnixTimeSeconds();
@@ -88,7 +88,7 @@ internal static class Helpers {
                 string[] entries = System.IO.Directory.GetFileSystemEntries(path: safePath);
 
                 // 3. Transformation: Convert full paths to just names
-                List<string> names = new List<string>();
+                List<string> names = new();
                 foreach (string entry in entries) {
                     names.Add(item: System.IO.Path.GetFileName(path: entry));
                 }

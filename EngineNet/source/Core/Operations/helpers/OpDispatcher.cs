@@ -53,7 +53,7 @@ internal static class OpDispatcher {
         }
 
         // create built-in object for passing to built-in actions
-        OperationArgs operationArgs = new OperationArgs(
+        OperationArgs operationArgs = new(
             op: executableOperation,
             promptAnswers: promptAnswers,
             currentGame: currentGame,

@@ -15,5 +15,5 @@ internal sealed class RegistryPlatformData {
 internal sealed class RegistryToolVersion {
     public RegistryChecksums? Checksums { get; set; }
 
-    public Dictionary<string, RegistryPlatformData> Platforms { get; } = new Dictionary<string, RegistryPlatformData>(comparer: System.StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, RegistryPlatformData> Platforms { get; } = new(comparer: System.StringComparer.OrdinalIgnoreCase);
 }

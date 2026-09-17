@@ -15,7 +15,7 @@ public static class DocModelConverter {
     /// <param name="obj"></param>
     /// <returns></returns>
     public static Dictionary<string, object?> FromJsonObject(System.Text.Json.JsonElement obj) {
-        Dictionary<string, object?> dict = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object?> dict = new(comparer: System.StringComparer.OrdinalIgnoreCase);
         foreach (System.Text.Json.JsonProperty p in obj.EnumerateObject()) {
             dict[key: p.Name] = FromJsonElement(el: p.Value);
         }
@@ -33,7 +33,7 @@ public static class DocModelConverter {
             case System.Text.Json.JsonValueKind.Object:
                 return FromJsonObject(obj: el);
             case System.Text.Json.JsonValueKind.Array:
-                List<object?> list = new List<object?>();
+                List<object?> list = new();
                 foreach (System.Text.Json.JsonElement item in el.EnumerateArray()) {
                     list.Add(item: FromJsonElement(el: item));
                 }
@@ -65,7 +65,7 @@ public static class DocModelConverter {
     /// <param name="table"></param>
     /// <returns></returns>
     public static Dictionary<string, object?> FromTomlTable(Tomlyn.Model.TomlTable table) {
-        Dictionary<string, object?> dict = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, object?> dict = new(comparer: System.StringComparer.OrdinalIgnoreCase);
         foreach (KeyValuePair<string, object> kv in table) {
             dict[key: kv.Key] = FromTomlValue(kv.Value);
         }
@@ -87,7 +87,7 @@ public static class DocModelConverter {
         }
 
         if (value is Tomlyn.Model.TomlTableArray ta) {
-            List<object?> list = new List<object?>();
+            List<object?> list = new();
             foreach (Tomlyn.Model.TomlTable item in ta) {
                 list.Add(item: FromTomlValue(item));
             }
@@ -95,7 +95,7 @@ public static class DocModelConverter {
         }
 
         if (value is Tomlyn.Model.TomlArray arr) {
-            List<object?> list = new List<object?>();
+            List<object?> list = new();
             foreach (object? item in arr) {
                 list.Add(item: FromTomlValue(item));
             }

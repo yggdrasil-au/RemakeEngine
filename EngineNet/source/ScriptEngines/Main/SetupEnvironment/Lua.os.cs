@@ -19,7 +19,7 @@ internal static partial class SetupEnvironment {
 
             if (format.StartsWith("*t") || format.StartsWith("!*t")) {
                 System.DateTime dt = format.StartsWith('!') ? System.DateTime.UtcNow : System.DateTime.Now;
-                Table DateTable = new Table(owner: _LuaWorld.LuaScript);
+                Table DateTable = new(owner: _LuaWorld.LuaScript);
                 DateTable[key: "year"] = dt.Year;
                 DateTable[key: "month"] = dt.Month;
                 DateTable[key: "day"] = dt.Day;
@@ -90,7 +90,7 @@ internal static partial class SetupEnvironment {
             return false;
         }
 
-        StringBuilder builder = new StringBuilder(capacity: format.Length * 2);
+        StringBuilder builder = new(capacity: format.Length * 2);
 
         for (int i = 0; i < format.Length; i++) {
             char current = format[index: i];

@@ -77,12 +77,12 @@ internal static class FileValidator {
             throw new System.ArgumentException("Missing required arguments: db_path and base_folder.");
         }
 
-        Options options = new Options();
+        Options options = new();
         string? tablesSpec = null;
         string? requiredDirsSpec = null;
         bool skipRequiredDirs = false;
         bool debug = false;
-        List<string> positional = new List<string>();
+        List<string> positional = new();
 
         for (int i = 0; i < args.Count; i++) {
             string current = args[index: i];
@@ -139,7 +139,7 @@ internal static class FileValidator {
     }
 
     private static Dictionary<string, string> ParseTableSpecs(string? spec) {
-        Dictionary<string, string> result = new Dictionary<string, string>(comparer: System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, string> result = new(comparer: System.StringComparer.OrdinalIgnoreCase);
         if (string.IsNullOrWhiteSpace(spec)) {
             return result;
         }
@@ -163,7 +163,7 @@ internal static class FileValidator {
     }
 
     private static List<RequiredDirGroup> SplitRequiredDirs(string? spec) {
-        List<RequiredDirGroup> groups = new List<RequiredDirGroup>();
+        List<RequiredDirGroup> groups = new();
         if (string.IsNullOrWhiteSpace(spec)) {
             return groups;
         }
@@ -190,9 +190,9 @@ internal static class FileValidator {
         }
 
         bool allFound = true;
-        List<string> missing = new List<string>();
+        List<string> missing = new();
         int foundCount = 0;
-    Dictionary<string, string> matchedVariants = new Dictionary<string, string>(comparer: System.StringComparer.OrdinalIgnoreCase);
+    Dictionary<string, string> matchedVariants = new(comparer: System.StringComparer.OrdinalIgnoreCase);
 
         foreach (RequiredDirGroup dirGroup in requiredDirs) {
             bool groupFound = false;
@@ -255,7 +255,7 @@ internal static class FileValidator {
         }
 
         try {
-            using Microsoft.Data.Sqlite.SqliteConnection connection = new Microsoft.Data.Sqlite.SqliteConnection(connectionString: $"Data Source={dbPath}");
+            using Microsoft.Data.Sqlite.SqliteConnection connection = new(connectionString: $"Data Source={dbPath}");
             connection.Open();
 
             bool overallAllFound = true;

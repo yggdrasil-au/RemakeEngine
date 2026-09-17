@@ -57,7 +57,7 @@ internal sealed class Main : IScriptAction {
             // read script code
             string code = await System.IO.File.ReadAllTextAsync(path: this._scriptPath, cancellationToken: cancellationToken);
             // create new Lua script environment with default modules, all sandboxing is done manually
-            Script LuaScript = new Script(coreModules: CoreModules.Preset_Default);
+            Script LuaScript = new(coreModules: CoreModules.Preset_Default);
             // object to hold all exposed tables
             LuaWorld = new LuaWorld(_luaScript: LuaScript, _scriptPath: this._scriptPath);
 
@@ -71,7 +71,7 @@ internal sealed class Main : IScriptAction {
 
             // Load versions from current game module context
             Dictionary<string,string> moduleVersions = Helper.LoadModuleToolVersions(_gameRoot: _gameRoot);
-            ContextualToolResolver contextualTools = new ContextualToolResolver(baseResolver: tools, contextVersions: moduleVersions);
+            ContextualToolResolver contextualTools = new(baseResolver: tools, contextVersions: moduleVersions);
 
             // Expose core functions, SDK and modules
             LuaAction.CreateGlobals(_LuaWorld: LuaWorld, _tools: contextualTools, _commandService: commandService, _args: this._args, _gameRoot: this._gameRoot, _projectRoot: this._projectRoot, _scriptPath: this._scriptPath);

@@ -66,7 +66,8 @@ public sealed class Main : IScriptAction {
         }
 
         // Build args for built-in extractor and run
-        List<string> extractorArgs = new List<string> {
+        List<string> extractorArgs = new()
+        {
             "--quickbms", resolvedExe,
             "--script", _scriptPath,
             "--input", _inputDir,

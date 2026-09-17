@@ -17,7 +17,7 @@ public sealed class OperationsLoader {
             string ext = System.IO.Path.GetExtension(path: opsFile);
             if (ext.Equals(".toml", comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                 object root = Shared.Serialization.Toml.TomlHelpers.ParseFileToPlainObject(path: opsFile);
-                List<Dictionary<string, object?>> list = new List<Dictionary<string, object?>>();
+                List<Dictionary<string, object?>> list = new();
 
                 // root is a TomlTable (dictionary-like)
                 if (root is IDictionary table) {
@@ -31,7 +31,7 @@ public sealed class OperationsLoader {
                             foreach (object? item in arr) {
                                 if (item is IDictionary tt) {
                                     // Convert IDictionary to Dictionary<string, object?> for consistency
-                                    Dictionary<string, object?> opDict = new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
+                                    Dictionary<string, object?> opDict = new(comparer: System.StringComparer.OrdinalIgnoreCase);
                                     foreach (DictionaryEntry de in tt) {
                                         opDict[key: de.Key.ToString() ?? ""] = de.Value;
                                     }
@@ -50,7 +50,7 @@ public sealed class OperationsLoader {
             using System.IO.FileStream fs = System.IO.File.OpenRead(path: opsFile);
             using System.Text.Json.JsonDocument jdoc = System.Text.Json.JsonDocument.Parse(utf8Json: fs);
             if (jdoc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array) {
-                List<Dictionary<string, object?>> list = new List<Dictionary<string, object?>>();
+                List<Dictionary<string, object?>> list = new();
                 foreach (System.Text.Json.JsonElement item in jdoc.RootElement.EnumerateArray()) {
                     if (item.ValueKind == System.Text.Json.JsonValueKind.Object) {
                         Dictionary<string, object?> map = Operations.ToMap(obj: item);
@@ -65,7 +65,7 @@ public sealed class OperationsLoader {
             // Grouped format fallback
             if (jdoc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object) {
                 // Fallback: flatten grouped format into a single list (preserving group order)
-                List<Dictionary<string, object?>> flat = new List<Dictionary<string, object?>>();
+                List<Dictionary<string, object?>> flat = new();
                 foreach (System.Text.Json.JsonProperty prop in jdoc.RootElement.EnumerateObject()) {
                     if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Array) {
                         foreach (System.Text.Json.JsonElement item in prop.Value.EnumerateArray()) {

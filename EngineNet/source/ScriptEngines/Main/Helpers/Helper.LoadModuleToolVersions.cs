@@ -4,7 +4,7 @@ namespace EngineNet.ScriptEngines;
 internal static class Helper {
 
     internal static Dictionary<string, string> LoadModuleToolVersions(string _gameRoot) {
-        Dictionary<string, string> versions = new Dictionary<string, string>(comparer: StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, string> versions = new(comparer: StringComparer.OrdinalIgnoreCase);
         string toolsTomlPath = System.IO.Path.Combine(path1: _gameRoot, path2: "Tools.toml");
         if (System.IO.File.Exists(path: toolsTomlPath)) {
             List<Dictionary<string, object?>> toolsList = TomlHelpers.ReadTools(path: toolsTomlPath);

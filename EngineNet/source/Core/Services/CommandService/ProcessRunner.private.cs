@@ -77,7 +77,8 @@ public sealed partial class ProcessRunner {
             // Ignore: Directory.GetCurrentDirectory() can throw on unsupported path formats
         }
 
-        System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo {
+        System.Diagnostics.ProcessStartInfo psi = new()
+        {
             FileName = commandParts[index: 0],
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -91,11 +92,11 @@ public sealed partial class ProcessRunner {
             psi.ArgumentList.Add(item: commandParts[index: i]);
         }
 
-        using System.Diagnostics.Process proc = new System.Diagnostics.Process();
+        using System.Diagnostics.Process proc = new();
         proc.StartInfo = psi;
         proc.EnableRaisingEvents = true;
 
-        using BlockingCollection<(string stream, string line)> q = new System.Collections.Concurrent.BlockingCollection<(string stream, string line)>(boundedCapacity: 1000);
+        using BlockingCollection<(string stream, string line)> q = new(boundedCapacity: 1000);
         int queueLogOnce = 0;
         bool isQueueOpen = true;
 

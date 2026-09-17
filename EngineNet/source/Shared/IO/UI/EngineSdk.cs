@@ -18,7 +18,7 @@ public static class EngineSdk {
     public static System.Func<string, bool, string?>? ExternalPromptHandler { get; set; }
 
     // Auto-responses for prompts by ID. When a prompt with matching ID is requested, the corresponding response is returned automatically without user interaction.
-    public static Dictionary<string, string> AutoPromptResponses { get; set; } = new Dictionary<string, string>(comparer: System.StringComparer.OrdinalIgnoreCase);
+    public static Dictionary<string, string> AutoPromptResponses { get; set; } = new(comparer: System.StringComparer.OrdinalIgnoreCase);
 
     private static readonly System.Text.Json.JsonSerializerOptions JsonOpts = new() {
         WriteIndented = false,
@@ -63,7 +63,7 @@ public static class EngineSdk {
 
     /// </summary>
     private static void Emit(string @event, IDictionary<string, object?>? data = null) {
-        Dictionary<string, object?> payload = new Dictionary<string, object?>(comparer: System.StringComparer.Ordinal) {
+        Dictionary<string, object?> payload = new(comparer: System.StringComparer.Ordinal) {
             [key: "event"] = @event
         };
         if (data != null) {
@@ -92,7 +92,7 @@ public static class EngineSdk {
         } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"Failed to serialize event payload for '{@event}': {ex}");
             // As a last resort, stringify values to avoid serialization failures
-            Dictionary<string, object?> safe = new Dictionary<string, object?>(comparer: System.StringComparer.Ordinal);
+            Dictionary<string, object?> safe = new(comparer: System.StringComparer.Ordinal);
             foreach (KeyValuePair<string, object?> kv in payload) {
                 safe[key: kv.Key] = kv.Value?.ToString();
             }
@@ -248,7 +248,8 @@ public static class EngineSdk {
     /// default, gray, darkgray, red, darkred, green, darkgreen, yellow, darkyellow, blue, darkblue, magenta, darkmagenta, cyan, darkcyan, white.
     /// </summary>
     public static void Print(string message, string? color = null, bool newline = false) {
-        Dictionary<string, object?> data = new Dictionary<string, object?> {
+        Dictionary<string, object?> data = new()
+        {
             [key: "message"] = message,
             [key: "color"] = string.IsNullOrWhiteSpace(color) ? null : color,
             [key: "newline"] = newline
@@ -323,7 +324,8 @@ public static class EngineSdk {
         }
 
         private void EmitProgress() {
-            Dictionary<string, object?> data = new Dictionary<string, object?> {
+            Dictionary<string, object?> data = new()
+            {
                 [key: "id"] = Id,
                 [key: "current"] = System.Threading.Volatile.Read(location: ref _processed),
                 [key: "total"] = _total,
@@ -558,7 +560,8 @@ public static class EngineSdk {
 
             double percent = System.Math.Clamp(total == 0 ? 1.0 : (double)s.processed / System.Math.Max(val1: 1, val2: total), min: 0.0, max: 1.0);
 
-            Dictionary<string, object?> stats = new Dictionary<string, object?> {
+            Dictionary<string, object?> stats = new()
+            {
                 [key: "total"] = total,
                 [key: "processed"] = s.processed,
                 [key: "ok"] = s.ok,
@@ -567,7 +570,7 @@ public static class EngineSdk {
                 [key: "percent"] = percent
             };
 
-            List<Dictionary<string, object?>> jobList = new List<Dictionary<string, object?>>();
+            List<Dictionary<string, object?>> jobList = new();
             if (actives.Count > 0) {
                 int max = 8;
                 try {

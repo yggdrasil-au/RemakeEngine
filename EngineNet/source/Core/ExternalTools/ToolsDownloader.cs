@@ -34,11 +34,11 @@ internal static class ToolsDownloader {
         string lockPath = ToolLockfile.GetPath(rootPath: rootPath);
         Dictionary<string, Dictionary<string, ToolLockfileEntry>> lockData = await ToolLockfileManager.LoadAsync(lockPath: lockPath, cancellationToken: cancellationToken);
 
-        using HttpClient http = new HttpClient();
+        using HttpClient http = new();
         http.DefaultRequestHeaders.UserAgent.ParseAdd(input: "GameOpsTool/2.0");
 
-        ToolArchiveManager archiveManager = new ToolArchiveManager(rootPath: rootPath);
-        ToolChecksumVerifier checksumVerifier = new ToolChecksumVerifier(http: http);
+        ToolArchiveManager archiveManager = new(rootPath: rootPath);
+        ToolChecksumVerifier checksumVerifier = new(http: http);
 
         foreach (ToolManifestEntry tool in tools) {
             IO.writeLine(string.Empty);
@@ -141,7 +141,7 @@ internal static class ToolsDownloader {
 
         long contentLength = response.Content.Headers.ContentLength ?? -1;
         long total = contentLength > 0 ? contentLength : 1;
-        DownloadProgressState progressState = new DownloadProgressState();
+        DownloadProgressState progressState = new();
         System.Threading.CancellationTokenSource progressCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(token: cancellationToken);
         System.Threading.Tasks.Task progressTask = EngineSdk.SdkConsoleProgress.StartPanel(
             total: () => total,

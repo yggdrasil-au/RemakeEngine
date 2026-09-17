@@ -25,7 +25,7 @@ public sealed partial class ProcessRunner {
     }
 
     private static string FormatCommand(IList<string> parts) {
-        System.Text.StringBuilder sb = new System.Text.StringBuilder();
+        System.Text.StringBuilder sb = new();
         for (int i = 0; i < parts.Count; i++) {
             if (i > 0) {
                 sb.Append(' ');
@@ -64,7 +64,7 @@ public sealed partial class ProcessRunner {
         string fullName = System.IO.Path.GetFileName(path: executable).ToLowerInvariant();
 
         // Check for blocked system utilities and provide SDK alternatives
-        Dictionary<string, string> blockedUtilities = new Dictionary<string, string>(comparer: System.StringComparer.OrdinalIgnoreCase) {
+        Dictionary<string, string> blockedUtilities = new(comparer: System.StringComparer.OrdinalIgnoreCase) {
             { "copy", "sdk.copy_file(src, dst, overwrite)" },
             { "xcopy", "sdk.copy_dir(src, dst, overwrite)" },
             { "robocopy", "sdk.copy_dir(src, dst, overwrite)" },
@@ -89,7 +89,7 @@ public sealed partial class ProcessRunner {
         }
 
         // Approved RemakeEngine tools (case-insensitive)
-        HashSet<string> approvedTools = new HashSet<string>(comparer: System.StringComparer.OrdinalIgnoreCase) {
+        HashSet<string> approvedTools = new(comparer: System.StringComparer.OrdinalIgnoreCase) {
             // Core RemakeEngine tools from "EngineApps", "Registries", "Tools", TODO: "Main.json", resolve dynamically
             "blender", "blender.exe", "blender-launcher.exe",
             "quickbms", "quickbms.exe",

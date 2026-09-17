@@ -21,7 +21,7 @@ internal static partial class Sdk {
                 indent = indentVal.Type == DataType.Boolean && indentVal.Boolean;
             }
             object? obj = Lua.Globals.Utils.FromDynValue(v: val);
-            JsonSerializerOptions jsonOpts = new System.Text.Json.JsonSerializerOptions { WriteIndented = indent };
+            JsonSerializerOptions jsonOpts = new() { WriteIndented = indent };
             return System.Text.Json.JsonSerializer.Serialize(obj, options: jsonOpts);
         });
 

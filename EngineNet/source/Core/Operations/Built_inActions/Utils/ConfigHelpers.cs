@@ -16,10 +16,10 @@ internal static class ConfigHelpers {
 
     private static object EnsureGroupEntry(IDictionary<string, object?> doc, string group, int index) {
         if (!doc.TryGetValue(key: group, out object? g) || g == null) {
-            Dictionary<string, object?> newDict = new Dictionary<string, object?>();
+            Dictionary<string, object?> newDict = new();
             // If index > 1, we must start as a list
             if (index > 1) {
-                List<object?> newlist = new List<object?>();
+                List<object?> newlist = new();
                 while (newlist.Count < index) newlist.Add(item: new Dictionary<string, object?>());
                 doc[key: group] = newlist;
                 return newlist[index: index - 1]!;
@@ -46,7 +46,7 @@ internal static class ConfigHelpers {
                 return dict;
             // Need to convert single dict to list to handle index > 1
             case IDictionary<string, object?> dict: {
-                List<object?> newList = new List<object?> { dict };
+                List<object?> newList = new() { dict };
                 while (newList.Count < index) {
                     newList.Add(item: new Dictionary<string, object?>());
                 }
@@ -56,9 +56,9 @@ internal static class ConfigHelpers {
         }
 
         // If it's something else (primitive), overwrite it?
-        Dictionary<string, object?> replacement = new Dictionary<string, object?>();
+        Dictionary<string, object?> replacement = new();
         if (index > 1) {
-            List<object?> l = new List<object?>();
+            List<object?> l = new();
             while (l.Count < index) l.Add(item: new Dictionary<string, object?>());
             l[index: index-1] = replacement;
             doc[key: group] = l;
@@ -105,7 +105,7 @@ internal static class ConfigHelpers {
     }
 
     internal static ConfigOptions ParseArgs(List<string> args) {
-        ConfigOptions opts = new ConfigOptions();
+        ConfigOptions opts = new();
         for (int i = 0; i < args.Count; i++) {
             string a = args[index: i];
             switch (a) {
@@ -197,7 +197,7 @@ internal static class ConfigHelpers {
         internal string TypeHint = "auto";
         internal string? ConfigPath;
         internal bool List;
-        internal readonly List<SetToken> Sets = new List<SetToken>();
+        internal readonly List<SetToken> Sets = new();
     }
 
     internal sealed class SetToken {

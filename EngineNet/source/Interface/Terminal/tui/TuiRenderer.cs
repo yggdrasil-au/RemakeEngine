@@ -284,7 +284,7 @@ public static class TuiRenderer {
         if (logAreaHeight <= 0) return;
 
         LinkedListNode<LogEntry>? node = _logBuffer.Last;
-        List<LogEntry> linesToDraw = new List<LogEntry>();
+        List<LogEntry> linesToDraw = new();
 
         for (int i = 0; i < _scrollOffset && node != null; i++) {
             node = node.Previous;
@@ -516,7 +516,7 @@ public static class TuiRenderer {
         }
 
         try {
-            StringBuilder input = new StringBuilder();
+            StringBuilder input = new();
             while (_isActive) {
                 if (Console.KeyAvailable) {
                     ConsoleKeyInfo key = Console.ReadKey(intercept: true);

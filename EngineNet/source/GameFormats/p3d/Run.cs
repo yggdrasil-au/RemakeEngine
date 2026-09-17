@@ -155,7 +155,7 @@ public static class P3dExtractor {
     }
 
     private static P3dRunOptions ParseOptions(IReadOnlyList<string> args) {
-        P3dRunOptions options = new P3dRunOptions();
+        P3dRunOptions options = new();
 
         for (int i = 0; i < args.Count; i++) {
             string current = args[index: i];

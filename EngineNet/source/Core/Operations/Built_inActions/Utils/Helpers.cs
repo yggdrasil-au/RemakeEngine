@@ -11,7 +11,7 @@ internal class Helpers {
     }
 
     internal static List<string> ResolveOperationArgs(IDictionary<string, object?> op,IDictionary<string, object?> ctx) {
-        List<string> args = new List<string>();
+        List<string> args = new();
         if (op.TryGetValue(key: "args", out object? argsObject) && argsObject is System.Collections.IList rawArgs) {
             object? resolvedArgsObject = Core.Utils.Placeholders.Resolve(argsObject, context: ctx);
             System.Collections.IList resolvedArgs = resolvedArgsObject as System.Collections.IList ?? rawArgs;

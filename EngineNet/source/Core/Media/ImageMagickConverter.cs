@@ -55,7 +55,7 @@ internal static class ImageMagickConverter {
         internal int? Quality;   // 0..100
 
         // Raw passthrough
-        internal readonly List<string> ExtraArgs = new List<string>();
+        internal readonly List<string> ExtraArgs = new();
     }
 
     internal static bool Run(EngineNet.Core.ExternalTools.JsonToolResolver toolResolver, IList<string> args, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
@@ -99,9 +99,9 @@ internal static class ImageMagickConverter {
             int skipped = 0;
             int errors = 0;
             int processed = 0;
-            ConcurrentBag<(string file, string message)> errorList = new System.Collections.Concurrent.ConcurrentBag<(string file, string message)>();
+            ConcurrentBag<(string file, string message)> errorList = new();
 
-            ParallelOptions po = new System.Threading.Tasks.ParallelOptions {
+            ParallelOptions po = new() {
                 MaxDegreeOfParallelism = opt.Workers ?? 1,
                 CancellationToken = cancellationToken
             };
@@ -178,7 +178,8 @@ internal static class ImageMagickConverter {
     private static (bool ok, string? message) ConvertOne(string srcPath, string destPath, Options opt, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         try {
             // Build: magick [global opts] input [ops...] output
-            List<string> a = new List<string> {
+            List<string> a = new()
+            {
                 // Input
                 ToLongPath(path: srcPath)
             };
@@ -252,7 +253,7 @@ internal static class ImageMagickConverter {
 
     private static (bool ok, string? message) Exec(string fileName, IList<string> arguments, bool passthroughOutput, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         try {
-            using Process p = new System.Diagnostics.Process();
+            using Process p = new();
             p.StartInfo.FileName = ToLongPath(path: fileName);
 
             // ImageMagick can be invoked as:
@@ -360,7 +361,7 @@ internal static class ImageMagickConverter {
     }
 
     private static Options Parse(IList<string> argv) {
-        Options o = new Options();
+        Options o = new();
 
         for (int i = 0; i < argv.Count; i++) {
             string a = argv[index: i];

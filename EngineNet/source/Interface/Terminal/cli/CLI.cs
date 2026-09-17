@@ -269,7 +269,7 @@ public sealed partial class CLI {
         /// <returns></returns>
         /// <exception cref="System.ArgumentException"></exception>
         public static InlineOperationOptions Parse(string[] args) {
-            InlineOperationOptions options = new InlineOperationOptions();
+            InlineOperationOptions options = new();
 
             for (int index = 0; index < args.Length; index++) {
                 string token = args[index];
@@ -414,7 +414,7 @@ public sealed partial class CLI {
         /// </summary>
         /// <returns></returns>
         internal Dictionary<string, object?> BuildOperation() {
-            Dictionary<string, object?> op = new Dictionary<string, object?>(dictionary: OperationFields, comparer: System.StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, object?> op = new(dictionary: OperationFields, comparer: System.StringComparer.OrdinalIgnoreCase);
 
             if (!op.ContainsKey(key: "script_type") && !string.IsNullOrWhiteSpace(ScriptType)) {
                 op[key: "script_type"] = ScriptType;

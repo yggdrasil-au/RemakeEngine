@@ -19,7 +19,7 @@ public sealed class GameModuleInfo {
 
     public string DescribeState() {
         if (this.IsInternal) return "internal";
-        System.Collections.Generic.List<string> states = new System.Collections.Generic.List<string>();
+        System.Collections.Generic.List<string> states = new();
         if (this.IsRegistered) states.Add(item: "registered");
         if (this.IsInstalled) states.Add(item: "installed");
         if (this.IsBuilt) states.Add(item: "built");

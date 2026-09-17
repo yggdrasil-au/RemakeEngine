@@ -3,11 +3,11 @@ using System.Text.Json;
 namespace EngineNet.Core.ExternalTools;
 
 internal static class ToolLockfileManager {
-    private static readonly JsonSerializerOptions ReadOptions = new JsonSerializerOptions {
+    private static readonly JsonSerializerOptions ReadOptions = new() {
         PropertyNameCaseInsensitive = true
     };
 
-    private static readonly JsonSerializerOptions WriteOptions = new JsonSerializerOptions {
+    private static readonly JsonSerializerOptions WriteOptions = new() {
         WriteIndented = true
     };
 
@@ -128,7 +128,7 @@ internal static class ToolLockfileManager {
         }
 
         foreach (KeyValuePair<string, Dictionary<string, ToolLockfileEntry>> toolEntry in data) {
-            Dictionary<string, ToolLockfileEntry> versions = new Dictionary<string, ToolLockfileEntry>(comparer: System.StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, ToolLockfileEntry> versions = new(comparer: System.StringComparer.OrdinalIgnoreCase);
 
             foreach (KeyValuePair<string, ToolLockfileEntry> versionEntry in toolEntry.Value) {
                 versions[key: versionEntry.Key] = versionEntry.Value;

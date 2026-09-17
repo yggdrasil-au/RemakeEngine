@@ -18,7 +18,7 @@ internal class OpMetadataExtractor {
 
         static List<Dictionary<string, object?>>? Coerce(object? value) {
             if (value is null) return null;
-            List<Dictionary<string, object?>> list = new List<Dictionary<string, object?>>();
+            List<Dictionary<string, object?>> list = new();
             if (value is IList<object?> arr) {
                 foreach (object? item in arr) {
                     if (item is IDictionary<string, object?> map) {

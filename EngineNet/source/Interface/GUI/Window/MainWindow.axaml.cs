@@ -28,7 +28,7 @@ internal sealed partial class MainWindow:Window {
     }
 
     internal void ShowLibraryFor(string moduleName) {
-        Pages.LibraryPage page = new Pages.LibraryPage();
+        Pages.LibraryPage page = new();
         ContentHost.Content = page;
         page.ShowDetailsPublic(moduleName: moduleName);
     }

@@ -13,7 +13,8 @@ internal sealed class SqliteHandle:System.IDisposable {
     internal SqliteHandle(MoonSharp.Interpreter.Script script, string path) {
         _script = script;
         string fullPath = System.IO.Path.GetFullPath(path: path);
-        Microsoft.Data.Sqlite.SqliteConnectionStringBuilder builder = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder {
+        Microsoft.Data.Sqlite.SqliteConnectionStringBuilder builder = new()
+        {
             DataSource = fullPath
         };
         _connection = new Microsoft.Data.Sqlite.SqliteConnection(connectionString: builder.ConnectionString);
@@ -42,10 +43,10 @@ internal sealed class SqliteHandle:System.IDisposable {
 
         BindParameters(command: command, parameters: parameters);
         using Microsoft.Data.Sqlite.SqliteDataReader reader = command.ExecuteReader();
-        MoonSharp.Interpreter.Table result = new MoonSharp.Interpreter.Table(owner: _script);
+        MoonSharp.Interpreter.Table result = new(owner: _script);
         int index = 1;
         while (reader.Read()) {
-            MoonSharp.Interpreter.Table row = new MoonSharp.Interpreter.Table(owner: _script);
+            MoonSharp.Interpreter.Table row = new(owner: _script);
             for (int i = 0; i < reader.FieldCount; i++) {
                 string columnName = reader.GetName(ordinal: i);
                 object? value = reader.GetValue(ordinal: i);

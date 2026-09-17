@@ -60,7 +60,7 @@ internal static class LuaAction {
         _LuaWorld.LuaScript.Globals[key: "script_dir"] = scriptDir;
 
         // script arguments
-        Table argvTable = new Table(owner: _LuaWorld.LuaScript);
+        Table argvTable = new(owner: _LuaWorld.LuaScript);
         for (int index = 0; index < _args.Length; index++) {
             argvTable[key: index + 1] = DynValue.NewString(str: _args[index]);
         }
@@ -126,7 +126,7 @@ internal static class LuaAction {
 
         static string NormalizePathString(string path) {
             char separator = System.IO.Path.DirectorySeparatorChar;
-            StringBuilder builder = new System.Text.StringBuilder(capacity: path.Length);
+            StringBuilder builder = new(capacity: path.Length);
             bool previousWasSeparator = false;
 
             foreach (char character in path) {
@@ -157,7 +157,7 @@ internal static class LuaAction {
                 return DynValue.NewString(str: string.Empty);
             }
 
-            StringBuilder sb = new System.Text.StringBuilder();
+            StringBuilder sb = new();
             for (int i = 0; i < parts.Count; i++) {
                 string part = parts[index: i];
                 if (i > 0) {
@@ -260,7 +260,7 @@ internal static class LuaAction {
 
         // overwrite built in Print method, and direct to sdk print
         _LuaWorld.LuaScript.Globals[key: "print"] = DynValue.NewCallback(callBack: (ctx, args) => {
-            List<string> parts = new System.Collections.Generic.List<string>();
+            List<string> parts = new();
             for (int i = 0; i < args.Count; i++) {
                 // ToPrintString() safely converts Lua types (nil, tables, etc.) to strings
                 parts.Add(item: args[index: i].ToPrintString());
