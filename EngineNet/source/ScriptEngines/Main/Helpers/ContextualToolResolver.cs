@@ -1,20 +1,25 @@
+using System.Collections.Generic;
+using EngineNet.Core.Abstractions;
+
 namespace EngineNet.ScriptEngines;
 
-
 /// <summary>
-/// Wrapper for JsonToolResolver that injects module-specific tool versions
+/// Wrapper for IJsonToolResolver that injects module-specific tool versions
 /// </summary>
-internal sealed class ContextualToolResolver : Core.ExternalTools.JsonToolResolver {
-    private readonly Core.ExternalTools.JsonToolResolver _base;
+internal sealed class ContextualToolResolver : IJsonToolResolver {
+    private readonly IJsonToolResolver _base;
     private readonly Dictionary<string, string> _contextVersions;
-    internal ContextualToolResolver(Core.ExternalTools.JsonToolResolver baseResolver, Dictionary<string, string> contextVersions) {
+
+    internal ContextualToolResolver(IJsonToolResolver baseResolver, Dictionary<string, string> contextVersions) {
         _base = baseResolver;
         _contextVersions = contextVersions;
     }
-    public override string ResolveToolPath(string toolId, string? version = null) {
+
+    public string ResolveToolPath(string toolId, string? version = null) {
         if (version == null && _contextVersions.TryGetValue(key: toolId, out string? v)) {
             version = v;
         }
+
         return _base.ResolveToolPath(toolId: toolId, version: version);
     }
 }

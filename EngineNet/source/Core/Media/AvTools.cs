@@ -1,6 +1,7 @@
 
 namespace EngineNet.Core.Media;
 
+using Abstractions;
 using Shared.IO.UI;
 using Utils;
 
@@ -8,7 +9,7 @@ using Utils;
 /// Built-in media converter that mirrors Tools/ffmpeg-vgmstream/convert.py behavior.
 /// Supports mode=ffmpeg|vgmstream with type=audio|video and preserves directory structure.
 /// </summary>
-internal static class AvTools {
+public static class AvTools {
     private const string ToolFfmpeg = "ffmpeg";
     private const string ToolVgmstream = "vgmstream";
     private const string VgmstreamCliName = "vgmstream-cli";
@@ -52,7 +53,7 @@ internal static class AvTools {
     /// --workers N, --godot, --verbose, --debug, codec/quality options.</param>
     /// <param name="cancellationToken">Cancellation token to abort the conversion.</param>
     /// <returns>True if all files were processed successfully; false otherwise.</returns>
-    internal static bool Run(EngineNet.Core.ExternalTools.JsonToolResolver toolResolver, IList<string> args, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
+    public static bool Run(IJsonToolResolver toolResolver, IList<string> args, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         try {
             Options opt = Parse(argv: args);
 

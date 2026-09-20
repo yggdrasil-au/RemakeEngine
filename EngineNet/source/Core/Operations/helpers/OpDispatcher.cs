@@ -21,7 +21,7 @@ internal static class OpDispatcher {
         Core.Data.PromptAnswers promptAnswers,
         string currentGame,
         Core.Data.GameModules games,
-        Engine.EngineContext context,
+        Core.Abstractions.IEngineContext context,
         System.Threading.CancellationToken cancellationToken = default
     ) {
         if (!executableOperation.TryGetValue(key: "script", out object? s) || s is null) {
@@ -117,7 +117,7 @@ internal sealed class OperationArgs {
     internal readonly Core.Data.PromptAnswers promptAnswers;
     internal readonly string currentGame;
     internal readonly Core.Data.GameModules games;
-    internal readonly Engine.EngineContext context;
+    internal readonly Core.Abstractions.IEngineContext context;
     internal readonly System.Threading.CancellationToken cancellationToken;
 
     internal OperationArgs(
@@ -125,7 +125,7 @@ internal sealed class OperationArgs {
         Core.Data.PromptAnswers promptAnswers,
         string currentGame,
         Core.Data.GameModules games,
-        Engine.EngineContext context,
+        Core.Abstractions.IEngineContext context,
         System.Threading.CancellationToken cancellationToken
     ) {
         this.op = op;

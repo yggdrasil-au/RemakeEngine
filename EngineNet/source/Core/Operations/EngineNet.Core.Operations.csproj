@@ -9,11 +9,18 @@
         <Platforms>AnyCPU;x64</Platforms>
     </PropertyGroup>
 
+    <!-- Microsoft.Data.Sqlite -->
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
+    </ItemGroup>
+
     <ItemGroup>
         <ProjectReference Include="..\..\Shared\EngineNet.Shared.csproj" />
         <ProjectReference Include="..\Data\EngineNet.Core.Data.csproj" />
         <ProjectReference Include="..\EngineNet.Core.csproj" />
         <ProjectReference Include="..\Engine\EngineNet.Core.Engine.csproj" />
+        <ProjectReference Include="..\Abstractions\EngineNet.Core.Abstractions.csproj" />
+        <ProjectReference Include="..\Media\EngineNet.Core.Media.csproj" />
     </ItemGroup>
 
     <PropertyGroup>

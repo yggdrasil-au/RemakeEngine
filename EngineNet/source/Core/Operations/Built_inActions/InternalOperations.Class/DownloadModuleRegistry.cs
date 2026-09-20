@@ -2,7 +2,7 @@
 namespace EngineNet.Core.Operations.Built_inActions;
 internal sealed partial class InternalOperations {
 
-    internal bool DownloadModuleRegistry(Core.Data.PromptAnswers promptAnswers, Engine.EngineContext context) {
+    internal bool DownloadModuleRegistry(Core.Data.PromptAnswers promptAnswers, Core.Abstractions.IEngineContext context) {
 
         string? input = null;
         if (promptAnswers.TryGetValue(key: "url", out object? u)) {
@@ -29,6 +29,6 @@ internal sealed partial class InternalOperations {
             return false;
         }
 
-        return Core.Utils.GitTools.CloneModule(url: url, commandService: context.CommandService);
+        return Core.Services.Git.GitTools.CloneModule(url: url, commandService: context.CommandService);
     }
 }

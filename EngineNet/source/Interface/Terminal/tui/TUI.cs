@@ -238,7 +238,7 @@ public sealed class TUI {
                             TuiRenderer.Log($"Running operations for {gameName}...", color: ConsoleColor.Cyan);
 
                             System.Diagnostics.Stopwatch runAllStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                            Core.ProcessRunner.StdinProvider rendererInput = () => TuiRenderer.ReadLineCustom(label: "Input >", isSecret: false);
+                            Core.Abstractions.IProcessRunner.StdinProvider rendererInput = () => TuiRenderer.ReadLineCustom(label: "Input >", isSecret: false);
 
                             Core.Operations.RunAllResult result = await Engine.RunAllAsync(
                                 gameName: gameName,

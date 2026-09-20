@@ -12,8 +12,6 @@
     <ItemGroup>
         <ProjectReference Include="..\..\Shared\EngineNet.Shared.csproj" />
         <ProjectReference Include="..\Data\EngineNet.Core.Data.csproj" />
-        <ProjectReference Include="..\ExternalTools\EngineNet.Core.ExternalTools.csproj" />
-        <!-- <ProjectReference Include="..\Services\EngineNet.Core.Services.csproj" /> -->
     </ItemGroup>
 
     <PropertyGroup>

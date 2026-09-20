@@ -1,17 +1,16 @@
+using System.Collections.Generic;
+using EngineNet.Core.Abstractions;
+
 namespace EngineNet.Core.ExternalTools;
 
-/// <summary>
-/// Loads tool paths from the canonical typed lockfile and resolves version-aware executable paths.
-/// Prioritizes <see cref="ToolLockfile.ToolLockfileName"/> for persistent installations.
-/// </summary>
-public class JsonToolResolver {
+public class JsonToolResolver : IJsonToolResolver {
     private readonly Dictionary<string, Dictionary<string, string>> _tools = new(comparer: System.StringComparer.OrdinalIgnoreCase);
     private readonly string _lockfilePath;
     private string? _loadedFile;
     private System.DateTime _lastWriteTime;
 
-    protected internal JsonToolResolver() {
-        _lockfilePath = ToolLockfile.GetPath(rootPath: EngineNet.Shared.State.RootPath);
+    public JsonToolResolver() {
+        _lockfilePath = ToolLockfile.GetPath(rootPath: Shared.State.RootPath);
         Load();
     }
 
@@ -74,7 +73,7 @@ public class JsonToolResolver {
         return path;
     }
 
-    public virtual string ResolveToolPath(string toolId, string? version = null) {
+    public string ResolveToolPath(string toolId, string? version = null) {
         Load();
 
         if (!_tools.TryGetValue(key: toolId, out Dictionary<string, string>? versions)) {

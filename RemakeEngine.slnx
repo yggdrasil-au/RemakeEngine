@@ -1,6 +1,4 @@
 <Solution>
-	<Project Path="EngineNetTest/EngineNetTest.csproj" />
-
 	<Project Path="EngineNet/EngineNet.csproj" />
 
 	<!-- Core Projects -->
@@ -11,6 +9,12 @@
 	<Project Path="EngineNet/source/Core/Media/EngineNet.Core.Media.csproj" />
 	<Project Path="EngineNet/source/Core/Operations/EngineNet.Core.Operations.csproj" />
 	<Project Path="EngineNet/source/Core/Utils/EngineNet.Core.Utils.csproj" />
+
+
+	<Project Path="EngineNet/source/Core/Abstractions/EngineNet.Core.Abstractions.csproj" />
+	<Project Path="EngineNet/source/Core/Services/EngineNet.Core.Services.csproj" />
+
+
 
 	<Project Path="EngineNet/source/GameFormats/EngineNet.GameFormats.csproj" />
 	<Project Path="EngineNet/source/ScriptEngines/EngineNet.ScriptEngines.csproj" />

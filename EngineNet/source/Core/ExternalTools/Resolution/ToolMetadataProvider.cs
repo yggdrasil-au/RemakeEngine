@@ -2,11 +2,11 @@ namespace EngineNet.Core.ExternalTools;
 
 /// <summary>
 /// Provides metadata for tools (executable path and optional version) by consulting the canonical typed lockfile,
-/// and falling back to <see cref="JsonToolResolver"/> when the tool is not registered there.
+/// and falling back to <see cref="Abstractions.IJsonToolResolver"/> when the tool is not registered there.
 /// </summary>
 public static class ToolMetadataProvider {
 
-    public static (string? exe, string? version) ResolveExeAndVersion(string toolId, string _rootPath, JsonToolResolver _toolResolver) {
+    public static (string? exe, string? version) ResolveExeAndVersion(string toolId, string _rootPath, Abstractions.IJsonToolResolver _toolResolver) {
         string jsonPath = ToolLockfile.GetPath(rootPath: _rootPath);
 
         if (System.IO.File.Exists(path: jsonPath)) {

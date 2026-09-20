@@ -3,7 +3,7 @@ namespace EngineNet.Core.Operations.Built_inActions.Utils;
 internal class Helpers {
 
     internal static Dictionary<string, object?> BuildOperationContext(
-        Engine.EngineContext context,
+        Core.Abstractions.IEngineContext context,
         string currentGame,
         Core.Data.GameModules games
     ) {

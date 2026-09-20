@@ -1,6 +1,7 @@
 
 namespace EngineNet.Core.Services;
 
+
 /// <summary>
 /// Service responsible for launching games.
 /// It resolves game metadata, execution paths, and handles different launch types
@@ -24,7 +25,7 @@ public sealed class GameLauncher {
     /// <param name="config">The global engine configuration.</param>
     /// <param name="commandService">The command service for executing processes.</param>
     /// <param name="scriptActionDispatcher">Dispatcher used to resolve embedded script actions.</param>
-    internal GameLauncher(Core.Utils.GameRegistry.GameRegistry gameRegistry, ExternalTools.JsonToolResolver toolResolver, Core.Data.EngineConfig config, Core.Services.CommandService.CommandService commandService, Core.Abstractions.IScriptActionDispatcher scriptActionDispatcher) {
+    public GameLauncher(Core.Utils.GameRegistry.GameRegistry gameRegistry, ExternalTools.JsonToolResolver toolResolver, Core.Data.EngineConfig config, Core.Services.CommandService.CommandService commandService, Core.Abstractions.IScriptActionDispatcher scriptActionDispatcher) {
         this._gameRegistry = gameRegistry;
         this._toolResolver = toolResolver;
         this._config = config;
@@ -47,7 +48,7 @@ public sealed class GameLauncher {
         string gameToml = System.IO.Path.Combine(path1: root, path2: "game.toml");
 
         // Build placeholder context for resolution
-        Core.Data.GameModules games = _gameRegistry.GetModules(filter: ModuleFilter.All);
+        Core.Data.GameModules games = _gameRegistry.GetModules(filter: Core.Data.ModuleFilter.All);
         //ExecutionContextBuilder ctxBuilder = new ExecutionContextBuilder();
         Dictionary<string, object?> ctx;
         try {
@@ -78,20 +79,20 @@ public sealed class GameLauncher {
                     switch (key.ToLowerInvariant()) {
                         case "exe":
                         case "executable":
-                            string resolvedExe = Placeholders.Resolve(val, context: ctx)?.ToString() ?? val;
-                            exePath = PathHelper.ResolveRelativePath(root: root, path: resolvedExe);
+                            string resolvedExe = Core.Utils.Placeholders.Resolve(val, context: ctx)?.ToString() ?? val;
+                            exePath = Core.Utils.PathHelper.ResolveRelativePath(root: root, path: resolvedExe);
                             break;
                         case "lua":
                         case "lua_script":
                         case "script":
-                            string resolvedScript = Placeholders.Resolve(val, context: ctx)?.ToString() ?? val;
-                            scriptPath = PathHelper.ResolveRelativePath(root: root, path: resolvedScript);
+                            string resolvedScript = Core.Utils.Placeholders.Resolve(val, context: ctx)?.ToString() ?? val;
+                            scriptPath = Core.Utils.PathHelper.ResolveRelativePath(root: root, path: resolvedScript);
                         break;
                         case "godot":
                         case "godot_project":
                         case "project":
-                            string resolvedGodot = Placeholders.Resolve(val, context: ctx)?.ToString() ?? val;
-                            godotProject = PathHelper.ResolveRelativePath(root: root, path: resolvedGodot);
+                            string resolvedGodot = Core.Utils.Placeholders.Resolve(val, context: ctx)?.ToString() ?? val;
+                            godotProject = Core.Utils.PathHelper.ResolveRelativePath(root: root, path: resolvedGodot);
                             break;
                     }
                 }
@@ -113,7 +114,7 @@ public sealed class GameLauncher {
                 string ext = System.IO.Path.GetExtension(path: scriptPath).TrimStart(trimChar: '.').ToLowerInvariant();
 
                 // Use the dispatcher to create the correct action (Lua, JS, or Python)
-                IScriptAction? action = this._scriptActionDispatcher.TryCreateEmbedded(
+                Core.Abstractions.IScriptAction? action = this._scriptActionDispatcher.TryCreateEmbedded(
                     scriptType: ext,
                     scriptPath: scriptPath,
                     args: System.Array.Empty<string>(), // Launching a game usually implies no args, or you could parse them from toml
@@ -139,12 +140,12 @@ public sealed class GameLauncher {
         if (!string.IsNullOrWhiteSpace(godotProject)) {
             try {
                 //var provider = new ToolMetadataProvider(projectRoot: this._rootPath, resolver: this._toolResolver);
-                (string? godotExe, _) = ToolMetadataProvider.ResolveExeAndVersion(toolId: "godot", _rootPath: this._rootPath, _toolResolver: this._toolResolver);
+                (string? godotExe, _) = Core.ExternalTools.ToolMetadataProvider.ResolveExeAndVersion(toolId: "godot", _rootPath: this._rootPath, _toolResolver: this._toolResolver);
                 string godotPath = string.IsNullOrWhiteSpace(godotExe) ? this._toolResolver.ResolveToolPath(toolId: "godot") : godotExe;
                 if (!System.IO.File.Exists(path: godotPath)) return false;
 
                 string workDir = System.IO.Path.GetDirectoryName(path: godotProject) ?? root;
-                return _commandService.LaunchDetached(executable: godotPath, args: new[] { godotProject }, cwd: workDir, options: new DetachedLaunchOptions {
+                return _commandService.LaunchDetached(executable: godotPath, args: new[] { godotProject }, cwd: workDir, options: new Core.Abstractions.DetachedLaunchOptions {
                     UseShellExecute = false
                 });
             } catch (System.Exception ex) {
@@ -160,7 +161,7 @@ public sealed class GameLauncher {
             return false;
         }
         try {
-            return _commandService.LaunchDetached(executable: exe, args: System.Array.Empty<string>(), cwd: work, options: new DetachedLaunchOptions {
+            return _commandService.LaunchDetached(executable: exe, args: System.Array.Empty<string>(), cwd: work, options: new Core.Abstractions.DetachedLaunchOptions {
                 UseShellExecute = true,
             });
         } catch (System.Exception ex) {

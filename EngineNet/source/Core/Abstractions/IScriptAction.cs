@@ -12,5 +12,6 @@ public interface IScriptAction {
     /// <param name="tools">Resolver for locating external tools.</param>
     /// <param name="commandService">Centralized command execution service.</param>
     /// <param name="cancellationToken">Optional cancellation token.</param>
-    Task ExecuteAsync(Core.ExternalTools.JsonToolResolver tools, Core.Services.CommandService.CommandService commandService, CancellationToken cancellationToken = default(CancellationToken));
+    Task ExecuteAsync(Core.Abstractions.IJsonToolResolver tools, Core.Abstractions.ICommandService commandService, CancellationToken cancellationToken = default(CancellationToken));
 }
+

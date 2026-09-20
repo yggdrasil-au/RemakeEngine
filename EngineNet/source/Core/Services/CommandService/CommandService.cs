@@ -1,10 +1,11 @@
 using System.Collections.Concurrent;
 using System.Text;
 
-
 namespace EngineNet.Core.Services.CommandService;
 
-public sealed class CommandService {
+using Abstractions;
+
+public sealed class CommandService : Core.Abstractions.ICommandService {
     private readonly CommandBuilder _builder = new();
     private readonly ProcessRunner _runner = new();
 
@@ -16,13 +17,21 @@ public sealed class CommandService {
         return _builder.Build(currentGame: currentGame, games: games, engineConfig: engineData, op: op, promptAnswers: promptAnswers);
     }
 
-    public bool ExecuteCommand(IList<string> commandParts, string title, ProcessRunner.OutputHandler? onOutput = null, ProcessRunner.EventHandler? onEvent = null, ProcessRunner.StdinProvider? stdinProvider = null, IDictionary<string, object?>? envOverrides = null, CancellationToken cancellationToken = default(CancellationToken)) {
+    public bool ExecuteCommand(
+        IList<string> commandParts,
+        string title,
+        Core.Abstractions.IProcessRunner.OutputHandler? onOutput = null,
+        Core.Abstractions.IProcessRunner.EventHandler? onEvent = null,
+        Core.Abstractions.IProcessRunner.StdinProvider? stdinProvider = null,
+        IDictionary<string, object?>? envOverrides = null,
+        CancellationToken cancellationToken = default(CancellationToken)
+    ) {
         return _runner.Execute(commandParts: commandParts, opTitle: title, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, envOverrides: envOverrides, cancellationToken: cancellationToken);
     }
 
     // --- Centralized Process Execution Methods ---
 
-    public ProcessResult RunProcess(string executable, IEnumerable<string> args, string? cwd, IDictionary<string, string>? env, int? timeoutMs, bool captureStdout, bool captureStderr) {
+    public Core.Abstractions.ProcessResult RunProcess(string executable, IEnumerable<string> args, string? cwd, IDictionary<string, string>? env, int? timeoutMs, bool captureStdout, bool captureStderr) {
         ProcessStartInfo psi = CreateStandardPsi(executable: executable, args: args, cwd: cwd, env: env);
         psi.RedirectStandardOutput = captureStdout;
         psi.RedirectStandardError = captureStderr;
@@ -64,7 +73,7 @@ public sealed class CommandService {
             throw new Exception($"Failed to run process '{executable}': {ex.Message}");
         }
 
-        return new ProcessResult {
+        return new Core.Abstractions.ProcessResult {
             ExitCode = process.ExitCode,
             Success = process.ExitCode == 0,
             Stdout = captureStdout ? stdoutBuilder.ToString() : string.Empty,
@@ -156,7 +165,7 @@ public sealed class CommandService {
         return true;
     }
 
-    internal bool LaunchDetached(string executable, IEnumerable<string> args, string? cwd, DetachedLaunchOptions options) {
+    public bool LaunchDetached(string executable, IEnumerable<string> args, string? cwd, DetachedLaunchOptions options) {
         try {
             ProcessStartInfo psi = new() {
                 FileName = executable,
@@ -219,7 +228,7 @@ public sealed class CommandService {
         }
     }
 
-    public ProcessResult RunInNewTerminal(string executable, IEnumerable<string> args, string? cwd, IDictionary<string, string>? env, bool keepOpen, bool wait) {
+    public Core.Abstractions.ProcessResult RunInNewTerminal(string executable, IEnumerable<string> args, string? cwd, IDictionary<string, string>? env, bool keepOpen, bool wait) {
         int exitCode = 0;
         try {
             if (OperatingSystem.IsWindows()) {
@@ -274,15 +283,15 @@ public sealed class CommandService {
                 } else {
                     // Fallback or error
                     Shared.IO.Diagnostics.Bug("No terminal emulator found on Linux/macOS.");
-                    return new ProcessResult { Success = false, ExitCode = -1 };
+                    return new Core.Abstractions.ProcessResult { Success = false, ExitCode = -1 };
                 }
             }
         } catch (Exception ex) {
             Shared.IO.Diagnostics.Bug($"Failed to start new terminal: {ex.Message}");
-            return new ProcessResult { Success = false, ExitCode = -1 };
+            return new Core.Abstractions.ProcessResult { Success = false, ExitCode = -1 };
         }
 
-        return new ProcessResult { Success = exitCode == 0, ExitCode = exitCode };
+        return new Core.Abstractions.ProcessResult { Success = exitCode == 0, ExitCode = exitCode };
     }
 
     // --- Helpers ---
@@ -354,26 +363,7 @@ public sealed class CommandService {
         internal int StderrCursor { get; set; }
         internal TaskCompletionSource<int> ExitTcs { get; } = new(creationOptions: TaskCreationOptions.RunContinuationsAsynchronously);
     }
+
 }
 
-public sealed class ProcessResult {
-    public int ExitCode { get; init; }
-    public bool Success { get; init; }
-    public string Stdout { get; init; } = string.Empty;
-    public string Stderr { get; init; } = string.Empty;
-}
 
-public sealed class ProcessPollResult {
-    public bool Running { get; init; }
-    public int? ExitCode { get; init; }
-    public string StdoutFull { get; internal set; } = string.Empty;
-    public string StderrFull { get; internal set; } = string.Empty;
-    public string StdoutDelta { get; internal set; } = string.Empty;
-    public string StderrDelta { get; internal set; } = string.Empty;
-}
-
-internal sealed class DetachedLaunchOptions {
-    internal bool UseShellExecute { get; init; } = true;
-    public bool? CreateNoWindow { get; set; }
-    public ProcessWindowStyle? WindowStyle { get; set; }
-}

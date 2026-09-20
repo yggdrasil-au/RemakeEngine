@@ -59,14 +59,14 @@ public sealed class Utils {
         Core.Data.PromptAnswers promptAnswers,
         Dictionary<string, string>? autoPromptResponses = null,
         System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken),
-        Core.ProcessRunner.OutputHandler? onOutput = null,
-        Core.ProcessRunner.EventHandler? onEvent = null,
-        Core.ProcessRunner.StdinProvider? stdinProvider = null
+        Core.Abstractions.IProcessRunner.OutputHandler? onOutput = null,
+        Core.Abstractions.IProcessRunner.EventHandler? onEvent = null,
+        Core.Abstractions.IProcessRunner.StdinProvider? stdinProvider = null
     ) {
         try {
-            Core.ProcessRunner.OutputHandler outputHandler = onOutput ?? OnOutput;
-            Core.ProcessRunner.EventHandler eventHandler = onEvent ?? OnEvent;
-            Core.ProcessRunner.StdinProvider inputProvider = stdinProvider ?? StdinProvider;
+            Core.Abstractions.IProcessRunner.OutputHandler outputHandler = onOutput ?? OnOutput;
+            Core.Abstractions.IProcessRunner.EventHandler eventHandler = onEvent ?? OnEvent;
+            Core.Abstractions.IProcessRunner.StdinProvider inputProvider = stdinProvider ?? StdinProvider;
             string? script_type = (op.TryGetValue(key: "script_type", out object? st) ? st?.ToString() : null)
                 ?.ToLowerInvariant();
 

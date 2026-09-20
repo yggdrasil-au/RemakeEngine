@@ -16,7 +16,7 @@ internal static class JsAction {
     /// <param name="_scriptPath"></param>
     internal static void SetupCoreFunctions(
         JsWorld _JSWorld,
-        Core.ExternalTools.JsonToolResolver _tools,
+        Core.Abstractions.IJsonToolResolver _tools,
         string[] _args,
         string _gameRoot,
         string _projectRoot,

@@ -207,7 +207,7 @@ internal static class Security {
     /// Security validation: Check if executable is approved for RemakeEngine use.
     /// Allows registered tools, common system utilities, and resolved tool paths.
     /// </summary>
-    internal static bool IsApprovedExecutable(string executable, Core.ExternalTools.JsonToolResolver tools) {
+    internal static bool IsApprovedExecutable(string executable, Core.Abstractions.IJsonToolResolver tools) {
         if (string.IsNullOrWhiteSpace(executable)) {
             return false;
         }
@@ -219,9 +219,7 @@ internal static class Security {
         // Allow resolved tool paths (tools that came from tool() function)
         try {
             string resolvedPath = tools.ResolveToolPath(toolId: exeName);
-            if (!string.IsNullOrEmpty(resolvedPath) &&
-                (executable.Equals(resolvedPath, comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
-                 executable.EndsWith(resolvedPath, comparisonType: System.StringComparison.OrdinalIgnoreCase))) {
+            if (!string.IsNullOrEmpty(resolvedPath) && (executable.Equals(resolvedPath, comparisonType: System.StringComparison.OrdinalIgnoreCase) || executable.EndsWith(resolvedPath, comparisonType: System.StringComparison.OrdinalIgnoreCase))) {
                 return true;
             }
         } catch (Exception ex) {

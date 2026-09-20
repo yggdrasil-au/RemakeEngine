@@ -4,10 +4,10 @@ namespace EngineNet.Core.Data;
 /// <summary>
 /// Represents a single operation in the dependency graph.
 /// </summary>
-internal sealed class OperationNode {
-    internal string Id { get; init; } = string.Empty;
-    internal string Name { get; set; } = string.Empty;
-    internal Dictionary<string, object?> Operation { get; set; } = new();
-    internal List<string> Dependencies { get; init; } = new();
-    internal List<OperationNode> DependentNodes { get; set; } = new();
+public sealed class OperationNode {
+    public string Id { get; init; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public Dictionary<string, object?> Operation { get; set; } = new();
+    public List<string> Dependencies { get; init; } = new();
+    public List<OperationNode> DependentNodes { get; set; } = new();
 }

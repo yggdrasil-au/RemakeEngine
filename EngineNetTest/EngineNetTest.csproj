@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MSTest" Version="4.0.1" />
+    <PackageReference Include="MSTest" Version="4.4.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -18,10 +18,29 @@
 
     <ItemGroup>
         <ProjectReference Include="..\EngineNet\EngineNet.csproj" />
+
+      <!-- Core Projects -->
         <ProjectReference Include="..\EngineNet\source\Core\EngineNet.Core.csproj" />
-        <ProjectReference Include="..\EngineNet\source\Interface\EngineNet.Interface.csproj" />
+        <ProjectReference Include="..\EngineNet\source\Core\Data\EngineNet.Core.Data.csproj" />
+        <ProjectReference Include="..\EngineNet\source\Core\Engine\EngineNet.Core.Engine.csproj" />
+        <ProjectReference Include="..\EngineNet\source\Core\ExternalTools\EngineNet.Core.ExternalTools.csproj" />
+        <ProjectReference Include="..\EngineNet\source\Core\Media\EngineNet.Core.Media.csproj" />
+        <ProjectReference Include="..\EngineNet\source\Core\Operations\EngineNet.Core.Operations.csproj" />
+        <ProjectReference Include="..\EngineNet\source\Core\Utils\EngineNet.Core.Utils.csproj" />
+
+
+        <ProjectReference Include="..\EngineNet\source\Core\Abstractions\EngineNet.Core.Abstractions.csproj" />
+        <ProjectReference Include="..\EngineNet\source\Core\Services\EngineNet.Core.Services.csproj" />
+
+
+
+        <ProjectReference Include="..\EngineNet\source\GameFormats\EngineNet.GameFormats.csproj" />
         <ProjectReference Include="..\EngineNet\source\ScriptEngines\EngineNet.ScriptEngines.csproj" />
         <ProjectReference Include="..\EngineNet\source\Shared\EngineNet.Shared.csproj" />
+
+        <ProjectReference Include="..\EngineNet\source\Interface\EngineNet.Interface.csproj" />
+        <ProjectReference Include="..\EngineNet\source\Interface\GUI\EngineNet.Interface.GUI.csproj" />
+        <ProjectReference Include="..\EngineNet\source\Interface\Terminal\EngineNet.Interface.Terminal.csproj" />
     </ItemGroup>
 
 </Project>

@@ -1,7 +1,7 @@
 
 namespace EngineNet.Core.Services.OperationsService;
 
-public sealed class OperationsLoader {
+public sealed class OperationsLoader : Core.Abstractions.IOperationsLoader {
 
     /// <summary>
     /// Loads operations from a specified file, supporting both JSON and TOML formats.

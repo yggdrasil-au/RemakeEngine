@@ -6,7 +6,7 @@ namespace EngineNet.Core.Services.CommandService;
 /// are parsed as JSON event payloads and forwarded to <c>onEvent</c>.
 /// Supports interactive prompts by invoking <c>stdinProvider</c> when a prompt event is received.
 /// </summary>
-public sealed partial class ProcessRunner {
+public sealed partial class ProcessRunner : Core.Abstractions.IProcessRunner {
 
     private static void TryTerminate(System.Diagnostics.Process proc) {
         try {
@@ -54,7 +54,7 @@ public sealed partial class ProcessRunner {
     /// Security validation: Check if executable is approved for RemakeEngine use.
     /// Prevents execution of blocked system utilities and suggests SDK alternatives.
     /// </summary>
-    private static bool IsApprovedExecutable(string executable, OutputHandler? onOutput) {
+    private static bool IsApprovedExecutable(string executable, Core.Abstractions.IProcessRunner.OutputHandler? onOutput) {
         if (string.IsNullOrWhiteSpace(executable)) {
             return false;
         }

@@ -608,8 +608,8 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     }
 
     private sealed class GuiStdinRedirectReader:System.IO.TextReader {
-        private readonly Core.ProcessRunner.StdinProvider _provider;
-        internal GuiStdinRedirectReader(Core.ProcessRunner.StdinProvider provider) { _provider = provider; }
+        private readonly Core.Abstractions.IProcessRunner.StdinProvider _provider;
+        internal GuiStdinRedirectReader(Core.Abstractions.IProcessRunner.StdinProvider provider) { _provider = provider; }
         public override string? ReadLine() { return _provider(); }
     }
 

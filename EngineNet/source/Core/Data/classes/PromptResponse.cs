@@ -4,9 +4,9 @@ namespace EngineNet.Core.Data;
 /// Represents the UI response for a prompt request.
 /// </summary>
 public sealed class PromptResponse {
-    internal bool IsCancelled { get; }
-    internal bool UseDefault { get; }
-    internal object? Value { get; }
+    public bool IsCancelled { get; }
+    public bool UseDefault { get; }
+    public object? Value { get; }
 
     private PromptResponse(bool isCancelled, bool useDefault, object? value) {
         this.IsCancelled = isCancelled;

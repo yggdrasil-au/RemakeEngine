@@ -10,30 +10,30 @@ public sealed class Engine : IEngineFace{
 
     // Services exposed to partial classes
     public Core.Services.GameLauncher GameLauncher { get; }
-    public Core.Engine.EngineContext Context { get; }
+    public Core.Abstractions.IEngineContext Context { get; }
 
-    public OperationContext OperationContext { get; }
+    public Core.Abstractions.IOperationContext OperationContext { get; }
 
     /* :: :: Vars :: End :: */
 
     public Engine(
-        Core.Utils.GameRegistry gameRegistry,
+        Core.Abstractions.IGameRegistry gameRegistry,
         Core.Services.GameLauncher gameLauncher,
-        Core.Services.OperationsLoader OperationsLoader,
+        Core.Services.OperationsService.OperationsLoader OperationsLoader,
         Core.Services.CommandService.CommandService commandService,
-        Core.Services.OperationsService OperationsService,
+        Core.Services.OperationsService.OperationsService OperationsService,
         Core.ExternalTools.JsonToolResolver toolResolver,
-        Data.EngineConfig engineConfig,
-        EngineNet.Core.Operations.Single Runner
+        Core.Data.EngineConfig engineConfig,
+        Core.Abstractions.ISingle Runner
     ) {
         this.GameLauncher = gameLauncher;
-        this.Context = new Core.Engine.EngineContext(
+        this.Context = new Core.Abstractions.IEngineContext(
             GameRegistry: gameRegistry,
             CommandService: commandService,
             ToolResolver: toolResolver,
             EngineConfig: engineConfig
         );
-        this.OperationContext = new OperationContext(
+        this.OperationContext = new Core.Abstractions.IOperationContext(
             OperationsService: OperationsService,
             OperationsLoader: OperationsLoader,
             Single: Runner
@@ -56,7 +56,7 @@ public sealed class Engine : IEngineFace{
     }
 
     public bool CloneModule(string url, System.Threading.CancellationToken cancellationToken = default) {
-        return Utils.GitTools.CloneModule(url: url, commandService: this.Context.CommandService);
+        return Core.Services.Git.GitTools.CloneModule(url: url, commandService: this.Context.CommandService);
     }
 
 }
@@ -65,6 +65,6 @@ public interface IEngineFace {
     public Task<bool> RunSingleOperationAsync(string currentGame, Core.Data.GameModules games, IDictionary<string, object?> op, Data.PromptAnswers promptAnswers, CancellationToken cancellationToken = default(CancellationToken));
     public bool CloneModule(string url, CancellationToken cancellationToken = default(CancellationToken));
     public Core.Services.GameLauncher GameLauncher { get; }
-    public EngineContext Context { get; }
-    public OperationContext OperationContext { get; }
+    public Core.Abstractions.IEngineContext Context { get; }
+    public Core.Abstractions.IOperationContext OperationContext { get; }
 }

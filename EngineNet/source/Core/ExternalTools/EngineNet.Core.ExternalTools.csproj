@@ -16,6 +16,7 @@
     <ItemGroup>
         <ProjectReference Include="..\EngineNet.Core.csproj" />
         <ProjectReference Include="..\..\Shared\EngineNet.Shared.csproj" />
+        <ProjectReference Include="..\Abstractions\EngineNet.Core.Abstractions.csproj" />
     </ItemGroup>
 
     <PropertyGroup>

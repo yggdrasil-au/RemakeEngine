@@ -1,13 +1,11 @@
 
 namespace EngineNet.Core.Operations;
 
-using Abstractions;
-
-public sealed class Single {
+public sealed class Single : Core.Abstractions.ISingle {
 
     private readonly Core.Abstractions.IScriptActionDispatcher _scriptActionDispatcher;
 
-    internal Single(Core.Abstractions.IScriptActionDispatcher scriptActionDispatcher) {
+    public Single(Core.Abstractions.IScriptActionDispatcher scriptActionDispatcher) {
         this._scriptActionDispatcher = scriptActionDispatcher;
     }
 
@@ -24,13 +22,13 @@ public sealed class Single {
     /// <param name="OperationContext"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    internal async System.Threading.Tasks.Task<bool> RunAsync(
+    public async System.Threading.Tasks.Task<bool> RunAsync(
         string currentGame,
         Core.Data.GameModules games,
         IDictionary<string, object?> op,
         Core.Data.PromptAnswers promptAnswers,
-        Engine.EngineContext Context,
-        Core.Engine.OperationContext OperationContext,
+        Core.Abstractions.IEngineContext Context,
+        Core.Abstractions.IOperationContext OperationContext,
         System.Threading.CancellationToken cancellationToken = default(CancellationToken)
     ) {
         // Keep the incoming operation metadata raw so nested on-success operations are
@@ -89,7 +87,7 @@ public sealed class Single {
                             throw new KeyNotFoundException($"Unknown game '{currentGame}'.");
                         }
 
-                        IScriptAction? action = this._scriptActionDispatcher.TryCreateExternal(
+                        Core.Abstractions.IScriptAction? action = this._scriptActionDispatcher.TryCreateExternal(
                             scriptType: scriptType,
                             scriptPath: scriptPath,
                             gameRoot: gameInfo.GameRoot,

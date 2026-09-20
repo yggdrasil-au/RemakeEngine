@@ -10,7 +10,7 @@ namespace EngineNet.Core.Utils.GameRegistry;
 /// The class is designed to allow dynamic refreshing of the modules registry at runtime, while the games registry is read from disk on each access to ensure it reflects the current state of installed/downloaded games without requiring manual refreshing.
 /// This design allows for flexible and up-to-date access to game and module information for use in various engine functionalities such as game launching, operations execution, and UI display.
 /// </summary>
-internal sealed class Registries {
+public sealed class Registries {
 
     private readonly string _gamesRegistryPath;
     private readonly string _modulesRegistryPath;
@@ -26,7 +26,7 @@ internal sealed class Registries {
     /// creates and initializes a new instance of the <see cref="Registries"/> class, ensuring that the modules registry file is present and loaded.
     /// </summary>
     /// <returns></returns>
-    internal static async Task<Registries> CreateAsync() {
+    public static async Task<Registries> CreateAsync() {
         string Module_registry = System.IO.Path.Combine(path1: "EngineApps", path2: "Registries", path3: "Modules", path4: "Main.json");
 
         // Preferred locations (relative to working root)

@@ -44,7 +44,7 @@ internal static class PyAction {
     /// <param name="scriptPath"></param>
     internal static void SetupCoreFunctions(
         PyWorld world,
-        Core.ExternalTools.JsonToolResolver tools,
+        Core.Abstractions.IJsonToolResolver tools,
         string[] args,
         string gameRoot,
         string projectRoot,

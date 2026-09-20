@@ -3,13 +3,13 @@ using EngineNet.Shared.IO.UI;
 
 namespace EngineNet.Core.ExternalTools;
 
-internal static class ToolsDownloader {
+public static class ToolsDownloader {
 
     private sealed class DownloadProgressState {
         internal long Processed;
     }
 
-    internal static async Task<bool> ProcessAsync(
+    public static async Task<bool> ProcessAsync(
         string moduleTomlPath,
         string rootPath,
         bool force,

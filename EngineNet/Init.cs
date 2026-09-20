@@ -7,6 +7,7 @@ using Core.Data;
 using Core.ExternalTools;
 using Core.Services;
 using Core.Utils;
+using EngineNet.Core.Engine;
 
 internal static class Init {
     /// <summary>
@@ -21,15 +22,15 @@ internal static class Init {
         JsonToolResolver tools = new();
         EngineConfig engineConfig = new();
 
-        Registries _registries = await Core.Utils.Registries.CreateAsync();
+        Core.Utils.GameRegistry.Registries _registries = await Core.Utils.GameRegistry.Registries.CreateAsync();
         ModuleScanner _scanner = new(registries: _registries);
 
-        GameRegistry gameRegistry = new(registries: _registries, scanner: _scanner);
+        Core.Utils.GameRegistry.GameRegistry gameRegistry = new(registries: _registries, scanner: _scanner);
 
-        CommandService _commandService = new();
+        Core.Services.CommandService.CommandService _commandService = new();
         GameLauncher _gameLauncher = new(gameRegistry: gameRegistry, toolResolver: tools, config: engineConfig, commandService: _commandService, scriptActionDispatcher: scriptActionDispatcher);
-        OperationsLoader _opsLoader = new();
-        OperationsService _operationsService = new(loader: _opsLoader, gameRegistry: gameRegistry);
+        Core.Services.OperationsService.OperationsLoader _opsLoader = new();
+        Core.Services.OperationsService.OperationsService _operationsService = new(loader: _opsLoader, gameRegistry: gameRegistry);
 
         Core.Operations.Single Single = new(scriptActionDispatcher: scriptActionDispatcher);
 

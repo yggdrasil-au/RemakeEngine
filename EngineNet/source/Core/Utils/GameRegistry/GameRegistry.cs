@@ -6,7 +6,7 @@ namespace EngineNet.Core.Utils.GameRegistry;
 /// Provides a registry for discovering and managing game information within the engine.
 /// This class is responsible for locating game modules, built games, and their associated files.
 /// </summary>
-public sealed class GameRegistry {
+public sealed class GameRegistry : Core.Abstractions.IGameRegistry {
     private readonly Core.Utils.ModuleScanner _scanner;
     private readonly Core.Utils.GameRegistry.Registries _registries;
     private readonly string _rootPath = EngineNet.Shared.State.RootPath;
@@ -14,7 +14,7 @@ public sealed class GameRegistry {
     /// <summary>
     /// Initializes a new instance of the <see cref="GameRegistry"/> class.
     /// </summary>
-    internal GameRegistry(Core.Utils.GameRegistry.Registries registries, Core.Utils.ModuleScanner scanner) {
+    public GameRegistry(Core.Utils.GameRegistry.Registries registries, Core.Utils.ModuleScanner scanner) {
         _registries = registries;
         _scanner = scanner;
     }
@@ -28,7 +28,7 @@ public sealed class GameRegistry {
     /// </summary>
     /// <param name="name">The name of the game.</param>
     /// <returns>The full path to the game's executable if found; otherwise, null.</returns>
-    internal string? GetGameExecutable(string name) {
+    public string? GetGameExecutable(string name) {
         return _registries.DiscoverBuiltGames().TryGetValue(key: name, out GameInfo? gi) ? gi.ExePath : null;
     }
 

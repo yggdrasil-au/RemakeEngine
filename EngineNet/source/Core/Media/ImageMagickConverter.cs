@@ -5,6 +5,7 @@ using EngineNet.Shared.IO.UI;
 namespace EngineNet.Core.Media;
 
 using System.Collections.Concurrent;
+using Abstractions;
 using Utils;
 
 /// <summary>
@@ -28,7 +29,7 @@ using Utils;
 ///   --no-auto-orient       disable auto-orient
 ///   --arg VALUE            Raw arg to pass to ImageMagick; can repeat
 /// </summary>
-internal static class ImageMagickConverter {
+public static class ImageMagickConverter {
     private const string ToolMagick = "magick";
     private const string ImageMagickName = "ImageMagick";
 
@@ -58,7 +59,7 @@ internal static class ImageMagickConverter {
         internal readonly List<string> ExtraArgs = new();
     }
 
-    internal static bool Run(EngineNet.Core.ExternalTools.JsonToolResolver toolResolver, IList<string> args, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
+    public static bool Run(IJsonToolResolver toolResolver, IList<string> args, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         try {
             Options opt = Parse(argv: args);
 

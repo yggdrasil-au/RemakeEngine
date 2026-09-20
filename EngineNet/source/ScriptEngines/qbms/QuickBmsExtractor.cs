@@ -104,7 +104,7 @@ internal static class QuickBmsExtractor {
 
                 RegisterActive(tool: "quickbms", srcPath: file);
                 try {
-                    Core.ProcessRunner runner = new();
+                    Core.Services.CommandService.ProcessRunner runner = new();
 
                     List<string> command = new()
                     {

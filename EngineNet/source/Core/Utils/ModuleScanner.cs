@@ -7,11 +7,11 @@ namespace EngineNet.Core.Utils;
 /// <summary>
 /// Scans registry and file system to produce a consistent view of modules with status flags.
 /// </summary>
-internal sealed class ModuleScanner {
+public sealed class ModuleScanner {
 
     private readonly Core.Utils.GameRegistry.Registries _registries;
 
-    internal ModuleScanner(Core.Utils.GameRegistry.Registries registries) {
+    public ModuleScanner(Core.Utils.GameRegistry.Registries registries) {
         _registries = registries;
     }
 

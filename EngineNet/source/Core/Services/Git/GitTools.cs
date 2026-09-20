@@ -1,10 +1,12 @@
 
 namespace EngineNet.Core.Services.Git;
 
+using Abstractions;
+
 /// <summary>
 /// Lightweight Git helper to clone game modules into the local registry.
 /// </summary>
-internal static class GitTools {
+public static class GitTools {
 
     /* :: :: Constructor, Var :: START :: */
     private static readonly string _gamesDir = System.IO.Path.Combine(path1: EngineNet.Shared.State.RootPath, path2: "EngineApps", path3: "Games");
@@ -12,7 +14,7 @@ internal static class GitTools {
     /* :: :: Constructor, Var :: END :: */
     //
     /* :: :: Methods ::  :: */
-    internal static bool CloneModule(string url, Core.Services.CommandService.CommandService commandService) {
+    public static bool CloneModule(string url, ICommandService commandService) {
         if (string.IsNullOrWhiteSpace(url)) {
             return false;
         }
@@ -91,9 +93,9 @@ internal static class GitTools {
         }
     }
 
-    private static bool IsGitInstalled(Core.Services.CommandService.CommandService commandService) {
+    public static bool IsGitInstalled(ICommandService commandService) {
         try {
-            Core.Services.ProcessResult result = commandService.RunProcess(
+            Core.Abstractions.ProcessResult result = commandService.RunProcess(
                 executable: "git",
                 args: new[] { "--version" },
                 cwd: null,
@@ -115,7 +117,7 @@ internal static class GitTools {
         }
     }
 
-    private static string GuessRepoName(string url) {
+    public static string GuessRepoName(string url) {
         try {
             System.Uri uri = new(uriString: url);
             string leaf = System.IO.Path.GetFileName(path: uri.AbsolutePath);

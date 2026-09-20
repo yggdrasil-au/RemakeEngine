@@ -3,10 +3,12 @@ using EngineNet.Core.Data;
 
 namespace EngineNet.Core.Services.OperationsService;
 
+using Abstractions;
+
 /// <summary>
 /// Provides shared operations loading, validation, and prompt-flow logic for all interfaces.
 /// </summary>
-public sealed class OperationsService {
+public sealed class OperationsService : Core.Abstractions.IOperationsService {
 
     /* :: :: Vars :: START :: */
     private readonly OperationsLoader _loader;
@@ -190,6 +192,8 @@ public sealed class OperationsService {
         return result;
     }
 
+
+
     /// <summary>
     /// Resolves a consistent display name for an operation using common keys.
     /// </summary>
@@ -226,7 +230,7 @@ public sealed class OperationsService {
     public async Task<bool> CollectAnswersAsync(
         Dictionary<string, object?> op,
         PromptAnswers answers,
-        PromptHandler promptHandler,
+        IOperationsService.PromptHandler promptHandler,
         bool defaultsOnly = false,
         CancellationToken cancellationToken = default(CancellationToken)
     ) {
@@ -462,11 +466,6 @@ public sealed class OperationsService {
     /* :: :: Helpers :: END :: */
     // //
     /* :: :: Nested Types :: START :: */
-
-    /// <summary>
-    /// UI prompt callback signature.
-    /// </summary>
-    public delegate Task<PromptResponse> PromptHandler(PromptRequest request, CancellationToken cancellationToken);
 
     /* :: :: Nested Types :: END :: */
     // //

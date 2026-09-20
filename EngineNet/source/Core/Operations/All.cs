@@ -28,11 +28,11 @@ public sealed class All {
     /// <exception cref="System.Exception"></exception>
     public static async System.Threading.Tasks.Task<RunAllResult> RunAsync(
         string gameName,
-        Core.Engine.EngineContext Context,
-        Core.Engine.OperationContext OperationContext,
-        Core.ProcessRunner.OutputHandler? onOutput = null,
-        Core.ProcessRunner.EventHandler? onEvent = null,
-        Core.ProcessRunner.StdinProvider? stdinProvider = null,
+        Core.Abstractions.IEngineContext Context,
+        Core.Abstractions.IOperationContext OperationContext,
+        Core.Abstractions.IProcessRunner.OutputHandler? onOutput = null,
+        Core.Abstractions.IProcessRunner.EventHandler? onEvent = null,
+        Core.Abstractions.IProcessRunner.StdinProvider? stdinProvider = null,
         System.Threading.CancellationToken cancellationToken = default(CancellationToken)
     ) {
 
@@ -211,7 +211,7 @@ public sealed class All {
     /// <param name="evt"></param>
     /// <param name="game"></param>
     /// <param name="extras"></param>
-    private static void EmitSequenceEvent(Core.ProcessRunner.EventHandler? sink, string evt, string game, IDictionary<string, object?>? extras = null) {
+    private static void EmitSequenceEvent(Core.Abstractions.IProcessRunner.EventHandler? sink, string evt, string game, IDictionary<string, object?>? extras = null) {
         if (sink is null) {
             return;
         }
@@ -234,8 +234,8 @@ public sealed class All {
     /// Text reader that redirects stdin from a provider.
     /// </summary>
     private sealed class StdinRedirectReader:System.IO.TextReader {
-        private readonly Core.ProcessRunner.StdinProvider _provider;
-        internal StdinRedirectReader(Core.ProcessRunner.StdinProvider provider) => _provider = provider;
+        private readonly Core.Abstractions.IProcessRunner.StdinProvider _provider;
+        internal StdinRedirectReader(Core.Abstractions.IProcessRunner.StdinProvider provider) => _provider = provider;
         public override string? ReadLine() => _provider();
     }
 

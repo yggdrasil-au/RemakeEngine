@@ -1,3 +1,6 @@
+using System.Collections.Concurrent;
+using EngineNet.Core.Utils;
+
 namespace EngineNet.Core.Services.CommandService;
 
 /// <summary>
@@ -6,22 +9,7 @@ namespace EngineNet.Core.Services.CommandService;
 /// are parsed as JSON event payloads and forwarded to <c>onEvent</c>.
 /// Supports interactive prompts by invoking <c>stdinProvider</c> when a prompt event is received.
 /// </summary>
-public sealed partial class ProcessRunner {
-    /// <summary>
-    /// Callback to receive a single line of output from the child process.
-    /// </summary>
-    /// <param name="line">Text of the line.</param>
-    /// <param name="streamName">"stdout" or "stderr".</param>
-    public delegate void OutputHandler(string line, string streamName);
-    /// <summary>
-    /// Callback to receive a structured engine event decoded from the child output.
-    /// </summary>
-    public delegate void EventHandler(Dictionary<string, object?> evt);
-    /// <summary>
-    /// Provider used to gather user input when a prompt event is seen.
-    /// Return value is written to the child's stdin with a trailing newline.
-    /// </summary>
-    public delegate string? StdinProvider();
+public sealed partial class ProcessRunner : Core.Abstractions.IProcessRunner {
 
     /// <summary>
     /// Execute a command line and stream output until completion or cancellation.
@@ -37,9 +25,9 @@ public sealed partial class ProcessRunner {
     public bool Execute(
         IList<string> commandParts,
         string opTitle,
-        OutputHandler? onOutput = null,
-        EventHandler? onEvent = null,
-        StdinProvider? stdinProvider = null,
+        Core.Abstractions.IProcessRunner.OutputHandler? onOutput = null,
+        Core.Abstractions.IProcessRunner.EventHandler? onEvent = null,
+        Core.Abstractions.IProcessRunner.StdinProvider? stdinProvider = null,
         IDictionary<string, object?>? envOverrides = null,
         System.Threading.CancellationToken cancellationToken = default(CancellationToken)
     ) {
@@ -170,7 +158,7 @@ public sealed partial class ProcessRunner {
                 if (cancellationToken.IsCancellationRequested) {
                     TryTerminate(proc: proc);
                     onEvent?.Invoke(evt: new Dictionary<string, object?>
-                        { [key: "event"] = EngineSdk.Events.End, [key: "success"] = false, [key: "exit_code"] = 130 });
+                        { [key: "event"] = Shared.IO.UI.EngineSdk.Events.End, [key: "success"] = false, [key: "exit_code"] = 130 });
                     return false;
                 }
 
@@ -217,30 +205,30 @@ public sealed partial class ProcessRunner {
             int rc = proc.ExitCode;
             bool success = rc == 0;
             onEvent?.Invoke(
-                evt: new Dictionary<string, object?> { [key: "event"] = EngineSdk.Events.End, [key: "success"] = success, [key: "exit_code"] = rc });
+                evt: new Dictionary<string, object?> { [key: "event"] = Shared.IO.UI.EngineSdk.Events.End, [key: "success"] = success, [key: "exit_code"] = rc });
             return success;
         } catch (System.OperationCanceledException ex) {
             Shared.IO.Diagnostics.Bug("Operation cancelled: " + ex.Message);
             TryTerminate(proc: proc);
             onEvent?.Invoke(evt: new Dictionary<string, object?>
-                { [key: "event"] = EngineSdk.Events.End, [key: "success"] = false, [key: "exit_code"] = 130 });
+                { [key: "event"] = Shared.IO.UI.EngineSdk.Events.End, [key: "success"] = false, [key: "exit_code"] = 130 });
             return false;
         } catch (System.IO.FileNotFoundException ex) {
             Shared.IO.Diagnostics.Bug("Command or script not found: " + ex.Message);
             onEvent?.Invoke(evt: new Dictionary<string, object?>
-                { [key: "event"] = EngineSdk.Events.Error, [key: "kind"] = "FileNotFoundError", [key: "message"] = "Command or script not found." });
+                { [key: "event"] = Shared.IO.UI.EngineSdk.Events.Error, [key: "kind"] = "FileNotFoundError", [key: "message"] = "Command or script not found." });
             return false;
         } catch (System.ComponentModel.Win32Exception ex) {
             // Catches OS-level process failures (e.g., Access Denied, bad executable format)
             Shared.IO.Diagnostics.Bug("OS error starting or running process: " + ex.Message);
             onEvent?.Invoke(evt: new Dictionary<string, object?>
-                { [key: "event"] = EngineSdk.Events.Error, [key: "kind"] = "Win32Exception", [key: "message"] = ex.Message });
+                { [key: "event"] = Shared.IO.UI.EngineSdk.Events.Error, [key: "kind"] = "Win32Exception", [key: "message"] = ex.Message });
             return false;
         } catch (System.InvalidOperationException ex) {
             // Catches bad process state operations (e.g., trying to read ExitCode before it exits, though HasExited check mitigates this)
             Shared.IO.Diagnostics.Bug("Invalid process state: " + ex.Message);
             onEvent?.Invoke(evt: new Dictionary<string, object?>
-                { [key: "event"] = EngineSdk.Events.Error, [key: "kind"] = "InvalidOperation", [key: "message"] = ex.Message });
+                { [key: "event"] = Shared.IO.UI.EngineSdk.Events.Error, [key: "kind"] = "InvalidOperation", [key: "message"] = ex.Message });
             return false;
         } finally {
             System.Threading.Volatile.Write(location: ref isQueueOpen, false);

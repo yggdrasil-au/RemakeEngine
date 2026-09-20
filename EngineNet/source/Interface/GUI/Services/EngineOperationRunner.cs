@@ -20,7 +20,7 @@ public static class EngineOperationRunner {
     public static async Task<TResult> RunAsync<TResult>(
         string moduleName,
         string operationName,
-        System.Func<Core.ProcessRunner.OutputHandler, Core.ProcessRunner.EventHandler, Core.ProcessRunner.StdinProvider, Task<TResult>> executor,
+        System.Func<Core.Abstractions.IProcessRunner.OutputHandler, Core.Abstractions.IProcessRunner.EventHandler, Core.Abstractions.IProcessRunner.StdinProvider, Task<TResult>> executor,
         IDictionary<string, string>? autoPromptResponses = null
     ) {
 
@@ -53,14 +53,14 @@ public static class EngineOperationRunner {
             }
         }
 
-        Core.ProcessRunner.EventHandler eventHandler = evt => {
+        Core.Abstractions.IProcessRunner.EventHandler eventHandler = evt => {
             CapturePrompt(evt: evt);
             outputService.HandleEvent(evt: evt);
         };
 
-        Core.ProcessRunner.OutputHandler outputHandler = (string line, string stream) => outputService.AddOutput(text: line, stream: stream);
+        Core.Abstractions.IProcessRunner.OutputHandler outputHandler = (string line, string stream) => outputService.AddOutput(text: line, stream: stream);
 
-        Core.ProcessRunner.StdinProvider stdinProvider = () => {
+        Core.Abstractions.IProcessRunner.StdinProvider stdinProvider = () => {
             string? promptMessage;
             string? promptId;
             bool promptSecret;

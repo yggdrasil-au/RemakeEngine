@@ -149,5 +149,8 @@
     },
     "Lua.workspace.checkThirdParty": "true",
     "explorerExcludeManager.backup": {},
+    "dotrush.roslyn.projectOrSolutionFiles": [
+        "a:\\RemakeEngine\\Main\\RemakeEngine.slnx"
+    ],
 }
 

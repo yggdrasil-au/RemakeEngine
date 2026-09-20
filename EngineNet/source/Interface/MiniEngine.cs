@@ -76,14 +76,14 @@ public sealed class MiniEngine(Core.Engine.IEngineFace Engine) : MiniEngineFace 
         return Engine.Context.CommandService.BuildCommand(currentGame: currentGame, games: games, engineData: engineData, op: op, promptAnswers: promptAnswers);
     }
 
-    public bool CommandService_ExecuteCommand(IList<string> commandParts, string title, Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, IDictionary<string, object?>? envOverrides = null, CancellationToken cancellationToken = default(CancellationToken)) {
+    public bool CommandService_ExecuteCommand(IList<string> commandParts, string title, Core.Abstractions.IProcessRunner.OutputHandler? onOutput = null, Core.Abstractions.IProcessRunner.EventHandler? onEvent = null, Core.Abstractions.IProcessRunner.StdinProvider? stdinProvider = null, IDictionary<string, object?>? envOverrides = null, CancellationToken cancellationToken = default(CancellationToken)) {
         return Engine.Context.CommandService.ExecuteCommand(commandParts: commandParts, title: title, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, envOverrides: envOverrides, cancellationToken: cancellationToken);
     }
 
     public async Task<bool> OperationsService_CollectAnswersAsync(
         Dictionary<string, object?> op,
         Core.Data.PromptAnswers answers,
-        Core.Services.OperationsService.PromptHandler promptHandler,
+        Core.Abstractions.IOperationsService.PromptHandler promptHandler,
         bool defaultsOnly = false,
         CancellationToken cancellationToken = default(CancellationToken)
     ) {
@@ -96,9 +96,9 @@ public sealed class MiniEngine(Core.Engine.IEngineFace Engine) : MiniEngineFace 
 
     public async System.Threading.Tasks.Task<Core.Operations.RunAllResult> RunAllAsync(
         string gameName,
-        Core.ProcessRunner.OutputHandler? onOutput = null,
-        Core.ProcessRunner.EventHandler? onEvent = null,
-        Core.ProcessRunner.StdinProvider? stdinProvider = null,
+        Core.Abstractions.IProcessRunner.OutputHandler? onOutput = null,
+        Core.Abstractions.IProcessRunner.EventHandler? onEvent = null,
+        Core.Abstractions.IProcessRunner.StdinProvider? stdinProvider = null,
         System.Threading.CancellationToken cancellationToken = default(CancellationToken)
     ) {
         return await EngineNet.Core.Operations.All.RunAsync(gameName: gameName, Context: Engine.Context, OperationContext: Engine.OperationContext, onOutput: onOutput, onEvent: onEvent, stdinProvider: stdinProvider, cancellationToken: cancellationToken);
@@ -109,7 +109,6 @@ public sealed class MiniEngine(Core.Engine.IEngineFace Engine) : MiniEngineFace 
     }
 
 }
-
 
 public interface MiniEngineFace {
     public Core.Data.GameModules GameRegistry_GetModules(Core.Data.ModuleFilter filter);
@@ -159,28 +158,36 @@ public interface MiniEngineFace {
         System.Threading.CancellationToken cancellationToken = default(CancellationToken)
     );
 
-    public List<string> CommandService_BuildCommand(string currentGame, Core.Data.GameModules games, IDictionary<string, object?> engineData, IDictionary<string, object?> op, Core.Data.PromptAnswers promptAnswers);
+    public List<string> CommandService_BuildCommand(string currentGame, Core.Data.GameModules games,
+        IDictionary<string, object?> engineData, IDictionary<string, object?> op,
+        Core.Data.PromptAnswers promptAnswers);
 
-    public bool CommandService_ExecuteCommand(IList<string> commandParts, string title, Core.ProcessRunner.OutputHandler? onOutput = null, Core.ProcessRunner.EventHandler? onEvent = null, Core.ProcessRunner.StdinProvider? stdinProvider = null, IDictionary<string, object?>? envOverrides = null, CancellationToken cancellationToken = default(CancellationToken));
+    public bool CommandService_ExecuteCommand(IList<string> commandParts, string title,
+        Core.Abstractions.IProcessRunner.OutputHandler? onOutput = null,
+        Core.Abstractions.IProcessRunner.EventHandler? onEvent = null,
+        Core.Abstractions.IProcessRunner.StdinProvider? stdinProvider = null,
+        IDictionary<string, object?>? envOverrides = null,
+        CancellationToken cancellationToken = default(CancellationToken));
 
     public Task<bool> OperationsService_CollectAnswersAsync(
         Dictionary<string, object?> op,
         Core.Data.PromptAnswers answers,
-        Core.Services.OperationsService.PromptHandler promptHandler,
+        Core.Abstractions.IOperationsService.PromptHandler promptHandler,
         bool defaultsOnly = false,
         CancellationToken cancellationToken = default(CancellationToken)
     );
 
-    public Task<bool> GameLauncher_LaunchGameAsync(string name, CancellationToken cancellationToken = default(CancellationToken));
+    public Task<bool> GameLauncher_LaunchGameAsync(string name,
+        CancellationToken cancellationToken = default(CancellationToken));
 
     public Task<Core.Operations.RunAllResult> RunAllAsync(
         string gameName,
-        Core.ProcessRunner.OutputHandler? onOutput = null,
-        Core.ProcessRunner.EventHandler? onEvent = null,
-        Core.ProcessRunner.StdinProvider? stdinProvider = null,
+        Core.Abstractions.IProcessRunner.OutputHandler? onOutput = null,
+        Core.Abstractions.IProcessRunner.EventHandler? onEvent = null,
+        Core.Abstractions.IProcessRunner.StdinProvider? stdinProvider = null,
         System.Threading.CancellationToken cancellationToken = default(CancellationToken)
     );
 
     public void CommandService_OpenFolder(string path);
-
 }
+

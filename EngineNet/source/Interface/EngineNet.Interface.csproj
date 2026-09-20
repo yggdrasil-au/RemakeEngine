@@ -23,6 +23,8 @@
         <ProjectReference Include="..\Core\EngineNet.Core.csproj" />
         <ProjectReference Include="..\Core\Data\EngineNet.Core.Data.csproj" />
         <ProjectReference Include="..\Core\Engine\EngineNet.Core.Engine.csproj" />
+        <ProjectReference Include="..\Core\Abstractions\EngineNet.Core.Abstractions.csproj" />
+        <ProjectReference Include="..\Core\Operations\EngineNet.Core.Operations.csproj" />
     </ItemGroup>
 
     <PropertyGroup>

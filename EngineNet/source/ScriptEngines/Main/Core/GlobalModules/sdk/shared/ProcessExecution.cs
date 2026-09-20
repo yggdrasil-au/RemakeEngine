@@ -55,7 +55,7 @@ internal static class ProcessExecution {
         return true;
     }
 
-    internal static DynValue RunProcess(Script lua, CommandService cs, Table commandArgs, Table? options) {
+    internal static DynValue RunProcess(Script lua, ICommandService cs, Table commandArgs, Table? options) {
         List<string> arguments = Lua.Globals.Utils.TableToStringList(t: commandArgs);
         if (arguments.Count == 0) throw new ScriptRuntimeException("run_process requires at least one argument");
 
@@ -100,7 +100,7 @@ internal static class ProcessExecution {
         }
     }
 
-    internal static DynValue ExecProcess(Script lua, CommandService cs, Table commandArgs, Table? options, bool silentRun) {
+    internal static DynValue ExecProcess(Script lua, ICommandService cs, Table commandArgs, Table? options, bool silentRun) {
         List<string> parts = Lua.Globals.Utils.TableToStringList(t: commandArgs);
         if (parts.Count == 0) throw new ScriptRuntimeException("exec requires at least one argument");
 
@@ -138,7 +138,7 @@ internal static class ProcessExecution {
         return ExecInCurrentTerminal(lua: lua, cs: cs, parts: parts, cwd: cwd, env: env, silentRun: silentRun);
     }
 
-    internal static DynValue SpawnProcess(Script lua, CommandService cs, Table commandArgs, Table? options, Core.ExternalTools.JsonToolResolver tools) {
+    internal static DynValue SpawnProcess(Script lua, ICommandService cs, Table commandArgs, Table? options, Core.Abstractions.IJsonToolResolver tools) {
         List<string> parts = Lua.Globals.Utils.TableToStringList(t: commandArgs);
         if (parts.Count == 0) throw new ScriptRuntimeException("spawn_process requires executable");
         if (!EngineNet.ScriptEngines.Security.IsApprovedExecutable(executable: parts[index: 0], tools: tools)) throw new ScriptRuntimeException("Not approved");
@@ -178,9 +178,9 @@ internal static class ProcessExecution {
         }
     }
 
-    internal static DynValue PollProcess(Script lua, CommandService cs, int pid) {
+    internal static DynValue PollProcess(Script lua, ICommandService cs, int pid) {
         try {
-            ProcessPollResult res = cs.PollProcess(pid: pid);
+            Core.Abstractions.ProcessPollResult res = cs.PollProcess(pid: pid);
             Table t = new(owner: lua) {
                 [key: "running"] = res.Running,
             };
@@ -195,11 +195,11 @@ internal static class ProcessExecution {
         }
     }
 
-    internal static DynValue WaitProcess(Script lua, CommandService cs, int pid, int? timeoutMs) {
+    internal static DynValue WaitProcess(Script lua, ICommandService cs, int pid, int? timeoutMs) {
         try {
             // Keep parity with previous behavior: wait_process acted as a status check.
             _ = timeoutMs;
-            ProcessPollResult res = cs.PollProcess(pid: pid);
+            Core.Abstractions.ProcessPollResult res = cs.PollProcess(pid: pid);
             Table t = new(owner: lua) {
                 [key: "running"] = res.Running,
             };
@@ -214,11 +214,11 @@ internal static class ProcessExecution {
         }
     }
 
-    internal static DynValue CloseProcess(Script lua, CommandService cs, int pid) {
+    internal static DynValue CloseProcess(Script lua, ICommandService cs, int pid) {
         return DynValue.NewBoolean(v: cs.CloseProcess(pid: pid));
     }
 
-    private static DynValue HandleNewTerminalExecution(Script lua, CommandService cs, List<string> parts, string? cwd, Dictionary<string, string> env, bool keepOpen, bool wait, bool silentRun) {
+    private static DynValue HandleNewTerminalExecution(Script lua, ICommandService cs, List<string> parts, string? cwd, Dictionary<string, string> env, bool keepOpen, bool wait, bool silentRun) {
         try {
             // Parity fallback: when no terminal emulator is available on Unix-like systems,
             // execute in the current terminal path instead of failing.
@@ -247,7 +247,7 @@ internal static class ProcessExecution {
     /// <param name="env">Environment variables to set for the command execution.</param>
     /// <param name="silentRun">If true, suppresses output to the terminal.</param>
     /// <returns>A DynValue representing the result of the command execution, including success status and exit code.</returns>
-    private static DynValue ExecInCurrentTerminal(Script lua, CommandService cs, List<string> parts, string? cwd, Dictionary<string, string> env, bool silentRun) {
+    private static DynValue ExecInCurrentTerminal(Script lua, ICommandService cs, List<string> parts, string? cwd, Dictionary<string, string> env, bool silentRun) {
         try {
             Dictionary<string, object?> envObj = env.ToDictionary(keySelector: k => k.Key, elementSelector: v => (object?)v.Value);
             if (!string.IsNullOrEmpty(cwd)) {

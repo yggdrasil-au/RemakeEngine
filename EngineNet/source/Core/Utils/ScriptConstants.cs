@@ -38,7 +38,7 @@ public static class ScriptConstants {
     /// </summary>
     /// <param name="script_type"></param>
     /// <returns></returns>
-    internal static bool IsEmbedded(string? script_type) {
+    public static bool IsEmbedded(string? script_type) {
         return !string.IsNullOrWhiteSpace(script_type) && _embeddedTypes.Contains(item: script_type);
     }
 
@@ -47,12 +47,12 @@ public static class ScriptConstants {
     /// </summary>
     /// <param name="script_type"></param>
     /// <returns></returns>
-    internal static bool IsExternal(string? script_type) {
+    public static bool IsExternal(string? script_type) {
         return !string.IsNullOrWhiteSpace(script_type) && _externalTypes.Contains(item: script_type);
     }
 
     // is BuiltInOperation, internal or engine
-    internal static bool IsBuiltIn(string? script_type) {
+    public static bool IsBuiltIn(string? script_type) {
         return !string.IsNullOrWhiteSpace(script_type) && _internalTypes.Contains(item: script_type);
     }
 
