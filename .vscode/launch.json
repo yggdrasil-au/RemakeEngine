@@ -6,11 +6,24 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "Build RemakeEngine solution",
-            // Point directly to the DLL found in your build logs
-            "program": "${workspaceFolder}/EngineNet/bin/Debug/net10.0/EngineNet.dll",
+
+            "program": "${workspaceFolder}/EngineNet/.build/EngineNet/bin/Debug/net10.0/win-x64/EngineNet.exe",
             "args": ["--tui"],
             "cwd": "${workspaceFolder}/EngineNet",
-            // THIS is the key fix for Console.Clear() and TUI apps
+
+            "console": "integratedTerminal",
+            "stopAtEntry": false
+        },
+        {
+            "name": "C#: EngineNet CLI, Run Demo lua script",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Build RemakeEngine solution",
+
+            "program": "${workspaceFolder}/EngineNet/.build/EngineNet/bin/Debug/net10.0/win-x64/EngineNet.dll",
+            "args": ["--game_module", "demo", "--run_op", "1"],
+            "cwd": "${workspaceFolder}/EngineNet",
+
             "console": "integratedTerminal",
             "stopAtEntry": false
         }
