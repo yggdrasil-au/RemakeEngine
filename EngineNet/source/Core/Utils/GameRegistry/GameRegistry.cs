@@ -1,6 +1,6 @@
 using EngineNet.Core.Data;
 
-namespace EngineNet.Core.Services;
+namespace EngineNet.Core.Utils.GameRegistry;
 
 /// <summary>
 /// Provides a registry for discovering and managing game information within the engine.
@@ -8,13 +8,13 @@ namespace EngineNet.Core.Services;
 /// </summary>
 public sealed class GameRegistry {
     private readonly Core.Utils.ModuleScanner _scanner;
-    private readonly Core.Utils.Registries _registries;
+    private readonly Core.Utils.GameRegistry.Registries _registries;
     private readonly string _rootPath = EngineNet.Shared.State.RootPath;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GameRegistry"/> class.
     /// </summary>
-    internal GameRegistry(Core.Utils.Registries registries, Core.Utils.ModuleScanner scanner) {
+    internal GameRegistry(Core.Utils.GameRegistry.Registries registries, Core.Utils.ModuleScanner scanner) {
         _registries = registries;
         _scanner = scanner;
     }

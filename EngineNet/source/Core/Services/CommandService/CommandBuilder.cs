@@ -1,4 +1,4 @@
-namespace EngineNet.Core.Utils;
+namespace EngineNet.Core.Services.CommandService;
 
 /// <summary>
 /// Constructs command-line invocations from an operation definition and context.

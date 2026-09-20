@@ -1,5 +1,5 @@
 
-namespace EngineNet.Core.Services;
+namespace EngineNet.Core.Services.OperationsService;
 
 public sealed class OperationsLoader {
 

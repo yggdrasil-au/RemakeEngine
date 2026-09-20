@@ -11,11 +11,11 @@ public sealed class GameModuleInfo {
     public required string ExePath { get; set; }
     public required string Title { get; set; }
     public required string Url { get; set; }
-    public bool IsRegistered { get; internal init; }
-    public bool IsInstalled { get; internal set; }
-    public bool IsBuilt { get; internal set; }
-    public bool IsUnverified { get; internal set; }
-    internal bool IsInternal { get; init; }
+    public bool IsRegistered { get; init; }
+    public bool IsInstalled { get; set; }
+    public bool IsBuilt { get; set; }
+    public bool IsUnverified { get; set; }
+    public bool IsInternal { get; init; }
 
     public string DescribeState() {
         if (this.IsInternal) return "internal";
@@ -37,7 +37,7 @@ public sealed class GameModuleInfo {
 public sealed class GameModules : Dictionary<string, GameModuleInfo> {
     // Default constructor now automatically handles the Case-Insensitivity
     // used in moduleScanner
-    internal GameModules() : base(comparer: StringComparer.OrdinalIgnoreCase) { }
+    public GameModules() : base(comparer: StringComparer.OrdinalIgnoreCase) { }
 
     // Allow passing an existing collection, used in TUI
     public GameModules(IDictionary<string, GameModuleInfo> dictionary) : base(dictionary: dictionary, comparer: StringComparer.OrdinalIgnoreCase) { }

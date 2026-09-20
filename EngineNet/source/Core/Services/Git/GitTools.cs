@@ -1,5 +1,5 @@
 
-namespace EngineNet.Core.Utils;
+namespace EngineNet.Core.Services.Git;
 
 /// <summary>
 /// Lightweight Git helper to clone game modules into the local registry.
@@ -12,7 +12,7 @@ internal static class GitTools {
     /* :: :: Constructor, Var :: END :: */
     //
     /* :: :: Methods ::  :: */
-    internal static bool CloneModule(string url, Core.Services.CommandService commandService) {
+    internal static bool CloneModule(string url, Core.Services.CommandService.CommandService commandService) {
         if (string.IsNullOrWhiteSpace(url)) {
             return false;
         }
@@ -91,7 +91,7 @@ internal static class GitTools {
         }
     }
 
-    private static bool IsGitInstalled(Core.Services.CommandService commandService) {
+    private static bool IsGitInstalled(Core.Services.CommandService.CommandService commandService) {
         try {
             Core.Services.ProcessResult result = commandService.RunProcess(
                 executable: "git",

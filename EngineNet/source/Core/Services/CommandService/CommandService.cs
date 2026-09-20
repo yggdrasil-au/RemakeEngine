@@ -1,9 +1,8 @@
 using System.Collections.Concurrent;
 using System.Text;
 
-using EngineNet.Core.Utils;
 
-namespace EngineNet.Core.Services;
+namespace EngineNet.Core.Services.CommandService;
 
 public sealed class CommandService {
     private readonly CommandBuilder _builder = new();

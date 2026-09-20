@@ -23,7 +23,7 @@ internal static class LuaAction {
     internal static void CreateGlobals(
         LuaWorld _LuaWorld,
         Core.ExternalTools.JsonToolResolver _tools,
-        Core.Services.CommandService _commandService,
+        Core.Services.CommandService.CommandService _commandService,
         string[] _args,
         string _gameRoot,
         string _projectRoot,
@@ -224,7 +224,7 @@ internal static class LuaAction {
     /// <param name="_LuaWorld"></param>
     /// <param name="_tools"></param>
     /// <param name="_commandService"></param>
-    private static void CreateGlobalModules(LuaWorld _LuaWorld, Core.ExternalTools.JsonToolResolver _tools, Core.Services.CommandService _commandService) {
+    private static void CreateGlobalModules(LuaWorld _LuaWorld, Core.ExternalTools.JsonToolResolver _tools, Core.Services.CommandService.CommandService _commandService) {
         Global.Sdk.CreateSdkModule(_LuaWorld: _LuaWorld, tools: _tools, commandService: _commandService);
         Global.Sqlite.CreateSqliteModule(_LuaWorld: _LuaWorld);
         Global.Progress.CreateProgressModule(_LuaWorld: _LuaWorld);

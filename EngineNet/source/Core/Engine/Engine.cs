@@ -17,10 +17,10 @@ public sealed class Engine : IEngineFace{
     /* :: :: Vars :: End :: */
 
     public Engine(
-        Core.Services.GameRegistry gameRegistry,
+        Core.Utils.GameRegistry gameRegistry,
         Core.Services.GameLauncher gameLauncher,
         Core.Services.OperationsLoader OperationsLoader,
-        Core.Services.CommandService commandService,
+        Core.Services.CommandService.CommandService commandService,
         Core.Services.OperationsService OperationsService,
         Core.ExternalTools.JsonToolResolver toolResolver,
         Data.EngineConfig engineConfig,

@@ -6,7 +6,7 @@ namespace EngineNet.ScriptEngines.Lua.Global;
 
 internal static partial class Sdk {
 
-    internal static void AddProcessExecution(LuaWorld _LuaWorld, Core.ExternalTools.JsonToolResolver tools, Core.Services.CommandService cs) {
+    internal static void AddProcessExecution(LuaWorld _LuaWorld, Core.ExternalTools.JsonToolResolver tools, Core.Services.CommandService.CommandService cs) {
 
         _LuaWorld.Sdk.Table[key: "exec"] = DynValue.NewCallback(callBack: (ctx, args) => {
             if (args.Count < 1 || args[index: 0].Type != DataType.Table) {

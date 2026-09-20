@@ -1,4 +1,4 @@
-namespace EngineNet.Core;
+namespace EngineNet.Core.Services.CommandService;
 
 /// <summary>
 /// Executes external processes while streaming output and handling structured

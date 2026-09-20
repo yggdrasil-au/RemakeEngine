@@ -1,7 +1,7 @@
 
 using EngineNet.Core.Data;
 
-namespace EngineNet.Core.Services;
+namespace EngineNet.Core.Services.OperationsService;
 
 /// <summary>
 /// Provides shared operations loading, validation, and prompt-flow logic for all interfaces.
@@ -10,12 +10,12 @@ public sealed class OperationsService {
 
     /* :: :: Vars :: START :: */
     private readonly OperationsLoader _loader;
-    private readonly GameRegistry _gameRegistry;
+    private readonly Core.Utils.GameRegistry.GameRegistry _gameRegistry;
     /* :: :: Vars :: END :: */
     // //
     /* :: :: Constructors :: START :: */
 
-    public OperationsService(OperationsLoader loader, GameRegistry gameRegistry) {
+    public OperationsService(OperationsLoader loader, Core.Utils.GameRegistry.GameRegistry gameRegistry) {
         _loader = loader;
         _gameRegistry = gameRegistry;
     }

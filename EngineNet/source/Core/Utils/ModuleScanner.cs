@@ -9,9 +9,9 @@ namespace EngineNet.Core.Utils;
 /// </summary>
 internal sealed class ModuleScanner {
 
-    private readonly Registries _registries;
+    private readonly Core.Utils.GameRegistry.Registries _registries;
 
-    internal ModuleScanner(Registries registries) {
+    internal ModuleScanner(Core.Utils.GameRegistry.Registries registries) {
         _registries = registries;
     }
 

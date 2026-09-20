@@ -74,11 +74,11 @@ internal static class NativeMethods {
 /// <summary>
 /// A managed wrapper for a Windows Job Object to ensure child process termination.
 /// </summary>
-internal sealed class JobObject : IDisposable {
+public sealed class JobObject : IDisposable {
     private IntPtr _handle;
     private bool _disposed;
 
-    internal JobObject(string? name = null) {
+    public JobObject(string? name = null) {
         if (!OperatingSystem.IsWindows()) return;
 
         _handle = NativeMethods.CreateJobObject(lpJobAttributes: IntPtr.Zero, lpName: name);
@@ -103,12 +103,12 @@ internal sealed class JobObject : IDisposable {
         }
     }
 
-    internal bool AddProcess(Process process) {
+    public bool AddProcess(Process process) {
         if (!OperatingSystem.IsWindows() || _handle == IntPtr.Zero || process.HasExited) return false;
         return NativeMethods.AssignProcessToJobObject(hJob: _handle, hProcess: process.Handle);
     }
 
-    internal void Terminate(uint exitCode = 1) {
+    public void Terminate(uint exitCode = 1) {
         if (!OperatingSystem.IsWindows() || _handle == IntPtr.Zero) return;
         NativeMethods.TerminateJobObject(hJob: _handle, uExitCode: exitCode);
     }

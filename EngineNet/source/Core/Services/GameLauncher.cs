@@ -1,10 +1,4 @@
 
-
-using EngineNet.Core.ExternalTools;
-using EngineNet.Core.Utils;
-using EngineNet.Core.Data;
-using EngineNet.Core.Abstractions;
-
 namespace EngineNet.Core.Services;
 
 /// <summary>
@@ -13,11 +7,11 @@ namespace EngineNet.Core.Services;
 /// such as direct executables, Lua scripts, or Godot project files.
 /// </summary>
 public sealed class GameLauncher {
-    private readonly GameRegistry _gameRegistry;
+    private readonly Core.Utils.GameRegistry.GameRegistry _gameRegistry;
     private readonly ExternalTools.JsonToolResolver _toolResolver;
-    private readonly EngineConfig _config;
-    private readonly CommandService _commandService;
-    private readonly IScriptActionDispatcher _scriptActionDispatcher;
+    private readonly Core.Data.EngineConfig _config;
+    private readonly Core.Services.CommandService.CommandService _commandService;
+    private readonly Core.Abstractions.IScriptActionDispatcher _scriptActionDispatcher;
     private readonly string _rootPath = Shared.State.RootPath;
 
     /* :: :: Constructors :: START :: */
@@ -30,7 +24,7 @@ public sealed class GameLauncher {
     /// <param name="config">The global engine configuration.</param>
     /// <param name="commandService">The command service for executing processes.</param>
     /// <param name="scriptActionDispatcher">Dispatcher used to resolve embedded script actions.</param>
-    internal GameLauncher(GameRegistry gameRegistry, ExternalTools.JsonToolResolver toolResolver, EngineConfig config, CommandService commandService, IScriptActionDispatcher scriptActionDispatcher) {
+    internal GameLauncher(Core.Utils.GameRegistry.GameRegistry gameRegistry, ExternalTools.JsonToolResolver toolResolver, Core.Data.EngineConfig config, Core.Services.CommandService.CommandService commandService, Core.Abstractions.IScriptActionDispatcher scriptActionDispatcher) {
         this._gameRegistry = gameRegistry;
         this._toolResolver = toolResolver;
         this._config = config;

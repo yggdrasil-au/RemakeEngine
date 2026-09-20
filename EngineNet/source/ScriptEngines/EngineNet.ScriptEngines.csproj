@@ -57,6 +57,8 @@
     <ItemGroup>
         <ProjectReference Include="..\Core\EngineNet.Core.csproj" />
         <ProjectReference Include="..\Shared\EngineNet.Shared.csproj" />
+        <ProjectReference Include="..\Core\Data\EngineNet.Core.Data.csproj" />
+        <ProjectReference Include="..\Core\Engine\EngineNet.Core.Engine.csproj" />
     </ItemGroup>
 
     <PropertyGroup>

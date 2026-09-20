@@ -3,23 +3,23 @@ namespace EngineNet.Core.Data;
 /// <summary>
 /// discovered game/module entry in the local registry.
 /// </summary>
-internal sealed class GameInfo {
+public sealed class GameInfo {
     /// <summary>
     /// Path to the operations file (toml or json) that describes actions for this game.
     /// </summary>
-    internal string OpsFile { get; }
+    public string OpsFile { get; }
     /// <summary>
     /// Root directory of the game/module on disk.
     /// </summary>
-    internal string GameRoot { get; }
+    public string GameRoot { get; }
     /// <summary>
     /// Optional absolute path to the game's executable, if known.
     /// </summary>
-    internal string? ExePath { get; }
+    public string? ExePath { get; }
     /// <summary>
     /// Optional human-friendly title.
     /// </summary>
-    internal string? Title { get; }
+    public string? Title { get; }
 
     /// <summary>
     /// Create a new <see cref="GameInfo"/>.
@@ -28,7 +28,7 @@ internal sealed class GameInfo {
     /// <param name="gameRoot">Root directory for game assets.</param>
     /// <param name="exePath">Optional executable path.</param>
     /// <param name="title">Optional title.</param>
-    internal GameInfo(string opsFile, string gameRoot, string? exePath = null, string? title = null) {
+    public GameInfo(string opsFile, string gameRoot, string? exePath = null, string? title = null) {
         this.OpsFile = opsFile;
         this.GameRoot = gameRoot;
         this.ExePath = exePath;

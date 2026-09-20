@@ -1,6 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <!-- Default TFMs for CI and most dev machines (no Apple workloads required) -->
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <OutputType>Library</OutputType>
@@ -11,23 +10,18 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Remove="GUI\**" />
-        <Compile Remove="Terminal\**" />
-        <EmbeddedResource Remove="GUI\**" />
-        <EmbeddedResource Remove="Terminal\**" />
-        <None Remove="GUI\**" />
-        <None Remove="Terminal\**" />
+        <PackageReference Include="SharpCompress" Version="1.0.0" />
+        <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.9" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Core\EngineNet.Core.csproj" />
-        <ProjectReference Include="..\Core\Data\EngineNet.Core.Data.csproj" />
-        <ProjectReference Include="..\Core\Engine\EngineNet.Core.Engine.csproj" />
+        <ProjectReference Include="..\..\Shared\EngineNet.Shared.csproj" />
+        <ProjectReference Include="..\Utils\EngineNet.Core.Utils.csproj" />
+        <ProjectReference Include="..\ExternalTools\EngineNet.Core.ExternalTools.csproj" />
     </ItemGroup>
 
     <PropertyGroup>
         <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     </PropertyGroup>
-
 
 </Project>

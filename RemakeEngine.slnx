@@ -3,7 +3,15 @@
 
 	<Project Path="EngineNet/EngineNet.csproj" />
 
+	<!-- Core Projects -->
 	<Project Path="EngineNet/source/Core/EngineNet.Core.csproj" />
+	<Project Path="EngineNet/source/Core/Data/EngineNet.Core.Data.csproj" />
+	<Project Path="EngineNet/source/Core/Engine/EngineNet.Core.Engine.csproj" />
+	<Project Path="EngineNet/source/Core/ExternalTools/EngineNet.Core.ExternalTools.csproj" />
+	<Project Path="EngineNet/source/Core/Media/EngineNet.Core.Media.csproj" />
+	<Project Path="EngineNet/source/Core/Operations/EngineNet.Core.Operations.csproj" />
+	<Project Path="EngineNet/source/Core/Utils/EngineNet.Core.Utils.csproj" />
+
 	<Project Path="EngineNet/source/GameFormats/EngineNet.GameFormats.csproj" />
 	<Project Path="EngineNet/source/ScriptEngines/EngineNet.ScriptEngines.csproj" />
 	<Project Path="EngineNet/source/Shared/EngineNet.Shared.csproj" />

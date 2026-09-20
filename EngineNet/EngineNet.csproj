@@ -44,10 +44,10 @@
     <ItemGroup>
         <ProjectReference Include="source\Core\EngineNet.Core.csproj" />
         <ProjectReference Include="source\Shared\EngineNet.Shared.csproj" />
-        
+
         <!-- script engine used by init for gamelauncher and single operation objects -->
         <ProjectReference Include="source\ScriptEngines\EngineNet.ScriptEngines.csproj" />
-        
+
         <!-- interfaces -->
         <ProjectReference Include="source\Interface\EngineNet.Interface.csproj" />
         <ProjectReference Include="source\Interface\Terminal\EngineNet.Interface.Terminal.csproj" />

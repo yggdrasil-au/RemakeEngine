@@ -1,7 +1,7 @@
 
 using EngineNet.Core.Data;
 
-namespace EngineNet.Core.Utils;
+namespace EngineNet.Core.Utils.GameRegistry;
 
 
 /// <summary>
@@ -76,8 +76,8 @@ internal sealed class Registries {
     /// Note: This method does not validate the contents of the operations files or the presence of executable entry points - it only checks for the existence of the operations.toml or operations.json file to consider a directory as a valid game entry.
     /// </summary>
     /// <returns></returns>
-    internal Dictionary<string, GameInfo> DiscoverGames() {
-        Dictionary<string, GameInfo> games = new(comparer: System.StringComparer.OrdinalIgnoreCase);
+    internal Dictionary<string, Core.Data.GameInfo> DiscoverGames() {
+        Dictionary<string, Core.Data.GameInfo> games = new(comparer: System.StringComparer.OrdinalIgnoreCase);
         if (!System.IO.Directory.Exists(path: _gamesRegistryPath)) {
             return games;
         }
