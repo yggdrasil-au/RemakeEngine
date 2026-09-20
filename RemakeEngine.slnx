@@ -1,25 +1,26 @@
 <Solution>
+	<Project Path="EngineNetTest/EngineNetTest.csproj" />
+
 	<Project Path="EngineNet/EngineNet.csproj" />
 
 	<!-- Core Projects -->
 	<Project Path="EngineNet/source/Core/EngineNet.Core.csproj" />
+	<!-- Core Components -->
 	<Project Path="EngineNet/source/Core/Data/EngineNet.Core.Data.csproj" />
 	<Project Path="EngineNet/source/Core/Engine/EngineNet.Core.Engine.csproj" />
 	<Project Path="EngineNet/source/Core/ExternalTools/EngineNet.Core.ExternalTools.csproj" />
 	<Project Path="EngineNet/source/Core/Media/EngineNet.Core.Media.csproj" />
 	<Project Path="EngineNet/source/Core/Operations/EngineNet.Core.Operations.csproj" />
 	<Project Path="EngineNet/source/Core/Utils/EngineNet.Core.Utils.csproj" />
-
-
 	<Project Path="EngineNet/source/Core/Abstractions/EngineNet.Core.Abstractions.csproj" />
 	<Project Path="EngineNet/source/Core/Services/EngineNet.Core.Services.csproj" />
 
-
-
+	<!-- Game Formats, Script Engines, and Shared Projects -->
 	<Project Path="EngineNet/source/GameFormats/EngineNet.GameFormats.csproj" />
 	<Project Path="EngineNet/source/ScriptEngines/EngineNet.ScriptEngines.csproj" />
 	<Project Path="EngineNet/source/Shared/EngineNet.Shared.csproj" />
 
+	<!-- Interface Projects -->
 	<Project Path="EngineNet/source/Interface/EngineNet.Interface.csproj" />
 	<Project Path="EngineNet/source/Interface/GUI/EngineNet.Interface.GUI.csproj" />
 	<Project Path="EngineNet/source/Interface/Terminal/EngineNet.Interface.Terminal.csproj" />

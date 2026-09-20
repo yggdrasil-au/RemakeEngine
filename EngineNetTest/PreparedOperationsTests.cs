@@ -22,7 +22,7 @@ public sealed class PreparedOperationsTests {
                                                           """);
 
         try {
-            Core.Services.OperationsService.OperationsService service = new Core.Services.OperationsService.OperationsService(loader: new Core.Services.OperationsService.OperationsLoader(), gameRegistry: null!);
+            EngineNet.Core.Services.OperationsService.OperationsService service = new EngineNet.Core.Services.OperationsService.OperationsService(loader: new EngineNet.Core.Services.OperationsService.OperationsLoader(), gameRegistry: null!);
             PreparedOperations prepared = service.LoadAndPrepare(opsFile: operationsFile);
 
             Assert.IsTrue(condition: prepared.IsLoaded);
