@@ -57,6 +57,15 @@ public sealed class All {
             .Select(selector: operation => operation.Operation)
             .ToList();
 
+        List<Dictionary<string, object?>> runAllRoots = session.PreparedOperations.RunAllOperations
+            .Select(selector: operation => operation.Operation)
+            .ToList();
+        List<Dictionary<string, object?>> initOperations = session.PreparedOperations.InitOperations
+            .Select(selector: operation => operation.Operation)
+            .ToList();
+
+        // Retain the legacy list for the invalid-graph fallback. A valid graph builds
+        // its own complete execution set from these roots and their prerequisites.
         List<Dictionary<string, object?>> selected = new();
         foreach (Core.Data.PreparedOperation operation in session.PreparedOperations.InitOperations) {
             AddUnique(list: selected, op: operation.Operation);
@@ -70,9 +79,13 @@ public sealed class All {
             selected.AddRange(collection: allOps);
         }
 
-        // The graph owns the Run All execution set and dependency links. Invalid graphs
-        // intentionally retain the legacy linear execution path below.
-        OpDependencyGraph dependencyGraph = new(operations: allOps, runAllEntryPoints: selected);
+        // The graph owns the Run All execution set and dependency links. It includes
+        // every init operation and the transitive dependency closure of Run All roots.
+        // Invalid graphs intentionally retain the legacy linear execution path below.
+        OpDependencyGraph dependencyGraph = new(
+            operations: allOps,
+            runAllRoots: runAllRoots,
+            initOperations: initOperations);
         dependencyGraph.PrintGraphToTrace();
         if (!dependencyGraph.IsValid) {
             Shared.IO.Diagnostics.Log("Warning: Dependency graph is invalid. Falling back to linear Run All execution.");
@@ -98,6 +111,7 @@ public sealed class All {
                     if (!string.IsNullOrEmpty(currentOperation.Value)) {
                         payload[key: "operation"] = currentOperation.Value;
                     }
+
                     onEvent(evt: payload);
                 },
                 muteStdout: true,

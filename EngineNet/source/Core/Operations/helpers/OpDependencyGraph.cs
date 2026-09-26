@@ -20,8 +20,9 @@ internal sealed class OpDependencyGraph {
 
     internal OpDependencyGraph(
         List<Dictionary<string, object?>> operations,
-        List<Dictionary<string, object?>> runAllEntryPoints) {
-        BuildGraph(operations: operations, runAllEntryPoints: runAllEntryPoints);
+        List<Dictionary<string, object?>> runAllRoots,
+        List<Dictionary<string, object?>> initOperations) {
+        BuildGraph(operations: operations, runAllRoots: runAllRoots, initOperations: initOperations);
     }
 
     /// <summary>
@@ -56,14 +57,20 @@ internal sealed class OpDependencyGraph {
         Shared.IO.Diagnostics.Trace("==================================");
     }
 
-    private void BuildGraph(List<Dictionary<string, object?>> operations, List<Dictionary<string, object?>> runAllEntryPoints) {
+    private void BuildGraph(
+        List<Dictionary<string, object?>> operations,
+        List<Dictionary<string, object?>> runAllRoots,
+        List<Dictionary<string, object?>> initOperations) {
         IsValid = true;
         Errors.Clear();
         _nodes.Clear();
         _executionNodes.Clear();
 
-        // Pass 1: Filter Run All entry points and their transitive dependencies.
-        List<Dictionary<string, object?>> relevantOps = FilterRelevantOperations(allOps: operations, runAllEntryPoints: runAllEntryPoints);
+        // Pass 1: Filter Run All roots, init operations, and their transitive dependencies.
+        List<Dictionary<string, object?>> relevantOps = FilterRelevantOperations(
+            allOps: operations,
+            runAllRoots: runAllRoots,
+            initOperations: initOperations);
 
         // Pass 2: Create nodes and validate IDs for relevant operations
         foreach (Dictionary<string, object?> op in relevantOps) {
@@ -116,15 +123,32 @@ internal sealed class OpDependencyGraph {
         _executionNodes.AddRange(collection: _nodes.Values);
     }
 
-    private List<Dictionary<string, object?>> FilterRelevantOperations(List<Dictionary<string, object?>> allOps, List<Dictionary<string, object?>> runAllEntryPoints) {
+    /// <summary>
+    /// Returns the Run All execution closure: all init operations, all Run All roots,
+    /// and every dependency reachable from either set. When neither root set has an
+    /// entry, returns every operation to preserve legacy Run All behavior.
+    /// </summary>
+    private List<Dictionary<string, object?>> FilterRelevantOperations(
+        List<Dictionary<string, object?>> allOps,
+        List<Dictionary<string, object?>> runAllRoots,
+        List<Dictionary<string, object?>> initOperations) {
         HashSet<Dictionary<string, object?>> relevant = new();
         Queue<Dictionary<string, object?>> queue = new();
 
-        // Start with the Run All selection supplied by All.RunAsync. When no flags are
-        // present, that selection is the legacy fallback containing every operation.
-        foreach (Dictionary<string, object?> op in runAllEntryPoints) {
+        // Init operations are execution roots, not merely UI setup. Seed them together
+        // with Run All roots so a shared dependency is represented by one graph node.
+        foreach (Dictionary<string, object?> op in initOperations.Concat(second: runAllRoots)) {
             if (relevant.Add(item: op)) {
                 queue.Enqueue(item: op);
+            }
+        }
+
+        // Modules without init or Run All flags historically ran every operation.
+        if (queue.Count == 0) {
+            foreach (Dictionary<string, object?> op in allOps) {
+                if (relevant.Add(item: op)) {
+                    queue.Enqueue(item: op);
+                }
             }
         }
 
@@ -148,6 +172,7 @@ internal sealed class OpDependencyGraph {
 
         return relevant.ToList();
     }
+
 
     private bool HasCycles() {
         HashSet<string> visited = new(comparer: StringComparer.OrdinalIgnoreCase);
