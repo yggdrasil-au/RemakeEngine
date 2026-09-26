@@ -165,8 +165,20 @@ public sealed partial class CLI {
             return 1;
         }
 
+        Dictionary<string, object?> finalOp;
+        if (isInternal) {
+            // Internal operations rely on prompt answers (--answer) rather than raw field overrides (--set/--args)
+            finalOp = selectedOp!.Operation;
+        } else {
+            // Merge command-line overrides (like --args, --set) into the selected operation for standard scripts
+            finalOp = new(dictionary: selectedOp!.Operation, comparer: System.StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, object?> overrideField in options.BuildOperation()) {
+                finalOp[key: overrideField.Key] = overrideField.Value;
+            }
+        }
+
         Core.Data.PromptAnswers promptAnswers = options.PromptAnswers;
-        bool ok = await new Utils().ExecuteOpAsync(Engine: Engine, game: gameName!, games: games, op: selectedOp!.Operation, promptAnswers: promptAnswers, autoPromptResponses: options.AutoPromptResponses, cancellationToken: cancellationToken);
+        bool ok = await new Utils().ExecuteOpAsync(Engine: Engine, game: gameName!, games: games, op: finalOp, promptAnswers: promptAnswers, autoPromptResponses: options.AutoPromptResponses, cancellationToken: cancellationToken);
         return ok ? 0 : 1;
     }
 

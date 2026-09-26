@@ -87,22 +87,54 @@ public sealed partial class CLI {
 
     private static void PrintHelp() {
         Shared.IO.Diagnostics.Trace("Displaying CLI help.");
-        System.Console.WriteLine(@"RemakeEngine
-        TUI Usage:
-            dotnet run -c Debug --project .\EngineNet\ -- --tui (to launch terminal ui menu)
-        CLI Usage:
-            dotnet run -c Debug --project .\EngineNet\ -- --list-games (to list available game modules)
-            dotnet run -c Debug --project .\EngineNet\ -- --list-internal (to list available internal modules)
-            dotnet run -c Debug --project .\EngineNet\ -- --list-ops <game> (to list available operations for a game module)
-            dotnet run -c Debug --project .\EngineNet\ -- --game_module <name|id|path> --run_op <name|id> (to run a defined operation from Operations.toml)
-            dotnet run -c Debug --project .\EngineNet\ -- --internal <name|id|path> --run_op <name|id> (to run a defined operation from an internal module)
-            dotnet run -c Debug --project .\EngineNet\ -- --game_module <name|id|path> --run_all (to run the module's configured run-all sequence)
-            dotnet run -c Debug --project .\EngineNet\ -- --game_module <name|id|path> --script <action> [--script_type <type>] [--args '""<arg>"",""<arg>""'] (to manually run an operation directly)
-            dotnet run -c Debug --project .\EngineNet\ -- --version (to display the version of the CLI)
-        Other args:
-            --root ""PATH""
-            --gui
-        ");
+        System.Console.WriteLine(@"RemakeEngine Help
+
+Global Interface Modes (Bypasses CLI execution):
+    --cli                     (Default if arguments are passed)
+    --gui                     (Default if no arguments are passed. Launches Graphical UI)
+    --tui                     (Launches Terminal UI menu)
+    --root <PATH>             (Overrides the default project root path)
+
+CLI Discovery Commands:
+    --list-games              (Lists available game modules)
+    --list-internal           (Lists available internal modules)
+    --list-ops <game>         (Lists available operations for a specified game module)
+    --version                 (Displays the version of the CLI)
+
+CLI Operation Execution:
+    --game_module <id>        (Target a standard game module. Aliases: --game, --module)
+    --internal <id>           (Target an internal module)
+    --run_op <name|id>        (Run a predefined operation from Operations.toml)
+    --run_all                 (Run the module's configured run-all sequence)
+    --script <action>         (Run an operation script manually)
+    --script_type <type>      (Specify the manual script type. Alias: --type)
+
+CLI Operation Overrides & Inputs:
+    --answer KEY=VALUE        (Provide answers to Operations.toml prompts)
+    --auto_prompt ID=RESP     (Provide automatic responses to Lua prompt() calls)
+    --set KEY=VALUE           (Override or set a raw field in the operation metadata)
+    --arg <value>             (Append a single positional argument)
+    --args ""<csv|json>""       (Append multiple positional arguments)
+    --ops_file <path>         (Override the operations file loaded for the module)
+");
+/*
+    CLI Examples:
+
+    // 1. Download a game module directly from a Git URL using the internal gitDownload module (Op ID 1)
+    dotnet run -c Debug --project .\EngineNet\ -- --internal gitDownload --run_op 1 --answer url="https://github.com/Superposition28/TheSimpsonsGame-PS2.git"
+
+    // 2. Download a game module from the registry list using the internal gitDownload module (Op ID 2)
+    dotnet run -c Debug --project .\EngineNet\ -- --internal gitDownload --run_op 2 --answer url="TheSimpsonsGame-PS2"
+
+    // 3. Run a specific predefined operation on a registered game module by ID or name
+    dotnet run -c Debug --project .\EngineNet\ -- --game SimpsonsHitAndRun --run_op 1
+
+    // 4. Run the entire automated sequence for a module using --run_all
+    dotnet run -c Debug --project .\EngineNet\ -- --game 2 --run_all
+
+    // 5. Manually run an inline script directly with arguments and a custom root path
+    dotnet run -c Debug --project .\EngineNet\ -- --game_root "A:\RemakeEngine\Main\EngineApps/Games/TheSimpsonsGame-PS3" --script extract_textures --script_type lua --args '"tex", "A:\RemakeEngine\Main\EngineApps/Games/TheSimpsonsGame-PS3/outdir"'
+*/
     }
 
     private static string GetArg(string[] args, int index, string error) {
