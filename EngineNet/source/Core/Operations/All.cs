@@ -57,17 +57,6 @@ public sealed class All {
             .Select(selector: operation => operation.Operation)
             .ToList();
 
-        // --- NEW DEPENDENCY GRAPH LOGIC ---
-        // Build the graph and print it to the trace log for debugging.
-        // It does not alter 'allOps' or affect the standard linear execution.
-        OpDependencyGraph dependencyGraph = new(operations: allOps);
-        dependencyGraph.PrintGraphToTrace();
-
-        if (!dependencyGraph.IsValid) {
-            Shared.IO.Diagnostics.Log($"Warning: Dependency graph is invalid. See trace.log for details.");
-        }
-        // ----------------------------------
-
         List<Dictionary<string, object?>> selected = new();
         foreach (Core.Data.PreparedOperation operation in session.PreparedOperations.InitOperations) {
             AddUnique(list: selected, op: operation.Operation);
@@ -81,8 +70,17 @@ public sealed class All {
             selected.AddRange(collection: allOps);
         }
 
+        // The graph owns the Run All execution set and dependency links. Invalid graphs
+        // intentionally retain the legacy linear execution path below.
+        OpDependencyGraph dependencyGraph = new(operations: allOps, runAllEntryPoints: selected);
+        dependencyGraph.PrintGraphToTrace();
+        if (!dependencyGraph.IsValid) {
+            Shared.IO.Diagnostics.Log("Warning: Dependency graph is invalid. Falling back to linear Run All execution.");
+        }
+
+        int executionTotal = dependencyGraph.IsValid ? dependencyGraph.ExecutionNodes.Count : selected.Count;
         EmitSequenceEvent(sink: onEvent, evt: EngineSdk.Events.RunAllStart, game: gameName, extras: new Dictionary<string, object?> {
-            [key: "total"] = selected.Count
+            [key: "total"] = executionTotal
         });
 
         System.IO.TextReader? previousReader = null;
@@ -108,57 +106,44 @@ public sealed class All {
 
         bool overallSuccess = true;
         int succeeded = 0;
+        int completedTotal = selected.Count;
 
         try {
-            // run each selected operation
-            for (int index = 0; index < selected.Count; index++) {
-                if (cancellationToken.IsCancellationRequested) {
-                    overallSuccess = false;
-                    break;
-                }
-
-                Dictionary<string, object?> op = selected[index: index];
-                currentOperation.Value = ResolveOperationName(op: op);
-                EmitSequenceEvent(sink: onEvent, evt: EngineSdk.Events.RunAllOpStart, game: gameName, extras: new Dictionary<string, object?> {
-                    [key: "index"] = index,
-                    [key: "total"] = selected.Count,
-                    [key: "name"] = currentOperation.Value
-                });
-
-                Core.Data.PromptAnswers promptAnswers = BuildPromptDefaults(op: op);
-                bool ok = false;
-                try {
-                    string? scriptType = GetScriptType(op: op);
-                    // ensure script type is valid
-                    if (Core.Utils.ScriptConstants.IsSupported(script_type: scriptType)) {
-                        ok = await OperationContext.Single.RunAsync(currentGame: gameName, games: games, op: op, promptAnswers: promptAnswers, Context: Context,OperationContext: OperationContext, cancellationToken: cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
-                    } else if (string.IsNullOrEmpty(scriptType)) {
-                        Shared.IO.Diagnostics.Log($"Skipping operation '{currentOperation.Value}' due to null or empty script type");
+            if (dependencyGraph.IsValid) {
+                (overallSuccess, completedTotal, succeeded) = await RunDependencyScheduleAsync(
+                    dependencyGraph: dependencyGraph,
+                    gameName: gameName,
+                    games: games,
+                    Context: Context,
+                    OperationContext: OperationContext,
+                    onEvent: onEvent,
+                    currentOperation: currentOperation,
+                    cancellationToken: cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
+            } else {
+                // Preserve the established sequential behavior if validation cannot safely
+                // produce an execution schedule.
+                for (int index = 0; index < selected.Count; index++) {
+                    if (cancellationToken.IsCancellationRequested) {
                         overallSuccess = false;
-                    } else {
-                        Shared.IO.Diagnostics.Log($"Skipping operation '{currentOperation.Value}' due to unsupported script type '{scriptType}'");
-                        overallSuccess = false;
+                        break;
                     }
-                } catch (System.Exception ex) {
-                    overallSuccess = false;
-                    EmitSequenceEvent(sink: onEvent, evt: EngineSdk.Events.RunAllOpError, game: gameName, extras: new Dictionary<string, object?> {
-                        [key: "name"] = currentOperation.Value,
-                        [key: "message"] = ex.Message
-                    });
-                    Shared.IO.Diagnostics.Bug($"err running op '{currentOperation.Value}': {ex.Message}");
-                }
 
-                overallSuccess &= ok;
-                if (ok) {
-                    succeeded++;
+                    bool ok = await RunOperationAsync(
+                        op: selected[index],
+                        index: index,
+                        total: selected.Count,
+                        gameName: gameName,
+                        games: games,
+                        Context: Context,
+                        OperationContext: OperationContext,
+                        onEvent: onEvent,
+                        currentOperation: currentOperation,
+                        cancellationToken: cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
+                    overallSuccess &= ok;
+                    if (ok) {
+                        succeeded++;
+                    }
                 }
-
-                EmitSequenceEvent(sink: onEvent, evt: EngineSdk.Events.RunAllOpEnd, game: gameName, extras: new Dictionary<string, object?> {
-                    [key: "index"] = index,
-                    [key: "total"] = selected.Count,
-                    [key: "name"] = currentOperation.Value,
-                    [key: "success"] = ok
-                });
             }
         } finally {
             if (previousReader is not null) {
@@ -171,11 +156,11 @@ public sealed class All {
 
         EmitSequenceEvent(sink: onEvent, evt: EngineSdk.Events.RunAllComplete, game: gameName, extras: new Dictionary<string, object?> {
             [key: "success"] = overallSuccess,
-            [key: "total"] = selected.Count,
+            [key: "total"] = completedTotal,
             [key: "succeeded"] = succeeded
         });
 
-        return new RunAllResult(Game: gameName, Success: overallSuccess, TotalOperations: selected.Count, SucceededOperations: succeeded);
+        return new RunAllResult(Game: gameName, Success: overallSuccess, TotalOperations: completedTotal, SucceededOperations: succeeded);
     }
 
 
@@ -201,7 +186,12 @@ public sealed class All {
     /// Holds the current operation name for event callbacks without reassigning the captured local.
     /// </summary>
     private sealed class OperationState {
-        internal string Value { get; set; } = string.Empty;
+        private readonly System.Threading.AsyncLocal<string> _value = new();
+
+        internal string Value {
+            get => _value.Value ?? string.Empty;
+            set => _value.Value = value;
+        }
     }
 
     /// <summary>
@@ -239,6 +229,158 @@ public sealed class All {
         public override string? ReadLine() => _provider();
     }
 
+
+    /// <summary>
+    /// Runs all validated dependency nodes as soon as their prerequisites succeed.
+    /// </summary>
+    private static async Task<(bool Success, int Executed, int Succeeded)> RunDependencyScheduleAsync(
+        OpDependencyGraph dependencyGraph,
+        string gameName,
+        Core.Data.GameModules games,
+        Core.Abstractions.IEngineContext Context,
+        Core.Abstractions.IOperationContext OperationContext,
+        Core.Abstractions.IProcessRunner.EventHandler? onEvent,
+        OperationState currentOperation,
+        System.Threading.CancellationToken cancellationToken) {
+        IReadOnlyList<Core.Data.OperationNode> nodes = dependencyGraph.ExecutionNodes;
+        Dictionary<string, DependencyExecutionState> states = nodes.ToDictionary(
+            keySelector: node => node.Id,
+            elementSelector: _ => DependencyExecutionState.Pending,
+            comparer: StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, Task<bool>> running = new(comparer: StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, int> indexes = nodes.Select((node, index) => (node, index)).ToDictionary(
+            keySelector: pair => pair.node.Id,
+            elementSelector: pair => pair.index,
+            comparer: StringComparer.OrdinalIgnoreCase);
+        bool overallSuccess = true;
+        int executed = 0;
+        int succeeded = 0;
+
+        while (running.Count > 0 || states.Values.Any(state => state == DependencyExecutionState.Pending)) {
+            foreach (Core.Data.OperationNode node in nodes) {
+                if (states[node.Id] != DependencyExecutionState.Pending) {
+                    continue;
+                }
+
+                if (cancellationToken.IsCancellationRequested) {
+                    MarkSkipped(node: node, reason: "Run All was cancelled.");
+                    continue;
+                }
+
+                if (node.Dependencies.Any(dependencyId => states[dependencyId] is DependencyExecutionState.Failed or DependencyExecutionState.Skipped)) {
+                    MarkSkipped(node: node, reason: "A prerequisite did not complete successfully.");
+                    continue;
+                }
+
+                if (node.Dependencies.All(dependencyId => states[dependencyId] == DependencyExecutionState.Succeeded)) {
+                    int index = indexes[node.Id];
+                    states[node.Id] = DependencyExecutionState.Running;
+                    executed++;
+                    running[node.Id] = RunOperationAsync(
+                        op: node.Operation,
+                        index: index,
+                        total: nodes.Count,
+                        gameName: gameName,
+                        games: games,
+                        Context: Context,
+                        OperationContext: OperationContext,
+                        onEvent: onEvent,
+                        currentOperation: currentOperation,
+                        cancellationToken: cancellationToken);
+                }
+            }
+
+            if (running.Count == 0) {
+                continue;
+            }
+
+            Task<bool> completedTask = await Task.WhenAny(running.Values).ConfigureAwait(continueOnCapturedContext: false);
+            KeyValuePair<string, Task<bool>> completed = running.First(pair => ReferenceEquals(pair.Value, completedTask));
+            bool ok = await completed.Value.ConfigureAwait(continueOnCapturedContext: false);
+            running.Remove(completed.Key);
+            states[completed.Key] = ok ? DependencyExecutionState.Succeeded : DependencyExecutionState.Failed;
+            overallSuccess &= ok;
+            if (ok) {
+                succeeded++;
+            }
+        }
+
+        return (overallSuccess && !cancellationToken.IsCancellationRequested, executed, succeeded);
+
+        void MarkSkipped(Core.Data.OperationNode node, string reason) {
+            states[node.Id] = DependencyExecutionState.Skipped;
+            overallSuccess = false;
+            int index = indexes[node.Id];
+            EmitSequenceEvent(sink: onEvent, evt: EngineSdk.Events.RunAllOpEnd, game: gameName, extras: new Dictionary<string, object?> {
+                [key: "index"] = index,
+                [key: "total"] = nodes.Count,
+                [key: "name"] = ResolveOperationName(op: node.Operation),
+                [key: "success"] = false,
+                [key: "skipped"] = true,
+                [key: "reason"] = reason
+            });
+        }
+    }
+
+    /// <summary>
+    /// Runs one operation and reports its lifecycle events.
+    /// </summary>
+    private static async Task<bool> RunOperationAsync(
+        Dictionary<string, object?> op,
+        int index,
+        int total,
+        string gameName,
+        Core.Data.GameModules games,
+        Core.Abstractions.IEngineContext Context,
+        Core.Abstractions.IOperationContext OperationContext,
+        Core.Abstractions.IProcessRunner.EventHandler? onEvent,
+        OperationState currentOperation,
+        System.Threading.CancellationToken cancellationToken) {
+        string operationName = ResolveOperationName(op: op);
+        currentOperation.Value = operationName;
+        EmitSequenceEvent(sink: onEvent, evt: EngineSdk.Events.RunAllOpStart, game: gameName, extras: new Dictionary<string, object?> {
+            [key: "index"] = index,
+            [key: "total"] = total,
+            [key: "name"] = operationName
+        });
+
+        bool ok = false;
+        try {
+            string? scriptType = GetScriptType(op: op);
+            if (Core.Utils.ScriptConstants.IsSupported(script_type: scriptType)) {
+                ok = await OperationContext.Single.RunAsync(currentGame: gameName, games: games, op: op, promptAnswers: BuildPromptDefaults(op: op), Context: Context, OperationContext: OperationContext, cancellationToken: cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
+            } else if (string.IsNullOrEmpty(scriptType)) {
+                Shared.IO.Diagnostics.Log($"Skipping operation '{operationName}' due to null or empty script type");
+            } else {
+                Shared.IO.Diagnostics.Log($"Skipping operation '{operationName}' due to unsupported script type '{scriptType}'");
+            }
+        } catch (System.Exception ex) {
+            EmitSequenceEvent(sink: onEvent, evt: EngineSdk.Events.RunAllOpError, game: gameName, extras: new Dictionary<string, object?> {
+                [key: "name"] = operationName,
+                [key: "message"] = ex.Message
+            });
+            Shared.IO.Diagnostics.Bug($"[All.cs::RunOperationAsync()]:: catch: err running op '{operationName}': {ex.Message}");
+        }
+
+        EmitSequenceEvent(sink: onEvent, evt: EngineSdk.Events.RunAllOpEnd, game: gameName, extras: new Dictionary<string, object?> {
+            [key: "index"] = index,
+            [key: "total"] = total,
+            [key: "name"] = operationName,
+            [key: "success"] = ok
+        });
+        return ok;
+    }
+
+    /// <summary>
+    /// Represents an operation's state while the dependency scheduler is active.
+    /// </summary>
+    private enum DependencyExecutionState {
+        Pending,
+        Running,
+        Succeeded,
+        Failed,
+        Skipped
+    }
 
     /// <summary>
     /// Adds an operation to the list if it's not already present.

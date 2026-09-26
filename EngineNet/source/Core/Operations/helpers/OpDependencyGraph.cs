@@ -1,4 +1,3 @@
-
 namespace EngineNet.Core.Operations.helpers;
 
 using Data;
@@ -12,9 +11,17 @@ internal sealed class OpDependencyGraph {
     private List<string> Errors { get; set; } = new();
 
     private readonly Dictionary<string, Core.Data.OperationNode> _nodes = new(comparer: StringComparer.OrdinalIgnoreCase);
+    private readonly List<Core.Data.OperationNode> _executionNodes = new();
 
-    internal OpDependencyGraph(List<Dictionary<string, object?>> operations) {
-        BuildGraph(operations: operations);
+    /// <summary>
+    /// Gets the validated Run All execution set, including transitive dependencies.
+    /// </summary>
+    internal IReadOnlyList<Core.Data.OperationNode> ExecutionNodes => _executionNodes;
+
+    internal OpDependencyGraph(
+        List<Dictionary<string, object?>> operations,
+        List<Dictionary<string, object?>> runAllEntryPoints) {
+        BuildGraph(operations: operations, runAllEntryPoints: runAllEntryPoints);
     }
 
     /// <summary>
@@ -49,13 +56,14 @@ internal sealed class OpDependencyGraph {
         Shared.IO.Diagnostics.Trace("==================================");
     }
 
-    private void BuildGraph(List<Dictionary<string, object?>> operations) {
+    private void BuildGraph(List<Dictionary<string, object?>> operations, List<Dictionary<string, object?>> runAllEntryPoints) {
         IsValid = true;
         Errors.Clear();
         _nodes.Clear();
+        _executionNodes.Clear();
 
-        // Pass 1: Filter relevant operations (Run-All entry points and their transitive dependencies)
-        List<Dictionary<string, object?>> relevantOps = FilterRelevantOperations(allOps: operations);
+        // Pass 1: Filter Run All entry points and their transitive dependencies.
+        List<Dictionary<string, object?>> relevantOps = FilterRelevantOperations(allOps: operations, runAllEntryPoints: runAllEntryPoints);
 
         // Pass 2: Create nodes and validate IDs for relevant operations
         foreach (Dictionary<string, object?> op in relevantOps) {
@@ -102,19 +110,21 @@ internal sealed class OpDependencyGraph {
         // Pass 4: Cycle Detection (e.g., A depends on B, B depends on A)
         if (HasCycles()) {
             IsValid = false;
+            return;
         }
+
+        _executionNodes.AddRange(collection: _nodes.Values);
     }
 
-    private List<Dictionary<string, object?>> FilterRelevantOperations(List<Dictionary<string, object?>> allOps) {
+    private List<Dictionary<string, object?>> FilterRelevantOperations(List<Dictionary<string, object?>> allOps, List<Dictionary<string, object?>> runAllEntryPoints) {
         HashSet<Dictionary<string, object?>> relevant = new();
         Queue<Dictionary<string, object?>> queue = new();
 
-        // Start with entry points (init or run-all flag set)
-        foreach (Dictionary<string, object?> op in allOps) {
-            if (IsFlagSet(op: op, key: "init") || IsFlagSet(op: op, key: "run-all") || IsFlagSet(op: op, key: "run_all")) {
-                if (relevant.Add(item: op)) {
-                    queue.Enqueue(item: op);
-                }
+        // Start with the Run All selection supplied by All.RunAsync. When no flags are
+        // present, that selection is the legacy fallback containing every operation.
+        foreach (Dictionary<string, object?> op in runAllEntryPoints) {
+            if (relevant.Add(item: op)) {
+                queue.Enqueue(item: op);
             }
         }
 
@@ -137,13 +147,6 @@ internal sealed class OpDependencyGraph {
         }
 
         return relevant.ToList();
-    }
-
-    private static bool IsFlagSet(Dictionary<string, object?> op, string key) {
-        if (!op.TryGetValue(key: key, out object? value) || value is null) return false;
-        if (value is bool b) return b;
-        if (value is string s) return bool.TryParse(s, result: out bool parsed) && parsed;
-        try { return Convert.ToInt32(value) != 0; } catch (System.Exception ex) { Shared.IO.Diagnostics.Bug($"Failed to convert flag '{key}' value '{value}' to boolean.", ex: ex); return false; }
     }
 
     private bool HasCycles() {
