@@ -124,7 +124,7 @@ The following placeholders are automatically expanded in `script`, `args`, and o
 
 - `{{Game_Root}}` - Absolute path to the game module root directory
 - `{{Project_Root}}` - Absolute path to the engine root directory
-- Custom placeholders defined in module's `config.toml`
+- Custom placeholders defined in module's `config.toml`. Placeholder keys support alphanumeric characters, dots (`.`), underscores (`_`), and hyphens (`-`).
 
 For `onsuccess` child operations, placeholder expansion is evaluated at child execution time, not frozen when the parent operation starts.
 

@@ -363,21 +363,24 @@ end
 
 progress.script.step('Testing process execution (run_process)')
 
+-- step temporarily removed, change to use a engine installed Tool, such as 'blender' to ensure it exists,
+-- git is not guaranteed, and the run_process sec system nolonger allows unmanaged external executables
+
 -- SDK Process execution - run_process (safer, captures output)
 -- Using 'git --version' as a reliable, cross-platform, approved executable
-local process_result = sdk.run_process({'git', '--version'}, {
+--[[local process_result = sdk.run_process({'git', '--version'}, {
     capture_stdout = true,
     capture_stderr = true,
     timeout_ms = 5000
-})
+})--]]
 
-if process_result then
-    sdk.color_print('cyan', 'run_process exit code: ' .. tostring(process_result.exit_code))
-    sdk.color_print('cyan', 'run_process success: ' .. tostring(process_result.success))
-    if process_result.stdout then
-        sdk.color_print('cyan', 'run_process stdout: ' .. process_result.stdout)
-    end
-end
+--if process_result then
+--    sdk.color_print('cyan', 'run_process exit code: ' .. tostring(process_result.exit_code))
+--    sdk.color_print('cyan', 'run_process success: ' .. tostring(process_result.success))
+--    if process_result.stdout then
+--        sdk.color_print('cyan', 'run_process stdout: ' .. process_result.stdout)
+--    end
+--end
 
 progress.script.step('Testing process execution (exec)')
 
@@ -388,25 +391,25 @@ sdk.color_print('white', 'The RemakeEngine has two process execution methods wit
 sdk.color_print('cyan', '❌ INCORRECT approaches:')
 sdk.color_print('white', "sdk.exec('echo hello')  -- Wrong: expects table, not string")
 sdk.color_print('white', "sdk.exec({'cmd', '/c', 'echo hello && pause'})  -- Problematic: blocks indefinitely")
-sdk.color_print('white', "sdk.run_process('git status')  -- Wrong: expects table of command parts")
+--sdk.color_print('white', "sdk.run_process('git status')  -- Wrong: expects table of command parts")
 
 -- ✅ CORRECT: Proper usage
 sdk.color_print('green', '✅ CORRECT approaches:')
 sdk.color_print('white', "sdk.exec({'git', '--version'}, {wait=true})  -- Streams output to terminal")
-sdk.color_print('white', "sdk.run_process({'git', 'status'}, {capture_stdout=true})  -- Captures output")
+--sdk.color_print('white', "sdk.run_process({'git', 'status'}, {capture_stdout=true})  -- Captures output")
 sdk.color_print('white', 'Use exec() for interactive processes, run_process() to capture output')
 
 -- SDK Process execution - exec (streams to current terminal)
 -- Using 'git --version' as a reliable, cross-platform, approved executable
-local exec_result = sdk.exec({'git', '--version'}, {
-    wait = true,
-    new_terminal = false
-})
+--local exec_result = sdk.exec({'git', '--version'}, {
+--    wait = true,
+--    new_terminal = false
+--})
 
-if exec_result then
-    sdk.color_print('cyan', 'exec exit code: ' .. tostring(exec_result.exit_code))
-    sdk.color_print('cyan', 'exec success: ' .. tostring(exec_result.success))
-end
+--if exec_result then
+--    sdk.color_print('cyan', 'exec exit code: ' .. tostring(exec_result.exit_code))
+--    sdk.color_print('cyan', 'exec success: ' .. tostring(exec_result.success))
+--end
 
 progress.script.step('Testing SQLite operations')
 
@@ -629,19 +632,16 @@ else
     sdk.color_print('cyan', '1. Testing filesystem security (remove operations):')
     -- Attempt to remove a protected file (should be denied and return false)
     local denied_remove_file = sdk.remove_file(protected_file)
-    sdk.color_print(denied_remove_file and 'red' or 'green',
-        '   ✖ Attempt to remove protected file denied: ' .. tostring(not denied_remove_file))
+    sdk.color_print(denied_remove_file and 'red' or 'green', '   ✖ Attempt to remove protected file denied: ' .. tostring(not denied_remove_file))
 
     -- Attempt to remove a protected directory (should be denied and return false)
     local denied_remove_dir = sdk.remove_dir(protected_dir)
-    sdk.color_print(denied_remove_dir and 'red' or 'green',
-        '   ✖ Attempt to remove protected dir denied: ' .. tostring(not denied_remove_dir))
+    sdk.color_print(denied_remove_dir and 'red' or 'green', '   ✖ Attempt to remove protected dir denied: ' .. tostring(not denied_remove_dir))
 
     sdk.color_print('cyan', '2. Testing filesystem security (read operations):')
     -- Attempt to read protected paths
     local can_read_protected = sdk.path_exists(protected_file)
-    sdk.color_print(can_read_protected and 'red' or 'green',
-        '   ✖ Attempt to check protected file existence blocked: ' .. tostring(not can_read_protected))
+    sdk.color_print(can_read_protected and 'red' or 'green', '   ✖ Attempt to check protected file existence blocked: ' .. tostring(not can_read_protected))
 
     sdk.color_print('cyan', '3. Testing filesystem security (copy operations):')
     -- Attempt to copy to protected location
@@ -654,8 +654,7 @@ else
     sdk.toml_write_file(toml_protected_path, {evil = true})
     -- Check if file was created (it shouldn't be)
     local toml_file_created = sdk.path_exists(toml_protected_path)
-    sdk.color_print(toml_file_created and 'red' or 'green',
-        '   ✖ Attempt to write TOML to protected dir blocked: ' .. tostring(not toml_file_created))
+    sdk.color_print(toml_file_created and 'red' or 'green', '   ✖ Attempt to write TOML to protected dir blocked: ' .. tostring(not toml_file_created))
 
     sdk.color_print('cyan', '5. Testing process execution security (forbidden paths):')
     -- Attempt to pass a forbidden path to an approved process (should throw and be caught)
@@ -674,8 +673,7 @@ else
         return sdk.exec({'cmd.exe', '/c', 'echo', 'malicious'}, { wait = true })
     end
     local unapproved_ok, unapproved_err = pcall(try_exec_unapproved)
-    sdk.color_print(unapproved_ok and 'red' or 'green',
-        '   ✖ Unapproved executable blocked: ' .. tostring(not unapproved_ok))
+    sdk.color_print(unapproved_ok and 'red' or 'green', '   ✖ Unapproved executable blocked: ' .. tostring(not unapproved_ok))
     if not unapproved_ok then
         sdk.color_print('cyan', '   Blocked reason: ' .. tostring(unapproved_err))
     end
@@ -683,14 +681,12 @@ else
     sdk.color_print('cyan', '7. Testing symlink security:')
     -- Attempt to create symlink to protected location
     local denied_symlink = sdk.create_symlink(protected_file, scratch_root .. '/malicious_link', false)
-    sdk.color_print(denied_symlink and 'red' or 'green',
-        '   ✖ Symlink to protected location denied: ' .. tostring(not denied_symlink))
+    sdk.color_print(denied_symlink and 'red' or 'green', '   ✖ Symlink to protected location denied: ' .. tostring(not denied_symlink))
 
     sdk.color_print('cyan', '8. Testing directory creation security:')
     -- Attempt to create directory in protected location
     local denied_mkdir = sdk.ensure_dir(protected_dir .. '/malicious_dir')
-    sdk.color_print(denied_mkdir and 'red' or 'green',
-        '   ✖ Directory creation in protected location denied: ' .. tostring(not denied_mkdir))
+    sdk.color_print(denied_mkdir and 'red' or 'green', '   ✖ Directory creation in protected location denied: ' .. tostring(not denied_mkdir))
 
     sdk.color_print('green', '✓ All security tests passed! RemakeEngine successfully blocked malicious operations.')
 

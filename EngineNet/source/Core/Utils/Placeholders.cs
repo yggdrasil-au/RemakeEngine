@@ -1,4 +1,3 @@
-
 namespace EngineNet.Core.Utils;
 
 /// <summary>
@@ -10,12 +9,12 @@ public static class Placeholders {
     /// Compiled regex that finds placeholders in the form {{name}} or {{path.to.value}}.
     /// </summary>
     /// <remarks>
-    /// Pattern: \{\{([\w\.]+)\}\}
+    /// Pattern: \{\{([\w\.-]+)\}\}
     /// - Matches double braces {{...}}
-    /// - Captures one or more word/dot characters inside (letters, digits, underscore, dot)
-    /// Examples: {{user}}, {{user.name}}, {{config.db.port}}
+    /// - Captures one or more word, dot, or hyphen characters inside (letters, digits, underscore, dot, hyphen)
+    /// Examples: {{user}}, {{user.name}}, {{config-toml-TMP_DIR}}
     /// </remarks>
-    private static readonly System.Text.RegularExpressions.Regex PlaceholderRe = new(pattern: @"\{\{([\w\.]+)\}\}", options: System.Text.RegularExpressions.RegexOptions.Compiled);
+    private static readonly System.Text.RegularExpressions.Regex PlaceholderRe = new(pattern: @"\{\{([\w\.-]+)\}\}", options: System.Text.RegularExpressions.RegexOptions.Compiled);
 
     /// <summary>
     /// Recursively resolves placeholders in the given value using the provided context.
@@ -64,7 +63,7 @@ public static class Placeholders {
     /// Resolves a dotted path against a nested dictionary of string-to-object values.
     /// </summary>
     /// <param name="ctx">The root context dictionary. Case sensitivity depends on the dictionary's comparer.</param>
-    /// <param name="dotted">A dotted path like "user.name" or "config.db.port".</param>
+    /// <param name="dotted">A dotted path like "user.name" or "config-toml-TMP_DIR".</param>
     /// <returns>
     /// The string representation of the resolved value, or null if a segment is missing
     /// or a non-dictionary node is encountered.
@@ -85,4 +84,3 @@ public static class Placeholders {
         return current?.ToString();
     }
 }
-

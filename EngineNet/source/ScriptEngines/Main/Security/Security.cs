@@ -1,42 +1,19 @@
 namespace EngineNet.ScriptEngines;
 
 /// <summary>
-/// Security validation methods for script execution.
-/// Provides path validation and executable approval for RemakeEngine security.
+/// Security validation methods for script execution, for Lua, JS, and Python scripts from external Game modules.
+/// Ensures that scripts from external modules adhere to security boundaries and user-approved paths.
+/// This includes verifying that paths are within allowed boundaries and resolving symbolic links securely.
 /// </summary>
 internal static class Security {
-    private static readonly HashSet<string> UserApprovedRoots = new(comparer: System.StringComparer.OrdinalIgnoreCase);
+    // Use a ConcurrentDictionary to act as a thread-safe HashSet
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> UserApprovedRoots = new(System.StringComparer.OrdinalIgnoreCase);
 
-    private static bool IsPathWithinBoundary(string normalizedPath, string normalizedPattern) {
-        if (string.IsNullOrWhiteSpace(normalizedPath) || string.IsNullOrWhiteSpace(normalizedPattern)) {
-            return false;
-        }
-
-        char sep = System.IO.Path.DirectorySeparatorChar;
-        char altSep = System.IO.Path.AltDirectorySeparatorChar;
-
-        string pathValue = normalizedPath.TrimEnd(trimChars: [sep, altSep]);
-        string patternValue = normalizedPattern.TrimEnd(trimChars: [sep, altSep]);
-
-        if (pathValue.Equals(patternValue, comparisonType: StringComparison.OrdinalIgnoreCase)) {
-            return true;
-        }
-
-        string patternWithSeparator = patternValue + sep;
-        return pathValue.StartsWith(patternWithSeparator, comparisonType: StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static string NormalizeBoundaryPattern(string pathPattern) {
-        if (string.IsNullOrWhiteSpace(pathPattern)) {
-            return string.Empty;
-        }
-
-        return CleanPathPrefix(path: pathPattern)
-            .Replace(oldChar: '/', newChar: System.IO.Path.DirectorySeparatorChar)
-            .ToLowerInvariant()
-            .TrimEnd(trimChars: [System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar]);
-    }
-
+    /// <summary>
+    /// Gets the canonical full path for the specified path, resolving any symbolic links and cleaning path prefixes.
+    /// </summary>
+    /// <param name="path">The input file or directory path.</param>
+    /// <returns>The canonical full path with symbolic links resolved and path prefixes cleaned.</returns>
     private static string GetCanonicalFullPath(string path) {
         if (string.IsNullOrWhiteSpace(path)) {
             return string.Empty;
@@ -51,6 +28,11 @@ internal static class Security {
         }
     }
 
+    /// <summary>
+    /// Resolves the canonical path for the specified file or directory, including resolving symbolic links.
+    /// </summary>
+    /// <param name="path">The input file or directory path.</param>
+    /// <returns>The canonical full path with symbolic links resolved, or the original canonical path if resolution fails.</returns>
     private static string ResolveCanonicalPathForIo(string path) {
         string canonicalPath = GetCanonicalFullPath(path: path);
         if (string.IsNullOrWhiteSpace(canonicalPath)) {
@@ -91,6 +73,11 @@ internal static class Security {
         return canonicalPath;
     }
 
+    /// <summary>
+    /// Cleans the path prefix for the specified path, removing Win32 long path prefixes if present.
+    /// </summary>
+    /// <param name="path">The input file or directory path.</param>
+    /// <returns>The path with the Win32 long path prefix removed, if it was present.</returns>
     private static string CleanPathPrefix(string path) {
         if (string.IsNullOrWhiteSpace(path)) return path;
         // Strip Win32 long path prefix if present (\\?\ and \\?\UNC\)
@@ -101,6 +88,11 @@ internal static class Security {
         return path.Substring(startIndex: 4);
     }
 
+    /// <summary>
+    /// Normalizes the specified path to its full canonical form and converts it to lowercase.
+    /// </summary>
+    /// <param name="path">The input file or directory path.</param>
+    /// <returns>The normalized full path in lowercase.</returns>
     private static string NormalizeLowerFullPath(string path) {
         if (string.IsNullOrWhiteSpace(path)) return string.Empty;
         try {
@@ -111,6 +103,11 @@ internal static class Security {
         }
     }
 
+    /// <summary>
+    /// Determines the root directory for approval based on the specified path.
+    /// </summary>
+    /// <param name="path">The input file or directory path.</param>
+    /// <returns>The root directory path that should be used for approval checks.</returns>
     private static string DetermineApprovalRoot(string path) {
         try {
             string full = System.IO.Path.GetFullPath(path: path);
@@ -130,56 +127,15 @@ internal static class Security {
         }
     }
 
-    private static bool IsForbiddenPath(string normalizedPath) {
-        if (string.IsNullOrWhiteSpace(normalizedPath)) return false;
-
-        string currentDir = NormalizeLowerFullPath(path: System.IO.Directory.GetCurrentDirectory());
-        string projectRoot = string.IsNullOrWhiteSpace(EngineNet.Shared.State.RootPath)
-            ? currentDir
-            : NormalizeLowerFullPath(path: EngineNet.Shared.State.RootPath);
-
-        List<string> forbiddenPatterns = new() {
-            "/etc", "/bin", "/sbin",
-            System.IO.Path.Combine(path1: "/usr", path2: "bin"),
-            System.IO.Path.Combine(path1: "/usr", path2: "sbin"),
-            "/sys", "/proc", "/dev",
-            // Explicitly deny access to Engine Files to prevent tampering
-            System.IO.Path.Combine(path1: projectRoot, path2: "EngineApps", path3: "Registries").Replace(oldChar: '/', newChar: System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
-            System.IO.Path.Combine(path1: projectRoot, path2: "EngineApps", path3: "api_definitions").Replace(oldChar: '/', newChar: System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
-        };
-
-        // Development layouts contain the EngineNet source directory, while packaged releases do not.
-        // Protect the source tree only when that directory exists beneath the active project root.
-        string projectRootDirectory = string.IsNullOrWhiteSpace(EngineNet.Shared.State.RootPath)
-            ? System.IO.Directory.GetCurrentDirectory()
-            : EngineNet.Shared.State.RootPath;
-        string engineNetDirectory = System.IO.Path.Combine(path1: projectRootDirectory, path2: "EngineNet");
-        if (System.IO.Directory.Exists(path: engineNetDirectory)) {
-            forbiddenPatterns.Add(item: engineNetDirectory);
-        }
-
-        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(osPlatform: System.Runtime.InteropServices.OSPlatform.Windows)) {
-            forbiddenPatterns.Add(item: System.Environment.GetFolderPath(folder: System.Environment.SpecialFolder.Windows).ToLowerInvariant());
-            forbiddenPatterns.Add(item: System.Environment.GetFolderPath(folder: System.Environment.SpecialFolder.System).ToLowerInvariant());
-            forbiddenPatterns.Add(item: System.Environment.GetFolderPath(folder: System.Environment.SpecialFolder.SystemX86).ToLowerInvariant());
-            forbiddenPatterns.Add(item: System.Environment.GetFolderPath(folder: System.Environment.SpecialFolder.ProgramFiles).ToLowerInvariant());
-            forbiddenPatterns.Add(item: System.Environment.GetFolderPath(folder: System.Environment.SpecialFolder.ProgramFilesX86).ToLowerInvariant());
-            forbiddenPatterns.Add(item: System.Environment.GetFolderPath(folder: System.Environment.SpecialFolder.CommonApplicationData).ToLowerInvariant());
-        }
-
-
-        return (from forbiddenPattern in forbiddenPatterns where !string.IsNullOrWhiteSpace(forbiddenPattern) select NormalizeBoundaryPattern(pathPattern: forbiddenPattern)).Any(predicate: normalizedForbidden => IsPathWithinBoundary(normalizedPath: normalizedPath, normalizedPattern: normalizedForbidden));
-    }
-
+    /// <summary>
+    /// Attempts to get the allowed canonical path for the specified path, prompting the user for permission if necessary.
+    /// </summary>
+    /// <param name="path">The file or directory path to check.</param>
+    /// <param name="canonicalPath">The resulting allowed canonical path if access is granted.</param>
+    /// <returns>True if access is allowed and the canonical path is obtained; otherwise, false.</returns>
     internal static bool TryGetAllowedCanonicalPathWithPrompt(string path, out string canonicalPath) {
         if (TryGetAllowedCanonicalPath(path: path, canonicalPath: out canonicalPath)) {
             return true;
-        }
-
-        if (IsForbiddenPath(normalizedPath: NormalizeLowerFullPath(path: path))) {
-            canonicalPath = string.Empty;
-            Shared.IO.UI.EngineSdk.Error($"Access denied: File path '{path}' is a protected system or engine path");
-            return false;
         }
 
         // Ask the user for permission to grant temporary access to this external path
@@ -191,10 +147,9 @@ internal static class Security {
         if (allowed) {
             try {
                 string normalized = NormalizeLowerFullPath(path: root).TrimEnd(trimChar: System.IO.Path.DirectorySeparatorChar);
-                UserApprovedRoots.Add(item: normalized);
+                UserApprovedRoots.TryAdd(normalized, 1);
             } catch {
                 Shared.IO.Diagnostics.Bug("Failed to normalize and approve path: " + root);
-                /* ignore */
             }
 
             if (TryGetAllowedCanonicalPath(path: path, canonicalPath: out canonicalPath)) {
@@ -210,31 +165,23 @@ internal static class Security {
         return false;
     }
 
-
     /// <summary>
     /// Security validation: Check if executable is approved for RemakeEngine use.
     /// Allows installed lockfile tools and a limited set of system utilities.
     /// </summary>
     internal static bool IsApprovedExecutable(string executable, Core.Abstractions.IJsonToolResolver tools) {
-        if (string.IsNullOrWhiteSpace(executable)) {
+        // deny invalid input, such as null, empty, whitespace strings, or invalid characters that cannot be in a file path for any OS
+        if (string.IsNullOrWhiteSpace(executable) || executable.IndexOfAny(System.IO.Path.GetInvalidPathChars()) >= 0) {
             return false;
         }
 
+        // allow tracked tools
         if (tools.IsTrackedTool(executablePath: executable)) {
             return true;
         }
 
-        string executableName = System.IO.Path.GetFileNameWithoutExtension(path: executable);
-        string fullName = System.IO.Path.GetFileName(path: executable);
-
-        HashSet<string> approvedSystemTools = new(comparer: System.StringComparer.OrdinalIgnoreCase) {
-            "git", "git.exe",
-            "pwsh", "pwsh.exe", "powershell", "powershell.exe",
-        };
-
-        return approvedSystemTools.Contains(item: executableName) || approvedSystemTools.Contains(item: fullName);
+        return false; // simply deny all non-tracked tools
     }
-
 
     /// <summary>
     /// Security validation: Check if file path is within allowed workspace areas.
@@ -244,115 +191,83 @@ internal static class Security {
         canonicalPath = string.Empty;
 
         if (string.IsNullOrWhiteSpace(path)) {
-            //Shared.IO.Diagnostics.Trace("Denying access to empty or whitespace path");
             return false;
         }
 
         try {
-            string normalizedPath = NormalizeLowerFullPath(path: path);
-
-            // Deny explicitly forbidden paths immediately
-            if (IsForbiddenPath(normalizedPath: normalizedPath)) {
-                Shared.IO.Diagnostics.Trace($"Path '{normalizedPath}' is forbidden");
-                return false;
-            }
-
-            string fullPath = GetCanonicalFullPath(path: path);
-            //Shared.IO.Diagnostics.Trace($"Checking path '{fullPath}'");
-            //Shared.IO.Diagnostics.Trace($"Normalized path '{normalizedPath}'");
-
-            // First, allow any user-approved roots for this session
-            foreach (string approved in UserApprovedRoots) {
-                if (IsPathWithinBoundary(normalizedPath: normalizedPath, normalizedPattern: approved)) {
-                    canonicalPath = ResolveCanonicalPathForIo(path: fullPath);
-                    return true;
-                }
-            }
-
-            // Get current working directory and common workspace patterns
-            string currentDir = NormalizeLowerFullPath(path: System.IO.Directory.GetCurrentDirectory());
+            string currentDir = System.IO.Directory.GetCurrentDirectory();
             string projectRoot = string.IsNullOrWhiteSpace(EngineNet.Shared.State.RootPath)
                 ? currentDir
-                : NormalizeLowerFullPath(path: EngineNet.Shared.State.RootPath);
+                : EngineNet.Shared.State.RootPath;
 
-            //Shared.IO.Diagnostics.Trace($"Current directory '{currentDir}'");
-            //Shared.IO.Diagnostics.Trace($"Project root '{projectRoot}'");
+            // 1. Force absolute resolution IMMEDIATELY to resolve any "../" traversals.
+            // If 'path' is relative, it resolves against 'projectRoot'.
+            string fullPath = System.IO.Path.GetFullPath(path: path, basePath: projectRoot);
 
-            // Allowed path patterns (case-insensitive)
-            // Note: We check full path starts with these patterns to allow subdirectories,
-            // but we also check for exact match to allow files directly in these directories
-            string[] allowedPatterns = {
-                // Current workspace and subdirectories
+            // 2. Resolve symlinks using your existing canonical resolver
+            string resolvedPath = ResolveCanonicalPathForIo(path: fullPath);
+
+            // Fallback to the absolute path if symlink resolution yields nothing
+            if (string.IsNullOrWhiteSpace(resolvedPath)) {
+                resolvedPath = fullPath;
+            }
+
+            // 3. Define definitive allowed boundaries
+            string[] allowedRoots = {
                 currentDir,
-
-                // must allow access to EngineApps/Games/** for game asset processing
-                // but not EngineApps/Registries or EngineApps/Tools to prevent tampering with engine files
                 System.IO.Path.Combine(path1: projectRoot, path2: "EngineApps", path3: "Games"),
-
-                // allow random items
                 System.IO.Path.Combine(path1: projectRoot, path2: "gamefiles"),
-                System.IO.Path.Combine(path1: projectRoot, path2: "tools"),
-                System.IO.Path.Combine(path1: projectRoot, path2: "tmp"),
+                System.IO.Path.Combine(projectRoot, "tools"),
+                System.IO.Path.Combine(projectRoot, "tmp")
             };
 
-            // Allow if path starts with any allowed pattern
-            foreach (string allowedPattern in allowedPatterns) {
-                if (IsPathWithinBoundary(normalizedPath: normalizedPath, normalizedPattern: allowedPattern)) {
-                    //Shared.IO.Diagnostics.Trace($"Path '{normalizedPath}' starts with allowed pattern '{allowedPattern}'");
-                    canonicalPath = ResolveCanonicalPathForIo(path: fullPath);
+            // 4. Check static boundaries
+            foreach (string allowedPattern in allowedRoots) {
+                if (IsPathSafelyWithinRoot(targetPath: resolvedPath, rootPath: allowedPattern)) {
+                    canonicalPath = resolvedPath;
                     return true;
-                } else {
-                    Shared.IO.Diagnostics.Trace($"Path '{normalizedPath}' does not start with allowed pattern '{allowedPattern}'");
                 }
             }
 
-            // Check if the path itself or any of its parents are symlinks that resolve to an allowed path
-            try {
-                string? check = fullPath;
-                string? root = System.IO.Path.GetPathRoot(path: check);
-                Shared.IO.Diagnostics.Trace($"Checking symlinks for path '{check}'");
-
-                while (!string.IsNullOrEmpty(check) && !string.Equals(a: check, b: root, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
-                    if (System.IO.Directory.Exists(path: check)) {
-                        DirectoryInfo info = new(path: check);
-                        FileSystemInfo? target = info.ResolveLinkTarget(returnFinalTarget: true); // true = return final target
-                        if (target != null) {
-                            string targetPath = target.FullName;
-                            string suffix = "";
-                            if (fullPath.Length > check.Length) {
-                                suffix = fullPath.Substring(startIndex: check.Length);
-                            }
-
-                            string resolvedFullPath = targetPath + suffix;
-                            string normalizedResolved = NormalizeLowerFullPath(path: resolvedFullPath);
-
-                            foreach (string allowedPattern in allowedPatterns) {
-                                if (IsPathWithinBoundary(normalizedPath: normalizedResolved, normalizedPattern: allowedPattern)) {
-                                    canonicalPath = GetCanonicalFullPath(path: resolvedFullPath);
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                    check = System.IO.Path.GetDirectoryName(path: check);
+            // 5. Check dynamically approved roots
+            foreach (string approvedRoot in UserApprovedRoots.Keys) {
+                if (IsPathSafelyWithinRoot(targetPath: resolvedPath, rootPath: approvedRoot)) {
+                    canonicalPath = resolvedPath;
+                    return true;
                 }
-            } catch (Exception ex) {
-                /* ignore */
-                Shared.IO.Diagnostics.Bug("IsAllowedPath: Failed to resolve symlink for path: " + fullPath + " with exception: " + ex);
             }
 
-            // Additional check: allow relative paths within current directory
-            if (!System.IO.Path.IsPathRooted(path: path)) {
-                return true; // Relative paths are generally safe within workspace
-            }
+            // Default Deny
+            Shared.IO.Diagnostics.Trace($"Path '{resolvedPath}' is outside all allowed boundaries.");
+            return false;
 
-            return false; // Default deny for unrecognized absolute paths
         } catch (Exception ex) {
             Shared.IO.Diagnostics.Bug("IsAllowedPath: Failed to check path: " + path + " with exception: " + ex);
-            return false; // Path parsing errors = deny
+            return false; // Fail secure on any parsing errors
         }
     }
 
+    /// <summary>
+    /// Guarantees a target path is a child of the root path using native OS relative path resolution.
+    /// </summary>
+    private static bool IsPathSafelyWithinRoot(string targetPath, string rootPath) {
+        try {
+            string fullRoot = System.IO.Path.GetFullPath(path: rootPath);
+            string relativePath = System.IO.Path.GetRelativePath(relativeTo: fullRoot, path: targetPath);
+
+            // If the path needs to traverse UP ("..") to reach the target, it's outside the boundary.
+            // If it evaluates to a rooted path (e.g. "D:\folder" when relative to "C:\"), it's on a different drive.
+            return !relativePath.StartsWith("..", StringComparison.Ordinal) && !System.IO.Path.IsPathRooted(path: relativePath);
+        } catch {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Determines whether the specified path is allowed based on the defined security boundaries.
+    /// </summary>
+    /// <param name="path">The input file or directory path to check.</param>
+    /// <returns>True if the path is allowed, false otherwise.</returns>
     internal static bool IsAllowedPath(string path) {
         return TryGetAllowedCanonicalPath(path: path, canonicalPath: out _);
     }

@@ -2,13 +2,13 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://remake.engine/schemas/config.schema.json",
   "title": "RemakeEngine Module Configuration (config.toml)",
-  "description": "Schema for module-level configuration providing placeholder variables to the engine. Uses [[placeholders]] array-of-tables.",
+  "description": "Schema for module-level configuration providing placeholder variables to the engine. Uses [[placeholders]] array-of-tables. Placeholder keys support alphanumeric characters, dots (.), underscores (_), and hyphens (-).",
   "type": "object",
   "additionalProperties": true,
   "properties": {
     "placeholders": {
       "type": "array",
-      "description": "Array of placeholder maps. Later entries override earlier ones. Keys/values are merged into the engine context for placeholder resolution.",
+      "description": "Array of placeholder maps. Later entries override earlier ones. Keys/values are merged into the engine context for placeholder resolution. Keys can use [\\w\\.-]+ format.",
       "items": {
         "type": "object",
         "additionalProperties": {
@@ -25,9 +25,8 @@
   "examples": [
     {
       "placeholders": [
-        { "Region": "US", "SourcePath": "{{Project_Root}}/Data/Source", "isRenamed": 0 }
+        { "Region": "US", "SourcePath": "{{Project_Root}}/Data/Source", "isRenamed": 0, "config-toml-TMP_DIR": "TMP" }
       ]
     }
   ]
 }
-
