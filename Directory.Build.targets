@@ -9,22 +9,54 @@
         <Compile Include="$(GeneratedBuildInfoPath)" />
     </ItemGroup>
 
+    <!-- 🌟 NEW: Cross-platform inline C# task to replace PowerShell -->
+    <UsingTask TaskName="ExtractVersionFromToml" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+        <ParameterGroup>
+            <TomlFilePath ParameterType="System.String" Required="true" />
+            <ProjectVersion ParameterType="System.String" Output="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System.IO" />
+            <Using Namespace="System.Text.RegularExpressions" />
+            <Code Type="Fragment" Language="cs">
+                <![CDATA[
+                    // Default fallback
+                    ProjectVersion = "0.0.0";
+
+                    if (File.Exists(TomlFilePath))
+                    {
+                        string content = File.ReadAllText(TomlFilePath);
+                        var major = Regex.Match(content, @"major\s*=\s*(\d+)");
+                        var minor = Regex.Match(content, @"minor\s*=\s*(\d+)");
+                        var patch = Regex.Match(content, @"patch\s*=\s*(\d+)");
+
+                        if (major.Success && minor.Success && patch.Success)
+                        {
+                            ProjectVersion = $"{major.Groups[1].Value}.{minor.Groups[1].Value}.{patch.Groups[1].Value}";
+                        }
+                    }
+                ]]>
+            </Code>
+        </Task>
+    </UsingTask>
+
     <!-- 3. Generate the file -->
     <Target Name="GenerateDynamicBuildInfo" BeforeTargets="BeforeCompile">
-        <!-- Get Commit Hash -->
+        <!-- Get Commit Hash (Git is cross-platform) -->
         <Exec Command="git rev-parse --short HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low" IgnoreExitCode="true">
             <Output TaskParameter="ConsoleOutput" PropertyName="GitCommitHash" />
         </Exec>
 
-        <!-- Get Version from project.toml using an inline PowerShell regex match -->
-        <Exec Command="powershell -NoProfile -Command &quot;$t = Get-Content '$(MSBuildThisFileDirectory).betterGit\project.toml' -Raw; $v = '{0}.{1}.{2}' -f [regex]::Match($t, 'major = (\d+)').Groups[1].Value, [regex]::Match($t, 'minor = (\d+)').Groups[1].Value, [regex]::Match($t, 'patch = (\d+)').Groups[1].Value; Write-Output $v&quot;" ConsoleToMSBuild="true" StandardOutputImportance="low" IgnoreExitCode="true">
-            <Output TaskParameter="ConsoleOutput" PropertyName="ProjectVersion" />
-        </Exec>
+        <!-- 🌟 NEW: Call the inline C# task -->
+        <!-- Note: Changed backslash to forward slash for Linux compatibility -->
+        <ExtractVersionFromToml TomlFilePath="$(MSBuildThisFileDirectory).betterGit/project.toml">
+            <Output TaskParameter="ProjectVersion" PropertyName="ProjectVersion" />
+        </ExtractVersionFromToml>
 
         <PropertyGroup>
             <!-- Fallbacks in case commands fail -->
             <GitCommitHash Condition="'$(GitCommitHash)' == ''">local</GitCommitHash>
-            <ProjectVersion Condition="'$(ProjectVersion)' == '..' or '$(ProjectVersion)' == ''">0.0.0</ProjectVersion>
+            <!-- Note: ProjectVersion fallback is now handled natively inside the C# task above! -->
 
             <!-- Value Hint Formatting -->
             <BuildTime>$([System.DateTime]::Now.ToString('hh:mm-tt'))</BuildTime>
