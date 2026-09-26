@@ -1,4 +1,0 @@
-1 | 2026-09-11T09:00:31.3610796Z | FAILURE | Download from Git URL | internal | download_module_git
-1 | 2026-09-26T13:20:15.5508665Z | FAILURE | Download from Git URL | internal | download_module_git
-2 | 2026-09-26T13:20:52.4993710Z | FAILURE | Download from Registry | internal | download_module_registry
-1 | 2026-09-26T13:22:26.2807131Z | FAILURE | Download from Git URL | internal | download_module_git
