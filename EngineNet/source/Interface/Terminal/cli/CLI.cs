@@ -1,4 +1,3 @@
-
 namespace EngineNet.Interface.Terminal;
 
 using Interface;
@@ -29,12 +28,11 @@ public sealed partial class CLI {
 
             if (options.RunAll) {
                 Shared.IO.Diagnostics.Trace("Detected run-all operation invocation.");
-                if (options.RunOperationSelector is null){
+                if (options.RunOperationSelector is null) {
                     return await RunAllOperationsAsync(options: options, cancellationToken: cancellationToken);
                 }
                 Shared.IO.Diagnostics.Log("ERROR: --run_op cannot be combined with --run_all.");
                 return 2;
-
             }
 
             if (options.RunOperationSelector is not null) {
@@ -69,6 +67,8 @@ public sealed partial class CLI {
                     return 0;
                 case "--list-games":
                     return ListGames();
+                case "--list-internal":
+                    return ListInternal();
                 case "--list-ops":
                     return ListOps(game: GetArg(args: args, index: 1, error: "<game> required for list-ops"));
                 default:
@@ -94,8 +94,8 @@ public sealed partial class CLI {
     /// <returns></returns>
     internal async System.Threading.Tasks.Task<int> RunInlineOperationAsync(InlineOperationOptions options, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         // Validate required options
-        if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot)) {
-            Shared.IO.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) is required for inline execution.");
+        if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot) && string.IsNullOrWhiteSpace(options.InternalModuleIdentifier)) {
+            Shared.IO.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) or --internal is required.");
             return 2;
         }
 
@@ -105,8 +105,9 @@ public sealed partial class CLI {
             return 2;
         }
 
-        // Find game modules
-        Core.Data.GameModules games = Engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.All);
+        // Conditionally select the ModuleFilter and find game modules
+        bool isInternal = !string.IsNullOrWhiteSpace(options.InternalModuleIdentifier);
+        Core.Data.GameModules games = Engine.GameRegistry_GetModules(filter: isInternal ? Core.Data.ModuleFilter.Internal : Core.Data.ModuleFilter.All);
         if (!TryResolveInlineGame(options: options, games: games, resolvedName: out string? gameName)) {
             Shared.IO.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
             return 1;
@@ -136,12 +137,13 @@ public sealed partial class CLI {
             return 2;
         }
 
-        if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot)) {
-            Shared.IO.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) is required for --run_op.");
+        if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot) && string.IsNullOrWhiteSpace(options.InternalModuleIdentifier)) {
+            Shared.IO.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) or --internal is required.");
             return 2;
         }
 
-        Core.Data.GameModules games = Engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.All);
+        bool isInternal = !string.IsNullOrWhiteSpace(options.InternalModuleIdentifier);
+        Core.Data.GameModules games = Engine.GameRegistry_GetModules(filter: isInternal ? Core.Data.ModuleFilter.Internal : Core.Data.ModuleFilter.All);
         if (!TryResolveInlineGame(options: options, games: games, resolvedName: out string? gameName)) {
             Shared.IO.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
             return 1;
@@ -175,12 +177,13 @@ public sealed partial class CLI {
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     private async System.Threading.Tasks.Task<int> RunAllOperationsAsync(InlineOperationOptions options, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
-        if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot)) {
-            Shared.IO.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) is required for --run_all.");
+        if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot) && string.IsNullOrWhiteSpace(options.InternalModuleIdentifier)) {
+            Shared.IO.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) or --internal is required.");
             return 2;
         }
 
-        Core.Data.GameModules games = Engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.All);
+        bool isInternal = !string.IsNullOrWhiteSpace(options.InternalModuleIdentifier);
+        Core.Data.GameModules games = Engine.GameRegistry_GetModules(filter: isInternal ? Core.Data.ModuleFilter.Internal : Core.Data.ModuleFilter.All);
         if (!TryResolveInlineGame(options: options, games: games, resolvedName: out string? gameName)) {
             Shared.IO.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
             return 1;
@@ -223,7 +226,7 @@ public sealed partial class CLI {
             }
 
             string key = NormalizeOptionKey(key: GetOptionKey(token: token));
-            if (key is "game" or "game_module" or "module" or "gameid" or "game_name" or "game_root") {
+            if (key is "game" or "game_module" or "module" or "gameid" or "game_name" or "game_root" or "internal") {
                 // Indicate that a game/module was specified
                 sawGame = true;
             }
@@ -241,6 +244,9 @@ public sealed partial class CLI {
     /// Options for inline operation execution.
     /// </summary>
     internal sealed class InlineOperationOptions {
+        internal string? InternalModuleIdentifier {
+            get; private set;
+        }
         internal string? GameIdentifier {
             get; private set;
         }
@@ -300,6 +306,12 @@ public sealed partial class CLI {
                 string normalized = NormalizeOptionKey(key: key);
                 Shared.IO.Diagnostics.Log($"DEBUG: Parsing option --{key} (normalized: {normalized}) with value '{value}'");
                 switch (normalized) {
+                    case "internal":
+                        if (string.IsNullOrWhiteSpace(value)) {
+                            throw new System.ArgumentException($"Option '--{key}' requires a value.");
+                        }
+                        options.InternalModuleIdentifier = value;
+                        break;
                     case "game":
                     case "game_module":
                     case "module":

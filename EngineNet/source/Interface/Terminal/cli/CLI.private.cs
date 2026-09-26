@@ -19,13 +19,35 @@ public sealed partial class CLI {
         }
     }
 
+    private int ListInternal() {
+        try {
+            Core.Data.GameModules modules = Engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.Internal);
+            if (modules.Count == 0) {
+                System.Console.WriteLine("No internal modules found.");
+                return 0;
+            }
+            System.Console.WriteLine("Internal Modules:");
+            foreach ((string Name, string State, string Root) item in modules.Values.Select(selector: m => (Name: m.Name, State: m.DescribeState(), Root: m.GameRoot))) {
+                System.Console.WriteLine($"- {item.Name}  (state: {item.State}; root: {item.Root})");
+            }
+            return 0;
+        } catch (System.Exception ex) {
+            Shared.IO.Diagnostics.Bug($"Error listing internal modules: {ex}");
+            return -1;
+        }
+    }
+
     private int ListOps(string game) {
         try {
             // Find the game module
             Core.Data.GameModules modules = Engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.All);
             if (!modules.TryGetValue(key: game, out Core.Data.GameModuleInfo? mod)) {
-                System.Console.WriteLine($"Game '{game}' not found.");
-                return 1;
+                // Fallback to check if it's an internal module
+                modules = Engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.Internal);
+                if (!modules.TryGetValue(key: game, out mod)) {
+                    System.Console.WriteLine($"Game/Module '{game}' not found.");
+                    return 1;
+                }
             }
             // Load operations list
             string? opsFile = mod.OpsFile;
@@ -67,14 +89,17 @@ public sealed partial class CLI {
         Shared.IO.Diagnostics.Trace("Displaying CLI help.");
         System.Console.WriteLine(@"RemakeEngine
         TUI Usage:
-            engine --tui (to launch terminal ui menu)
+            dotnet run -c Debug --project .\EngineNet\ -- --tui (to launch terminal ui menu)
         CLI Usage:
-            engine --list-games (to list available game modules)
-            engine --list-ops <game> (to list available operations for a game module)
-            engine --game_module <name|id|path> --run_op <name|id> (to run a defined operation from Operations.toml)
-            engine --game_module <name|id|path> --run_all (to run the module's configured run-all sequence)
-            engine --game_module <name|id|path> --script <action> [--script_type <type>] [--args '""<arg>"",""<arg>""'] (to manually run an operation directly)
-        Other commands:
+            dotnet run -c Debug --project .\EngineNet\ -- --list-games (to list available game modules)
+            dotnet run -c Debug --project .\EngineNet\ -- --list-internal (to list available internal modules)
+            dotnet run -c Debug --project .\EngineNet\ -- --list-ops <game> (to list available operations for a game module)
+            dotnet run -c Debug --project .\EngineNet\ -- --game_module <name|id|path> --run_op <name|id> (to run a defined operation from Operations.toml)
+            dotnet run -c Debug --project .\EngineNet\ -- --internal <name|id|path> --run_op <name|id> (to run a defined operation from an internal module)
+            dotnet run -c Debug --project .\EngineNet\ -- --game_module <name|id|path> --run_all (to run the module's configured run-all sequence)
+            dotnet run -c Debug --project .\EngineNet\ -- --game_module <name|id|path> --script <action> [--script_type <type>] [--args '""<arg>"",""<arg>""'] (to manually run an operation directly)
+            dotnet run -c Debug --project .\EngineNet\ -- --version (to display the version of the CLI)
+        Other args:
             --root ""PATH""
             --gui
         ");
@@ -94,7 +119,9 @@ public sealed partial class CLI {
             GameRoot = options.GameRoot;
         }
 
-        string? identifier = options.GameIdentifier;
+        string? identifier = !string.IsNullOrWhiteSpace(options.InternalModuleIdentifier)
+            ? options.InternalModuleIdentifier
+            : options.GameIdentifier;
         string? preferredRoot = ResolveFullPathSafe(path: GameRoot);
 
         if (!string.IsNullOrWhiteSpace(identifier)) {
