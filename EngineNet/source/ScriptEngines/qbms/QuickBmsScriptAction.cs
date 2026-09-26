@@ -50,9 +50,8 @@ public sealed class Main : IScriptAction {
             throw new System.IO.IOException($"Failed to read Tools.toml at '{toolsToml}' to determine required QuickBMS version.", innerException: ex);
         }
 
-        // Resolve QuickBMS exe and version via provider (tool lockfile or resolver)
-        //Core.ExternalTools.ToolMetadataProvider provider = new Core.ExternalTools.ToolMetadataProvider(projectRoot: EngineNet.Shared.State.RootPath, resolver: tools);
-        (string? installedExe, string? installedVersion) = Core.ExternalTools.ToolMetadataProvider.ResolveExeAndVersion(toolId: "QuickBMS", _rootPath: EngineNet.Shared.State.RootPath, _toolResolver: tools);
+        // Resolve QuickBMS metadata through the lockfile-backed tool resolver.
+        (string? installedExe, string? installedVersion) = tools.ResolveExeAndVersion(toolId: "QuickBMS");
 
         // Enforce required version (if declared)
         if ((!string.IsNullOrWhiteSpace(requiredVersion) && string.IsNullOrWhiteSpace(installedVersion)) || !string.Equals(a: installedVersion, b: requiredVersion, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {

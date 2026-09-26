@@ -15,6 +15,21 @@ internal sealed class ContextualToolResolver : IJsonToolResolver {
         _contextVersions = contextVersions;
     }
 
+    /// <inheritdoc />
+    public bool IsTrackedTool(string executablePath) {
+        return _base.IsTrackedTool(executablePath: executablePath);
+    }
+
+    /// <inheritdoc />
+    public (string? exe, string? version) ResolveExeAndVersion(string toolId) {
+        if (_contextVersions.TryGetValue(key: toolId, out string? version)) {
+            string resolvedPath = _base.ResolveToolPath(toolId: toolId, version: version);
+            return _base.IsTrackedTool(executablePath: resolvedPath) ? (resolvedPath, version) : (null, null);
+        }
+
+        return _base.ResolveExeAndVersion(toolId: toolId);
+    }
+
     public string ResolveToolPath(string toolId, string? version = null) {
         if (version == null && _contextVersions.TryGetValue(key: toolId, out string? v)) {
             version = v;

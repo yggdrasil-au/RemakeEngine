@@ -139,8 +139,7 @@ public sealed class GameLauncher {
         // If godot project specified, invoke godot
         if (!string.IsNullOrWhiteSpace(godotProject)) {
             try {
-                //var provider = new ToolMetadataProvider(projectRoot: this._rootPath, resolver: this._toolResolver);
-                (string? godotExe, _) = Core.ExternalTools.ToolMetadataProvider.ResolveExeAndVersion(toolId: "godot", _rootPath: this._rootPath, _toolResolver: this._toolResolver);
+                (string? godotExe, _) = this._toolResolver.ResolveExeAndVersion(toolId: "godot");
                 string godotPath = string.IsNullOrWhiteSpace(godotExe) ? this._toolResolver.ResolveToolPath(toolId: "godot") : godotExe;
                 if (!System.IO.File.Exists(path: godotPath)) return false;
 
@@ -153,6 +152,7 @@ public sealed class GameLauncher {
                 return false;
             }
         }
+
 
         // exe path from game.toml or registry
         string? exe = exePath ?? _gameRegistry.GetGameExecutable(name: name);

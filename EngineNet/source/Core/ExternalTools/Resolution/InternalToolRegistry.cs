@@ -53,10 +53,10 @@ internal static class InternalToolRegistry {
                     MergeDictionaries(target: targetDict, source: sourceDict);
                     continue;
                 }
-                
+
                 if (existingValue is JsonElement targetElem && targetElem.ValueKind == JsonValueKind.Object &&
                     kvp.Value is JsonElement sourceElem && sourceElem.ValueKind == JsonValueKind.Object) {
-                    
+
                     Dictionary<string, object?> merged = MergeJsonElements(target: targetElem, source: sourceElem);
                     target[key: kvp.Key] = merged;
                     continue;
@@ -68,11 +68,11 @@ internal static class InternalToolRegistry {
 
     private static Dictionary<string, object?> MergeJsonElements(JsonElement target, JsonElement source) {
         Dictionary<string, object?> result = new(comparer: StringComparer.OrdinalIgnoreCase);
-        
+
         foreach (JsonProperty prop in target.EnumerateObject()) {
             result[key: prop.Name] = prop.Value;
         }
-        
+
         foreach (JsonProperty prop in source.EnumerateObject()) {
             if (result.TryGetValue(key: prop.Name, out object? existing) && existing is JsonElement targetSub && targetSub.ValueKind == JsonValueKind.Object &&
                 prop.Value.ValueKind == JsonValueKind.Object) {
@@ -81,7 +81,7 @@ internal static class InternalToolRegistry {
                 result[key: prop.Name] = prop.Value;
             }
         }
-        
+
         return result;
     }
 }

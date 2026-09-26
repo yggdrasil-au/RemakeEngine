@@ -15,6 +15,16 @@ public class JsonToolResolver : IJsonToolResolver {
     }
 
     /// <summary>
+    /// Creates a resolver for the installed-tools lockfile under a specified engine root.
+    /// </summary>
+    /// <param name="rootPath">The engine root that contains <c>Tools.installed.json</c>.</param>
+    public JsonToolResolver(string rootPath) {
+        _lockfilePath = ToolLockfile.GetPath(rootPath: rootPath);
+        Load();
+    }
+
+
+    /// <summary>
     /// Loads or reloads the tool definitions from the local tracking file.
     /// </summary>
     private void Load() {
@@ -95,4 +105,62 @@ public class JsonToolResolver : IJsonToolResolver {
 
         return toolId;
     }
+
+    /// <summary>
+    /// Determines whether an executable path exactly matches a path recorded in the installed-tools lockfile.
+    /// </summary>
+    /// <param name="executablePath">The executable path to validate.</param>
+    /// <returns><see langword="true"/> when the path is tracked; otherwise, <see langword="false"/>.</returns>
+    public bool IsTrackedTool(string executablePath) {
+        string normalizedInput = NormalizeFullPath(path: executablePath);
+        if (string.IsNullOrWhiteSpace(normalizedInput)) {
+            return false;
+        }
+
+        Load();
+
+        foreach (Dictionary<string, string> toolVersions in _tools.Values) {
+            foreach (string trackedPath in toolVersions.Values) {
+                if (string.Equals(a: NormalizeFullPath(path: trackedPath), b: normalizedInput, comparisonType: System.StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Resolves the executable path and installed version for a tracked tool.
+    /// </summary>
+    /// <param name="toolId">The registered tool identifier.</param>
+    /// <returns>The executable path and version, or <see langword="null"/> values when the tool is not tracked.</returns>
+    public (string? exe, string? version) ResolveExeAndVersion(string toolId) {
+        Load();
+
+        if (_tools.TryGetValue(key: toolId, out Dictionary<string, string>? versions)) {
+            foreach (KeyValuePair<string, string> versionEntry in versions) {
+                return (versionEntry.Value, versionEntry.Key);
+            }
+        }
+
+        return (null, null);
+    }
+
+    private static string NormalizeFullPath(string path) {
+        if (string.IsNullOrWhiteSpace(path)) {
+            return string.Empty;
+        }
+
+        try {
+            return System.IO.Path.GetFullPath(path: path).ToLowerInvariant();
+        } catch (System.ArgumentException) {
+            return string.Empty;
+        } catch (System.IO.IOException) {
+            return string.Empty;
+        } catch (System.NotSupportedException) {
+            return string.Empty;
+        }
+    }
+
 }

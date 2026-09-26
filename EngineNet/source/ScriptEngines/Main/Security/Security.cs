@@ -138,8 +138,7 @@ internal static class Security {
             ? currentDir
             : NormalizeLowerFullPath(path: EngineNet.Shared.State.RootPath);
 
-        List<string> forbiddenPatterns = new()
-        {
+        List<string> forbiddenPatterns = new() {
             "/etc", "/bin", "/sbin",
             System.IO.Path.Combine(path1: "/usr", path2: "bin"),
             System.IO.Path.Combine(path1: "/usr", path2: "sbin"),
@@ -147,10 +146,17 @@ internal static class Security {
             // Explicitly deny access to Engine Files to prevent tampering
             System.IO.Path.Combine(path1: projectRoot, path2: "EngineApps", path3: "Registries").Replace(oldChar: '/', newChar: System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
             System.IO.Path.Combine(path1: projectRoot, path2: "EngineApps", path3: "api_definitions").Replace(oldChar: '/', newChar: System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
-            //System.IO.Path.Combine(projectRoot, "EngineApps", "Tools").Replace('/', System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
-            // if the script is running from Source, also deny access to EngineNet source to prevent tampering
-            System.IO.Path.Combine(path1: projectRoot, path2: "EngineNet").Replace(oldChar: '/', newChar: System.IO.Path.DirectorySeparatorChar).ToLowerInvariant(),
         };
+
+        // Development layouts contain the EngineNet source directory, while packaged releases do not.
+        // Protect the source tree only when that directory exists beneath the active project root.
+        string projectRootDirectory = string.IsNullOrWhiteSpace(EngineNet.Shared.State.RootPath)
+            ? System.IO.Directory.GetCurrentDirectory()
+            : EngineNet.Shared.State.RootPath;
+        string engineNetDirectory = System.IO.Path.Combine(path1: projectRootDirectory, path2: "EngineNet");
+        if (System.IO.Directory.Exists(path: engineNetDirectory)) {
+            forbiddenPatterns.Add(item: engineNetDirectory);
+        }
 
         if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(osPlatform: System.Runtime.InteropServices.OSPlatform.Windows)) {
             forbiddenPatterns.Add(item: System.Environment.GetFolderPath(folder: System.Environment.SpecialFolder.Windows).ToLowerInvariant());
@@ -160,6 +166,7 @@ internal static class Security {
             forbiddenPatterns.Add(item: System.Environment.GetFolderPath(folder: System.Environment.SpecialFolder.ProgramFilesX86).ToLowerInvariant());
             forbiddenPatterns.Add(item: System.Environment.GetFolderPath(folder: System.Environment.SpecialFolder.CommonApplicationData).ToLowerInvariant());
         }
+
 
         return (from forbiddenPattern in forbiddenPatterns where !string.IsNullOrWhiteSpace(forbiddenPattern) select NormalizeBoundaryPattern(pathPattern: forbiddenPattern)).Any(predicate: normalizedForbidden => IsPathWithinBoundary(normalizedPath: normalizedPath, normalizedPattern: normalizedForbidden));
     }
@@ -203,70 +210,31 @@ internal static class Security {
         return false;
     }
 
+
     /// <summary>
     /// Security validation: Check if executable is approved for RemakeEngine use.
-    /// Allows registered tools, common system utilities, and resolved tool paths.
+    /// Allows installed lockfile tools and a limited set of system utilities.
     /// </summary>
     internal static bool IsApprovedExecutable(string executable, Core.Abstractions.IJsonToolResolver tools) {
         if (string.IsNullOrWhiteSpace(executable)) {
             return false;
         }
 
-        // Normalize executable name (remove path and extension for comparison)
-        string exeName = System.IO.Path.GetFileNameWithoutExtension(path: executable).ToLowerInvariant();
-        string fullName = System.IO.Path.GetFileName(path: executable).ToLowerInvariant();
-
-        // Allow resolved tool paths (tools that came from tool() function)
-        try {
-            string resolvedPath = tools.ResolveToolPath(toolId: exeName);
-            if (!string.IsNullOrEmpty(resolvedPath) && (executable.Equals(resolvedPath, comparisonType: System.StringComparison.OrdinalIgnoreCase) || executable.EndsWith(resolvedPath, comparisonType: System.StringComparison.OrdinalIgnoreCase))) {
-                return true;
-            }
-        } catch (Exception ex) {
-            Shared.IO.Diagnostics.Trace("Tool resolution failed for: " + exeName + " with exception: " + ex);
-            /* Tool resolution may fail, continue with other checks */
+        if (tools.IsTrackedTool(executablePath: executable)) {
+            return true;
         }
 
-        // Approved RemakeEngine tools (case-insensitive)
-        HashSet<string> approvedTools = new(comparer: System.StringComparer.OrdinalIgnoreCase) {
-            // Core RemakeEngine tools from "EngineApps", "Registries", "Tools", "Main.json", TODO: resolve dynamically
-            "blender", "blender.exe", "blender-launcher.exe",
-            "quickbms", "quickbms.exe",
-            "godot", "godot.exe",
-            "vgmstream-cli", "vgmstream-cli.exe",
-            "ffmpeg", "ffmpeg.exe",
+        string executableName = System.IO.Path.GetFileNameWithoutExtension(path: executable);
+        string fullName = System.IO.Path.GetFileName(path: executable);
 
-            // Git (for repository operations)
+        HashSet<string> approvedSystemTools = new(comparer: System.StringComparer.OrdinalIgnoreCase) {
             "git", "git.exe",
-
-            // PowerShell/cmd (very limited - only for specific safe operations)
-            // Note: These require additional argument validation
             "pwsh", "pwsh.exe", "powershell", "powershell.exe",
-
         };
 
-        // Check both with and without common extensions
-        if (approvedTools.Contains(item: exeName) || approvedTools.Contains(item: fullName)) {
-            return true;
-        }
-
-        // Allow executables that are in the Tools directory structure
-        if (executable.Contains("Tools", comparisonType: System.StringComparison.OrdinalIgnoreCase) &&
-            (executable.Contains("Blender", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("QuickBMS", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("Godot", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("vgmstream", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("ffmpeg", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("ImageMagick", comparisonType: System.StringComparison.OrdinalIgnoreCase) ||
-             executable.Contains("Lucas_Radcore_Cement_Library_Builder", comparisonType: System.StringComparison.OrdinalIgnoreCase))) {
-            return true;
-        } else if (executable.Contains("Tools", comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
-            Shared.IO.Diagnostics.Log($"Allowing executable in Tools directory: {executable}");
-            return true;
-        }
-
-        return false;
+        return approvedSystemTools.Contains(item: executableName) || approvedSystemTools.Contains(item: fullName);
     }
+
 
     /// <summary>
     /// Security validation: Check if file path is within allowed workspace areas.
@@ -282,7 +250,7 @@ internal static class Security {
 
         try {
             string normalizedPath = NormalizeLowerFullPath(path: path);
-            
+
             // Deny explicitly forbidden paths immediately
             if (IsForbiddenPath(normalizedPath: normalizedPath)) {
                 Shared.IO.Diagnostics.Trace($"Path '{normalizedPath}' is forbidden");

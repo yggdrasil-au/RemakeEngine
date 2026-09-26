@@ -1,4 +1,4 @@
-namespace EngineNet.Terminal;
+namespace EngineNet.Interface.Terminal;
 
 
 using System;

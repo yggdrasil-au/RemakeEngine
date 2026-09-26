@@ -1,0 +1,63 @@
+<Project>
+    <!-- 1. Define the path globally AFTER the SDK has fully loaded -->
+    <PropertyGroup>
+        <GeneratedBuildInfoPath>$(IntermediateOutputPath)EngineBuildInfo.g.cs</GeneratedBuildInfoPath>
+    </PropertyGroup>
+
+    <!-- 2. Expose the file statically so the IDE's IntelliSense always sees it -->
+    <ItemGroup>
+        <Compile Include="$(GeneratedBuildInfoPath)" />
+    </ItemGroup>
+
+    <!-- 3. Generate the file -->
+    <Target Name="GenerateDynamicBuildInfo" BeforeTargets="BeforeCompile">
+        <!-- Get Commit Hash -->
+        <Exec Command="git rev-parse --short HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low" IgnoreExitCode="true">
+            <Output TaskParameter="ConsoleOutput" PropertyName="GitCommitHash" />
+        </Exec>
+
+        <!-- Get Version from project.toml using an inline PowerShell regex match -->
+        <Exec Command="powershell -NoProfile -Command &quot;$t = Get-Content '$(MSBuildThisFileDirectory).betterGit\project.toml' -Raw; $v = '{0}.{1}.{2}' -f [regex]::Match($t, 'major = (\d+)').Groups[1].Value, [regex]::Match($t, 'minor = (\d+)').Groups[1].Value, [regex]::Match($t, 'patch = (\d+)').Groups[1].Value; Write-Output $v&quot;" ConsoleToMSBuild="true" StandardOutputImportance="low" IgnoreExitCode="true">
+            <Output TaskParameter="ConsoleOutput" PropertyName="ProjectVersion" />
+        </Exec>
+
+        <PropertyGroup>
+            <!-- Fallbacks in case commands fail -->
+            <GitCommitHash Condition="'$(GitCommitHash)' == ''">local</GitCommitHash>
+            <ProjectVersion Condition="'$(ProjectVersion)' == '..' or '$(ProjectVersion)' == ''">0.0.0</ProjectVersion>
+
+            <!-- Value Hint Formatting -->
+            <BuildTime>$([System.DateTime]::Now.ToString('hh:mm-tt'))</BuildTime>
+            <BuildDate>$([System.DateTime]::Now.ToString('dd-MM-yy'))</BuildDate>
+
+            <!-- Final Format: T<Time>.D<dd-mm-yy>.C<commit>.V<versionNumber> -->
+            <DynamicBuildNumber>T$(BuildTime).D$(BuildDate).C$(GitCommitHash).V$(ProjectVersion)</DynamicBuildNumber>
+
+            <BuildInfoCode>
+// &lt;auto-generated /&gt;
+namespace $(RootNamespace)%3B
+
+internal static class EngineBuildInfo {
+    internal const string BuildTime = %22$(BuildTime)%22%3B
+    internal const string BuildDate = %22$(BuildDate)%22%3B
+    internal const string ProjectVersion = %22$(ProjectVersion)%22%3B
+    internal const string GitCommitHash = %22$(GitCommitHash)%22%3B
+
+    internal const string BuildNumber = %22T-%22 + BuildTime + %22.D-%22 + BuildDate + %22.C-%22 + GitCommitHash + %22.V-%22 + ProjectVersion%3B
+    internal const string DynamicBuildNumber = %22$(DynamicBuildNumber)%22%3B
+}
+            </BuildInfoCode>
+        </PropertyGroup>
+
+        <!-- WriteOnlyWhenDifferent prevents constant cache invalidation -->
+        <WriteLinesToFile
+            File="$(GeneratedBuildInfoPath)"
+            Lines="$(BuildInfoCode)"
+            Overwrite="true"
+            WriteOnlyWhenDifferent="true" />
+
+        <ItemGroup>
+            <FileWrites Include="$(GeneratedBuildInfoPath)" />
+        </ItemGroup>
+    </Target>
+</Project>

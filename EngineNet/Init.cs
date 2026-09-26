@@ -61,11 +61,11 @@ internal sealed class InitUI {
                     return Interface.GUI.GuiBootstrapper.Run(miniEngine: miniEngine, cancellationToken: cancellationToken);
                 case "tui":
                     Shared.IO.Diagnostics.Trace("Launching TUI Interface...");
-                    Terminal.TUI TUI = new(engine: miniEngine);
+                    Interface.Terminal.TUI TUI = new(engine: miniEngine);
                     return await TUI.RunAsync(cancellationToken: cancellationToken);
                 case "cli":
                     Shared.IO.Diagnostics.Trace("Launching CLI Interface...");
-                    Terminal.CLI CLI = new(engine: miniEngine);
+                    Interface.Terminal.CLI CLI = new(engine: miniEngine);
                     return await CLI.RunAsync(args: args, cancellationToken: cancellationToken);
                 default:
                     await System.Console.Error.WriteLineAsync(

@@ -30,8 +30,7 @@ EngineNet.Core is the runtime layer behind CLI, TUI, and GUI. For most users and
 - `ExternalTools/ToolRegistryResolver.cs`: projects merged registry data into typed registry models and resolves platform matches.
 - `ExternalTools/ToolArchiveManager.cs`: central tool paths, extraction, wrapper flattening, executable search, and permission updates.
 - `ExternalTools/ToolChecksumVerifier.cs`: local SHA256 hashing and upstream checksum fallback lookup.
-- `ExternalTools/Resolution/JsonToolResolver.cs`: legacy consumer that now reads the canonical typed lockfile.
-- `ExternalTools/Resolution/ToolMetadataProvider.cs`: resolves executable and version metadata from the canonical typed lockfile.
+- `ExternalTools/Resolution/JsonToolResolver.cs`: the lockfile-backed source of truth for executable paths, installed versions, and tracked-tool validation.
 
 The reusable serialization, diagnostics, and UI bridge helpers now live in [../Shared/readme.md](../Shared/readme.md) and are referenced by Core rather than owned by it.
 

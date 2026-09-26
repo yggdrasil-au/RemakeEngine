@@ -1,5 +1,5 @@
 
-namespace EngineNet.Terminal;
+namespace EngineNet.Interface.Terminal;
 
 using Interface;
 
@@ -57,6 +57,16 @@ public sealed partial class CLI {
                 case "--help":
                     PrintHelp();
                     return 0;
+                case "--version":
+                case "-v":
+                case "--v":
+                    // Display basic project and build info
+                    System.Console.WriteLine($"Remake Engine");
+                    System.Console.WriteLine($"");
+                    System.Console.WriteLine($"Build: {EngineBuildInfo.BuildNumber}");
+                    System.Console.WriteLine($"Version: {EngineBuildInfo.ProjectVersion}");
+                    System.Console.WriteLine($"Commit: {EngineBuildInfo.GitCommitHash}");
+                    return 0;
                 case "--list-games":
                     return ListGames();
                 case "--list-ops":
@@ -67,8 +77,8 @@ public sealed partial class CLI {
                     return 2;
             }
         } catch (System.OperationCanceledException) {
-             System.Console.WriteLine("\nOperation cancelled by user.");
-             return 1;
+            System.Console.WriteLine("\nOperation cancelled by user.");
+            return 1;
         } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"CLI Error: {ex}");
             System.Console.WriteLine($"Error: {ex.Message}");
