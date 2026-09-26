@@ -84,10 +84,12 @@ public sealed class TUI {
             GameModuleInfo? info = operationSession.Module;
             PreparedOperations preparedOps = operationSession.PreparedOperations;
 
+            // if the selected game module could not be loaded, prompt the user to choose again
             if (info is null) {
                 Shared.IO.Diagnostics.Log("Selected game not found.");
                 return await RunAsync(msg: preparedOps.ErrorMessage ?? "Selected game not found. Please choose again.");
             }
+            // if the prepared operations could not be loaded, inform the user and exit
             if (!preparedOps.IsLoaded) {
                 string message = preparedOps.ErrorMessage ?? "Failed to load operations list.";
                 Shared.IO.Diagnostics.Log($"{message}");
@@ -96,7 +98,7 @@ public sealed class TUI {
                 Shared.IO.Diagnostics.Log("Exiting due to failed ops load.");
                 return 1;
             }
-
+            // if there are any warnings from the prepared operations, log them
             if (preparedOps.Warnings.Count > 0) {
                 foreach (string warning in preparedOps.Warnings) {
                     Shared.IO.Diagnostics.Log($"Warning: {warning}");
@@ -130,6 +132,15 @@ public sealed class TUI {
 
             // operations menu
             while (true) {
+                // Refresh the operation session to ensure completion statuses are up-to-date
+                operationSession = Engine.OperationsService_LoadModuleSession(gameName: gameName, games: allAvailableModules);
+                info = operationSession.Module;
+                preparedOps = operationSession.PreparedOperations;
+
+                if (info is null) {
+                    return await RunAsync(msg: "Game module not found. Please choose again.");
+                }
+
                 SafeClear();
                 System.Console.WriteLine($"--- Operations for: {gameName}");
                 List<string> menu = new();
