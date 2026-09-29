@@ -65,7 +65,8 @@ public sealed class All {
             .ToList();
 
         // Retain the legacy list for the invalid-graph fallback. A valid graph builds
-        // its own complete execution set from these roots and their prerequisites.
+        // the execution set from the init and Run All roots plus their prerequisites,
+        // so dependencies are scheduled even when they are not Run All operations.
         List<Dictionary<string, object?>> selected = new();
         foreach (Core.Data.PreparedOperation operation in session.PreparedOperations.InitOperations) {
             AddUnique(list: selected, op: operation.Operation);
@@ -397,19 +398,24 @@ public sealed class All {
     }
 
     /// <summary>
-    /// Adds an operation to the list if it's not already present.
+    /// Adds an operation to the list if its reference or declared ID is not already present.
+    /// This preserves the legacy fallback behavior while avoiding a duplicate init/Run All root.
     /// </summary>
     /// <param name="list"></param>
     /// <param name="op"></param>
     private static void AddUnique(List<Dictionary<string, object?>> list, Dictionary<string, object?> op) {
+        string id = GetString(dict: op, key: "id");
         foreach (Dictionary<string, object?> existing in list) {
-            if (ReferenceEquals(objA: existing, objB: op)) {
+            if (ReferenceEquals(objA: existing, objB: op) ||
+                (!string.IsNullOrWhiteSpace(id) && string.Equals(a: GetString(dict: existing, key: "id"), b: id, comparisonType: System.StringComparison.OrdinalIgnoreCase))) {
                 return;
             }
         }
 
         list.Add(item: op);
     }
+
+
 
     /// <summary>
     /// Builds default answers for prompts defined in the operation.

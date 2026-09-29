@@ -2,7 +2,7 @@ namespace EngineNet.Interface.Terminal;
 
 using Interface;
 
-public sealed partial class CLI {
+public sealed class CLI {
 
     /* :: :: Constructor, Var :: START :: */
     private readonly MiniEngineFace Engine;
@@ -19,17 +19,19 @@ public sealed partial class CLI {
     /// <returns></returns>
     public async System.Threading.Tasks.Task<int> RunAsync(string[] args, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         try {
+            // if no arguments provided, display help and exit
             if (args.Length == 0) {
-                PrintHelp();
+                StaticHelpers.PrintHelp();
                 return 0;
             }
 
+            // Parse inline operation options from command-line arguments
             InlineOperationOptions options = InlineOperationOptions.Parse(args: args);
 
             if (options.RunAll) {
                 Shared.IO.Diagnostics.Trace("Detected run-all operation invocation.");
                 if (options.RunOperationSelector is null) {
-                    return await RunAllOperationsAsync(options: options, cancellationToken: cancellationToken);
+                    return await ExecuteOperations.RunAllOperationsAsync(options: options, Engine: Engine, cancellationToken: cancellationToken);
                 }
                 Shared.IO.Diagnostics.Log("ERROR: --run_op cannot be combined with --run_all.");
                 return 2;
@@ -37,14 +39,14 @@ public sealed partial class CLI {
 
             if (options.RunOperationSelector is not null) {
                 Shared.IO.Diagnostics.Trace("Detected named operation invocation.");
-                return await RunSelectedOperationAsync(options: options, cancellationToken: cancellationToken);
+                return await ExecuteOperations.RunSelectedOperationAsync(options: options, Engine: Engine, cancellationToken: cancellationToken);
             }
 
             // Check for inline operation invocation
-            if (IsInlineOperationInvocation(args: args)) {
+            if (StaticHelpers.IsInlineOperationInvocation(args: args)) {
                 Shared.IO.Diagnostics.Trace("Detected inline operation invocation.");
                 // Run operation directly from command-line args
-                return await RunInlineOperationAsync(options: options, cancellationToken: cancellationToken);
+                return await ExecuteOperations.RunInlineOperationAsync(options: options, Engine: Engine, cancellationToken: cancellationToken);
             }
 
             string cmd = args[0].ToLowerInvariant();
@@ -53,7 +55,7 @@ public sealed partial class CLI {
                 case "help":
                 case "-h":
                 case "--help":
-                    PrintHelp();
+                    StaticHelpers.PrintHelp();
                     return 0;
                 case "--version":
                 case "-v":
@@ -70,10 +72,10 @@ public sealed partial class CLI {
                 case "--list-internal":
                     return ListInternal();
                 case "--list-ops":
-                    return ListOps(game: GetArg(args: args, index: 1, error: "<game> required for list-ops"));
+                    return ListOps(game: StaticHelpers.GetArg(args: args, index: 1, error: "<game> required for list-ops"));
                 default:
                     System.Console.WriteLine($"Unknown command '{args[0]}'.");
-                    PrintHelp();
+                    StaticHelpers.PrintHelp();
                     return 2;
             }
         } catch (System.OperationCanceledException) {
@@ -86,176 +88,11 @@ public sealed partial class CLI {
         }
     }
 
-    /// <summary>
-    /// Run an operation based on command-line arguments.
-    /// </summary>
-    /// <param name="options"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    internal async System.Threading.Tasks.Task<int> RunInlineOperationAsync(InlineOperationOptions options, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
-        // Validate required options
-        if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot) && string.IsNullOrWhiteSpace(options.InternalModuleIdentifier)) {
-            Shared.IO.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) or --internal is required.");
-            return 2;
-        }
-
-        // Validate script option
-        if (string.IsNullOrWhiteSpace(options.Script) && !options.OperationFields.ContainsKey(key: "script")) {
-            Shared.IO.Diagnostics.Log("ERROR: --script must be provided for inline execution.");
-            return 2;
-        }
-
-        // Conditionally select the ModuleFilter and find game modules
-        bool isInternal = !string.IsNullOrWhiteSpace(options.InternalModuleIdentifier);
-        Core.Data.GameModules games = Engine.GameRegistry_GetModules(filter: isInternal ? Core.Data.ModuleFilter.Internal : Core.Data.ModuleFilter.All);
-        if (!TryResolveInlineGame(options: options, games: games, resolvedName: out string? gameName)) {
-            Shared.IO.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
-            return 1;
-        }
-
-        // Build operation dictionary
-        Dictionary<string, object?> op = options.BuildOperation();
-        if (!op.TryGetValue(key: "script", out object? scriptObj) || scriptObj is null || string.IsNullOrWhiteSpace(scriptObj.ToString())) {
-            Shared.IO.Diagnostics.Log("ERROR: Inline operation is missing a script path or identifier.");
-            return 2;
-        }
-
-        // Execute the operation
-        bool ok = await new Utils().ExecuteOpAsync(Engine: Engine, game: gameName!, games: games, op: op, promptAnswers: options.PromptAnswers, autoPromptResponses: options.AutoPromptResponses, cancellationToken: cancellationToken);
-        return ok ? 0 : 1;
-    }
-
-    /// <summary>
-    /// Run a predefined operation selected by name or ID.
-    /// </summary>
-    /// <param name="options"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    internal async System.Threading.Tasks.Task<int> RunSelectedOperationAsync(InlineOperationOptions options, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
-        if (options.RunOperationSelector is null) {
-            Shared.IO.Diagnostics.Log("ERROR: --run_op requires an operation name or ID.");
-            return 2;
-        }
-
-        if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot) && string.IsNullOrWhiteSpace(options.InternalModuleIdentifier)) {
-            Shared.IO.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) or --internal is required.");
-            return 2;
-        }
-
-        bool isInternal = !string.IsNullOrWhiteSpace(options.InternalModuleIdentifier);
-        Core.Data.GameModules games = Engine.GameRegistry_GetModules(filter: isInternal ? Core.Data.ModuleFilter.Internal : Core.Data.ModuleFilter.All);
-        if (!TryResolveInlineGame(options: options, games: games, resolvedName: out string? gameName)) {
-            Shared.IO.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
-            return 1;
-        }
-
-        if (!TryLoadPreparedOperations(gameName: gameName!, games: games, opsFileOverride: options.OpsFile, preparedOps: out Core.Data.PreparedOperations? preparedOps, exitCode: out int loadCode)) {
-            return loadCode;
-        }
-
-        if (!TryResolvePreparedOperation(preparedOps: preparedOps!, selector: options.RunOperationSelector, selected: out Core.Data.PreparedOperation? selectedOp, errorMessage: out string? errorMessage)) {
-            if (!string.IsNullOrWhiteSpace(errorMessage)) {
-                await System.Console.Error.WriteLineAsync($"ERROR: {errorMessage}");
-                Shared.IO.Diagnostics.Log($"ERROR: {errorMessage}");
-            }
-
-            if (preparedOps is not null) {
-                WriteOperationSelectionHint(gameName: gameName!, preparedOps: preparedOps);
-            }
-            return 1;
-        }
-
-        Dictionary<string, object?> finalOp;
-        if (isInternal) {
-            // Internal operations rely on prompt answers (--answer) rather than raw field overrides (--set/--args)
-            finalOp = selectedOp!.Operation;
-        } else {
-            // Merge command-line overrides (like --args, --set) into the selected operation for standard scripts
-            finalOp = new(dictionary: selectedOp!.Operation, comparer: System.StringComparer.OrdinalIgnoreCase);
-            foreach (KeyValuePair<string, object?> overrideField in options.BuildOperation()) {
-                finalOp[key: overrideField.Key] = overrideField.Value;
-            }
-        }
-
-        Core.Data.PromptAnswers promptAnswers = options.PromptAnswers;
-        bool ok = await new Utils().ExecuteOpAsync(Engine: Engine, game: gameName!, games: games, op: finalOp, promptAnswers: promptAnswers, autoPromptResponses: options.AutoPromptResponses, cancellationToken: cancellationToken);
-        return ok ? 0 : 1;
-    }
-
-    /// <summary>
-    /// Run the module's configured run-all sequence.
-    /// </summary>
-    /// <param name="options"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    private async System.Threading.Tasks.Task<int> RunAllOperationsAsync(InlineOperationOptions options, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
-        if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot) && string.IsNullOrWhiteSpace(options.InternalModuleIdentifier)) {
-            Shared.IO.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) or --internal is required.");
-            return 2;
-        }
-
-        bool isInternal = !string.IsNullOrWhiteSpace(options.InternalModuleIdentifier);
-        Core.Data.GameModules games = Engine.GameRegistry_GetModules(filter: isInternal ? Core.Data.ModuleFilter.Internal : Core.Data.ModuleFilter.All);
-        if (!TryResolveInlineGame(options: options, games: games, resolvedName: out string? gameName)) {
-            Shared.IO.Diagnostics.Log("ERROR: Unable to resolve the specified game/module.");
-            return 1;
-        }
-
-        if (!TryLoadPreparedOperations(gameName: gameName!, games: games, opsFileOverride: options.OpsFile, preparedOps: out _, exitCode: out int loadCode)) {
-            return loadCode;
-        }
-
-        try {
-            Core.Operations.RunAllResult result = await Engine.RunAllAsync(
-                gameName: gameName!,
-                onOutput: Utils.OnOutput,
-                onEvent: Utils.OnEvent,
-                stdinProvider: static () => System.Console.ReadLine() ?? string.Empty,
-                cancellationToken: cancellationToken
-            );
-
-            Shared.IO.Diagnostics.Log($"Completed run-all for '{result.Game}' with {result.SucceededOperations}/{result.TotalOperations} successful operations.");
-            return result.Success ? 0 : 1;
-        } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"CLI RunAll Error: {ex}");
-            System.Console.WriteLine($"Error: {ex.Message}");
-            return -1;
-        }
-    }
-
-    /// <summary>
-    /// Determine if the command-line arguments indicate an inline operation invocation.
-    /// </summary>
-    /// <param name="args"></param>
-    /// <returns></returns>
-    private static bool IsInlineOperationInvocation(string[] args) {
-        bool sawGame = false;
-        bool sawScript = false;
-
-        foreach (string token in args) {
-            if (!token.StartsWith("--", comparisonType: System.StringComparison.Ordinal)) {
-                continue;
-            }
-
-            string key = NormalizeOptionKey(key: GetOptionKey(token: token));
-            if (key is "game" or "game_module" or "module" or "gameid" or "game_name" or "game_root" or "internal") {
-                // Indicate that a game/module was specified
-                sawGame = true;
-            }
-
-            if (key == "script") {
-                // Indicate that a script was specified
-                sawScript = true;
-            }
-        }
-
-        return sawGame && sawScript;
-    }
 
     /// <summary>
     /// Options for inline operation execution.
     /// </summary>
-    internal sealed class InlineOperationOptions {
+    public sealed class InlineOperationOptions {
         internal string? InternalModuleIdentifier {
             get; private set;
         }
@@ -315,7 +152,7 @@ public sealed partial class CLI {
                     value = args[++index];
                 }
 
-                string normalized = NormalizeOptionKey(key: key);
+                string normalized = StaticHelpers.NormalizeOptionKey(key: key);
                 Shared.IO.Diagnostics.Log($"DEBUG: Parsing option --{key} (normalized: {normalized}) with value '{value}'");
                 switch (normalized) {
                     case "internal":
@@ -361,13 +198,13 @@ public sealed partial class CLI {
                         if (value is null) {
                             throw new System.ArgumentException("Option '--run-op' requires an operation name or ID.");
                         }
-                        options.RunOperationSelector = ParseValueToken(value);
+                        options.RunOperationSelector = StaticHelpers.ParseValueToken(value);
                         break;
                     case "run_all":
                         if (value is null) {
                             options.RunAll = true;
                         } else {
-                            options.RunAll = IsTruthy(ParseValueToken(value));
+                            options.RunAll = StaticHelpers.IsTruthy(StaticHelpers.ParseValueToken(value));
                         }
                         break;
                     case "script_type":
@@ -393,7 +230,7 @@ public sealed partial class CLI {
                             Shared.IO.Diagnostics.Log("DEBUG: --args missing value");
                             throw new System.ArgumentException("Option '--args' requires a value.");
                         }
-                        foreach (string item in ParseArgsList(raw: value)) {
+                        foreach (string item in StaticHelpers.ParseArgsList(raw: value)) {
                             options._args.Add(item: item);
                         }
 #if DEBUG
@@ -406,35 +243,35 @@ public sealed partial class CLI {
                         if (value is null) {
                             throw new System.ArgumentException("Option '--answer' requires KEY=VALUE.");
                         }
-                        (string answerKey, object? answerValue) = ParseKeyValue(input: value);
+                        (string answerKey, object? answerValue) = StaticHelpers.ParseKeyValue(input: value);
                         options.PromptAnswers[key: answerKey] = answerValue;
                         break;
                     case "auto_prompt":
                         if (value is null) {
                             throw new System.ArgumentException("Option '--auto_prompt' requires PROMPT_ID=RESPONSE.");
                         }
-                        (string promptId, object? promptResponse) = ParseKeyValue(input: value);
+                        (string promptId, object? promptResponse) = StaticHelpers.ParseKeyValue(input: value);
                         options.AutoPromptResponses[key: promptId] = promptResponse?.ToString() ?? string.Empty;
                         break;
                     case "set":
                         if (value is null) {
                             throw new System.ArgumentException("Option '--set' requires KEY=VALUE.");
                         }
-                        (string setKey, object? setValue) = ParseKeyValue(input: value);
-                        string normalizedSetKey = NormalizeOptionKey(key: setKey);
+                        (string setKey, object? setValue) = StaticHelpers.ParseKeyValue(input: value);
+                        string normalizedSetKey = StaticHelpers.NormalizeOptionKey(key: setKey);
                         if (normalizedSetKey == "args") {
                             options._argsOverride = true;
                         }
-                        options.OperationFields[key: NormalizeOperationKey(key: setKey)] = setValue;
+                        options.OperationFields[key: StaticHelpers.NormalizeOperationKey(key: setKey)] = setValue;
                         break;
                     default:
                         if (value is null) {
-                            options.OperationFields[key: NormalizeOperationKey(key: key)] = true;
+                            options.OperationFields[key: StaticHelpers.NormalizeOperationKey(key: key)] = true;
                         } else {
-                            if (NormalizeOptionKey(key: key) == "args") {
+                            if (StaticHelpers.NormalizeOptionKey(key: key) == "args") {
                                 options._argsOverride = true;
                             }
-                            options.OperationFields[key: NormalizeOperationKey(key: key)] = ParseValueToken(value);
+                            options.OperationFields[key: StaticHelpers.NormalizeOperationKey(key: key)] = StaticHelpers.ParseValueToken(value);
                         }
                         break;
                 }
@@ -464,6 +301,128 @@ public sealed partial class CLI {
 
             return op;
         }
+    }
+
+    private int ListGames() {
+        try {
+            Core.Data.GameModules modules = Engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.All);
+            if (modules.Count == 0) {
+                System.Console.WriteLine("No modules found.");
+                return 0;
+            }
+            foreach ((string Name, string State, string Root) item in modules.Values.Select(selector: m => (Name: m.Name, State: m.DescribeState(), Root: m.GameRoot))) {
+                System.Console.WriteLine($"- {item.Name}  (state: {item.State}; root: {item.Root})");
+            }
+            return 0;
+        } catch (System.Exception ex) {
+            Shared.IO.Diagnostics.Bug($"Error listing games: {ex}");
+            return -1;
+        }
+    }
+
+    private int ListInternal() {
+        try {
+            Core.Data.GameModules modules = Engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.Internal);
+            if (modules.Count == 0) {
+                System.Console.WriteLine("No internal modules found.");
+                return 0;
+            }
+            System.Console.WriteLine("Internal Modules:");
+            foreach ((string Name, string State, string Root) item in modules.Values.Select(selector: m => (Name: m.Name, State: m.DescribeState(), Root: m.GameRoot))) {
+                System.Console.WriteLine($"- {item.Name}  (state: {item.State}; root: {item.Root})");
+            }
+            return 0;
+        } catch (System.Exception ex) {
+            Shared.IO.Diagnostics.Bug($"Error listing internal modules: {ex}");
+            return -1;
+        }
+    }
+
+    private int ListOps(string game) {
+        try {
+            // Find the game module
+            Core.Data.GameModules modules = Engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.All);
+            if (!modules.TryGetValue(key: game, out Core.Data.GameModuleInfo? mod)) {
+                // Fallback to check if it's an internal module
+                modules = Engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.Internal);
+                if (!modules.TryGetValue(key: game, out mod)) {
+                    System.Console.WriteLine($"Game/Module '{game}' not found.");
+                    return 1;
+                }
+            }
+            // Load operations list
+            string? opsFile = mod.OpsFile;
+            if (string.IsNullOrWhiteSpace(opsFile) || !System.IO.File.Exists(path: opsFile)) {
+                throw new System.ArgumentException($"Game '{game}' missing ops_file.");
+            }
+            // Load and validate operations
+            Core.Data.PreparedOperations preparedOps = Engine.OperationsService_LoadAndPrepare(opsFile: opsFile, currentGame: game, games: modules, engineConfig: Engine.EngineConfig_Data);
+            if (!preparedOps.IsLoaded) {
+                System.Console.WriteLine(preparedOps.ErrorMessage ?? "Failed to load operations.");
+                return 1;
+            }
+
+            if (preparedOps.InitOperations.Count == 0 && preparedOps.RegularOperations.Count == 0) {
+                System.Console.WriteLine($"No operations found for game '{game}'.");
+                Shared.IO.Diagnostics.Log($"No operations found in ops_file '{opsFile}' for game '{game}'.");
+                return 0;
+            }
+
+            StaticHelpers.WritePreparedOperationWarnings(preparedOps: preparedOps, game: game, opsFile: opsFile);
+
+            // Print operations
+            System.Console.WriteLine($"Operations for game '{game}':");
+            foreach (Core.Data.PreparedOperation op in preparedOps.InitOperations) {
+                System.Console.WriteLine($"- [init] {StaticHelpers.FormatPreparedOperation(op: op)}");
+            }
+            foreach (Core.Data.PreparedOperation op in preparedOps.RegularOperations) {
+                System.Console.WriteLine($"- {StaticHelpers.FormatPreparedOperation(op: op)}");
+            }
+
+            return 0;
+        } catch (System.Exception ex) {
+            Shared.IO.Diagnostics.Bug($"Error listing operations for game '{game}': {ex}");
+            return -1;
+        }
+    }
+
+    internal static bool TryLoadPreparedOperations(
+        string gameName,
+        Core.Data.GameModules games,
+        string? opsFileOverride,
+        MiniEngineFace _engine,
+        out Core.Data.PreparedOperations? preparedOps,
+        out int exitCode
+    ) {
+        preparedOps = null;
+        exitCode = 1;
+
+        if (!games.TryGetValue(key: gameName, out Core.Data.GameModuleInfo? moduleInfo)) {
+            StaticHelpers.WriteUserError($"Game '{gameName}' was not found.");
+            exitCode = 1;
+            return false;
+        }
+
+        string opsFile = !string.IsNullOrWhiteSpace(opsFileOverride)
+            ? StaticHelpers.ResolveFullPathSafe(path: opsFileOverride)
+            : moduleInfo.OpsFile;
+
+        if (string.IsNullOrWhiteSpace(opsFile) || !System.IO.File.Exists(path: opsFile)) {
+            StaticHelpers.WriteUserError($"Game '{gameName}' is missing an operations file.");
+            exitCode = 1;
+            return false;
+        }
+
+        preparedOps = _engine.OperationsService_LoadAndPrepare(opsFile: opsFile, currentGame: gameName, games: games, engineConfig: _engine.EngineConfig_Data);
+        if (!preparedOps.IsLoaded) {
+            StaticHelpers.WriteUserError(preparedOps.ErrorMessage ?? "Failed to load operations.");
+            exitCode = 1;
+            return false;
+        }
+
+        StaticHelpers.WritePreparedOperationWarnings(preparedOps: preparedOps, game: gameName, opsFile: opsFile);
+        exitCode = 0;
+        return true;
     }
 
 }

@@ -14,7 +14,8 @@ internal sealed class OpDependencyGraph {
     private readonly List<Core.Data.OperationNode> _executionNodes = new();
 
     /// <summary>
-    /// Gets the validated Run All execution set, including transitive dependencies.
+    /// Gets the validated Run All execution set, including init operations and the
+    /// transitive dependencies of both the init operations and Run All roots.
     /// </summary>
     internal IReadOnlyList<Core.Data.OperationNode> ExecutionNodes => _executionNodes;
 
@@ -123,6 +124,7 @@ internal sealed class OpDependencyGraph {
         _executionNodes.AddRange(collection: _nodes.Values);
     }
 
+
     /// <summary>
     /// Returns the Run All execution closure: all init operations, all Run All roots,
     /// and every dependency reachable from either set. When neither root set has an
@@ -131,46 +133,70 @@ internal sealed class OpDependencyGraph {
     private List<Dictionary<string, object?>> FilterRelevantOperations(
         List<Dictionary<string, object?>> allOps,
         List<Dictionary<string, object?>> runAllRoots,
-        List<Dictionary<string, object?>> initOperations) {
-        HashSet<Dictionary<string, object?>> relevant = new();
+        List<Dictionary<string, object?>> initOperations
+    ) {
+        // Operation dictionaries normally originate from one parsed operations file,
+        // but callers are not required to pass the very same dictionary instance for
+        // a root and one of its dependencies. Track identified operations by ID so the
+        // execution set still contains one node in that case.
+        HashSet<string> relevantIds = new(comparer: StringComparer.OrdinalIgnoreCase);
+        HashSet<Dictionary<string, object?>> anonymousOperations = new();
+        List<Dictionary<string, object?>> relevant = new();
         Queue<Dictionary<string, object?>> queue = new();
 
-        // Init operations are execution roots, not merely UI setup. Seed them together
-        // with Run All roots so a shared dependency is represented by one graph node.
-        foreach (Dictionary<string, object?> op in initOperations.Concat(second: runAllRoots)) {
-            if (relevant.Add(item: op)) {
-                queue.Enqueue(item: op);
-            }
-        }
-
-        // Modules without init or Run All flags historically ran every operation.
-        if (queue.Count == 0) {
-            foreach (Dictionary<string, object?> op in allOps) {
-                if (relevant.Add(item: op)) {
-                    queue.Enqueue(item: op);
-                }
-            }
-        }
-
-        // Trace recursive dependencies
+        // Resolve dependencies to the operation declared in the module. This gives
+        // the graph a consistent operation instance while retaining its existing
+        // missing-ID validation for operations that cannot be resolved by ID.
         Dictionary<string, Dictionary<string, object?>> idToOpMap = allOps
             .Where(predicate: o => !string.IsNullOrEmpty(GetString(dict: o, key: "id")))
             .GroupBy(keySelector: o => GetString(dict: o, key: "id"))
             .ToDictionary(keySelector: g => g.Key, elementSelector: g => g.First(), comparer: StringComparer.OrdinalIgnoreCase);
 
+        void AddRelevantOperation(Dictionary<string, object?> operation) {
+            string id = GetString(dict: operation, key: "id");
+            if (!string.IsNullOrWhiteSpace(id)) {
+                if (!relevantIds.Add(item: id)) {
+                    return;
+                }
+
+                // A root can be represented by a copy of an operation dictionary.
+                // Use the module declaration so its dependency list is authoritative.
+                if (idToOpMap.TryGetValue(key: id, out Dictionary<string, object?>? declaredOperation)) {
+                    operation = declaredOperation;
+                }
+            } else if (!anonymousOperations.Add(item: operation)) {
+                return;
+            }
+
+            relevant.Add(item: operation);
+            queue.Enqueue(item: operation);
+        }
+
+        // Init operations are execution roots, not merely UI setup. Seed them together
+        // with Run All roots so a shared dependency is represented by one graph node.
+        foreach (Dictionary<string, object?> op in initOperations.Concat(second: runAllRoots)) {
+            AddRelevantOperation(operation: op);
+        }
+
+        // Modules without init or Run All flags historically ran every operation.
+        if (queue.Count == 0) {
+            foreach (Dictionary<string, object?> op in allOps) {
+                AddRelevantOperation(operation: op);
+            }
+        }
+
+        // Trace recursive dependencies
         while (queue.Count > 0) {
             Dictionary<string, object?> current = queue.Dequeue();
             IEnumerable<string> deps = GetStringList(dict: current, key: "depends_on").Concat(second: GetStringList(dict: current, key: "depends-on"));
 
             foreach (string depId in deps) {
                 if (!idToOpMap.TryGetValue(key: depId, out Dictionary<string, object?>? depOp)) continue;
-                if (relevant.Add(item: depOp)) {
-                    queue.Enqueue(item: depOp);
-                }
+                AddRelevantOperation(operation: depOp);
             }
         }
 
-        return relevant.ToList();
+        return relevant;
     }
 
 

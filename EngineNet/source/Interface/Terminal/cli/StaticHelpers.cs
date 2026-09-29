@@ -1,91 +1,35 @@
 namespace EngineNet.Interface.Terminal;
 
-public sealed partial class CLI {
+/// <summary>
+/// Helper methods for CLI operations and argument parsing.
+/// </summary>
+internal static class StaticHelpers {
 
-    private int ListGames() {
-        try {
-            Core.Data.GameModules modules = Engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.All);
-            if (modules.Count == 0) {
-                System.Console.WriteLine("No modules found.");
-                return 0;
+    internal static bool IsInlineOperationInvocation(string[] args) {
+        bool sawGame = false;
+        bool sawScript = false;
+
+        foreach (string token in args) {
+            if (!token.StartsWith("--", comparisonType: System.StringComparison.Ordinal)) {
+                continue;
             }
-            foreach ((string Name, string State, string Root) item in modules.Values.Select(selector: m => (Name: m.Name, State: m.DescribeState(), Root: m.GameRoot))) {
-                System.Console.WriteLine($"- {item.Name}  (state: {item.State}; root: {item.Root})");
+
+            string key = NormalizeOptionKey(key: GetOptionKey(token: token));
+            if (key is "game" or "game_module" or "module" or "gameid" or "game_name" or "game_root" or "internal") {
+                // Indicate that a game/module was specified
+                sawGame = true;
             }
-            return 0;
-        } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"Error listing games: {ex}");
-            return -1;
+
+            if (key == "script") {
+                // Indicate that a script was specified
+                sawScript = true;
+            }
         }
+
+        return sawGame && sawScript;
     }
 
-    private int ListInternal() {
-        try {
-            Core.Data.GameModules modules = Engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.Internal);
-            if (modules.Count == 0) {
-                System.Console.WriteLine("No internal modules found.");
-                return 0;
-            }
-            System.Console.WriteLine("Internal Modules:");
-            foreach ((string Name, string State, string Root) item in modules.Values.Select(selector: m => (Name: m.Name, State: m.DescribeState(), Root: m.GameRoot))) {
-                System.Console.WriteLine($"- {item.Name}  (state: {item.State}; root: {item.Root})");
-            }
-            return 0;
-        } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"Error listing internal modules: {ex}");
-            return -1;
-        }
-    }
-
-    private int ListOps(string game) {
-        try {
-            // Find the game module
-            Core.Data.GameModules modules = Engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.All);
-            if (!modules.TryGetValue(key: game, out Core.Data.GameModuleInfo? mod)) {
-                // Fallback to check if it's an internal module
-                modules = Engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.Internal);
-                if (!modules.TryGetValue(key: game, out mod)) {
-                    System.Console.WriteLine($"Game/Module '{game}' not found.");
-                    return 1;
-                }
-            }
-            // Load operations list
-            string? opsFile = mod.OpsFile;
-            if (string.IsNullOrWhiteSpace(opsFile) || !System.IO.File.Exists(path: opsFile)) {
-                throw new System.ArgumentException($"Game '{game}' missing ops_file.");
-            }
-            // Load and validate operations
-            Core.Data.PreparedOperations preparedOps = Engine.OperationsService_LoadAndPrepare(opsFile: opsFile, currentGame: game, games: modules, engineConfig: Engine.EngineConfig_Data);
-            if (!preparedOps.IsLoaded) {
-                System.Console.WriteLine(preparedOps.ErrorMessage ?? "Failed to load operations.");
-                return 1;
-            }
-
-            if (preparedOps.InitOperations.Count == 0 && preparedOps.RegularOperations.Count == 0) {
-                System.Console.WriteLine($"No operations found for game '{game}'.");
-                Shared.IO.Diagnostics.Log($"No operations found in ops_file '{opsFile}' for game '{game}'.");
-                return 0;
-            }
-
-            WritePreparedOperationWarnings(preparedOps: preparedOps, game: game, opsFile: opsFile);
-
-            // Print operations
-            System.Console.WriteLine($"Operations for game '{game}':");
-            foreach (Core.Data.PreparedOperation op in preparedOps.InitOperations) {
-                System.Console.WriteLine($"- [init] {FormatPreparedOperation(op: op)}");
-            }
-            foreach (Core.Data.PreparedOperation op in preparedOps.RegularOperations) {
-                System.Console.WriteLine($"- {FormatPreparedOperation(op: op)}");
-            }
-
-            return 0;
-        } catch (System.Exception ex) {
-            Shared.IO.Diagnostics.Bug($"Error listing operations for game '{game}': {ex}");
-            return -1;
-        }
-    }
-
-    private static void PrintHelp() {
+    internal static void PrintHelp() {
         Shared.IO.Diagnostics.Trace("Displaying CLI help.");
         System.Console.WriteLine(@"RemakeEngine Help
 
@@ -137,11 +81,11 @@ CLI Operation Overrides & Inputs:
 */
     }
 
-    private static string GetArg(string[] args, int index, string error) {
+    internal static string GetArg(string[] args, int index, string error) {
         return args.Length <= index ? throw new System.ArgumentException(error) : args[index];
     }
 
-    private static bool TryResolveInlineGame(InlineOperationOptions options, Core.Data.GameModules games, out string? resolvedName) {
+    internal static bool TryResolveInlineGame(CLI.InlineOperationOptions options, Core.Data.GameModules games, out string? resolvedName) {
         resolvedName = null;
         string GameRoot;
 
@@ -234,7 +178,7 @@ CLI Operation Overrides & Inputs:
         return false;
     }
 
-    private static bool TryResolveGameByRegisteredId(Core.Data.GameModules games, string identifier, out string? resolvedName) {
+    internal static bool TryResolveGameByRegisteredId(Core.Data.GameModules games, string identifier, out string? resolvedName) {
         resolvedName = null;
 
         if (!long.TryParse(s: identifier, result: out long requestedId)) {
@@ -260,50 +204,7 @@ CLI Operation Overrides & Inputs:
         return false;
     }
 
-    private bool TryLoadPreparedOperations(
-        string gameName,
-        Core.Data.GameModules games,
-        string? opsFileOverride,
-        out Core.Data.PreparedOperations? preparedOps,
-        out int exitCode
-    ) {
-        preparedOps = null;
-        exitCode = 1;
-
-        if (!games.TryGetValue(key: gameName, out Core.Data.GameModuleInfo? moduleInfo)) {
-            WriteUserError($"Game '{gameName}' was not found.");
-            exitCode = 1;
-            return false;
-        }
-
-        string opsFile = !string.IsNullOrWhiteSpace(opsFileOverride)
-            ? ResolveFullPathSafe(path: opsFileOverride)
-            : moduleInfo.OpsFile;
-
-        if (string.IsNullOrWhiteSpace(opsFile) || !System.IO.File.Exists(path: opsFile)) {
-            WriteUserError($"Game '{gameName}' is missing an operations file.");
-            exitCode = 1;
-            return false;
-        }
-
-        preparedOps = Engine.OperationsService_LoadAndPrepare(opsFile: opsFile, currentGame: gameName, games: games, engineConfig: Engine.EngineConfig_Data);
-        if (!preparedOps.IsLoaded) {
-            WriteUserError(preparedOps.ErrorMessage ?? "Failed to load operations.");
-            exitCode = 1;
-            return false;
-        }
-
-        WritePreparedOperationWarnings(preparedOps: preparedOps, game: gameName, opsFile: opsFile);
-        exitCode = 0;
-        return true;
-    }
-
-    private static bool TryResolvePreparedOperation(
-        Core.Data.PreparedOperations preparedOps,
-        object? selector,
-        out Core.Data.PreparedOperation? selected,
-        out string? errorMessage
-    ) {
+    internal static bool TryResolvePreparedOperation(Core.Data.PreparedOperations preparedOps, object? selector, out Core.Data.PreparedOperation? selected, out string? errorMessage) {
         selected = null;
         errorMessage = null;
 
@@ -367,12 +268,12 @@ CLI Operation Overrides & Inputs:
         return false;
     }
 
-    private static void WriteUserError(string message) {
+    internal static void WriteUserError(string message) {
         System.Console.Error.WriteLine($"ERROR: {message}");
         Shared.IO.Diagnostics.Log($"ERROR: {message}");
     }
 
-    private static void WriteOperationSelectionHint(string gameName, Core.Data.PreparedOperations preparedOps) {
+    internal static void WriteOperationSelectionHint(string gameName, Core.Data.PreparedOperations preparedOps) {
         System.Console.Error.WriteLine($"Use --list-ops {gameName} to inspect the available operations.");
 
         List<string> options = GetPreparedOperationCandidates(preparedOps: preparedOps)
@@ -394,10 +295,7 @@ CLI Operation Overrides & Inputs:
         }
     }
 
-    private static Core.Data.PreparedOperation? PromptForPreparedOperationChoice(
-        IReadOnlyList<(Core.Data.PreparedOperation Operation, bool IsInit)> matches,
-        string message
-    ) {
+    internal static Core.Data.PreparedOperation? PromptForPreparedOperationChoice(IReadOnlyList<(Core.Data.PreparedOperation Operation, bool IsInit)> matches, string message) {
         if (matches.Count == 0) {
             return null;
         }
@@ -430,25 +328,25 @@ CLI Operation Overrides & Inputs:
         }
     }
 
-    private static List<(Core.Data.PreparedOperation Operation, bool IsInit)> GetPreparedOperationCandidates(Core.Data.PreparedOperations preparedOps) {
+    internal static List<(Core.Data.PreparedOperation Operation, bool IsInit)> GetPreparedOperationCandidates(Core.Data.PreparedOperations preparedOps) {
         List<(Core.Data.PreparedOperation Operation, bool IsInit)> candidates = new();
         candidates.AddRange(collection: preparedOps.InitOperations.Select(selector: op => (op, true)));
         candidates.AddRange(collection: preparedOps.RegularOperations.Select(selector: op => (op, false)));
         return candidates;
     }
 
-    private static string FormatPreparedOperation(Core.Data.PreparedOperation op) {
+    internal static string FormatPreparedOperation(Core.Data.PreparedOperation op) {
         return FormatPreparedOperationChoice(op: op, isInit: false);
     }
 
-    private static string FormatPreparedOperationChoice(Core.Data.PreparedOperation op, bool isInit) {
+    internal static string FormatPreparedOperationChoice(Core.Data.PreparedOperation op, bool isInit) {
         string phasePrefix = isInit ? "[init] " : string.Empty;
         string idText = op.OperationId.HasValue ? $"[id={op.OperationId.Value}] " : "[id=?] ";
         string statePrefix = op.HasDuplicateId ? "[dup-id] " : op.HasInvalidId ? "[invalid-id] " : string.Empty;
         return $"{phasePrefix}{statePrefix}{idText}{op.DisplayName}";
     }
 
-    private static void WritePreparedOperationWarnings(Core.Data.PreparedOperations preparedOps, string game, string opsFile) {
+    internal static void WritePreparedOperationWarnings(Core.Data.PreparedOperations preparedOps, string game, string opsFile) {
         if (preparedOps.Warnings.Count == 0) {
             return;
         }
@@ -466,7 +364,7 @@ CLI Operation Overrides & Inputs:
         System.Console.WriteLine();
     }
 
-    private static void ApplyGameOverrides(Core.Data.GameModules games, string gameName, string? preferredRoot, string? opsFile) {
+    internal static void ApplyGameOverrides(Core.Data.GameModules games, string gameName, string? preferredRoot, string? opsFile) {
         if (!games.TryGetValue(key: gameName, out Core.Data.GameModuleInfo? moduleInfo)) {
             return;
         }
@@ -480,7 +378,7 @@ CLI Operation Overrides & Inputs:
         }
     }
 
-    private static string ResolveFullPathSafe(string path) {
+    internal static string ResolveFullPathSafe(string path) {
         if (string.IsNullOrWhiteSpace(path)) {
             return string.Empty;
         }
@@ -496,7 +394,7 @@ CLI Operation Overrides & Inputs:
         }
     }
 
-    private static bool PathsEqual(string a, string b) {
+    internal static bool PathsEqual(string a, string b) {
         string normalizedA = NormalizePath(path: a);
         string normalizedB = NormalizePath(path: b);
         return System.OperatingSystem.IsWindows()
@@ -504,22 +402,22 @@ CLI Operation Overrides & Inputs:
             : string.Equals(a: normalizedA, b: normalizedB, comparisonType: System.StringComparison.Ordinal);
     }
 
-    private static string NormalizePath(string path) {
+    internal static string NormalizePath(string path) {
         string full = ResolveFullPathSafe(path: path);
         return full.TrimEnd(trimChars: [System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar]);
     }
 
-    private static string GetOptionKey(string token) {
+    internal static string GetOptionKey(string token) {
         string trimmed = token.StartsWith("--", comparisonType: System.StringComparison.Ordinal) ? token.Substring(startIndex: 2) : token;
         int eq = trimmed.IndexOf('=');
         return eq >= 0 ? trimmed.Substring(startIndex: 0, length: eq) : trimmed;
     }
 
-    private static string NormalizeOptionKey(string key) {
+    internal static string NormalizeOptionKey(string key) {
         return key.Replace(oldChar: '-', newChar: '_').Trim().ToLowerInvariant();
     }
 
-    private static object? ParseValueToken(string value) {
+    internal static object? ParseValueToken(string value) {
         string trimmed = value.Trim();
         if (trimmed.Length == 0) {
             return string.Empty;
@@ -559,7 +457,7 @@ CLI Operation Overrides & Inputs:
         return trimmed;
     }
 
-    private static object? FromJsonElement(System.Text.Json.JsonElement element) {
+    internal static object? FromJsonElement(System.Text.Json.JsonElement element) {
         return element.ValueKind switch {
             System.Text.Json.JsonValueKind.Object => element.EnumerateObject().ToDictionary(keySelector: p => p.Name, elementSelector: p => FromJsonElement(element: p.Value), comparer: System.StringComparer.OrdinalIgnoreCase),
             System.Text.Json.JsonValueKind.Array => element.EnumerateArray().Select(selector: FromJsonElement).ToList(),
@@ -571,7 +469,7 @@ CLI Operation Overrides & Inputs:
         };
     }
 
-    private static IEnumerable<string> ParseArgsList(string raw) {
+    internal static IEnumerable<string> ParseArgsList(string raw) {
         string trimmed = raw.Trim();
         if (trimmed.Length == 0) {
             yield break;
@@ -603,7 +501,7 @@ CLI Operation Overrides & Inputs:
         yield return StripEnclosingQuotes(trimmed);
     }
 
-    private static IEnumerable<string> ParseArgsJson(string json) {
+    internal static IEnumerable<string> ParseArgsJson(string json) {
         try {
             using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(json: json);
             if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Array) {
@@ -620,7 +518,7 @@ CLI Operation Overrides & Inputs:
         }
     }
 
-    private static string StripEnclosingQuotes(string value) {
+    internal static string StripEnclosingQuotes(string value) {
         if ((value.StartsWith("\"", comparisonType: System.StringComparison.Ordinal) && value.EndsWith("\"", comparisonType: System.StringComparison.Ordinal)) ||
             (value.StartsWith("'", comparisonType: System.StringComparison.Ordinal) && value.EndsWith("'", comparisonType: System.StringComparison.Ordinal))) {
             return value.Length >= 2 ? value.Substring(startIndex: 1, length: value.Length - 2) : string.Empty;
@@ -628,7 +526,7 @@ CLI Operation Overrides & Inputs:
         return value;
     }
 
-    private static (string key, object? value) ParseKeyValue(string input) {
+    internal static (string key, object? value) ParseKeyValue(string input) {
         int idx = input.IndexOf('=');
         if (idx < 0) {
             throw new System.ArgumentException($"Expected KEY=VALUE pair but received '{input}'.");
@@ -639,11 +537,11 @@ CLI Operation Overrides & Inputs:
         return (key, ParseValueToken(raw));
     }
 
-    private static string NormalizeOperationKey(string key) {
+    internal static string NormalizeOperationKey(string key) {
         return key.Replace(oldChar: '-', newChar: '_').Trim();
     }
 
-    private static bool IsTruthy(object? value) {
+    internal static bool IsTruthy(object? value) {
         return value switch {
             null => false,
             bool b => b,
