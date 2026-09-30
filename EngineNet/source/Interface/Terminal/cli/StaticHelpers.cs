@@ -85,7 +85,7 @@ CLI Operation Overrides & Inputs:
         return args.Length <= index ? throw new System.ArgumentException(error) : args[index];
     }
 
-    internal static bool TryResolveInlineGame(CLI.InlineOperationOptions options, Core.Data.GameModules games, out string? resolvedName) {
+    internal static bool TryResolveInlineGame(InlineOperationOptions options, Core.Data.GameModules games, out string? resolvedName) {
         resolvedName = null;
         string GameRoot;
 
@@ -553,5 +553,130 @@ CLI Operation Overrides & Inputs:
             _ => true
         };
     }
+
+
+
+    internal static int ListGames(MiniEngineFace engine) {
+        try {
+            Core.Data.GameModules modules = engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.All);
+            if (modules.Count == 0) {
+                System.Console.WriteLine("No modules found.");
+                return 0;
+            }
+            foreach ((string Name, string State, string Root) item in modules.Values.Select(selector: m => (Name: m.Name, State: m.DescribeState(), Root: m.GameRoot))) {
+                System.Console.WriteLine($"- {item.Name}  (state: {item.State}; root: {item.Root})");
+            }
+            return 0;
+        } catch (System.Exception ex) {
+            Shared.IO.Diagnostics.Bug($"Error listing games: {ex}");
+            return -1;
+        }
+    }
+
+    internal static int ListInternal(MiniEngineFace engine) {
+        try {
+            Core.Data.GameModules modules = engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.Internal);
+            if (modules.Count == 0) {
+                System.Console.WriteLine("No internal modules found.");
+                return 0;
+            }
+            System.Console.WriteLine("Internal Modules:");
+            foreach ((string Name, string State, string Root) item in modules.Values.Select(selector: m => (Name: m.Name, State: m.DescribeState(), Root: m.GameRoot))) {
+                System.Console.WriteLine($"- {item.Name}  (state: {item.State}; root: {item.Root})");
+            }
+            return 0;
+        } catch (System.Exception ex) {
+            Shared.IO.Diagnostics.Bug($"Error listing internal modules: {ex}");
+            return -1;
+        }
+    }
+
+    internal static int ListOps(string game, MiniEngineFace engine) {
+        try {
+            // Find the game module
+            Core.Data.GameModules modules = engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.All);
+            if (!modules.TryGetValue(key: game, out Core.Data.GameModuleInfo? mod)) {
+                // Fallback to check if it's an internal module
+                modules = engine.GameRegistry_GetModules(filter: Core.Data.ModuleFilter.Internal);
+                if (!modules.TryGetValue(key: game, out mod)) {
+                    System.Console.WriteLine($"Game/Module '{game}' not found.");
+                    return 1;
+                }
+            }
+            // Load operations list
+            string? opsFile = mod.OpsFile;
+            if (string.IsNullOrWhiteSpace(opsFile) || !System.IO.File.Exists(path: opsFile)) {
+                throw new System.ArgumentException($"Game '{game}' missing ops_file.");
+            }
+            // Load and validate operations
+            Core.Data.PreparedOperations preparedOps = engine.OperationsService_LoadAndPrepare(opsFile: opsFile, currentGame: game, games: modules, engineConfig: engine.EngineConfig_Data);
+            if (!preparedOps.IsLoaded) {
+                System.Console.WriteLine(preparedOps.ErrorMessage ?? "Failed to load operations.");
+                return 1;
+            }
+
+            if (preparedOps.InitOperations.Count == 0 && preparedOps.RegularOperations.Count == 0) {
+                System.Console.WriteLine($"No operations found for game '{game}'.");
+                Shared.IO.Diagnostics.Log($"No operations found in ops_file '{opsFile}' for game '{game}'.");
+                return 0;
+            }
+
+            StaticHelpers.WritePreparedOperationWarnings(preparedOps: preparedOps, game: game, opsFile: opsFile);
+
+            // Print operations
+            System.Console.WriteLine($"Operations for game '{game}':");
+            foreach (Core.Data.PreparedOperation op in preparedOps.InitOperations) {
+                System.Console.WriteLine($"- [init] {StaticHelpers.FormatPreparedOperation(op: op)}");
+            }
+            foreach (Core.Data.PreparedOperation op in preparedOps.RegularOperations) {
+                System.Console.WriteLine($"- {StaticHelpers.FormatPreparedOperation(op: op)}");
+            }
+
+            return 0;
+        } catch (System.Exception ex) {
+            Shared.IO.Diagnostics.Bug($"Error listing operations for game '{game}': {ex}");
+            return -1;
+        }
+    }
+
+    internal static bool TryLoadPreparedOperations(
+        string gameName,
+        Core.Data.GameModules games,
+        string? opsFileOverride,
+        MiniEngineFace _engine,
+        out Core.Data.PreparedOperations? preparedOps,
+        out int exitCode
+    ) {
+        preparedOps = null;
+        exitCode = 1;
+
+        if (!games.TryGetValue(key: gameName, out Core.Data.GameModuleInfo? moduleInfo)) {
+            StaticHelpers.WriteUserError($"Game '{gameName}' was not found.");
+            exitCode = 1;
+            return false;
+        }
+
+        string opsFile = !string.IsNullOrWhiteSpace(opsFileOverride)
+            ? StaticHelpers.ResolveFullPathSafe(path: opsFileOverride)
+            : moduleInfo.OpsFile;
+
+        if (string.IsNullOrWhiteSpace(opsFile) || !System.IO.File.Exists(path: opsFile)) {
+            StaticHelpers.WriteUserError($"Game '{gameName}' is missing an operations file.");
+            exitCode = 1;
+            return false;
+        }
+
+        preparedOps = _engine.OperationsService_LoadAndPrepare(opsFile: opsFile, currentGame: gameName, games: games, engineConfig: _engine.EngineConfig_Data);
+        if (!preparedOps.IsLoaded) {
+            StaticHelpers.WriteUserError(preparedOps.ErrorMessage ?? "Failed to load operations.");
+            exitCode = 1;
+            return false;
+        }
+
+        StaticHelpers.WritePreparedOperationWarnings(preparedOps: preparedOps, game: gameName, opsFile: opsFile);
+        exitCode = 0;
+        return true;
+    }
+
 
 }

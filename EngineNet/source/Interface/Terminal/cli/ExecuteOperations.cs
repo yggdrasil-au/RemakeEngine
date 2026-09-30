@@ -11,7 +11,7 @@ internal static class ExecuteOperations {
     /// <param name="options"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    internal static async System.Threading.Tasks.Task<int> RunInlineOperationAsync(CLI.InlineOperationOptions options, MiniEngineFace Engine, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
+    internal static async System.Threading.Tasks.Task<int> RunInlineOperationAsync(InlineOperationOptions options, MiniEngineFace Engine, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         // Validate required options
         if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot) && string.IsNullOrWhiteSpace(options.InternalModuleIdentifier)) {
             Shared.IO.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) or --internal is required.");
@@ -33,7 +33,7 @@ internal static class ExecuteOperations {
         }
 
         // Build operation dictionary
-        Dictionary<string, object?> op = options.BuildOperation();
+        Dictionary<string, object?> op = BuildOperation(options: options);
         if (!op.TryGetValue(key: "script", out object? scriptObj) || scriptObj is null || string.IsNullOrWhiteSpace(scriptObj.ToString())) {
             Shared.IO.Diagnostics.Log("ERROR: Inline operation is missing a script path or identifier.");
             return 2;
@@ -50,7 +50,7 @@ internal static class ExecuteOperations {
     /// <param name="options"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    internal static async System.Threading.Tasks.Task<int> RunSelectedOperationAsync(CLI.InlineOperationOptions options, MiniEngineFace Engine, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
+    internal static async System.Threading.Tasks.Task<int> RunSelectedOperationAsync(InlineOperationOptions options, MiniEngineFace Engine, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         if (options.RunOperationSelector is null) {
             Shared.IO.Diagnostics.Log("ERROR: --run_op requires an operation name or ID.");
             return 2;
@@ -68,7 +68,7 @@ internal static class ExecuteOperations {
             return 1;
         }
 
-        if (!CLI.TryLoadPreparedOperations(gameName: gameName!, games: games, opsFileOverride: options.OpsFile, _engine: Engine, preparedOps: out Core.Data.PreparedOperations? preparedOps, exitCode: out int loadCode)) {
+        if (!StaticHelpers.TryLoadPreparedOperations(gameName: gameName!, games: games, opsFileOverride: options.OpsFile, _engine: Engine, preparedOps: out Core.Data.PreparedOperations? preparedOps, exitCode: out int loadCode)) {
             return loadCode;
         }
 
@@ -91,7 +91,7 @@ internal static class ExecuteOperations {
         } else {
             // Merge command-line overrides (like --args, --set) into the selected operation for standard scripts
             finalOp = new(dictionary: selectedOp!.Operation, comparer: System.StringComparer.OrdinalIgnoreCase);
-            foreach (KeyValuePair<string, object?> overrideField in options.BuildOperation()) {
+            foreach (KeyValuePair<string, object?> overrideField in BuildOperation(options: options)) {
                 finalOp[key: overrideField.Key] = overrideField.Value;
             }
         }
@@ -107,7 +107,7 @@ internal static class ExecuteOperations {
     /// <param name="options"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    internal static async System.Threading.Tasks.Task<int> RunAllOperationsAsync(CLI.InlineOperationOptions options, MiniEngineFace Engine, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
+    internal static async System.Threading.Tasks.Task<int> RunAllOperationsAsync(InlineOperationOptions options, MiniEngineFace Engine, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         if (string.IsNullOrWhiteSpace(options.GameIdentifier) && string.IsNullOrWhiteSpace(options.GameRoot) && string.IsNullOrWhiteSpace(options.InternalModuleIdentifier)) {
             Shared.IO.Diagnostics.Log("ERROR: --game_module/--game (or --game-root) or --internal is required.");
             return 2;
@@ -120,7 +120,7 @@ internal static class ExecuteOperations {
             return 1;
         }
 
-        if (!CLI.TryLoadPreparedOperations(gameName: gameName!, games: games, opsFileOverride: options.OpsFile, _engine: Engine, preparedOps: out _, exitCode: out int loadCode)) {
+        if (!StaticHelpers.TryLoadPreparedOperations(gameName: gameName!, games: games, opsFileOverride: options.OpsFile, _engine: Engine, preparedOps: out _, exitCode: out int loadCode)) {
             return loadCode;
         }
 
@@ -141,4 +141,29 @@ internal static class ExecuteOperations {
             return -1;
         }
     }
+
+    /// <summary>
+    /// Build the operation dictionary from the parsed options.
+    /// </summary>
+    /// <returns></returns>
+    internal static Dictionary<string, object?> BuildOperation(InlineOperationOptions options) {
+
+        Dictionary<string, object?> op = new(dictionary: options.OperationFields, comparer: System.StringComparer.OrdinalIgnoreCase);
+
+        if (!op.ContainsKey(key: "script_type") && !string.IsNullOrWhiteSpace(options.ScriptType)) {
+            op[key: "script_type"] = options.ScriptType;
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.Script)) {
+            op[key: "script"] = options.Script;
+        }
+
+        if (!op.ContainsKey(key: "args") && !options._argsOverride && options._args.Count > 0) {
+            op[key: "args"] = options._args.ToList();
+        }
+
+        return op;
+    }
+
+
 }
