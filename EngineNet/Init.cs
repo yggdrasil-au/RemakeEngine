@@ -75,12 +75,10 @@ internal sealed class InitUI {
             }
 
             return 0;
-        }
-        catch (OperationCanceledException) {
+        } catch (OperationCanceledException) {
             Shared.IO.Diagnostics.Trace("exiting ui");
             throw;
-        }
-        catch (System.Exception ex) {
+        } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"Error initializing UI '{ui}': {ex.Message}", ex: ex);
             await System.Console.Error.WriteLineAsync($"Error initializing UI '{ui}': {ex.Message}");
             return 1;

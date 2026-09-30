@@ -4,6 +4,12 @@ namespace EngineNet.Interface.Terminal;
 /// Options for inline operation execution.
 /// </summary>
 public sealed class InlineOperationOptions {
+    public string? PrimaryCommand {
+        get; set;
+    }
+    public string? PrimaryCommandArg {
+        get; set;
+    }
     public string? InternalModuleIdentifier {
         get; set;
     }
@@ -34,9 +40,6 @@ public sealed class InlineOperationOptions {
     public Dictionary<string, object?> OperationFields { get; } = new(comparer: System.StringComparer.OrdinalIgnoreCase);
     public Core.Data.PromptAnswers PromptAnswers { get; } = new(); // respond to operations.toml prompts
     public Dictionary<string, string> AutoPromptResponses { get; } = new(comparer: System.StringComparer.OrdinalIgnoreCase); // responde to lua prompt() calls
-
     public readonly List<string> _args = new();
     public bool _argsOverride;
-
-
 }

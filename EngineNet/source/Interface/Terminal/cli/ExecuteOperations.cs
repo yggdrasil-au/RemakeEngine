@@ -147,7 +147,6 @@ internal static class ExecuteOperations {
     /// </summary>
     /// <returns></returns>
     internal static Dictionary<string, object?> BuildOperation(InlineOperationOptions options) {
-
         Dictionary<string, object?> op = new(dictionary: options.OperationFields, comparer: System.StringComparer.OrdinalIgnoreCase);
 
         if (!op.ContainsKey(key: "script_type") && !string.IsNullOrWhiteSpace(options.ScriptType)) {
