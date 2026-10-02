@@ -12,7 +12,7 @@ internal sealed class TextureSegmentProcessor {
     private static readonly HashSet<byte> KnownFormatCodes = [0x52, 0x53, 0x54, 0x86, 0x02];
     private static readonly int NameSignatureLength = NameSignature.Length;
 
-    internal int ProcessSegment(Segment segment, string outputDir, string outputExtension = "dds") {
+    internal int ProcessSegment(Segment segment, string outputDir, HashSet<string> exportedFileNames, string outputExtension = "dds") {
         byte[] segmentData = segment.Data;
         int segmentOriginalStartOffset = segment.StartOffset;
         int texturesFound = 0;
@@ -82,24 +82,35 @@ internal sealed class TextureSegmentProcessor {
                         throw new Sys.TxdExportException($"      FATAL ERROR: No non-00 byte found after name '{currentName.Name}' (File Offset: 0x{currentName.OriginalFileOffset:X}) to start metadata search.");
                     }
 
-                    int offsetOf01Marker = -1;
+                    int canonicalMetaOffset = nameSigOffset + 0x50;
+                    int metaOffset = -1;
+                    int offsetOf01Marker = canonicalMetaOffset + 2;
                     int scannedFmtCode = -1;
-                    for (int scan = firstNonZeroAfterName; scan < segmentData.Length - 1; scan++) {
-                        if (segmentData[scan] == 0x01) {
-                            byte potential = segmentData[scan + 1];
-                            if (KnownFormatCodes.Contains(item: potential)) {
-                                offsetOf01Marker = scan;
-                                scannedFmtCode = potential;
-                                break;
+                    if (canonicalMetaOffset + 16 <= segmentData.Length &&
+                        segmentData[canonicalMetaOffset + 2] == 0x01 &&
+                        KnownFormatCodes.Contains(item: segmentData[canonicalMetaOffset + 3])) {
+                        metaOffset = canonicalMetaOffset;
+                        scannedFmtCode = segmentData[canonicalMetaOffset + 3];
+                    } else {
+                        offsetOf01Marker = -1;
+                        for (int scan = firstNonZeroAfterName; scan < segmentData.Length - 1; scan++) {
+                            if (segmentData[scan] == 0x01) {
+                                byte potential = segmentData[scan + 1];
+                                if (KnownFormatCodes.Contains(item: potential)) {
+                                    offsetOf01Marker = scan;
+                                    scannedFmtCode = potential;
+                                    break;
+                                }
                             }
                         }
+
+                        if (offsetOf01Marker == -1) {
+                            throw new Sys.TxdExportException($"      FATAL ERROR: Metadata signature (01 <known_fmt_code>) not found for '{currentName.Name}' (File Offset: 0x{currentName.OriginalFileOffset:X}) after first non-00 byte at seg_offset 0x{firstNonZeroAfterName:X}.");
+                        }
+
+                        metaOffset = offsetOf01Marker - 2;
                     }
 
-                    if (offsetOf01Marker == -1) {
-                        throw new Sys.TxdExportException($"      FATAL ERROR: Metadata signature (01 <known_fmt_code>) not found for '{currentName.Name}' (File Offset: 0x{currentName.OriginalFileOffset:X}) after first non-00 byte at seg_offset 0x{firstNonZeroAfterName:X}.");
-                    }
-
-                    int metaOffset = offsetOf01Marker - 2;
                     if (metaOffset < 0) {
                         throw new Sys.TxdExportException($"      FATAL ERROR: Calculated metadata block start (seg_offset 0x{metaOffset:X}) is negative for '{currentName.Name}' (01_marker at 0x{offsetOf01Marker:X}). Structural issue.");
                     }
@@ -154,7 +165,16 @@ internal sealed class TextureSegmentProcessor {
 
                     string cleanName = utils.Util.SanitizeFilename(name: currentName.Name) ?? $"texture_at_0x{currentName.OriginalFileOffset:08X}";
                     string ext = outputExtension.StartsWith(".") ? outputExtension : "." + outputExtension;
-                    string outFile = System.IO.Path.Combine(path1: outputDir, path2: cleanName + ext);
+                    string outputFileName = cleanName + ext;
+                    if (!exportedFileNames.Add(item: outputFileName)) {
+                        string offsetSuffix = $"_0x{currentName.OriginalFileOffset:X}";
+                        outputFileName = cleanName + offsetSuffix + ext;
+                        int collisionIndex = 1;
+                        while (!exportedFileNames.Add(item: outputFileName)) {
+                            outputFileName = $"{cleanName}{offsetSuffix}_{collisionIndex++}{ext}";
+                        }
+                    }
+                    string outFile = System.IO.Path.Combine(path1: outputDir, path2: outputFileName);
                     try {
                         if (ext.Equals(".png", comparisonType: StringComparison.OrdinalIgnoreCase)) {
                             // 1. Combine Header and Pixels into a single in-memory DDS buffer

@@ -93,18 +93,21 @@ public static class Util {
         return options;
     }
 
-    internal static int MortonEncode2D(int x, int y) {
-        x = (x | (x << 8)) & 0x00FF00FF;
-        x = (x | (x << 4)) & 0x0F0F0F0F;
-        x = (x | (x << 2)) & 0x33333333;
-        x = (x | (x << 1)) & 0x55555555;
+    internal static int MortonEncode2D(int x, int y, int width, int height) {
+        int morton = 0;
+        int bitPosition = 0;
+        int maxDimension = System.Math.Max(val1: width, val2: height);
 
-        y = (y | (y << 8)) & 0x00FF00FF;
-        y = (y | (y << 4)) & 0x0F0F0F0F;
-        y = (y | (y << 2)) & 0x33333333;
-        y = (y | (y << 1)) & 0x55555555;
+        for (int bit = 0; (1 << bit) < maxDimension; bit++) {
+            if ((1 << bit) < width) {
+                morton |= ((x >> bit) & 1) << bitPosition++;
+            }
+            if ((1 << bit) < height) {
+                morton |= ((y >> bit) & 1) << bitPosition++;
+            }
+        }
 
-        return x | (y << 1);
+        return morton;
     }
 
     internal static byte[]? UnswizzleData(System.ReadOnlySpan<byte> swizzledData, int width, int height, int bytesPerPixel) {
@@ -117,7 +120,7 @@ public static class Util {
         byte[] linear = new byte[linearSize];
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                int mortonIdx = MortonEncode2D(x: x, y: y);
+                int mortonIdx = MortonEncode2D(x: x, y: y, width: width, height: height);
                 int pixelStart = mortonIdx * bytesPerPixel;
                 if (pixelStart + bytesPerPixel > swizzledData.Length) {
                     continue;

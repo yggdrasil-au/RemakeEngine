@@ -35,6 +35,7 @@ internal sealed class TxdExporter {
         }
 
         int totalTexturesExportedFromFile = 0;
+        HashSet<string> exportedFileNames = new(comparer: StringComparer.OrdinalIgnoreCase);
         for (int index = 0; index < segments.Count; index++) {
             Segment segment = segments[index: index];
             if (segment.Data.Length == 0) {
@@ -43,7 +44,12 @@ internal sealed class TxdExporter {
             }
 
             utils.Log.Cyan($"\n  Processing segment #{index + 1}: data starts at file offset 0x{segment.StartOffset:X}, segment length {segment.Data.Length} bytes.");
-            int texturesInSegment = new TextureSegmentProcessor().ProcessSegment(segment: segment, outputDir: outputDirBase, outputExtension: outputExtension);
+            int texturesInSegment = new TextureSegmentProcessor().ProcessSegment(
+                segment: segment,
+                outputDir: outputDirBase,
+                exportedFileNames: exportedFileNames,
+                outputExtension: outputExtension
+            );
             totalTexturesExportedFromFile += texturesInSegment;
         }
 
