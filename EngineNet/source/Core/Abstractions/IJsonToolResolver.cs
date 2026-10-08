@@ -5,10 +5,10 @@ namespace EngineNet.Core.Abstractions;
 /// </summary>
 public interface IJsonToolResolver {
     /// <summary>
-    /// Determines whether an executable path exactly matches a tool tracked in the installed-tools lockfile.
+    /// Determines whether an executable path is a tracked tool or a bundled executable in a tracked tool's installation directory.
     /// </summary>
     /// <param name="executablePath">The executable path to validate.</param>
-    /// <returns><see langword="true"/> when the path is tracked; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> when the path belongs to a tracked tool installation; otherwise, <see langword="false"/>.</returns>
     bool IsTrackedTool(string executablePath);
 
     /// <summary>

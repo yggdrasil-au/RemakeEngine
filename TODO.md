@@ -15,6 +15,8 @@ avoid massive unit tests, i dont want tests to be as complicated as the project 
 
 ## Engine
 
+update tools downloader to auto remove old versions, when a module changes to a new version, and no other locally existing module is using that version, or maybe just modules that have requested it be installed, meaning we should store in the json which modules have requested which versions for all tools, for now its easier to allow the modules to be there own source of truth for now, though it may be better to auto read each tools.toml from each module so they dont need to at runtime, however this may be Slow if there are many modules, determine best approach.
+
 
 update the new p3d format conversion and extraction tooling
 ensure format_convert is used for converting p3d files to obj and glb files

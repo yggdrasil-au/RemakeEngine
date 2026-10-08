@@ -231,7 +231,7 @@ public static class AvTools {
                     args.AddRange(collection: BuildAudioCodecArgs(outputExt: opt.OutputExt, requestedCodec: opt.AudioCodec, requestedQuality: opt.AudioQuality));
                     args.Add(item: destPath);
                     RegisterActive(tool: "ffmpeg", srcPath: srcPath);
-                    try { return Exec(fileName: ff, arguments: args, passthroughOutput: opt.Debug, cancellationToken: cancellationToken); }
+                    try { return Exec(fileName: ff, workingDirectory: GetWorkingDirectory(srcPath: srcPath), arguments: args, passthroughOutput: opt.Debug, cancellationToken: cancellationToken); }
                     finally { UnregisterActive(); }
                 } else if (string.Equals(a: opt.Type, b: TypeAudio, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
                     if (opt.GodotCompatible) {
@@ -255,7 +255,7 @@ public static class AvTools {
                         args.AddRange(collection: BuildAudioCodecArgs(outputExt: opt.OutputExt, requestedCodec: opt.AudioCodec, requestedQuality: opt.AudioQuality));
                         args.Add(item: outRear);
                         RegisterActive(tool: "ffmpeg", srcPath: srcPath);
-                        try { return Exec(fileName: ff, arguments: args, passthroughOutput: opt.Debug, cancellationToken: cancellationToken); }
+                        try { return Exec(fileName: ff, workingDirectory: GetWorkingDirectory(srcPath: srcPath), arguments: args, passthroughOutput: opt.Debug, cancellationToken: cancellationToken); }
                         finally { UnregisterActive(); }
                     } else {
                         List<string> args = new()
@@ -267,7 +267,7 @@ public static class AvTools {
                         args.AddRange(collection: BuildAudioCodecArgs(outputExt: opt.OutputExt, requestedCodec: opt.AudioCodec, requestedQuality: opt.AudioQuality));
                         args.Add(item: destPath);
                         RegisterActive(tool: "ffmpeg", srcPath: srcPath);
-                        try { return Exec(fileName: ff, arguments: args, passthroughOutput: opt.Debug, cancellationToken: cancellationToken); }
+                        try { return Exec(fileName: ff, workingDirectory: GetWorkingDirectory(srcPath: srcPath), arguments: args, passthroughOutput: opt.Debug, cancellationToken: cancellationToken); }
                         finally { UnregisterActive(); }
                     }
                 } else {
@@ -282,7 +282,7 @@ public static class AvTools {
                         try {
                             List<string> a1 = new() { "-o", tmpWav, srcPath };
                             RegisterActive(tool: "vgmstream", srcPath: srcPath);
-                            (bool ok1, string? msg1) = Exec(fileName: vg, arguments: a1, passthroughOutput: opt.Debug, cancellationToken: cancellationToken);
+                            (bool ok1, string? msg1) = Exec(fileName: vg, workingDirectory: GetWorkingDirectory(srcPath: srcPath), arguments: a1, passthroughOutput: opt.Debug, cancellationToken: cancellationToken);
                             UnregisterActive();
                             if (!ok1) {
                                 return (false, msg1);
@@ -311,7 +311,7 @@ public static class AvTools {
                                 a2.AddRange(collection: BuildAudioCodecArgs(outputExt: opt.OutputExt, requestedCodec: opt.AudioCodec, requestedQuality: opt.AudioQuality));
                                 a2.Add(item: outRear);
                                 RegisterActive(tool: "ffmpeg", srcPath: System.IO.Path.GetFileName(path: tmpWav));
-                                (bool ok2, string? msg2) = Exec(fileName: ff, arguments: a2, passthroughOutput: opt.Debug, cancellationToken: cancellationToken);
+                                (bool ok2, string? msg2) = Exec(fileName: ff, workingDirectory: GetWorkingDirectory(srcPath: srcPath), arguments: a2, passthroughOutput: opt.Debug, cancellationToken: cancellationToken);
                                 UnregisterActive();
                                 if (!ok2) {
                                     return (false, msg2);
@@ -328,7 +328,7 @@ public static class AvTools {
                                 a2.AddRange(collection: BuildAudioCodecArgs(outputExt: opt.OutputExt, requestedCodec: opt.AudioCodec, requestedQuality: opt.AudioQuality));
                                 a2.Add(item: destPath);
                                 RegisterActive(tool: "ffmpeg", srcPath: System.IO.Path.GetFileName(path: tmpWav));
-                                (bool ok2, string? msg2) = Exec(fileName: ff, arguments: a2, passthroughOutput: opt.Debug, cancellationToken: cancellationToken);
+                                (bool ok2, string? msg2) = Exec(fileName: ff, workingDirectory: GetWorkingDirectory(srcPath: srcPath), arguments: a2, passthroughOutput: opt.Debug, cancellationToken: cancellationToken);
                                 UnregisterActive();
                                 if (!ok2) {
                                     return (false, msg2);
@@ -352,7 +352,7 @@ public static class AvTools {
                     } else {
                         List<string> a = new() { "-o", destPath, srcPath };
                         RegisterActive(tool: "vgmstream", srcPath: srcPath);
-                        try { return Exec(fileName: vg, arguments: a, passthroughOutput: opt.Debug, cancellationToken: cancellationToken); }
+                        try { return Exec(fileName: vg, workingDirectory: GetWorkingDirectory(srcPath: srcPath), arguments: a, passthroughOutput: opt.Debug, cancellationToken: cancellationToken); }
                         finally { UnregisterActive(); }
                     }
                 } else {
@@ -399,12 +399,23 @@ public static class AvTools {
         }
     }
 
-    private static (bool ok, string? message) Exec(string fileName, IList<string> arguments, bool passthroughOutput, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
+    /// <summary>
+    /// Executes a media tool from the source file directory so rooted file arguments can be passed as shorter relative paths.
+    /// </summary>
+    /// <param name="fileName">The media tool executable.</param>
+    /// <param name="workingDirectory">The source file directory used as the process working directory.</param>
+    /// <param name="arguments">Arguments supplied to the media tool.</param>
+    /// <param name="passthroughOutput">Whether to stream tool output directly to the console.</param>
+    /// <param name="cancellationToken">Cancellation token used to terminate the child process.</param>
+    /// <returns>The process success status and an error message when it fails.</returns>
+    private static (bool ok, string? message) Exec(string fileName, string workingDirectory, IList<string> arguments, bool passthroughOutput, System.Threading.CancellationToken cancellationToken = default(CancellationToken)) {
         try {
             using System.Diagnostics.Process p = new();
+            using ShortWorkingDirectory processWorkingDirectory = CreateShortWorkingDirectory(workingDirectory: workingDirectory);
             p.StartInfo.FileName = fileName;
+            p.StartInfo.WorkingDirectory = processWorkingDirectory.Path;
             foreach (string a in arguments) {
-                p.StartInfo.ArgumentList.Add(item: a);
+                p.StartInfo.ArgumentList.Add(item: MakeProcessArgument(path: a, workingDirectory: workingDirectory));
             }
 
             p.StartInfo.UseShellExecute = false;
@@ -468,6 +479,103 @@ public static class AvTools {
         } catch (System.Exception ex) {
             Shared.IO.Diagnostics.Bug($"Process execution failed for '{fileName}': {ex}");
             return (false, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Creates a short directory link for Windows media tools that do not support long paths.
+    /// </summary>
+    /// <param name="workingDirectory">The original source file directory.</param>
+    /// <returns>A disposable process working directory.</returns>
+    private static ShortWorkingDirectory CreateShortWorkingDirectory(string workingDirectory) {
+        if (!System.OperatingSystem.IsWindows()) {
+            return new ShortWorkingDirectory(path: workingDirectory, linkPath: null);
+        }
+
+        string linkParent = System.IO.Path.Combine(path1: System.IO.Path.GetTempPath(), path2: "RemakeEngine", path3: "AvTools");
+        string linkPath = System.IO.Path.Combine(path1: linkParent, path2: System.Guid.NewGuid().ToString(format: "N"));
+
+        try {
+            System.IO.Directory.CreateDirectory(path: linkParent);
+            System.IO.Directory.CreateSymbolicLink(path: linkPath, pathToTarget: workingDirectory);
+            return new ShortWorkingDirectory(path: linkPath, linkPath: linkPath);
+        } catch (System.IO.IOException ex) {
+            Shared.IO.Diagnostics.Bug($"Failed to create short media tool working directory for '{workingDirectory}': {ex}");
+        } catch (System.UnauthorizedAccessException ex) {
+            Shared.IO.Diagnostics.Bug($"Access denied while creating short media tool working directory for '{workingDirectory}': {ex}");
+        }
+
+        return new ShortWorkingDirectory(path: workingDirectory, linkPath: null);
+    }
+
+    /// <summary>
+    /// Owns an optional temporary symbolic link used as a media process working directory.
+    /// </summary>
+    private sealed class ShortWorkingDirectory : System.IDisposable {
+        private readonly string? _linkPath;
+
+        /// <summary>
+        /// Gets the directory assigned to the child process.
+        /// </summary>
+        internal string Path { get; }
+
+        /// <summary>
+        /// Initializes a working directory and optional temporary symbolic link.
+        /// </summary>
+        /// <param name="path">The directory assigned to the child process.</param>
+        /// <param name="linkPath">The temporary symbolic link to remove after execution.</param>
+        internal ShortWorkingDirectory(string path, string? linkPath) {
+            Path = path;
+            _linkPath = linkPath;
+        }
+
+        /// <summary>
+        /// Removes the temporary symbolic link without deleting its target directory.
+        /// </summary>
+        public void Dispose() {
+            if (string.IsNullOrWhiteSpace(_linkPath)) {
+                return;
+            }
+
+            try {
+                System.IO.Directory.Delete(path: _linkPath);
+            } catch (System.IO.IOException ex) {
+                Shared.IO.Diagnostics.Bug($"Failed to remove short media tool working directory '{_linkPath}': {ex}");
+            } catch (System.UnauthorizedAccessException ex) {
+                Shared.IO.Diagnostics.Bug($"Access denied while removing short media tool working directory '{_linkPath}': {ex}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns a working directory for a conversion input file.
+    /// </summary>
+    /// <param name="srcPath">The source file path.</param>
+    /// <returns>The source file directory, or the current directory when it cannot be determined.</returns>
+    private static string GetWorkingDirectory(string srcPath) {
+        return System.IO.Path.GetDirectoryName(path: srcPath) ?? System.IO.Directory.GetCurrentDirectory();
+    }
+
+    /// <summary>
+    /// Converts rooted file arguments to paths relative to the process working directory.
+    /// </summary>
+    /// <param name="path">The original process argument.</param>
+    /// <param name="workingDirectory">The process working directory.</param>
+    /// <returns>A relative path when possible; otherwise, the original argument.</returns>
+    private static string MakeProcessArgument(string path, string workingDirectory) {
+        if (!System.IO.Path.IsPathRooted(path: path)) {
+            return path;
+        }
+
+        try {
+            string relativePath = System.IO.Path.GetRelativePath(relativeTo: workingDirectory, path: path);
+            return System.IO.Path.IsPathRooted(path: relativePath) ? path : relativePath;
+        } catch (System.ArgumentException ex) {
+            Shared.IO.Diagnostics.Bug($"Failed to convert process argument '{path}' to a relative path: {ex}");
+            return path;
+        } catch (System.IO.IOException ex) {
+            Shared.IO.Diagnostics.Bug($"Failed to convert process argument '{path}' to a relative path: {ex}");
+            return path;
         }
     }
 

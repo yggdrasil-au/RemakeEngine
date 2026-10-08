@@ -5,13 +5,14 @@ namespace EngineNetTest;
 [TestClass]
 public sealed class JsonToolResolverTests {
     /// <summary>
-    /// Verifies that the resolver uses the lockfile path as the executable trust boundary.
+    /// Verifies that the resolver approves a lockfile-tracked executable and its bundled companion executables.
     /// </summary>
     [TestMethod]
-    public void TrackedToolResolution_UsesExactNormalizedLockfilePaths() {
+    public void TrackedToolResolution_UsesTrackedInstallationDirectoryAsTrustBoundary() {
         string rootPath = Path.Combine(path1: Path.GetTempPath(), path2: $"remake-engine-tools-{Guid.NewGuid():N}");
         string toolsDirectory = Path.Combine(path1: rootPath, path2: "tools");
         string executablePath = Path.Combine(path1: toolsDirectory, path2: "ffmpeg.exe");
+      string companionExecutablePath = Path.Combine(path1: toolsDirectory, path2: "ffmpeg-helper.exe");
         string untrackedPath = Path.Combine(path1: rootPath, path2: "Malware", path3: "Tools", path4: "ffmpeg.exe");
 
         Directory.CreateDirectory(path: toolsDirectory);
@@ -41,6 +42,7 @@ public sealed class JsonToolResolverTests {
             Assert.AreEqual(expected: executablePath, actual: executable);
             Assert.AreEqual(expected: "7.1", actual: version);
             Assert.IsTrue(condition: resolver.IsTrackedTool(executablePath: Path.Combine(path1: toolsDirectory, path2: ".", path3: "ffmpeg.exe")));
+            Assert.IsTrue(condition: resolver.IsTrackedTool(executablePath: companionExecutablePath));
             Assert.IsFalse(condition: resolver.IsTrackedTool(executablePath: untrackedPath));
         } finally {
             Directory.Delete(path: rootPath, recursive: true);

@@ -107,10 +107,10 @@ public class JsonToolResolver : IJsonToolResolver {
     }
 
     /// <summary>
-    /// Determines whether an executable path exactly matches a path recorded in the installed-tools lockfile.
+    /// Determines whether an executable path is recorded in the installed-tools lockfile or is bundled with a recorded tool.
     /// </summary>
     /// <param name="executablePath">The executable path to validate.</param>
-    /// <returns><see langword="true"/> when the path is tracked; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> when the path belongs to a tracked tool installation; otherwise, <see langword="false"/>.</returns>
     public bool IsTrackedTool(string executablePath) {
         string normalizedInput = NormalizeFullPath(path: executablePath);
         if (string.IsNullOrWhiteSpace(normalizedInput)) {
@@ -121,7 +121,14 @@ public class JsonToolResolver : IJsonToolResolver {
 
         foreach (Dictionary<string, string> toolVersions in _tools.Values) {
             foreach (string trackedPath in toolVersions.Values) {
-                if (string.Equals(a: NormalizeFullPath(path: trackedPath), b: normalizedInput, comparisonType: System.StringComparison.Ordinal)) {
+                string normalizedTrackedPath = NormalizeFullPath(path: trackedPath);
+                if (string.Equals(a: normalizedTrackedPath, b: normalizedInput, comparisonType: System.StringComparison.Ordinal)) {
+                    return true;
+                }
+
+                string? trackedDirectory = System.IO.Path.GetDirectoryName(path: normalizedTrackedPath);
+                string? executableDirectory = System.IO.Path.GetDirectoryName(path: normalizedInput);
+                if (string.Equals(a: trackedDirectory, b: executableDirectory, comparisonType: System.StringComparison.Ordinal)) {
                     return true;
                 }
             }
