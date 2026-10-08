@@ -1,0 +1,3 @@
+
+# silence SixLabors.ImageSharp license file warnings, dont commit licence
+sixlabors.lic
