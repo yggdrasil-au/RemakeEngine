@@ -1,6 +1,8 @@
 
 namespace EngineNet.Shared.Serialization.Yaml;
 
+using EngineNet.Shared.IO;
+
 /// <summary>
 /// Reusable YAML read/write utilities built on YamlDotNet.
 /// Converts YAML mappings/sequences/scalars to plain .NET objects:
@@ -10,7 +12,7 @@ namespace EngineNet.Shared.Serialization.Yaml;
 /// </summary>
 public static class YamlHelpers {
     public static object ParseFileToPlainObject(string path) {
-        string text = System.IO.File.Exists(path: path) ? System.IO.File.ReadAllText(path: path) : string.Empty;
+        string text = LongPathIO.FileExists(path: path) ? LongPathIO.ReadAllText(path: path) : string.Empty;
 
         if (string.IsNullOrWhiteSpace(text)) {
             return new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
@@ -32,8 +34,8 @@ public static class YamlHelpers {
 
     public static void WriteYamlFile(string path, object? data) {
         string document = WriteDocument(data: data);
-        System.IO.Directory.CreateDirectory(path: System.IO.Path.GetDirectoryName(path: path) ?? ".");
-        System.IO.File.WriteAllText(path: path, contents: document);
+        LongPathIO.CreateDirectory(path: System.IO.Path.GetDirectoryName(path: path) ?? ".");
+        LongPathIO.WriteAllText(path: path, contents: document);
     }
 
     public static string WriteDocument(object? data) {

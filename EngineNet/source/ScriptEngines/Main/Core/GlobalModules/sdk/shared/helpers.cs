@@ -1,6 +1,7 @@
 
 namespace EngineNet.ScriptEngines.Global.SdkModule;
 
+using EngineNet.Shared.IO;
 using System.IO.Compression;
 
 internal static class Helpers {
@@ -32,12 +33,12 @@ internal static class Helpers {
             throw new System.ArgumentException("Source directory path is empty");
         }
 
-        if (!System.IO.Directory.Exists(path: dir)) {
+        if (!LongPathIO.DirectoryExists(path: dir)) {
             throw new System.IO.DirectoryNotFoundException($"Source directory not found: {dir}");
         }
         // Basic access check: attempt to enumerate one entry (if any)
         try {
-            using IEnumerator<string> _ = System.IO.Directory.EnumerateFileSystemEntries(path: dir).GetEnumerator();
+            using IEnumerator<string> _ = LongPathIO.EnumerateFileSystemEntries(path: dir).GetEnumerator();
         } catch (System.Exception ex) {
             throw new System.IO.IOException($"Cannot access source directory '{dir}': {ex.Message}", innerException: ex);
         }
@@ -54,15 +55,15 @@ internal static class Helpers {
             try {
                 Dictionary<string, object> attrs = new();
 
-                if (System.IO.Directory.Exists(path: safePath)) {
-                    DirectoryInfo dirInfo = new(path: safePath);
+                if (LongPathIO.DirectoryExists(path: safePath)) {
+                    DirectoryInfo dirInfo = new(path: LongPathIO.NormalizeForIO(path: safePath));
                     attrs[key: "mode"] = "directory";
                     attrs[key: "modification"] = (double)new System.DateTimeOffset(dateTime: dirInfo.LastWriteTime).ToUnixTimeSeconds();
                     return attrs;
                 }
 
-                if (System.IO.File.Exists(path: safePath)) {
-                    FileInfo fileInfo = new(fileName: safePath);
+                if (LongPathIO.FileExists(path: safePath)) {
+                    FileInfo fileInfo = new(fileName: LongPathIO.NormalizeForIO(path: safePath));
                     attrs[key: "mode"] = "file";
                     attrs[key: "size"] = fileInfo.Length;
                     attrs[key: "modification"] = (double)new System.DateTimeOffset(dateTime: fileInfo.LastWriteTime).ToUnixTimeSeconds();
@@ -85,7 +86,7 @@ internal static class Helpers {
             try {
                 // 2. Logic: Get all files and directories
                 // This returns the full paths initially
-                string[] entries = System.IO.Directory.GetFileSystemEntries(path: safePath);
+                string[] entries = LongPathIO.EnumerateFileSystemEntries(path: safePath).ToArray();
 
                 // 3. Transformation: Convert full paths to just names
                 List<string> names = new();
@@ -110,7 +111,7 @@ internal static class Helpers {
                 if (!Security.TryGetAllowedCanonicalPathWithPrompt(path: path, canonicalPath: out string safePath)) {
                     return null;
                 }
-                using System.IO.FileStream fs = System.IO.File.OpenRead(path: safePath);
+                using System.IO.FileStream fs = LongPathIO.OpenFile(path: safePath, mode: System.IO.FileMode.Open, access: System.IO.FileAccess.Read, share: System.IO.FileShare.Read);
                 byte[] hash = System.Security.Cryptography.SHA1.HashData(source: fs);
                 return System.Convert.ToHexString(inArray: hash).ToLowerInvariant();
             } catch (Exception ex) {
@@ -155,7 +156,7 @@ internal static class Helpers {
 
                 string ext = System.IO.Path.GetExtension(path: archivePath).ToLowerInvariant();
                 if (ext == ".zip") {
-                    System.IO.Compression.ZipFile.ExtractToDirectory(sourceArchiveFileName: archivePath, destinationDirectoryName: destDir);
+                    System.IO.Compression.ZipFile.ExtractToDirectory(sourceArchiveFileName: LongPathIO.NormalizeForIO(path: archivePath), destinationDirectoryName: LongPathIO.NormalizeForIO(path: destDir));
                     return true;
                 }
                 // For other formats, suggest using approved tools
@@ -177,14 +178,14 @@ internal static class Helpers {
                 }
 
                 if (type.Equals("zip", comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
-                    if (System.IO.Directory.Exists(path: srcPath)) {
-                        System.IO.Compression.ZipFile.CreateFromDirectory(sourceDirectoryName: srcPath, destinationArchiveFileName: archivePath);
-                    } else if (System.IO.File.Exists(path: srcPath)) {
+                    if (LongPathIO.DirectoryExists(path: srcPath)) {
+                            System.IO.Compression.ZipFile.CreateFromDirectory(sourceDirectoryName: LongPathIO.NormalizeForIO(path: srcPath), destinationArchiveFileName: LongPathIO.NormalizeForIO(path: archivePath));
+                        } else if (LongPathIO.FileExists(path: srcPath)) {
                         // Create zip with single file
-                        using ZipArchive archive = System.IO.Compression.ZipFile.Open(archiveFileName: archivePath, mode: System.IO.Compression.ZipArchiveMode.Create);
+                        using ZipArchive archive = System.IO.Compression.ZipFile.Open(archiveFileName: LongPathIO.NormalizeForIO(path: archivePath), mode: System.IO.Compression.ZipArchiveMode.Create);
                         ZipArchiveEntry entry = archive.CreateEntry(entryName: System.IO.Path.GetFileName(path: srcPath));
                         using Stream entryStream = entry.Open();
-                        using FileStream fileStream = System.IO.File.OpenRead(path: srcPath);
+                        using FileStream fileStream = LongPathIO.OpenFile(path: srcPath, mode: System.IO.FileMode.Open, access: System.IO.FileAccess.Read, share: System.IO.FileShare.Read);
                         fileStream.CopyTo(destination: entryStream);
                     } else {
                         return false;

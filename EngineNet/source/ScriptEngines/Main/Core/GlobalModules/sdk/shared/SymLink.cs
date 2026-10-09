@@ -4,6 +4,8 @@ using Microsoft.Win32;
 
 namespace EngineNet.ScriptEngines.Global.SdkModule;
 
+using EngineNet.Shared.IO;
+
 internal static class SymLink {
     private const string SE_CREATE_SYMBOLIC_LINK_NAME = "SeCreateSymbolicLinkPrivilege";
 
@@ -20,12 +22,12 @@ internal static class SymLink {
                 return false;
             }
 
-            string destFull = System.IO.Path.GetFullPath(path: destination);
-            string srcFull = System.IO.Path.GetFullPath(path: source);
+            string destFull = LongPathIO.GetAbsolutePath(path: destination);
+            string srcFull = LongPathIO.GetAbsolutePath(path: source);
             string? parent = System.IO.Path.GetDirectoryName(path: destFull);
 
             if (!string.IsNullOrEmpty(parent)) {
-                System.IO.Directory.CreateDirectory(path: parent);
+                LongPathIO.CreateDirectory(path: parent);
             }
 
             if (overwrite) {
@@ -50,13 +52,13 @@ internal static class SymLink {
     /// Removes an existing file, directory, or symlink at the target path.
     /// </summary>
     private static void RemoveExistingDestination(string destinationFullPath) {
-        if (FileSystemUtils.IsSymlink(path: destinationFullPath) || System.IO.File.Exists(path: destinationFullPath)) {
-            System.IO.File.Delete(path: destinationFullPath);
+        if (FileSystemUtils.IsSymlink(path: destinationFullPath) || LongPathIO.FileExists(path: destinationFullPath)) {
+            LongPathIO.DeleteFile(path: destinationFullPath);
             return;
         }
 
-        if (System.IO.Directory.Exists(path: destinationFullPath)) {
-            System.IO.Directory.Delete(path: destinationFullPath, recursive: true);
+        if (LongPathIO.DirectoryExists(path: destinationFullPath)) {
+            LongPathIO.DeleteDirectory(path: destinationFullPath, recursive: true);
         }
     }
 

@@ -128,6 +128,31 @@ sdk.color_print('cyan', 'join normalizes automatically: ' .. demo_path)
 local soft_join_path = join('C:/Base/', '/SubDir', '\\File.dat')
 sdk.color_print('cyan', 'Soft join (concatenates absolute segments): ' .. soft_join_path)
 
+local long_path_parts = {}
+for index = 1, 6 do
+    table.insert(long_path_parts, string.rep(string.char(96 + index), 40))
+end
+local long_path_dir = join(scratch_root, table.concat(long_path_parts, '/'))
+local long_path_file = join(long_path_dir, 'io-open-probe.txt')
+local long_path_copy_dir = join(scratch_root, 'copy', table.concat(long_path_parts, '/'))
+sdk.ensure_dir(long_path_dir)
+local long_path_absolute = sdk.absolute_path(long_path_file)
+local long_path_handle = io.open(long_path_file, 'w')
+if long_path_handle then
+    long_path_handle:write('Long-path IO is available through the Shared filesystem layer.')
+    long_path_handle:close()
+    local long_path_content = sdk.read_file(long_path_file)
+    sdk.color_print(long_path_content and 'green' or 'red', 'Long-path IO: ' .. tostring(long_path_content ~= nil))
+    sdk.color_print('cyan', 'Absolute long path: ' .. long_path_absolute)
+    local long_path_copy_ok = sdk.copy_dir(long_path_dir, long_path_copy_dir, true)
+    local copied_content = sdk.read_file(join(long_path_copy_dir, 'io-open-probe.txt'))
+    sdk.color_print(long_path_copy_ok and copied_content and 'green' or 'red', 'Long-path recursive copy: ' .. tostring(long_path_copy_ok and copied_content ~= nil))
+    sdk.remove_dir(join(scratch_root, 'copy'))
+    sdk.remove_file(long_path_file)
+else
+    sdk.color_print('red', 'Long-path IO probe could not create its nested file.')
+end
+
 
 progress.script.step('Creating directory structure')
 

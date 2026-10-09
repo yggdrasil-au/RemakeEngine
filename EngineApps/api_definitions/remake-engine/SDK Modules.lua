@@ -167,7 +167,9 @@ function sdk.is_file(path) end
 ---@return boolean ok
 function sdk.is_absolute(path) end
 
---- Resolves a path to its absolute path with long path support on Windows.
+--- Resolves a path against the process current directory and returns an absolute path.
+--- On Windows, long drive paths use the extended-length prefix and long UNC paths use the extended UNC prefix.
+--- This only converts the path; it does not grant access to it.
 ---@param path string
 ---@return string absolute_path
 function sdk.absolute_path(path) end

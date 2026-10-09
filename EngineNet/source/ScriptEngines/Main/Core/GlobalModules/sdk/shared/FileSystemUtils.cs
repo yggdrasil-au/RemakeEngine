@@ -1,4 +1,4 @@
-
+using EngineNet.Shared.IO;
 
 namespace EngineNet.ScriptEngines.Global.SdkModule;
 
@@ -11,7 +11,7 @@ internal static class FileSystemUtils {
         internal long Processed;
     }
 
-    internal static bool PathExists(string path) => System.IO.Path.Exists(path: path);
+    internal static bool PathExists(string path) => LongPathIO.PathExists(path: path);
 
     internal static bool PathExistsIncludingLinks(string path) {
         if (PathExists(path: path)) {
@@ -40,7 +40,7 @@ internal static class FileSystemUtils {
 
     internal static string? RealPath(string path) {
         try {
-            return System.IO.Path.GetFullPath(path: path);
+            return LongPathIO.GetAbsolutePath(path: path);
         } catch (Exception ex) {
             Shared.IO.Diagnostics.LuaInternalCatch(ex: "real_path failed for path: " + path + " with exception: " + ex);
             return null;
@@ -71,6 +71,9 @@ internal static class FileSystemUtils {
             throw new System.ArgumentException("destDir is empty");
         }
 
+        sourceDir = LongPathIO.NormalizeForIO(path: sourceDir);
+        destDir = LongPathIO.NormalizeForIO(path: destDir);
+
         if (!System.IO.Directory.Exists(path: sourceDir)) {
             throw new System.IO.DirectoryNotFoundException($"Source not found: {sourceDir}");
         }
@@ -90,7 +93,7 @@ internal static class FileSystemUtils {
 
         try {
             Shared.IO.UI.EngineSdk.Print($"Moving directory '{sourceDir}' -> '{destDir}' (fast move) ...", newline: false);
-            System.IO.Directory.Move(sourceDirName: sourceDir, destDirName: destDir);
+            LongPathIO.MoveDirectory(sourcePath: sourceDir, destinationPath: destDir);
             Shared.IO.UI.EngineSdk.Print(" done.", newline: true);
         } catch {
             // Fallback to copy+delete for cross-device moves
@@ -117,6 +120,9 @@ internal static class FileSystemUtils {
             throw new System.ArgumentException("destDir is empty");
         }
 
+        sourceDir = LongPathIO.NormalizeForIO(path: sourceDir);
+        destDir = LongPathIO.NormalizeForIO(path: destDir);
+
         if (!System.IO.Directory.Exists(path: sourceDir)) {
             throw new System.IO.DirectoryNotFoundException($"Source not found: {sourceDir}");
         }
@@ -129,11 +135,11 @@ internal static class FileSystemUtils {
             System.IO.Directory.CreateDirectory(path: destDir);
         }
 
-        string srcRoot = System.IO.Path.GetFullPath(path: sourceDir);
-        string dstRoot = System.IO.Path.GetFullPath(path: destDir);
+        string srcRoot = LongPathIO.NormalizeForIO(path: sourceDir);
+        string dstRoot = LongPathIO.NormalizeForIO(path: destDir);
 
         // Create all directories first
-        foreach (string target in System.IO.Directory.EnumerateDirectories(path: srcRoot, searchPattern: "*", searchOption: System.IO.SearchOption.AllDirectories).Select(selector: dir => System.IO.Path.Combine(path1: dstRoot, path2: System.IO.Path.GetRelativePath(relativeTo: srcRoot, path: dir)))) {
+        foreach (string target in System.IO.Directory.EnumerateDirectories(path: srcRoot, searchPattern: "*", searchOption: System.IO.SearchOption.AllDirectories).Select(selector: dir => System.IO.Path.Combine(path1: dstRoot, path2: LongPathIO.GetRelativePath(basePath: srcRoot, targetPath: dir)))) {
             System.IO.Directory.CreateDirectory(path: target);
         }
 
@@ -166,7 +172,7 @@ internal static class FileSystemUtils {
 
         try {
             // Copy files with progress
-            foreach ((string File, string Target) item in files.Select(selector: file => (File: file, Target: System.IO.Path.Combine(path1: dstRoot, path2: System.IO.Path.GetRelativePath(relativeTo: srcRoot, path: file))))) {
+            foreach ((string File, string Target) item in files.Select(selector: file => (File: file, Target: System.IO.Path.Combine(path1: dstRoot, path2: LongPathIO.GetRelativePath(basePath: srcRoot, targetPath: file))))) {
                 System.IO.Directory.CreateDirectory(path: System.IO.Path.GetDirectoryName(path: item.Target)!);
                 System.IO.File.Copy(sourceFileName: item.File, destFileName: item.Target, overwrite: true);
 
@@ -208,6 +214,7 @@ internal static class FileSystemUtils {
     /// Returns null if not found.
     /// </summary>
     internal static string? FindSubdir(string baseDir, string name, bool caseInsensitive = true) {
+        baseDir = LongPathIO.NormalizeForIO(path: baseDir);
         if (!System.IO.Directory.Exists(path: baseDir)) {
             return null;
         }
@@ -231,6 +238,7 @@ internal static class FileSystemUtils {
     /// Comparison is case-insensitive on Windows by default.
     /// </summary>
     internal static bool HasAllSubdirs(string baseDir, IEnumerable<string> names, bool caseInsensitive = true) {
+        baseDir = LongPathIO.NormalizeForIO(path: baseDir);
         if (!System.IO.Directory.Exists(path: baseDir)) {
             return false;
         }
@@ -258,7 +266,7 @@ internal static class FileSystemUtils {
 
 
     private static System.IO.FileSystemInfo GetInfo(string path) {
-        string full = System.IO.Path.GetFullPath(path: path);
+        string full = LongPathIO.NormalizeForIO(path: path);
         System.IO.DirectoryInfo dirInfo = new(path: full);
         if (dirInfo.Exists) {
             return dirInfo;

@@ -17,11 +17,11 @@ internal static partial class SetupEnvironment {
                 mode ??= "r";
                 bool binaryMode = mode.Contains("b");
                 if (mode.Contains('r')) {
-                    fs = new System.IO.FileStream(path: safePath, mode: System.IO.FileMode.Open, access: System.IO.FileAccess.Read);
+                    fs = EngineNet.Shared.IO.LongPathIO.OpenFile(path: safePath, mode: System.IO.FileMode.Open, access: System.IO.FileAccess.Read);
                 } else if (mode.Contains('w')) {
-                    fs = new System.IO.FileStream(path: safePath, mode: System.IO.FileMode.Create, access: System.IO.FileAccess.Write);
+                    fs = EngineNet.Shared.IO.LongPathIO.OpenFile(path: safePath, mode: System.IO.FileMode.Create, access: System.IO.FileAccess.Write);
                 } else if (mode.Contains('a')) {
-                    fs = new System.IO.FileStream(path: safePath, mode: System.IO.FileMode.Append, access: System.IO.FileAccess.Write);
+                    fs = EngineNet.Shared.IO.LongPathIO.OpenFile(path: safePath, mode: System.IO.FileMode.Append, access: System.IO.FileAccess.Write);
                 }
 
                 if (fs == null)

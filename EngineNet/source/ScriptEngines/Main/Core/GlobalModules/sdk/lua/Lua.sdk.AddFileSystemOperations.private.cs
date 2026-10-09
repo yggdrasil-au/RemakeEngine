@@ -45,60 +45,7 @@ internal static partial class Sdk {
 
         _LuaWorld.Sdk.Table[key: "absolute_path"] = (string path) => {
             if (string.IsNullOrEmpty(path)) return path;
-
-            // 1. Try realpath first (handles symlinks etc)
-            string? resolved = null;
-            if (Security.IsAllowedPath(path: path)) {
-                resolved = ScriptEngines.Global.SdkModule.FileSystemUtils.RealPath(path: path);
-            }
-
-            string result = path;
-            if (!string.IsNullOrEmpty(resolved)) {
-                result = resolved;
-            } else {
-                // 2. Check if absolute using is_absolute logic
-                bool isAbsolute = false;
-                bool isWindows =
-                    System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(osPlatform: System.Runtime.InteropServices
-                        .OSPlatform.Windows);
-
-                if (isWindows) {
-                    switch (path.Length) {
-                        // Windows drive: C:\
-                        case >= 3 when char.IsLetter(c: path[index: 0]) && path[index: 1] == ':' && (path[index: 2] == '/' || path[index: 2] == '\\'):
-                        // Windows UNC: \\host
-                        case >= 2 when path[index: 0] == '\\' && path[index: 1] == '\\':
-                        // Windows root: \
-                        case >= 1 when path[index: 0] == '\\':
-                        // Unix-style root on Windows: /
-                        case >= 1 when path[index: 0] == '/':
-                            isAbsolute = true;
-                            break;
-                    }
-                } else {
-                    // Unix root: /
-                    if (path.Length >= 1 && path[index: 0] == '/') isAbsolute = true;
-                }
-
-                if (!isAbsolute) {
-                    string cwd = System.IO.Directory.GetCurrentDirectory();
-                    result = System.IO.Path.Combine(path1: cwd, path2: path);
-                }
-            }
-
-            // 3. Normalize
-            char sep = System.IO.Path.DirectorySeparatorChar;
-            result = sep == '\\' ? result.Replace(oldChar: '/', newChar: '\\') : result.Replace(oldChar: '\\', newChar: '/');
-
-            // 4. Windows Long Path Support (\\\\?\\ prefix)
-            if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(osPlatform: System.Runtime.InteropServices
-                    .OSPlatform.Windows)) return result;
-            if (result.Length > 255 && result.Length >= 2 && char.IsLetter(c: result[index: 0]) && result[index: 1] == ':' &&
-                !result.StartsWith(@"\\?\")) {
-                result = @"\\?\" + result;
-            }
-
-            return result;
+            return EngineNet.Shared.IO.LongPathIO.GetAbsolutePath(path: path);
         };
 
         _LuaWorld.Sdk.Table[key: "realpath"] = (string path) =>
@@ -152,7 +99,7 @@ internal static partial class Sdk {
             }
 
             try {
-                System.IO.Directory.CreateDirectory(path: safePath);
+                EngineNet.Shared.IO.LongPathIO.CreateDirectory(path: safePath);
                 return true;
             }
             catch (Exception ex) {
@@ -163,12 +110,12 @@ internal static partial class Sdk {
 
         _LuaWorld.Sdk.Table[key: "ensure_dir"] = (string path) => {
             try {
-                if (!Security.IsAllowedPath(path: path)) {
+                if (!Security.TryGetAllowedCanonicalPath(path: path, canonicalPath: out string safePath)) {
                     Shared.IO.UI.EngineSdk.Error($"Access denied: ensure_dir path is outside allowed areas ('{path}')");
                     return false;
                 }
 
-                System.IO.Directory.CreateDirectory(path: path);
+                EngineNet.Shared.IO.LongPathIO.CreateDirectory(path: safePath);
                 return true;
             }
             catch (Exception ex) {
@@ -179,7 +126,7 @@ internal static partial class Sdk {
 
         _LuaWorld.Sdk.Table[key: "is_dir"] = (string path) => {
             return Security.TryGetAllowedCanonicalPathWithPrompt(path: path, canonicalPath: out string safePath)
-                   && System.IO.Directory.Exists(path: safePath);
+                   && EngineNet.Shared.IO.LongPathIO.DirectoryExists(path: safePath);
         };
 
         _LuaWorld.Sdk.Table[key: "copy_dir"] = (string src, string dst, DynValue overwrite) => {
@@ -228,8 +175,8 @@ internal static partial class Sdk {
                     return false;
                 }
 
-                if (System.IO.Directory.Exists(path: path)) {
-                    System.IO.Directory.Delete(path: path, recursive: true);
+                if (EngineNet.Shared.IO.LongPathIO.DirectoryExists(path: path)) {
+                    EngineNet.Shared.IO.LongPathIO.DeleteDirectory(path: path, recursive: true);
                 }
 
                 return true;
@@ -268,7 +215,7 @@ internal static partial class Sdk {
 
     private static void AddFileOperations(LuaWorld _LuaWorld) {
         _LuaWorld.Sdk.Table[key: "is_file"] = static (string path) => {
-            return Security.TryGetAllowedCanonicalPathWithPrompt(path: path, canonicalPath: out string safePath) && System.IO.File.Exists(path: safePath);
+            return Security.TryGetAllowedCanonicalPathWithPrompt(path: path, canonicalPath: out string safePath) && EngineNet.Shared.IO.LongPathIO.FileExists(path: safePath);
         };
 
         _LuaWorld.Sdk.Table[key: "remove_file"] = static (string path) => {
@@ -281,16 +228,16 @@ internal static partial class Sdk {
                 }
 
                 if (!ScriptEngines.Global.SdkModule.FileSystemUtils.IsSymlink(path: safePath) &&
-                    !System.IO.File.Exists(path: safePath)) return true;
+                    !EngineNet.Shared.IO.LongPathIO.FileExists(path: safePath)) return true;
                 // Clear read-only if present
-                if (System.IO.File.Exists(path: safePath)) {
-                    System.IO.FileAttributes attributes = System.IO.File.GetAttributes(path: safePath);
+                if (EngineNet.Shared.IO.LongPathIO.FileExists(path: safePath)) {
+                    System.IO.FileAttributes attributes = EngineNet.Shared.IO.LongPathIO.GetAttributes(path: safePath);
                     if ((attributes & System.IO.FileAttributes.ReadOnly) == System.IO.FileAttributes.ReadOnly) {
-                        System.IO.File.SetAttributes(path: safePath, fileAttributes: attributes & ~System.IO.FileAttributes.ReadOnly);
+                        EngineNet.Shared.IO.LongPathIO.SetAttributes(path: safePath, attributes: attributes & ~System.IO.FileAttributes.ReadOnly);
                     }
                 }
 
-                System.IO.File.Delete(path: safePath);
+                EngineNet.Shared.IO.LongPathIO.DeleteFile(path: safePath);
                 return true;
             }
             catch (Exception ex) {
@@ -308,14 +255,14 @@ internal static partial class Sdk {
                 }
 
                 bool ow = overwrite.Type == DataType.Boolean && overwrite.Boolean;
-                if (ow && System.IO.File.Exists(path: safeDst)) {
-                    System.IO.FileAttributes attributes = System.IO.File.GetAttributes(path: safeDst);
+                if (ow && EngineNet.Shared.IO.LongPathIO.FileExists(path: safeDst)) {
+                    System.IO.FileAttributes attributes = EngineNet.Shared.IO.LongPathIO.GetAttributes(path: safeDst);
                     if ((attributes & System.IO.FileAttributes.ReadOnly) == System.IO.FileAttributes.ReadOnly) {
-                        System.IO.File.SetAttributes(path: safeDst, fileAttributes: attributes & ~System.IO.FileAttributes.ReadOnly);
+                        EngineNet.Shared.IO.LongPathIO.SetAttributes(path: safeDst, attributes: attributes & ~System.IO.FileAttributes.ReadOnly);
                     }
                 }
 
-                System.IO.File.Copy(sourceFileName: safeSrc, destFileName: safeDst, overwrite: ow);
+                EngineNet.Shared.IO.LongPathIO.CopyFile(sourcePath: safeSrc, destinationPath: safeDst, overwrite: ow);
                 return true;
             }
             catch (Exception ex) {
@@ -332,10 +279,10 @@ internal static partial class Sdk {
 
                 string? parent = System.IO.Path.GetDirectoryName(path: safePath);
                 if (!string.IsNullOrEmpty(parent)) {
-                    System.IO.Directory.CreateDirectory(path: parent);
+                    EngineNet.Shared.IO.LongPathIO.CreateDirectory(path: parent);
                 }
 
-                System.IO.File.WriteAllText(path: safePath, contents: content);
+                EngineNet.Shared.IO.LongPathIO.WriteAllText(path: safePath, contents: content);
                 return true;
             }
             catch (Exception ex) {
@@ -350,11 +297,11 @@ internal static partial class Sdk {
                     return null;
                 }
 
-                if (!System.IO.File.Exists(path: safePath)) {
+                if (!EngineNet.Shared.IO.LongPathIO.FileExists(path: safePath)) {
                     return null;
                 }
 
-                return System.IO.File.ReadAllText(path: safePath);
+                return EngineNet.Shared.IO.LongPathIO.ReadAllText(path: safePath);
             }
             catch (Exception ex) {
                 Shared.IO.Diagnostics.Bug("read_file catch triggered with exception: " + ex);
@@ -371,25 +318,25 @@ internal static partial class Sdk {
                     return false;
                 }
 
-                if (System.IO.File.Exists(path: safeOldPath)) {
-                    if (System.IO.File.Exists(path: safeNewPath)) {
+                if (EngineNet.Shared.IO.LongPathIO.FileExists(path: safeOldPath)) {
+                    if (EngineNet.Shared.IO.LongPathIO.FileExists(path: safeNewPath)) {
                         if (!overwrite) return false;
-                        System.IO.File.Delete(path: safeNewPath);
+                        EngineNet.Shared.IO.LongPathIO.DeleteFile(path: safeNewPath);
                     }
 
                     try {
-                        System.IO.File.Move(sourceFileName: safeOldPath, destFileName: safeNewPath, overwrite: overwrite);
+                        EngineNet.Shared.IO.LongPathIO.MoveFile(sourcePath: safeOldPath, destinationPath: safeNewPath, overwrite: overwrite);
                     }
                     catch (Exception ex) {
                         Shared.IO.Diagnostics.Bug("rename_file fallback catch triggered with exception: " +
                                      ex);
                         // Fallback for cross-volume moves (or older .NET targets)
-                        System.IO.File.Copy(sourceFileName: safeOldPath, destFileName: safeNewPath, overwrite: overwrite);
-                        System.IO.File.Delete(path: safeOldPath);
+                        EngineNet.Shared.IO.LongPathIO.CopyFile(sourcePath: safeOldPath, destinationPath: safeNewPath, overwrite: overwrite);
+                        EngineNet.Shared.IO.LongPathIO.DeleteFile(path: safeOldPath);
                     }
 
                     return true;
-                } else if (System.IO.Directory.Exists(path: safeOldPath)) {
+                } else if (EngineNet.Shared.IO.LongPathIO.DirectoryExists(path: safeOldPath)) {
                     ScriptEngines.Global.SdkModule.FileSystemUtils.MoveDirectory(sourceDir: safeOldPath, destDir: safeNewPath, overwrite: overwrite);
                     return true;
                 }
@@ -409,11 +356,11 @@ internal static partial class Sdk {
                 }
 
                 // If it's a file, check file attributes and try to open for writing
-                if (File.Exists(path: safePath)) {
+                if (EngineNet.Shared.IO.LongPathIO.FileExists(path: safePath)) {
                     try {
-                        FileInfo fi = new(fileName: safePath);
+                        FileInfo fi = new(fileName: EngineNet.Shared.IO.LongPathIO.NormalizeForIO(path: safePath));
                         if (fi.IsReadOnly) return false;
-                        using (File.Open(path: safePath, mode: FileMode.Open, access: FileAccess.Write, share: FileShare.ReadWrite)) {
+                        using (EngineNet.Shared.IO.LongPathIO.OpenFile(path: safePath, mode: FileMode.Open, access: FileAccess.Write, share: FileShare.ReadWrite)) {
                             return true;
                         }
                     }
@@ -424,7 +371,7 @@ internal static partial class Sdk {
                     }
                 }
 
-                if (!Directory.Exists(path: safePath))
+                if (!EngineNet.Shared.IO.LongPathIO.DirectoryExists(path: safePath))
                     return false;
 
                 // For directories, try to create a temp file
@@ -432,7 +379,7 @@ internal static partial class Sdk {
 
                 try {
                     // Create a zero-byte file and delete it immediately when closed
-                    using (File.Create(path: testFile, bufferSize: 1, options: FileOptions.DeleteOnClose)) {
+                    using (EngineNet.Shared.IO.LongPathIO.OpenFile(path: testFile, mode: FileMode.CreateNew, access: FileAccess.Write, options: FileOptions.DeleteOnClose)) {
                         return true;
                     }
                 } catch (Exception ex) {
@@ -463,18 +410,18 @@ internal static partial class Sdk {
                 string srcFull = safeSrc;
                 string? parent = System.IO.Path.GetDirectoryName(path: destFull);
                 if (!string.IsNullOrEmpty(parent)) {
-                    System.IO.Directory.CreateDirectory(path: parent);
+                    EngineNet.Shared.IO.LongPathIO.CreateDirectory(path: parent);
                 }
 
-                if (!System.IO.File.Exists(path: srcFull)) {
+                if (!EngineNet.Shared.IO.LongPathIO.FileExists(path: srcFull)) {
                     return false;
                 }
 
                 // Remove existing file or link
                 try {
                     if (ScriptEngines.Global.SdkModule.FileSystemUtils.IsSymlink(path: destFull) ||
-                        System.IO.File.Exists(path: destFull)) {
-                        System.IO.File.Delete(path: destFull);
+                        EngineNet.Shared.IO.LongPathIO.FileExists(path: destFull)) {
+                        EngineNet.Shared.IO.LongPathIO.DeleteFile(path: destFull);
                     }
                 } catch (Exception ex) {
                     Shared.IO.Diagnostics.LuaInternalCatch(ex: "Failed to delete existing file or link: " + destFull + " with exception: " + ex);

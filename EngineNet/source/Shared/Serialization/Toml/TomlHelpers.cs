@@ -1,6 +1,7 @@
 
 namespace EngineNet.Shared.Serialization.Toml;
 
+using EngineNet.Shared.IO;
 using Tomlyn.Model;
 
 /// <summary>
@@ -13,7 +14,7 @@ using Tomlyn.Model;
 /// </summary>
 public static class TomlHelpers {
     public static object ParseFileToPlainObject(string path) {
-        string text = System.IO.File.Exists(path: path) ? System.IO.File.ReadAllText(path: path) : string.Empty;
+        string text = LongPathIO.FileExists(path: path) ? LongPathIO.ReadAllText(path: path) : string.Empty;
 
         // Handle empty strings explicitly to avoid deserialization exceptions
         TomlTable model = string.IsNullOrWhiteSpace(text)
@@ -32,8 +33,8 @@ public static class TomlHelpers {
         // Convert plain objects to Tomlyn.Model.TomlTable model and serialize
         Tomlyn.Model.TomlTable root = ConvertPlainToTomlTable(data: data);
         string text = Tomlyn.TomlSerializer.Serialize(root);
-        System.IO.Directory.CreateDirectory(path: System.IO.Path.GetDirectoryName(path: path) ?? ".");
-        System.IO.File.WriteAllText(path: path, contents: text);
+        LongPathIO.CreateDirectory(path: System.IO.Path.GetDirectoryName(path: path) ?? ".");
+        LongPathIO.WriteAllText(path: path, contents: text);
     }
 
     private static object ConvertTomlToPlain(object? value) {
@@ -180,7 +181,7 @@ public static class TomlHelpers {
     /// Specialized helper to read the [[tool]] array of tables from module tool manifests.
     /// </summary>
     public static List<Dictionary<string, object?>> ReadTools(string path) {
-        if (!System.IO.File.Exists(path: path)) return new List<Dictionary<string, object?>>();
+        if (!LongPathIO.FileExists(path: path)) return new List<Dictionary<string, object?>>();
 
         object parsed = ParseFileToPlainObject(path: path);
         if (parsed is IDictionary<string, object?> root && root.TryGetValue(key: "tool", out object? toolsObj)
@@ -197,7 +198,7 @@ public static class TomlHelpers {
     /// </summary>
     public static Dictionary<string, object?> ReadPlaceholdersFile(string path) {
         Dictionary<string, object?> result = new(comparer: System.StringComparer.OrdinalIgnoreCase);
-        if (!System.IO.File.Exists(path: path)) return result; // return empty if file doesn't exist
+        if (!LongPathIO.FileExists(path: path)) return result; // return empty if file doesn't exist
 
         object parsed = ParseFileToPlainObject(path: path); // this should give us a Dictionary<string, object?> representing the root TOML table
         // if the root is a table and has a "placeholders" key whose value is a list of tables, merge all those tables into one dictionary and return it. This allows us to support multiple [[placeholders]] blocks in the same file, which is useful for modular config files where each module can define its own placeholders without worrying about merging with other modules.

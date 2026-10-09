@@ -1,6 +1,8 @@
 
 namespace EngineNet.ScriptEngines.Global.SdkModule;
 
+using EngineNet.Shared.IO;
+
 /// <summary>
 /// Cross-platform hardlink creation helper for .NET 6+.
 /// Uses CreateHardLinkW on Windows and link(2) on Unix-like systems.
@@ -10,10 +12,10 @@ internal static class HardLink {
         if (string.IsNullOrWhiteSpace(existingFile)) throw new ArgumentNullException(paramName: nameof(existingFile));
         if (string.IsNullOrWhiteSpace(newLinkPath)) throw new ArgumentNullException(paramName: nameof(newLinkPath));
 
-        string src = System.IO.Path.GetFullPath(path: existingFile);
-        string dst = System.IO.Path.GetFullPath(path: newLinkPath);
+        string src = LongPathIO.GetAbsolutePath(path: existingFile);
+        string dst = LongPathIO.GetAbsolutePath(path: newLinkPath);
 
-        if (!System.IO.File.Exists(path: src)) throw new System.IO.FileNotFoundException("Existing file not found.", fileName: src);
+        if (!LongPathIO.FileExists(path: src)) throw new System.IO.FileNotFoundException("Existing file not found.", fileName: src);
 
         if (OperatingSystem.IsWindows()) {
             if (!CreateHardLinkW(lpFileName: dst, lpExistingFileName: src, lpSecurityAttributes: IntPtr.Zero)) {
