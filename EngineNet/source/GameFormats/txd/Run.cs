@@ -51,7 +51,8 @@ public static class Extractor {
                     if (string.IsNullOrEmpty(outputBase)) {
                         string baseDir = System.IO.Path.GetDirectoryName(path: txdFile) ?? System.IO.Directory.GetCurrentDirectory();
                         string baseName = System.IO.Path.GetFileNameWithoutExtension(path: txdFile);
-                        outputBase = System.IO.Path.Join(path1: baseDir, path2: baseName + "_txd");
+                        //outputBase = System.IO.Path.Join(path1: baseDir, path2: baseName + "_txd");
+                        outputBase = System.IO.Path.Join(path1: baseDir, path2: baseName);
                     }
 
                     int textures = exporter.ExportTexturesFromTxd(txdFilePath: txdFile, outputDirBase: outputBase, outputExtension: options.OutputExtension);

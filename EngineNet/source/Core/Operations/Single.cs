@@ -161,12 +161,13 @@ public sealed class Single : Core.Abstractions.ISingle {
 
         // If the main operation succeeded, run any nested [[operation.onsuccess]] steps
         if (result && helpers.OpMetadataExtractor.ExtractSuccessActions(op: rawOperation, ops: out List<Dictionary<string, object?>>? followUps) && followUps is not null) {
-            // if we have follow-up operations, run them sequentially, propagating cancellation and failure but not short-circuiting on failure of any individual follow-up so all follow-ups get a chance to run regardless of any individual failures
+            // Run follow-up operations sequentially. Stop after the first failure so later steps cannot update placeholders for a rename that failed.
             foreach (Dictionary<string, object?> childOp in followUps) {
                 if (cancellationToken.IsCancellationRequested) break;
                 bool ok = await OperationContext.Single.RunAsync( currentGame: currentGame, games: games, op: childOp, promptAnswers: promptAnswers, Context: Context, OperationContext: OperationContext, cancellationToken: cancellationToken);
                 if (!ok) {
-                    result = false; // propagate failure from any onsuccess step
+                    result = false; // propagate failure and skip dependent onsuccess steps
+                    break;
                 }
             }
         }
