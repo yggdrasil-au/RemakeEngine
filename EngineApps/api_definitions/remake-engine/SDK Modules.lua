@@ -31,6 +31,7 @@ The file is organized into sections:
 ---@class SDK
 ---@field IO IO_Lib Access to IO functions (same as global 'io').
 ---@field Hash SdkHash Hash helpers under sdk.Hash.
+---@field iso IsoModule Access to optical disc image functions (same as global 'iso').
 ---@field cpu_count integer The number of logical processors available.
 ---@field text SdkText JSON/text helpers.
 sdk = {}
@@ -60,11 +61,19 @@ function sdk.colour_print(color, message, newline) end
 ---@return boolean ok
 function sdk.validate_source_dir(dir) end
 
---- Extracts an archive to the destination directory.
+--- Extracts an archive (.zip or .iso) to the destination directory.
 ---@param archive_path string
 ---@param dest_dir string
 ---@return boolean ok
 function sdk.extract_archive(archive_path, dest_dir) end
+
+--- Extracts a console optical disc image (.iso) to the destination directory.
+---@param iso_path string Host path to the .iso file.
+---@param dest_dir string Target directory on the host disk.
+---@param options? IsoExtractOptions|string Optional options table or glob filter pattern.
+---@return boolean success True if extraction succeeded.
+---@return string|nil error Error message if extraction failed.
+function sdk.extract_iso(iso_path, dest_dir, options) end
 
 --- Creates an archive from the source path.
 ---@param src_path string

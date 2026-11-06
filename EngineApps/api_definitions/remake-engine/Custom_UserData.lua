@@ -233,3 +233,130 @@ function SqliteHandle.close(...) end
 ---@overload fun()
 function SqliteHandle.dispose(...) end
 
+
+--- Represents a single file or directory entry inside an optical disc image (.iso).
+---@class IsoEntry
+---@field path string Normalized internal path inside the disc (e.g. "PS3_GAME/PARAM.SFO" or "default.xex").
+---@field name string Entry file or directory name.
+---@field size integer Uncompressed file size in bytes (0 for directories).
+---@field is_dir boolean True if the entry is a directory.
+---@field sector integer Starting 2048-byte sector index relative to partition base.
+---@field offset integer Absolute byte offset within the underlying .iso file.
+
+--- Options controlling batch extraction of files from an optical disc image.
+---@class IsoExtractOptions
+---@field destination string Output directory path on the host filesystem.
+---@field pattern? string Optional glob pattern (e.g. "USRDIR/*", "*.xex", "GAME*.DAT").
+---@field filter? string Alias for pattern.
+---@field overwrite? boolean Overwrite existing files (default false).
+---@field progress_panel? PanelProgress|ConsoleProgress Optional engine progress panel handle to update during extraction.
+
+--- Summary result returned after extracting files from an optical disc image.
+---@class IsoExtractResult
+---@field success boolean True if extraction finished without fatal errors.
+---@field files_extracted integer Number of files written to disk.
+---@field files_skipped integer Number of existing files skipped when overwrite is false.
+---@field bytes_extracted integer Total bytes written to disk.
+---@field error? string Error message if extraction failed.
+
+--- Optical Disc Image (.iso) Module ( Xbox Original XISO/XGD1, Xbox 360 XGD2/XGD3, PS3 ISO9660/Joliet/UDF, PS2 ISO9660 ).
+---@class IsoModule
+iso = {}
+
+--- Opens a console optical disc image (.iso) for inspection, virtual streaming, or extraction.
+---@param path string Host path to the .iso file.
+---@return IsoReader|nil reader The opened disc reader handle, or nil on failure.
+---@return string|nil error Error message if opening failed.
+function iso.open(path) end
+
+--- Probes a file to check whether it is a supported optical disc image without throwing.
+---@param path string Host path to the candidate file.
+---@return boolean is_disc True if a supported optical disc header was detected.
+---@return string|nil format Detected format ("XGD2", "XGD3", "XGD1", "XISO", "PS3_HYBRID", "PS2_ISO9660", "STANDARD_ISO9660").
+function iso.is_iso(path) end
+
+--- One-step batch extraction helper for optical disc images.
+---@param iso_path string Host path to the .iso file.
+---@param dest_dir string Target directory on the host disk.
+---@param options? IsoExtractOptions|string Optional options table or glob filter pattern.
+---@return boolean success True if extraction succeeded.
+---@return string|nil error Error message if extraction failed.
+function iso.extract(iso_path, dest_dir, options) end
+
+--- Represents an active optical disc image reader returned by iso.open().
+---@class IsoReader
+local IsoReader = {}
+
+--- Returns the detected disc filesystem format ("XGD2", "XGD3", "XGD1", "XISO", "PS3_HYBRID", "PS2_ISO9660", "STANDARD_ISO9660").
+---@overload fun(self: IsoReader): string
+---@overload fun(): string
+---@return string format
+function IsoReader.format(...) end
+
+--- Returns the disc volume label (e.g. "PS3VOLUME", "PLAYSTATION", "MICROSOFT*XBOX*MEDIA").
+---@overload fun(self: IsoReader): string
+---@overload fun(): string
+---@return string volume_id
+function IsoReader.volume_id(...) end
+
+--- Returns the total byte length of the underlying .iso file.
+---@overload fun(self: IsoReader): integer
+---@overload fun(): integer
+---@return integer total_size
+function IsoReader.total_size(...) end
+
+--- Returns the byte offset of the active game partition (e.g. 0x0FD90000 for XGD2, 0x02080000 for XGD3, 0 for ISO9660/XISO).
+---@overload fun(self: IsoReader): integer
+---@overload fun(): integer
+---@return integer partition_offset
+function IsoReader.partition_offset(...) end
+
+--- Checks whether a file or directory exists inside the disc image (case-insensitive).
+---@overload fun(self: IsoReader, internal_path: string): boolean
+---@overload fun(internal_path: string): boolean
+---@return boolean exists
+function IsoReader.exists(...) end
+
+--- Retrieves metadata for a single file or directory inside the disc image (case-insensitive).
+---@overload fun(self: IsoReader, internal_path: string): IsoEntry|nil
+---@overload fun(internal_path: string): IsoEntry|nil
+---@return IsoEntry|nil entry
+function IsoReader.get_entry(...) end
+
+--- Lists entries within the disc image, optionally scoped to a subdirectory.
+---@overload fun(self: IsoReader, subpath?: string, recursive?: boolean): table<integer, IsoEntry>
+---@overload fun(subpath?: string, recursive?: boolean): table<integer, IsoEntry>
+---@return table<integer, IsoEntry> entries
+function IsoReader.list_files(...) end
+
+--- Reads a file's raw binary content directly into memory without extracting to disk.
+---@overload fun(self: IsoReader, internal_path: string, max_bytes?: integer): string|nil, string|nil
+---@overload fun(internal_path: string, max_bytes?: integer): string|nil, string|nil
+---@return string|nil content Raw binary byte string (Latin1 0..255), or nil on failure.
+---@return string|nil error Error message on failure.
+function IsoReader.read_file(...) end
+
+--- Extracts a single internal file directly to a host destination path.
+---@overload fun(self: IsoReader, internal_path: string, host_destination: string, overwrite?: boolean): boolean, string|nil
+---@overload fun(internal_path: string, host_destination: string, overwrite?: boolean): boolean, string|nil
+---@return boolean success
+---@return string|nil error
+function IsoReader.extract_file(...) end
+
+--- Extracts multiple files matching options to a target directory.
+---@overload fun(self: IsoReader, options: IsoExtractOptions|string, filter?: string, overwrite?: boolean): IsoExtractResult
+---@overload fun(options: IsoExtractOptions|string, filter?: string, overwrite?: boolean): IsoExtractResult
+---@return IsoExtractResult result
+function IsoReader.extract(...) end
+
+--- Closes the disc reader handle and releases file locks.
+---@overload fun(self: IsoReader)
+---@overload fun()
+function IsoReader.close(...) end
+
+--- Alias for close().
+---@overload fun(self: IsoReader)
+---@overload fun()
+function IsoReader.dispose(...) end
+
+

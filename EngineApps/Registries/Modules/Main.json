@@ -26,8 +26,9 @@
 		},
 		"Lego": {
 			"id": "5",
-			"path": "EngineApps/Games/Lego"
+			"path": "EngineApps/Games/Lego",
+			"url": "https://github.com/Superposition28/Lego.git"
 		}
-		
+
 	}
 }

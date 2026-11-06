@@ -159,6 +159,18 @@ internal static class Helpers {
                     System.IO.Compression.ZipFile.ExtractToDirectory(sourceArchiveFileName: LongPathIO.NormalizeForIO(path: archivePath), destinationDirectoryName: LongPathIO.NormalizeForIO(path: destDir));
                     return true;
                 }
+                if (ext == ".iso") {
+                    using Core.DiscImages.IIsoReader reader = Core.DiscImages.IsoFactory.Open(filePath: archivePath);
+                    Core.DiscImages.IsoExtractResult isoResult = reader.ExtractAll(options: new Core.DiscImages.IsoExtractOptions {
+                        Destination = destDir,
+                        Overwrite = true
+                    });
+                    if (!isoResult.Success) {
+                        Shared.IO.UI.EngineSdk.Error($"ISO extraction failed: {isoResult.Error}");
+                        return false;
+                    }
+                    return true;
+                }
                 // For other formats, suggest using approved tools
                 Shared.IO.UI.EngineSdk.Error($"Unsupported archive format '{ext}'. Use 7z tool from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" for other formats.");
                 return false;

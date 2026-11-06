@@ -25,6 +25,28 @@ Operations are defined in TOML format using `[[operation]]` array entries. Each 
 - **`prompts`** (array): Interactive prompts for user input before execution.
 - **`onsuccess`** (array): Operations to execute upon successful completion.
   - `onsuccess` operations are placeholder-resolved when each child operation executes, using the latest context and module `config.toml` placeholder values at that time.
+- **`format`** (string): Sub-format when `script_type = "engine"` and `script = "format-extract"` (supported: `"iso"`, `"p3d"`, `"txd"`).
+- **`input`** (string): Source file or directory path for built-in or BMS operations. Supports placeholders.
+- **`output`** (string): Destination directory path for built-in or BMS operations. Supports placeholders.
+- **`filter`** (string): Optional glob filter when extracting optical disc images (`format = "iso"`), e.g. `"USRDIR/*"`, `"*.xex"`, `"GAME*.DAT"`.
+- **`overwrite`** (boolean): Whether to overwrite existing files during built-in extraction. Default: `false`.
+
+### Built-In Action: ISO Extraction (`format = "iso"` / `extract-iso`)
+
+Extracts console optical disc images (Xbox Original XISO/XGD1, Xbox 360 XGD2/XGD3, PlayStation 3 hybrid ISO9660/Joliet/UDF, PlayStation 2 ISO9660) directly using the engine's native managed disc readers.
+
+```toml
+[[operation]]
+id = 1
+Name = "Extract Game Disc"
+script_type = "engine"
+script = "format-extract"
+format = "iso"
+input = "{{SourcePath}}"
+output = "{{Game_Root}}/GameFiles/Extracted"
+filter = "USRDIR/*"
+overwrite = false
+```
 
 ## Prompt Configuration
 

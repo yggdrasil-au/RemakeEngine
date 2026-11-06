@@ -111,3 +111,12 @@ Any flag not recognized by the engine (e.g., `--my-custom-flag value`) is automa
 dotnet run -c Debug --project EngineNet -- --game_module ".\EngineApps\Games\demo" --script_type lua --script "{{Game_Root}}/scripts/lua_api_test.lua" --args '["--module", "{{Game_Root}}", "--scratch", "{{Game_Root}}/TMP/lua-api-test"]' --note "lua_api_test_baseline"
 ```
 
+## Example: Built-In Console ISO Inspection & Extraction
+```pwsh
+# Inspect contents and format of a console ISO (Xbox/Xbox 360/PS3/PS2)
+dotnet run -c Release --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo" --script_type engine --script inspect-iso --args '["--input", "D:/Xbox 360/The Simpsons Game/EU Full/TSG.iso"]'
+
+# Extract matching files from a console ISO
+dotnet run -c Release --project EngineNet --framework net10.0 -- --game_module ".\EngineApps\Games\demo" --script_type engine --script format-extract --set format=iso --args '["--input", "D:/Xbox 360/The Simpsons Game/EU Full/TSG.iso", "--output", "{{Game_Root}}/TMP/iso-extract", "--filter", "default.xex"]'
+```
+

@@ -45,6 +45,11 @@ internal sealed class LuaWorld {
     /// </summary>
     internal Table SqliteModule { get; }
 
+    /// <summary>
+    /// Gets the optical disc image (ISO) module table exposed to Lua.
+    /// </summary>
+    internal Table IsoModule { get; }
+
     /* :: :: Properties :: END :: */
     // //
     /* :: :: Fields :: START :: */
@@ -161,6 +166,9 @@ internal sealed class LuaWorld {
 
         // sqlite module tables
         SqliteModule = new Table(owner: LuaScript);
+
+        // iso disc image module tables
+        IsoModule = new Table(owner: LuaScript);
 
     }
 

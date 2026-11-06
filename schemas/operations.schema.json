@@ -37,6 +37,28 @@
           "enum": ["lua", "engine", "bms", "python", "js"],
           "default": "lua"
         },
+        "format": {
+          "type": "string",
+          "description": "Specific sub-format when script is 'format-extract' or 'format-convert' (e.g., 'iso', 'p3d', 'txd').",
+          "enum": ["iso", "p3d", "txd", "str", "zip"]
+        },
+        "input": {
+          "type": "string",
+          "description": "Source file or directory path for built-in or BMS operations. Supports placeholders."
+        },
+        "output": {
+          "type": "string",
+          "description": "Destination file or directory path for built-in or BMS operations. Supports placeholders."
+        },
+        "filter": {
+          "type": "string",
+          "description": "Optional glob filter for archive or optical disc extraction (e.g., 'USRDIR/*', '*.xex', 'GAME*.DAT')."
+        },
+        "overwrite": {
+          "type": "boolean",
+          "description": "Whether to overwrite existing destination files during extraction.",
+          "default": false
+        },
         "args": {
           "type": "array",
           "description": "Static arguments passed to the script. Supports placeholder expansion.",

@@ -10,7 +10,7 @@ Demonstrates EVERY C# tool available from LuaScriptAction.cs including:
 --]]
 
 
-progress.script.start(21, 'Comprehensive Lua API Demo')
+progress.script.start(22, 'Comprehensive Lua API Demo')
 
 
 
@@ -480,6 +480,9 @@ local features_to_log = {
     {'sqlite', 'exec()', 'SQL execution'},
     {'sqlite', 'query()', 'SQL queries'},
     {'sqlite', 'transactions', 'Transaction management'},
+    {'iso', 'open()', 'Console optical disc image inspection & virtual streaming'},
+    {'iso', 'is_iso()', 'Console optical disc format probing'},
+    {'sdk', 'extract_iso()', 'Direct console ISO extraction'},
     {'modules', 'dkjson', 'JSON encoding/decoding'}
 }
 
@@ -774,6 +777,127 @@ sdk.color_print('yellow', '"This is a trace message from Lua." and should appear
 
 
 -- Final progress update
+progress.script.step('Testing Optical Disc Image (ISO) API')
+
+-- =============================================================================
+-- Optical Disc Image (ISO) API Demonstration
+-- =============================================================================
+sdk.color_print('yellow', '--- Optical Disc Image (ISO) API Demo ---')
+
+--- Packs a 16-bit unsigned integer in little-endian byte order.
+---@param val integer
+---@return string
+local function pack_u16_le(val)
+    local b1 = val % 256
+    local b2 = math.floor(val / 256) % 256
+    return string.char(b1, b2)
+end
+
+--- Packs a 32-bit unsigned integer in little-endian byte order.
+---@param val integer
+---@return string
+local function pack_u32_le(val)
+    local b1 = val % 256
+    local b2 = math.floor(val / 256) % 256
+    local b3 = math.floor(val / 65536) % 256
+    local b4 = math.floor(val / 16777216) % 256
+    return string.char(b1, b2, b3, b4)
+end
+
+--- Creates a synthetic XDVDFS (Xbox / Xbox 360) disc image for self-contained verification.
+---@param iso_path string
+---@param payload_text string
+---@return boolean
+local function create_synthetic_test_xiso(iso_path, payload_text)
+    local sector_size = 2048
+    local magic = 'MICROSOFT*XBOX*MEDIA'
+    local root_dir_sector = 33
+    local file_sector = 34
+    local file_name = 'default.xex'
+
+    -- Build Sector 32: XDVDFS Volume Descriptor (at offset 0x10000)
+    local entry_len = 14 + #file_name
+    local padded_entry_len = entry_len + ((4 - (entry_len % 4)) % 4)
+    local vol_desc = magic
+        .. pack_u32_le(root_dir_sector)
+        .. pack_u32_le(padded_entry_len)
+        .. string.rep('\0', 8)
+        .. string.rep('\0', sector_size - 20 - 4 - 4 - 8 - 20)
+        .. magic
+
+    -- Build Sector 33: Root Directory Table containing "default.xex"
+    local dir_entry = pack_u16_le(0)
+        .. pack_u16_le(0)
+        .. pack_u32_le(file_sector)
+        .. pack_u32_le(#payload_text)
+        .. string.char(0x80) -- ATTR_NORMAL
+        .. string.char(#file_name)
+        .. file_name
+        .. string.rep('\0', padded_entry_len - entry_len)
+    local dir_sector_bytes = dir_entry .. string.rep('\255', sector_size - #dir_entry)
+
+    -- Build Sector 34: File Payload
+    local payload_sector = payload_text .. string.rep('\0', sector_size - (#payload_text % sector_size))
+
+    local total_data = string.rep('\0', 32 * sector_size)
+        .. vol_desc
+        .. dir_sector_bytes
+        .. payload_sector
+
+    local fh = io.open(iso_path, 'wb')
+    if not fh then
+        return false
+    end
+    ---@cast fh FileHandle
+    fh:write(total_data)
+    fh:close()
+    return true
+end
+
+local synthetic_iso_path = join(scratch_root, 'mock_xbox_disc.iso')
+local synthetic_extract_dir = join(scratch_root, 'iso_extracted')
+sdk.remove_file(synthetic_iso_path)
+sdk.remove_dir(synthetic_extract_dir)
+
+local expected_payload = 'XEX2_MOCK_PAYLOAD_REMAKE_ENGINE_ISO_TEST'
+local created_iso = create_synthetic_test_xiso(synthetic_iso_path, expected_payload)
+sdk.color_print(created_iso and 'green' or 'red', 'Created synthetic XDVDFS ISO: ' .. tostring(created_iso))
+
+local is_disc, detected_fmt = iso.is_iso(synthetic_iso_path)
+sdk.color_print(is_disc and 'green' or 'red', string.format('iso.is_iso probe: %s (format: %s)', tostring(is_disc), tostring(detected_fmt)))
+
+local disc_reader, open_err = iso.open(synthetic_iso_path)
+if disc_reader then
+    sdk.color_print('green', string.format('Opened ISO: format=%s | volume=%s | size=%d', disc_reader:format(), disc_reader:volume_id(), disc_reader:total_size()))
+    local has_xex = disc_reader:exists('default.xex')
+    sdk.color_print(has_xex and 'green' or 'red', 'reader:exists("default.xex"): ' .. tostring(has_xex))
+
+    local disc_entries = disc_reader:list_files('/', true)
+    for _, item in ipairs(disc_entries) do
+        ---@cast item IsoEntry
+        sdk.color_print('cyan', string.format('  [%s] %s (%d bytes @ sector %d)', item.is_dir and 'DIR' or 'FILE', item.path, item.size, item.sector))
+    end
+
+    local raw_bytes, read_err = disc_reader:read_file('default.xex')
+    local payload_matches = raw_bytes == expected_payload
+    sdk.color_print(payload_matches and 'green' or 'red', 'In-memory reader:read_file matches payload: ' .. tostring(payload_matches) .. (read_err and (' (' .. read_err .. ')') or ''))
+
+    local ext_res = disc_reader:extract({
+        destination = synthetic_extract_dir,
+        pattern = '*.xex',
+        overwrite = true
+    })
+    sdk.color_print(ext_res.success and 'green' or 'red', string.format('reader:extract result: success=%s, files=%d, bytes=%d', tostring(ext_res.success), ext_res.files_extracted, ext_res.bytes_extracted))
+    disc_reader:close()
+
+    local batch_extract_dir = join(scratch_root, 'iso_batch_extracted')
+    sdk.remove_dir(batch_extract_dir)
+    local batch_ok, batch_err = sdk.extract_iso(synthetic_iso_path, batch_extract_dir, { overwrite = true })
+    sdk.color_print(batch_ok and 'green' or 'red', 'sdk.extract_iso result: ' .. tostring(batch_ok) .. (batch_err and (' (' .. batch_err .. ')') or ''))
+else
+    sdk.color_print('red', 'Failed to open synthetic ISO: ' .. tostring(open_err))
+end
+
 progress.script.step('lua_feature_demo.lua::EOF')
 progress.script.finish()
 

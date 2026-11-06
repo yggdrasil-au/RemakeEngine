@@ -17,6 +17,7 @@
 
     <ItemGroup>
         <Compile Include="io.cs" />
+        <Compile Include="DiscImages\**\*.cs" />
     </ItemGroup>
 
     <PropertyGroup>

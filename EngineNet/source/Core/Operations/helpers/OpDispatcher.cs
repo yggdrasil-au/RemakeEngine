@@ -87,6 +87,12 @@ internal static class OpDispatcher {
             case "format-extract": {
                 return Built_inActions.BuiltInOperations.format_extract(operationArgs: operationArgs);
             }
+            case "extract-iso": {
+                return Built_inActions.BuiltInOperations.extract_iso(operationArgs: operationArgs, inspectOnly: false);
+            }
+            case "inspect-iso": {
+                return Built_inActions.BuiltInOperations.extract_iso(operationArgs: operationArgs, inspectOnly: true);
+            }
             case "format-convert": {
                 return Built_inActions.BuiltInOperations.format_convert(operationArgs: operationArgs);
             }

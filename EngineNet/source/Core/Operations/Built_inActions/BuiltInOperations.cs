@@ -225,12 +225,56 @@ internal class BuiltInOperations {
                 IO.writeLine("\n>>> Built-in TXD extraction");
                 IO.writeLine($"with args: {string.Join(separator: ' ', values: args)}");
                 return EngineNet.GameFormats.txd.Extractor.Run(args: args, cancellationToken: operationArgs.cancellationToken);
+            } case "iso": {
+                return extract_iso(operationArgs: operationArgs);
             } default: {
                 IO.writeLine($"ERROR: format-extract does not support format '{format}'");
-                IO.writeLine("Supported formats: p3d, txd");
+                IO.writeLine("Supported formats: p3d, txd, iso");
                 return false;
             }
         }
+    }
+
+    internal static bool extract_iso(
+        Operations.helpers.OperationArgs operationArgs,
+        bool inspectOnly = false
+    ) {
+        Dictionary<string, object?> ctx = Utils.Helpers.BuildOperationContext(context: operationArgs.context, currentGame: operationArgs.currentGame, games: operationArgs.games);
+        List<string> args = Utils.Helpers.ResolveOperationArgs(op: operationArgs.op, ctx: ctx);
+
+        string? inputVal = Utils.Helpers.ResolveOperationValue(op: operationArgs.op, key: "input", ctx: ctx);
+        if (!string.IsNullOrWhiteSpace(inputVal) && !args.Contains(item: "--input") && !args.Contains(item: "-i") && !args.Contains(item: "--source")) {
+            args.Add(item: "--input");
+            args.Add(item: inputVal);
+        }
+
+        string? outputVal = Utils.Helpers.ResolveOperationValue(op: operationArgs.op, key: "output", ctx: ctx);
+        if (!string.IsNullOrWhiteSpace(outputVal) && !args.Contains(item: "--output") && !args.Contains(item: "-o") && !args.Contains(item: "--out")) {
+            args.Add(item: "--output");
+            args.Add(item: outputVal);
+        }
+
+        string? filterVal = Utils.Helpers.ResolveOperationValue(op: operationArgs.op, key: "filter", ctx: ctx);
+        if (!string.IsNullOrWhiteSpace(filterVal) && !args.Contains(item: "--filter") && !args.Contains(item: "-f") && !args.Contains(item: "--pattern")) {
+            args.Add(item: "--filter");
+            args.Add(item: filterVal);
+        }
+
+        if (operationArgs.op.TryGetValue(key: "overwrite", out object? ovObj) && ovObj is not null && !args.Contains(item: "--overwrite")) {
+            if (ovObj is bool ovBool && ovBool) {
+                args.Add(item: "--overwrite");
+            } else if (bool.TryParse(value: ovObj.ToString(), result: out bool parsedOv) && parsedOv) {
+                args.Add(item: "--overwrite");
+            }
+        }
+
+        if (inspectOnly && !args.Contains(item: "--inspect") && !args.Contains(item: "--list")) {
+            args.Add(item: "--inspect");
+        }
+
+        IO.writeLine(inspectOnly ? "\n>>> Built-in ISO inspection" : "\n>>> Built-in ISO extraction");
+        IO.writeLine($"with args: {string.Join(separator: ' ', values: args)}");
+        return DiscImages.IsoFactory.RunCli(args: args, cancellationToken: operationArgs.cancellationToken);
     }
 
     internal static bool rename_folders(

@@ -25,7 +25,7 @@
   "examples": [
     {
       "placeholders": [
-        { "Region": "US", "SourcePath": "{{Project_Root}}/Data/Source", "isRenamed": 0, "config-toml-TMP_DIR": "TMP" }
+        { "Region": "US", "SourcePath": "{{Project_Root}}/Data/Source", "IsoPath": "D:/Games/GameDisc.iso", "DiscPlatform": "XBOX360", "isRenamed": 0, "config-toml-TMP_DIR": "TMP" }
       ]
     }
   ]

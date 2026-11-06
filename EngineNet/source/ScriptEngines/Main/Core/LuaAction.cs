@@ -227,6 +227,7 @@ internal static class LuaAction {
     private static void CreateGlobalModules(LuaWorld _LuaWorld, Core.Abstractions.IJsonToolResolver _tools, Core.Abstractions.ICommandService _commandService) {
         Global.Sdk.CreateSdkModule(_LuaWorld: _LuaWorld, tools: _tools, commandService: _commandService);
         Global.Sqlite.CreateSqliteModule(_LuaWorld: _LuaWorld);
+        Global.LuaIso.CreateIsoModule(_LuaWorld: _LuaWorld);
         Global.Progress.CreateProgressModule(_LuaWorld: _LuaWorld);
     }
 
