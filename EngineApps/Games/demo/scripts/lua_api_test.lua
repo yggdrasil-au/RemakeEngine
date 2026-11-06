@@ -308,6 +308,7 @@ if IsTable(json) then
 	end
 end
 
+---@diagnostic disable-next-line: err-esc -- Disable incorrect escape sequence warning for Unicode escape, Valid in Moonsharp
 local Euro = "\u{20AC}"
 Check(State, "unicode escape behavior", type(Euro) == "string" and type(string.unicode) == "function" and string.unicode(Euro) == 8364, ToText(Euro))
 

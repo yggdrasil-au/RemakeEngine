@@ -23,6 +23,11 @@
 			"id": "4",
 			"path": "EngineApps/Games/TheSimpsonsRoadRage-PS2",
 			"url": "https://github.com/Superposition28/TheSimpsonsRoadRage-PS2.git"
+		},
+		"Lego": {
+			"id": "5",
+			"path": "EngineApps/Games/Lego"
 		}
+		
 	}
 }

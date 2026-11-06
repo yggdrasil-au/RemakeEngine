@@ -197,15 +197,6 @@ function setfenv(f, table) end
 ---@field __mod (fun(t1,t2):any)|nil
 ---@field __pow (fun(t1,t2):any)|nil
 ---@field __unm (fun(t):any)|nil
----#if VERSION >= 5.3 then
----@field __idiv (fun(t1,t2):any)|nil
----@field __band (fun(t1,t2):any)|nil
----@field __bor (fun(t1,t2):any)|nil
----@field __bxor (fun(t1,t2):any)|nil
----@field __bnot (fun(t):any)|nil
----@field __shl (fun(t1,t2):any)|nil
----@field __shr (fun(t1,t2):any)|nil
----#end
 ---@field __concat (fun(t1,t2):any)|nil
 ---@field __len (fun(t):integer)|nil
 ---@field __eq (fun(t1,t2):boolean)|nil
@@ -214,15 +205,8 @@ function setfenv(f, table) end
 ---@field __index table|(fun(t,k):any)|nil
 ---@field __newindex table|fun(t,k,v)|nil
 ---@field __call (fun(t,...):...)|nil
----#if VERSION > 5.1 or VERSION == JIT then
----@field __pairs (fun(t):((fun(t,k,v):any,any),any,any))|nil
----#end
----#if VERSION == JIT or VERSION == 5.2 then
 ---@field __ipairs (fun(t):(fun(t,k,v):(integer|nil),any))|nil
----#end
----#if VERSION >= 5.4 then
----@field __close (fun(t,errobj):any)|nil
----#end
+
 
 ---#DES 'setmetatable'
 ---@param table      table
@@ -252,9 +236,7 @@ function tostring(v) end
 ---| "function"
 ---| "thread"
 ---| "userdata"
----#if VERSION == JIT then
----| "cdata"
----#end
+
 
 ---#DES 'type'
 ---@param v any
@@ -263,23 +245,15 @@ function tostring(v) end
 function type(v) end
 
 ---#DES '_VERSION'
----#if VERSION == 5.1 then
-_VERSION = "Lua 5.1"
----#elseif VERSION == 5.2 then
+---#if VERSION == 5.2 then
 _VERSION = "Moonsharp 2.0.0.0"
 ---#elseif VERSION == Moonsharp 2.0.0.0 then
 _VERSION = "Lua 5.2"
----#elseif VERSION == 5.3 then
-_VERSION = "Lua 5.3"
----#elseif VERSION == 5.4 then
-_VERSION = "Lua 5.4"
----#elseif VERSION == 5.5 then
-_VERSION = "Lua 5.5"
 ---#else
 _VERSION = "Lua ?"
 ---#end
 
----#if VERSION == 5.2 then
+---#if VERSION == 5.2 or VERSION == Moonsharp 2.0.0.0 then
 ---@class _MOONSHARP
 ---@field version string The version of the MoonSharp interpreter.
 ---@field luacompat string The Lua compatibility level MoonSharp emulates.

@@ -15,6 +15,19 @@ avoid massive unit tests, i dont want tests to be as complicated as the project 
 
 ## Engine
 
+
+
+consider implementing organisational system support for game modules, allowing them to be arbitrarily structured within the Games folder, to avoid a Flat folder of game modules, seen in Steam or other game launchers, and the current flat structure of the Remake Engine.
+this change would inherently support submodules, as they would be detected within a folder that is itself a game module.
+
+Add .iso support to the Remake Engine, it must handle All types of ISO files, including but not limited to PlayStation, Xbox, GameCube, and other console ISO formats, a universal ISO handling system.
+
+
+
+
+
+
+
 update tools downloader to auto remove old versions, when a module changes to a new version, and no other locally existing module is using that version, or maybe just modules that have requested it be installed, meaning we should store in the json which modules have requested which versions for all tools, for now its easier to allow the modules to be there own source of truth for now, though it may be better to auto read each tools.toml from each module so they dont need to at runtime, however this may be Slow if there are many modules, determine best approach.
 
 

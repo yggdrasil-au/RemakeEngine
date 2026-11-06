@@ -107,6 +107,7 @@ print("\nTesting Language differences:")
 -- Unicode escape
 print("  Testing Unicode escape \\u{20AC}:")
 local status, err = pcall(function()
+    ---@diagnostic disable-next-line: err-esc -- Disable incorrect escape sequence warning for Unicode escape, Valid in Moonsharp
     local euro = "\u{20AC}" -- note this escape sequence while not supported in 5.2 is the correct moonsharp syntax
     print("    Result: " .. euro .. " (codepoint: " .. tostring(string.unicode(euro)) .. ")")
     assert(string.unicode(euro) == 8364, "Unicode escape did not produce expected codepoint")

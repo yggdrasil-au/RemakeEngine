@@ -1,3 +1,6 @@
+.agents/
+
+
 
 RemakeEngine.sln.DotSettings.user
 Tools.installed.json
@@ -15,3 +18,7 @@ RemakeEngineDocs/
 qodana.yaml
 
 TMP/
+
+cli.md
+
+docs/

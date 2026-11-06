@@ -43,8 +43,9 @@
     <!-- 3. Generate the file -->
     <Target Name="GenerateDynamicBuildInfo" BeforeTargets="BeforeCompile">
         <!-- Get Commit Hash (Git is cross-platform) -->
-        <Exec Command="git rev-parse --short HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low" IgnoreExitCode="true">
+        <Exec Command="git rev-parse --short HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low" StandardErrorImportance="low" IgnoreExitCode="true">
             <Output TaskParameter="ConsoleOutput" PropertyName="GitCommitHash" />
+            <Output TaskParameter="ExitCode" PropertyName="GitExitCode" />
         </Exec>
 
         <!-- 🌟 NEW: Call the inline C# task -->
@@ -55,7 +56,8 @@
 
         <PropertyGroup>
             <!-- Fallbacks in case commands fail -->
-            <GitCommitHash Condition="'$(GitCommitHash)' == ''">local</GitCommitHash>
+            <GitCommitHash Condition="'$(GitExitCode)' != '0' or '$(GitCommitHash)' == ''">local</GitCommitHash>
+            <GitCommitHash Condition="'$(GitExitCode)' == '0'">$([System.String]::Copy('$(GitCommitHash)').Trim())</GitCommitHash>
             <!-- Note: ProjectVersion fallback is now handled natively inside the C# task above! -->
 
             <!-- Value Hint Formatting -->
