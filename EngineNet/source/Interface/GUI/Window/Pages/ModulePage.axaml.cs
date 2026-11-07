@@ -20,6 +20,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
     public string? GameRoot { get; private set; }
     public string? ExePath { get; private set; }
     public string? RegistryUrl { get; private set; }
+    public string? RegistryPath { get; private set; }
 
     public bool IsBuilt { get; private set; }
     public bool IsInstalled { get; private set; }
@@ -156,6 +157,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
             IReadOnlyDictionary<string, object?> regs = GuiBootstrapper.MiniEngine.GameRegistry_GetRegisteredModules();
             if (regs.TryGetValue(key: _moduleName, out object? regObj) && regObj is IDictionary<string, object?> reg) {
                 RegistryUrl = reg.TryGetValue(key: "url", out object? u) ? u?.ToString() : null;
+                RegistryPath = reg.TryGetValue(key: "path", out object? p) ? p?.ToString() : null;
                 if (string.IsNullOrWhiteSpace(Title)) {
                     string? title = reg.TryGetValue(key: "title", out object? t) ? t?.ToString() : null;
                     Title = string.IsNullOrWhiteSpace(title) ? _moduleName : title;
@@ -472,7 +474,7 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
                 operationName: $"Download {ModuleName}",
                 executor: async (onOutput, onEvent, _) => {
                     onEvent(evt: new Dictionary<string, object?> { [key: "event"] = EngineSdk.Events.Start, [key: "name"] = ModuleName, [key: "url"] = RegistryUrl });
-                    bool result = await System.Threading.Tasks.Task.Run(function: () => GuiBootstrapper.MiniEngine.GitService_CloneModule(url: RegistryUrl!));
+                    bool result = await System.Threading.Tasks.Task.Run(function: () => GuiBootstrapper.MiniEngine.GitService_CloneModule(url: RegistryUrl!, targetPath: RegistryPath));
                     onOutput(line: result ? $"Download complete for {ModuleName}." : $"Download failed for {ModuleName}.", streamName: result ? "stdout" : "stderr");
                     onEvent(evt: new Dictionary<string, object?> { [key: "event"] = EngineSdk.Events.End, [key: "success"] = result, [key: "name"] = ModuleName });
                     return result;
@@ -497,6 +499,12 @@ internal sealed partial class ModulePage:UserControl, INotifyPropertyChanged {
 
     private bool IsDownloaded() {
         if (GuiBootstrapper.MiniEngine is null) return false;
+        if (IsInstalled) return true;
+        if (!string.IsNullOrWhiteSpace(GameRoot) && System.IO.Directory.Exists(path: GameRoot)) return true;
+        if (!string.IsNullOrWhiteSpace(RegistryPath)) {
+            string regPath = System.IO.Path.Combine(path1: EngineNet.Shared.State.RootPath, path2: RegistryPath);
+            if (System.IO.Directory.Exists(path: regPath)) return true;
+        }
         string path = System.IO.Path.Combine(path1: EngineNet.Shared.State.RootPath, path2: System.IO.Path.Combine(path1: "EngineApps", path2: "Games", path3: _moduleName));
         return System.IO.Directory.Exists(path: path);
     }

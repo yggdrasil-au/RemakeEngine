@@ -34,19 +34,29 @@ public sealed class TUI {
                     List<string> gameMenu = new();
                     List<string> gameKeyMap = new();
 
-                    // Build menu with states
-                    // foreach module, display '<Name> [<isRegistered>, <isInstalled (always true here)>, <isBuilt>]'
-                    foreach ((string Display, string Name) item in modules.Values.Select(selector: m => (Display: $"{m.Name}  [{m.DescribeState()}]", m.Name))) {
-                        gameMenu.Add(item: item.Display);
-                        gameKeyMap.Add(item: item.Name);
+                    // Build menu grouped by category with states
+                    IEnumerable<IGrouping<string, GameModuleInfo>> groupedModules = modules.Values
+                        .GroupBy(keySelector: m => string.IsNullOrWhiteSpace(m.Category) ? "Uncategorized" : m.Category, comparer: System.StringComparer.OrdinalIgnoreCase);
+
+                    foreach (IGrouping<string, GameModuleInfo> group in groupedModules) {
+                        gameMenu.Add(item: $"=== [{group.Key}] ===");
+                        gameKeyMap.Add(item: "---");
+                        foreach (GameModuleInfo m in group) {
+                            gameMenu.Add(item: $"  {m.Name}  [{m.DescribeState()}]");
+                            gameKeyMap.Add(item: m.Name);
+                        }
                     }
                     gameMenu.Add(item: "---------------"); // separator before public modules
                     gameKeyMap.Add(item: "---"); // placeholder for separator
 
                     // Add public modules after game modules
-                    foreach (Core.Data.GameModuleInfo m in internalModules.Values) {
-                        gameMenu.Add(item: m.Name);
-                        gameKeyMap.Add(item: m.Name);
+                    if (internalModules.Count > 0) {
+                        gameMenu.Add(item: "=== [Internal] ===");
+                        gameKeyMap.Add(item: "---");
+                        foreach (Core.Data.GameModuleInfo m in internalModules.Values) {
+                            gameMenu.Add(item: $"  {m.Name}");
+                            gameKeyMap.Add(item: m.Name);
+                        }
                     }
 
                     gameMenu.Add(item: "Exit");
@@ -446,6 +456,10 @@ public sealed class TUI {
         }
     }
 
+    private static bool IsNonSelectableSeparator(string line) {
+        return line == "---------------" || (line.StartsWith("=== [", comparisonType: System.StringComparison.Ordinal) && line.EndsWith("] ===", comparisonType: System.StringComparison.Ordinal));
+    }
+
     /// <summary>
     /// Presents an interactive menu to the user to select from a list of items.
     /// </summary>
@@ -464,14 +478,14 @@ public sealed class TUI {
             }
 
             int index = 0;
-            while (index < items.Count && (items[index: index] == "---------------" || (disabledIndices?.Contains(item: index) ?? false))) {
+            while (index < items.Count && (IsNonSelectableSeparator(line: items[index: index]) || (disabledIndices?.Contains(item: index) ?? false))) {
                 index++;
             }
 
             if (index >= items.Count) {
                 index = -1;
                 for (int i = 0; i < items.Count; i++) {
-                    if (items[index: i] == "---------------" || (disabledIndices?.Contains(item: i) ?? false)) {
+                    if (IsNonSelectableSeparator(line: items[index: i]) || (disabledIndices?.Contains(item: i) ?? false)) {
                         continue;
                     }
                     index = i;
@@ -515,7 +529,8 @@ public sealed class TUI {
                 int visibleEnd = System.Math.Min(val1: items.Count, val2: scrollOffset + maxLines);
                 for (int i = scrollOffset; i < visibleEnd; i++) {
                     string line = items[index: i];
-                    bool isSep = line == "---------------";
+                    bool isSep = IsNonSelectableSeparator(line: line);
+                    bool isCategoryHeader = line.StartsWith("=== [", comparisonType: System.StringComparison.Ordinal);
                     bool isDisabled = disabledIndices?.Contains(item: i) ?? false;
 
                     if (i == index) {
@@ -528,7 +543,7 @@ public sealed class TUI {
                         System.Console.ResetColor();
                     } else {
                         if (isSep && highlightSeparators) {
-                            System.Console.ForegroundColor = System.ConsoleColor.DarkGray;
+                            System.Console.ForegroundColor = isCategoryHeader ? System.ConsoleColor.DarkCyan : System.ConsoleColor.DarkGray;
                             System.Console.WriteLine($"  {line}".PadRight(totalWidth: windowWidth - 1));
                             System.Console.ResetColor();
                         } else {
@@ -558,7 +573,7 @@ public sealed class TUI {
                         int next = index;
                         do {
                             next = (next + 1) % items.Count;
-                        } while (next != index && (items[index: next] == "---------------" || (disabledIndices?.Contains(item: next) ?? false)));
+                        } while (next != index && (IsNonSelectableSeparator(line: items[index: next]) || (disabledIndices?.Contains(item: next) ?? false)));
                         index = next;
 
                         if (index < scrollOffset) {
@@ -570,7 +585,7 @@ public sealed class TUI {
                         int prev = index;
                         do {
                             prev = (prev - 1 + items.Count) % items.Count;
-                        } while (prev != index && (items[index: prev] == "---------------" || (disabledIndices?.Contains(item: prev) ?? false)));
+                        } while (prev != index && (IsNonSelectableSeparator(line: items[index: prev]) || (disabledIndices?.Contains(item: prev) ?? false)));
                         index = prev;
 
                         if (index >= scrollOffset + maxLines) {
@@ -607,12 +622,13 @@ public sealed class TUI {
             int displayIndex = 1;
             for (int i = 0; i < items.Count; i++) {
                 string line = items[index: i];
-                bool isSep = line == "---------------";
+                bool isSep = IsNonSelectableSeparator(line: line);
+                bool isCategoryHeader = line.StartsWith("=== [", comparisonType: System.StringComparison.Ordinal);
                 bool isDisabled = disabledIndices?.Contains(item: i) ?? false;
 
                 if (isSep) {
                     if (highlightSeparators) {
-                        System.Console.ForegroundColor = System.ConsoleColor.DarkGray;
+                        System.Console.ForegroundColor = isCategoryHeader ? System.ConsoleColor.DarkCyan : System.ConsoleColor.DarkGray;
                         System.Console.WriteLine(line);
                         System.Console.ResetColor();
                     } else {
@@ -648,7 +664,7 @@ public sealed class TUI {
                 if (int.TryParse(s: input.Trim(), result: out int choice) && choice >= 1 && choice <= (displayIndex - 1)) {
                     int currentDisplay = 1;
                     for (int i = 0; i < items.Count; i++) {
-                        if (items[index: i] == "---------------") continue;
+                        if (IsNonSelectableSeparator(line: items[index: i])) continue;
                         if (currentDisplay == choice) {
                             if (!(disabledIndices?.Contains(item: i) ?? false)) return i;
                             System.Console.WriteLine("That option is already downloaded and cannot be selected.");

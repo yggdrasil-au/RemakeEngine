@@ -58,6 +58,14 @@
 
                                 <!-- Status pills -->
                                 <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <!-- Category pill -->
+                                    <Border
+                                        Background="#2563EB"
+                                        CornerRadius="10"
+                                        IsVisible="{Binding HasCategory}">
+                                        <TextBlock Text="{Binding Category}" Margin="8,2" Foreground="White" FontSize="11"/>
+                                    </Border>
+
                                     <!-- Downloaded pill -->
                                     <Border
                                         Background="{DynamicResource ThemeAccentBrush2}"

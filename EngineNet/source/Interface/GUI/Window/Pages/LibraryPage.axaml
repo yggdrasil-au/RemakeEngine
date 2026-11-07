@@ -18,7 +18,10 @@
                     HorizontalAlignment="Stretch">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding ModuleName}"/>
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="{Binding Category}" FontSize="10" Foreground="Gray" IsVisible="{Binding HasCategory}"/>
+                                <TextBlock Text="{Binding ModuleName}"/>
+                            </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
@@ -62,7 +65,10 @@
                                             FontSize="16" FontWeight="SemiBold"
                                             TextTrimming="CharacterEllipsis"/>
                                         <WrapPanel>
-                                            <Border Background="#4A4A4A" CornerRadius="8" Padding="6,2" IsVisible="{Binding IsRegistered}">
+                                            <Border Background="#2563EB" CornerRadius="8" Padding="6,2" Margin="0,0,4,4" IsVisible="{Binding HasCategory}">
+                                                <TextBlock Text="{Binding Category}" Foreground="White" FontSize="11"/>
+                                            </Border>
+                                            <Border Background="#4A4A4A" CornerRadius="8" Padding="6,2" Margin="0,0,4,4" IsVisible="{Binding IsRegistered}">
                                                 <TextBlock Text="Registered" Foreground="White" FontSize="11"/>
                                             </Border>
                                             <Border Background="#D97706" CornerRadius="8" Padding="6,2" IsVisible="{Binding IsUnbuilt}">

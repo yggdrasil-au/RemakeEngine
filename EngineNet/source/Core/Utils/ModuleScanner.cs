@@ -32,7 +32,7 @@ public sealed class ModuleScanner {
     /// Why not just always return Dictionary? Because sometimes you might only care
     /// about iteration or serialization and don't want the name->info map.
     /// </summary>
-    internal Core.Data.GameModules Modules(ModuleFilter filter) {
+    public Core.Data.GameModules Modules(ModuleFilter filter) {
         Shared.IO.Diagnostics.Trace($"Scanning modules with filter {filter}");
         Core.Data.GameModules all = ScanAllModules();
         IEnumerable<Data.GameModuleInfo> filtered = FilterModules(source: all.Values, filter: filter);
@@ -78,7 +78,7 @@ public sealed class ModuleScanner {
     ///
     /// No extra allocations unless you want them.
     /// </summary>
-    internal T Modules<T>(ModuleFilter filter, Func<IEnumerable<Data.GameModuleInfo>, T> selector) {
+    public T Modules<T>(ModuleFilter filter, Func<IEnumerable<Data.GameModuleInfo>, T> selector) {
         if (selector == null){
             throw new ArgumentNullException(paramName: nameof(selector));
         }
@@ -110,6 +110,7 @@ public sealed class ModuleScanner {
             string id = string.Empty;
             string path = string.Empty;
             string url = string.Empty;
+            string category = string.Empty;
 
             if (value is Dictionary<string, object?> moduleData) {
                 if (moduleData.TryGetValue(key: "id", out object? idObj) && idObj != null) {
@@ -121,22 +122,30 @@ public sealed class ModuleScanner {
                 if (moduleData.TryGetValue(key: "url", out object? urlObj) && urlObj != null) {
                     url = urlObj.ToString() ?? string.Empty;
                 }
+                if (moduleData.TryGetValue(key: "category", out object? catObj) && catObj != null) {
+                    category = catObj.ToString() ?? string.Empty;
+                }
             }
 
             string GameRoot = !string.IsNullOrWhiteSpace(path) ? System.IO.Path.Combine(path1: EngineNet.Shared.State.RootPath, path2: path) : string.Empty;
 
             // opts file could be .toml or .json;
-            string opsFile = System.IO.Path.Combine(path1: GameRoot, path2: "operations.toml");
-            if (!System.IO.File.Exists(path: opsFile)) {
-                opsFile = System.IO.Path.Combine(path1: GameRoot, path2: "operations.json");
-            } else if (!System.IO.File.Exists(path: opsFile)) {
-                opsFile = string.Empty;
+            string opsFile = string.Empty;
+            if (!string.IsNullOrWhiteSpace(GameRoot)) {
+                string opsToml = System.IO.Path.Combine(path1: GameRoot, path2: "operations.toml");
+                string opsJson = System.IO.Path.Combine(path1: GameRoot, path2: "operations.json");
+                if (System.IO.File.Exists(path: opsToml)) {
+                    opsFile = opsToml;
+                } else if (System.IO.File.Exists(path: opsJson)) {
+                    opsFile = opsJson;
+                }
             }
 
             Data.GameModuleInfo info = new()
             {
                 Id = id,
                 Name = name,
+                Category = category,
                 IsRegistered = true,
                 GameRoot = GameRoot,
                 OpsFile = opsFile,
@@ -160,6 +169,7 @@ public sealed class ModuleScanner {
                 info = new Data.GameModuleInfo {
                     Id = string.Empty, // unknown
                     Name = name, // from directory name
+                    Category = gameInfo.Category,
                     GameRoot = gameInfo.GameRoot,
                     OpsFile = gameInfo.OpsFile,
                     ExePath = string.Empty,     // to be filled below if (built) game.toml exists
@@ -175,6 +185,9 @@ public sealed class ModuleScanner {
             info.IsInstalled = true;
             info.GameRoot = gameInfo.GameRoot;
             info.OpsFile = gameInfo.OpsFile;
+            if (string.IsNullOrWhiteSpace(info.Category) && !string.IsNullOrWhiteSpace(gameInfo.Category)) {
+                info.Category = gameInfo.Category;
+            }
         }
 
         // 3. Get all "Built" modules (strict check: ops, game.toml, exe key, exe exists)
@@ -227,6 +240,7 @@ public sealed class ModuleScanner {
                     {
                         Id = name,
                         Name = name,
+                        Category = "Internal",
                         IsRegistered = true,
                         IsInstalled = true,
                         IsInternal = true,

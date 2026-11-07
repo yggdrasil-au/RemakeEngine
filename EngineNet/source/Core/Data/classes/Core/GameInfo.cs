@@ -20,6 +20,10 @@ public sealed class GameInfo {
     /// Optional human-friendly title.
     /// </summary>
     public string? Title { get; }
+    /// <summary>
+    /// Optional organizational category inferred from the directory layout under EngineApps/Games.
+    /// </summary>
+    public string Category { get; }
 
     /// <summary>
     /// Create a new <see cref="GameInfo"/>.
@@ -28,10 +32,12 @@ public sealed class GameInfo {
     /// <param name="gameRoot">Root directory for game assets.</param>
     /// <param name="exePath">Optional executable path.</param>
     /// <param name="title">Optional title.</param>
-    public GameInfo(string opsFile, string gameRoot, string? exePath = null, string? title = null) {
+    /// <param name="category">Optional organizational category.</param>
+    public GameInfo(string opsFile, string gameRoot, string? exePath = null, string? title = null, string category = "") {
         this.OpsFile = opsFile;
         this.GameRoot = gameRoot;
         this.ExePath = exePath;
         this.Title = title;
+        this.Category = category;
     }
 }

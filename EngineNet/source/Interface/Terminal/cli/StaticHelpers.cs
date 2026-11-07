@@ -563,8 +563,14 @@ CLI Operation Overrides & Inputs:
                 System.Console.WriteLine("No modules found.");
                 return 0;
             }
-            foreach ((string Name, string State, string Root) item in modules.Values.Select(selector: m => (Name: m.Name, State: m.DescribeState(), Root: m.GameRoot))) {
-                System.Console.WriteLine($"- {item.Name}  (state: {item.State}; root: {item.Root})");
+            IEnumerable<IGrouping<string, Core.Data.GameModuleInfo>> grouped = modules.Values
+                .GroupBy(keySelector: m => string.IsNullOrWhiteSpace(m.Category) ? "Uncategorized" : m.Category, comparer: System.StringComparer.OrdinalIgnoreCase);
+
+            foreach (IGrouping<string, Core.Data.GameModuleInfo> group in grouped) {
+                System.Console.WriteLine($"[{group.Key}]");
+                foreach (Core.Data.GameModuleInfo m in group) {
+                    System.Console.WriteLine($"  - {m.Name}  (state: {m.DescribeState()}; root: {m.GameRoot})");
+                }
             }
             return 0;
         } catch (System.Exception ex) {

@@ -55,15 +55,15 @@ public sealed class Engine : IEngineFace{
         return await this.OperationContext.Single.RunAsync(currentGame: currentGame, games: games, op: op, promptAnswers: promptAnswers, Context: this.Context, OperationContext: this.OperationContext, cancellationToken: cancellationToken);
     }
 
-    public bool CloneModule(string url, System.Threading.CancellationToken cancellationToken = default) {
-        return Core.Services.Git.GitTools.CloneModule(url: url, commandService: this.Context.CommandService);
+    public bool CloneModule(string url, string? targetPath = null, System.Threading.CancellationToken cancellationToken = default) {
+        return Core.Services.Git.GitTools.CloneModule(url: url, commandService: this.Context.CommandService, targetPath: targetPath);
     }
 
 }
 
 public interface IEngineFace {
     public Task<bool> RunSingleOperationAsync(string currentGame, Core.Data.GameModules games, IDictionary<string, object?> op, Data.PromptAnswers promptAnswers, CancellationToken cancellationToken = default(CancellationToken));
-    public bool CloneModule(string url, CancellationToken cancellationToken = default(CancellationToken));
+    public bool CloneModule(string url, string? targetPath = null, CancellationToken cancellationToken = default(CancellationToken));
     public Core.Services.GameLauncher GameLauncher { get; }
     public Core.Abstractions.IEngineContext Context { get; }
     public Core.Abstractions.IOperationContext OperationContext { get; }

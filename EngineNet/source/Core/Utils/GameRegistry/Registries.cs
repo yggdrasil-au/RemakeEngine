@@ -17,9 +17,34 @@ public sealed class Registries {
 
     private Dictionary<string, object?> _modules = new(comparer: System.StringComparer.OrdinalIgnoreCase);
 
-    private Registries(string gamesRel, string modulesRel) {
+    private static readonly HashSet<string> _prunedDirectoryNames = new(comparer: System.StringComparer.OrdinalIgnoreCase) {
+        "Source",
+        "GameFiles",
+        "Assets",
+        "TMP",
+        "operations",
+        "scripts",
+        "reversing",
+        "research",
+        "GodotProject",
+        "docs",
+        "tools",
+        "bin",
+        "obj",
+        "node_modules"
+    };
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Registries"/> class with explicit games and modules registry paths.
+    /// </summary>
+    /// <param name="gamesRel">Path to the games root directory.</param>
+    /// <param name="modulesRel">Path to the modules registry JSON file.</param>
+    public Registries(string gamesRel, string modulesRel) {
         _gamesRegistryPath = gamesRel;
         _modulesRegistryPath = modulesRel;
+        if (System.IO.File.Exists(path: _modulesRegistryPath)) {
+            _modules = Shared.Serialization.Json.JsonHelpers.LoadJsonFile(filePath: _modulesRegistryPath);
+        }
     }
 
     /// <summary>
@@ -40,7 +65,6 @@ public sealed class Registries {
         }
 
         Registries instance = new(gamesRel: gamesRel, modulesRel: modulesRel);
-        instance._modules = Shared.Serialization.Json.JsonHelpers.LoadJsonFile(filePath: instance._modulesRegistryPath);
         return instance;
     }
 
@@ -49,20 +73,136 @@ public sealed class Registries {
     /// The games registry is not cached in memory, so it does not require refreshing - it is read from disk on each access to ensure it reflects the current state of installed/downloaded games.
     /// This design choice prioritizes accuracy for game discovery while allowing efficient caching for module information that is less likely to change frequently.
     /// </summary>
-    internal void RefreshModules() {
+    public void RefreshModules() {
         _modules = Shared.Serialization.Json.JsonHelpers.LoadJsonFile(filePath: _modulesRegistryPath);
     }
 
     /// <summary>
     /// Gets the registered modules from the modules registry. The returned dictionary is case-insensitive for module names.
-    /// The modules registry is expected to have a top-level "modules" key containing a dictionary of module information.
-    /// If the "modules" key is missing or not a dictionary, an empty dictionary is returned.
-    /// This method provides a centralized way to access module information for use in operations, game launching, and other engine functionalities.
-    /// The modules registry can be refreshed at runtime using the RefreshModules method to reflect any changes made to the registry file on disk.
+    /// Supports both a flat dictionary of modules under "modules" and a categorized hierarchy where top-level keys under "modules" represent category names.
+    /// Each returned module dictionary includes a "category" key indicating its resolved category.
     /// </summary>
-    /// <returns></returns>
-    internal IReadOnlyDictionary<string, object?> GetRegisteredModules() {
-        return _modules.TryGetValue(key: "modules", out object? m) && m is Dictionary<string, object?> dict ? dict : new Dictionary<string, object?>();
+    /// <returns>A case-insensitive dictionary mapping module names to their metadata dictionaries.</returns>
+    public IReadOnlyDictionary<string, object?> GetRegisteredModules() {
+        Dictionary<string, object?> flattened = new(comparer: System.StringComparer.OrdinalIgnoreCase);
+        if (!_modules.TryGetValue(key: "modules", out object? m) || m is not Dictionary<string, object?> rootDict) {
+            return flattened;
+        }
+
+        FlattenModulesHierarchy(source: rootDict, currentCategory: string.Empty, destination: flattened);
+        return flattened;
+    }
+
+    private static void FlattenModulesHierarchy(
+        Dictionary<string, object?> source,
+        string currentCategory,
+        Dictionary<string, object?> destination
+    ) {
+        foreach (KeyValuePair<string, object?> kv in source) {
+            if (kv.Value is not Dictionary<string, object?> childDict) {
+                continue;
+            }
+
+            if (IsModuleDefinition(candidate: childDict)) {
+                Dictionary<string, object?> cloned = new(dictionary: childDict, comparer: System.StringComparer.OrdinalIgnoreCase);
+                if (!cloned.TryGetValue(key: "category", out object? existingCat) || string.IsNullOrWhiteSpace(existingCat?.ToString())) {
+                    cloned[key: "category"] = currentCategory;
+                }
+                destination[key: kv.Key] = cloned;
+
+                // Support optional nested "submodules" or "modules" inside a parent module entry
+                string subCategory = !string.IsNullOrWhiteSpace(currentCategory) ? currentCategory : kv.Key;
+                if (childDict.TryGetValue(key: "submodules", out object? subObj) && subObj is Dictionary<string, object?> subDict) {
+                    FlattenModulesHierarchy(source: subDict, currentCategory: subCategory, destination: destination);
+                }
+                if (childDict.TryGetValue(key: "modules", out object? nestedObj) && nestedObj is Dictionary<string, object?> nestedDict) {
+                    FlattenModulesHierarchy(source: nestedDict, currentCategory: subCategory, destination: destination);
+                }
+            } else {
+                // kv.Key is a category container (e.g. "SimpsonsGames", "Lego", "Uncategorized")
+                FlattenModulesHierarchy(source: childDict, currentCategory: kv.Key, destination: destination);
+            }
+        }
+    }
+
+    private static bool IsModuleDefinition(Dictionary<string, object?> candidate) {
+        return candidate.ContainsKey(key: "id")
+            || candidate.ContainsKey(key: "path")
+            || candidate.ContainsKey(key: "url");
+    }
+
+    /// <summary>
+    /// Recursively enumerates candidate module directories under <paramref name="gamesRoot"/> up to <paramref name="maxDepth"/>,
+    /// pruning dot-directories, hidden/system folders, and known module-internal asset/source folders.
+    /// Continues into non-pruned subdirectories even when a parent directory is itself a valid module, enabling nested submodules.
+    /// </summary>
+    private static IEnumerable<(string DirPath, string OpsFile, string Category)> EnumerateModuleDirectories(string gamesRoot, int maxDepth = 4) {
+        if (!System.IO.Directory.Exists(path: gamesRoot)) {
+            yield break;
+        }
+
+        Queue<(string Dir, int Depth, string TopCategory)> queue = new();
+        queue.Enqueue(item: (gamesRoot, 0, string.Empty));
+
+        while (queue.Count > 0) {
+            (string currentDir, int currentDepth, string topCategory) = queue.Dequeue();
+            if (currentDepth >= maxDepth) {
+                continue;
+            }
+
+            IEnumerable<string> subDirs;
+            try {
+                subDirs = System.IO.Directory.EnumerateDirectories(path: currentDir);
+            } catch (System.IO.IOException ex) {
+                Shared.IO.Diagnostics.Bug($"IO error enumerating directories in '{currentDir}': {ex.Message}");
+                continue;
+            } catch (System.UnauthorizedAccessException ex) {
+                Shared.IO.Diagnostics.Bug($"Access denied enumerating directories in '{currentDir}': {ex.Message}");
+                continue;
+            }
+
+            foreach (string subDir in subDirs) {
+                System.IO.DirectoryInfo dirInfo = new(path: subDir);
+                string dirName = dirInfo.Name;
+
+                if (dirName.StartsWith('.')) {
+                    continue;
+                }
+
+                try {
+                    if ((dirInfo.Attributes & (System.IO.FileAttributes.Hidden | System.IO.FileAttributes.System)) != 0) {
+                        continue;
+                    }
+                } catch (System.IO.IOException ex) {
+                    Shared.IO.Diagnostics.Bug($"IO error reading attributes for '{subDir}': {ex.Message}");
+                    continue;
+                } catch (System.UnauthorizedAccessException ex) {
+                    Shared.IO.Diagnostics.Bug($"Access denied reading attributes for '{subDir}': {ex.Message}");
+                    continue;
+                }
+
+                if (_prunedDirectoryNames.Contains(item: dirName)) {
+                    continue;
+                }
+
+                string opsToml = System.IO.Path.Combine(path1: subDir, path2: "operations.toml");
+                string opsJson = System.IO.Path.Combine(path1: subDir, path2: "operations.json");
+                string? ops = null;
+                if (System.IO.File.Exists(path: opsToml)) {
+                    ops = opsToml;
+                } else if (System.IO.File.Exists(path: opsJson)) {
+                    ops = opsJson;
+                }
+
+                string inferredCategory = currentDepth == 0 ? string.Empty : topCategory;
+                if (ops is not null) {
+                    yield return (subDir, ops, inferredCategory);
+                }
+
+                string nextTopCategory = currentDepth == 0 ? dirName : topCategory;
+                queue.Enqueue(item: (subDir, currentDepth + 1, nextTopCategory));
+            }
+        }
     }
 
     /// <summary>
@@ -76,30 +216,18 @@ public sealed class Registries {
     /// Note: This method does not validate the contents of the operations files or the presence of executable entry points - it only checks for the existence of the operations.toml or operations.json file to consider a directory as a valid game entry.
     /// </summary>
     /// <returns></returns>
-    internal Dictionary<string, Core.Data.GameInfo> DiscoverGames() {
+    public Dictionary<string, Core.Data.GameInfo> DiscoverGames() {
         Dictionary<string, Core.Data.GameInfo> games = new(comparer: System.StringComparer.OrdinalIgnoreCase);
         if (!System.IO.Directory.Exists(path: _gamesRegistryPath)) {
             return games;
         }
 
-        foreach (string dir in System.IO.Directory.EnumerateDirectories(path: _gamesRegistryPath)) {
-            string opsToml = System.IO.Path.Combine(path1: dir, path2: "operations.toml");
-            string opsJson = System.IO.Path.Combine(path1: dir, path2: "operations.json");
-            string? ops = null;
-            if (System.IO.File.Exists(path: opsToml)) {
-                ops = opsToml;
-            } else if (System.IO.File.Exists(path: opsJson)) {
-                ops = opsJson;
-            }
-
-            if (ops is null) {
-                continue;
-            }
-
+        foreach ((string dir, string ops, string category) in EnumerateModuleDirectories(gamesRoot: _gamesRegistryPath)) {
             string name = new System.IO.DirectoryInfo(path: dir).Name;
             games[key: name] = new GameInfo(
                 opsFile: System.IO.Path.GetFullPath(path: ops),
-                gameRoot: System.IO.Path.GetFullPath(path: dir)
+                gameRoot: System.IO.Path.GetFullPath(path: dir),
+                category: category
             );
         }
         return games;
@@ -110,26 +238,13 @@ public sealed class Registries {
     /// A valid game entry must contain a game.toml with at least one valid executable entry (exe, lua script, or godot project).
     /// </summary>
     /// <returns></returns>
-    internal Dictionary<string, GameInfo> DiscoverBuiltGames() {
+    public Dictionary<string, GameInfo> DiscoverBuiltGames() {
         Dictionary<string, GameInfo> games = new(comparer: System.StringComparer.OrdinalIgnoreCase);
         if (!System.IO.Directory.Exists(path: _gamesRegistryPath)) {
             return games;
         }
 
-        foreach (string dir in System.IO.Directory.EnumerateDirectories(path: _gamesRegistryPath)) {
-            string opsToml = System.IO.Path.Combine(path1: dir, path2: "operations.toml");
-            string opsJson = System.IO.Path.Combine(path1: dir, path2: "operations.json");
-            string? ops = null;
-            if (System.IO.File.Exists(path: opsToml)) {
-                ops = opsToml;
-            } else if (System.IO.File.Exists(path: opsJson)) {
-                ops = opsJson;
-            }
-
-            if (ops is null) {
-                continue;
-            }
-
+        foreach ((string dir, string ops, string category) in EnumerateModuleDirectories(gamesRoot: _gamesRegistryPath)) {
             string gameToml = System.IO.Path.Join(path1: dir, path2: "game.toml");
             if (!System.IO.File.Exists(path: gameToml)) {
                 Shared.IO.Diagnostics.Trace($"warning: game '{new System.IO.DirectoryInfo(path: dir).Name}' is missing game.toml - skipping");
@@ -233,7 +348,8 @@ public sealed class Registries {
                 opsFile: System.IO.Path.GetFullPath(path: ops),
                 gameRoot: System.IO.Path.GetFullPath(path: dir),
                 exePath: System.IO.Path.GetFullPath(path: finalEntryPoint),
-                title: title
+                title: title,
+                category: category
             );
         }
 

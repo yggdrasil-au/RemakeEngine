@@ -14,7 +14,7 @@ public static class GitTools {
     /* :: :: Constructor, Var :: END :: */
     //
     /* :: :: Methods ::  :: */
-    public static bool CloneModule(string url, ICommandService commandService) {
+    public static bool CloneModule(string url, ICommandService commandService, string? targetPath = null) {
         if (string.IsNullOrWhiteSpace(url)) {
             return false;
         }
@@ -27,13 +27,22 @@ public static class GitTools {
 
         try {
             string repoName = GuessRepoName(url: url);
-            string target = System.IO.Path.Combine(path1: _gamesDir, path2: repoName);
+            string target;
+            if (!string.IsNullOrWhiteSpace(targetPath)) {
+                target = System.IO.Path.IsPathRooted(path: targetPath)
+                    ? System.IO.Path.GetFullPath(path: targetPath)
+                    : System.IO.Path.GetFullPath(path: System.IO.Path.Combine(path1: EngineNet.Shared.State.RootPath, path2: targetPath));
+            } else {
+                target = System.IO.Path.Combine(path1: _gamesDir, path2: repoName);
+            }
+
             if (System.IO.Directory.Exists(path: target)) {
                 IO.Info($"Directory '{repoName}' already exists. Skipping download.");
                 return true;
             }
 
-            System.IO.Directory.CreateDirectory(path: _gamesDir);
+            string parentDir = System.IO.Path.GetDirectoryName(path: target) ?? _gamesDir;
+            System.IO.Directory.CreateDirectory(path: parentDir);
             IO.writeLine($"Downloading '{repoName}' from '{url}'...");
             IO.writeLine($"Target directory: '{target}'");
 

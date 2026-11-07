@@ -90,22 +90,30 @@ public sealed partial class StorePage:UserControl, INotifyPropertyChanged {
             foreach (KeyValuePair<string, object?> kv in modules) {
                 string moduleName = kv.Key;
 
-                // Apply search filter if provided
-                if (!string.IsNullOrWhiteSpace(query) &&
-                    !moduleName.Contains(query, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
-                    continue;
-                }
-
                 IDictionary<string, object?>? moduleInfo = kv.Value as IDictionary<string, object?>;
 
                 string? url = null;
                 string? title = null;
                 string? description = null;
+                string? category = null;
+                string? targetPath = null;
 
                 if (moduleInfo != null) {
                     url = moduleInfo.TryGetValue(key: "url", out object? u) ? u?.ToString() : null;
                     title = moduleInfo.TryGetValue(key: "title", out object? t) ? t?.ToString() : null;
                     description = moduleInfo.TryGetValue(key: "description", out object? d) ? d?.ToString() : null;
+                    category = moduleInfo.TryGetValue(key: "category", out object? c) ? c?.ToString() : null;
+                    targetPath = moduleInfo.TryGetValue(key: "path", out object? p) ? p?.ToString() : null;
+                }
+
+                string resolvedCategory = string.IsNullOrWhiteSpace(category) ? "Uncategorized" : category;
+
+                // Apply search filter if provided
+                if (!string.IsNullOrWhiteSpace(query) &&
+                    !moduleName.Contains(query, comparisonType: System.StringComparison.OrdinalIgnoreCase) &&
+                    !(title?.Contains(query, comparisonType: System.StringComparison.OrdinalIgnoreCase) ?? false) &&
+                    !resolvedCategory.Contains(query, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
+                    continue;
                 }
 
                 // Check if already downloaded
@@ -120,6 +128,8 @@ public sealed partial class StorePage:UserControl, INotifyPropertyChanged {
                 Items.Add(item: new StoreItem {
                     Id = moduleName,
                     Name = moduleName,
+                    Category = resolvedCategory,
+                    TargetPath = targetPath,
                     Title = title ?? moduleName,
                     Description = description ?? "No description available",
                     Url = url,
@@ -176,7 +186,7 @@ public sealed partial class StorePage:UserControl, INotifyPropertyChanged {
                         [key: "url"] = item.Url ?? string.Empty
                     });
 
-                    bool result = await Task.Run(function: () => GuiBootstrapper.MiniEngine.GitService_CloneModule(url: item.Url!));
+                    bool result = await Task.Run(function: () => GuiBootstrapper.MiniEngine.GitService_CloneModule(url: item.Url!, targetPath: item.TargetPath));
 
                     onOutput(line: result ? $"Download complete for {item.Name}." : $"Download failed for {item.Name}.", streamName: result ? "stdout" : "stderr");
                     onEvent(evt: new Dictionary<string, object?> {
@@ -230,6 +240,13 @@ public sealed partial class StorePage:UserControl, INotifyPropertyChanged {
         public string Name {
             get; set;
         } = "";
+        public string Category {
+            get; set;
+        } = "";
+        public bool HasCategory => !string.IsNullOrWhiteSpace(Category);
+        public string? TargetPath {
+            get; set;
+        }
         public string Title {
             get; set;
         } = "";

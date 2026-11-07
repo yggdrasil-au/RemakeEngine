@@ -11,6 +11,7 @@ public sealed class GameModuleInfo {
     public required string ExePath { get; set; }
     public required string Title { get; set; }
     public required string Url { get; set; }
+    public string Category { get; set; } = string.Empty;
     public bool IsRegistered { get; init; }
     public bool IsInstalled { get; set; }
     public bool IsBuilt { get; set; }

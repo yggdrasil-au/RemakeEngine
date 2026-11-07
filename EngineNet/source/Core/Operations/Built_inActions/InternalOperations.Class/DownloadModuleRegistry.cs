@@ -17,10 +17,14 @@ internal sealed partial class InternalOperations {
 
         IReadOnlyDictionary<string, object?> knownModules = context.GameRegistry.GetRegisteredModules();
         string? url = input;
+        string? targetPath = null;
 
         if (knownModules.TryGetValue(key: input, out object? modObj) && modObj is Dictionary<string, object?> modData) {
             if (modData.TryGetValue(key: "url", out object? uObj)) {
                 url = uObj?.ToString();
+            }
+            if (modData.TryGetValue(key: "path", out object? pObj)) {
+                targetPath = pObj?.ToString();
             }
         }
 
@@ -29,6 +33,6 @@ internal sealed partial class InternalOperations {
             return false;
         }
 
-        return Core.Services.Git.GitTools.CloneModule(url: url, commandService: context.CommandService);
+        return Core.Services.Git.GitTools.CloneModule(url: url, commandService: context.CommandService, targetPath: targetPath);
     }
 }

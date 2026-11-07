@@ -59,8 +59,8 @@ public sealed class MiniEngine(Core.Engine.IEngineFace Engine) : MiniEngineFace 
     /// <summary>
     /// Clones a module repository from the registry URL.
     /// </summary>
-    public bool GitService_CloneModule(string url) {
-        return Engine.CloneModule(url: url);
+    public bool GitService_CloneModule(string url, string? targetPath = null) {
+        return Engine.CloneModule(url: url, targetPath: targetPath);
     }
 
     public async System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
@@ -148,7 +148,7 @@ public interface MiniEngineFace {
     /// <summary>
     /// Clones a module repository from the registry URL.
     /// </summary>
-    public bool GitService_CloneModule(string url);
+    public bool GitService_CloneModule(string url, string? targetPath = null);
 
     public System.Threading.Tasks.Task<bool> RunSingleOperationAsync(
         string currentGame,

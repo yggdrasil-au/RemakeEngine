@@ -17,10 +17,9 @@ avoid massive unit tests, i dont want tests to be as complicated as the project 
 
 
 
-consider implementing organisational system support for game modules, allowing them to be arbitrarily structured within the Games folder, to avoid a Flat folder of game modules, seen in Steam or other game launchers, and the current flat structure of the Remake Engine.
-this change would inherently support submodules, as they would be detected within a folder that is itself a game module.
+- [x] Implement organisational system support for game modules, allowing them to be arbitrarily structured within the Games folder (including category subfolders and nested submodules within parent modules) and categorized in `EngineApps/Registries/Modules/Main.json`.
 
-Add .iso support to the Remake Engine, it must handle All types of ISO files, including but not limited to PlayStation, Xbox, GameCube, and other console ISO formats, a universal ISO handling system.
+- [x] Add `.iso` support to the Remake Engine (`EngineNet.Core.DiscImages` supporting ISO-9660, Joliet, UDF, PlayStation 3, and Xbox/XGD1/XGD2/XGD3 disc images via engine operations and Lua SDK).
 
 
 

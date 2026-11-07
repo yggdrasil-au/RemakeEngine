@@ -39,9 +39,18 @@ public sealed class GameRegistry : Core.Abstractions.IGameRegistry {
     /// <param name="name">The name of the game.</param>
     /// <returns>The root directory path of the game if found; otherwise, null.</returns>
     public string? GetGamePath(string name) {
-        // Prefer installed location first, then fall back to downloaded location
-        if (_registries.DiscoverBuiltGames().TryGetValue(key: name, out GameInfo? gi))
+        // Prefer built game location first, then discovered/installed location, then registered path
+        if (_registries.DiscoverBuiltGames().TryGetValue(key: name, out GameInfo? gi)) {
             return gi.GameRoot;
+        }
+        if (_registries.DiscoverGames().TryGetValue(key: name, out GameInfo? installedGi)) {
+            return installedGi.GameRoot;
+        }
+        if (_scanner.Modules(filter: ModuleFilter.All).TryGetValue(key: name, out Data.GameModuleInfo? modInfo)
+            && !string.IsNullOrWhiteSpace(modInfo.GameRoot)
+            && System.IO.Directory.Exists(path: modInfo.GameRoot)) {
+            return modInfo.GameRoot;
+        }
         string dir = System.IO.Path.Combine(path1: _rootPath, path2: "EngineApps", path3: "Games", path4: name);
         return System.IO.Directory.Exists(path: dir) ? dir : null;
     }

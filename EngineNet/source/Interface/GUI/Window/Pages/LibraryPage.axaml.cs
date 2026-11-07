@@ -76,16 +76,20 @@ public sealed partial class LibraryPage:UserControl {
                 Shared.IO.Diagnostics.Log($"Module: {m.Name}, Installed: {m.IsInstalled}, Built: {m.IsBuilt}, Unverified: {m.IsUnverified}, Registered: {m.IsRegistered}");
             }
 #endif
-            foreach ((string Name, string ExePath, string Title, string GameRoot, bool IsBuilt, bool IsInstalled, bool IsRegistered, bool IsUnverified) item in modules.Values.Select(selector: m => (
-                Name: m.Name,
-                ExePath: m.ExePath,
-                Title: string.IsNullOrWhiteSpace(m.Title) ? m.Name : m.Title,
-                GameRoot: m.GameRoot,
-                IsBuilt: m.IsBuilt,
-                IsInstalled: m.IsInstalled,
-                IsRegistered: m.IsRegistered,
-                IsUnverified: m.IsUnverified
-            ))) {
+            foreach ((string Name, string Category, string ExePath, string Title, string GameRoot, bool IsBuilt, bool IsInstalled, bool IsRegistered, bool IsUnverified) item in modules.Values
+                .OrderBy(keySelector: m => string.IsNullOrWhiteSpace(m.Category) ? "Uncategorized" : m.Category, comparer: System.StringComparer.OrdinalIgnoreCase)
+                .ThenBy(keySelector: m => m.Name, comparer: System.StringComparer.OrdinalIgnoreCase)
+                .Select(selector: m => (
+                    Name: m.Name,
+                    Category: string.IsNullOrWhiteSpace(m.Category) ? "Uncategorized" : m.Category,
+                    ExePath: m.ExePath,
+                    Title: string.IsNullOrWhiteSpace(m.Title) ? m.Name : m.Title,
+                    GameRoot: m.GameRoot,
+                    IsBuilt: m.IsBuilt,
+                    IsInstalled: m.IsInstalled,
+                    IsRegistered: m.IsRegistered,
+                    IsUnverified: m.IsUnverified
+                ))) {
                 if (string.IsNullOrWhiteSpace(item.GameRoot)) {
                     Shared.IO.Diagnostics.Log($"[GUI :: LibraryPage.axaml.cs::Load(): Module '{item.Name}' has no game root defined.");
                 }
@@ -100,6 +104,7 @@ public sealed partial class LibraryPage:UserControl {
 
                 Items.Add(item: new Row {
                     ModuleName = item.Name,
+                    Category = item.Category,
                     Title = item.Title,
                     ExePath = item.ExePath,
                     Image = ResolveCoverUri(gameRoot: item.GameRoot),
@@ -231,6 +236,8 @@ public sealed partial class LibraryPage:UserControl {
     /// </summary>
     public sealed class Row {
         public required string ModuleName { get; set; }
+        public string Category { get; set; } = string.Empty;
+        public bool HasCategory => !string.IsNullOrWhiteSpace(Category);
         public required string Title { get; set; }
         public required string ExePath { get; set; }
         public Bitmap? Image { get; set; }
