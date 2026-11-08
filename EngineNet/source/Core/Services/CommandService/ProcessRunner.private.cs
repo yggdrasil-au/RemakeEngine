@@ -1,27 +1,21 @@
-using System.Collections.Concurrent;
 using EngineNet.Core.Utils;
 
 namespace EngineNet.Core.Services.CommandService;
 
 /// <summary>
-/// Executes external processes while streaming output and handling structured
-/// events. Lines prefixed with the SDK event marker
-/// are parsed as JSON event payloads and forwarded to <c>onEvent</c>.
-/// Supports interactive prompts by invoking <c>stdinProvider</c> when a prompt event is received.
+/// Executes approved external processes, forwarding raw stdout/stderr and reporting completion events.
+/// Embedded script SDK events are handled separately by the script engines.
 /// </summary>
 public sealed partial class ProcessRunner : Core.Abstractions.IProcessRunner {
-
-    /// <summary>
-    /// Execute a command line and stream output until completion or cancellation.
-    /// </summary>
-    /// <param name="commandParts">Executable followed by its arguments. Must contain at least one item (the executable).</param>
-    /// <param name="opTitle">Human-readable operation title used in Shared.IO.Diagnostics.</param>
-    /// <param name="onOutput">Optional callback for stdout/stderr lines.</param>
-    /// <param name="onEvent">Optional callback for structured events.</param>
-    /// <param name="stdinProvider">Optional provider for prompt responses.</param>
-    /// <param name="envOverrides">Optional environment variables to inject/override for the child.</param>
-    /// <param name="cancellationToken">Token to abort execution.</param>
-    /// <returns>True on zero exit code; false otherwise.</returns>
+    /// <summary>Executes a command until completion or cancellation, retaining the external-process output contract.</summary>
+    /// <param name="commandParts">Executable followed by individual, unquoted argument tokens.</param>
+    /// <param name="opTitle">Human-readable operation title used in diagnostics.</param>
+    /// <param name="onOutput">Optional callback for raw stdout/stderr lines.</param>
+    /// <param name="onEvent">Optional callback for completion and process-start errors.</param>
+    /// <param name="stdinProvider">Retained for caller compatibility; raw output does not request prompt responses.</param>
+    /// <param name="envOverrides">Environment metadata included in invocation diagnostics.</param>
+    /// <param name="cancellationToken">Token to terminate execution.</param>
+    /// <returns>True for exit code zero; false for rejection, failure, or cancellation.</returns>
     public bool Execute(
         IList<string> commandParts,
         string opTitle,
@@ -29,248 +23,99 @@ public sealed partial class ProcessRunner : Core.Abstractions.IProcessRunner {
         Core.Abstractions.IProcessRunner.EventHandler? onEvent = null,
         Core.Abstractions.IProcessRunner.StdinProvider? stdinProvider = null,
         IDictionary<string, object?>? envOverrides = null,
-        System.Threading.CancellationToken cancellationToken = default(CancellationToken)
+        CancellationToken cancellationToken = default
     ) {
         if (commandParts.Count < 1) {
             onOutput?.Invoke(line: $"Operation '{opTitle}' has no executable specified. Skipping.", streamName: "stderr");
             return false;
         }
-
-        // Security: Validate executable is approved for RemakeEngine use
-        string executable = commandParts[index: 0];
-        if (!IsApprovedExecutable(executable: executable, onOutput: onOutput)) {
+        if (!IsApprovedExecutable(executable: commandParts[0], onOutput: onOutput)) {
             return false;
         }
 
-        // Verbose: show exactly what will be executed
+        LogInvocation(commandParts, envOverrides);
+        using Process Process = new() { StartInfo = CreateStartInfo(commandParts), EnableRaisingEvents = true };
+        using ProcessOutputQueue Output = new(cancellationToken);
+        using JobObject? Job = OperatingSystem.IsWindows() ? new JobObject() : null;
+
         try {
-            Shared.IO.Diagnostics.Log(string.Empty);
-            Shared.IO.Diagnostics.Log("Executing command:");
-            Shared.IO.Diagnostics.Log("  " + FormatCommand(parts: commandParts));
-            Shared.IO.Diagnostics.Log($"  cwd: {System.IO.Directory.GetCurrentDirectory()}");
-            if (envOverrides is { Count: > 0 }) {
-                Shared.IO.Diagnostics.Log("  env overrides:");
-                foreach (KeyValuePair<string, object?> kv in envOverrides) {
-                    Shared.IO.Diagnostics.Log($"    {kv.Key}={kv.Value}");
+            if (!Process.Start()) {
+                throw new InvalidOperationException("Failed to start process");
+            }
+            Job?.AddProcess(process: Process);
+            Process.OutputDataReceived += Output.StdoutHandler;
+            Process.ErrorDataReceived += Output.StderrHandler;
+            Process.BeginOutputReadLine();
+            Process.BeginErrorReadLine();
+
+            // Keep the existing polling and drain order. Raw child output never triggers stdin callbacks.
+            while (!Process.HasExited) {
+                if (cancellationToken.IsCancellationRequested) {
+                    TryTerminate(proc: Process);
+                    ReportCompletion(onEvent, false, 130);
+                    return false;
+                }
+                if (Output.TryTake(out (string Stream, string Line) Item, 100)) {
+                    onOutput?.Invoke(line: Item.Line, streamName: Item.Stream);
                 }
             }
-        } catch (System.UnauthorizedAccessException) {
-            // Ignore: Directory.GetCurrentDirectory() can throw if the user lacks permissions to the current path
-        } catch (System.NotSupportedException) {
-            // Ignore: Directory.GetCurrentDirectory() can throw on unsupported path formats
-        }
+            while (Output.TryTake(out (string Stream, string Line) Item)) {
+                onOutput?.Invoke(line: Item.Line, streamName: Item.Stream);
+            }
 
-        System.Diagnostics.ProcessStartInfo psi = new()
-        {
-            FileName = commandParts[index: 0],
+            int ExitCode = Process.ExitCode;
+            bool Success = ExitCode == 0;
+            ReportCompletion(onEvent, Success, ExitCode);
+            return Success;
+        } catch (OperationCanceledException Error) {
+            Shared.IO.Diagnostics.Bug("Operation cancelled: " + Error.Message);
+            TryTerminate(proc: Process);
+            ReportCompletion(onEvent, false, 130);
+            return false;
+        } catch (FileNotFoundException Error) {
+            Shared.IO.Diagnostics.Bug("Command or script not found: " + Error.Message);
+            ReportError(onEvent, "FileNotFoundError", "Command or script not found.");
+            return false;
+        } catch (System.ComponentModel.Win32Exception Error) {
+            Shared.IO.Diagnostics.Bug("OS error starting or running process: " + Error.Message);
+            ReportError(onEvent, "Win32Exception", Error.Message);
+            return false;
+        } catch (InvalidOperationException Error) {
+            Shared.IO.Diagnostics.Bug("Invalid process state: " + Error.Message);
+            ReportError(onEvent, "InvalidOperation", Error.Message);
+            return false;
+        } finally {
+            StopOutputReads(Process, Output);
+        }
+    }
+
+    /// <summary>Creates the same redirected UTF-8 process without shell argument parsing.</summary>
+    private static ProcessStartInfo CreateStartInfo(IList<string> CommandParts) {
+        ProcessStartInfo StartInfo = new() {
+            FileName = CommandParts[0],
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             RedirectStandardInput = true,
             UseShellExecute = false,
             CreateNoWindow = true,
             StandardOutputEncoding = System.Text.Encoding.UTF8,
-            StandardErrorEncoding = System.Text.Encoding.UTF8,
+            StandardErrorEncoding = System.Text.Encoding.UTF8
         };
-        for (int i = 1; i < commandParts.Count; i++) {
-            psi.ArgumentList.Add(item: commandParts[index: i]);
+        for (int Index = 1; Index < CommandParts.Count; Index++) {
+            StartInfo.ArgumentList.Add(CommandParts[Index]);
         }
-
-        using System.Diagnostics.Process proc = new();
-        proc.StartInfo = psi;
-        proc.EnableRaisingEvents = true;
-
-        using BlockingCollection<(string stream, string line)> q = new(boundedCapacity: 1000);
-        int queueLogOnce = 0;
-        bool isQueueOpen = true;
-
-        void LogQueueFailureOnce(System.Exception ex) {
-            if (System.Threading.Interlocked.Exchange(location1: ref queueLogOnce, 1) == 0) {
-                Shared.IO.Diagnostics.Bug($"Output queue add failed: {ex.Message}");
-            }
-        }
-
-        System.Diagnostics.DataReceivedEventHandler outHandler = (_, e) => {
-            if (e.Data == null || !System.Threading.Volatile.Read(location: ref isQueueOpen)) {
-                return;
-            }
-
-            try {
-                q.Add(item: ("stdout", e.Data), cancellationToken: cancellationToken);
-            } catch (System.ObjectDisposedException ex) {
-                LogQueueFailureOnce(ex: ex);
-            } catch (System.InvalidOperationException ex) {
-                LogQueueFailureOnce(ex: ex);
-            } catch (System.OperationCanceledException ex) {
-                LogQueueFailureOnce(ex: ex);
-            }
-        };
-        System.Diagnostics.DataReceivedEventHandler errHandler = (_, e) => {
-            if (e.Data == null || !System.Threading.Volatile.Read(location: ref isQueueOpen)) {
-                return;
-            }
-
-            try {
-                q.Add(item: ("stderr", e.Data), cancellationToken: cancellationToken);
-            } catch (System.ObjectDisposedException ex) {
-                LogQueueFailureOnce(ex: ex);
-            } catch (System.InvalidOperationException ex) {
-                LogQueueFailureOnce(ex: ex);
-            } catch (System.OperationCanceledException ex) {
-                LogQueueFailureOnce(ex: ex);
-            }
-        };
-
-        using JobObject? job = System.OperatingSystem.IsWindows() ? new Utils.JobObject() : null;
-
-        try {
-            if (!proc.Start()) {
-                throw new System.InvalidOperationException("Failed to start process");
-            }
-
-            job?.AddProcess(process: proc);
-
-            proc.OutputDataReceived += outHandler;
-            proc.ErrorDataReceived += errHandler;
-            proc.BeginOutputReadLine();
-            proc.BeginErrorReadLine();
-
-            bool awaitingPrompt = false;
-
-            void SendToChild(string? text) {
-                try {
-                    proc.StandardInput.WriteLine(text ?? string.Empty);
-                    proc.StandardInput.Flush();
-                } catch (System.IO.IOException ex) {
-                    Shared.IO.Diagnostics.Bug("IO error writing to child stdin: " + ex);
-                } catch (System.ObjectDisposedException ex) {
-                    Shared.IO.Diagnostics.Bug("Child stdin disposed while writing: " + ex);
-                } catch (System.InvalidOperationException ex) {
-                    Shared.IO.Diagnostics.Bug("Child stdin unavailable while writing: " + ex);
-                }
-            }
-
-            string? HandleLine(string line, string streamName) {
-                onOutput?.Invoke(line: line, streamName: streamName);
-                return null; // Note: In your original code this always returned null. Ensure this matches your intent.
-            }
-
-            while (!proc.HasExited) {
-                if (cancellationToken.IsCancellationRequested) {
-                    TryTerminate(proc: proc);
-                    onEvent?.Invoke(evt: new Dictionary<string, object?>
-                        { [key: "event"] = Shared.IO.UI.EngineSdk.Events.End, [key: "success"] = false, [key: "exit_code"] = 130 });
-                    return false;
-                }
-
-                if (!q.TryTake(item: out (string stream, string line) item, millisecondsTimeout: 100)) {
-                    continue;
-                }
-
-                string? promptMsg = HandleLine(line: item.line, streamName: item.stream);
-                if (promptMsg != null) {
-                    awaitingPrompt = true;
-                }
-
-                if (!awaitingPrompt || proc.HasExited) continue;
-                string? ans = string.Empty;
-                try {
-                    ans = stdinProvider?.Invoke();
-                } catch (System.IO.IOException ex) {
-                    Shared.IO.Diagnostics.Bug("IO error in stdinProvider while awaiting prompt: " + ex.Message);
-                } catch (System.InvalidOperationException ex) {
-                    Shared.IO.Diagnostics.Bug("Invalid operation in stdinProvider while awaiting prompt: " + ex.Message);
-                }
-
-                SendToChild(text: ans);
-                awaitingPrompt = false;
-            }
-
-            // Drain any remaining
-            while (q.TryTake(item: out (string stream, string line) item)) {
-                string? promptMsg = HandleLine(line: item.line, streamName: item.stream);
-                if (promptMsg == null) continue;
-
-                string? ans = string.Empty;
-                try {
-                    ans = stdinProvider?.Invoke();
-                } catch (System.IO.IOException ex) {
-                    Shared.IO.Diagnostics.Bug("IO error in stdinProvider while draining output: " + ex.Message);
-                } catch (System.InvalidOperationException ex) {
-                    Shared.IO.Diagnostics.Bug("Invalid operation in stdinProvider while draining output: " + ex.Message);
-                }
-
-                SendToChild(text: ans);
-            }
-
-            int rc = proc.ExitCode;
-            bool success = rc == 0;
-            onEvent?.Invoke(
-                evt: new Dictionary<string, object?> { [key: "event"] = Shared.IO.UI.EngineSdk.Events.End, [key: "success"] = success, [key: "exit_code"] = rc });
-            return success;
-        } catch (System.OperationCanceledException ex) {
-            Shared.IO.Diagnostics.Bug("Operation cancelled: " + ex.Message);
-            TryTerminate(proc: proc);
-            onEvent?.Invoke(evt: new Dictionary<string, object?>
-                { [key: "event"] = Shared.IO.UI.EngineSdk.Events.End, [key: "success"] = false, [key: "exit_code"] = 130 });
-            return false;
-        } catch (System.IO.FileNotFoundException ex) {
-            Shared.IO.Diagnostics.Bug("Command or script not found: " + ex.Message);
-            onEvent?.Invoke(evt: new Dictionary<string, object?>
-                { [key: "event"] = Shared.IO.UI.EngineSdk.Events.Error, [key: "kind"] = "FileNotFoundError", [key: "message"] = "Command or script not found." });
-            return false;
-        } catch (System.ComponentModel.Win32Exception ex) {
-            // Catches OS-level process failures (e.g., Access Denied, bad executable format)
-            Shared.IO.Diagnostics.Bug("OS error starting or running process: " + ex.Message);
-            onEvent?.Invoke(evt: new Dictionary<string, object?>
-                { [key: "event"] = Shared.IO.UI.EngineSdk.Events.Error, [key: "kind"] = "Win32Exception", [key: "message"] = ex.Message });
-            return false;
-        } catch (System.InvalidOperationException ex) {
-            // Catches bad process state operations (e.g., trying to read ExitCode before it exits, though HasExited check mitigates this)
-            Shared.IO.Diagnostics.Bug("Invalid process state: " + ex.Message);
-            onEvent?.Invoke(evt: new Dictionary<string, object?>
-                { [key: "event"] = Shared.IO.UI.EngineSdk.Events.Error, [key: "kind"] = "InvalidOperation", [key: "message"] = ex.Message });
-            return false;
-        } finally {
-            System.Threading.Volatile.Write(location: ref isQueueOpen, false);
-            try {
-                q.CompleteAdding();
-            } catch (System.ObjectDisposedException ex) {
-                Shared.IO.Diagnostics.Bug($"Output queue disposed before completion: {ex.Message}");
-            } catch (System.InvalidOperationException ex) {
-                Shared.IO.Diagnostics.Bug($"Failed to complete output queue: {ex.Message}");
-            }
-
-            try {
-                proc.CancelOutputRead();
-            } catch (System.ObjectDisposedException ex) {
-                Shared.IO.Diagnostics.Bug($"Process disposed before CancelOutputRead: {ex.Message}");
-            } catch (System.InvalidOperationException ex) {
-                Shared.IO.Diagnostics.Bug($"Failed to cancel stdout read: {ex.Message}");
-            } catch (System.PlatformNotSupportedException ex) {
-                Shared.IO.Diagnostics.Bug($"CancelOutputRead not supported: {ex.Message}");
-            }
-
-            try {
-                proc.CancelErrorRead();
-            } catch (System.ObjectDisposedException ex) {
-                Shared.IO.Diagnostics.Bug($"Process disposed before CancelErrorRead: {ex.Message}");
-            } catch (System.InvalidOperationException ex) {
-                Shared.IO.Diagnostics.Bug($"Failed to cancel stderr read: {ex.Message}");
-            } catch (System.PlatformNotSupportedException ex) {
-                Shared.IO.Diagnostics.Bug($"CancelErrorRead not supported: {ex.Message}");
-            }
-
-            try {
-                proc.OutputDataReceived -= outHandler;
-                proc.ErrorDataReceived -= errHandler;
-            }
-            catch (System.ObjectDisposedException ex) {
-                // Unsubscribing from events doesn't throw under normal circumstances in .NET,
-                // but ObjectDisposedException can occur if the underlying Component is deeply disposed.
-                Shared.IO.Diagnostics.Bug($"Process disposed while unsubscribing from events: {ex.Message}");
-            }
-        }
+        return StartInfo;
     }
 
-}
+    private static void ReportCompletion(Core.Abstractions.IProcessRunner.EventHandler? OnEvent, bool Success, int ExitCode) {
+        OnEvent?.Invoke(evt: new Dictionary<string, object?> {
+            ["event"] = Shared.IO.UI.EngineSdk.Events.End, ["success"] = Success, ["exit_code"] = ExitCode
+        });
+    }
 
+    private static void ReportError(Core.Abstractions.IProcessRunner.EventHandler? OnEvent, string Kind, string Message) {
+        OnEvent?.Invoke(evt: new Dictionary<string, object?> {
+            ["event"] = Shared.IO.UI.EngineSdk.Events.Error, ["kind"] = Kind, ["message"] = Message
+        });
+    }
+}

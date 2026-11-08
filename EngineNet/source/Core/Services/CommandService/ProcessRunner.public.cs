@@ -1,10 +1,8 @@
 namespace EngineNet.Core.Services.CommandService;
 
 /// <summary>
-/// Executes external processes while streaming output and handling structured
-/// events. Lines prefixed with the SDK event marker
-/// are parsed as JSON event payloads and forwarded to <c>onEvent</c>.
-/// Supports interactive prompts by invoking <c>stdinProvider</c> when a prompt event is received.
+/// Executes approved external processes, forwarding raw stdout/stderr and reporting completion events.
+/// Embedded script SDK events are handled separately by the script engines.
 /// </summary>
 public sealed partial class ProcessRunner : Core.Abstractions.IProcessRunner {
 

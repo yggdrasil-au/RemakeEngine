@@ -1,121 +1,139 @@
 namespace EngineNet.Core.Services.CommandService;
 
 /// <summary>
-/// Constructs command-line invocations from an operation definition and context.
-/// Responsible for resolving placeholders and mapping prompts/answers to CLI args.
+/// Maps resolved operation arguments and prompt answers to individual process argument tokens.
+/// Placeholder resolution belongs to the operation preparation stage.
 /// </summary>
 internal sealed class CommandBuilder {
+    /* :: :: Command Construction :: START :: */
 
     /// <summary>
-    /// Build a process invocation for the given operation.
+    /// Builds an invocation without quoting tokens or changing the supplied operation.
+    /// Prompt defaults are added to <paramref name="promptAnswers"/> before any condition is checked.
     /// </summary>
-    /// <param name="currentGame">Canonical game/module id currently selected.</param>
-    /// <param name="games">Map of games with metadata; must contain <paramref name="currentGame"/>.</param>
-    /// <param name="engineConfig">Engine configuration dictionary exposed to placeholder resolution.</param>
-    /// <param name="op">The operation object (must include at least <c>script</c>, optional <c>script_type</c>, <c>args</c>, and <c>prompts</c>).</param>
-    /// <param name="promptAnswers">Mutable dictionary of prompt answers used to construct arguments; defaults are filled if missing.</param>
-    /// <returns>A list of strings suitable for <see cref="ProcessStartInfo"/>: [exe, arg1, ...]. Empty if no script.</returns>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="currentGame"/> is empty.</exception>
-    /// <exception cref="KeyNotFoundException">Thrown when the game is unknown.</exception>
+    /// <param name="currentGame">Selected module id; must not be blank.</param>
+    /// <param name="games">Module context retained for compatibility with command-service callers.</param>
+    /// <param name="engineConfig">Configuration context; placeholders have already been resolved by the caller.</param>
+    /// <param name="op">Resolved script, optional script type, arguments, and prompts.</param>
+    /// <param name="promptAnswers">Case-insensitive answers; existing values, including null, take precedence over defaults.</param>
+    /// <returns>Interpreter and script followed by argument tokens, or an empty list if the script key is absent.</returns>
+    /// <exception cref="ArgumentException">The selected module id is blank.</exception>
     internal List<string> Build(
         string currentGame,
         Core.Data.GameModules games,
         IDictionary<string, object?> engineConfig,
         IDictionary<string, object?> op,
-        EngineNet.Core.Data.PromptAnswers promptAnswers
+        Core.Data.PromptAnswers promptAnswers
     ) {
         if (string.IsNullOrWhiteSpace(currentGame)) {
-            throw new System.ArgumentException("No game has been loaded.", paramName: nameof(currentGame));
+            throw new ArgumentException("No game has been loaded.", paramName: nameof(currentGame));
         }
 
-        string script_type = (op.TryGetValue(key: "script_type", out object? st) ? st?.ToString() : null)?.ToLowerInvariant() ?? "python";
-        if (!op.TryGetValue(key: "script", out object? scriptObj)) {
+        string ScriptType = (op.TryGetValue("script_type", out object? Type) ? Type?.ToString() : null)?.ToLowerInvariant() ?? "python";
+        if (!op.TryGetValue("script", out object? Script)) {
             return [];
         }
 
-        string scriptPath = scriptObj?.ToString() ?? string.Empty;
-        List<string> parts = [script_type, scriptPath];
-
-        // Accept args as any list type (e.g., List<string> from CLI or List<object?> from tests)
-        if (op.TryGetValue(key: "args", out object? argsObj) && argsObj is System.Collections.IList resolvedList) {
-            foreach (object? a in resolvedList) {
-                if (a is not null) {
-                    parts.Add(item: a.ToString()!);
-                }
-            }
+        List<string> Parts = [ScriptType, Script?.ToString() ?? string.Empty];
+        if (op.TryGetValue("args", out object? Args) && Args is IList Arguments) {
+            AppendNonNullItems(Parts, Arguments);
         }
-
-        if (op.TryGetValue(key: "prompts", out object? promptsObj) && promptsObj is IList<object?> prompts) {
-            // First pass: seed promptAnswers with defaults so conditions can evaluate
-            foreach (object? p in prompts) {
-                if (p is not IDictionary<string, object?> prompt) {
-                    continue;
-                }
-
-                string name = prompt.TryGetValue(key: "Name", out object? n) ? n?.ToString() ?? "" : "";
-                string type = prompt.TryGetValue(key: "type", out object? t) ? t?.ToString() ?? "" : "";
-                if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(type)) {
-                    continue;
-                }
-
-                if (!promptAnswers.ContainsKey(key: name) && prompt.TryGetValue(key: "default", out object? defVal)) {
-                    promptAnswers[key: name] = defVal;
-                }
-            }
-
-            // Second pass: map answers to CLI args respecting conditions
-            foreach (object? p in prompts) {
-                if (p is not IDictionary<string, object?> prompt) {
-                    continue;
-                }
-
-                string name = prompt.TryGetValue(key: "Name", out object? n) ? n?.ToString() ?? "" : "";
-                string type = prompt.TryGetValue(key: "type", out object? t) ? t?.ToString() ?? "" : "";
-
-                if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(type)) {
-                    continue;
-                }
-
-                if (prompt.TryGetValue(key: "condition", out object? cond) && cond is string condName && (!promptAnswers.TryGetValue(key: condName, out object? condVal) || condVal is not bool b || !b)) {
-                    continue;
-                }
-
-                _ = promptAnswers.TryGetValue(key: name, out object? ans);
-
-                switch (type) {
-                    case "confirm":
-                        if (ans is bool cb && cb && prompt.TryGetValue(key: "cli_arg", out object? cli) && cli is string s1) {
-                            parts.Add(item: s1);
-                        }
-
-                        break;
-                    case "checkbox":
-                        if (ans is IList<object?> items && prompt.TryGetValue(key: "cli_prefix", out object? pref) && pref is string sp) {
-                            parts.Add(item: sp);
-                            foreach (object? it in items) {
-                                if (it is not null) {
-                                    parts.Add(item: it.ToString()!);
-                                }
-                            }
-                        }
-                        break;
-                    case "text":
-                        string? v = ans?.ToString();
-                        if (!string.IsNullOrWhiteSpace(v)) {
-                            if (prompt.TryGetValue(key: "cli_arg_prefix", out object? ap) && ap is string apx) {
-                                parts.Add(item: apx);
-                                parts.Add(item: v);
-                            } else if (prompt.TryGetValue(key: "cli_arg", out object? ca) && ca is string cas) {
-                                parts.Add(item: cas);
-                                parts.Add(item: v);
-                            }
-                        }
-                        break;
-                }
-            }
+        if (op.TryGetValue("prompts", out object? PromptList) && PromptList is IList<object?> Prompts) {
+            SeedPromptDefaults(Prompts, promptAnswers);
+            AppendPromptArguments(Parts, Prompts, promptAnswers);
         }
-
-        return parts;
+        return Parts;
     }
 
+    /* :: :: Command Construction :: END :: */
+    /* :: :: Prompt Mapping :: START :: */
+
+    /// <summary>Seeds even inactive prompts so conditions can refer to defaults declared later in the list.</summary>
+    private static void SeedPromptDefaults(IList<object?> Prompts, Core.Data.PromptAnswers Answers) {
+        foreach (object? Entry in Prompts) {
+            if (Entry is not IDictionary<string, object?> Prompt || !TryReadPrompt(Prompt, out string Name, out _)) {
+                continue;
+            }
+            if (!Answers.ContainsKey(Name) && Prompt.TryGetValue("default", out object? Default)) {
+                Answers[Name] = Default;
+            }
+        }
+    }
+
+    /// <summary>Maps supported prompt types in manifest order, retaining repeated flags and original values.</summary>
+    private static void AppendPromptArguments(List<string> Parts, IList<object?> Prompts, Core.Data.PromptAnswers Answers) {
+        foreach (object? Entry in Prompts) {
+            if (Entry is not IDictionary<string, object?> Prompt || !TryReadPrompt(Prompt, out string Name, out string Type)) {
+                continue;
+            }
+            if (!IsConditionSatisfied(Prompt, Answers)) {
+                continue;
+            }
+
+            Answers.TryGetValue(Name, out object? Answer);
+            switch (Type) {
+                case "confirm":
+                    AppendConfirm(Parts, Prompt, Answer);
+                    break;
+                case "checkbox":
+                    AppendCheckbox(Parts, Prompt, Answer);
+                    break;
+                case "text":
+                    AppendText(Parts, Prompt, Answer);
+                    break;
+            }
+        }
+    }
+
+    /// <summary>Reads the historical Name/type keys without changing dictionary or type-name case sensitivity.</summary>
+    private static bool TryReadPrompt(IDictionary<string, object?> Prompt, out string Name, out string Type) {
+        Name = Prompt.TryGetValue("Name", out object? NameValue) ? NameValue?.ToString() ?? "" : "";
+        Type = Prompt.TryGetValue("type", out object? TypeValue) ? TypeValue?.ToString() ?? "" : "";
+        return !string.IsNullOrEmpty(Name) && !string.IsNullOrEmpty(Type);
+    }
+
+    /// <summary>Only string conditions restrict prompts, and only a true boolean answer enables them.</summary>
+    private static bool IsConditionSatisfied(IDictionary<string, object?> Prompt, Core.Data.PromptAnswers Answers) {
+        return !Prompt.TryGetValue("condition", out object? Condition) || Condition is not string ConditionName ||
+            (Answers.TryGetValue(ConditionName, out object? Value) && Value is true);
+    }
+
+    private static void AppendConfirm(List<string> Parts, IDictionary<string, object?> Prompt, object? Answer) {
+        if (Answer is true && Prompt.TryGetValue("cli_arg", out object? Argument) && Argument is string Flag) {
+            Parts.Add(Flag);
+        }
+    }
+
+    private static void AppendCheckbox(List<string> Parts, IDictionary<string, object?> Prompt, object? Answer) {
+        if (Answer is IList<object?> Items && Prompt.TryGetValue("cli_prefix", out object? Prefix) && Prefix is string Flag) {
+            Parts.Add(Flag);
+            AppendNonNullItems(Parts, Items);
+        }
+    }
+
+    /// <summary>Text prefixes take precedence over cli_arg; whitespace-only answers produce no arguments.</summary>
+    private static void AppendText(List<string> Parts, IDictionary<string, object?> Prompt, object? Answer) {
+        string? Value = Answer?.ToString();
+        if (string.IsNullOrWhiteSpace(Value)) {
+            return;
+        }
+        if (Prompt.TryGetValue("cli_arg_prefix", out object? Prefix) && Prefix is string PrefixFlag) {
+            Parts.Add(PrefixFlag);
+            Parts.Add(Value);
+        } else if (Prompt.TryGetValue("cli_arg", out object? Argument) && Argument is string Flag) {
+            Parts.Add(Flag);
+            Parts.Add(Value);
+        }
+    }
+
+    /// <summary>Converts list items individually, skipping nulls while preserving empty and unquoted tokens.</summary>
+    private static void AppendNonNullItems(List<string> Parts, IEnumerable Items) {
+        foreach (object? Item in Items) {
+            if (Item is not null) {
+                Parts.Add(Item.ToString()!);
+            }
+        }
+    }
+
+    /* :: :: Prompt Mapping :: END :: */
 }

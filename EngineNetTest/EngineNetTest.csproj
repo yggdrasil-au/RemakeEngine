@@ -18,6 +18,8 @@
 
     <ItemGroup>
         <ProjectReference Include="..\EngineNet\EngineNet.csproj" />
+        <!-- Analyzer regression tests do not add a dependency to the engine runtime. -->
+        <ProjectReference Include="..\CodebaseAnalyzer\CodebaseAnalyzer.csproj" />
 
         <!-- Core Projects -->
         <ProjectReference Include="..\EngineNet\source\Core\EngineNet.Core.csproj" />

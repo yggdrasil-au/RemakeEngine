@@ -140,6 +140,19 @@ Example: User selects `["glb", "fbx"]` → Args become `["--export", "glb", "fbx
 | `text`      | `cli_arg`         | `[flag, value]`                     | `["--input", "file.txt"]`     |
 | `checkbox`  | `cli_prefix`      | `[prefix, item1, item2, ...]`       | `["--export", "glb", "fbx"]`  |
 
+Command construction first seeds all missing prompt answers from their defaults,
+then evaluates conditions and appends prompt arguments in manifest order. This
+allows a condition to reference a default declared later, even on an inactive
+prompt. Explicit answers, including null, are retained. A condition requires the
+referenced answer to be boolean `true`; the string `"true"` does not enable it.
+
+For text prompts, `cli_arg_prefix` takes precedence over `cli_arg`. Empty or
+whitespace-only answers add no arguments; other values retain their whitespace.
+Checkbox lists skip null elements and retain the prefix even for an empty list.
+Static arguments precede prompt arguments. Values remain separate tokens, without
+shell quoting or flag deduplication. Placeholder expansion occurs before this
+mapping stage. These rules apply equally to flat and nested game modules.
+
 ## Placeholder Support
 
 The following placeholders are automatically expanded in `script`, `args`, and other string properties:

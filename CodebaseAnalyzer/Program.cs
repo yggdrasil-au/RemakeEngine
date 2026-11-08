@@ -9,44 +9,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace CodebaseAnalyzer;
 
-public class FileStats {
-    public int TotalLines { get; set; }
-    public int CodeLines { get; set; }
-    public int CommentLines { get; set; }
-    public int BlankLines { get; set; }
-
-    public int FlatClasses { get; set; }
-    public int NestedClasses { get; set; }
-    public int Interfaces { get; set; }
-    public int Enums { get; set; }
-    public int Structs { get; set; }
-    public int Records { get; set; }
-
-    public int TotalFunctions { get; set; }
-    public int FuncPub { get; set; }
-    public int FuncPriv { get; set; }
-    public int FuncProt { get; set; }
-    public int FuncInt { get; set; }
-    public int FuncPubStat { get; set; }
-    public int FuncPrivStat { get; set; }
-    public int FuncProtStat { get; set; }
-    public int FuncIntStat { get; set; }
-
-    public int TotalVariables { get; set; }
-    public int VarsPub { get; set; }
-    public int VarsPriv { get; set; }
-    public int VarsProt { get; set; }
-    public int VarsInt { get; set; }
-    public int VarsStat { get; set; }
-
-    public int MaxNestingLevel { get; set; }
-    public int MaxCyclomaticComplexity { get; set; } = 1;
-    public int TotalComplexity { get; set; }
-    public int MaxParameters { get; set; }
-
-    public List<(string Name, int Loc)> ClassDetails { get; } = new();
-}
-
 public class ProjectInfo {
     public string Name { get; set; } = "";
     public string Path { get; set; } = "";
@@ -60,121 +22,6 @@ public class FileSystemNode {
     public bool IsDir { get; set; } = true;
     public Dictionary<string, FileSystemNode> Children { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public FileStats? Stats { get; set; }
-}
-
-public class MetricWalker : CSharpSyntaxWalker {
-    public FileStats Stats { get; } = new();
-    private int _typeDepth = 0;
-    private int _blockDepth = 0;
-    private Stack<int> _complexityStack = new();
-    private Stack<string> _namespaceStack = new();
-
-    public MetricWalker() : base(SyntaxWalkerDepth.Node) {
-        _complexityStack.Push(1);
-        _namespaceStack.Push("Global");
-    }
-
-    private (string access, bool isStatic) GetAccess(SyntaxTokenList modifiers) {
-        bool isStatic = modifiers.Any(SyntaxKind.StaticKeyword);
-        string access = "private";
-        if (modifiers.Any(SyntaxKind.PublicKeyword)) access = "public";
-        else if (modifiers.Any(SyntaxKind.ProtectedKeyword)) {
-            access = modifiers.Any(SyntaxKind.InternalKeyword) ? "protected internal" : "protected";
-        }
-        else if (modifiers.Any(SyntaxKind.InternalKeyword)) access = "internal";
-        return (access, isStatic);
-    }
-
-    public override void VisitFileScopedNamespaceDeclaration(FileScopedNamespaceDeclarationSyntax node) {
-        _namespaceStack.Push(node.Name.ToString());
-        base.VisitFileScopedNamespaceDeclaration(node);
-        _namespaceStack.Pop();
-    }
-
-    public override void VisitNamespaceDeclaration(NamespaceDeclarationSyntax node) {
-        _namespaceStack.Push(node.Name.ToString());
-        base.VisitNamespaceDeclaration(node);
-        _namespaceStack.Pop();
-    }
-
-    public override void VisitClassDeclaration(ClassDeclarationSyntax node) {
-        if (_typeDepth > 0) Stats.NestedClasses++; else Stats.FlatClasses++;
-
-        var start = node.GetLocation().GetLineSpan().StartLinePosition.Line;
-        var end = node.GetLocation().GetLineSpan().EndLinePosition.Line;
-        string fullName = $"{_namespaceStack.Peek()}.{node.Identifier.Text}";
-        Stats.ClassDetails.Add((fullName, (end - start) + 1));
-
-        _typeDepth++;
-        base.VisitClassDeclaration(node);
-        _typeDepth--;
-    }
-
-    public override void VisitInterfaceDeclaration(InterfaceDeclarationSyntax node) { Stats.Interfaces++; base.VisitInterfaceDeclaration(node); }
-    public override void VisitStructDeclaration(StructDeclarationSyntax node) { Stats.Structs++; base.VisitStructDeclaration(node); }
-    public override void VisitRecordDeclaration(RecordDeclarationSyntax node) { Stats.Records++; base.VisitRecordDeclaration(node); }
-    public override void VisitEnumDeclaration(EnumDeclarationSyntax node) { Stats.Enums++; base.VisitEnumDeclaration(node); }
-
-    public override void VisitMethodDeclaration(MethodDeclarationSyntax node) {
-        Stats.TotalFunctions++;
-        var (access, isStat) = GetAccess(node.Modifiers);
-
-        if (access == "public") { if (isStat) Stats.FuncPubStat++; else Stats.FuncPub++; }
-        else if (access == "protected" || access == "protected internal") { if (isStat) Stats.FuncProtStat++; else Stats.FuncProt++; }
-        else if (access == "internal") { if (isStat) Stats.FuncIntStat++; else Stats.FuncInt++; }
-        else { if (isStat) Stats.FuncPrivStat++; else Stats.FuncPriv++; }
-
-        int paramCount = node.ParameterList.Parameters.Count;
-        if (paramCount > Stats.MaxParameters) Stats.MaxParameters = paramCount;
-
-        _complexityStack.Push(1);
-        base.VisitMethodDeclaration(node);
-        int methodComp = _complexityStack.Pop();
-        Stats.TotalComplexity += methodComp;
-        if (methodComp > Stats.MaxCyclomaticComplexity) Stats.MaxCyclomaticComplexity = methodComp;
-    }
-
-    public override void VisitFieldDeclaration(FieldDeclarationSyntax node) {
-        Stats.TotalVariables += node.Declaration.Variables.Count;
-        var (access, isStat) = GetAccess(node.Modifiers);
-        if (isStat) Stats.VarsStat += node.Declaration.Variables.Count;
-        if (access == "public") Stats.VarsPub += node.Declaration.Variables.Count;
-        else if (access == "protected" || access == "protected internal") Stats.VarsProt += node.Declaration.Variables.Count;
-        else if (access == "internal") Stats.VarsInt += node.Declaration.Variables.Count;
-        else Stats.VarsPriv += node.Declaration.Variables.Count;
-        base.VisitFieldDeclaration(node);
-    }
-
-    public override void VisitPropertyDeclaration(PropertyDeclarationSyntax node) {
-        Stats.TotalVariables++;
-        var (access, isStat) = GetAccess(node.Modifiers);
-        if (isStat) Stats.VarsStat++;
-        if (access == "public") Stats.VarsPub++;
-        else if (access == "protected" || access == "protected internal") Stats.VarsProt++;
-        else if (access == "internal") Stats.VarsInt++;
-        else Stats.VarsPriv++;
-        base.VisitPropertyDeclaration(node);
-    }
-
-    public override void VisitBlock(BlockSyntax node) {
-        _blockDepth++;
-        if (_blockDepth > Stats.MaxNestingLevel) Stats.MaxNestingLevel = _blockDepth;
-        base.VisitBlock(node);
-        _blockDepth--;
-    }
-
-    public override void Visit(SyntaxNode? node) {
-        if (node == null) return;
-        if (node is IfStatementSyntax || node is ForStatementSyntax || node is ForEachStatementSyntax ||
-            node is WhileStatementSyntax || node is DoStatementSyntax || node is CatchClauseSyntax ||
-            node is CaseSwitchLabelSyntax || node is ConditionalExpressionSyntax) {
-            _complexityStack.Push(_complexityStack.Pop() + 1);
-        } else if (node is BinaryExpressionSyntax binExpr &&
-                    (binExpr.IsKind(SyntaxKind.LogicalAndExpression) || binExpr.IsKind(SyntaxKind.LogicalOrExpression))) {
-            _complexityStack.Push(_complexityStack.Pop() + 1);
-        }
-        base.Visit(node);
-    }
 }
 
 public class Program {
@@ -228,9 +75,12 @@ public class Program {
             if (stats.MaxParameters > allStats.MaxParameters) allStats.MaxParameters = stats.MaxParameters;
 
             string fileName = Path.GetFileName(filePath);
-            if (stats.MaxCyclomaticComplexity > 15) alerts.Add($"[COMPLEXITY] {fileName} (Max: {stats.MaxCyclomaticComplexity})");
+            foreach (MethodStats Method in stats.MethodDetails.Where(Method => Method.Complexity > 15)) {
+                string Kind = Method.IsDispatchOnly ? "DISPATCH" : "COMPLEXITY";
+                alerts.Add($"[{Kind}] {Path.GetRelativePath(targetDir, filePath)}:{Method.Line} {Method.Name} (Complexity: {Method.Complexity}, Switch cases: {Method.DispatchCases})");
+            }
             if (stats.MaxNestingLevel > 5) alerts.Add($"[DEEP NESTING] {fileName} (Max Depth: {stats.MaxNestingLevel})");
-            if (stats.TotalLines > 600) alerts.Add($"[GOD FILE] {fileName} (Lines: {stats.TotalLines})");
+            if (stats.TotalLines > 600 && stats.TotalFunctions > 0) alerts.Add($"[LARGE IMPLEMENTATION] {fileName} (Lines: {stats.TotalLines})");
 
             var owner = GetOwningProject(filePath, sortedProjs);
             if (owner != null) { owner.Loc += stats.TotalLines; owner.Files++; }
@@ -401,6 +251,7 @@ public class Program {
         stats.TotalComplexity = walker.Stats.TotalComplexity;
         stats.MaxParameters = walker.Stats.MaxParameters;
         stats.ClassDetails.AddRange(walker.Stats.ClassDetails);
+        stats.MethodDetails.AddRange(walker.Stats.MethodDetails);
 
         return stats;
     }

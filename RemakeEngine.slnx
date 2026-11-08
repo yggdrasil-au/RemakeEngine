@@ -1,4 +1,5 @@
 <Solution>
+	<Project Path="CodebaseAnalyzer/CodebaseAnalyzer.csproj" />
 	<Project Path="EngineNetTest/EngineNetTest.csproj" />
 
 	<Project Path="EngineNet/EngineNet.csproj" />

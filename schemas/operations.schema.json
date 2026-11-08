@@ -111,7 +111,7 @@
           "description": "Message displayed to the user when prompting for input."
         },
         "default": {
-          "description": "Default value if user provides no input. Type varies based on prompt type."
+          "description": "Default value if user provides no input. During command construction, missing answers are seeded from all prompt defaults before conditions are evaluated; an existing answer, including null, is retained. Type varies based on prompt type."
         },
         "Required": {
           "type": "boolean",
@@ -125,7 +125,7 @@
         },
         "cli_arg": { 
           "type": "string",
-          "description": "For 'confirm' type: CLI flag added to args when value is true (e.g., '--verbose')."
+          "description": "For 'confirm': flag added when the answer is boolean true. For 'text': flag followed by the nonblank value, unless cli_arg_prefix is present."
         },
         "cli_prefix": { 
           "type": "string",
@@ -133,11 +133,11 @@
         },
         "cli_arg_prefix": { 
           "type": "string",
-          "description": "For 'text' type: CLI flag followed by user input value as separate args (e.g., '--source' followed by 'D:\\path')."
+          "description": "For 'text': flag followed by the nonblank input as separate argument tokens. Takes precedence over cli_arg; nonblank values retain their original whitespace."
         },
         "condition": { 
           "type": "string",
-          "description": "Name of another prompt whose value must be truthy for this prompt to be shown."
+          "description": "Name of another prompt controlling this prompt. Command argument mapping requires that answer to be boolean true, after all missing defaults have been seeded."
         },
         "validation": {
           "type": "object",
