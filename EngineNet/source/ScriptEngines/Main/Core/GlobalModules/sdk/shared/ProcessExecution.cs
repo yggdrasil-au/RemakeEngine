@@ -1,308 +1,209 @@
-
-using MoonSharp.Interpreter;
-using EngineNet.Core.Services;
-
 namespace EngineNet.ScriptEngines.Global.SdkModule;
 
-// todo refactor this class to be a general-purpose process execution utility for all languages, and move Lua-specific code to ModuleHelpers/Lua.ProcessExecution.cs
-
 /// <summary>
-/// Process execution functionality for Lua scripts.
-/// Provides secure process execution with validation.
+/// Language-independent process execution, path validation, output forwarding, and lifecycle handling.
+/// Language adapters provide command tokens and options and convert the returned C# results.
 /// </summary>
 internal static class ProcessExecution {
-
-    // Heuristic helpers for path-like arguments and validation
-    private static bool LooksLikePath(string s) {
-        if (string.IsNullOrWhiteSpace(s)) return false;
-        string v = s.Trim();
-        // Ignore obvious URLs
-        if (v.Contains("://", comparisonType: StringComparison.Ordinal)) return false;
-        // key=value -> analyze the value part
-        int eq = v.IndexOf('=');
-        if (eq > 0 && eq < v.Length - 1) {
-            v = v.Substring(startIndex: eq + 1).Trim(trimChars: ['"', '\'', ' ']);
-        }
-        // Strip quotes
-        v = v.Trim(trimChars: ['"', '\'']);
-        if (System.IO.Path.IsPathRooted(path: v)) return true;
-        if (v.Contains(System.IO.Path.DirectorySeparatorChar) || v.Contains(System.IO.Path.AltDirectorySeparatorChar)) return true;
-        if (v.StartsWith("./") || v.StartsWith(".\\") || v.StartsWith("..") || v.StartsWith("~")) return true;
-        if (v.Length >= 2 && char.IsLetter(c: v[index: 0]) && v[index: 1] == ':') return true; // Windows drive
-        int dot = v.LastIndexOf('.');
-        if (dot > 0 && dot < v.Length - 1 && dot >= v.Length - 8) return true;
-        return false;
+    /// <summary>Process settings decoded by a language adapter; defaults match the script SDK contract.</summary>
+    internal sealed class Options {
+        /// <summary>Optional working directory, subject to workspace path validation.</summary>
+        internal string? WorkingDirectory { get; init; }
+        /// <summary>Environment overrides forwarded to the command service.</summary>
+        internal IDictionary<string, string> Environment { get; init; } = new Dictionary<string, string>();
+        /// <summary>Whether captured and background processes collect standard output.</summary>
+        internal bool CaptureStdout { get; init; } = true;
+        /// <summary>Whether captured and background processes collect standard error.</summary>
+        internal bool CaptureStderr { get; init; } = true;
+        /// <summary>Optional timeout for captured execution, in milliseconds.</summary>
+        internal int? TimeoutMs { get; init; }
+        /// <summary>Whether streamed execution requests a separate terminal.</summary>
+        internal bool NewTerminal { get; init; }
+        /// <summary>Whether a separate terminal stays open after the process exits.</summary>
+        internal bool KeepOpen { get; init; }
+        /// <summary>Whether separate-terminal execution waits for completion.</summary>
+        internal bool Wait { get; init; } = true;
     }
 
-    private static bool ValidateArgPaths(IEnumerable<string> args, string? cwd) {
-        if (!string.IsNullOrEmpty(cwd) && !EngineNet.ScriptEngines.Security.IsAllowedPath(path: cwd)) {
-            Shared.IO.UI.EngineSdk.Error($"Access denied: working directory outside allowed areas ('{cwd}')");
+    /* :: :: Execution :: START :: */
+
+    /// <summary>Validates a tracked command and returns its captured output and exit status.</summary>
+    internal static ProcessResult RunProcess(ICommandService CommandService, IJsonToolResolver Tools, IList<string> CommandParts, Options Settings) {
+        ValidateCommand(Tools, CommandParts, Settings.WorkingDirectory);
+        return CommandService.RunProcess(
+            executable: CommandParts[0], args: CommandParts.Skip(1), cwd: Settings.WorkingDirectory,
+            env: Settings.Environment, timeoutMs: Settings.TimeoutMs,
+            captureStdout: Settings.CaptureStdout, captureStderr: Settings.CaptureStderr
+        );
+    }
+
+    /// <summary>Validates a tracked command and streams execution in the current or a separate terminal.</summary>
+    /// <param name="CommandService">Service responsible for process startup and output events.</param>
+    /// <param name="Tools">Resolver used to approve executable paths.</param>
+    /// <param name="CommandParts">Executable followed by individual argument tokens.</param>
+    /// <param name="Settings">Working directory, environment, and terminal settings.</param>
+    /// <param name="SilentRun">Suppresses current-terminal output forwarding when true.</param>
+    /// <returns>The success flag and exit code reported by the command service.</returns>
+    internal static ProcessResult ExecProcess(ICommandService CommandService, IJsonToolResolver Tools, IList<string> CommandParts, Options Settings, bool SilentRun) {
+        ValidateCommand(Tools, CommandParts, Settings.WorkingDirectory);
+        if (Settings.NewTerminal && !((OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) && !HasKnownTerminalEmulator())) {
+            return CommandService.RunInNewTerminal(
+                executable: CommandParts[0], args: CommandParts.Skip(1), cwd: Settings.WorkingDirectory,
+                env: Settings.Environment, keepOpen: Settings.KeepOpen, wait: Settings.Wait
+            );
+        }
+
+        // Preserve current-terminal execution when a Unix-like system has no known terminal emulator.
+        return ExecInCurrentTerminal(CommandService, CommandParts, Settings, SilentRun);
+    }
+
+    /// <summary>Validates a tracked command and returns the command service's managed background-process ID.</summary>
+    internal static int SpawnProcess(ICommandService CommandService, IJsonToolResolver Tools, IList<string> CommandParts, Options Settings) {
+        ValidateCommand(Tools, CommandParts, Settings.WorkingDirectory);
+        return CommandService.SpawnProcess(
+            executable: CommandParts[0], args: CommandParts.Skip(1), cwd: Settings.WorkingDirectory,
+            env: Settings.Environment, captureStdout: Settings.CaptureStdout, captureStderr: Settings.CaptureStderr
+        );
+    }
+
+    /// <summary>Returns a background-process snapshot, including complete and incremental output.</summary>
+    internal static ProcessPollResult PollProcess(ICommandService CommandService, int Pid) {
+        return CommandService.PollProcess(pid: Pid);
+    }
+
+    /// <summary>Preserves the existing nonblocking status-check behavior; the timeout is accepted but ignored.</summary>
+    internal static ProcessPollResult WaitProcess(ICommandService CommandService, int Pid, int? TimeoutMs) {
+        _ = TimeoutMs;
+        return CommandService.PollProcess(pid: Pid);
+    }
+
+    /// <summary>Closes a managed background process and returns whether it was closed.</summary>
+    internal static bool CloseProcess(ICommandService CommandService, int Pid) {
+        return CommandService.CloseProcess(pid: Pid);
+    }
+
+    /// <summary>Forwards raw process output and converts completion events into a plain execution result.</summary>
+    private static ProcessResult ExecInCurrentTerminal(ICommandService CommandService, IList<string> CommandParts, Options Settings, bool SilentRun) {
+        Dictionary<string, object?> Environment = Settings.Environment.ToDictionary(Entry => Entry.Key, Entry => (object?)Entry.Value);
+        if (!string.IsNullOrEmpty(Settings.WorkingDirectory)) {
+            Environment["PWD"] = Settings.WorkingDirectory;
+        }
+
+        int ExitCode = -1;
+        bool Success = CommandService.ExecuteCommand(
+            commandParts: CommandParts,
+            title: Path.GetFileName(CommandParts[0]),
+            onOutput: (Message, Stream) => {
+                if (SilentRun) {
+                    return;
+                }
+                string? Color = Stream == "stderr" ? "red" : null;
+                Shared.IO.UI.EngineSdk.Print(Message, color: Color, newline: true);
+                Shared.IO.Diagnostics.Log($"[{Stream}] {Message}");
+            },
+            onEvent: Event => {
+                if (!Event.TryGetValue("event", out object? EventName) || !string.Equals(EventName?.ToString(), "end", StringComparison.OrdinalIgnoreCase)) {
+                    return;
+                }
+                if (Event.TryGetValue("exit_code", out object? Code) && int.TryParse(Code?.ToString(), out int Parsed)) {
+                    ExitCode = Parsed;
+                }
+            },
+            envOverrides: Environment
+        );
+
+        if (!Success && ExitCode == -1) {
+            ExitCode = 1;
+        }
+        return new ProcessResult {
+            ExitCode = ExitCode >= 0 ? ExitCode : (Success ? 0 : 1),
+            Success = Success && (ExitCode == 0 || ExitCode == -1)
+        };
+    }
+
+    /* :: :: Execution :: END :: */
+    // //
+    /* :: :: Validation :: START :: */
+
+    /// <summary>Checks the executable and path-like arguments before any process is started.</summary>
+    private static void ValidateCommand(IJsonToolResolver Tools, IList<string> CommandParts, string? WorkingDirectory) {
+        if (CommandParts.Count == 0) {
+            throw new ArgumentException("At least one executable is required.", nameof(CommandParts));
+        }
+        if (!Security.IsApprovedExecutable(executable: CommandParts[0], tools: Tools)) {
+            throw new UnauthorizedAccessException($"Executable '{CommandParts[0]}' is not in the approved tools list. Resolve an installed tool path before execution.");
+        }
+        if (!ValidateArgPaths(CommandParts, WorkingDirectory)) {
+            throw new UnauthorizedAccessException("Restricted path detected");
+        }
+    }
+
+    /// <summary>Identifies path-like arguments while excluding URLs.</summary>
+    private static bool LooksLikePath(string Value) {
+        if (string.IsNullOrWhiteSpace(Value)) {
             return false;
         }
-        foreach (string a in args) {
-            if (string.IsNullOrEmpty(a)) continue;
-            string candidate = a;
-            int eq = candidate.IndexOf('=');
-            if (eq > 0 && eq < candidate.Length - 1) {
-                candidate = candidate.Substring(startIndex: eq + 1);
+        string Candidate = Value.Trim();
+        if (Candidate.Contains("://", StringComparison.Ordinal)) {
+            return false;
+        }
+        int EqualsIndex = Candidate.IndexOf('=');
+        if (EqualsIndex > 0 && EqualsIndex < Candidate.Length - 1) {
+            Candidate = Candidate.Substring(EqualsIndex + 1).Trim('"', '\'', ' ');
+        }
+        Candidate = Candidate.Trim('"', '\'');
+        if (Path.IsPathRooted(Candidate)) {
+            return true;
+        }
+        if (Candidate.Contains(Path.DirectorySeparatorChar) || Candidate.Contains(Path.AltDirectorySeparatorChar)) {
+            return true;
+        }
+        if (Candidate.StartsWith("./") || Candidate.StartsWith(".\\") || Candidate.StartsWith("..") || Candidate.StartsWith("~")) {
+            return true;
+        }
+        if (Candidate.Length >= 2 && char.IsLetter(Candidate[0]) && Candidate[1] == ':') {
+            return true;
+        }
+        int DotIndex = Candidate.LastIndexOf('.');
+        return DotIndex > 0 && DotIndex < Candidate.Length - 1 && DotIndex >= Candidate.Length - 8;
+    }
+
+    /// <summary>Applies the workspace boundary to working directories and path-like command tokens.</summary>
+    private static bool ValidateArgPaths(IEnumerable<string> Arguments, string? WorkingDirectory) {
+        if (!string.IsNullOrEmpty(WorkingDirectory) && !Security.IsAllowedPath(path: WorkingDirectory)) {
+            Shared.IO.UI.EngineSdk.Error($"Access denied: working directory outside allowed areas ('{WorkingDirectory}')");
+            return false;
+        }
+        foreach (string Argument in Arguments) {
+            if (string.IsNullOrEmpty(Argument)) {
+                continue;
             }
-            candidate = candidate.Trim(trimChars: ['"', '\'', ' ']);
-            if (!LooksLikePath(s: candidate)) continue;
-            if (EngineNet.ScriptEngines.Security.IsAllowedPath(path: candidate)) continue;
-            Shared.IO.UI.EngineSdk.Error($"Access denied: process argument references path outside allowed areas ('{candidate}')");
+            string Candidate = Argument;
+            int EqualsIndex = Candidate.IndexOf('=');
+            if (EqualsIndex > 0 && EqualsIndex < Candidate.Length - 1) {
+                Candidate = Candidate.Substring(EqualsIndex + 1);
+            }
+            Candidate = Candidate.Trim('"', '\'', ' ');
+            if (!LooksLikePath(Candidate) || Security.IsAllowedPath(path: Candidate)) {
+                continue;
+            }
+            Shared.IO.UI.EngineSdk.Error($"Access denied: process argument references path outside allowed areas ('{Candidate}')");
             return false;
         }
         return true;
     }
 
-    internal static DynValue RunProcess(Script lua, ICommandService cs, Table commandArgs, Table? options) {
-        List<string> arguments = Lua.Globals.Utils.TableToStringList(t: commandArgs);
-        if (arguments.Count == 0) throw new ScriptRuntimeException("run_process requires at least one argument");
-
-        string? cwd = null;
-        bool captureStdout = true;
-        bool captureStderr = true;
-        int? timeoutMs = null;
-        Dictionary<string, string> env = new();
-
-        if (options != null) {
-            DynValue v = options.Get(key: "cwd");
-            if (!v.IsNil() && v.Type == DataType.String) cwd = v.String;
-            v = options.Get(key: "capture_stdout");
-            if (v.Type == DataType.Boolean) captureStdout = v.Boolean;
-            v = options.Get(key: "capture_stderr");
-            if (v.Type == DataType.Boolean) captureStderr = v.Boolean;
-            v = options.Get(key: "timeout_ms");
-            if (v.Type == DataType.Number) timeoutMs = (int)Math.Max(val1: 0, val2: v.Number);
-            v = options.Get(key: "env");
-            if (v.Type == DataType.Table) {
-                foreach (TablePair pair in v.Table.Pairs) {
-                    if (pair.Key.Type == DataType.String && pair.Value.Type == DataType.String) {
-                        env[key: pair.Key.String] = pair.Value.String;
-                    }
-                }
-            }
-        }
-
-        if (!ValidateArgPaths(args: arguments, cwd: cwd)) throw new ScriptRuntimeException("Restricted path detected");
-
-        try {
-            ProcessResult res = cs.RunProcess(executable: arguments[index: 0], args: arguments.Skip(count: 1), cwd: cwd, env: env, timeoutMs: timeoutMs, captureStdout: captureStdout, captureStderr: captureStderr);
-            Table t = new(owner: lua) {
-                [key: "exit_code"] = res.ExitCode,
-                [key: "success"] = res.Success
-            };
-            if (captureStdout) t[key: "stdout"] = res.Stdout;
-            if (captureStderr) t[key: "stderr"] = res.Stderr;
-            return DynValue.NewTable(table: t);
-        } catch (Exception ex) {
-            throw new ScriptRuntimeException(ex.Message);
-        }
-    }
-
-    internal static DynValue ExecProcess(Script lua, ICommandService cs, Table commandArgs, Table? options, bool silentRun) {
-        List<string> parts = Lua.Globals.Utils.TableToStringList(t: commandArgs);
-        if (parts.Count == 0) throw new ScriptRuntimeException("exec requires at least one argument");
-
-        string? cwd = null;
-        bool newTerminal = false;
-        bool keepOpen = false;
-        bool wait = true;
-        Dictionary<string, string> env = new();
-
-        if (options != null) {
-            DynValue v = options.Get(key: "cwd");
-            if (!v.IsNil() && v.Type == DataType.String) cwd = v.String;
-            v = options.Get(key: "new_terminal");
-            if (v.Type == DataType.Boolean) newTerminal = v.Boolean;
-            v = options.Get(key: "keep_open");
-            if (v.Type == DataType.Boolean) keepOpen = v.Boolean;
-            v = options.Get(key: "wait");
-            if (v.Type == DataType.Boolean) wait = v.Boolean;
-            v = options.Get(key: "env");
-            if (v.Type == DataType.Table) {
-                foreach (TablePair p in v.Table.Pairs) {
-                    if (p.Key.Type == DataType.String && p.Value.Type == DataType.String) {
-                        env[key: p.Key.String] = p.Value.String;
-                    }
-                }
-            }
-        }
-
-        if (!ValidateArgPaths(args: parts, cwd: cwd)) throw new ScriptRuntimeException("Restricted path detected");
-
-        if (newTerminal) {
-            return HandleNewTerminalExecution(lua: lua, cs: cs, parts: parts, cwd: cwd, env: env, keepOpen: keepOpen, wait: wait, silentRun: silentRun);
-        }
-
-        return ExecInCurrentTerminal(lua: lua, cs: cs, parts: parts, cwd: cwd, env: env, silentRun: silentRun);
-    }
-
-    internal static DynValue SpawnProcess(Script lua, ICommandService cs, Table commandArgs, Table? options, Core.Abstractions.IJsonToolResolver tools) {
-        List<string> parts = Lua.Globals.Utils.TableToStringList(t: commandArgs);
-        if (parts.Count == 0) throw new ScriptRuntimeException("spawn_process requires executable");
-        if (!EngineNet.ScriptEngines.Security.IsApprovedExecutable(executable: parts[index: 0], tools: tools)) throw new ScriptRuntimeException("Not approved");
-
-        string? cwd = null;
-        bool captureStdout = true;
-        bool captureStderr = true;
-        Dictionary<string, string> env = new();
-
-        if (options != null) {
-            DynValue v = options.Get(key: "cwd");
-            if (!v.IsNil() && v.Type == DataType.String) cwd = v.String;
-            v = options.Get(key: "capture_stdout");
-            if (v.Type == DataType.Boolean) captureStdout = v.Boolean;
-            v = options.Get(key: "capture_stderr");
-            if (v.Type == DataType.Boolean) captureStderr = v.Boolean;
-            v = options.Get(key: "env");
-            if (v.Type == DataType.Table) {
-                foreach (TablePair pair in v.Table.Pairs) {
-                    if (pair.Key.Type == DataType.String && pair.Value.Type == DataType.String) {
-                        env[key: pair.Key.String] = pair.Value.String;
-                    }
-                }
-            }
-        }
-
-        if (!ValidateArgPaths(args: parts, cwd: cwd)) throw new ScriptRuntimeException("Restricted path detected");
-
-        try {
-            int pid = cs.SpawnProcess(executable: parts[index: 0], args: parts.Skip(count: 1), cwd: cwd, env: env, captureStdout: captureStdout, captureStderr: captureStderr);
-            Table t = new(owner: lua) {
-                [key: "pid"] = pid,
-            };
-            return DynValue.NewTable(table: t);
-        } catch (Exception ex) {
-            throw new ScriptRuntimeException(ex.Message);
-        }
-    }
-
-    internal static DynValue PollProcess(Script lua, ICommandService cs, int pid) {
-        try {
-            Core.Abstractions.ProcessPollResult res = cs.PollProcess(pid: pid);
-            Table t = new(owner: lua) {
-                [key: "running"] = res.Running,
-            };
-            if (!res.Running) t[key: "exit_code"] = res.ExitCode;
-            t[key: "stdout"] = res.StdoutFull;
-            t[key: "stderr"] = res.StderrFull;
-            t[key: "stdout_delta"] = res.StdoutDelta;
-            t[key: "stderr_delta"] = res.StderrDelta;
-            return DynValue.NewTable(table: t);
-        } catch (Exception ex) {
-            throw new ScriptRuntimeException(ex.Message);
-        }
-    }
-
-    internal static DynValue WaitProcess(Script lua, ICommandService cs, int pid, int? timeoutMs) {
-        try {
-            // Keep parity with previous behavior: wait_process acted as a status check.
-            _ = timeoutMs;
-            Core.Abstractions.ProcessPollResult res = cs.PollProcess(pid: pid);
-            Table t = new(owner: lua) {
-                [key: "running"] = res.Running,
-            };
-            if (!res.Running) t[key: "exit_code"] = res.ExitCode;
-            t[key: "stdout"] = res.StdoutFull;
-            t[key: "stderr"] = res.StderrFull;
-            t[key: "stdout_delta"] = res.StdoutDelta;
-            t[key: "stderr_delta"] = res.StderrDelta;
-            return DynValue.NewTable(table: t);
-        } catch (Exception ex) {
-            throw new ScriptRuntimeException(ex.Message);
-        }
-    }
-
-    internal static DynValue CloseProcess(Script lua, ICommandService cs, int pid) {
-        return DynValue.NewBoolean(v: cs.CloseProcess(pid: pid));
-    }
-
-    private static DynValue HandleNewTerminalExecution(Script lua, ICommandService cs, List<string> parts, string? cwd, Dictionary<string, string> env, bool keepOpen, bool wait, bool silentRun) {
-        try {
-            // Parity fallback: when no terminal emulator is available on Unix-like systems,
-            // execute in the current terminal path instead of failing.
-            if ((System.OperatingSystem.IsLinux() || System.OperatingSystem.IsMacOS()) && !HasKnownTerminalEmulator()) {
-                return ExecInCurrentTerminal(lua: lua, cs: cs, parts: parts, cwd: cwd, env: env, silentRun: silentRun);
-            }
-
-            ProcessResult res = cs.RunInNewTerminal(executable: parts[index: 0], args: parts.Skip(count: 1), cwd: cwd, env: env, keepOpen: keepOpen, wait: wait);
-            Table t = new(owner: lua) {
-                [key: "success"] = res.Success,
-                [key: "exit_code"] = res.ExitCode,
-            };
-            return DynValue.NewTable(table: t);
-        } catch (Exception ex) {
-            throw new ScriptRuntimeException(ex.Message);
-        }
-    }
-
-    /// <summary>
-    /// Executes a command in the current terminal, capturing its output and exit code.
-    /// </summary>
-    /// <param name="lua">The Lua script context.</param>
-    /// <param name="cs">The command service used to execute the command.</param>
-    /// <param name="parts">The command and its arguments as a list of strings.</param>
-    /// <param name="cwd">The current working directory for the command execution.</param>
-    /// <param name="env">Environment variables to set for the command execution.</param>
-    /// <param name="silentRun">If true, suppresses output to the terminal.</param>
-    /// <returns>A DynValue representing the result of the command execution, including success status and exit code.</returns>
-    private static DynValue ExecInCurrentTerminal(Script lua, ICommandService cs, List<string> parts, string? cwd, Dictionary<string, string> env, bool silentRun) {
-        try {
-            Dictionary<string, object?> envObj = env.ToDictionary(keySelector: k => k.Key, elementSelector: v => (object?)v.Value);
-            if (!string.IsNullOrEmpty(cwd)) {
-                envObj[key: "PWD"] = cwd;
-            }
-
-            int exitCode = -1;
-            bool success = cs.ExecuteCommand(
-                commandParts: parts,
-                title: System.IO.Path.GetFileName(path: parts[index: 0]),
-                onOutput: (msg, type) => {
-                    if (silentRun) return;
-                    string? color = type == "stderr" ? "red" : null;
-                    Shared.IO.UI.EngineSdk.Print(msg, color: color, newline: true);
-                    Shared.IO.Diagnostics.Log($"[{type}] {msg}");
-                },
-                onEvent: evt => {
-                    if (!evt.TryGetValue(key: "event", out object? ev) || !string.Equals(a: ev?.ToString(), b: "end", comparisonType: System.StringComparison.OrdinalIgnoreCase)) return;
-                    if (evt.TryGetValue(key: "exit_code", out object? code) && int.TryParse(s: code?.ToString(), result: out int parsed)) {
-                        exitCode = parsed;
-                    }
-                },
-                envOverrides: envObj
-            );
-
-            if (!success && exitCode == -1) {
-                exitCode = 1;
-            }
-
-            Table result = new(owner: lua) {
-                [key: "exit_code"] = exitCode >= 0 ? exitCode : (success ? 0 : 1),
-                [key: "success"] = success && (exitCode == 0 || exitCode == -1),
-            };
-            return DynValue.NewTable(table: result);
-        } catch (Exception ex) {
-            throw new ScriptRuntimeException(ex.Message);
-        }
-    }
-
-    /// <summary>
-    /// Checks if the current system has a known terminal emulator available.
-    /// </summary>
+    /// <summary>Checks the same known terminal-emulator paths used by the existing execution fallback.</summary>
     private static bool HasKnownTerminalEmulator() {
-        if (System.OperatingSystem.IsWindows()) {
+        if (OperatingSystem.IsWindows()) {
             return true;
         }
-
-        string[] candidates = new[] {
-            "/usr/bin/gnome-terminal",
-            "/usr/bin/konsole",
-            "/usr/bin/xterm",
-            "/usr/bin/alacritty",
-            "/usr/bin/xfce4-terminal"
-        };
-
-        return candidates.Any(predicate: static candidate => System.IO.File.Exists(path: candidate));
+        string[] Candidates = [
+            "/usr/bin/gnome-terminal", "/usr/bin/konsole", "/usr/bin/xterm",
+            "/usr/bin/alacritty", "/usr/bin/xfce4-terminal"
+        ];
+        return Candidates.Any(File.Exists);
     }
+
+    /* :: :: Validation :: END :: */
 }

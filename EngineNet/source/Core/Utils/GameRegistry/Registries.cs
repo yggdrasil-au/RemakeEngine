@@ -6,7 +6,7 @@ namespace EngineNet.Core.Utils.GameRegistry;
 
 /// <summary>
 /// The Registries class is responsible for managing the discovery and retrieval of game and module information from the file system.
-/// It provides methods to discover games based on the presence of operations files and to retrieve registered modules from a JSON registry.
+/// It provides methods to discover games based on the presence of operations files and to retrieve registered modules from a JSON or JSONC registry.
 /// The class is designed to allow dynamic refreshing of the modules registry at runtime, while the games registry is read from disk on each access to ensure it reflects the current state of installed/downloaded games without requiring manual refreshing.
 /// This design allows for flexible and up-to-date access to game and module information for use in various engine functionalities such as game launching, operations execution, and UI display.
 /// </summary>
@@ -38,43 +38,133 @@ public sealed class Registries {
     /// Initializes a new instance of the <see cref="Registries"/> class with explicit games and modules registry paths.
     /// </summary>
     /// <param name="gamesRel">Path to the games root directory.</param>
-    /// <param name="modulesRel">Path to the modules registry JSON file.</param>
+    /// <param name="modulesRel">Path to the modules registry JSON or JSONC file.</param>
     public Registries(string gamesRel, string modulesRel) {
         _gamesRegistryPath = gamesRel;
         _modulesRegistryPath = modulesRel;
-        if (System.IO.File.Exists(path: _modulesRegistryPath)) {
-            _modules = Shared.Serialization.Json.JsonHelpers.LoadJsonFile(filePath: _modulesRegistryPath);
-        }
+        RefreshModules();
     }
 
     /// <summary>
-    /// creates and initializes a new instance of the <see cref="Registries"/> class, ensuring that the modules registry file is present and loaded.
+    /// Creates and initializes a new instance of the <see cref="Registries"/> class using <see cref="EngineNet.Shared.State.RootPath"/>,
+    /// ensuring that the modules registry file (<c>Main.jsonc</c>, with legacy fallback to <c>Main.json</c>) is present and loaded.
     /// </summary>
-    /// <returns></returns>
-    public static async Task<Registries> CreateAsync() {
-        string Module_registry = System.IO.Path.Combine(path1: "EngineApps", path2: "Registries", path3: "Modules", path4: "Main.json");
+    /// <returns>An initialized <see cref="Registries"/> instance.</returns>
+    public static Task<Registries> CreateAsync() {
+        return CreateAsync(rootPath: EngineNet.Shared.State.RootPath);
+    }
 
-        // Preferred locations (relative to working root)
-        string gamesRel = System.IO.Path.Combine(path1: EngineNet.Shared.State.RootPath, path2: "EngineApps", path3: "Games");
-        string modulesRel = System.IO.Path.Combine(path1: EngineNet.Shared.State.RootPath, path2: Module_registry);
+    /// <summary>
+    /// Creates and initializes a new instance of the <see cref="Registries"/> class under the specified <paramref name="rootPath"/>,
+    /// ensuring that the modules registry file (<c>Main.jsonc</c>, with legacy fallback to <c>Main.json</c>) is present and loaded.
+    /// </summary>
+    /// <param name="rootPath">Engine root directory containing <c>EngineApps</c>.</param>
+    /// <returns>An initialized <see cref="Registries"/> instance.</returns>
+    public static async Task<Registries> CreateAsync(string rootPath) {
+        const string mainJsoncFileName = "Main.jsonc";
+        const string mainJsonFileName = "Main.json";
 
-        System.IO.Directory.CreateDirectory(path: System.IO.Path.GetDirectoryName(path: modulesRel) ?? EngineNet.Shared.State.RootPath);
+        string effectiveRoot = string.IsNullOrWhiteSpace(rootPath) ? System.IO.Directory.GetCurrentDirectory() : rootPath;
+        string mainJsoncRel = System.IO.Path.Combine(path1: "EngineApps", path2: "Registries", path3: "Modules", path4: mainJsoncFileName);
+        string mainJsonRel = System.IO.Path.Combine(path1: "EngineApps", path2: "Registries", path3: "Modules", path4: mainJsonFileName);
 
-        if (!System.IO.File.Exists(path: modulesRel)) {
-            await Core.ExternalTools.RemoteFallbacks.EnsureRepoFileAsync(repoRelativePath: Module_registry, localPath: modulesRel);
+        // Preferred locations (relative to rootPath)
+        string gamesRel = System.IO.Path.Combine(path1: effectiveRoot, path2: "EngineApps", path3: "Games");
+        string modulesJsoncPath = System.IO.Path.Combine(path1: effectiveRoot, path2: mainJsoncRel);
+        string modulesJsonPath = System.IO.Path.Combine(path1: effectiveRoot, path2: mainJsonRel);
+
+        System.IO.Directory.CreateDirectory(path: System.IO.Path.GetDirectoryName(path: modulesJsoncPath) ?? effectiveRoot);
+
+        string resolvedModulesPath;
+        if (Shared.IO.LongPathIO.FileExists(path: modulesJsoncPath)) {
+            resolvedModulesPath = modulesJsoncPath;
+        } else if (Shared.IO.LongPathIO.FileExists(path: modulesJsonPath)) {
+            resolvedModulesPath = modulesJsonPath;
+        } else if (await Core.ExternalTools.RemoteFallbacks.EnsureRepoFileAsync(repoRelativePath: mainJsoncRel, localPath: modulesJsoncPath)) {
+            resolvedModulesPath = modulesJsoncPath;
+        } else if (await Core.ExternalTools.RemoteFallbacks.EnsureRepoFileAsync(repoRelativePath: mainJsonRel, localPath: modulesJsonPath)) {
+            resolvedModulesPath = modulesJsonPath;
+        } else {
+            resolvedModulesPath = modulesJsoncPath;
         }
 
-        Registries instance = new(gamesRel: gamesRel, modulesRel: modulesRel);
+        Registries instance = new(gamesRel: gamesRel, modulesRel: resolvedModulesPath);
         return instance;
     }
 
     /// <summary>
-    /// Refreshes the modules registry by reloading the JSON file from disk. This allows dynamic updates to the available modules without restarting the engine.
+    /// Refreshes the modules registry by reloading the JSON or JSONC file from disk. This allows dynamic updates to the available modules without restarting the engine.
+    /// When the configured path is absent on disk, sibling <c>.jsonc</c>/<c>.json</c> variants are also checked before returning an empty registry.
     /// The games registry is not cached in memory, so it does not require refreshing - it is read from disk on each access to ensure it reflects the current state of installed/downloaded games.
     /// This design choice prioritizes accuracy for game discovery while allowing efficient caching for module information that is less likely to change frequently.
     /// </summary>
     public void RefreshModules() {
-        _modules = Shared.Serialization.Json.JsonHelpers.LoadJsonFile(filePath: _modulesRegistryPath);
+        string? resolvedPath = ResolveModulesRegistryPath(configuredPath: _modulesRegistryPath);
+        _modules = resolvedPath is not null
+            ? Shared.Serialization.Json.JsonHelpers.LoadJsonFile(filePath: resolvedPath)
+            : new Dictionary<string, object?>(comparer: System.StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static string? ResolveModulesRegistryPath(string configuredPath) {
+        if (string.IsNullOrWhiteSpace(configuredPath)) {
+            return null;
+        }
+
+        try {
+            if (Shared.IO.LongPathIO.FileExists(path: configuredPath)) {
+                return configuredPath;
+            }
+
+            string ext = System.IO.Path.GetExtension(path: configuredPath);
+            if (ext.Equals(".json", comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
+                string jsoncCandidate = System.IO.Path.ChangeExtension(path: configuredPath, extension: ".jsonc");
+                if (Shared.IO.LongPathIO.FileExists(path: jsoncCandidate)) {
+                    return jsoncCandidate;
+                }
+            } else if (ext.Equals(".jsonc", comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
+                string jsonCandidate = System.IO.Path.ChangeExtension(path: configuredPath, extension: ".json");
+                if (Shared.IO.LongPathIO.FileExists(path: jsonCandidate)) {
+                    return jsonCandidate;
+                }
+            }
+        } catch (System.ArgumentException ex) {
+            Shared.IO.Diagnostics.Bug(message: $"[Registries.cs::ResolveModulesRegistryPath()]:: catch: Invalid modules registry path '{configuredPath}': {ex.Message}", ex: ex);
+        } catch (System.NotSupportedException ex) {
+            Shared.IO.Diagnostics.Bug(message: $"[Registries.cs::ResolveModulesRegistryPath()]:: catch: Unsupported modules registry path '{configuredPath}': {ex.Message}", ex: ex);
+        } catch (System.IO.IOException ex) {
+            Shared.IO.Diagnostics.Bug(message: $"[Registries.cs::ResolveModulesRegistryPath()]:: catch: IO error resolving modules registry path '{configuredPath}': {ex.Message}", ex: ex);
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Resolves the operations manifest file inside a module directory, checking
+    /// <c>operations.toml</c>, <c>operations.jsonc</c>, and <c>operations.json</c> in priority order.
+    /// </summary>
+    /// <param name="moduleDirectory">Path to the candidate module directory.</param>
+    /// <returns>The path to the discovered operations file, or <see langword="null"/> when none exists.</returns>
+    internal static string? FindOperationsFile(string moduleDirectory) {
+        if (string.IsNullOrWhiteSpace(moduleDirectory)) {
+            return null;
+        }
+
+        string opsToml = System.IO.Path.Combine(path1: moduleDirectory, path2: "operations.toml");
+        if (Shared.IO.LongPathIO.FileExists(path: opsToml)) {
+            return opsToml;
+        }
+
+        string opsJsonc = System.IO.Path.Combine(path1: moduleDirectory, path2: "operations.jsonc");
+        if (Shared.IO.LongPathIO.FileExists(path: opsJsonc)) {
+            return opsJsonc;
+        }
+
+        string opsJson = System.IO.Path.Combine(path1: moduleDirectory, path2: "operations.json");
+        if (Shared.IO.LongPathIO.FileExists(path: opsJson)) {
+            return opsJson;
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -185,14 +275,7 @@ public sealed class Registries {
                     continue;
                 }
 
-                string opsToml = System.IO.Path.Combine(path1: subDir, path2: "operations.toml");
-                string opsJson = System.IO.Path.Combine(path1: subDir, path2: "operations.json");
-                string? ops = null;
-                if (System.IO.File.Exists(path: opsToml)) {
-                    ops = opsToml;
-                } else if (System.IO.File.Exists(path: opsJson)) {
-                    ops = opsJson;
-                }
+                string? ops = FindOperationsFile(moduleDirectory: subDir);
 
                 string inferredCategory = currentDepth == 0 ? string.Empty : topCategory;
                 if (ops is not null) {
@@ -206,14 +289,14 @@ public sealed class Registries {
     }
 
     /// <summary>
-    /// Discovers games by scanning the games registry directory for valid game entries. A valid game entry must contain an operations.toml or operations.json file.
+    /// Discovers games by scanning the games registry directory for valid game entries. A valid game entry must contain an <c>operations.toml</c>, <c>operations.jsonc</c>, or <c>operations.json</c> file.
     /// This method does not require a game.toml or executable entry point - it is used for discovering both installed games (with game.toml) and downloaded game assets (without game.toml).
     /// For installed games, the DiscoverBuiltGames method should be used instead, which requires a valid game.toml with an executable entry point.
     /// The returned dictionary is case-insensitive for game names. The GameInfo objects contain the path to the operations file and the game root directory, which can be used for further processing and resolution of entry points.
     /// This method is designed to provide a comprehensive view of all available games in the registry, regardless of their installation status, while DiscoverBuiltGames focuses on fully installed games with known executables.
     /// The games registry is read from disk on each call to ensure it reflects the current state of installed/downloaded games without requiring manual refreshing.
     /// This allows for dynamic discovery of new games added to the registry directory at runtime.
-    /// Note: This method does not validate the contents of the operations files or the presence of executable entry points - it only checks for the existence of the operations.toml or operations.json file to consider a directory as a valid game entry.
+    /// Note: This method does not validate the contents of the operations files or the presence of executable entry points - it only checks for the existence of the <c>operations.toml</c>, <c>operations.jsonc</c>, or <c>operations.json</c> file to consider a directory as a valid game entry.
     /// </summary>
     /// <returns></returns>
     public Dictionary<string, Core.Data.GameInfo> DiscoverGames() {

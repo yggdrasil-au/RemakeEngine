@@ -48,4 +48,44 @@ public sealed class JsonToolResolverTests {
             Directory.Delete(path: rootPath, recursive: true);
         }
     }
+
+    /// <summary>
+    /// Verifies that the lockfile loader accepts JSONC comments and trailing commas.
+    /// </summary>
+    [TestMethod]
+    public void TrackedToolResolution_SupportsCommentsAndTrailingCommasInLockfile() {
+        string rootPath = Path.Combine(path1: Path.GetTempPath(), path2: $"remake-engine-tools-jsonc-{Guid.NewGuid():N}");
+        string toolsDirectory = Path.Combine(path1: rootPath, path2: "tools");
+        string executablePath = Path.Combine(path1: toolsDirectory, path2: "ffmpeg.exe");
+
+        Directory.CreateDirectory(path: toolsDirectory);
+        File.WriteAllText(
+            path: Path.Combine(path1: rootPath, path2: "Tools.installed.json"),
+            contents: """
+                      {
+                        // Comment inside Tools.installed.json
+                        "ffmpeg": {
+                          "7.1": {
+                            "version": "7.1",
+                            "platform": "win-x64",
+                            "install_path": "tools",
+                            "exe": "tools/ffmpeg.exe",
+                            "sha256": "",
+                            "source_url": "https://example.invalid/ffmpeg.zip",
+                          },
+                        },
+                      }
+                      """
+        );
+
+        try {
+            JsonToolResolver resolver = new(rootPath: rootPath);
+            (string? executable, string? version) = resolver.ResolveExeAndVersion(toolId: "ffmpeg");
+
+            Assert.AreEqual(expected: executablePath, actual: executable);
+            Assert.AreEqual(expected: "7.1", actual: version);
+        } finally {
+            Directory.Delete(path: rootPath, recursive: true);
+        }
+    }
 }

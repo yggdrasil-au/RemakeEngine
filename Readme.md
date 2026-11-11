@@ -25,7 +25,7 @@
   - [Lua Disc Image API](#lua-disc-image-api)
   - [Built-In CLI Disc Operations](#built-in-cli-disc-operations)
 - [Module Registry, Categorization & Submodules](#module-registry-categorization--submodules)
-  - [Registry Schema & Categorization (`Main.json`)](#registry-schema--categorization-mainjson)
+  - [Registry Schema & Categorization (`Main.jsonc`)](#registry-schema--categorization-mainjsonc)
   - [Module State Lifecycle](#module-state-lifecycle)
   - [Nested Submodule Architecture & Discovery](#nested-submodule-architecture--discovery)
   - [Directory Pruning Rules](#directory-pruning-rules)
@@ -49,7 +49,7 @@
 
 - **Pure Managed Optical Disc Image Subsystem**: Native C# sector parser supporting Xbox Original (XISO, XGD1), Xbox 360 (XGD2, XGD3), PlayStation 3 hybrid (ISO-9660/Joliet/UDF), PlayStation 2, and ECMA-119 ISO-9660 with zero unmanaged dependencies.
 - **Virtual Stream Slicing (`SubStream`)**: High-performance, seekable, non-allocating windowed byte slicing across multi-gigabyte optical media without copying images to RAM.
-- **Categorized Game Module Registry**: Central registry (`EngineApps/Registries/Modules/Main.json`) supporting category containers (`Demo`, `SimpsonsGames`, `Lego`), category inheritance, and nested submodules.
+- **Categorized Game Module Registry**: Central registry (`EngineApps/Registries/Modules/Main.jsonc`, with legacy fallback to `Main.json`) supporting JSONC comments, trailing commas, category containers (`Demo`, `SimpsonsGames`, `Lego`), category inheritance, and nested submodules.
 - **Multi-Level Submodule Integration**: Automatic recursive Git cloning (`--recurse-submodules`), BFS directory scanning up to depth 4, and intelligent asset directory pruning.
 - **Embedded Polyglot Scripting**: First-class embedded Lua (MoonSharp 2.0) with rich SDK helpers (`iso`, `sdk.iso`, `sdk.extract_iso`, file hashing, path helpers), alongside JavaScript (Jint 4.17) and Python (IronPython 3.4.2).
 - **Format Converters & Codecs**: Built-in asset parsers for RenderWare TXD, Radical Pure3D (P3D), DirectDraw Surface (DDS), and BC1–BC7 texture compression.
@@ -252,9 +252,9 @@ dotnet run -c Release --project EngineNet --framework net10.0 -- \
 
 ## Module Registry, Categorization & Submodules
 
-### Registry Schema & Categorization (`Main.json`)
+### Registry Schema & Categorization (`Main.jsonc`)
 
-Modules are cataloged in `EngineApps/Registries/Modules/Main.json`. The engine dynamically parses both categorized container objects and flat legacy entries:
+Modules are cataloged in `EngineApps/Registries/Modules/Main.jsonc` (with fallback support for `Main.json`). Both JSON and JSONC (`//` line comments, `/* ... */` block comments, and trailing commas) are supported. The engine dynamically parses both categorized container objects and flat legacy entries:
 
 ```json
 {
@@ -294,7 +294,7 @@ Modules are cataloged in `EngineApps/Registries/Modules/Main.json`. The engine d
 
 - **Category Containers**: Any JSON object under `"modules"` not defining a module (lacking `id`, `path`, or `url`) acts as a category container (e.g. `"Demo"`, `"SimpsonsGames"`, `"Lego"`).
 - **Category Inheritance**: Modules defined inside a category block automatically inherit that category name unless an explicit `"category"` property is provided.
-- **Dynamic Relocation Matching**: While `Main.json` registers modules with categorized catalog paths (e.g. `EngineApps/Games/SimpsonsGames/SimpsonsHitAndRun`), Git repositories and local checkouts maintain a flat directory structure (`EngineApps/Games/SimpsonsHitAndRun`). `ModuleScanner` dynamically correlates disk paths with registry metadata, assigns the inherited category (`"SimpsonsGames"`), and marks the module `IsInstalled = true`.
+- **Dynamic Relocation Matching**: While `Main.jsonc` registers modules with categorized catalog paths (e.g. `EngineApps/Games/SimpsonsGames/SimpsonsHitAndRun`), Git repositories and local checkouts maintain a flat directory structure (`EngineApps/Games/SimpsonsHitAndRun`). `ModuleScanner` dynamically correlates disk paths with registry metadata, assigns the inherited category (`"SimpsonsGames"`), and marks the module `IsInstalled = true`.
 
 ### Module State Lifecycle
 
@@ -302,11 +302,11 @@ Module readiness is evaluated dynamically across five state flags:
 
 | State Badge | Qualification Criteria | Description |
 | :--- | :--- | :--- |
-| **`[Registered]`** | Defined in `Main.json` | Officially indexed in the engine module catalog. |
-| **`[Installed]`** | Directory contains `operations.toml` or `operations.json` | Manifest is present and readable on local disk. |
+| **`[Registered]`** | Defined in `Main.jsonc` (or `Main.json`) | Officially indexed in the engine module catalog. |
+| **`[Installed]`** | Directory contains `operations.toml`, `operations.jsonc`, or `operations.json` | Manifest is present and readable on local disk. |
 | **`[Built]`** | `game.toml` exists with runnable entry point on disk (`exe`, `lua`, or `godot`) | Game executable exists and can be launched immediately. |
 | **`[Unbuilt]`** | `IsInstalled == true`, but `IsBuilt == false` | Manifest exists, but build operations have not produced the target binary. |
-| **`[Unverified]`** | `IsInstalled == true`, but not present in `Main.json` | Local custom or experimental module discovered on disk. |
+| **`[Unverified]`** | `IsInstalled == true`, but not present in `Main.jsonc` (or `Main.json`) | Local custom or experimental module discovered on disk. |
 | **`[Internal]`** | Discovered from `EngineApps/Registries/ops/*.toml` | Engine system operations (e.g. `gitDownload`). |
 
 ### Nested Submodule Architecture & Discovery
@@ -439,7 +439,7 @@ Exit
 A modern cross-platform GUI built with Avalonia UI (12.1) and ReactiveUI:
 
 - **Library Page**: Game module grid with cover art, category pills (`#2563EB`), state badges (`[Built]`, `[Unbuilt]`, `[Registered]`, `[Unverified]`), and dynamic primary actions ("Play" for built games, "Run All Build Operations" for unbuilt modules).
-- **Store Page**: Central catalog browser connecting to `Main.json`. Search and filter by module name, title, or category, with one-click Git cloning (`--recurse-submodules`).
+- **Store Page**: Central catalog browser connecting to `Main.jsonc` (or fallback `Main.json`). Search and filter by module name, title, or category, with one-click Git cloning (`--recurse-submodules`).
 - **Module Page**: Comprehensive operations console displaying game metadata, local paths, executable paths, and an interactive Operations Table with individual "Run" buttons for every manifest step.
 - **Build Page**: Live log streaming console bound to `OperationOutputService` with auto-scroll and stdout/stderr color highlighting.
 - **Settings Page**: Project-wide configuration editor managing workspace paths and tool search directories.
@@ -525,7 +525,7 @@ RemakeEngine/
       Lego/                   # Parent Lego research module with nested game submodules
     Registries/
       Modules/
-        Main.json             # Central categorized module catalog
+        Main.jsonc            # Central categorized module catalog (JSONC)
       Tools/                  # Tool dependency manifests
       ops/                    # Internal engine operations (e.g. gitDownload)
     Tools/                    # Dynamic versioned tool installations (Blender, FFmpeg, QuickBMS)
@@ -597,5 +597,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, PascalCase c
 ### Non-Commercial Module Policy
 
 Modules that target copyrighted games or proprietary assets must respect our **Non-Commercial Module Policy**:
-- To be listed in the official module registry (`Main.json`), modules targeting copyrighted media must use a non-commercial license specifying that reproduction, extraction, and tooling are strictly for non-commercial research, personal preservation, and reverse-engineering purposes (see [CONTRIBUTING.md](CONTRIBUTING.md) and [CLA.md](CLA.md)).
+- To be listed in the official module registry (`Main.jsonc`), modules targeting copyrighted media must use a non-commercial license specifying that reproduction, extraction, and tooling are strictly for non-commercial research, personal preservation, and reverse-engineering purposes (see [CONTRIBUTING.md](CONTRIBUTING.md) and [CLA.md](CLA.md)).
 - Modules licensed under commercial-friendly licenses will not be cataloged in the official registry if they target protected third-party media without explicit legal authorization.

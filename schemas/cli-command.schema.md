@@ -50,7 +50,7 @@ You can execute a specific operation or script directly from the CLI. This mode 
 
 ### File-Driven Operation Execution
 
-When `--run_op` or `--run_all` is present, the CLI loads the module's `operations.toml` or `operations.json` and executes the selected manifest entry instead of building an ad-hoc script command.
+When `--run_op` or `--run_all` is present, the CLI loads the module's `operations.toml`, `operations.jsonc`, or `operations.json` and executes the selected manifest entry instead of building an ad-hoc script command.
 
 ### `--run_op`
 

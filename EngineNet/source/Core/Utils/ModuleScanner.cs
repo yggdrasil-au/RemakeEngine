@@ -129,17 +129,10 @@ public sealed class ModuleScanner {
 
             string GameRoot = !string.IsNullOrWhiteSpace(path) ? System.IO.Path.Combine(path1: EngineNet.Shared.State.RootPath, path2: path) : string.Empty;
 
-            // opts file could be .toml or .json;
-            string opsFile = string.Empty;
-            if (!string.IsNullOrWhiteSpace(GameRoot)) {
-                string opsToml = System.IO.Path.Combine(path1: GameRoot, path2: "operations.toml");
-                string opsJson = System.IO.Path.Combine(path1: GameRoot, path2: "operations.json");
-                if (System.IO.File.Exists(path: opsToml)) {
-                    opsFile = opsToml;
-                } else if (System.IO.File.Exists(path: opsJson)) {
-                    opsFile = opsJson;
-                }
-            }
+            // Operations manifest file can be .toml, .jsonc, or .json.
+            string opsFile = !string.IsNullOrWhiteSpace(GameRoot)
+                ? GameRegistry.Registries.FindOperationsFile(moduleDirectory: GameRoot) ?? string.Empty
+                : string.Empty;
 
             Data.GameModuleInfo info = new()
             {

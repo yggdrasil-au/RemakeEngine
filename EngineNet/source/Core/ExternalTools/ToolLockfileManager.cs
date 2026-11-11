@@ -3,9 +3,7 @@ using System.Text.Json;
 namespace EngineNet.Core.ExternalTools;
 
 internal static class ToolLockfileManager {
-    private static readonly JsonSerializerOptions ReadOptions = new() {
-        PropertyNameCaseInsensitive = true
-    };
+    private static readonly JsonSerializerOptions ReadOptions = Shared.Serialization.Json.JsonHelpers.SerializerOptions;
 
     private static readonly JsonSerializerOptions WriteOptions = new() {
         WriteIndented = true

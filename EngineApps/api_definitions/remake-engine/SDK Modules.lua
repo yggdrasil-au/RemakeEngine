@@ -291,7 +291,7 @@ local SdkTextJson = {}
 ---@return string json
 function SdkTextJson.encode(value, opts) end
 
---- Decodes JSON into Lua values.
+--- Decodes JSON or JSONC (comments and trailing commas) into Lua values.
 ---@param json string?
 ---@return any value
 function SdkTextJson.decode(json) end
@@ -332,7 +332,7 @@ sdk.text.yaml = {}
 ---@return string json
 function sdk.text.json.encode(value, opts) end
 
---- Decodes JSON into Lua values.
+--- Decodes JSON or JSONC (comments and trailing commas) into Lua values.
 ---@param json string?
 ---@return any|nil value
 function sdk.text.json.decode(json) end

@@ -172,7 +172,7 @@ internal static class Helpers {
                     return true;
                 }
                 // For other formats, suggest using approved tools
-                Shared.IO.UI.EngineSdk.Error($"Unsupported archive format '{ext}'. Use 7z tool from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" for other formats.");
+                Shared.IO.UI.EngineSdk.Error($"Unsupported archive format '{ext}'. Use 7z tool from \"EngineApps\", \"Registries\", \"Tools\", \"**.json\" for other formats.");
                 return false;
             } catch (System.Exception ex) {
                 Shared.IO.UI.EngineSdk.Error($"Archive extraction failed: {ex.Message}"); // output directly to UI, consider returning error to lua instead
@@ -205,7 +205,7 @@ internal static class Helpers {
                     return true;
                 }
                 // For other formats, suggest using approved tools
-                Shared.IO.UI.EngineSdk.Error($"Unsupported archive type '{type}'. Use 7z tool from \"EngineApps\", \"Registries\", \"Tools\", \"Main.json\" for other formats.");
+                Shared.IO.UI.EngineSdk.Error($"Unsupported archive type '{type}'. Use 7z tool from \"EngineApps\", \"Registries\", \"Tools\", \"**.json\" for other formats.");
                 return false;
             } catch (System.Exception ex) {
                 Shared.IO.UI.EngineSdk.Error($"Archive creation failed: {ex.Message}");

@@ -1,0 +1,79 @@
+{
+	"modules": {
+		"Demo": {
+			"demo": {
+				"id": "480",
+				"path": "EngineApps/Games/demo"
+			}
+		},
+		"SimpsonsGames": {
+			"TheSimpsonsGame-PS3": {
+				"id": "1",
+				"path": "EngineApps/Games/TheSimpsonsGame-PS3",
+				"url": "https://github.com/Superposition28/TheSimpsonsGame-PS3.git"
+			},
+			"TheSimpsonsGame-PS2": {
+				"id": "2",
+				"path": "EngineApps/Games/SimpsonsGames/TheSimpsonsGame-PS2",
+				"url": "https://github.com/Superposition28/TheSimpsonsGame-PS2.git"
+			},
+			"SimpsonsHitAndRun": {
+				"id": "3",
+				"path": "EngineApps/Games/SimpsonsGames/SimpsonsHitAndRun",
+				"url": "https://github.com/Superposition28/SimpsonsHitAndRun.git"
+			},
+			"TheSimpsonsRoadRage-PS2": {
+				"id": "4",
+				"path": "EngineApps/Games/SimpsonsGames/TheSimpsonsRoadRage-PS2",
+				"url": "https://github.com/Superposition28/TheSimpsonsRoadRage-PS2.git"
+			}
+		},
+		"Lego": {
+			"Lego": {
+				"id": "5",
+				"path": "EngineApps/Games/Lego",
+				"url": "https://github.com/Superposition28/Lego.git"
+			},
+			"Lego_Batman": {
+				"id": "6",
+				"path": "EngineApps/Games/Lego/Games/Lego_Batman",
+				//"url": "https://github.com/Superposition28/Lego_Batman.git"
+			},
+			"Lego_Dimensions": {
+				"id": "7",
+				"path": "EngineApps/Games/Lego/Games/Lego_Dimensions",
+				//"url": "https://github.com/Superposition28/Lego_Dimensions.git"
+			},
+			"Lego_Harry_Potter": {
+				"id": "8",
+				"path": "EngineApps/Games/Lego/Games/Lego_Harry_Potter",
+				"url": "https://github.com/Superposition28/Lego_Harry_Potter.git"
+			},
+			"Lego_Indiana_Jones": {
+				"id": "9",
+				"path": "EngineApps/Games/Lego/Games/Lego_Indiana_Jones",
+				//"url": "https://github.com/Superposition28/Lego_Indiana_Jones.git"
+			},
+			"Lego_Marvel_Super_Heroes": {
+				"id": "10",
+				"path": "EngineApps/Games/Lego/Games/Lego_Marvel_Super_Heroes",
+				//"url": "https://github.com/Superposition28/Lego_Marvel_Super_Heroes.git"
+			},
+			"Lego_Pirates_of_the_Caribbean": {
+				"id": "11",
+				"path": "EngineApps/Games/Lego/Games/Lego_Pirates_of_the_Caribbean",
+				//"url": "https://github.com/Superposition28/Lego_Pirates_of_the_Caribbean.git"
+			},
+			"Lego_Star_Wars": {
+				"id": "12",
+				"path": "EngineApps/Games/Lego/Games/Lego_Star_Wars",
+				//"url": "https://github.com/Superposition28/Lego_Star_Wars.git"
+			},
+			"Lego_Worlds": {
+				"id": "13",
+				"path": "EngineApps/Games/Lego/Games/Lego_Worlds",
+				//"url": "https://github.com/Superposition28/Lego_Worlds.git"
+			}
+		}
+	}
+}

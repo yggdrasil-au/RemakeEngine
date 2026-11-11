@@ -4,7 +4,7 @@ EngineNet.Shared is the reusable support library for the engine's serialization 
 
 ## Responsibilities
 - Provide TOML helpers for module tools, config, and operation manifests.
-- Provide JSON helpers and DOM-to-plain-object conversion utilities.
+- Provide JSON and JSONC (comments and trailing commas) helpers and DOM-to-plain-object conversion utilities.
 - Provide YAML helpers for script-facing and runtime document conversion.
 - Provide diagnostics and logging helpers used by Core and script runtimes.
 - Provide reusable long-path-aware filesystem operations and scoped short directory aliases for legacy external processes.
@@ -12,7 +12,7 @@ EngineNet.Shared is the reusable support library for the engine's serialization 
 
 ## Area Map
 - `Serialization/Toml/`: TOML read/write helpers built on Tomlyn.
-- `Serialization/Json/`: JSON loading helpers and document-model conversion.
+- `Serialization/Json/`: JSON/JSONC loading helpers and shared comment/trailing-comma parsing options.
 - `Serialization/Yaml/`: YAML parsing and serialization helpers.
 - `Serialization/DocModelConverter.cs`: shared DOM-to-plain-object conversion helpers.
 - `IO/Diagnostics.cs`: shared logging, trace, and exception logging helper (namespace `EngineNet.Shared.IO`).

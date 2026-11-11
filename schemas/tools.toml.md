@@ -67,6 +67,6 @@ unpack = true
 
 Each declared tool/version must exist in the central registry:
 
-- `EngineApps/Registries/Tools/<ToolName>/*.json`
+- `EngineApps/Registries/Tools/<ToolName>/*.json` or `*.jsonc`
 
 Registry entries are platform-specific and provide download URL, checksum, and optional executable hints.

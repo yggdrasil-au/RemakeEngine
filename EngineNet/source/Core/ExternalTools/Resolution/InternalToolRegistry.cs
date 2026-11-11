@@ -3,8 +3,8 @@ using System.Text.Json;
 namespace EngineNet.Core.ExternalTools;
 
 /// <summary>
-/// Dynamically assembles the tools registry from fragmented JSON files in the Tools directory.
-/// Scans EngineApps/Registries/Tools/ and deep-merges all JSON files found in each subfolder.
+/// Dynamically assembles the tools registry from fragmented JSON and JSONC files in the Tools directory.
+/// Scans EngineApps/Registries/Tools/ and deep-merges all JSON and JSONC files found in each subfolder.
 /// </summary>
 internal static class InternalToolRegistry {
     private static readonly string ToolsRegistryRoot = Path.Combine(path1: EngineNet.Shared.State.RootPath, path2: "EngineApps", path3: "Registries", path4: "Tools");
@@ -14,27 +14,43 @@ internal static class InternalToolRegistry {
     /// Result structure: { "ToolName": { "Version": { "Platform": { "url": "...", ... } } } }
     /// </summary>
     internal static Dictionary<string, object?> Assemble() {
+        return Assemble(toolsRegistryRoot: ToolsRegistryRoot);
+    }
+
+    internal static Dictionary<string, object?> Assemble(string toolsRegistryRoot) {
         Dictionary<string, object?> registry = new(comparer: StringComparer.OrdinalIgnoreCase);
 
-        if (!Directory.Exists(path: ToolsRegistryRoot)) {
-            Shared.IO.Diagnostics.Trace($"Tools registry root not found: {ToolsRegistryRoot}");
+        if (string.IsNullOrWhiteSpace(toolsRegistryRoot) || !Directory.Exists(path: toolsRegistryRoot)) {
+            Shared.IO.Diagnostics.Trace($"Tools registry root not found: {toolsRegistryRoot}");
             return registry;
         }
 
-        foreach (string toolDir in Directory.GetDirectories(path: ToolsRegistryRoot)) {
+        foreach (string toolDir in Directory.GetDirectories(path: toolsRegistryRoot)) {
             string toolName = Path.GetFileName(path: toolDir);
             Dictionary<string, object?> toolData = new(comparer: StringComparer.OrdinalIgnoreCase);
 
-            foreach (string jsonFile in Directory.GetFiles(path: toolDir, searchPattern: "*.json")) {
+            IEnumerable<string> manifestFiles = Directory.EnumerateFiles(path: toolDir)
+                .Where(predicate: file =>
+                    file.EndsWith(value: ".json", comparisonType: StringComparison.OrdinalIgnoreCase) ||
+                    file.EndsWith(value: ".jsonc", comparisonType: StringComparison.OrdinalIgnoreCase))
+                .OrderBy(keySelector: file => file, comparer: StringComparer.OrdinalIgnoreCase);
+
+            foreach (string jsonFile in manifestFiles) {
                 try {
-                    string content = File.ReadAllText(path: jsonFile);
-                    Dictionary<string, object?>? fileData = JsonSerializer.Deserialize<Dictionary<string, object?>>(json: content);
+                    string content = Shared.IO.LongPathIO.ReadAllText(path: jsonFile);
+                    Dictionary<string, object?>? fileData = Shared.Serialization.Json.JsonHelpers.Deserialize<Dictionary<string, object?>>(json: content);
                     if (fileData != null) {
                         MergeDictionaries(target: toolData, source: fileData);
                     }
-                } catch (Exception ex) {
-                    Shared.IO.Diagnostics.Bug($"Error parsing registry fragment '{jsonFile}'.", ex: ex);
+                } catch (JsonException ex) {
+                    Shared.IO.Diagnostics.Bug(message: $"[InternalToolRegistry.cs::Assemble()]:: catch: Error parsing registry fragment '{jsonFile}': {ex.Message}", ex: ex);
                     Shared.IO.Diagnostics.Log($"Error parsing {jsonFile}: {ex.Message}");
+                } catch (IOException ex) {
+                    Shared.IO.Diagnostics.Bug(message: $"[InternalToolRegistry.cs::Assemble()]:: catch: IO error reading registry fragment '{jsonFile}': {ex.Message}", ex: ex);
+                    Shared.IO.Diagnostics.Log($"Error reading {jsonFile}: {ex.Message}");
+                } catch (UnauthorizedAccessException ex) {
+                    Shared.IO.Diagnostics.Bug(message: $"[InternalToolRegistry.cs::Assemble()]:: catch: Access denied reading registry fragment '{jsonFile}': {ex.Message}", ex: ex);
+                    Shared.IO.Diagnostics.Log($"Access denied reading {jsonFile}: {ex.Message}");
                 }
             }
 

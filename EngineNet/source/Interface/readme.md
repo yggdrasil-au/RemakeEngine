@@ -21,7 +21,7 @@ Instead of selecting an operation by name or ID from a list, you provide the ope
   * **Bypasses Definitions:** You do not need to register a script in a game's config file to run it.
   * **Inline Construction:** The operation is assembled in memory based on your flags (`--script`, `--game`, `--arg`).
   * **Ad-Hoc Execution:** Useful for testing a new script quickly or running one-off maintenance tasks that don't warrant a permanent entry in the operations list.
-  * **Manifest Execution:** Use `--run_op` or `--run_all` to execute operations already defined in a module's `operations.toml` or `operations.json` file.
+  * **Manifest Execution:** Use `--run_op` or `--run_all` to execute operations already defined in a module's `operations.toml`, `operations.jsonc`, or `operations.json` file.
   * **Module Resolution:** `--game_module` accepts a registered module's exact name, registered ID, or a filesystem path, in that order.
 
 **Example:**

@@ -167,7 +167,7 @@ internal static class Security {
 
     /// <summary>
     /// Security validation: Check if executable is approved for RemakeEngine use.
-    /// Allows installed lockfile tools and a limited set of system utilities.
+    /// Allows only executables approved by the installed-tool resolver.
     /// </summary>
     internal static bool IsApprovedExecutable(string executable, Core.Abstractions.IJsonToolResolver tools) {
         // deny invalid input, such as null, empty, whitespace strings, or invalid characters that cannot be in a file path for any OS

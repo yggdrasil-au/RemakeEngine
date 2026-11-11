@@ -80,7 +80,7 @@ public sealed partial class StorePage:UserControl, INotifyPropertyChanged {
                 throw new InvalidOperationException("Engine is not initialized.");
             }
 
-            // Get registered modules from EngineApps\Registries\Modules\Main.json
+            // Get registered modules from EngineApps\Registries\Modules\Main.jsonc (or legacy Main.json)
             GuiBootstrapper.MiniEngine.GameRegistry_RefreshModules();
             IReadOnlyDictionary<string, object?> modules = GuiBootstrapper.MiniEngine.GameRegistry_GetRegisteredModules();
 

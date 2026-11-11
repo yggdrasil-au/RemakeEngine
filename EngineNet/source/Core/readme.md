@@ -5,7 +5,7 @@ EngineNet.Core is the runtime layer behind CLI, TUI, and GUI. For most users and
 ## Responsibilities
 - Store runtime state shared by all interfaces.
 - Discover modules via registries and directory scanning.
-- Load and prepare operations from `operations.toml` or `operations.json`.
+- Load and prepare operations from `operations.toml`, `operations.jsonc`, or `operations.json`.
 - Collect prompt answers and apply defaults.
 - Build execution context from engine config and module config placeholders.
 - Resolve placeholders in operation payloads.
@@ -35,7 +35,7 @@ EngineNet.Core is the runtime layer behind CLI, TUI, and GUI. For most users and
 The reusable serialization, diagnostics, and UI bridge helpers now live in [../Shared/readme.md](../Shared/readme.md) and are referenced by Core rather than owned by it.
 
 ## operations.toml-Centric Execution Path
-1. `Services/OperationsService/OperationsLoader.cs` (`LoadOperations`) parses `operations.toml` or `operations.json` into operation dictionaries and annotates each with `_source_file`.
+1. `Services/OperationsService/OperationsLoader.cs` (`LoadOperations`) parses `operations.toml`, `operations.jsonc`, or `operations.json` into operation dictionaries and annotates each with `_source_file`.
 2. `Services/OperationsService/OperationsService.cs` (`LoadAndPrepare`) validates IDs, computes menu-ready metadata, and separates `init` and regular operations.
 3. `Services/OperationsService/OperationsService.cs` (`CollectAnswersAsync`) gathers prompt answers from the active interface.
 4. `Utils/ExecutionContextBuilder.cs` (`Build`) composes runtime placeholder context from engine config, game metadata, and module `config.toml` placeholders.

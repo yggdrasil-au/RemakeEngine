@@ -4,12 +4,13 @@ namespace EngineNet.Core.Services.OperationsService;
 public sealed class OperationsLoader : Core.Abstractions.IOperationsLoader {
 
     /// <summary>
-    /// Loads operations from a specified file, supporting both JSON and TOML formats.
+    /// Loads operations from a specified file, supporting TOML, JSON, and JSONC (with comments and trailing commas).
     /// The method determines the file type based on its extension and parses it accordingly.
-    /// For JSON files, it supports both array and grouped formats. For TOML files, it looks for arrays of tables under any key.
+    /// For JSON/JSONC files, it supports both array and grouped formats. For TOML files, it looks for arrays of tables under any key.
     /// Each loaded operation is enriched with a "_source_file" key indicating the origin file.
     /// In case of any parsing errors, the method logs the issue and returns null.
-    /// </summary> <param name="opsFile">The path to the operations file (JSON or TOML).</param>
+    /// </summary>
+    /// <param name="opsFile">The path to the operations file (TOML, JSON, or JSONC).</param>
     /// <returns>A list of operations represented as dictionaries, or null if an error occurs.</returns>
     internal List<Dictionary<string, object?>>? LoadOperations(string opsFile) {
         try {
@@ -46,9 +47,19 @@ public sealed class OperationsLoader : Core.Abstractions.IOperationsLoader {
                 return list;
             }
 
-            // JSON
-            using System.IO.FileStream fs = System.IO.File.OpenRead(path: opsFile);
-            using System.Text.Json.JsonDocument jdoc = System.Text.Json.JsonDocument.Parse(utf8Json: fs);
+            // JSON / JSONC
+            using System.IO.FileStream fs = Shared.IO.LongPathIO.OpenFile(
+                path: opsFile,
+                mode: FileMode.Open,
+                access: FileAccess.Read,
+                share: FileShare.ReadWrite
+            );
+            using System.Text.Json.JsonDocument? jdoc = Shared.Serialization.Json.JsonHelpers.ParseDocumentOrNullIfEmpty(utf8Json: fs);
+            if (jdoc is null) {
+                Shared.IO.Diagnostics.Trace($"loaded 0 operations from empty/comment-only ops file '{opsFile}'.");
+                return new List<Dictionary<string, object?>>();
+            }
+
             if (jdoc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array) {
                 List<Dictionary<string, object?>> list = new();
                 foreach (System.Text.Json.JsonElement item in jdoc.RootElement.EnumerateArray()) {

@@ -442,9 +442,10 @@ CLI Operation Overrides & Inputs:
         if ((trimmed.StartsWith("[", comparisonType: System.StringComparison.Ordinal) && trimmed.EndsWith("]", comparisonType: System.StringComparison.Ordinal)) ||
             (trimmed.StartsWith("{", comparisonType: System.StringComparison.Ordinal) && trimmed.EndsWith("}", comparisonType: System.StringComparison.Ordinal))) {
             try {
-                using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(json: trimmed);
+                using System.Text.Json.JsonDocument doc = Shared.Serialization.Json.JsonHelpers.ParseDocument(json: trimmed);
                 return FromJsonElement(element: doc.RootElement);
-            } catch (System.Text.Json.JsonException) {
+            } catch (System.Text.Json.JsonException ex) {
+                Shared.IO.Diagnostics.Bug(message: $"[StaticHelpers.cs::ParseValueToken()]:: catch: JSON parse fallback for token '{trimmed}': {ex.Message}", ex: ex);
                 // fall back to string literal
             }
         }
@@ -503,7 +504,7 @@ CLI Operation Overrides & Inputs:
 
     internal static IEnumerable<string> ParseArgsJson(string json) {
         try {
-            using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(json: json);
+            using System.Text.Json.JsonDocument doc = Shared.Serialization.Json.JsonHelpers.ParseDocument(json: json);
             if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Array) {
                 return System.Array.Empty<string>();
             }
@@ -513,7 +514,8 @@ CLI Operation Overrides & Inputs:
                 values.Add(item: element.ToString());
             }
             return values;
-        } catch (System.Text.Json.JsonException) {
+        } catch (System.Text.Json.JsonException ex) {
+            Shared.IO.Diagnostics.Bug(message: $"[StaticHelpers.cs::ParseArgsJson()]:: catch: Invalid JSON array '{json}': {ex.Message}", ex: ex);
             return System.Array.Empty<string>();
         }
     }

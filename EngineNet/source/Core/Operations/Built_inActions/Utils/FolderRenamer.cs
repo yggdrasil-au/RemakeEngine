@@ -194,10 +194,15 @@ internal static class FolderRenamer {
     }
 
     private static Dictionary<string, string>? LoadFromJson(string jsonPath, out string description) {
-        description = $"JSON file '{jsonPath}'";
+        description = $"JSON/JSONC file '{jsonPath}'";
         try {
-            string text = System.IO.File.ReadAllText(path: jsonPath);
-            System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(json: text);
+            string text = Shared.IO.LongPathIO.ReadAllText(path: jsonPath);
+            using System.Text.Json.JsonDocument? doc = Shared.Serialization.Json.JsonHelpers.ParseDocumentOrNullIfEmpty(json: text);
+            if (doc is null) {
+                WriteWarn($"JSON rename map file is empty: {jsonPath}");
+                return new Dictionary<string, string>();
+            }
+
             if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object) {
                 WriteError($"JSON root must be an object with name mappings: {jsonPath}");
                 return null;

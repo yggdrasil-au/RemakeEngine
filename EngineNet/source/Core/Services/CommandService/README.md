@@ -28,6 +28,13 @@ callbacks. `ProcessOutputQueue` owns the bounded 1,000-line queue and shared
 stdout/stderr enqueue behavior. `ProcessRunner.Lifecycle.cs` owns invocation
 logging and reader teardown.
 
+Executable approval follows the script engine's allow-only policy: valid paths
+must pass `IJsonToolResolver.IsTrackedTool`. The default runner reads
+`Tools.installed.json` under the engine root; callers can also supply a resolver.
+Tracked tool executables and bundled companions are allowed. Executable names,
+system utilities, and paths containing `Tools` receive no special treatment.
+Untracked commands fail before process startup or completion/error callbacks.
+
 The runner keeps individual tokens in `ProcessStartInfo.ArgumentList`, UTF-8
 stdout/stderr, and the established polling, drain, and cleanup order. Output
 callbacks run on the consuming thread. Cancellation terminates the process tree

@@ -29,7 +29,7 @@ public sealed partial class ProcessRunner : Core.Abstractions.IProcessRunner {
             onOutput?.Invoke(line: $"Operation '{opTitle}' has no executable specified. Skipping.", streamName: "stderr");
             return false;
         }
-        if (!IsApprovedExecutable(executable: commandParts[0], onOutput: onOutput)) {
+        if (!IsApprovedExecutable(Executable: commandParts[0], OnOutput: onOutput)) {
             return false;
         }
 

@@ -388,53 +388,83 @@ end
 
 progress.script.step('Testing process execution (run_process)')
 
--- step temporarily removed, change to use a engine installed Tool, such as 'blender' to ensure it exists,
--- git is not guaranteed, and the run_process sec system nolonger allows unmanaged external executables
-
--- SDK Process execution - run_process (safer, captures output)
--- Using 'git --version' as a reliable, cross-platform, approved executable
---[[local process_result = sdk.run_process({'git', '--version'}, {
-    capture_stdout = true,
-    capture_stderr = true,
-    timeout_ms = 5000
-})--]]
-
---if process_result then
---    sdk.color_print('cyan', 'run_process exit code: ' .. tostring(process_result.exit_code))
---    sdk.color_print('cyan', 'run_process success: ' .. tostring(process_result.success))
---    if process_result.stdout then
---        sdk.color_print('cyan', 'run_process stdout: ' .. process_result.stdout)
---    end
---end
+-- Process approval uses tracked installations from Tools.installed.json.
+-- Resolve the full executable path; names and paths containing "Tools" do not grant approval.
+---@type string
+local ToolExecutable = tool('ffmpeg')
+---@type table|nil
+local ProcessResult = nil
+if ToolExecutable ~= 'ffmpeg' then
+    ---@type boolean, table|string
+    local RunOk, RunResult = pcall(sdk.run_process, {ToolExecutable, '-version'}, {
+        capture_stdout = true,
+        capture_stderr = true,
+        timeout_ms = 5000
+    })
+    if RunOk then
+        ProcessResult = RunResult
+        sdk.color_print('cyan', 'Tracked tool run_process exit code: ' .. tostring(RunResult.exit_code))
+        sdk.color_print('cyan', 'Tracked tool run_process success: ' .. tostring(RunResult.success))
+    else
+        sdk.color_print('yellow', 'Tracked ffmpeg could not run: ' .. tostring(RunResult))
+    end
+else
+    sdk.color_print('yellow', 'Process demo skipped: install ffmpeg with the engine to track its executable.')
+end
 
 progress.script.step('Testing process execution (exec)')
 
 sdk.color_print('yellow', '--- Process Execution Examples ---')
-sdk.color_print('white', 'The RemakeEngine has two process execution methods with different purposes:')
+sdk.color_print('white', "sdk.exec({tool('ffmpeg'), '-version'}, {wait=true}) -- Streams output")
+sdk.color_print('white', "sdk.run_process({tool('ffmpeg'), '-version'}, {capture_stdout=true}) -- Captures output")
+sdk.color_print('white', 'Both methods require tracked tools; use SDK methods for filesystem operations.')
+if ProcessResult and ProcessResult.success then
+    ---@type boolean, table|string
+    local ExecOk, ExecResult = pcall(sdk.exec, {ToolExecutable, '-version'}, {
+        wait = true,
+        new_terminal = false
+    })
+    if ExecOk then
+        sdk.color_print('cyan', 'Tracked tool exec success: ' .. tostring(ExecResult.success))
+    else
+        sdk.color_print('yellow', 'Tracked tool exec failed: ' .. tostring(ExecResult))
+    end
 
--- ❌ INCORRECT: Common mistakes developers make
-sdk.color_print('cyan', '❌ INCORRECT approaches:')
-sdk.color_print('white', "sdk.exec('echo hello')  -- Wrong: expects table, not string")
-sdk.color_print('white', "sdk.exec({'cmd', '/c', 'echo hello && pause'})  -- Problematic: blocks indefinitely")
---sdk.color_print('white', "sdk.run_process('git status')  -- Wrong: expects table of command parts")
+    ---@type boolean, ExecResult|string
+    local SilentOk, SilentResult = pcall(sdk.execSilent, {ToolExecutable, '-version'})
+    sdk.color_print('cyan', 'Tracked tool execSilent success: ' .. tostring(SilentOk and SilentResult.success))
 
--- ✅ CORRECT: Proper usage
-sdk.color_print('green', '✅ CORRECT approaches:')
-sdk.color_print('white', "sdk.exec({'git', '--version'}, {wait=true})  -- Streams output to terminal")
---sdk.color_print('white', "sdk.run_process({'git', 'status'}, {capture_stdout=true})  -- Captures output")
-sdk.color_print('white', 'Use exec() for interactive processes, run_process() to capture output')
-
--- SDK Process execution - exec (streams to current terminal)
--- Using 'git --version' as a reliable, cross-platform, approved executable
---local exec_result = sdk.exec({'git', '--version'}, {
---    wait = true,
---    new_terminal = false
---})
-
---if exec_result then
---    sdk.color_print('cyan', 'exec exit code: ' .. tostring(exec_result.exit_code))
---    sdk.color_print('cyan', 'exec success: ' .. tostring(exec_result.success))
---end
+    -- Background calls return a managed ID and status tables; always close the managed process.
+    ---@type boolean, SpawnResult|string
+    local SpawnOk, SpawnResult = pcall(sdk.spawn_process, {ToolExecutable, '-version'})
+    if SpawnOk then
+        ---@type boolean, ProcessStatus|string
+        local StatusOk, StatusResult = pcall(function()
+            ---@type ProcessStatus
+            local Status = sdk.poll_process(SpawnResult.pid)
+            for Attempt = 1, 100 do
+                if not Status.running then
+                    break
+                end
+                sdk.sleep(0.02)
+                Status = sdk.poll_process(SpawnResult.pid)
+            end
+            -- wait_process currently returns a status snapshot; it does not block for this timeout.
+            return sdk.wait_process(SpawnResult.pid, 0)
+        end)
+        ---@type boolean
+        local Closed = sdk.close_process(SpawnResult.pid)
+        if StatusOk then
+            sdk.color_print('cyan', 'Background process exit code: ' .. tostring(StatusResult.exit_code))
+            sdk.color_print('cyan', 'Background output is a string: ' .. tostring(type(StatusResult.stdout) == 'string'))
+        else
+            sdk.color_print('yellow', 'Background process status failed: ' .. tostring(StatusResult))
+        end
+        sdk.color_print('cyan', 'Background process closed: ' .. tostring(Closed))
+    else
+        sdk.color_print('yellow', 'Tracked tool spawn failed: ' .. tostring(SpawnResult))
+    end
+end
 
 progress.script.step('Testing SQLite operations')
 
@@ -581,7 +611,7 @@ local comprehensive_summary = {
         toml_operations = loaded_toml ~= nil,
         yaml_operations = loaded_yaml ~= nil and loaded_yaml_alt ~= nil and decoded_yaml ~= nil,
         sqlite_operations = count_after_rollback > 0,
-        process_execution = process_result and process_result.success,
+        process_execution = ProcessResult and ProcessResult.success,
         json_module = true
     },
     sample_data = {
@@ -606,6 +636,26 @@ if rf then
 end
 if loaded_json and loaded_json.demo_info then
     sdk.color_print('green', 'JSON loaded successfully - title: ' .. tostring(loaded_json.demo_info.title))
+end
+
+-- Demonstrate JSONC (single-line comments, block comments, and trailing commas)
+---@type string
+local jsonc_sample = [[
+{
+    // JSONC single-line comment
+    "module": "demo",
+    /* JSONC multi-line
+       block comment */
+    "features": [
+        "comments",
+        "trailing-commas",
+    ],
+}
+]]
+---@type table|nil
+local decoded_jsonc = sdk.text.json.decode(jsonc_sample)
+if decoded_jsonc and decoded_jsonc.module == 'demo' then
+    sdk.color_print('green', 'JSONC decoded successfully via sdk.text.json.decode: ' .. tostring(decoded_jsonc.module))
 end
 
 progress.script.step('Testing warning and error functions')
