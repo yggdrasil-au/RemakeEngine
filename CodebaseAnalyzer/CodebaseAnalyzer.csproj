@@ -7,6 +7,8 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <!-- Keep the standalone analyzer regression suite out of the executable. -->
+        <Compile Remove="Tests\**\*.cs" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
     </ItemGroup>
 </Project>

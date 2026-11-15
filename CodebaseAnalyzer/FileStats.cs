@@ -2,9 +2,13 @@ namespace CodebaseAnalyzer;
 
 /// <summary>File-level counts and method-level syntax metrics; no runtime behavior is inferred.</summary>
 public class FileStats {
+    /// <summary>Total physical lines; equals code plus empty plus comment lines.</summary>
     public int TotalLines { get; set; }
+    /// <summary>Source lines, including mixed code/comment lines and directives.</summary>
     public int CodeLines { get; set; }
+    /// <summary>Nonblank lines containing only comments, including documentation comments.</summary>
     public int CommentLines { get; set; }
+    /// <summary>Empty or whitespace-only lines, displayed as Empty Lines in reports.</summary>
     public int BlankLines { get; set; }
 
     public int FlatClasses { get; set; }
@@ -46,6 +50,12 @@ public class FileStats {
 /// <param name="Complexity">One plus the counted decisions, including switch cases.</param>
 /// <param name="DispatchCases">Number of non-default switch labels or expression arms.</param>
 public sealed record MethodStats(string Name, int Line, int Complexity, int DispatchCases) {
+    /// <summary>Counted decisions inside lambdas, anonymous methods and local functions, excluding their baseline of one.</summary>
+    public int NestedCallableDecisions { get; init; }
+
+    /// <summary>Baseline plus decisions directly in the declaring method, excluding nested callable bodies.</summary>
+    public int DirectComplexity => Complexity - NestedCallableDecisions;
+
     /// <summary>True when every counted decision is a switch label, with no other counted branches.</summary>
     public bool IsDispatchOnly => DispatchCases > 0 && Complexity == DispatchCases + 1;
 }

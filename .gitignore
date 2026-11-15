@@ -22,3 +22,6 @@ TMP/
 cli.md
 
 docs/
+
+**/godot/
+**/test/

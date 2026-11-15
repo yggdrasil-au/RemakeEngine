@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace CodebaseAnalyzer;
 
 /// <summary>
-/// Collects syntax metrics without treating a large dispatch table as general control-flow complexity.
+/// Collects syntax metrics, distinguishing pure dispatch and decisions in nested callables.
 /// These are source metrics; they do not establish runtime reachability or safety.
 /// </summary>
 public class MetricWalker : CSharpSyntaxWalker {
@@ -26,7 +26,8 @@ public class MetricWalker : CSharpSyntaxWalker {
         if (Modifiers.Any(SyntaxKind.PublicKeyword)) {
             Access = "public";
         } else if (Modifiers.Any(SyntaxKind.ProtectedKeyword)) {
-            Access = Modifiers.Any(SyntaxKind.InternalKeyword) ? "protected internal" : "protected";
+            Access = Modifiers.Any(SyntaxKind.PrivateKeyword) ? "private protected" :
+                Modifiers.Any(SyntaxKind.InternalKeyword) ? "protected internal" : "protected";
         } else if (Modifiers.Any(SyntaxKind.InternalKeyword)) {
             Access = "internal";
         } else if (Modifiers.Any(SyntaxKind.PrivateKeyword) || Node is MethodDeclarationSyntax { ExplicitInterfaceSpecifier: not null }) {
@@ -96,8 +97,8 @@ public class MetricWalker : CSharpSyntaxWalker {
         switch (Access, IsStatic) {
             case ("public", false): Stats.FuncPub++; break;
             case ("public", true): Stats.FuncPubStat++; break;
-            case ("protected" or "protected internal", false): Stats.FuncProt++; break;
-            case ("protected" or "protected internal", true): Stats.FuncProtStat++; break;
+            case ("protected" or "protected internal" or "private protected", false): Stats.FuncProt++; break;
+            case ("protected" or "protected internal" or "private protected", true): Stats.FuncProtStat++; break;
             case ("internal", false): Stats.FuncInt++; break;
             case ("internal", true): Stats.FuncIntStat++; break;
             case (_, false): Stats.FuncPriv++; break;
@@ -114,7 +115,7 @@ public class MetricWalker : CSharpSyntaxWalker {
         Stats.MethodDetails.Add(new MethodStats(
             $"{TypeName}.{Node.Identifier.Text}", Node.GetLocation().GetLineSpan().StartLinePosition.Line + 1,
             Scope.Complexity, Scope.DispatchCases
-        ));
+        ) { NestedCallableDecisions = Scope.NestedCallableDecisions });
     }
 
     public override void VisitFieldDeclaration(FieldDeclarationSyntax Node) {
@@ -135,7 +136,7 @@ public class MetricWalker : CSharpSyntaxWalker {
         }
         switch (Access) {
             case "public": Stats.VarsPub += Count; break;
-            case "protected" or "protected internal": Stats.VarsProt += Count; break;
+            case "protected" or "protected internal" or "private protected": Stats.VarsProt += Count; break;
             case "internal": Stats.VarsInt += Count; break;
             default: Stats.VarsPriv += Count; break;
         }
@@ -148,12 +149,26 @@ public class MetricWalker : CSharpSyntaxWalker {
         BlockDepth--;
     }
 
+    public override void VisitSimpleLambdaExpression(SimpleLambdaExpressionSyntax Node) => VisitNestedCallable(() => base.VisitSimpleLambdaExpression(Node));
+    public override void VisitParenthesizedLambdaExpression(ParenthesizedLambdaExpressionSyntax Node) => VisitNestedCallable(() => base.VisitParenthesizedLambdaExpression(Node));
+    public override void VisitAnonymousMethodExpression(AnonymousMethodExpressionSyntax Node) => VisitNestedCallable(() => base.VisitAnonymousMethodExpression(Node));
+    public override void VisitLocalFunctionStatement(LocalFunctionStatementSyntax Node) => VisitNestedCallable(() => base.VisitLocalFunctionStatement(Node));
+
+    /// <summary>Tracks nested callable decisions separately while retaining the original inclusive metric.</summary>
+    private void VisitNestedCallable(Action VisitBody) {
+        MethodScope Scope = MethodScopes.Peek();
+        Scope.NestedCallableDepth++;
+        VisitBody();
+        Scope.NestedCallableDepth--;
+    }
+
     /// <summary>Retains raw branch counts, including modern switch arms; dispatch labels are also recorded separately.</summary>
     public override void Visit(SyntaxNode? Node) {
         if (Node == null) {
             return;
         }
         MethodScope Scope = MethodScopes.Peek();
+        int Before = Scope.Complexity;
         if (IsDispatchCase(Node)) {
             Scope.Complexity++;
             Scope.DispatchCases++;
@@ -163,6 +178,9 @@ public class MetricWalker : CSharpSyntaxWalker {
         } else if (Node is BinaryExpressionSyntax Binary &&
             (Binary.IsKind(SyntaxKind.LogicalAndExpression) || Binary.IsKind(SyntaxKind.LogicalOrExpression))) {
             Scope.Complexity++;
+        }
+        if (Scope.NestedCallableDepth > 0) {
+            Scope.NestedCallableDecisions += Scope.Complexity - Before;
         }
         base.Visit(Node);
     }
@@ -175,5 +193,7 @@ public class MetricWalker : CSharpSyntaxWalker {
     private sealed class MethodScope {
         internal int Complexity { get; set; } = 1;
         internal int DispatchCases { get; set; }
+        internal int NestedCallableDepth { get; set; }
+        internal int NestedCallableDecisions { get; set; }
     }
 }

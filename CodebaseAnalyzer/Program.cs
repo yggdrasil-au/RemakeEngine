@@ -15,6 +15,12 @@ public class ProjectInfo {
     public string Dir { get; set; } = "";
     public List<string> Refs { get; set; } = new();
     public int Loc { get; set; }
+    /// <summary>Physical lines containing source tokens, including lines with inline comments.</summary>
+    public int CodeLines { get; set; }
+    /// <summary>Nonblank lines containing only comment text.</summary>
+    public int CommentLines { get; set; }
+    /// <summary>Empty or whitespace-only physical lines.</summary>
+    public int BlankLines { get; set; }
     public int Files { get; set; }
 }
 
@@ -61,6 +67,7 @@ public class Program {
             allStats.Structs += stats.Structs; allStats.Records += stats.Records;
 
             allStats.TotalFunctions += stats.TotalFunctions;
+            allStats.MethodDetails.AddRange(stats.MethodDetails);
             allStats.FuncPub += stats.FuncPub; allStats.FuncPubStat += stats.FuncPubStat;
             allStats.FuncPriv += stats.FuncPriv; allStats.FuncPrivStat += stats.FuncPrivStat;
             allStats.FuncProt += stats.FuncProt; allStats.FuncProtStat += stats.FuncProtStat;
@@ -74,16 +81,23 @@ public class Program {
             if (stats.MaxCyclomaticComplexity > allStats.MaxCyclomaticComplexity) allStats.MaxCyclomaticComplexity = stats.MaxCyclomaticComplexity;
             if (stats.MaxParameters > allStats.MaxParameters) allStats.MaxParameters = stats.MaxParameters;
 
-            string fileName = Path.GetFileName(filePath);
+            string RelativePath = Path.GetRelativePath(targetDir, filePath);
             foreach (MethodStats Method in stats.MethodDetails.Where(Method => Method.Complexity > 15)) {
                 string Kind = Method.IsDispatchOnly ? "DISPATCH" : "COMPLEXITY";
-                alerts.Add($"[{Kind}] {Path.GetRelativePath(targetDir, filePath)}:{Method.Line} {Method.Name} (Complexity: {Method.Complexity}, Switch cases: {Method.DispatchCases})");
+                string Nested = Method.NestedCallableDecisions > 0 ? $", Nested callable decisions: {Method.NestedCallableDecisions}, Direct complexity: {Method.DirectComplexity}" : "";
+                alerts.Add($"[{Kind}] {RelativePath}:{Method.Line} {Method.Name} (Complexity: {Method.Complexity}, Switch cases: {Method.DispatchCases}{Nested})");
             }
-            if (stats.MaxNestingLevel > 5) alerts.Add($"[DEEP NESTING] {fileName} (Max Depth: {stats.MaxNestingLevel})");
-            if (stats.TotalLines > 600 && stats.TotalFunctions > 0) alerts.Add($"[LARGE IMPLEMENTATION] {fileName} (Lines: {stats.TotalLines})");
+            if (stats.MaxNestingLevel > 5) alerts.Add($"[DEEP NESTING] {RelativePath} (Block Depth: {stats.MaxNestingLevel})");
+            if (stats.TotalLines > 600 && stats.TotalFunctions > 0) alerts.Add($"[LARGE IMPLEMENTATION] {RelativePath} (Lines: {stats.TotalLines})");
 
             var owner = GetOwningProject(filePath, sortedProjs);
-            if (owner != null) { owner.Loc += stats.TotalLines; owner.Files++; }
+            if (owner != null) {
+                owner.Loc += stats.TotalLines;
+                owner.CodeLines += stats.CodeLines;
+                owner.CommentLines += stats.CommentLines;
+                owner.BlankLines += stats.BlankLines;
+                owner.Files++;
+            }
 
             fileCounts[filePath] = (stats.FlatClasses + stats.NestedClasses, stats.TotalLines, stats.ClassDetails);
 
@@ -155,6 +169,7 @@ public class Program {
 
         foreach (var p in projectsDict.Values.OrderBy(x => x.Name)) {
             Console.WriteLine($" {p.Name} ({p.Files} files, {p.Loc} lines)");
+            Console.WriteLine($"   Lines: Code: {p.CodeLines} | Empty: {p.BlankLines} | Comment: {p.CommentLines}");
             if (p.Refs.Count > 0) {
                 for (int i = 0; i < p.Refs.Count; i++) {
                     Console.WriteLine($"   {(i == p.Refs.Count - 1 ? "└─" : "├─")} Depends on: {p.Refs[i]}");
@@ -181,7 +196,8 @@ public class Program {
                 string ind = prefix + "    ";
                 float avgComp = stats.TotalFunctions > 0 ? (float)stats.TotalComplexity / stats.TotalFunctions : 1f;
 
-                Console.WriteLine($"{ind}├─ Base:  L: {stats.TotalLines} ({stats.CodeLines}C, {stats.CommentLines}#) | Cls: {stats.FlatClasses} Flat, {stats.NestedClasses} Nested | Int: {stats.Interfaces} | Enum: {stats.Enums}");
+                Console.WriteLine($"{ind}├─ Lines: Total: {stats.TotalLines} | Code: {stats.CodeLines} | Empty: {stats.BlankLines} | Comment: {stats.CommentLines}");
+                Console.WriteLine($"{ind}├─ Types: Cls: {stats.FlatClasses} Flat, {stats.NestedClasses} Nested | Int: {stats.Interfaces} | Enum: {stats.Enums}");
                 Console.WriteLine($"{ind}├─ Funcs: {stats.TotalFunctions} (Pub: {stats.FuncPub}+{stats.FuncPubStat}S, Priv: {stats.FuncPriv}+{stats.FuncPrivStat}S, Prot: {stats.FuncProt}+{stats.FuncProtStat}S, Int: {stats.FuncInt}+{stats.FuncIntStat}S)");
                 Console.WriteLine($"{ind}├─ Vars:  {stats.TotalVariables} (Pub: {stats.VarsPub}, Priv: {stats.VarsPriv}, Stat: {stats.VarsStat})");
                 Console.WriteLine($"{ind}└─ Evals: Max Nesting: {stats.MaxNestingLevel} | Max/Avg Complexity: {stats.MaxCyclomaticComplexity}/{avgComp:F1} | Max Params: {stats.MaxParameters}\n{prefix}");
@@ -214,21 +230,8 @@ public class Program {
     static FileStats AnalyzeSingleFile(string filepath) {
         string code = File.ReadAllText(filepath);
         var stats = new FileStats();
-        var lines = code.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-        stats.TotalLines = lines.Length;
-        bool inBlock = false;
-
-        foreach (var line in lines) {
-            string trimmed = line.Trim();
-            if (string.IsNullOrEmpty(trimmed)) stats.BlankLines++;
-            else if (trimmed.Contains("/*") && trimmed.Contains("*/")) stats.CommentLines++;
-            else if (trimmed.Contains("/*")) { inBlock = true; stats.CommentLines++; }
-            else if (trimmed.Contains("*/")) { inBlock = false; stats.CommentLines++; }
-            else if (inBlock || trimmed.StartsWith("//")) stats.CommentLines++;
-            else stats.CodeLines++;
-        }
-
         var tree = CSharpSyntaxTree.ParseText(code);
+        SourceLineMetrics.Populate(tree, stats);
         var walker = new MetricWalker();
         walker.Visit(tree.GetCompilationUnitRoot());
 
@@ -260,21 +263,28 @@ public class Program {
         Console.WriteLine(new string('=', 105));
         Console.WriteLine(" 📊 GLOBAL CODEBASE SUMMARY");
         Console.WriteLine(new string('=', 105));
-        Console.WriteLine($"Total Lines:        {stats.TotalLines} ({stats.CodeLines} Code, {stats.CommentLines} Comments, {stats.BlankLines} Blank)");
-        Console.WriteLine($"Architecture:       {stats.FlatClasses} Flat Classes, {stats.NestedClasses} Nested Classes");
+        Console.WriteLine($"Total Lines:        {stats.TotalLines}");
+        Console.WriteLine($"Code Lines:         {stats.CodeLines}");
+        Console.WriteLine($"Empty Lines:        {stats.BlankLines}");
+        Console.WriteLine($"Comment Lines:      {stats.CommentLines}");
+        Console.WriteLine($"Type declarations:  {stats.FlatClasses} Top-level Classes, {stats.NestedClasses} Nested Classes (partials counted per declaration)");
         Console.WriteLine($"                    {stats.Interfaces} Interfaces, {stats.Enums} Enums, {stats.Structs} Structs, {stats.Records} Records");
 
         int statTot = stats.FuncPubStat + stats.FuncPrivStat + stats.FuncProtStat + stats.FuncIntStat;
-        Console.WriteLine($"Total Functions:    {stats.TotalFunctions} (Stat: {statTot})");
+        Console.WriteLine($"Declared Methods:   {stats.TotalFunctions} (Stat: {statTot}; excludes constructors, accessors, local functions and lambdas)");
         Console.WriteLine($"                    Public:    {stats.FuncPub + stats.FuncPubStat,-5} ({stats.FuncPub} Inst, {stats.FuncPubStat} Stat)");
         Console.WriteLine($"                    Private:   {stats.FuncPriv + stats.FuncPrivStat,-5} ({stats.FuncPriv} Inst, {stats.FuncPrivStat} Stat)");
+        Console.WriteLine($"                    Protected: {stats.FuncProt + stats.FuncProtStat,-5} ({stats.FuncProt} Inst, {stats.FuncProtStat} Stat)");
+        Console.WriteLine($"                    Internal:  {stats.FuncInt + stats.FuncIntStat,-5} ({stats.FuncInt} Inst, {stats.FuncIntStat} Stat)");
 
         Console.WriteLine(new string('-', 105));
-        Console.WriteLine(" 🚀 CODE QUALITY EVALUATIONS (Highest recorded values across project)");
+        Console.WriteLine(" 🚀 SYNTAX METRICS (Highest recorded values across scanned source)");
         Console.WriteLine(new string('-', 105));
-        Console.WriteLine($"Deepest Nest Level:          {stats.MaxNestingLevel}");
-        Console.WriteLine($"Max Cyclomatic Complexity:   {stats.MaxCyclomaticComplexity}");
-        Console.WriteLine($"Largest Number of Params:    {stats.MaxParameters}");
+        Console.WriteLine($"Deepest Block Level:         {stats.MaxNestingLevel} (includes method, try, lambda and standalone blocks)");
+        Console.WriteLine($"Max Syntax Complexity:       {stats.MaxCyclomaticComplexity} (includes switch labels and nested callable decisions)");
+        int NonDispatchMax = stats.MethodDetails.Where(Method => !Method.IsDispatchOnly).Select(Method => Method.Complexity).DefaultIfEmpty(0).Max();
+        Console.WriteLine($"Max Outside Pure Dispatch:   {NonDispatchMax}");
+        Console.WriteLine($"Largest Method Param Count: {stats.MaxParameters}");
 
         Console.WriteLine(new string('-', 105));
         Console.WriteLine(" 🏆 TOP 10 LARGEST CLASSES (Combined Partial Across Files)");
@@ -291,10 +301,12 @@ public class Program {
         }
 
         Console.WriteLine(new string('-', 105));
-        Console.WriteLine(" ⚠️ ACTIONABLE ALERTS (Refactoring Targets)");
+        Console.WriteLine(" ⚠️ REVIEW CANDIDATES (Threshold heuristics; not confirmed defects)");
         Console.WriteLine(new string('-', 105));
         if (alerts.Count > 0) foreach (var a in alerts.OrderBy(a => a)) Console.WriteLine($"  * {a}");
-        else Console.WriteLine("  * None! Codebase is looking healthy against current thresholds.");
+        else Console.WriteLine("  * No configured thresholds exceeded; correctness and runtime safety are not assessed.");
+        Console.WriteLine("Scope: source files only; project ownership uses nearest directory, not evaluated MSBuild Compile items.");
+        Console.WriteLine("Counts exclude ignored/generated output directories and Designer files. Class sizes include comments and nested types.");
         Console.WriteLine(new string('=', 105) + "\n");
     }
 
