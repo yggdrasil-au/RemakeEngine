@@ -24,6 +24,11 @@ public interface IGameRegistry {
     public string? GetGamePath(string name);
     public IReadOnlyDictionary<string, object?> GetRegisteredModules();
     public void RefreshModules();
+    public IReadOnlyList<Core.Data.GameModuleInfo> ResolveModules(
+        string currentModuleRoot,
+        string scope = "submodules",
+        IReadOnlyList<string>? requestedModules = null
+    );
 }
 
 public interface IOperationsService {

@@ -327,4 +327,379 @@ internal class BuiltInOperations {
         return ok;
     }
 
+    private static readonly System.Threading.AsyncLocal<System.Collections.Generic.HashSet<string>?> ActiveModuleOperations = new();
+
+    /// <summary>
+    /// Executes an explicitly selected operation across target modules resolved within the requested scope
+    /// (<c>submodules</c> or <c>all</c>), resolving module selectors by Registry Name, Registry Id, or Module Folder Name.
+    /// </summary>
+    /// <param name="operationArgs">Execution arguments for the engine operation.</param>
+    /// <returns><c>true</c> if all targeted module operations completed successfully; otherwise <c>false</c>.</returns>
+    internal static async System.Threading.Tasks.Task<bool> RunModuleOperationsAsync(
+        Operations.helpers.OperationArgs operationArgs
+    ) {
+        if (operationArgs.operationContext is null) {
+            IO.Error("run-module-operations requires an active IOperationContext.");
+            return false;
+        }
+
+        string currentModuleRoot = ResolveCurrentModuleRoot(operationArgs: operationArgs);
+        if (string.IsNullOrWhiteSpace(value: currentModuleRoot)) {
+            IO.Error($"Unable to resolve GameRoot directory for current module '{operationArgs.currentGame}'.");
+            return false;
+        }
+
+        Dictionary<string, object?> ctx = Utils.Helpers.BuildOperationContext(
+            context: operationArgs.context,
+            currentGame: operationArgs.currentGame,
+            games: operationArgs.games
+        );
+        List<string> resolvedArgs = Utils.Helpers.ResolveOperationArgs(op: operationArgs.op, ctx: ctx);
+
+        string scope = Utils.Helpers.ResolveOperationValue(op: operationArgs.op, key: "scope", ctx: ctx)
+            ?? GetArgOptionValue(args: resolvedArgs, optionName: "--scope")
+            ?? "submodules";
+
+        List<string> requestedModules = ParseRequestedModules(op: operationArgs.op, ctx: ctx, args: resolvedArgs);
+
+        if (!TryParseTargetOpId(op: operationArgs.op, ctx: ctx, args: resolvedArgs, targetOpId: out long? targetOpId, error: out string? idParseError)) {
+            IO.Error(idParseError!);
+            return false;
+        }
+
+        string? targetOpName = Utils.Helpers.ResolveOperationValue(op: operationArgs.op, key: "target_op_name", ctx: ctx)
+            ?? Utils.Helpers.ResolveOperationValue(op: operationArgs.op, key: "op_name", ctx: ctx)
+            ?? GetArgOptionValue(args: resolvedArgs, optionName: "--op-name")
+            ?? GetArgOptionValue(args: resolvedArgs, optionName: "--target-op-name");
+
+        if (!targetOpId.HasValue && string.IsNullOrWhiteSpace(value: targetOpName)) {
+            IO.Error("run-module-operations requires an explicit operation selector ('target_op_id' / 'target_op_name' or '--op-id' / '--op-name').");
+            return false;
+        }
+
+        bool continueOnError = ParseBoolOption(op: operationArgs.op, key: "continue_on_error", args: resolvedArgs, flagName: "--continue-on-error");
+
+        IReadOnlyList<GameModuleInfo> targetModules;
+        try {
+            targetModules = operationArgs.context.GameRegistry.ResolveModules(
+                currentModuleRoot: currentModuleRoot,
+                scope: scope,
+                requestedModules: requestedModules.Count > 0 ? requestedModules : null
+            );
+        } catch (System.ArgumentException ex) {
+            Shared.IO.Diagnostics.Bug($"Invalid run-module-operations arguments: {ex.Message}");
+            IO.Error(ex.Message);
+            return false;
+        } catch (System.Collections.Generic.KeyNotFoundException ex) {
+            Shared.IO.Diagnostics.Bug($"Unresolved module selector: {ex.Message}");
+            IO.Error(ex.Message);
+            return false;
+        } catch (System.InvalidOperationException ex) {
+            Shared.IO.Diagnostics.Bug($"Module resolution error: {ex.Message}");
+            IO.Error(ex.Message);
+            return false;
+        }
+
+        if (targetModules.Count == 0) {
+            IO.Warn($"No valid target modules found in scope '{scope}' for '{currentModuleRoot}'.");
+            return true;
+        }
+
+        Core.Data.GameModules childGames = new();
+        foreach (KeyValuePair<string, GameModuleInfo> kv in operationArgs.games) {
+            childGames[key: kv.Key] = kv.Value;
+        }
+
+        string targetLabel = targetOpId.HasValue
+            ? $"op #{targetOpId.Value}{(string.IsNullOrWhiteSpace(value: targetOpName) ? string.Empty : $" ('{targetOpName}')")}"
+            : $"op '{targetOpName}'";
+        IO.writeLine($"\n>>> Running {targetLabel} across {targetModules.Count} module(s) [scope: {scope}]");
+
+        bool overallSuccess = true;
+        foreach (GameModuleInfo targetModule in targetModules) {
+            if (operationArgs.cancellationToken.IsCancellationRequested) {
+                return false;
+            }
+
+            string childKey = RegisterChildModuleKey(childGames: childGames, targetModule: targetModule);
+            Core.Data.PreparedOperations prepared = operationArgs.operationContext.OperationsService.LoadAndPrepare(
+                opsFile: targetModule.OpsFile,
+                currentGame: childKey,
+                games: childGames,
+                engineConfig: operationArgs.context.EngineConfig.Data
+            );
+            if (!prepared.IsLoaded) {
+                string msg = $"Failed to load operations for module '{targetModule.Name}' ({targetModule.OpsFile}): {prepared.ErrorMessage}";
+                IO.Error(msg);
+                overallSuccess = false;
+                if (!continueOnError) {
+                    return false;
+                }
+                continue;
+            }
+
+            if (!TryMatchOperation(prepared: prepared, opsFile: targetModule.OpsFile, targetOpId: targetOpId, targetOpName: targetOpName, matchedOp: out Core.Data.PreparedOperation? matchedOp, error: out string? matchError)) {
+                IO.Error($"Module '{targetModule.Name}': {matchError}");
+                overallSuccess = false;
+                if (!continueOnError) {
+                    return false;
+                }
+                continue;
+            }
+
+            string normalizedRoot = System.IO.Path.TrimEndingDirectorySeparator(path: System.IO.Path.GetFullPath(path: targetModule.GameRoot));
+            string cycleKey = $"{normalizedRoot}|{matchedOp!.OperationId?.ToString() ?? matchedOp.DisplayName}";
+            System.Collections.Generic.HashSet<string>? previousStack = ActiveModuleOperations.Value;
+            System.Collections.Generic.HashSet<string> nextStack = previousStack is null
+                ? new System.Collections.Generic.HashSet<string>(comparer: System.StringComparer.OrdinalIgnoreCase)
+                : new System.Collections.Generic.HashSet<string>(collection: previousStack, comparer: System.StringComparer.OrdinalIgnoreCase);
+
+            if (!nextStack.Add(item: cycleKey)) {
+                IO.Error($"Recursive run-module-operations cycle detected for '{targetModule.Name}' ({cycleKey}).");
+                return false;
+            }
+
+            IO.writeLine($"\n--- Module '{targetModule.Name}' -> {matchedOp.DisplayName} (id: {matchedOp.OperationId?.ToString() ?? "none"}) ---");
+            ActiveModuleOperations.Value = nextStack;
+            bool ok;
+            try {
+                Core.Data.PromptAnswers childAnswers = All.BuildPromptDefaults(op: matchedOp.Operation);
+                ok = await operationArgs.operationContext.Single.RunAsync(
+                    currentGame: childKey,
+                    games: childGames,
+                    op: matchedOp.Operation,
+                    promptAnswers: childAnswers,
+                    Context: operationArgs.context,
+                    OperationContext: operationArgs.operationContext,
+                    cancellationToken: operationArgs.cancellationToken
+                );
+            } finally {
+                ActiveModuleOperations.Value = previousStack;
+            }
+
+            if (!ok) {
+                IO.Error($"Module '{targetModule.Name}' operation '{matchedOp.DisplayName}' failed.");
+                overallSuccess = false;
+                if (!continueOnError) {
+                    return false;
+                }
+            }
+        }
+
+        return overallSuccess;
+    }
+
+    private static string ResolveCurrentModuleRoot(Operations.helpers.OperationArgs operationArgs) {
+        if (!string.IsNullOrWhiteSpace(value: operationArgs.currentGame)
+            && operationArgs.games.TryGetValue(key: operationArgs.currentGame, out GameModuleInfo? currentInfo)
+            && !string.IsNullOrWhiteSpace(value: currentInfo.GameRoot)) {
+            return System.IO.Path.GetFullPath(path: currentInfo.GameRoot);
+        }
+
+        string? resolved = !string.IsNullOrWhiteSpace(value: operationArgs.currentGame)
+            ? operationArgs.context.GameRegistry.GetGamePath(name: operationArgs.currentGame)
+            : null;
+        if (!string.IsNullOrWhiteSpace(value: resolved)) {
+            return System.IO.Path.GetFullPath(path: resolved);
+        }
+
+        return string.Empty;
+    }
+
+    private static string RegisterChildModuleKey(Core.Data.GameModules childGames, GameModuleInfo targetModule) {
+        string normalizedTargetRoot = System.IO.Path.TrimEndingDirectorySeparator(path: System.IO.Path.GetFullPath(path: targetModule.GameRoot));
+        if (!childGames.TryGetValue(key: targetModule.Name, out GameModuleInfo? existing)) {
+            childGames[key: targetModule.Name] = targetModule;
+            return targetModule.Name;
+        }
+
+        if (!string.IsNullOrWhiteSpace(value: existing.GameRoot)) {
+            string normalizedExisting = System.IO.Path.TrimEndingDirectorySeparator(path: System.IO.Path.GetFullPath(path: existing.GameRoot));
+            System.StringComparison cmp = System.OperatingSystem.IsWindows() ? System.StringComparison.OrdinalIgnoreCase : System.StringComparison.Ordinal;
+            if (string.Equals(a: normalizedExisting, b: normalizedTargetRoot, comparisonType: cmp)) {
+                return targetModule.Name;
+            }
+        }
+
+        string uniqueKey = $"{targetModule.Name}::{normalizedTargetRoot}";
+        childGames[key: uniqueKey] = targetModule;
+        return uniqueKey;
+    }
+
+    private static List<string> ParseRequestedModules(
+        IDictionary<string, object?> op,
+        IDictionary<string, object?> ctx,
+        IReadOnlyList<string> args
+    ) {
+        List<string> modules = [];
+        AddModuleField(op: op, key: "modules", ctx: ctx, dest: modules);
+        AddModuleField(op: op, key: "module", ctx: ctx, dest: modules);
+
+        for (int i = 0; i < args.Count; i++) {
+            string arg = args[index: i];
+            if ((string.Equals(a: arg, b: "--modules", comparisonType: System.StringComparison.OrdinalIgnoreCase)
+                || string.Equals(a: arg, b: "--module", comparisonType: System.StringComparison.OrdinalIgnoreCase))
+                && i + 1 < args.Count) {
+                SplitModuleTokens(raw: args[index: ++i], dest: modules);
+            } else if (arg.StartsWith("--modules=", comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
+                SplitModuleTokens(raw: arg.Substring(startIndex: "--modules=".Length), dest: modules);
+            } else if (arg.StartsWith("--module=", comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
+                SplitModuleTokens(raw: arg.Substring(startIndex: "--module=".Length), dest: modules);
+            }
+        }
+
+        return modules;
+    }
+
+    private static void AddModuleField(
+        IDictionary<string, object?> op,
+        string key,
+        IDictionary<string, object?> ctx,
+        List<string> dest
+    ) {
+        if (!op.TryGetValue(key: key, out object? raw) || raw is null) {
+            return;
+        }
+
+        object? resolved = Core.Utils.Placeholders.Resolve(raw, context: ctx);
+        if (resolved is System.Collections.IList list) {
+            foreach (object? item in list) {
+                if (item is not null) {
+                    SplitModuleTokens(raw: item.ToString(), dest: dest);
+                }
+            }
+        } else {
+            SplitModuleTokens(raw: resolved?.ToString(), dest: dest);
+        }
+    }
+
+    private static void SplitModuleTokens(string? raw, List<string> dest) {
+        if (string.IsNullOrWhiteSpace(value: raw)) {
+            return;
+        }
+        foreach (string part in raw.Split(separator: ',', options: System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries)) {
+            if (!string.IsNullOrWhiteSpace(value: part)) {
+                dest.Add(item: part);
+            }
+        }
+    }
+
+    private static string? GetArgOptionValue(IReadOnlyList<string> args, string optionName) {
+        string prefix = optionName + "=";
+        for (int i = 0; i < args.Count; i++) {
+            string arg = args[index: i];
+            if (string.Equals(a: arg, b: optionName, comparisonType: System.StringComparison.OrdinalIgnoreCase) && i + 1 < args.Count) {
+                return args[index: i + 1];
+            }
+            if (arg.StartsWith(prefix, comparisonType: System.StringComparison.OrdinalIgnoreCase)) {
+                return arg.Substring(startIndex: prefix.Length);
+            }
+        }
+        return null;
+    }
+
+    private static bool TryParseTargetOpId(
+        IDictionary<string, object?> op,
+        IDictionary<string, object?> ctx,
+        IReadOnlyList<string> args,
+        out long? targetOpId,
+        out string? error
+    ) {
+        targetOpId = null;
+        error = null;
+
+        string? rawId = Utils.Helpers.ResolveOperationValue(op: op, key: "target_op_id", ctx: ctx)
+            ?? Utils.Helpers.ResolveOperationValue(op: op, key: "op_id", ctx: ctx)
+            ?? GetArgOptionValue(args: args, optionName: "--op-id")
+            ?? GetArgOptionValue(args: args, optionName: "--target-op-id");
+
+        if (string.IsNullOrWhiteSpace(value: rawId)) {
+            return true;
+        }
+
+        if (long.TryParse(s: rawId.Trim(), style: System.Globalization.NumberStyles.Integer, provider: System.Globalization.CultureInfo.InvariantCulture, out long parsed)) {
+            targetOpId = parsed;
+            return true;
+        }
+
+        error = $"Invalid target_op_id '{rawId}'. Expected an integer operation ID.";
+        return false;
+    }
+
+    private static bool ParseBoolOption(
+        IDictionary<string, object?> op,
+        string key,
+        IReadOnlyList<string> args,
+        string flagName
+    ) {
+        if (op.TryGetValue(key: key, out object? raw)) {
+            if (raw is bool b) {
+                return b;
+            }
+            if (raw is not null && bool.TryParse(value: raw.ToString(), result: out bool parsed)) {
+                return parsed;
+            }
+        }
+
+        return args.Any(predicate: a => string.Equals(a: a, b: flagName, comparisonType: System.StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool TryMatchOperation(
+        Core.Data.PreparedOperations prepared,
+        string opsFile,
+        long? targetOpId,
+        string? targetOpName,
+        out Core.Data.PreparedOperation? matchedOp,
+        out string? error
+    ) {
+        matchedOp = null;
+        error = null;
+
+        List<Core.Data.PreparedOperation> allOps = [.. prepared.InitOperations, .. prepared.RegularOperations];
+        List<Core.Data.PreparedOperation> matches = [];
+
+        foreach (Core.Data.PreparedOperation candidate in allOps) {
+            if (targetOpId.HasValue) {
+                long? candidateId = candidate.OperationId;
+                if (!candidateId.HasValue
+                    && candidate.Operation.TryGetValue(key: "id", out object? idObj)
+                    && idObj is not null
+                    && long.TryParse(s: idObj.ToString(), out long parsedId)) {
+                    candidateId = parsedId;
+                }
+                if (candidateId != targetOpId.Value) {
+                    continue;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(value: targetOpName)) {
+                string? rawName = candidate.Operation.TryGetValue(key: "Name", out object? nameObj) ? nameObj?.ToString() : null;
+                bool nameMatches = string.Equals(a: candidate.DisplayName, b: targetOpName, comparisonType: System.StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(a: rawName, b: targetOpName, comparisonType: System.StringComparison.OrdinalIgnoreCase);
+                if (!nameMatches) {
+                    continue;
+                }
+            }
+
+            matches.Add(item: candidate);
+        }
+
+        if (matches.Count == 1) {
+            matchedOp = matches[index: 0];
+            return true;
+        }
+
+        string selectorLabel = targetOpId.HasValue
+            ? $"id '{targetOpId.Value}'{(string.IsNullOrWhiteSpace(value: targetOpName) ? string.Empty : $" and name '{targetOpName}'")}"
+            : $"name '{targetOpName}'";
+
+        if (matches.Count == 0) {
+            error = $"Target operation with {selectorLabel} was not found in '{opsFile}'.";
+            return false;
+        }
+
+        error = $"Multiple operations ({matches.Count}) matched {selectorLabel} in '{opsFile}'.";
+        return false;
+    }
+
 }

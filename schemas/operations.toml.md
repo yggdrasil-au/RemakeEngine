@@ -31,6 +31,28 @@ Operations are defined in TOML format using `[[operation]]` array entries. Each 
 - **`filter`** (string): Optional glob filter when extracting optical disc images (`format = "iso"`), e.g. `"USRDIR/*"`, `"*.xex"`, `"GAME*.DAT"`.
 - **`overwrite`** (boolean): Whether to overwrite existing files during built-in extraction. Default: `false`.
 
+### Built-In Action: Cross-Module Operation Runner (`run-module-operations`)
+
+Runs an explicitly selected operation (`target_op_id` or `target_op_name`, or `--op-id` / `--op-name` in `args`) across valid modules within `scope` (`"submodules"` or `"all"`), excluding the invoking module itself. Module selectors resolve by Registry Name, Registry Id (from `Main.jsonc`), and Module Folder Name fallback for unregistered modules. Duplicate valid module folder names at different directory depths raise an error.
+
+Additional properties for `run-module-operations`:
+- **`scope`** (string): Module discovery scope (`"submodules"` or `"all"`). Default: `"submodules"`.
+- **`modules`** (array or string): Optional module selectors resolved by Registry Name, Registry Id, or Module Folder Name.
+- **`target_op_id`** (integer): Explicit operation ID to invoke on each target module.
+- **`target_op_name`** (string): Explicit operation Name to invoke on each target module.
+- **`continue_on_error`** (boolean): Continue executing remaining modules if one fails. Default: `false`.
+
+```toml
+[[operation]]
+id = 1
+Name = "Run Submodule Extraction"
+script_type = "engine"
+script = "run-module-operations"
+scope = "submodules"
+target_op_id = 10
+continue_on_error = false
+```
+
 ### Built-In Action: ISO Extraction (`format = "iso"` / `extract-iso`)
 
 Extracts console optical disc images (Xbox Original XISO/XGD1, Xbox 360 XGD2/XGD3, PlayStation 3 hybrid ISO9660/Joliet/UDF, PlayStation 2 ISO9660) directly using the engine's native managed disc readers.

@@ -68,7 +68,7 @@ public sealed class Single : Core.Abstractions.ISingle {
                         IO.writeLine($"\n>>> Engine operation: {title}");
                         // delegate engine type handling to ExecuteEngineOperationAsync
                         //var op_dispatcher = new helpers.OpDispatcher();
-                        result = await helpers.OpDispatcher.DispatchAsync(executableOperation: executableOperation, promptAnswers: promptAnswers, currentGame: currentGame, games: games, context: Context, cancellationToken: cancellationToken);
+                        result = await helpers.OpDispatcher.DispatchAsync(executableOperation: executableOperation, promptAnswers: promptAnswers, currentGame: currentGame, games: games, context: Context, operationContext: OperationContext, cancellationToken: cancellationToken);
                     } catch (System.Exception ex) {
                         Shared.IO.Diagnostics.Bug($"] Engine operation catch triggered: {ex}");
                         IO.writeLine($"engine ERROR: {ex.Message}");

@@ -59,6 +59,30 @@
           "description": "Whether to overwrite existing destination files during extraction.",
           "default": false
         },
+        "scope": {
+          "type": "string",
+          "description": "Module scope when script is 'run-module-operations' ('submodules' or 'all').",
+          "enum": ["submodules", "all"],
+          "default": "submodules"
+        },
+        "modules": {
+          "type": ["array", "string"],
+          "description": "Optional target module selectors (Registry Name, Registry Id, or Module Folder Name) for 'run-module-operations'.",
+          "items": { "type": "string" }
+        },
+        "target_op_id": {
+          "type": "integer",
+          "description": "Explicit target operation ID to run across matched modules when script is 'run-module-operations'."
+        },
+        "target_op_name": {
+          "type": "string",
+          "description": "Explicit target operation Name to run across matched modules when script is 'run-module-operations'."
+        },
+        "continue_on_error": {
+          "type": "boolean",
+          "description": "For 'run-module-operations', continue running remaining modules if a module fails instead of stopping immediately.",
+          "default": false
+        },
         "args": {
           "type": "array",
           "description": "Static arguments passed to the script. Supports placeholder expansion.",

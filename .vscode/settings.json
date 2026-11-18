@@ -152,5 +152,7 @@
     "dotrush.roslyn.projectOrSolutionFiles": [
         "a:\\RemakeEngine\\Main\\RemakeEngine.slnx"
     ],
+    "workbench.browser.openLocalhostLinks": true,
+    "workbench.browser.showInTitleBar": true,
 }
 

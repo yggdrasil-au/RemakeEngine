@@ -422,7 +422,7 @@ public sealed class All {
     /// </summary>
     /// <param name="op"></param>
     /// <returns></returns>
-    private static Core.Data.PromptAnswers BuildPromptDefaults(Dictionary<string, object?> op) {
+    internal static Core.Data.PromptAnswers BuildPromptDefaults(IDictionary<string, object?> op) {
         Core.Data.PromptAnswers answers = new();
         if (!op.TryGetValue(key: "prompts", out object? promptsObj) || promptsObj is not IList<object?> prompts) {
             return answers;

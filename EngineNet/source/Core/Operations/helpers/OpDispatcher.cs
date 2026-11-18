@@ -22,6 +22,7 @@ internal static class OpDispatcher {
         string currentGame,
         Core.Data.GameModules games,
         Core.Abstractions.IEngineContext context,
+        Core.Abstractions.IOperationContext? operationContext = null,
         System.Threading.CancellationToken cancellationToken = default
     ) {
         if (!executableOperation.TryGetValue(key: "script", out object? s) || s is null) {
@@ -59,6 +60,7 @@ internal static class OpDispatcher {
             currentGame: currentGame,
             games: games,
             context: context,
+            operationContext: operationContext,
             cancellationToken: cancellationToken
         );
 
@@ -102,6 +104,11 @@ internal static class OpDispatcher {
             case "rename-folders": {
                 return Built_inActions.BuiltInOperations.rename_folders(operationArgs: operationArgs);
             }
+            case "run-module-operations":
+            case "module-operations":
+            case "run-modules": {
+                return await Built_inActions.BuiltInOperations.RunModuleOperationsAsync(operationArgs: operationArgs);
+            }
             default: {
                 Shared.IO.Diagnostics.Log($"] Unknown engine action: {action}");
                 return false;
@@ -124,6 +131,7 @@ internal sealed class OperationArgs {
     internal readonly string currentGame;
     internal readonly Core.Data.GameModules games;
     internal readonly Core.Abstractions.IEngineContext context;
+    internal readonly Core.Abstractions.IOperationContext? operationContext;
     internal readonly System.Threading.CancellationToken cancellationToken;
 
     internal OperationArgs(
@@ -132,6 +140,7 @@ internal sealed class OperationArgs {
         string currentGame,
         Core.Data.GameModules games,
         Core.Abstractions.IEngineContext context,
+        Core.Abstractions.IOperationContext? operationContext,
         System.Threading.CancellationToken cancellationToken
     ) {
         this.op = op;
@@ -139,6 +148,7 @@ internal sealed class OperationArgs {
         this.currentGame = currentGame;
         this.games = games;
         this.context = context;
+        this.operationContext = operationContext;
         this.cancellationToken = cancellationToken;
     }
 }

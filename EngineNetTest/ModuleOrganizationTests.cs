@@ -332,5 +332,127 @@ public sealed class ModuleOrganizationTests {
             }
         }
     }
+
+    [TestMethod]
+    public void ResolveModules_ResolvesByRegistryNameIdAndFolderNameRespectingScope() {
+        string tempRoot = System.IO.Path.Combine(path1: System.IO.Path.GetTempPath(), path2: $"RemakeEngine_ResolveMod_{System.Guid.NewGuid():N}");
+        try {
+            string gamesDir = System.IO.Path.Combine(path1: tempRoot, path2: "Games");
+            string parentDir = System.IO.Path.Combine(path1: gamesDir, path2: "ParentHub");
+            string regSubDir = System.IO.Path.Combine(path1: parentDir, path2: "Games", path3: "RegChild");
+            string unregSubDir = System.IO.Path.Combine(path1: parentDir, path2: "Games", path3: "UnregChild");
+            string externalDir = System.IO.Path.Combine(path1: gamesDir, path2: "ExternalGame");
+            string assetOnlySameName = System.IO.Path.Combine(path1: parentDir, path2: "Assets", path3: "RegChild");
+
+            foreach (string dir in new[] { parentDir, regSubDir, unregSubDir, externalDir }) {
+                System.IO.Directory.CreateDirectory(path: dir);
+                System.IO.File.WriteAllText(path: System.IO.Path.Combine(path1: dir, path2: "operations.toml"), contents: "[[operation]]\nid = 10\nscript = \"x.lua\"\n");
+            }
+            System.IO.Directory.CreateDirectory(path: assetOnlySameName);
+
+            string mainJsonc = System.IO.Path.Combine(path1: tempRoot, path2: "Main.jsonc");
+            System.IO.File.WriteAllText(path: mainJsonc, contents: """
+            {
+              "modules": {
+                "Group": {
+                  "ParentHub": { "id": "5", "path": "Games/ParentHub" },
+                  "RegChild": { "id": "42", "path": "Games/ParentHub/Games/RegChild" },
+                  "ExternalGame": { "id": "88", "path": "Games/ExternalGame" }
+                }
+              }
+            }
+            """);
+
+            Registries registries = new(gamesRel: gamesDir, modulesRel: mainJsonc);
+            ModuleScanner scanner = new(registries: registries);
+            GameRegistry registry = new(registries: registries, scanner: scanner);
+
+            // Default submodules scope excludes parentDir itself and externalDir, includes both registered & unregistered children
+            IReadOnlyList<GameModuleInfo> allSubmodules = registry.ResolveModules(currentModuleRoot: parentDir, scope: "submodules");
+            Assert.AreEqual(expected: 2, actual: allSubmodules.Count);
+            Assert.IsTrue(condition: allSubmodules.Any(predicate: m => m.Name == "RegChild"));
+            Assert.IsTrue(condition: allSubmodules.Any(predicate: m => m.Name == "UnregChild"));
+
+            // All scope includes ExternalGame + both children, excluding parentDir itself
+            IReadOnlyList<GameModuleInfo> allOther = registry.ResolveModules(currentModuleRoot: parentDir, scope: "all");
+            Assert.AreEqual(expected: 3, actual: allOther.Count);
+            Assert.IsTrue(condition: allOther.Any(predicate: m => m.Name == "ExternalGame"));
+
+            // Resolve by Registry Name, Registry ID, and Folder Name fallback
+            IReadOnlyList<GameModuleInfo> explicitSub = registry.ResolveModules(
+                currentModuleRoot: parentDir,
+                scope: "submodules",
+                requestedModules: ["42", "UnregChild"]
+            );
+            Assert.AreEqual(expected: 2, actual: explicitSub.Count);
+            Assert.AreEqual(expected: "RegChild", actual: explicitSub[index: 0].Name);
+            Assert.AreEqual(expected: "UnregChild", actual: explicitSub[index: 1].Name);
+
+            // Requesting ExternalGame while scope = "submodules" throws InvalidOperationException
+            bool threwOutOfScope = false;
+            try {
+                _ = registry.ResolveModules(currentModuleRoot: parentDir, scope: "submodules", requestedModules: ["88"]);
+            } catch (System.InvalidOperationException) {
+                threwOutOfScope = true;
+            }
+            Assert.IsTrue(condition: threwOutOfScope);
+
+            // Works across scope = "all" by ID "88"
+            IReadOnlyList<GameModuleInfo> explicitAll = registry.ResolveModules(
+                currentModuleRoot: parentDir,
+                scope: "all",
+                requestedModules: ["88"]
+            );
+            Assert.AreEqual(expected: 1, actual: explicitAll.Count);
+            Assert.AreEqual(expected: "ExternalGame", actual: explicitAll[index: 0].Name);
+        } finally {
+            if (System.IO.Directory.Exists(path: tempRoot)) {
+                System.IO.Directory.Delete(path: tempRoot, recursive: true);
+            }
+        }
+    }
+
+    [TestMethod]
+    public void DiscoverGamesAndResolveModules_ThrowsOnDuplicateValidModuleFolderNamesAtDifferentDepths() {
+        string tempRoot = System.IO.Path.Combine(path1: System.IO.Path.GetTempPath(), path2: $"RemakeEngine_DupMod_{System.Guid.NewGuid():N}");
+        try {
+            string gamesDir = System.IO.Path.Combine(path1: tempRoot, path2: "Games");
+            string parentDir = System.IO.Path.Combine(path1: gamesDir, path2: "ParentHub");
+            string firstDupDir = System.IO.Path.Combine(path1: gamesDir, path2: "SharedName");
+            string secondDupDir = System.IO.Path.Combine(path1: parentDir, path2: "Nested", path3: "SharedName");
+
+            foreach (string dir in new[] { parentDir, firstDupDir, secondDupDir }) {
+                System.IO.Directory.CreateDirectory(path: dir);
+                System.IO.File.WriteAllText(path: System.IO.Path.Combine(path1: dir, path2: "operations.toml"), contents: "[[operation]]\nid = 1\nscript = \"noop.lua\"\n");
+            }
+
+            string mainJsonc = System.IO.Path.Combine(path1: tempRoot, path2: "Main.jsonc");
+            System.IO.File.WriteAllText(path: mainJsonc, contents: "{ \"modules\": {} }");
+
+            Registries registries = new(gamesRel: gamesDir, modulesRel: mainJsonc);
+            ModuleScanner scanner = new(registries: registries);
+            GameRegistry registry = new(registries: registries, scanner: scanner);
+
+            bool threwDiscover = false;
+            try {
+                _ = registries.DiscoverGames();
+            } catch (System.InvalidOperationException) {
+                threwDiscover = true;
+            }
+            Assert.IsTrue(condition: threwDiscover);
+
+            bool threwResolve = false;
+            try {
+                _ = registry.ResolveModules(currentModuleRoot: parentDir, scope: "all");
+            } catch (System.InvalidOperationException) {
+                threwResolve = true;
+            }
+            Assert.IsTrue(condition: threwResolve);
+        } finally {
+            if (System.IO.Directory.Exists(path: tempRoot)) {
+                System.IO.Directory.Delete(path: tempRoot, recursive: true);
+            }
+        }
+    }
 }
 

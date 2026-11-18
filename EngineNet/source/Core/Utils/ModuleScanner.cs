@@ -155,9 +155,15 @@ public sealed class ModuleScanner {
         foreach (KeyValuePair<string, GameInfo> kv in installed) {
             string name = kv.Key;
             GameInfo gameInfo = kv.Value;
-            Data.GameModuleInfo info;
+            // Match registered modules by registry name first, then by normalized GameRoot path
+            // in case a registered module uses a registry name different from its folder name.
+            if (!result.TryGetValue(key: name, out Data.GameModuleInfo? info)) {
+                info = result.Values.FirstOrDefault(
+                    predicate: existing => GameRegistry.Registries.PathsEqual(left: existing.GameRoot, right: gameInfo.GameRoot)
+                );
+            }
             // if not already present (i.e. registered), create a new entry
-            if (!result.TryGetValue(key: name, out info!)) {
+            if (info is null) {
                 Shared.IO.Diagnostics.Trace($"Found unregistered but installed module: {name}");
                 info = new Data.GameModuleInfo {
                     Id = string.Empty, // unknown
@@ -166,7 +172,7 @@ public sealed class ModuleScanner {
                     GameRoot = gameInfo.GameRoot,
                     OpsFile = gameInfo.OpsFile,
                     ExePath = string.Empty,     // to be filled below if (built) game.toml exists
-                    Title = string.Empty,       // to be filled below if (built) game.toml exists
+                    Title = string.Empty,       // to be resolved below if (built) game.toml exists
                     IsRegistered = false,       // default for unregistered
                     IsInstalled = true,         // default for unregistered
                     IsUnverified = true,        // default for unregistered
@@ -191,7 +197,12 @@ public sealed class ModuleScanner {
 
             // A "Built" module must also be "Installed", so it must be in the dictionary.
             // We just need to update it.
-            if (result.TryGetValue(key: name, out Data.GameModuleInfo? info)) {
+            if (!result.TryGetValue(key: name, out Data.GameModuleInfo? info)) {
+                info = result.Values.FirstOrDefault(
+                    predicate: existing => GameRegistry.Registries.PathsEqual(left: existing.GameRoot, right: gameInfo.GameRoot)
+                );
+            }
+            if (info is not null) {
                 info.IsBuilt = true;
                 info.ExePath = gameInfo.ExePath ?? string.Empty;
                 info.Title = gameInfo.Title ?? string.Empty;

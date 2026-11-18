@@ -27,6 +27,7 @@ public sealed class Registries {
         "reversing",
         "research",
         "GodotProject",
+        "godot",
         "docs",
         "tools",
         "bin",
@@ -226,7 +227,7 @@ public sealed class Registries {
     /// pruning dot-directories, hidden/system folders, and known module-internal asset/source folders.
     /// Continues into non-pruned subdirectories even when a parent directory is itself a valid module, enabling nested submodules.
     /// </summary>
-    private static IEnumerable<(string DirPath, string OpsFile, string Category)> EnumerateModuleDirectories(string gamesRoot, int maxDepth = 4) {
+    private static IEnumerable<(string DirPath, string OpsFile, string Category, int Depth)> EnumerateModuleDirectories(string gamesRoot, int maxDepth = 5) {
         if (!System.IO.Directory.Exists(path: gamesRoot)) {
             yield break;
         }
@@ -276,16 +277,87 @@ public sealed class Registries {
                 }
 
                 string? ops = FindOperationsFile(moduleDirectory: subDir);
-
+                int childDepth = currentDepth + 1;
                 string inferredCategory = currentDepth == 0 ? string.Empty : topCategory;
                 if (ops is not null) {
-                    yield return (subDir, ops, inferredCategory);
+                    yield return (subDir, ops, inferredCategory, childDepth);
                 }
 
                 string nextTopCategory = currentDepth == 0 ? dirName : topCategory;
-                queue.Enqueue(item: (subDir, currentDepth + 1, nextTopCategory));
+                queue.Enqueue(item: (subDir, childDepth, nextTopCategory));
             }
         }
+    }
+
+    internal static string NormalizeDirectoryPath(string? path) {
+        if (string.IsNullOrWhiteSpace(value: path)) {
+            return string.Empty;
+        }
+        return System.IO.Path.TrimEndingDirectorySeparator(path: System.IO.Path.GetFullPath(path: path));
+    }
+
+    internal static bool PathsEqual(string? left, string? right) {
+        string normalizedLeft = NormalizeDirectoryPath(path: left);
+        string normalizedRight = NormalizeDirectoryPath(path: right);
+        if (normalizedLeft.Length == 0 || normalizedRight.Length == 0) {
+            return false;
+        }
+        System.StringComparison comparison = System.OperatingSystem.IsWindows()
+            ? System.StringComparison.OrdinalIgnoreCase
+            : System.StringComparison.Ordinal;
+        return string.Equals(a: normalizedLeft, b: normalizedRight, comparisonType: comparison);
+    }
+
+    internal static bool IsSubPathOf(string? childDir, string? parentDir) {
+        string normalizedChild = NormalizeDirectoryPath(path: childDir);
+        string normalizedParent = NormalizeDirectoryPath(path: parentDir);
+        if (normalizedChild.Length == 0 || normalizedParent.Length == 0) {
+            return false;
+        }
+        if (PathsEqual(left: normalizedChild, right: normalizedParent)) {
+            return false;
+        }
+        string prefix = normalizedParent + System.IO.Path.DirectorySeparatorChar;
+        System.StringComparison comparison = System.OperatingSystem.IsWindows()
+            ? System.StringComparison.OrdinalIgnoreCase
+            : System.StringComparison.Ordinal;
+        return normalizedChild.StartsWith(value: prefix, comparisonType: comparison);
+    }
+
+    /// <summary>
+    /// Discovers valid module directories under <paramref name="gamesRoot"/> and throws an <see cref="System.InvalidOperationException"/>
+    /// if two different valid module directories share the same folder name (even at different directory depths).
+    /// </summary>
+    internal static Dictionary<string, Core.Data.GameInfo> DiscoverGamesAt(string gamesRoot) {
+        Dictionary<string, Core.Data.GameInfo> games = new(comparer: System.StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(value: gamesRoot) || !System.IO.Directory.Exists(path: gamesRoot)) {
+            return games;
+        }
+
+        Dictionary<string, int> discoveredDepths = new(comparer: System.StringComparer.OrdinalIgnoreCase);
+        foreach ((string dir, string ops, string category, int depth) in EnumerateModuleDirectories(gamesRoot: gamesRoot)) {
+            string fullDir = System.IO.Path.GetFullPath(path: dir);
+            string fullOps = System.IO.Path.GetFullPath(path: ops);
+            string name = new System.IO.DirectoryInfo(path: fullDir).Name;
+
+            if (games.TryGetValue(key: name, out Core.Data.GameInfo? existing)) {
+                if (!PathsEqual(left: existing.GameRoot, right: fullDir)) {
+                    int existingDepth = discoveredDepths.TryGetValue(key: name, out int d) ? d : -1;
+                    throw new System.InvalidOperationException(
+                        $"Duplicate valid module folder name '{name}' detected at depth {existingDepth} ('{existing.GameRoot}') and depth {depth} ('{fullDir}'). Valid module directories must have unique folder names."
+                    );
+                }
+                continue;
+            }
+
+            discoveredDepths[key: name] = depth;
+            games[key: name] = new GameInfo(
+                opsFile: fullOps,
+                gameRoot: fullDir,
+                category: category
+            );
+        }
+        return games;
     }
 
     /// <summary>
@@ -300,20 +372,7 @@ public sealed class Registries {
     /// </summary>
     /// <returns></returns>
     public Dictionary<string, Core.Data.GameInfo> DiscoverGames() {
-        Dictionary<string, Core.Data.GameInfo> games = new(comparer: System.StringComparer.OrdinalIgnoreCase);
-        if (!System.IO.Directory.Exists(path: _gamesRegistryPath)) {
-            return games;
-        }
-
-        foreach ((string dir, string ops, string category) in EnumerateModuleDirectories(gamesRoot: _gamesRegistryPath)) {
-            string name = new System.IO.DirectoryInfo(path: dir).Name;
-            games[key: name] = new GameInfo(
-                opsFile: System.IO.Path.GetFullPath(path: ops),
-                gameRoot: System.IO.Path.GetFullPath(path: dir),
-                category: category
-            );
-        }
-        return games;
+        return DiscoverGamesAt(gamesRoot: _gamesRegistryPath);
     }
 
     /// <summary>
@@ -327,7 +386,7 @@ public sealed class Registries {
             return games;
         }
 
-        foreach ((string dir, string ops, string category) in EnumerateModuleDirectories(gamesRoot: _gamesRegistryPath)) {
+        foreach ((string dir, string ops, string category, int _) in EnumerateModuleDirectories(gamesRoot: _gamesRegistryPath)) {
             string gameToml = System.IO.Path.Join(path1: dir, path2: "game.toml");
             if (!System.IO.File.Exists(path: gameToml)) {
                 Shared.IO.Diagnostics.Trace($"warning: game '{new System.IO.DirectoryInfo(path: dir).Name}' is missing game.toml - skipping");
